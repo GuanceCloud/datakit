@@ -1,3 +1,15 @@
+---
+title     : 'Prometheus Exporter'
+summary   : 'Collect metrics exposed by Prometheus Exporter'
+__int_icon      : 'icon/prometheus'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
+
 
 # Prometheus Exporter Data Collection
 ---
@@ -8,12 +20,13 @@
 
 The Prom collector can obtain all kinds of metric data exposed by Prometheus Exporters, so long as the corresponding Exporter address is configured, the metric data can be accessed.
 
-## Preconditions {#requirements}
-
-Only metric data in Prometheus form can be accessed.
-
 ## Configuration {#config}
 
+### Preconditions {#requirements}
+
+### Collector Configuration {#input-config}
+
+Only metric data in Prometheus form can be accessed.
 === "Host Installation"
 
     Go to the `conf.d/prom` directory under the DataKit installation directory, copy `prom.conf.sample` and name it `prom.conf`. Examples are as follows:

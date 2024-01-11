@@ -21,19 +21,20 @@ func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqTopics,
 		Type: "metric",
-		Desc: "NSQ 集群所有 topic 的指标",
+		Desc: "Metrics of all topics in the NSQ cluster",
 		Tags: map[string]interface{}{
-			"topic":   inputs.NewTagInfo("topic 名称"),
-			"channel": inputs.NewTagInfo("channel 名称"),
+			"topic":   inputs.NewTagInfo("Topic name"),
+			"channel": inputs.NewTagInfo("Channel name"),
 		},
 		Fields: map[string]interface{}{
-			"depth":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "在当前 channel 中未被消费的消息总数"},
-			"backend_depth":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "超出 men-queue-size 的未被消费的消息总数"},
-			"in_flight_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "发送过程中或者客户端处理过程中的数量，客户端没有发送 FIN、REQ(重新入队列) 和超时的消息数量"},
-			"deferred_count":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "重新入队并且还没有准备好重新发送的消息数量"},
-			"message_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "当前 channel 处理的消息总数量"},
-			"requeue_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "超时或者客户端发送 REQ 的消息数量"},
-			"timeout_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "超时未处理的消息数量"},
+			"depth":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unconsumed messages in the current channel."},
+			"backend_depth": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unconsumed messages exceeding the max-queue-size."},
+			"in_flight_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of messages during the sending process or client processing " +
+				"that have not been sent FIN, REQ (requeued), or timed out."},
+			"deferred_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of messages that have been requeued and are not yet ready for re-sending."},
+			"message_count":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of messages processed in the current channel."},
+			"requeue_count":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of messages that have timed out or have been sent REQ by the client."},
+			"timeout_count":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of messages that have timed out and are still unprocessed."},
 		},
 	}
 }
@@ -45,15 +46,15 @@ func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqNodes,
 		Type: "metric",
-		Desc: "NSQ 集群所有 node 的指标",
+		Desc: "Metrics of all nodes in the NSQ cluster.",
 		Tags: map[string]interface{}{
-			"server_host": inputs.NewTagInfo("服务地址，即 `host:ip`"),
+			"server_host": inputs.NewTagInfo("Service address, that is `host:ip`."),
 			"host":        inputs.NewTagInfo("Hostname"),
 		},
 		Fields: map[string]interface{}{
-			"depth":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "在当前 node 中未被消费的消息总数"},
-			"backend_depth": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "超出 men-queue-size 的未被消费的消息总数"},
-			"message_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "当前 node 处理的消息总数量"},
+			"depth":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unconsumed messages in the current node."},
+			"backend_depth": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of unconsumed messages exceeding the max-queue-size."},
+			"message_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of messages processed by the current node."},
 		},
 	}
 }

@@ -51,6 +51,8 @@ Datakit 支持以上所有版本。
 
 ## 配置 {#config}
 
+### 采集器配置 {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

@@ -1,5 +1,19 @@
+---
+title     : 'SSH'
+summary   : 'Collect SSH metrics'
+__int_icon      : 'icon/ssh'
+dashboard :
+  - desc  : 'SSH'
+    path  : 'dashboard/en/ssh'
+monitor   :
+  - desc  : 'SSH'
+    path  : 'monitor/en/ssh'
+---
 
+<!-- markdownlint-disable MD025 -->
 # SSH
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -9,6 +23,8 @@
 Monitor SSH/SFTP services and report data to Guance Cloud.
 
 ## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -24,12 +40,12 @@ Monitor SSH/SFTP services and report data to Guance Cloud.
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.ssh.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.ssh.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

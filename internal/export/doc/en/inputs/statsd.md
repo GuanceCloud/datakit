@@ -1,16 +1,31 @@
+---
+title     : 'StatsD'
+summary   : 'Collect metrics reported by StatsD'
+__int_icon      : 'icon/statsd'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Statsd Data Access
+<!-- markdownlint-disable MD025 -->
+# StatsD 数据接入
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
 
 ---
+
 The indicator data collected by the DDTrace agent will be sent to port 8125 of the DK through the StatsD data type.
 
 This includes the JVM CPU, memory, threads, and class loading information of the JVM runtime, as well as various collected JMX indicators such as Kafka, Tomcat, RabbitMQ, etc.
 
+## Config {#config}
 
-## Preconditions {#requrements}
+### Preconditions {#requrements}
 
 When DDTrace runs as an agent, there is no need for the user to specifically open the jmx port. If no port is opened, the agent will randomly open a local port.
 
@@ -34,8 +49,7 @@ For example, Tomcat or Kafka:
 -Ddd.jmxfetch.kafka.enabled=true 
 ```
 
-
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -70,7 +84,7 @@ The end result is that you can see `statsd/tomcat/cn-shanghai-sq5ei` in the `dat
 
 In addition, there is a configuration swith `save_above_key` that determine whether the tags corresponding to `statsd_source_key` and `statsd_host_key` are reported to the center. The default is not to report(`false`).
 
-## Measurement {#measurement}
+## Metric {#metric}
 
 Statsd has no measurement definition at present, and all metrics are subject to the metrics sent by the network.
 

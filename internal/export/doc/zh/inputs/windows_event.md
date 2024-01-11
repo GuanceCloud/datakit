@@ -22,7 +22,6 @@ monitor   :
 
 Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事件日志
 
-
 ## 配置 {#config}
 
 ### 前置条件 {#requrements}
@@ -39,7 +38,7 @@ Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事
 
 配置好后，重启 DataKit 即可。
 
-## 指标 {#metric}
+## 日志 {#logging}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 

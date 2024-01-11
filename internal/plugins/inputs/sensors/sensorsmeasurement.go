@@ -22,10 +22,10 @@ func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "sensors",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"hostname": &inputs.TagInfo{Desc: "host name"},
-			"adapter":  &inputs.TagInfo{Desc: "device adapter"},
-			"chip":     &inputs.TagInfo{Desc: "chip id"},
-			"feature":  &inputs.TagInfo{Desc: "gathering target"},
+			"hostname": &inputs.TagInfo{Desc: "Host name"},
+			"adapter":  &inputs.TagInfo{Desc: "Device adapter"},
+			"chip":     &inputs.TagInfo{Desc: "Chip id"},
+			"feature":  &inputs.TagInfo{Desc: "Gathering target"},
 		},
 		Fields: map[string]interface{}{
 			"tmep*_crit":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Critical temperature of this chip, '*' is the order number in the chip list.`},

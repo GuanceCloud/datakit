@@ -26,6 +26,8 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 
 ## 配置  {#config}
 
+### 采集器配置 {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

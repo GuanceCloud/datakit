@@ -1,5 +1,19 @@
+---
+title     : 'TDengine'
+summary   : 'Collect TDengine metrics'
+__int_icon      : 'icon/tdengine'
+dashboard :
+  - desc  : 'TDengine'
+    path  : 'dashboard/en/tdengine'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # TDengine
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -12,8 +26,9 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
 
 ## Configuration  {#config}
 
-=== "Host Installation"
+### Collector Config {#input-config}
 
+=== "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
@@ -22,7 +37,6 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
     ```
     
     After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
-
 
 === "Kubernetes"
 
@@ -33,13 +47,7 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
     Please make sure the port is open before connecting to the taoAdapter. And the connecting user needs to have read permission.
     If the connection still fails, [please refer to](https://docs.taosdata.com/2.6/train-faq/faq/){:target="_blank"}
 
-
-### TdEngine Dashboard {#td-dashboard}
-
-    At present, Guance Cloud has provided a built-in TDEngine dashboard, and you can select the TDEngine dashboard in ***Guance Cloud*** -- ***Scene***--***New Dashboard***.
-
-
-## Measurement {#td-metrics}
+## Metric {#metric}
 
 {{ range $i, $m := .Measurements }}
 

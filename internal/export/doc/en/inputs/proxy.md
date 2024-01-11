@@ -1,5 +1,18 @@
+---
+title     : 'Proxy'
+summary   : 'Proxy HTTP requests to Datakit'
+__int_icon      : 'icon/proxy'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Proxy
+<!-- markdownlint-disable MD025 -->
+# DataKit Proxy
+<!-- markdownlint-enable -->
 
 ---
 
@@ -9,10 +22,11 @@
 
 Proxy collector used to proxy HTTP request.
 
-## Config {#config}
+## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
-
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -99,7 +113,7 @@ Proxy input export some Prometheus metrics:
 If some datakit enabled Proxy input, there will be some metrics in dashboard of Datakit.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention 
+???+ attention
 
     Without MITM, `datakit_input_proxy_api_total` and `datakit_input_proxy_api_latency_seconds` will be null.
 <!-- markdownlint-enable -->

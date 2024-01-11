@@ -26,6 +26,8 @@ monitor   :
 
 ## 配置 {#config}
 
+### 采集器配置 {#input-config}
+
 挑选网络中的一个能访问外网的 DataKit，作为代理，配置其代理设置。
 
 <!-- markdownlint-disable MD046 -->

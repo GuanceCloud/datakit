@@ -27,219 +27,219 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"master_uptime": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond,
-				Desc: "从 dnode 当选为 master 的时间",
+				Desc: "Seconds of master's uptime",
 			},
 
 			"expire_time": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationSecond,
-				Desc: "企业版到期时间",
+				Desc: "Time until grants expire in seconds",
 			},
 
 			"timeseries_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "企业版已使用测点数",
+				Desc: "Time series used",
 			},
 
 			"timeseries_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "企业版总测点数",
+				Desc: "Total time series",
 			},
 
 			"database_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库总个数",
+				Desc: "Total number of databases",
 			},
 
 			"table_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中的表总数",
+				Desc: "Total number of tables in the database",
 			},
 
 			"tables_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中每个 database 中表数量的指标",
+				Desc: "Number of tables per vgroup",
 			},
 
 			"dnodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "集群中数据节点(dnode) 的总个数",
+				Desc: "Total number of dnodes(data nodes) in cluster",
 			},
 			"dnodes_alive": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "集群中数据节点存活个数",
+				Desc: "Total number of dnodes in ready state",
 			},
 			"mnodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库管理节点(`mnode`)个数",
+				Desc: "Total number of mnodes(management nodes) in cluster",
 			},
 			"mnodes_alive": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库管理节点存活个数",
+				Desc: "Total number of mnodes in ready state",
 			},
 			"vgroups_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中虚拟节点组总数",
+				Desc: "Total number of vgroups in cluster",
 			},
 			"vgroups_alive": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中虚拟节点组总存活数",
+				Desc: "Total number of vgroups in ready state",
 			},
 			"vnodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中虚拟节点总数",
+				Desc: "Total number of vnode in cluster",
 			},
 			"vnodes_alive": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据库中虚拟节点总存活数",
+				Desc: "Total number of vnode in ready state",
 			},
 			"vnodes": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "单个数据节点中包括虚拟节点组的数量",
+				Desc: "The number of virtual node groups contained in a single data node",
 			},
 
 			"req_insert_rate": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "请求插入数据的速率",
+				Desc: "Number of insert queries received per dnode divided by monitor interval",
 			},
 
 			"req_insert_batch_rate": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "请求插入数据批次速率",
+				Desc: "Number of batch insertions divided by monitor interval",
 			},
 
 			"req_select": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "查询数量",
+				Desc: "Number of select queries received per dnode",
 			},
 			"req_select_rate": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "查询速率",
+				Desc: "Number of select queries received per dnode divided by monitor interval",
 			},
 
 			"req_http": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "通过 http 请求的总数",
+				Desc: "Total number of requests via HTTP",
 			},
 
 			"req_http_rate": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "http 请求速率",
+				Desc: "HTTP request rate",
 			},
 			"cpu_cores": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "每个数据节点的 CPU 总核数",
+				Desc: "Total number of CPU cores per data node",
 			},
 
 			"vnodes_num": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "每个数据节点的虚拟节点总数",
+				Desc: "Total number of virtual nodes per data node",
 			},
 
 			"cpu_engine": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "每个数据节点的 CPU 使用率",
+				Desc: "CPU usage per data node",
 			},
 
 			"disk_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeGB,
-				Desc: "数据节点的磁盘使用量",
+				Desc: "Disk usage of data nodes",
 			},
 
 			"disk_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeGB,
-				Desc: "数据节点磁盘总量",
+				Desc: "Total disk size of data nodes",
 			},
 
 			"disk_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "数据节点磁盘使用率",
+				Desc: "Data node disk usage percentage",
 			},
 
 			"cpu_system": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "数据节点的 CPU 系统使用率",
+				Desc: "CPU system usage of data nodes",
 			},
 
 			"mem_engine": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeMB,
-				Desc: "TDEngine 占用内存量",
+				Desc: "Memory usage of tdengine",
 			},
 
 			"mem_system": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeMB,
-				Desc: "数据节点系统占用总内存量",
+				Desc: "Available memory on the server",
 			},
 
 			"mem_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeGB,
-				Desc: "数据节点总内存量",
+				Desc: "Total memory of server",
 			},
 
 			"mem_engine_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "`taosd` 占用内存率",
+				Desc: "`taosd` memory usage percentage",
 			},
 
 			"io_read_taosd": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeMB,
-				Desc: "平均每秒 IO read 的数据大小",
+				Desc: "Average data size of IO reads per second",
 			},
 
 			"io_write_taosd": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeMB,
-				Desc: "平均每秒 IO write 的数据大小",
+				Desc: "Average data size of IO writes per second",
 			},
 
 			"net_in": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeKB,
-				Desc: "入口网络的 IO 速率",
+				Desc: "IO rate of the ingress network",
 			},
 
 			"net_out": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeKB,
-				Desc: "出口网络的 IO 速率",
+				Desc: "IO rate of egress network",
 			},
 
 			"total_req_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "adapter 总请求量",
+				Desc: "Total adapter requests",
 			},
 
 			"status_code": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "请求返回的状态码",
+				Desc: "Status code returned by the request",
 			},
 
 			"client_ip_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "客户端 IP 请求次数统计",
+				Desc: "Client IP request statistics",
 			},
 
 			"request_in_flight": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "正在梳理的请求数量",
+				Desc: "Number of requests being sorted",
 			},
 
 			"cpu_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "adapter 占用 CPU 使用率",
+				Desc: "Adapter occupies CPU usage",
 			},
 
 			"mem_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "adapter 占用 MEM 使用率",
+				Desc: "Adapter memory usage",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":          &inputs.TagInfo{Desc: "主机名"},
-			"cluster_name":  &inputs.TagInfo{Desc: "集群名称"},
-			"end_point":     &inputs.TagInfo{Desc: "远端地址名称，一般命名规则是(host:port)"},
-			"dnode_ep":      &inputs.TagInfo{Desc: "数据节点名称，一般情况下与 end_point 等价"},
-			"database_name": &inputs.TagInfo{Desc: "数据库名称"},
-			"vgroup_id":     &inputs.TagInfo{Desc: "虚拟组 ID"},
-			"client_ip":     &inputs.TagInfo{Desc: "请求端 IP"},
-			"version":       &inputs.TagInfo{Desc: "version"},
-			"first_ep":      &inputs.TagInfo{Desc: "first endpoint"},
+			"host":          &inputs.TagInfo{Desc: "Host name"},
+			"cluster_name":  &inputs.TagInfo{Desc: "Cluster name"},
+			"end_point":     &inputs.TagInfo{Desc: "Remote address name, the general naming rule is (host:port)"},
+			"dnode_ep":      &inputs.TagInfo{Desc: "Data node name, generally equivalent to `end_point`"},
+			"database_name": &inputs.TagInfo{Desc: "Database name"},
+			"vgroup_id":     &inputs.TagInfo{Desc: "VGroup ID"},
+			"client_ip":     &inputs.TagInfo{Desc: "Client IP"},
+			"version":       &inputs.TagInfo{Desc: "Version"},
+			"first_ep":      &inputs.TagInfo{Desc: "First endpoint"},
 		},
 	}
 }

@@ -1,4 +1,5 @@
 # Telegraf Data Access
+
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:

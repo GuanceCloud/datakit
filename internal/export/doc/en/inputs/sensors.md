@@ -1,20 +1,36 @@
+---
+title     : 'Hardware Sensors data collection'
+summary   : 'Collect hardware temperature indicators through Sensors command'
+__int_icon      : 'icon/sensors'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Hardware Temperature Sensors
+<!-- markdownlint-disable MD025 -->
+# Hardware temperature Sensors
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
+## Configuration {#config}
+
 Computer chip temperature data acquisition using the `lm-sensors` command (currently only support `Linux` operating system).
 
-## Preconditions {#requrements}
+### Preconditions {#requrements}
 
 - Run the install command `apt install lm-sensors -y`
 - Run the scan command `sudo sensors-detect` enter `Yes` for each question
 - After running the scan, you will see 'service kmod start' to load the scanned sensors, which may vary depending on your operating system.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -30,12 +46,12 @@ Computer chip temperature data acquisition using the `lm-sensors` command (curre
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-## Measurements {#measurements}
+### Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.sensors.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ```toml
- [inputs.sensors.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

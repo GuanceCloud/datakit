@@ -1,5 +1,19 @@
+---
+title     : 'Profiling'
+summary   : 'Collect application runtime performance data'
+__int_icon: 'icon/profiling'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Profile Collection Configuration
+<!-- markdownlint-disable MD025 -->
+# Profiling
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +22,11 @@
 
 Profile supports collecting dynamic performance data of applications running in different language environments such as Java/Python, and helps users to view performance problems of CPU, memory and IO.
 
-## Configuration Notes {#config}
+## Configuration {#config}
 
 At present, DataKit collects profiling data in two ways: 
 
-- Push mode: the DataKit Profile service needs to be opened, and the client actively pushes data to the DataKit 
+- Push mode: the DataKit Profile service needs to be opened, and the client actively pushes data to the DataKit
 
 - Pull method: currently only [Go](profile-go.md) support, need to manually configure relevant information
 
@@ -32,12 +46,12 @@ At present, DataKit collects profiling data in two ways:
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-## Measurements {#measurements}
+## Profiling {#profiling}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.profile.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.profile.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

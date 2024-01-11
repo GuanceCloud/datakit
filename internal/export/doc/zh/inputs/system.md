@@ -28,6 +28,8 @@ System 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 成功安装 DataKit 并启动后，会默认开启 System 采集器，无需手动开启。
 
+### 采集器配置 {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 
 === "主机安装"

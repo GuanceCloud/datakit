@@ -11,7 +11,7 @@ monitor   :
 ---
 
 <!-- markdownlint-disable MD025 -->
-# 采集器配置
+# RUM
 <!-- markdownlint-enable -->
 
 ---
@@ -22,7 +22,9 @@ monitor   :
 
 RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用户访问监测数据。
 
-## 接入方式 {#supported-platforms}
+## 配置 {#config}
+
+### 接入方式 {#supported-platforms}
 
 <div class="grid cards" markdown>
 - :material-web: [JavaScript](../real-user-monitoring/web/app-access.md)
@@ -32,8 +34,6 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 - [Flutter](../real-user-monitoring/flutter/app-access.md)
 - :material-react:[ReactNative](../real-user-monitoring/react-native/app-access.md)
 </div>
-
-## 配置 {#config}
 
 ### 前置条件 {#requirements}
 
@@ -422,5 +422,3 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 | `source`            | string | 数据来源               | browser         |
 | `has_full_snapshot` | string | 是否是全量数据            | false           |
 | `raw_segment_size`  | int    | 原始会话重放数据的大小（单位：字节） | 656             |
-
-

@@ -1,5 +1,19 @@
+---
+title     : 'Windows Event'
+summary   : 'Collect event logs in Windows'
+__int_icon      : 'icon/winevent'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Windows Events
+<!-- markdownlint-disable MD025 -->
+# Windows 事件
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +22,13 @@
 
 Windows Event Log Collection is used to collect applications, security, systems and so on.
 
-## Preconditions {#requrements}
+## Configuration {#config}
+
+### Preconditions {#requrements}
 
 - Windows version >= Windows Server 2008 R2
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 Go to the `conf.d/windows` directory under the DataKit installation directory, copy `windows_event.conf.sample` and name it `windows_event.conf`. Examples are as follows:
 
@@ -22,9 +38,9 @@ Go to the `conf.d/windows` directory under the DataKit installation directory, c
 
 After configuration, restart DataKit.
 
-## Measurement {#measurements}
+## Logging {#logging}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.windows_event.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
  [inputs.windows_event.tags]
@@ -35,10 +51,9 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ range $i, $m := .Measurements }}
 
-
 ### `{{$m.Name}}`
 
--  tag
+- tag
 
 {{$m.TagsMarkdownTable}}
 
@@ -46,7 +61,4 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} 
-
- 
-
+{{ end }}

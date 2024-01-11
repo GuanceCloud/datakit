@@ -1,5 +1,19 @@
+---
+title     : 'RUM'
+summary   : 'Collect user behavior data'
+__int_icon      : 'icon/rum'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# Collector Configuration
+<!-- markdownlint-disable MD025 -->
+# RUM
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 RUM (Real User Monitor) collector is used to collect user access monitoring data reported by web page or mobile terminal.
 
-## Access Mode {#supported-platforms}
+## Configuration {#config}
+
+### Access Mode {#supported-platforms}
 
 <div class="grid cards" markdown>
 - :material-web: [__JavaScript__](../real-user-monitoring/web/app-access.md)
@@ -19,7 +35,7 @@ RUM (Real User Monitor) collector is used to collect user access monitoring data
 - :material-react:[__ReactNative__](../real-user-monitoring/react-native/app-access.md)
 </div>
 
-## Preconditions {#requirements}
+### Preconditions {#requirements}
 
 - Deploy DataKit to be publicly accessible
 
@@ -28,7 +44,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 - On the DataKit [install IP geo-Repository](datakit-tools-how-to.md#install-ipdb)
 - Since [1.2.7](../datakit/changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -55,7 +71,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
       value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
 
-## Security Restrictions {#security-setting}
+### Security Restrictions {#security-setting}
 
 Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
 
@@ -86,7 +102,7 @@ You can disable public network access to DataKit 404 pages with the following co
 disable_404page = true
 ```
 
-## Measurements {#measurements}
+## RUM {#rum}
 
 The RUM collector collects the following metric sets by default:
 
@@ -111,7 +127,6 @@ sudo datakit install --symbol-tools
 ```
 
 If a software installation fails during the installation process, you may need to manually install the corresponding software according to the error prompt.
-
 
 ### Zip Packaging Instructions {#zip}
 
@@ -370,3 +385,35 @@ As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5
 
     RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of Datakit.
 <!-- markdownlint-enable -->
+
+### RUM Session Replay Filter {#rum-session-replay-filter}
+
+Starting from the Datakit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) version, it is supported to use configuration to filter out unnecessary session replay data. New The configuration item name is `filter_rules`, and the format is similar to the following (please refer to `rum.conf.sample` RUM sample configuration file):
+
+```toml
+[inputs.rum.session_replay]
+#   cache_path = "/usr/local/datakit/cache/session_replay"
+#   cache_capacity_mb = 20480
+#   clear_cache_on_start = false
+#   upload_workers = 16
+#   send_timeout = "75s"
+#   send_retry_count = 3
+   filter_rules = [
+       "{ service = 'xxx' or version IN [ 'v1', 'v2'] }",
+       "{ app_id = 'yyy' and env = 'production' }"
+   ]
+```
+
+`filter_rules` is an array of rules. There is an "OR" logical relationship between each rule. That is to say, a certain session replay data will be discarded as long as it hits any one of the rules. It will be discarded only if all the rules fail to hit. reserve. The fields currently supported by filtering rules are as shown in the following table:
+
+| Field name          | Type   | Description                                   | Example         |
+| ------------------- | ------ | --------------------------------------------- | --------------- |
+| `app_id`            | string | Application ID                                | appid_123456789 |
+| `service`           | string | service name                                  | user_center     |
+| `version`           | string | Service version                               | v1.0.0          |
+| `env`               | string | Service deployment environment                | production      |
+| `sdk_name`          | string | RUM SDK name                                  | df_web_rum_sdk  |
+| `sdk_version`       | string | RUM SDK version                               | 3.1.5           |
+| `source`            | string | data source                                   | browser         |
+| `has_full_snapshot` | string | Whether it is full data                       | false           |
+| `raw_segment_size`  | int    | Size of raw session replay data (unit: bytes) | 656             |

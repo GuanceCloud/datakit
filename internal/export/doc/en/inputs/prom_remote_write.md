@@ -1,5 +1,19 @@
+---
+title     : 'Prometheus Remote Write'
+summary   : 'Receive metrics via Prometheus Remote Write'
+__int_icon      : 'icon/prometheus'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Prometheus Remote Write
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 Monitor Prometheus Remote Write data and report it to Guance Cloud.
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 Turn on the Prometheus Remote Write feature and add the following configuration in prometheus.yml:
 
@@ -21,7 +37,7 @@ remote_write:
 # - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar&__source=<your_source>" 
 ```
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -50,7 +66,7 @@ We can label the collected metrics by configuring `tags`, as follows:
 
 If both blacklist and whitelist, all list will cancel.
 
-We can apply blacklist on the tag to ignore it: 
+We can apply blacklist on the tag to ignore it:
 
 ```toml
   ## tags to ignore
@@ -64,7 +80,7 @@ We can apply regex match blacklist on the tag to ignore it:
   tags_ignore_regex = ["xxxx"]
 ```
 
-We can apply whitelists on tags: 
+We can apply whitelists on tags:
 
 ```toml
   ## tags white list
@@ -91,7 +107,7 @@ In addition, when the renamed tag key is the same as the existing tag key: You c
 
 > Note: For [DataKit global tag key](datakit-conf.md#update-global-tag), renaming them is not supported here.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 The standard set is based on the measurements sent by Prometheus.
 
@@ -164,8 +180,6 @@ Total time series: 155
 Total line protocol points: 487
 Total measurements: 6 (prometheus, promhttp, up, scrape, go, node)
 ```
-
-
 
 Output description:
 

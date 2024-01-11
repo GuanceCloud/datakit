@@ -1,18 +1,30 @@
+---
+title     : 'Swap'
+summary   : '采集主机 swap 的指标数据'
+__int_icon      : 'icon/swap'
+dashboard :
+  - desc  : 'Swap'
+    path  : 'dashboard/en/swap'
+monitor   :
+  - desc  : 'Host monitoring library'
+    path  : 'monitor/en/host'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Swap
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
+## Configuration {#config}
+
 The swap collector is used to collect the usage of the host swap memory.
 
-## Preconditions {#requrements}
-
-None
-
-## Configuration {#config}
+## Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -33,15 +45,15 @@ None
     | `ENV_INPUT_SWAP_TAGS`     | `tags`           | `tag1=value1,tag2=value2`. If there is a tag with the same name in the configuration file, it will be overwritten |
     | `ENV_INPUT_SWAP_INTERVAL` | `interval`       | `10s`                                                        |
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.swap.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
-``` toml
- [inputs.swap.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+```toml
+[inputs.{{.InputName}}.tags]
+ # some_tag = "some_value"
+ # more_tag = "some_other_value"
+ # ...
 ```
 
 {{ range $i, $m := .Measurements }}
