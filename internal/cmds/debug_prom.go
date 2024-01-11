@@ -15,14 +15,13 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/gogo/protobuf/proto"
 	"github.com/influxdata/influxdb1-client/models"
-	"github.com/prometheus/prometheus/prompb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
 	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 )
 
 const trueString = "true"
@@ -126,7 +125,7 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 	}
 
 	var req prompb.WriteRequest
-	if err := proto.Unmarshal(data, &req); err != nil {
+	if err := req.Unmarshal(data); err != nil {
 		return fmt.Errorf("unable to unmarshal request body: %w", err)
 	}
 

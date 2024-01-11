@@ -14,9 +14,8 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/gogo/protobuf/proto"
-	"github.com/prometheus/prometheus/prompb"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 )
 
 // $ go test -benchmem -bench Benchmark_Parse -run=^$ -cpu=1  -cpuprofile=cpu.pprof -memprofile=mem.pprof
@@ -55,14 +54,17 @@ func Benchmark_Parse(b *testing.B) {
 		case query:
 			bytes, ok = ipt.collectQuery(res, req)
 		default:
-			bytes, ok = ipt.collectBody(res, req)
+			buf := getBuffer()
+			buf, ok = ipt.collectBody(res, req, buf)
+			defer putBuffer(buf)
+			bytes = buf.Bytes()
 		}
 		if !ok {
 			return
 		}
 
 		promReq := reqPool.Get().(*prompb.WriteRequest)
-		if err := proto.Unmarshal(bytes, promReq); err != nil {
+		if err := promReq.Unmarshal(bytes); err != nil {
 			l.Errorf("unable to unmarshal request body: %w", err)
 		}
 		defer func() {
@@ -83,6 +85,7 @@ func Benchmark_Parse(b *testing.B) {
 			}
 		}
 
+		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, _ = ipt.Parse(promReq.Timeseries, ipt, additionalTags)
 		}

@@ -13,7 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/prompb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 )
 
 type Parser struct {
@@ -47,16 +47,17 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 	var lenDura int64
 	var noTime int64
 
-	for _, ts := range timeSeries {
-		tags := map[string]string{}
+	for _i := range timeSeries {
+		ts := &timeSeries[_i]
+		tags := map[string][]byte{}
 
 		var ok bool
 		var metric string
 		for _, l := range ts.Labels {
-			lName := l.Name
+			lName := string(l.Name)
 			if lName == model.MetricNameLabel {
 				ok = true
-				metric = l.Value
+				metric = string(l.Value)
 				continue
 			}
 			if ipt.tagFilter(lName) {
@@ -83,9 +84,12 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 			continue
 		}
 
-		for _, s := range ts.Samples {
+		for _i := range ts.Samples {
+			s := &ts.Samples[_i]
 			if !math.IsNaN(s.Value) {
-				var kvs point.KVs
+				kvs := make(point.KVs, 0, len(tags)+1+
+					len(ipt.mergedTags)+len(additionalTags))
+
 				for k, v := range ipt.mergedTags {
 					kvs = kvs.MustAddTag(k, v)
 				}
@@ -93,7 +97,7 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 					kvs = kvs.MustAddTag(k, v)
 				}
 				for k, v := range tags {
-					kvs = kvs.MustAddTag(k, v)
+					kvs = kvs.MustAddTag(k, string(v))
 				}
 
 				kvs = kvs.Add(metricName, s.Value, false, true)

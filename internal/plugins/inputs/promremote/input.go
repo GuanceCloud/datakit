@@ -9,7 +9,6 @@ package promremote
 import (
 	"compress/gzip"
 	"crypto/subtle"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,9 +22,8 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/prometheus/prometheus/prompb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
@@ -183,12 +181,17 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var bytes []byte
+
 	var ok bool
 	switch strings.ToLower(ipt.DataSource) {
 	case query:
 		bytes, ok = ipt.collectQuery(res, req)
 	default:
-		bytes, ok = ipt.collectBody(res, req)
+		buffer := getBuffer()
+		buffer, ok = ipt.collectBody(res, req, buffer)
+		defer putBuffer(buffer)
+
+		bytes = buffer.Bytes()
 	}
 	if !ok {
 		return
@@ -221,7 +224,7 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	promReq := reqPool.Get().(*prompb.WriteRequest)
-	if err := proto.Unmarshal(bytes, promReq); err != nil {
+	if err := promReq.Unmarshal(bytes); err != nil {
 		l.Errorf("unable to unmarshal request body: %w", err)
 	}
 	defer func() {
@@ -280,7 +283,7 @@ func (ipt *Input) writeFile(data []byte) error {
 	return nil
 }
 
-func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
+func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request, srcBuf *bytesWrap) (*bytesWrap, bool) {
 	encoding := req.Header.Get("Content-Encoding")
 
 	switch encoding {
@@ -295,17 +298,18 @@ func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byt
 		}
 		defer r.Close() //nolint:errcheck
 		maxReader := http.MaxBytesReader(res, r, ipt.MaxBodySize)
-		bytes, err := io.ReadAll(maxReader)
+
+		_, err = srcBuf.ReadFrom(maxReader)
 		if err != nil {
 			if err := tooLarge(res); err != nil {
 				l.Debugf("error in too-large: %v", err)
 			}
 			return nil, false
 		}
-		return bytes, true
+		return srcBuf, true
 	case "snappy":
 		defer req.Body.Close() //nolint:errcheck
-		bytes, err := io.ReadAll(req.Body)
+		_, err := srcBuf.ReadFrom(req.Body)
 		if err != nil {
 			l.Debug(err.Error())
 			if err := badRequest(res); err != nil {
@@ -314,7 +318,14 @@ func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byt
 			return nil, false
 		}
 		// snappy block format is only supported by decode/encode not snappy reader/writer
-		bytes, err = snappy.Decode(nil, bytes)
+
+		dstBuf := getBuffer()
+		defer putBuffer(srcBuf)
+
+		buf := dstBuf.Bytes()
+		buf, err = snappy.Decode(buf[:cap(buf)], srcBuf.Bytes())
+		dstBuf.SetBytes(buf)
+
 		if err != nil {
 			l.Debug(err.Error())
 			if err := badRequest(res); err != nil {
@@ -322,10 +333,11 @@ func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byt
 			}
 			return nil, false
 		}
-		return bytes, true
+
+		return dstBuf, true
 	default:
 		defer req.Body.Close() //nolint:errcheck
-		bytes, err := io.ReadAll(req.Body)
+		_, err := srcBuf.ReadFrom(req.Body)
 		if err != nil {
 			l.Debug(err.Error())
 			if err := badRequest(res); err != nil {
@@ -333,7 +345,7 @@ func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byt
 			}
 			return nil, false
 		}
-		return bytes, true
+		return srcBuf, true
 	}
 }
 
