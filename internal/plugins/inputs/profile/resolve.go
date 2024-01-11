@@ -17,15 +17,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/uuid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 const (
-	eventJSONFile  = "event"
-	profileTagsKey = "tags[]"
+	eventJSONFile           = "event"
+	eventJSONFileWithSuffix = "event.json"
+	profileTagsKey          = "tags[]"
 )
 
 const (
@@ -336,112 +334,38 @@ func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 			}, filesize, nil
 		}
 	}
-	if eventFiles, ok := req.MultipartForm.File[eventJSONFile]; ok {
-		if len(eventFiles) == 1 {
-			fp, err := eventFiles[0].Open()
-			if err != nil {
-				return nil, filesize, fmt.Errorf("read event json file fail: %w", err)
-			}
-			defer func() {
-				_ = fp.Close()
-			}()
 
-			var events map[string]interface{}
-			decoder := json.NewDecoder(fp)
-			if err := decoder.Decode(&events); err != nil {
-				return nil, filesize, fmt.Errorf("resolve the event file fail: %w", err)
-			}
-			metadata := json2StringMap(events)
-			if len(metadata["tags_profiler"]) == 1 {
-				metadata[profileTagsKey] = strings.Split(metadata["tags_profiler"][0], ",")
-				delete(metadata, "tags_profiler")
-			}
-			if _, ok := metadata[profileTagsKey]; !ok {
-				return nil, filesize, fmt.Errorf("the profiling data format not supported, tags[] field missing")
-			}
-			return &resolvedMetadata{
-				formValue: metadata,
-				tags:      newTags(metadata[profileTagsKey]),
-			}, filesize, nil
+	eventFiles, ok := req.MultipartForm.File[eventJSONFile]
+	if !ok {
+		eventFiles, ok = req.MultipartForm.File[eventJSONFileWithSuffix]
+	}
+
+	if ok && len(eventFiles) > 0 {
+		fp, err := eventFiles[0].Open()
+		if err != nil {
+			return nil, filesize, fmt.Errorf("read event json file fail: %w", err)
 		}
+		defer func() {
+			_ = fp.Close()
+		}()
+
+		var events map[string]interface{}
+		decoder := json.NewDecoder(fp)
+		if err := decoder.Decode(&events); err != nil {
+			return nil, filesize, fmt.Errorf("resolve the event file fail: %w", err)
+		}
+		metadata := json2StringMap(events)
+		if len(metadata["tags_profiler"]) == 1 {
+			metadata[profileTagsKey] = strings.Split(metadata["tags_profiler"][0], ",")
+			delete(metadata, "tags_profiler")
+		}
+		if _, ok := metadata[profileTagsKey]; !ok {
+			return nil, filesize, fmt.Errorf("the profiling data format not supported, tags[] field missing")
+		}
+		return &resolvedMetadata{
+			formValue: metadata,
+			tags:      newTags(metadata[profileTagsKey]),
+		}, filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
-}
-
-func mkPoint(req *http.Request, metadata *resolvedMetadata, fileSize int64) (string, int64, *point.Point, error) {
-	profileStart, err := resolveStartTime(metadata.formValue)
-	if err != nil {
-		return "", 0, nil, fmt.Errorf("can not resolve profile start time: %w", err)
-	}
-
-	profileEnd, err := resolveEndTime(metadata.formValue)
-	if err != nil {
-		return "", 0, nil, fmt.Errorf("can not resolve profile end time: %w", err)
-	}
-
-	startMicroSeconds, endMicroSeconds := profileStart.UnixMicro(), profileEnd.UnixMicro()
-
-	tags := metadata.tags
-
-	runtime := getForm("runtime", metadata.formValue)
-	if runtime == "" {
-		runtime = tags.Get("runtime")
-	}
-
-	serviceName := tags.Get("service")
-	if serviceName == "" {
-		serviceName = "unnamed-service"
-	}
-
-	var kvs point.KVs
-	kvs = kvs.AddTag(TagHost, tags.Get("host"))
-	kvs = kvs.AddTag(TagEndPoint, req.URL.Path)
-	kvs = kvs.AddTag(TagService, serviceName)
-	kvs = kvs.AddTag(TagOs, tags.Get("runtime_os"))
-	kvs = kvs.AddTag(TagRuntimeArch, tags.Get("runtime_arch"))
-	kvs = kvs.AddTag(TagEnv, tags.Get("env"))
-	kvs = kvs.AddTag(TagVersion, tags.Get("version"))
-	kvs = kvs.AddTag(TagLanguage, resolveLang(metadata.formValue, tags).String())
-	kvs = kvs.AddTag(TagRuntime, runtime)
-
-	profileID := randomProfileID()
-
-	kvs = kvs.Add(FieldProfileID, profileID, false, false)
-	kvs = kvs.Add(FieldRuntimeID, tags.Get("runtime-id"), false, false)
-	kvs = kvs.Add(FieldPid, tags.Get("pid"), false, false)
-	kvs = kvs.Add(FieldFormat, getForm("format", metadata.formValue), false, false)
-	kvs = kvs.Add(FieldLibraryVer, tags.Get("profiler_version"), false, false)
-	kvs = kvs.Add(FieldDatakitVer, datakit.Version, false, false)
-	kvs = kvs.Add(FieldStart, startMicroSeconds, false, false)
-	kvs = kvs.Add(FieldEnd, endMicroSeconds, false, false)
-	kvs = kvs.Add(FieldDuration, endMicroSeconds-startMicroSeconds, false, false) // unit: microsecond
-	kvs = kvs.Add(FieldFileSize, fileSize, false, false)
-
-	// user custom tags
-	for tName, tVal := range tags {
-		// line protocol field name must not contain "."
-		tName = strings.ReplaceAll(tName, ".", "_")
-		kvs = kvs.Add(tName, tVal, false, false)
-	}
-
-	opts := point.CommonLoggingOptions()
-	opts = append(opts, point.WithTime(profileEnd))
-	pt := point.NewPointV2(inputName, kvs, opts...)
-	if err != nil {
-		return "", 0, nil, fmt.Errorf("build profile point fail: %w", err)
-	}
-
-	return profileID, profileStart.UnixNano(), pt, nil
-}
-
-func sendToIO(pt *point.Point) error {
-	lang, _ := pt.Get(TagLanguage).(string)
-
-	if err := iptGlobal.feeder.Feed(inputName+"/"+lang,
-		point.Profiling,
-		[]*point.Point{pt},
-		&dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
-		return fmt.Errorf("unable to feed profiling point: %w", err)
-	}
-	return nil
 }

@@ -33,6 +33,22 @@ var (
 	ioChanLen *prometheus.GaugeVec
 )
 
+func InputsFeedVec() *prometheus.CounterVec {
+	return inputsFeedVec
+}
+
+func InputsFeedPtsVec() *prometheus.CounterVec {
+	return inputsFeedPtsVec
+}
+
+func InputsLastFeedVec() *prometheus.GaugeVec {
+	return inputsLastFeedVec
+}
+
+func InputsCollectLatencyVec() *prometheus.SummaryVec {
+	return inputsCollectLatencyVec
+}
+
 func metricsSetup() {
 	feedCost = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
