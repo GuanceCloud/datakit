@@ -21,8 +21,15 @@
 - 支持达梦国产数据库
 - [支持 trace-id 128 位](ddtrace-128-trace-id.md){:target="_blank"}
 - 支持 PowerJob 框架
+- 支持 Apache Pulsar 消息队列
+- 支持将链路 ID 放到响应的头部中
+- 支持将请求的头部信息放到链路标签中
 
+## 链路数据中添加 HTTP Header 信息 {#trace_header}
 
+链路详情中会将请求和响应的头部信息放到标签中。默认为关闭状态，如需开启，则启动时添加参数 `-Ddd.trace.headers.enabled=true`, 开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
+
+DDTrace 最低版本支持： [v1.25.2](ddtrace-ext-changelog/cl-1.25.2-guance)
 
 ## 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
 使用启动参数 `-Ddd.mongo.obfuscation=true` 或者环境变量 `DD_MONGO_OBFUSCATION=TRUE` 开启脱敏。这样从观测云上就可以看见一条具体的命令。
@@ -33,10 +40,14 @@
 
 - [x] all
 
+DDTrace 最低版本支持： [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
+
 ## 支持达梦国产数据库 {#dameng-db}
 支持版本：
 
 - [x] v8
+
+DDTrace 最低版本支持： [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
 
 ## 获取特定函数的入参信息 {#dd-trace-methods}
 
@@ -81,6 +92,8 @@ DD_REDIS_COMMAND_ARGS=TRUE
 
 - [x] Jedis 1.4.0 以上
 
+DDTrace 最低版本支持：  [v1.3.2](ddtrace-ext-changelog/#cl-1.3.2)
+
 ## log pattern 支持自定义 {#log-pattern}
 
 通过修改默认的 log pattern 来实现应用日志和链路互相关联，从而降低部署成本。目前已支持 Log4j2 日志框架，对于 Logback 暂不支持。
@@ -95,6 +108,8 @@ DD_REDIS_COMMAND_ARGS=TRUE
 
 - [x] log4j2
 
+DDTrace 最低版本支持：  [v1.3.0](ddtrace-ext-changelog/#cl-1.3.0)
+
 ## HSF {#hsf}
 
 [HSF](https://help.aliyun.com/document_detail/100087.html){:target="_blank"} 是在阿里巴巴广泛使用的分布式 RPC 服务框架。
@@ -102,6 +117,8 @@ DD_REDIS_COMMAND_ARGS=TRUE
 支持版本：
 
 - [x] 2.2.8.2--2019-06-stable
+
+DDTrace 最低版本支持： [v1.3.0](ddtrace-ext-changelog/#cl-1.3.0)
 
 ## SQL 脱敏 {#jdbc-sql-obfuscation}
 
@@ -163,6 +180,8 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 
     这里的 meta 信息实际是给相关开发人员排查 SQL 语句具体内容的，在拿到具体的占位参数详情后，通过替换 `db.sql.origin` 中的 `?` 实际上是可以将占位参数的值填充进去，但通过字符串替换（而不是 SQL 精确解析）并不能准确的找到正确的替换（可能导致错误的替换），故此处**尽量保留原始 SQL**，占位参数详情则单独列出来，此处 `index_1` 即表示第一个占位参数，以此类推。
 <!-- markdownlint-enable -->
+
+DDTrace 最低版本支持： [v0.113.0](ddtrace-ext-changelog/#ccl-0.113.0-new)
 
 ## xxl-jobs 支持 {#xxl-jobs}
 
