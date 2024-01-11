@@ -24,7 +24,7 @@ type Config struct {
 	EnablePrometheusServiceMonitors    bool
 	StreamSize                         int
 	ExtraTags                          map[string]string
-	CustomerKeys                       []string
+	LabelAsTags                        []string
 	Feeder                             io.Feeder
 }
 

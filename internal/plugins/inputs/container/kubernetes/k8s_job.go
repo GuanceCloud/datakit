@@ -64,7 +64,7 @@ type jobMetadata struct {
 	list   *apibatchv1.JobList
 }
 
-func (m *jobMetadata) transformMetric() pointKVs {
+func (m *jobMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -96,7 +96,7 @@ func (m *jobMetadata) transformMetric() pointKVs {
 		met.SetField("completion_succeeded", succeeded)
 		met.SetField("completion_failed", failed)
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -105,7 +105,7 @@ func (m *jobMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *jobMetadata) transformObject() pointKVs {
+func (m *jobMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -148,7 +148,7 @@ func (m *jobMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

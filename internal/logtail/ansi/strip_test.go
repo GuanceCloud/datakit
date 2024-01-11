@@ -35,3 +35,12 @@ func TestStrip(t *testing.T) {
 		assert.Equal(t, tc.out, res)
 	}
 }
+
+func BenchmarkStrip(b *testing.B) {
+	in := "\033[0;31m2024/01/01 12:00:00 INFO 这是一条长句子，包含中文字符和英文字符！Hello, world! Hello, world! Hello, world!\033[0m"
+
+	for i := 0; i < b.N; i++ {
+		res := Strip(in)
+		_ = res
+	}
+}

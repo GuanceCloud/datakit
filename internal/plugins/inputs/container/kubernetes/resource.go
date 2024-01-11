@@ -26,10 +26,15 @@ type resource interface {
 }
 
 type metadata interface {
-	transformMetric() pointKVs
-	transformObject() pointKVs
+	newMetric(conf *Config) pointKVs
+	newObject(conf *Config) pointKVs
 }
 
 func registerResource(name string, namespaced, nodeLocal bool, rt resourceConstructor) {
 	resources[resourceType{name, namespaced, nodeLocal}] = rt
+}
+
+type LabelsOption struct {
+	All  bool
+	Keys []string
 }

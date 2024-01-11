@@ -348,23 +348,22 @@ The log may contain some unreadable bytecodes (such as the color of terminal out
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    For such ansi characters, it is usually recommended to turn them off in the log output frame instead of having them filtered by Datakit. Filtering of asni characters is handled by regular expressions, which have poor performance and may have undefined behaviors (filtering errors or multiline failures).
+    For such color characters, it is usually recommended that they be turned off in the log output frame rather than filtered by Datakit. Filtering and filtering of special characters is handled by regular expressions, which may not provide comprehensive coverage and have some performance overhead.
 <!-- markdownlint-enable -->
 
 The benchmark results are for reference only:
 
 ```text
 goos: linux
-goarch: amd64
-pkg: gitlab.jiagouyun.com/cloudcare-tools/test
-cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkRemoveAnsiCodes
-BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+goarch: arm64
+pkg: ansi
+BenchmarkStrip
+BenchmarkStrip-2          653751              1775 ns/op             272 B/op          3 allocs/op
+BenchmarkStrip-4          673238              1801 ns/op             272 B/op          3 allocs/op
 PASS
-ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ```
 
-The processing time of each text increases by 1616 ns. If this function is not turned on, there will be no extra loss.
+The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
 
 ## Measurements {#measurements}
 

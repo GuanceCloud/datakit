@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -157,6 +158,9 @@ func (lc *logInstance) checkTagsKey() {
 }
 
 func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
+	if len(m) == 0 {
+		return
+	}
 	for _, cfg := range lc.configs {
 		if cfg.Tags == nil {
 			cfg.Tags = make(map[string]string)
@@ -169,26 +173,23 @@ func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
 	}
 }
 
-func (lc *logInstance) setLabelsToLogConfigs(m map[string]string) {
-	for _, cfg := range lc.configs {
-		if cfg.Tags == nil {
-			cfg.Tags = make(map[string]string)
-		}
-		for k, v := range m {
-			key := replaceLabelKey(k)
-			if _, ok := cfg.Tags[key]; !ok {
-				cfg.Tags[key] = v
+func (lc *logInstance) setLabelAsTags(m map[string]string, all bool, keys []string) {
+	if len(m) == 0 {
+		return
+	}
+
+	if all {
+		for _, cfg := range lc.configs {
+			if cfg.Tags == nil {
+				cfg.Tags = make(map[string]string)
+			}
+			for k, v := range m {
+				if _, ok := cfg.Tags[k]; !ok {
+					newkey := replaceLabelKey(k)
+					cfg.Tags[newkey] = v
+				}
 			}
 		}
-	}
-}
-
-func replaceLabelKey(s string) string {
-	return strings.ReplaceAll(s, ".", "_")
-}
-
-func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {
-	if len(keys) == 0 || len(m) == 0 {
 		return
 	}
 
@@ -197,12 +198,20 @@ func (lc *logInstance) setCustomerTags(m map[string]string, keys []string) {
 			cfg.Tags = make(map[string]string)
 		}
 		for _, key := range keys {
-			if v, ok := m[key]; ok {
+			v, ok := m[key]
+			if !ok {
+				continue
+			}
+			if _, ok := cfg.Tags[key]; !ok {
 				newkey := replaceLabelKey(key)
 				cfg.Tags[newkey] = v
 			}
 		}
 	}
+}
+
+func replaceLabelKey(s string) string {
+	return strings.ReplaceAll(s, ".", "_")
 }
 
 func (lc *logInstance) tags() map[string]string {
@@ -227,12 +236,14 @@ func (lc *logInstance) tags() map[string]string {
 	return m
 }
 
+const defaultContainerLogMountPoint = "/rootfs"
+
 func logsJoinRootfs(logs string) string {
-	if !datakit.Docker {
+	if !datakit.Docker && !config.IsKubernetes() {
 		return logs
 	}
 	if v := os.Getenv("HOST_ROOT"); v != "" {
 		return filepath.Join(v, logs)
 	}
-	return filepath.Join("/rootfs", logs)
+	return filepath.Join(defaultContainerLogMountPoint, logs)
 }

@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync/atomic"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -29,14 +28,16 @@ var klog = logger.DefaultSLogger("k8s")
 type k8sClient client.Client
 
 type Config struct {
-	NodeName                    string
-	EnableK8sMetric             bool
-	EnableK8sObject             bool
-	EnableK8sEvent              bool
-	EnablePodMetric             bool
-	EnableExtractK8sLabelAsTags bool
-	ExtraTags                   map[string]string
-	GlobalCustomerKeys          []string
+	NodeName        string
+	NodeLocal       bool
+	EnableK8sMetric bool
+	EnableK8sObject bool
+	EnableK8sEvent  bool
+	EnablePodMetric bool
+	ExtraTags       map[string]string
+
+	LabelAsTagsForMetric    LabelsOption
+	LabelAsTagsForNonMetric LabelsOption
 }
 
 type Kube struct {
@@ -48,12 +49,6 @@ type Kube struct {
 	paused          func() bool
 	done            <-chan interface{}
 }
-
-var (
-	getGlobalCustomerKeys  = func() []string { return nil }
-	canCollectPodMetrics   = func() bool { return false }
-	setExtraK8sLabelAsTags = func() bool { return false }
-)
 
 func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
 	klog = logger.SLogger("k8s")
@@ -69,10 +64,6 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 	if err != nil {
 		return nil, err
 	}
-
-	getGlobalCustomerKeys = func() []string { return cfg.GlobalCustomerKeys }
-	setExtraK8sLabelAsTags = func() bool { return cfg.EnableExtractK8sLabelAsTags }
-	canCollectPodMetrics = func() bool { return cfg.EnablePodMetric }
 
 	return &Kube{
 		cfg:             cfg,
@@ -97,11 +88,11 @@ func (k *Kube) Metric(feed func([]*point.Point) error, opts ...option.CollectOpt
 	for _, opt := range opts {
 		opt(c)
 	}
-	if c.Paused && !c.NodeLocal {
+	if c.Paused && !k.cfg.NodeLocal {
 		return
 	}
 
-	k.gather("metric", feed, c.Paused, c.NodeLocal)
+	k.gather("metric", feed, c.Paused)
 }
 
 func (k *Kube) Object(feed func([]*point.Point) error, opts ...option.CollectOption) {
@@ -113,11 +104,11 @@ func (k *Kube) Object(feed func([]*point.Point) error, opts ...option.CollectOpt
 	for _, opt := range opts {
 		opt(c)
 	}
-	if c.Paused && !c.NodeLocal {
+	if c.Paused && !k.cfg.NodeLocal {
 		return
 	}
 
-	k.gather("object", feed, c.Paused, c.NodeLocal)
+	k.gather("object", feed, c.Paused)
 }
 
 func (k *Kube) Logging(feed func([]*point.Point) error) {
@@ -149,10 +140,6 @@ func (k *Kube) getActiveNamespaces(ctx context.Context) ([]string, error) {
 		}
 	}
 	return ns, nil
-}
-
-func replaceLabelKey(s string) string {
-	return strings.ReplaceAll(s, ".", "_")
 }
 
 func getLocalNodeName() (string, error) {

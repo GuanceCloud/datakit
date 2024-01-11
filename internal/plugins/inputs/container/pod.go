@@ -71,7 +71,7 @@ func (c *container) queryPodInfo(ctx context.Context, podName, podNamespace stri
 		case "ReplicaSet":
 			if hash, ok := pod.Labels["pod-template-hash"]; ok {
 				info.ownerKind = "Deployment"
-				info.ownerName = strings.TrimRight(pod.OwnerReferences[0].Name, "-"+hash)
+				info.ownerName = strings.TrimSuffix(pod.OwnerReferences[0].Name, "-"+hash)
 			}
 		case "DaemonSet", "StatefulSet":
 			info.ownerKind = pod.OwnerReferences[0].Kind

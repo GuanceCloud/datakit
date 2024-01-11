@@ -45,7 +45,9 @@ func TestComposePodMetric(t *testing.T) {
 			parent: &pod{client: nil, counter: make(map[string]map[string]int)},
 			list:   in,
 		}
-		res := p.transformMetric()
+
+		conf := Config{}
+		res := p.newMetric(&conf)
 
 		assert.Equal(t, outPts, res)
 	})

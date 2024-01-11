@@ -106,14 +106,14 @@ func withTags(tags map[string]string) promOption {
 	}
 }
 
-func withCustomerTags(m map[string]string, keys []string) promOption {
+func withLabelAsTags(m map[string]string, keys []string) promOption {
 	return func(c *promConfig) {
 		if len(keys) == 0 || len(m) == 0 {
 			return
 		}
 		for _, key := range keys {
 			if v, ok := m[key]; ok {
-				withTag(key, v)(c)
+				withTag(replaceLabelKey(key), v)(c)
 			}
 		}
 	}

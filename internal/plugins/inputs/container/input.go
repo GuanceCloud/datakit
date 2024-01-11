@@ -29,13 +29,15 @@ type Input struct {
 	DeprecatedDockerEndpoint    string   `toml:"docker_endpoint"`
 	DeprecatedContainerdAddress string   `toml:"containerd_address"`
 
-	EnableContainerMetric       bool `toml:"enable_container_metric"`
-	EnableK8sMetric             bool `toml:"enable_k8s_metric"`
-	EnablePodMetric             bool `toml:"enable_pod_metric"`
-	EnableK8sEvent              bool `toml:"enable_k8s_event"`
-	EnableK8sNodeLocal          bool `toml:"enable_k8s_node_local"`
-	EnableExtractK8sLabelAsTags bool `toml:"extract_k8s_label_as_tags"`
-	Election                    bool `toml:"election"`
+	EnableContainerMetric                 bool     `toml:"enable_container_metric"`
+	EnableK8sMetric                       bool     `toml:"enable_k8s_metric"`
+	EnablePodMetric                       bool     `toml:"enable_pod_metric"`
+	EnableK8sEvent                        bool     `toml:"enable_k8s_event"`
+	EnableK8sNodeLocal                    bool     `toml:"enable_k8s_node_local"`
+	DeprecatedEnableExtractK8sLabelAsTags bool     `toml:"extract_k8s_label_as_tags"`
+	ExtractK8sLabelAsTagsV2               []string `toml:"extract_k8s_label_as_tags_v2"`
+	ExtractK8sLabelAsTagsV2ForMetric      []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`
+	Election                              bool     `toml:"election"`
 
 	K8sURL                                            string `toml:"kubernetes_url"`
 	K8sBearerToken                                    string `toml:"bearer_token"`
@@ -124,6 +126,10 @@ func newInput() *Input {
 	pause := &atomic.Bool{}
 	pause.Store(true)
 	return &Input{
+		EnableContainerMetric:     true,
+		EnableK8sMetric:           true,
+		EnableK8sEvent:            true,
+		EnableK8sNodeLocal:        true,
 		Tags:                      make(map[string]string),
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),

@@ -8,6 +8,7 @@ package typed
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 type PointKV struct {
@@ -42,17 +43,31 @@ func (p *PointKV) GetTag(key string) string { return p.tags[key] }
 
 func (p *PointKV) SetTags(m map[string]string) {
 	for k, v := range m {
-		p.SetTag(k, v)
+		if _, ok := p.tags[k]; !ok {
+			p.SetTag(k, v)
+		}
 	}
 }
 
-func (p *PointKV) SetCustomerTags(m map[string]string, keys []string) {
-	if len(keys) == 0 || len(m) == 0 {
+func (p *PointKV) SetLabelAsTags(m map[string]string, all bool, keys []string) {
+	if len(m) == 0 {
+		return
+	}
+	if all {
+		for k, v := range m {
+			if _, ok := p.tags[k]; !ok {
+				p.SetTag(replaceLabelKey(k), v)
+			}
+		}
 		return
 	}
 	for _, key := range keys {
-		if v, ok := m[key]; ok {
-			p.SetTag(key, v)
+		v, ok := m[key]
+		if !ok {
+			continue
+		}
+		if _, ok := p.tags[key]; !ok {
+			p.SetTag(replaceLabelKey(key), v)
 		}
 	}
 }
@@ -112,4 +127,8 @@ func TrimString(s string, maxLength int) string {
 		return s
 	}
 	return s[:maxLength]
+}
+
+func replaceLabelKey(s string) string {
+	return strings.ReplaceAll(s, ".", "_")
 }

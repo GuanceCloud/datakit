@@ -8,6 +8,7 @@ package tailer
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,7 +35,7 @@ const (
 	readBuffSize         = 1024 * 4   // 4 KiB
 	maxReadSize          = 1024 * 128 // 128 KiB
 
-	checkInterval = time.Second * 1
+	checkInterval = time.Second * 5
 )
 
 type Single struct {
@@ -45,6 +46,7 @@ type Single struct {
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
 
+	buffer     buffer
 	flushScore int
 	readBuff   []byte
 	readLines  int64
@@ -64,15 +66,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, fmt.Errorf("option cannot be null pointer")
 	}
 
-	t := &Single{opt: opt}
-
-	if opt.Mode != FileMode && !FileExists(filename) {
-		filename2 := filepath.Join("/rootfs", filename)
-		if !FileExists(filename2) {
-			return nil, fmt.Errorf("file %s does not exist", filename)
-		}
-		filename = filename2
-	}
+	t := &Single{opt: opt, buffer: buffer{}}
 
 	_ = logtail.InitDefault()
 
@@ -246,24 +240,11 @@ func (t *Single) reopen() error {
 
 //nolint:cyclop
 func (t *Single) forwardMessage() {
-	var (
-		b       = &buffer{}
-		lines   []string
-		readNum int
-		err     error
-
-		checkTicker = time.NewTicker(checkInterval)
-	)
+	checkTicker := time.NewTicker(checkInterval)
 	defer checkTicker.Stop()
 
 	for {
-		if t.shoudFlush() {
-			if t.mult != nil && t.mult.BuffLength() > 0 {
-				t.feed([]string{t.mult.FlushString()})
-				forceFlushVec.WithLabelValues(t.opt.Source, t.filepath).Inc()
-			}
-			t.resetFlushScore()
-		}
+		t.forceFlush()
 
 		select {
 		case <-datakit.Exit.Wait():
@@ -271,6 +252,8 @@ func (t *Single) forwardMessage() {
 			return
 		case <-t.opt.Done:
 			t.opt.log.Infof("exiting: file %s", t.filepath)
+			t.collectToEOF()
+			t.flushCache()
 			return
 
 		case <-checkTicker.C:
@@ -278,41 +261,12 @@ func (t *Single) forwardMessage() {
 			exist := FileExists(t.filepath)
 
 			if did || !exist {
-				t.opt.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
-				for {
-					b.buf, readNum, err = t.read()
-					if err != nil {
-						t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
-						break
-					}
-
-					t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
-
-					if readNum == 0 {
-						t.opt.log.Infof("read EOF from rotate file %s, offset %d", t.filepath, t.offset)
-						break
-					}
-					t.readTime = time.Now()
-
-					lines = b.split()
-					switch t.opt.Mode {
-					case FileMode:
-						t.defaultHandler(lines)
-					case DockerMode:
-						t.dockerHandler(lines)
-					case ContainerdMode:
-						t.containerdHandler(lines)
-					default:
-						t.defaultHandler(lines)
-					}
-					// 数据处理完成，再记录 offset
-					t.offset += int64(readNum)
-				}
+				t.collectToEOF()
 			}
 
-			if did { // 只有文件 rotated 才会 reopen
+			if did {
 				t.opt.log.Infof("reopen the file %s", t.filepath)
-				if err = t.reopen(); err != nil {
+				if err := t.reopen(); err != nil {
 					t.opt.log.Warnf("failed to reopen the file %s, err: %s", t.filepath, err)
 					return
 				}
@@ -326,36 +280,89 @@ func (t *Single) forwardMessage() {
 		default: // nil
 		}
 
-		b.buf, readNum, err = t.read()
-		if err != nil {
-			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+		if err := t.collectOnce(); err != nil {
+			if !errors.Is(err, errReadEmpty) {
+				t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+			}
 			t.wait()
 			continue
 		}
 
-		t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
-
-		if readNum == 0 {
-			t.wait()
-			continue
-		}
-		t.readTime = time.Now()
-
-		lines = b.split()
-		switch t.opt.Mode {
-		case FileMode:
-			t.defaultHandler(lines)
-		case DockerMode:
-			t.dockerHandler(lines)
-		case ContainerdMode:
-			t.containerdHandler(lines)
-		default:
-			t.defaultHandler(lines)
-		}
-
-		// 数据处理完成，再记录 offset
-		t.offset += int64(readNum)
 		t.resetFlushScore()
+	}
+}
+
+func (t *Single) forceFlush() {
+	if t.opt.MaxForceFlushLimit == -1 {
+		return
+	}
+	if t.flushScore >= t.opt.MaxForceFlushLimit {
+		t.flushCache()
+		t.resetFlushScore()
+	}
+}
+
+func (t *Single) flushCache() {
+	if t.mult != nil && t.mult.BuffLength() > 0 {
+		t.feed([]string{t.mult.FlushString()})
+		forceFlushVec.WithLabelValues(t.opt.Source, t.filepath).Inc()
+	}
+}
+
+func (t *Single) collectToEOF() {
+	t.opt.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
+	for {
+		if err := t.collectOnce(); err != nil {
+			if !errors.Is(err, errReadEmpty) {
+				t.opt.log.Warnf("read to EOF err: %s", err)
+			}
+			break
+		}
+	}
+}
+
+var errReadEmpty = errors.New("read 0")
+
+func (t *Single) collectOnce() error {
+	lines, readNum, err := t.collectLines()
+	if err != nil {
+		return err
+	}
+
+	if readNum == 0 {
+		return errReadEmpty
+	}
+
+	t.readTime = time.Now()
+	t.process(t.opt.Mode, lines)
+	t.offset += int64(readNum)
+
+	return nil
+}
+
+func (t *Single) collectLines() ([]string, int, error) {
+	var readNum int
+	var err error
+
+	t.buffer.buf, readNum, err = t.read()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	t.opt.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
+	return t.buffer.split(), readNum, nil
+}
+
+func (t *Single) process(mode Mode, lines []string) {
+	switch mode {
+	case FileMode:
+		t.defaultHandler(lines)
+	case DockerMode:
+		t.dockerHandler(lines)
+	case ContainerdMode:
+		t.containerdHandler(lines)
+	default:
+		t.defaultHandler(lines)
 	}
 }
 
@@ -646,13 +653,6 @@ func (t *Single) read() ([]byte, int, error) {
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
 	t.flushScore++
-}
-
-func (t *Single) shoudFlush() bool {
-	if t.opt.MaxForceFlushLimit == -1 {
-		return false
-	}
-	return t.flushScore >= t.opt.MaxForceFlushLimit
 }
 
 func (t *Single) resetFlushScore() {

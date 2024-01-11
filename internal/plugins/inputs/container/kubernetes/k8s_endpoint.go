@@ -61,7 +61,7 @@ type endpointMetadata struct {
 	list   *apicorev1.EndpointsList
 }
 
-func (m *endpointMetadata) transformMetric() pointKVs {
+func (m *endpointMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -83,7 +83,7 @@ func (m *endpointMetadata) transformMetric() pointKVs {
 		met.SetField("address_available", available)
 		met.SetField("address_not_ready", notReady)
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -92,7 +92,7 @@ func (m *endpointMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *endpointMetadata) transformObject() pointKVs {
+func (m *endpointMetadata) newObject(conf *Config) pointKVs {
 	return nil
 }
 
