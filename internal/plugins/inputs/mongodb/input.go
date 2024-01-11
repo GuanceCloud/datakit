@@ -9,11 +9,13 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -35,6 +37,25 @@ var (
   ## Gathering interval
   interval = "10s"
 
+  ## Specify one single Mongodb server. These server related fields will be ignored when the 'servers' field is not empty.
+  ## connection_format is a string in the standard connection format (mongodb://) or SRV connection format (mongodb+srv://).
+  connection_format = "mongodb://"
+
+  ## The host and port. 
+  host_port = "127.0.0.1:27017"
+
+  ## Username
+  username = "datakit"
+
+  ## Password
+  password = "<PASS>"
+
+  ## The authentication database to use.
+  # default_db = "admin"
+
+  ## A query string that specifies connection specific options as <name>=<value> pairs.
+  # query_string = "authSource=admin&authMechanism=SCRAM-SHA-256"
+
   ## A list of Mongodb servers URL
   ## Note: must escape special characters in password before connect to Mongodb server, otherwise parse will failed.
   ## Form: "mongodb://[user ":" pass "@"] host [ ":" port]"
@@ -42,7 +63,7 @@ var (
   ## mongodb://user:pswd@localhost:27017/?authMechanism=SCRAM-SHA-256&authSource=admin
   ## mongodb://user:pswd@127.0.0.1:27017,
   ## mongodb://10.10.3.33:18832,
-  servers = ["mongodb://127.0.0.1:27017"]
+  # servers = ["mongodb://127.0.0.1:27017"]
 
   ## When true, collect replica set stats
   gather_replica_set_stats = false
@@ -112,6 +133,12 @@ type mongodblog struct {
 type Input struct {
 	TLSConf               *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
 	Interval              datakit.Duration       `toml:"interval"`
+	HostPort              string                 `toml:"host_port"`
+	ConnectionFormat      string                 `toml:"connection_format"`
+	Username              string                 `toml:"username"`
+	Password              string                 `toml:"password"`
+	DefaultDB             string                 `toml:"default_db"`
+	QueryString           string                 `toml:"query_string"`
 	Servers               []string               `toml:"servers"`
 	GatherReplicaSetStats bool                   `toml:"gather_replica_set_stats"`
 	GatherClusterStats    bool                   `toml:"gather_cluster_stats"`
@@ -214,17 +241,43 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
-func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
+func (ipt *Input) initServers() {
+	if len(ipt.Servers) == 0 && len(ipt.HostPort) != 0 {
+		server := ""
+		if len(ipt.ConnectionFormat) == 0 {
+			server += "mongodb://"
+		} else {
+			server += ipt.ConnectionFormat
+		}
 
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
-	ipt.semStop = cliutils.NewSem()
-	defTags = ipt.Tags
+		if len(ipt.Username) != 0 {
+			server += fmt.Sprintf("%s:%s@", url.QueryEscape(ipt.Username), url.QueryEscape(ipt.Password))
+		}
+
+		server += ipt.HostPort
+
+		slash := ""
+		if len(ipt.DefaultDB) != 0 {
+			server += fmt.Sprintf("/%s", ipt.DefaultDB)
+		} else {
+			slash = "/"
+		}
+
+		if len(ipt.QueryString) != 0 {
+			server += fmt.Sprintf("%s?%s", slash, ipt.QueryString)
+		}
+
+		ipt.Servers = append(ipt.Servers, server)
+	}
 
 	for _, v := range ipt.Servers {
 		mgocli, err := ipt.createMgoClient(v)
 		if err != nil {
 			log.Error(err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
 			continue
 		}
 		var (
@@ -242,15 +295,41 @@ func (ipt *Input) Run() {
 			ipt:  ipt,
 		})
 	}
-	if len(ipt.mgoSvrs) == 0 {
-		log.Errorf("connect to all Mongodb servers failed")
+}
 
-		return
+func (ipt *Input) Run() {
+	log = logger.SLogger(inputName)
+
+	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.semStop = cliutils.NewSem()
+	defTags = ipt.Tags
+
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	for {
+		ipt.initServers()
+
+		if len(ipt.mgoSvrs) != 0 {
+			break
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			if ipt.tail != nil {
+				ipt.tail.Close()
+			}
+			log.Info("mongo exit")
+			return
+		case <-ipt.semStop.Wait():
+			return
+		case <-tick.C:
+		}
+
 	}
 
 	log.Infof("%s input started", inputName)
 
-	tick := time.NewTicker(ipt.Interval.Duration)
 	for {
 		if ipt.pause {
 			log.Debugf("not leader, skipped")
