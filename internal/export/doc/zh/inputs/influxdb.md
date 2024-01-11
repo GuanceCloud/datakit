@@ -33,6 +33,8 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 
 - [x] 1.8.10
 
+### 采集器配置 {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
@@ -128,7 +130,7 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 如需采集 InfluxDB 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 InfluxDB 日志文件的绝对路径。比如：
 
 ```toml
-[inputs.influxdb.log]
+[inputs.{{.InputName}}.log]
     # 填入绝对路径
     files = ["/path/to/demo.log"] 
     ## grok pipeline script path

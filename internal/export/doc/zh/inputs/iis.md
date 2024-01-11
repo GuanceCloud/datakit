@@ -75,7 +75,7 @@ monitor   :
 如需采集 IIS 的日志，将配置中 log 相关的配置打开，如：
 
 ```toml
-[inputs.iis.log]
+[inputs.{{.InputName}}.log]
     # 填入绝对路径
     files = ["C:/inetpub/logs/LogFiles/W3SVC1/*"] 
 ```

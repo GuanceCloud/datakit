@@ -79,6 +79,8 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     1. 服务器「信道权限级别限制」操作员级别需要和「用户名」保持级别一致
     1. `ipmitool` 工具包是安装到运行 Datakit 的机器里。
 
+### 采集器配置 {#input-config}
+
 === "主机部署"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：

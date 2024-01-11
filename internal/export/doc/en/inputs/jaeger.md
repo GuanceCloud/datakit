@@ -1,5 +1,19 @@
+---
+title     : 'Jaeger'
+summary   : 'Receive Jaeger APM Data'
+__int_icon      : 'icon/jaeger'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Jaeger
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,15 +22,9 @@
 
 The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze Jaeger Tracing protocol data.
 
-## Jaeger Doc {#doc}
+## Configuration {#config}
 
-- [Quickstart](https://www.jaegertracing.io/docs/1.27/getting-started/){:target="_blank"}
-- [Docs](https://www.jaegertracing.io/docs/){:target="_blank"}
-- [Clients Download](https://www.jaegertracing.io/download/){:target="_blank"}
-- [Source Code](https://github.com/jaegertracing/jaeger){:target="_blank"}
-
-## Configure Jaeger Agent {#config-agent}
-
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     The current version of Jaeger supports the HTTP and UDP communication protocols and the Apache Thrift encoding specification.
@@ -50,12 +58,14 @@ The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze J
     | `ENV_INPUT_JAEGER_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
     | `ENV_INPUT_JAEGER_STORAGE`            | JSON string | `{"storage":"./jaeger_storage", "capacity": 5120}`                               |
 
+<!-- markdownlint-enable -->
+
 ### Configure Jaeger HTTP Agent {#config-http-agent}
 
 endpoint represents Jaeger HTTP Agent routing
 
 ```toml
-[[inputs.jaeger]]
+[[inputs.{{.InputName}}]]
   # Jaeger endpoint for receiving tracing span over HTTP.
   # Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
   endpoint = "/apis/traces"
@@ -69,14 +79,16 @@ endpoint represents Jaeger HTTP Agent routing
 Modify the Agent UDP Host: Port of the Jaeger Client to the address specified in the following configuration:
 
 ```toml
-[[inputs.jaeger]]
+[[inputs.{{.InputName}}]]
   # Jaeger agent host:port address for UDP transport.
   address = "127.0.0.1:6831"
 ```
 
 Refer to [Datakit Tracing](datakit-tracing.md) for configuration of data sampling, data filtering, closing resources, and so on.
 
-## Golang Sample {#go-http}
+## Sample {#demo}
+
+### Golang Sample {#go-http}
 
 Here is an example of an HTTP Agent:
 
@@ -173,7 +185,7 @@ func send(urlstr string, i int) {
 }
 ```
 
-## Golang UDP Sample {#go-udp}
+### Golang UDP Sample {#go-udp}
 
 Here is an example of a UDP Agent:
 
@@ -236,7 +248,7 @@ func foo() {
 }
 ```
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 {{range $i, $m := .Measurements}}
 
@@ -256,3 +268,10 @@ func foo() {
 {{end}}
 
 {{end}}
+
+## Jaeger Official Documentation {#doc}
+
+- [Quick Start](https://www.jaegertracing.io/docs/1.27/getting-started/){:target="_blank"}
+- [Docs](https://www.jaegertracing.io/docs/){:target="_blank"}
+- [Clients Download](https://www.jaegertracing.io/download/){:target="_blank"}
+- [Source Code](https://github.com/jaegertracing/jaeger){:target="_blank"}

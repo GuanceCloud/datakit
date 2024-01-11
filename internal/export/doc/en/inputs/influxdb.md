@@ -1,5 +1,19 @@
+---
+title     : 'InfluxDB'
+summary   : 'Collect InfluxDB metrics'
+__int_icon      : 'icon/influxdb'
+dashboard :
+  - desc  : 'InfluxDB'
+    path  : 'dashboard/zh/influxdb'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # InfluxDB
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 The InfuxDB collector is used to collect the data of the InfuxDB.
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 The infuxdb collector is only applicable to infuxdb v1.x, and the prom collector is required for infuxdb v2.x.
 
@@ -16,8 +32,9 @@ Already tested version:
 
 - [x] 1.8.10
 
-## InfluxDB Collector Configuration {#config}
+### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -31,6 +48,7 @@ Already tested version:
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ### Sample Prom Collector Configuration for InfuxDB v2.x {#prom-config}
 
@@ -81,12 +99,12 @@ Already tested version:
 
 ```
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.influxdb.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.influxdb.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -108,10 +126,10 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Log Collection {#logging}
 
-To collect the InfuxDB log, open `files` in infuxdb.conf and write to the absolute path of the InfuxDB log file. For example:
+To collect the InfuxDB log, open `files` in {{.InputName}}.conf and write to the absolute path of the InfuxDB log file. For example:
 
 ```toml
-[inputs.influxdb.log]
+[inputs.{{.InputName}}.log]
     # Fill in the absolute path
     files = ["/path/to/demo.log"] 
     ## grok pipeline script path
