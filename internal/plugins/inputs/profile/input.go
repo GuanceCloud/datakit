@@ -52,6 +52,7 @@ const (
 	defaultHTTPClientTimeout   = time.Second * 75
 	defaultHTTPRetryCount      = 4
 	profileIDHeaderKey         = "X-Datakit-ProfileID"
+	XDataKitVersionHeader      = "X-Datakit-Version"
 	timestampHeaderKey         = "X-Datakit-UnixNano"
 	sampleConfig               = `
 [[inputs.profile]]
@@ -482,7 +483,7 @@ func insertEventFile(req *http.Request, oldBody []byte, metadata *resolvedMetada
 		return nil, fmt.Errorf("unable add event file to multipart form: %w", err)
 	}
 
-	f, err := pm.CreateFormFile(eventJSONFile, eventJSONFile)
+	f, err := pm.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create form file: %w", err)
 	}
@@ -574,7 +575,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		return fmt.Errorf("unable to parse multipart/formdata: %w", err)
 	}
 
-	metadata, binaryFileSize, err := parseMetadata(req)
+	metadata, _, err := parseMetadata(req)
 	if err != nil {
 		return fmt.Errorf("unable to resolve profiling tags: %w", err)
 	}
@@ -582,7 +583,10 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	bodyReader := io.Reader(bytes.NewReader(reqPB.Body))
 
 	// Add event form file to multipartForm if it doesn't exist
-	if _, ok := req.MultipartForm.File[eventJSONFile]; !ok {
+	_, ok1 := req.MultipartForm.File[eventJSONFile]
+	_, ok2 := req.MultipartForm.File[eventJSONFileWithSuffix]
+
+	if !ok1 && !ok2 {
 		if reader, err := insertEventFile(req, reqPB.Body, metadata); err != nil {
 			log.Warnf("unable to insert event form file to profiling request: %s", err)
 		} else {
@@ -590,13 +594,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		}
 	}
 
-	profileID, unixNano, pt, err := mkPoint(req, metadata, binaryFileSize)
-	if err != nil {
-		return fmt.Errorf("unable to build profile point data: %w", err)
-	}
-
-	req.Header.Set(profileIDHeaderKey, profileID)
-	req.Header.Set(timestampHeaderKey, strconv.FormatInt(unixNano, 10))
+	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 
 	xGlobalTag := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(metadata.tags), config.Cfg.Dataway.GlobalTags(),
 		config.Cfg.Dataway.CustomTagKeys())
@@ -676,10 +674,21 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	}
 	reqCost = time.Since(reqStart)
 
+	metricName := inputName + "/" + resolveLang(metadata.formValue, metadata.tags).String()
 	if sendErr == nil && resp.StatusCode/100 == 2 {
-		if err := sendToIO(pt); err != nil {
-			return fmt.Errorf("unable to handle profiling request: %w", err)
+		dkio.InputsFeedVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
+		dkio.InputsFeedPtsVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
+		dkio.InputsLastFeedVec().WithLabelValues(metricName, point.Profiling.String()).Set(float64(time.Now().Unix()))
+		dkio.InputsCollectLatencyVec().WithLabelValues(metricName, point.Profiling.String()).Observe(reqCost.Seconds())
+	} else {
+		feedErr := sendErr
+		if feedErr == nil {
+			feedErr = fmt.Errorf("error status code %d", resp.StatusCode)
 		}
+		ipt.feeder.FeedLastError(feedErr.Error(),
+			dkio.WithLastErrorInput(metricName),
+			dkio.WithLastErrorCategory(point.Profiling),
+		)
 	}
 
 	return sendErr
@@ -906,6 +915,7 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set(profileIDHeaderKey, profileID)
+	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 	req.Header.Set(timestampHeaderKey, strconv.FormatInt(opt.startTime.UnixNano(), 10))
 
 	client := &http.Client{
