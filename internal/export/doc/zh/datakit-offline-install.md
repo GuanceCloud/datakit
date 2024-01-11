@@ -36,7 +36,7 @@
     增加环境变量 `HTTPS_PROXY="1.2.3.4:9530"`，安装命令如下：
     
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") }}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithProxy true) }}
     ```
 
     - 使用 Nginx 代理
@@ -44,7 +44,7 @@
     增加环境变量 `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`，安装命令如下：
     
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithEnvs "DK_NGINX_IP" "1.2.3.4") }}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithProxy true) (.WithEnvs "DK_NGINX_IP" "1.2.3.4") }}
     ```
 
 === "Windows"
@@ -286,6 +286,7 @@ done
 (.WithSourceURL "${DK_INSTALLER_BASE_URL}")
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530")
+(.WithProxy true)
 }}
     ```
 
@@ -301,7 +302,7 @@ done
     ```
 <!-- markdownlint-enable -->
 
-到此为止，离线安装完成。注意，此处还额外设置了 HTTPS_PROXY。
+到此为止，离线安装完成。注意，此处还额外设置了 `HTTPS_PROXY` 以支持代理。
 
 ---
 

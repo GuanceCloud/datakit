@@ -92,7 +92,7 @@ func TestUpgradeCommand(t *T.T) {
 	t.Run("unix-upgrade-with-proxy", func(t *T.T) {
 		s := getUpgradeCommand("linux", "https://static.guance.com/datakit", "1.2.3.4:80")
 		t.Logf("\n%s", s)
-		expect := `    DK_UPGRADE=1 HTTPS_PROXY=1.2.3.4:80 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"`
+		expect := `    DK_UPGRADE=1 HTTPS_PROXY=1.2.3.4:80 bash -c 'eval "$(curl -L https://static.guance.com/datakit/install.sh)"'`
 		assert.Equal(t, expect, s)
 	})
 }
