@@ -37,6 +37,13 @@ GO
 
 ```
 
+???+ attention "Attention"
+
+    Note that an account with the appropriate permissions is required to perform this operation above, otherwise it may result in user creation or authorization failure.
+
+    - Self-built SQL Server requires users with WITH GRANT OPTION, CREATE ANY LOGIN, CREATE ANY USER, and ALTER ANY LOGIN permissions, or users with sysadmin role or local user authorization can be used directly. 
+    - RDS for SQL Server requires high-privileged accounts for authorization.
+
 ## Configuration {#config}
 
 === "Host Installation"

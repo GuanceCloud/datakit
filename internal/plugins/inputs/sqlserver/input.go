@@ -151,6 +151,11 @@ func (ipt *Input) initDB() error {
 	if err != nil {
 		return err
 	}
+
+	if ipt.InstanceName != "" {
+		cfg.Instance = ipt.InstanceName
+	}
+
 	if ipt.AllowTLS10 {
 		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
 		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
