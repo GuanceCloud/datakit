@@ -25,6 +25,8 @@ import (
 // ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
 // ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL : booler
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS : booler
+// ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC : json arrry
+// ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2 : json arrry
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS     booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
@@ -107,7 +109,23 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
 		} else {
-			ipt.EnableExtractK8sLabelAsTags = b
+			ipt.DeprecatedEnableExtractK8sLabelAsTags = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC"]; ok {
+		var keys []string
+		if err := json.Unmarshal([]byte(str), &keys); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC to jsonarray: %s, ignore", err)
+		} else {
+			ipt.ExtractK8sLabelAsTagsV2ForMetric = keys
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2"]; ok {
+		var keys []string
+		if err := json.Unmarshal([]byte(str), &keys); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2 to jsonarray: %s, ignore", err)
+		} else {
+			ipt.ExtractK8sLabelAsTagsV2 = keys
 		}
 	}
 
@@ -168,12 +186,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	///
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		ipt.ContainerIncludeLog = append(ipt.ContainerIncludeLog, arrays...)
+		ipt.ContainerIncludeLog = arrays
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
-		ipt.ContainerExcludeLog = append(ipt.ContainerExcludeLog, arrays...)
+		ipt.ContainerExcludeLog = arrays
 	}
 
 	///

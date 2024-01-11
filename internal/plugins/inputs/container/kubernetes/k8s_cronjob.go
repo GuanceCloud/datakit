@@ -65,7 +65,7 @@ type cronjobMetadata struct {
 	list   *apibatchv1.CronJobList
 }
 
-func (m *cronjobMetadata) transformMetric() pointKVs {
+func (m *cronjobMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -79,7 +79,7 @@ func (m *cronjobMetadata) transformMetric() pointKVs {
 			met.SetField("spec_suspend", *item.Spec.Suspend)
 		}
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -88,7 +88,7 @@ func (m *cronjobMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *cronjobMetadata) transformObject() pointKVs {
+func (m *cronjobMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -118,7 +118,7 @@ func (m *cronjobMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

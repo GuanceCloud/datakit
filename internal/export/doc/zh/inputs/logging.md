@@ -387,23 +387,23 @@ Pipeline 的几个注意事项：
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 Datakit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，性能较差，同时可能存在未定义行为，例如过滤错误、日志多行失效等。
+    对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 Datakit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，可能覆盖不够全面，且有一定的性能开销。
 <!-- markdownlint-enable -->
 
 处理性能基准测试结果如下，仅供参考：
 
 ```text
 goos: linux
-goarch: amd64
-pkg: gitlab.jiagouyun.com/cloudcare-tools/test
-cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
-BenchmarkRemoveAnsiCodes
-BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+goarch: arm64
+pkg: ansi
+BenchmarkStrip
+BenchmarkStrip-2          653751              1775 ns/op             272 B/op          3 allocs/op
+BenchmarkStrip-4          673238              1801 ns/op             272 B/op          3 allocs/op
 PASS
-ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+ok      ansi      2.422s
 ```
 
-每一条文本的处理耗时增加 1616 ns 不等。如果不开启此功能将无额外损耗。
+每一条文本的处理耗时增加 1700 ns 不等。如果不开启此功能将无额外损耗。
 
 ## 日志 {#logging}
 

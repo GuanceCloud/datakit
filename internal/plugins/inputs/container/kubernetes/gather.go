@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, nodeLocal bool) {
+func (k *Kube) gather(category string, feed func([]*point.Point) error, paused bool) {
 	var mu sync.Mutex
 
 	countPts := []pointV2{}
@@ -34,10 +34,10 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused, 
 	for typee, constructor := range resources {
 		fieldSelector := ""
 
-		if paused && nodeLocal && !typee.nodeLocal {
+		if paused && k.cfg.NodeLocal && !typee.nodeLocal {
 			continue
 		}
-		if nodeLocal && typee.nodeLocal {
+		if k.cfg.NodeLocal && typee.nodeLocal {
 			fieldSelector = getFieldSelector(k.nodeName)
 		}
 
@@ -102,26 +102,26 @@ func (k *Kube) addExtraTagsV2(pts []*point.Point) {
 
 func (k *Kube) composeProcessor(category string, feed func([]*point.Point) error) func(m metadata) error {
 	var opts []point.Option
-	var transform func(m metadata) pointKVs
+	var builder func(m metadata) pointKVs
 
 	switch category {
 	case "metric":
 		opts = point.DefaultMetricOptions()
-		transform = func(m metadata) pointKVs {
-			return m.transformMetric()
+		builder = func(m metadata) pointKVs {
+			return m.newMetric(k.cfg)
 		}
 
 	case "object":
 		opts = point.DefaultObjectOptions()
-		transform = func(m metadata) pointKVs {
-			return m.transformObject()
+		builder = func(m metadata) pointKVs {
+			return m.newObject(k.cfg)
 		}
 	default:
 		// unreachable
 	}
 
 	fn := func(m metadata) error {
-		pts := transform(m)
+		pts := builder(m)
 		k.addExtraTags(pts)
 
 		points := transToPoint(pts, opts)

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -25,10 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
 
-var (
-	l                     = logger.DefaultSLogger(inputName)
-	getGlobalCustomerKeys = func() []string { return nil }
-)
+var l = logger.DefaultSLogger(inputName)
 
 func getCollectorMeasurement() []inputs.Measurement {
 	res := []inputs.Measurement{
@@ -49,8 +47,6 @@ func (ipt *Input) setup() {
 	}
 	ipt.Endpoints = unique(ipt.Endpoints)
 	l.Infof("endpoints: %v", ipt.Endpoints)
-
-	getGlobalCustomerKeys = func() []string { return config.Cfg.Dataway.GlobalCustomerKeys }
 }
 
 func (ipt *Input) Run() {
@@ -133,7 +129,7 @@ func (ipt *Input) collectMetric(collectors []Collector, opts ...option.CollectOp
 			}
 			return ipt.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
 		}
-		c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()), option.WithNodeLocal(ipt.EnableK8sNodeLocal))...)
+		c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
 	}
 }
 
@@ -145,7 +141,7 @@ func (ipt *Input) collectObject(collectors []Collector, opts ...option.CollectOp
 			}
 			return ipt.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
 		}
-		c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()), option.WithNodeLocal(ipt.EnableK8sNodeLocal))...)
+		c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
 	}
 }
 
@@ -269,15 +265,28 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		tags["cluster_name_k8s"] = name
 	}
 
+	optForMetric := buildLabelsOptionForMetric(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
+	optForNonMetric := buildLabelsOptionForNonMetric(
+		ipt.DeprecatedEnableExtractK8sLabelAsTags,
+		ipt.ExtractK8sLabelAsTagsV2,
+		config.Cfg.Dataway.GlobalCustomerKeys)
+
 	cfg := kubernetes.Config{
-		NodeName:                    config.Cfg.Hostname,
-		EnableK8sMetric:             ipt.EnableK8sMetric,
-		EnableK8sObject:             true,
-		EnablePodMetric:             ipt.EnablePodMetric,
-		EnableK8sEvent:              ipt.EnableK8sEvent,
-		EnableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
-		ExtraTags:                   tags,
-		GlobalCustomerKeys:          getGlobalCustomerKeys(),
+		NodeName:        config.Cfg.Hostname,
+		NodeLocal:       ipt.EnableK8sNodeLocal,
+		EnableK8sMetric: ipt.EnableK8sMetric,
+		EnableK8sObject: true,
+		EnablePodMetric: ipt.EnablePodMetric,
+		EnableK8sEvent:  ipt.EnableK8sEvent,
+		LabelAsTagsForMetric: kubernetes.LabelsOption{
+			All:  optForMetric.all,
+			Keys: optForMetric.keys,
+		},
+		LabelAsTagsForNonMetric: kubernetes.LabelsOption{
+			All:  optForNonMetric.all,
+			Keys: optForNonMetric.keys,
+		},
+		ExtraTags: tags,
 	}
 
 	checkPaused := func() bool {
@@ -295,6 +304,8 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
+	opt := buildLabelsOptionForMetric(nil, config.Cfg.Dataway.GlobalCustomerKeys)
+
 	cfg := discovery.Config{
 		EnablePrometheusPodAnnotations:     ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations,
 		EnablePrometheusServiceAnnotations: ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations,
@@ -302,7 +313,7 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
 		StreamSize:                         ipt.autoDiscoveryOfPromStreamSize,
 		ExtraTags:                          tags,
-		CustomerKeys:                       config.Cfg.Dataway.GlobalCustomerKeys,
+		LabelAsTags:                        opt.keys,
 		Feeder:                             ipt.Feeder,
 	}
 
@@ -327,32 +338,6 @@ func newKubernetesClient(ipt *Input) (k8sclient.Client, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token or token string, cannot be empty")
-}
-
-func getMountPoint() string {
-	if !datakit.Docker {
-		return ""
-	}
-	if n := os.Getenv("HOST_ROOT"); n != "" {
-		return n
-	}
-	return "/rootfs"
-}
-
-func unique(slice []string) []string {
-	keys := make(map[string]bool)
-	list := []string{}
-	for _, entry := range slice {
-		if _, ok := keys[entry]; !ok {
-			keys[entry] = true
-			list = append(list, entry)
-		}
-	}
-	return list
-}
-
-func getClusterNameK8s() string {
-	return os.Getenv("ENV_CLUSTER_NAME_K8S")
 }
 
 func checkEndpoint(endpoint string) error {
@@ -381,4 +366,52 @@ func checkEndpoint(endpoint string) error {
 	}
 
 	return nil
+}
+
+type labelsOption struct {
+	all  bool
+	keys []string
+}
+
+func buildLabelsOptionForNonMetric(enableLabelAsTags bool, asTagKeys, customerKeys []string) labelsOption {
+	if enableLabelAsTags {
+		return labelsOption{all: true}
+	}
+	return buildLabelsOptionForMetric(asTagKeys, customerKeys)
+}
+
+func buildLabelsOptionForMetric(asTagKeys, customerKeys []string) labelsOption {
+	// e.g. [""] (all)
+	if len(asTagKeys) == 1 && asTagKeys[0] == "" {
+		return labelsOption{all: true}
+	}
+	keys := unique(append(asTagKeys, customerKeys...))
+	sort.Strings(keys)
+	return labelsOption{keys: keys}
+}
+
+func getMountPoint() string {
+	if !datakit.Docker {
+		return ""
+	}
+	if n := os.Getenv("HOST_ROOT"); n != "" {
+		return n
+	}
+	return "/rootfs"
+}
+
+func getClusterNameK8s() string {
+	return os.Getenv("ENV_CLUSTER_NAME_K8S")
+}
+
+func unique(slice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, ok := keys[entry]; !ok {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }

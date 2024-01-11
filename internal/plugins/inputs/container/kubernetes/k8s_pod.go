@@ -95,7 +95,7 @@ type podMetadata struct {
 	metricsCollect PodMetricsCollect
 }
 
-func (m *podMetadata) transformMetric() pointKVs {
+func (m *podMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 	nodeInfo := nodeCapacity{}
 
@@ -133,13 +133,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 			met.SetTag(ownerKind, ownerName)
 		}
 
-		if setExtraK8sLabelAsTags() {
-			for k, v := range item.Labels {
-				met.SetTag(replaceLabelKey(k), v)
-			}
-		}
-
-		if canCollectPodMetrics() &&
+		if conf.EnablePodMetric &&
 			shouldCollectPodMetric(&m.list.Items[idx]) &&
 			m.metricsCollect != nil &&
 			m.parent != nil {
@@ -156,7 +150,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 			}
 		}
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		if m.parent.counter[item.Namespace] == nil {
@@ -168,7 +162,7 @@ func (m *podMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *podMetadata) transformObject() pointKVs {
+func (m *podMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 	nodeInfo := nodeCapacity{}
 
@@ -233,13 +227,7 @@ func (m *podMetadata) transformObject() pointKVs {
 			obj.SetTag(ownerKind, ownerName)
 		}
 
-		if setExtraK8sLabelAsTags() {
-			for k, v := range item.Labels {
-				obj.SetTag(replaceLabelKey(k), v)
-			}
-		}
-
-		if canCollectPodMetrics() && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
+		if conf.EnablePodMetric && shouldCollectPodMetric(&m.list.Items[idx]) && m.metricsCollect != nil {
 			if nodeInfo.nodeName != item.Spec.NodeName {
 				nodeInfo = getCapacityFromNode(context.Background(), m.parent.client, item.Spec.NodeName)
 			}
@@ -253,7 +241,7 @@ func (m *podMetadata) transformObject() pointKVs {
 			}
 		}
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 
@@ -265,7 +253,7 @@ func getOwner(owners []metav1.OwnerReference, podTemplateHash string) (kind stri
 		switch owners[0].Kind {
 		case "ReplicaSet":
 			kind = "deployment"
-			name = strings.TrimRight(owners[0].Name, "-"+podTemplateHash)
+			name = strings.TrimSuffix(owners[0].Name, "-"+podTemplateHash)
 		case "DaemonSet":
 			kind = "daemonset"
 			name = owners[0].Name

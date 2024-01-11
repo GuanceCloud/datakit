@@ -30,9 +30,9 @@ type container struct {
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
 
-	// adding labels to container logs
-	enableExtractK8sLabelAsTags bool
-	enableCollectLogging        bool
+	podLabelAsTagsForNonMetric labelsOption
+	podLabelAsTagsForMetric    labelsOption
+	enableCollectLogging       bool
 
 	loggingFilters []filter.Filter
 	logTable       *logTable
@@ -48,11 +48,10 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
 	return &container{
-		ipt:                         ipt,
-		runtime:                     r,
-		enableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
-		enableCollectLogging:        false,
-		extraTags:                   tags,
+		ipt:                  ipt,
+		runtime:              r,
+		enableCollectLogging: false,
+		extraTags:            tags,
 	}, nil
 }
 
@@ -77,15 +76,22 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
+	optForMetric := buildLabelsOptionForMetric(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
+	optForNonMetric := buildLabelsOptionForNonMetric(
+		ipt.DeprecatedEnableExtractK8sLabelAsTags,
+		ipt.ExtractK8sLabelAsTagsV2,
+		config.Cfg.Dataway.GlobalCustomerKeys)
+
 	return &container{
-		ipt:                         ipt,
-		runtime:                     r,
-		k8sClient:                   k8sClient,
-		enableExtractK8sLabelAsTags: ipt.EnableExtractK8sLabelAsTags,
-		enableCollectLogging:        true,
-		loggingFilters:              filters,
-		logTable:                    newLogTable(),
-		extraTags:                   tags,
+		ipt:                        ipt,
+		runtime:                    r,
+		k8sClient:                  k8sClient,
+		enableCollectLogging:       true,
+		podLabelAsTagsForNonMetric: optForNonMetric,
+		podLabelAsTagsForMetric:    optForMetric,
+		loggingFilters:             filters,
+		logTable:                   newLogTable(),
+		extraTags:                  tags,
 	}, nil
 }
 
@@ -160,6 +166,13 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 	var res []*typed.PointKV
 	var mu sync.Mutex
 
+	setPodLabelAsTagsForMetric := func(p *typed.PointKV, labels map[string]string) {
+		p.SetLabelAsTags(labels, c.podLabelAsTagsForMetric.all, c.podLabelAsTagsForMetric.keys)
+	}
+	setPodLabelAsTagsForObject := func(p *typed.PointKV, labels map[string]string) {
+		p.SetLabelAsTags(labels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)
+	}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-" + category})
 	for idx := range cList {
 		if isPauseContainer(cList[idx]) {
@@ -168,17 +181,25 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 
 		func(info *runtime.Container) {
 			g.Go(func(ctx context.Context) error {
-				pt := c.transformPoint(info)
-				pt.SetTags(c.extraTags)
-
-				if category == "object" {
+				var pt *typed.PointKV
+				switch category {
+				case "metric":
+					pt = c.transformPoint(info, setPodLabelAsTagsForMetric)
+					pt.SetTags(c.extraTags)
+				case "object":
+					pt = c.transformPoint(info, setPodLabelAsTagsForObject)
+					pt.SetTags(c.extraTags)
 					pt.SetTag("name", info.ID)
 					pt.SetField("age", time.Since(time.Unix(0, info.CreatedAt)).Milliseconds()/1e3)
+				default:
+					// nil
 				}
 
-				mu.Lock()
-				res = append(res, pt)
-				mu.Unlock()
+				if pt != nil {
+					mu.Lock()
+					res = append(res, pt)
+					mu.Unlock()
+				}
 				return nil
 			})
 		}(cList[idx])
@@ -240,10 +261,7 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
-		if c.enableExtractK8sLabelAsTags {
-			instance.setLabelsToLogConfigs(instance.podLabels)
-		}
-		instance.setCustomerTags(instance.podLabels, getGlobalCustomerKeys())
+		instance.setLabelAsTags(instance.podLabels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
 		c.ipt.setLoggingSourceMultilineMapToLogConfigs(instance.configs)
@@ -292,7 +310,7 @@ func (c *container) ignoreContainerLogging(typ filterType, field string) (ignore
 	return
 }
 
-func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
+func (c *container) transformPoint(info *runtime.Container, setPodLabelAsTags func(p *typed.PointKV, labels map[string]string)) *typed.PointKV {
 	p := typed.NewPointKV(containerMeasurement)
 
 	p.SetTag("container_id", info.ID)
@@ -377,7 +395,7 @@ func (c *container) transformPoint(info *runtime.Container) *typed.PointKV {
 			}
 
 			p.SetField("cpu_limit", podInfo.cpuLimit(getContainerNameForLabels(info.Labels)))
-			p.SetCustomerTags(podInfo.pod.Labels, config.Cfg.Dataway.GlobalCustomerKeys)
+			setPodLabelAsTags(p, podInfo.pod.Labels)
 		}
 	}
 

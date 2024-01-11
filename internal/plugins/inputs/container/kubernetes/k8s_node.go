@@ -64,7 +64,7 @@ type nodeMetadata struct {
 	list   *apicorev1.NodeList
 }
 
-func (m *nodeMetadata) transformMetric() pointKVs {
+func (m *nodeMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -98,7 +98,7 @@ func (m *nodeMetadata) transformMetric() pointKVs {
 		e2 := item.Status.Capacity["ephemeral-storage"]
 		met.SetField("ephemeral_storage_capacity", e2.AsApproximateFloat64())
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 	}
 
@@ -107,7 +107,7 @@ func (m *nodeMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *nodeMetadata) transformObject() pointKVs {
+func (m *nodeMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -156,13 +156,7 @@ func (m *nodeMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		if setExtraK8sLabelAsTags() {
-			for k, v := range item.Labels {
-				obj.SetTag(replaceLabelKey(k), v)
-			}
-		}
-
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

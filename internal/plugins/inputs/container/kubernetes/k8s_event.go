@@ -68,7 +68,7 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 				return
 			}
 
-			pts := k.transformEvent(&event)
+			pts := k.newEvent(&event)
 			if err := feed(pts); err != nil {
 				klog.Warn(err)
 			} else {
@@ -78,7 +78,7 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 	}
 }
 
-func (k *Kube) transformEvent(event *kubewatch.Event) []*point.Point {
+func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 	//nolint:exhaustive
 	switch event.Type {
 	case kubewatch.Bookmark:
@@ -117,8 +117,6 @@ func (k *Kube) transformEvent(event *kubewatch.Event) []*point.Point {
 		// nil
 	}
 	pt.SetField("status", status)
-
-	pt.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
 
 	pts := pointKVs{pt}
 

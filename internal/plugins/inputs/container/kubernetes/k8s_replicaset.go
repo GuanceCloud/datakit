@@ -64,7 +64,7 @@ type replicasetMetadata struct {
 	list   *apiappsv1.ReplicaSetList
 }
 
-func (m *replicasetMetadata) transformMetric() pointKVs {
+func (m *replicasetMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -84,7 +84,7 @@ func (m *replicasetMetadata) transformMetric() pointKVs {
 			met.SetField("replicas_desired", *item.Spec.Replicas)
 		}
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -93,7 +93,7 @@ func (m *replicasetMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *replicasetMetadata) transformObject() pointKVs {
+func (m *replicasetMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -137,7 +137,7 @@ func (m *replicasetMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

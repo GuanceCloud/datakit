@@ -64,7 +64,7 @@ type deploymentMetadata struct {
 	list   *apiappsv1.DeploymentList
 }
 
-func (m *deploymentMetadata) transformMetric() pointKVs {
+func (m *deploymentMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -95,7 +95,7 @@ func (m *deploymentMetadata) transformMetric() pointKVs {
 			}
 		}
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -104,7 +104,7 @@ func (m *deploymentMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *deploymentMetadata) transformObject() pointKVs {
+func (m *deploymentMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -159,7 +159,7 @@ func (m *deploymentMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

@@ -65,7 +65,7 @@ type serviceMetadata struct {
 	list   *apicorev1.ServiceList
 }
 
-func (m *serviceMetadata) transformMetric() pointKVs {
+func (m *serviceMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -77,7 +77,7 @@ func (m *serviceMetadata) transformMetric() pointKVs {
 
 		met.SetField("ports", len(item.Spec.Ports))
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -86,7 +86,7 @@ func (m *serviceMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *serviceMetadata) transformObject() pointKVs {
+func (m *serviceMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -116,7 +116,7 @@ func (m *serviceMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

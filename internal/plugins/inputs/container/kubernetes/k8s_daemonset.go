@@ -64,7 +64,7 @@ type daemonsetMetadata struct {
 	list   *apiappsv1.DaemonSetList
 }
 
-func (m *daemonsetMetadata) transformMetric() pointKVs {
+func (m *daemonsetMetadata) newMetric(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -82,7 +82,7 @@ func (m *daemonsetMetadata) transformMetric() pointKVs {
 		met.SetField("daemons_available", item.Status.NumberAvailable)
 		met.SetField("daemons_unavailable", item.Status.NumberUnavailable)
 
-		met.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		res = append(res, met)
 
 		m.parent.counter[item.Namespace]++
@@ -91,7 +91,7 @@ func (m *daemonsetMetadata) transformMetric() pointKVs {
 	return res
 }
 
-func (m *daemonsetMetadata) transformObject() pointKVs {
+func (m *daemonsetMetadata) newObject(conf *Config) pointKVs {
 	var res pointKVs
 
 	for _, item := range m.list.Items {
@@ -121,7 +121,7 @@ func (m *daemonsetMetadata) transformObject() pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetCustomerTags(item.Labels, getGlobalCustomerKeys())
+		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
 

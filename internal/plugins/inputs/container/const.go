@@ -29,7 +29,11 @@ const sampleCfg = `
   enable_pod_metric = false
   enable_k8s_event = true
   enable_k8s_node_local = true
-  extract_k8s_label_as_tags = false
+
+  ## Add resource Label as Tags (container use Pod Label), need to specify Label keys.
+  ## e.g. ["app", "name"]
+  # extract_k8s_label_as_tags_v2 = []
+  # extract_k8s_label_as_tags_v2_for_metric = []
 
   ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs
   enable_auto_discovery_of_prometheus_pod_annotations = false

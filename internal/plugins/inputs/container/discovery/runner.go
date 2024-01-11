@@ -12,7 +12,6 @@ import (
 	"strconv"
 
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -52,7 +51,7 @@ func (d *Discovery) newPromFromPodAnnotations() []*promRunner {
 			withTag("pod_name", pod.Name),
 			withTagIfNotEmpty(queryPodOwner(pod)),
 			withTags(d.cfg.ExtraTags),
-			withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
+			withLabelAsTags(pod.Labels, d.cfg.LabelAsTags))
 
 		runner, err := newPromRunnerWithConfig(d, config)
 		if err != nil {
@@ -107,7 +106,7 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 				withTag("pod_name", pod.Name),
 				withTagIfNotEmpty(queryPodOwner(pod)),
 				withTags(d.cfg.ExtraTags),
-				withCustomerTags(pod.Labels, d.cfg.CustomerKeys))
+				withLabelAsTags(pod.Labels, d.cfg.LabelAsTags))
 
 			runner, err := newPromRunnerWithConfig(d, config)
 			if err != nil {
@@ -147,7 +146,7 @@ func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 			withTag("pod_name", pod.Name)(runner.conf)
 			withTagIfNotEmpty(queryPodOwner(pod))(runner.conf)
 			withTags(d.cfg.ExtraTags)(runner.conf)
-			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
+			withLabelAsTags(pod.Labels, d.cfg.LabelAsTags)(runner.conf)
 
 			klog.Infof("created prom runner of pod-export-config %s, urls %s", pod.Name, runner.conf.URLs)
 			res = append(res, runner)
@@ -177,7 +176,7 @@ func (d *Discovery) newPromFromDatakitCRD() []*promRunner {
 			withTag("pod_name", pod.Name)(runner.conf)
 			withTagIfNotEmpty(queryPodOwner(pod))(runner.conf)
 			withTags(d.cfg.ExtraTags)(runner.conf)
-			withCustomerTags(pod.Labels, d.cfg.CustomerKeys)(runner.conf)
+			withLabelAsTags(pod.Labels, d.cfg.LabelAsTags)(runner.conf)
 			res = append(res, runner)
 		}
 	}
@@ -252,7 +251,7 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					withTagIfNotEmpty(queryPodOwner(pod)),
 					withTags(d.cfg.ExtraTags),
 					withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
-					withCustomerTags(pod.Labels, d.cfg.CustomerKeys),
+					withLabelAsTags(pod.Labels, d.cfg.LabelAsTags),
 					withInterval(metricsEndpoints.Interval))
 
 				runner, err := newPromRunnerWithConfig(d, config)
@@ -340,15 +339,15 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						withTags(d.cfg.ExtraTags),
 						withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
 						withTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels)),
-						withCustomerTags(pod.Labels, d.cfg.CustomerKeys),
+						withLabelAsTags(pod.Labels, d.cfg.LabelAsTags),
 						withInterval(endpoint.Interval))
 
 					runner, err := newPromRunnerWithConfig(d, config)
 					if err != nil {
-						klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, service.Name, err)
+						klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, svc.Name, err)
 						continue
 					}
-					klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, service.Name, runner.conf.URLs)
+					klog.Infof("create prom runner for ServiceMonitor %s service %s, urls: %s", item.Name, svc.Name, runner.conf.URLs)
 					res = append(res, runner)
 				}
 			}
