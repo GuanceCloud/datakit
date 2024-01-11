@@ -152,7 +152,7 @@ setenforce 0
 
 | 环境变量名                            | 对应的配置参数项       | 参数示例                                           | 描述                                                                      |
 | :------------------------------------ | ---------------------- | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| `ENV_INPUT_EBPF_ENABLED_PLUGINS`      | `enabled_plugins`      | `ebpf-net,ebpf-trace`                              | 开启 `ebpf-net` 网络跟踪功能，并在此基础上开启链路功能                    |
+| `ENV_INPUT_EBPF_ENABLED_PLUGINS`      | `enabled_plugins`      | `ebpf-net,ebpf-trace`                              | 用于配置采集器的内置插件                                                  |
 | `ENV_INPUT_EBPF_L7NET_ENABLED`        | `l7net_enabled`        | `httpflow`                                         | 开启 http 协议数据采集                                                    |
 | `ENV_INPUT_EBPF_IPV6_DISABLED`        | `ipv6_disabled`        | `false`                                            | 系统是否不支持 IPv6                                                       |
 | `ENV_INPUT_EBPF_EPHEMERAL_PORT`       | `ephemeral_port`       | `32768`                                            | 临时端口开始位置                                                          |
@@ -166,6 +166,9 @@ setenforce 0
 | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`      | `conv_to_ddtrace`      | `false`                                            | 将所有的应用侧链路 id 转换为 10 进制表示的字符串，兼容用途，非必要不使用  |
 | `ENV_NETLOG_BLACKLIST`                | `netlog_blacklist`     | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | 用于实现在抓包之后的数据包的过滤                                          |
 | `ENV_NETLOG_METRIC_ONLY`              | `netlog_metric_only`   | `false`                                            | 除了网络流数据外，同时开启网络日志功能                                    |
+| `ENV_INPUT_EBPF_CPU_LIMIT`            | `cpu_limit`            | `"2.0"`                                            | 单位时间内 CPU 最大核心数使用限制                                         |
+| `ENV_INPUT_EBPF_MEM_LIMIT`            | `mem_limit`            | `"4GiB"`                                           | 内存大小使用限制                                                          |
+| `ENV_INPUT_EBPF_NET_LIMIT`            | `net_limit`            | `"100MiB/s"`                                       | 网络带宽（任意网卡）限制                                                  |
 
 <!-- markdownlint-enable -->
 
