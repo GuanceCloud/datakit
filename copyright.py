@@ -34,6 +34,7 @@ PATH_EXCLUSION_REGEX = [
     'internal/plugins/inputs/skywalking/compiled',
     'internal/plugins/externals/ebpf',
     'internal/plugins/inputs/skywalking/v3',
+    'internal/plugins/inputs/promremote/prompb',
     'internal/win_utils/pdh',
     'internal/obfuscate',
     'internal/msgpack',
