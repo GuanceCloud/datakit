@@ -1,5 +1,19 @@
+---
+title     : 'GitLab'
+summary   : 'Collect Gitlab metrics and logs'
+__int_icon      : 'icon/gitlab'
+dashboard :
+  - desc  : 'GitLab'
+    path  : 'dashboard/zh/gitlab'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # GitLab
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,16 +22,13 @@
 
 Collect GitLab operation data and report it to Guance Cloud in the form of metrics.
 
-## Preconditions {#requirements}
-
-- GitLab is installed（[GitLab official link](https://about.gitlab.com/){:target="_blank"}）
-
 ## Configuration {#config}
 
 First, you need to open the data collection function of GitLab service and set the white list. See the following sections for specific operations.
 
 After the GitLab setup is complete, configure the DataKit. Note that the data collected may vary depending on the GitLab version and configuration.
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -31,6 +42,7 @@ After the GitLab setup is complete, configure the DataKit. Note that the data co
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ### GitLab Turns on Data Collection {#enable-prom}
 
@@ -68,11 +80,11 @@ Note: Additional configuration of Gitlab is required if Gitlab data is sent to D
 
 In addition, Gitlab CI function does not participate in collector election, and users only need to configure the URL of Gitlab Webhook as the URL of one of Datakit; If you only need Gitlab CI visualization and do not need Gitlab metrics collection, you can turn off metrics collection by configuring `enable_collect = false`.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit).
 
-You can specify additional labels for **Gitlab metrics data** in the configuration by `[inputs.gitlab.tags]`:
+You can specify additional labels for **Gitlab metrics data** in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
  [inputs.gitlab.tags]
@@ -81,7 +93,7 @@ You can specify additional labels for **Gitlab metrics data** in the configurati
   # ...
 ```
 
-You can specify additional tags for **Gitlab CI data** in the configuration by `[inputs.gitlab.ci_extra_tags]`:
+You can specify additional tags for **Gitlab CI data** in the configuration by `[inputs.{{.InputName}}.ci_extra_tags]`:
 
 ``` toml
  [inputs.gitlab.ci_extra_tags]
