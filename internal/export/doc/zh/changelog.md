@@ -1,6 +1,38 @@
 # 更新日志
 ---
 
+## 1.23.0(2024/01/11) {#cl-1.23.0}
+
+### 新增功能 {#cl-1.23.0-new}
+
+- Kubernetes 部署时支持通过环境变量（`ENV_DATAKIT_INPUTS`）配置任何采集器配置（#2068）
+- 容器采集器支持更精细的配置，将 Kubernetes 对象 label 转换为采集数据的 tags（#2064）
+    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC`：支持将 label 转换成指标类数据的 tag
+    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2` 支持将 label 转换为非指标类（如对象/日志等）数据的 tag
+
+### 问题修复 {#cl-1.23.0-fix}
+
+- 修复容器采集器的 `deployment` 和 `daemonset` 字段偶发错误的问题（#2081）
+- 修复容器日志采集在容器短暂运行并退出后，会丢失最后几行日志的问题（#2082）
+- 修复 [Oracle](../integrations/oracle.md) 采集器慢查询 SQL 时间错误（#2079）
+- 修复 Prom 采集器 `instance` 设置问题（#2084）
+
+### 功能优化 {#cl-1.23.0-opt}
+
+- 优化 Prometheus Remote Write 采集（#2069）
+- eBPF 采集支持设置资源占用（#2075）
+- 优化 Profiling 数据采集流程（#2083）
+- [MongoDB](../integrations/mongodb.md) 采集器支持用户名和密码单独配置（#2073）
+- [SQLServer](../integrations/sqlserver.md) 采集器支持配置实例名称（#2074）
+- 优化 [ElasticSearch](../integrations/elasticsearch.md) 采集器视图和监控器（#2058）
+- [KafkaMQ](../integrations/kafkamq.md) 采集器支持多线程模式（#2051）
+- [SkyWalking](../integrations/skywalking.md) 采集器增加支持 Meter 数据类型（#2078）
+- 更新一部分采集器文档以及其他 bug 修复（#2074/#2067）
+- 优化 Proxy 代理安装时的升级命令（#2033）
+- 优化非 root 用户安装时资源限制功能（#2011）
+
+---
+
 ## 1.22.0(2023/12/28) {#cl-1.22.0}
 
 ### 新增功能 {#cl-1.22.0-new}

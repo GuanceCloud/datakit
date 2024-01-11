@@ -161,8 +161,8 @@ github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616/go.mod h1:zuawsU7vK4z3rZC2qaOYnhJO2rHD0CIUAgbyJxpjIf0=
 github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRRuUvfMjE=
 github.com/GuanceCloud/pyroscope v0.36.1/go.mod h1:VhUxChLTPH19q9V+5/4Yan4vY0XvtXQSySVf2luMx+w=
-github.com/GuanceCloud/service v1.2.1-rc3 h1:HtY/E0DNy6u2npmc2AMduhlmr2duYQfoH/F0i4eA2lc=
-github.com/GuanceCloud/service v1.2.1-rc3/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
+github.com/GuanceCloud/service v1.2.2 h1:0EOnJq12w8+4bgCoIgPCDU83lF9dxiktC/JGUkL8DUM=
+github.com/GuanceCloud/service v1.2.2/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
 github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 h1:YqwjFsmNo7txn4caeD74aJTD8b7mk3EzEVnJDZUfDPM=
 github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747/go.mod h1:euv8CBpLJ81TJK8u4MHaiVVSHmbWBmj//c8xsTAwNNw=
 github.com/GuanceCloud/toml v1.2.5 h1:jBWfqFSVortEY0C4RYqFPvhDKcGxIosKzcQqTPtZMfg=
