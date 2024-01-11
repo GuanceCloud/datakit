@@ -105,8 +105,8 @@ func NewAgentCache(pf ProcessSpan) *AgentCache {
 }
 
 func (ac *AgentCache) GetSpan(key int64) (*SpanItem, bool) {
-	ac.mu.RLock()
-	defer ac.mu.RUnlock()
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
 
 	spanItme, ok := ac.SpanData[key]
 	if !ok {
@@ -125,8 +125,8 @@ func (ac *AgentCache) SetSpan(key int64, span *ppv1.PSpan, meta metadata.MD, dur
 	if duration == 0 {
 		duration = eventDefaultTime
 	}
-	ac.mu.RLock()
-	defer ac.mu.RUnlock()
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
 	if item, ok := ac.SpanData[key]; ok {
 		// item.spans = append(item.spans, span)
 		log.Debugf("itme is exist %v", item)
@@ -145,9 +145,9 @@ func (ac *AgentCache) deleteExpiredSpan() {
 		for key, item := range ac.SpanData {
 			if time.Now().After(item.expiredAt) {
 				ac.ProcessFunc(item.Span, item.Meta)
-				ac.mu.RLock()
+				ac.mu.Lock()
 				delete(ac.SpanData, key)
-				ac.mu.RUnlock()
+				ac.mu.Unlock()
 			}
 		}
 	}
@@ -165,8 +165,8 @@ func (x PSpanEventList) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
 
 // GetEvent key is traceId.
 func (ac *AgentCache) GetEvent(key string, spanStartTime int64) ([]*ppv1.PSpanEvent, bool) {
-	ac.mu.RLock()
-	defer ac.mu.RUnlock()
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
 
 	item, ok := ac.EventData[key]
 	if !ok {
@@ -410,13 +410,13 @@ func (ac *AgentCache) FindSQLInfo(agentID string, sqlID int32) (res, opt string,
 }
 
 func (ac *AgentCache) SetAgentInfo(agentID string, info *ppv1.PAgentInfo) {
-	ac.mu.RLock()
-	defer ac.mu.RUnlock()
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
 	ac.Agents[agentID] = info
 }
 
 func (ac *AgentCache) GetAgentInfo(agentID string) *ppv1.PAgentInfo {
-	ac.mu.RLock()
-	defer ac.mu.RUnlock()
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
 	return ac.Agents[agentID]
 }
