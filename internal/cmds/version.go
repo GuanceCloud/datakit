@@ -33,7 +33,10 @@ func runVersionFlags(disableUpgradeInfo bool) error {
 
 		for _, vi := range vis {
 			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
-				vi.versionType, vi.NewVersion.VersionString, vi.NewVersion.Commit, vi.NewVersion.ReleaseDate)
+				vi.versionType,
+				vi.NewVersion.VersionString,
+				vi.NewVersion.Commit,
+				vi.NewVersion.ReleaseDate)
 			cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS, vi.NewVersion.DownloadURL, config.Cfg.Dataway.HTTPProxy))
 		}
 	}
@@ -116,6 +119,7 @@ func getUpgradeCommand(os, dlurl, proxy string) string {
 
 	if proxy != "" {
 		p.WithEnvs("HTTPS_PROXY", proxy)(cmd)
+		p.WithProxy(true)(cmd)
 	}
 
 	switch os {

@@ -35,10 +35,7 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `HTTPS_PROXY="1.2.3.4:9530"`, and the installation command is as follows:
     
     ```shell
-{{ InstallCmd 4
-(.WithPlatform "unix")
-(.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530")
-}}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithProxy true) }}
     ```
     
     - Using the Nginx proxy
@@ -46,11 +43,7 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
     Add the environment variable `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
     
     ```shell
-{{ InstallCmd 4
-(.WithPlatform "unix")
-(.WithEnvs "DK_PROXY_TYPE" "nginx")
-(.WithEnvs "DK_NGINX_IP" "1.2.3.4")
-}}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithProxy true) (.WithEnvs "DK_NGINX_IP" "1.2.3.4") }}
     ```
 
 === "Windows"
@@ -289,6 +282,7 @@ On the intranet machine, point it to the Nginx file server by setting `DK_INSTAL
 (.WithSourceURL "${DK_INSTALLER_BASE_URL}")
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530")
+(.WithProxy true)
 }}
     ```
 

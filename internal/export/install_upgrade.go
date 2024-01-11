@@ -27,14 +27,17 @@ start-bitstransfer %s -source %s/install%s.ps1 -destination .install.ps1;
 powershell ./.install.ps1;`
 
 	unixInstallCmdTemplate = `%s %s -c "$(curl -L %s/install%s.sh)"`
-
 	unixUpgradeCmdTemplate = `%s %s -c "$(curl -L %s/install%s.sh)"`
+
+	unixInstallCmdTemplateForProxy = `%s %s -c 'eval "$(curl -L %s/install%s.sh)"'`
+	unixUpgradeCmdTemplateForProxy = `%s %s -c 'eval "$(curl -L %s/install%s.sh)"'`
 )
 
 type installCmd struct {
 	upgrade,
 	inJSON,
 	lite,
+	proxy,
 	oneline bool
 	indent int
 	temp,
@@ -67,6 +70,9 @@ func (x *installCmd) String() (out string) {
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixUpgradeCmdTemplate
+			if x.proxy {
+				x.temp = unixUpgradeCmdTemplateForProxy
+			}
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.shell, sourceURL, x.version)
 		}
 	} else {
@@ -80,6 +86,9 @@ func (x *installCmd) String() (out string) {
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.bitstransferOpts, sourceURL, x.version)
 		case "unix":
 			x.temp = unixInstallCmdTemplate
+			if x.proxy {
+				x.temp = unixInstallCmdTemplateForProxy
+			}
 			out = fmt.Sprintf(x.temp, x.envsStr(), x.shell, sourceURL, x.version)
 		}
 	}
@@ -134,6 +143,12 @@ type InstallOpt func(x *installCmd)
 func (p *Params) WithEnvs(k, v string) InstallOpt {
 	return func(x *installCmd) {
 		x.envs[k] = v
+	}
+}
+
+func (p *Params) WithProxy(on bool) InstallOpt {
+	return func(x *installCmd) {
+		x.proxy = on
 	}
 }
 
