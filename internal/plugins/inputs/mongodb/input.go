@@ -325,7 +325,6 @@ func (ipt *Input) Run() {
 			return
 		case <-tick.C:
 		}
-
 	}
 
 	log.Infof("%s input started", inputName)

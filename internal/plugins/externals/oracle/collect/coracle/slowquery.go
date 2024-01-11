@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/araddon/dateparse"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
@@ -130,8 +130,10 @@ const SLOW_QUERY = `SELECT
   LEFT JOIN ALL_USERS u
   ON sa.PARSING_USER_ID = u.USER_ID
   WHERE
-  	EXECUTIONS > 0 AND LAST_ACTIVE_TIME > to_date('%s','yyyy-mm-dd hh24:mi:ss')
-  ORDER BY LAST_ACTIVE_TIME DESC`
+  	EXECUTIONS > 0 
+		AND sa.ELAPSED_TIME/sa.EXECUTIONS > %d 
+		AND LAST_ACTIVE_TIME > to_date('%s','yyyy-mm-dd hh24:mi:ss')
+  `
 
 //nolint:stylecheck
 type slowQueryRowDB struct {
@@ -237,14 +239,14 @@ func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 			m.lastActiveTime = getOracleTimeString(r.MAX_LAST_ACTIVE_TIME.String)
 		}
 
-		fmt.Println("m.lastActiveTime =", m.lastActiveTime)
+		l.Debugf("m.lastActiveTime =%s", m.lastActiveTime)
 
 		return nil, nil
 	}
 
 	rows := []slowQueryRowDB{}
 
-	query := fmt.Sprintf(SLOW_QUERY, m.lastActiveTime)
+	query := fmt.Sprintf(SLOW_QUERY, m.x.Ipt.SlowQueryTime.Microseconds(), m.lastActiveTime)
 
 	err := selectWrapper(m.x.Ipt, &rows, query)
 	if err != nil {
@@ -258,29 +260,18 @@ func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 	mResults := make([]map[string]string, 0)
 
 	for _, r := range rows {
-		gotlastActiveTime, err := time.Parse("2006-01-02T15:04:05Z", r.LAST_ACTIVE_TIME.String)
+		gotlastActiveTime, err := dateparse.ParseAny(r.LAST_ACTIVE_TIME.String)
 		if err != nil {
-			l.Warnf(err.Error())
+			l.Warnf("parse LAST_ACTIVE_TIME(%s) failed: %s, ignored", r.LAST_ACTIVE_TIME.String, err.Error())
 			continue
 		}
-		savedLastActiveTime, err := time.Parse("2006-01-02 15:04:05", m.lastActiveTime)
+		savedLastActiveTime, err := dateparse.ParseAny(m.lastActiveTime)
 		if err != nil {
-			l.Warnf(err.Error())
+			l.Warnf("parse lastActiveTime(%s) failed: %s, ingored", m.lastActiveTime, err.Error())
 			continue
 		}
 		if gotlastActiveTime.After(savedLastActiveTime) {
 			m.lastActiveTime = getOracleTimeString(r.LAST_ACTIVE_TIME.String) // update saved.
-		}
-
-		avgElapsed := r.AVG_ELAPSED.String
-		du, err := time.ParseDuration(avgElapsed + "us")
-		if err != nil {
-			l.Warnf(err.Error())
-			continue
-		}
-		if du < m.x.Ipt.SlowQueryTime {
-			l.Debugf("%s < slow query time, skipped", du.String())
-			continue
 		}
 
 		mRes := make(map[string]string, 78)
@@ -399,8 +390,15 @@ func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 }
 
 func getOracleTimeString(in string) string {
-	out := strings.ReplaceAll(in, "T", " ")
-	out = strings.ReplaceAll(out, "Z", "")
+	t, err := dateparse.ParseAny(in)
+	out := ""
+	if err != nil {
+		l.Warnf("parse date(%s) error: %s", in, err.Error())
+		out = strings.ReplaceAll(in, "T", " ")
+		out = strings.ReplaceAll(out, "Z", "")
+	} else {
+		out = t.Format(("2006-01-02 15:04:05"))
+	}
 	return out
 }
 
