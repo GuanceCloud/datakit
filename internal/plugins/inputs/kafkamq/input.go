@@ -48,7 +48,7 @@ const mqSampleConfig = `
   #[inputs.kafkamq.skywalking]
     ## Required！send to datakit skywalking input.
     #dk_endpoint="http://localhost:9529"
-
+    #thread = 8 
     #topics = [
     #  "skywalking-metrics",
     #  "skywalking-profilings",
@@ -63,13 +63,16 @@ const mqSampleConfig = `
   #[inputs.kafkamq.jaeger]
     ## Required！ ipv6 is "[::1]:9529"
     #dk_endpoint="http://localhost:9529"
-
+    #thread = 8 
+    #source: agent,otel,others...
+    #source = "agent"
     ## Required！ topics
     #topics=["jaeger-spans","jaeger-my-spans"]
 
   ## user custom message with PL script.
   #[inputs.kafkamq.custom]
     #spilt_json_body = true
+    #thread = 8 
     ## spilt_topic_map determines whether to enable log splitting for specific topic based on the values in the spilt_topic_map[topic].
     #[inputs.kafkamq.custom.spilt_topic_map]
     #  "log_topic"=true
@@ -101,7 +104,7 @@ const mqSampleConfig = `
     #metric_api="/otel/v1/metric"
     #trace_topics=["trace1","trace2"]
     #metric_topics=["otel-metric","otel-metric1"]
-
+    #thread = 8 
 
   ## todo: add other input-mq
 `
@@ -183,6 +186,7 @@ func (ipt *Input) Run() {
 	}
 
 	if ipt.Jaeger != nil {
+		ipt.Jaeger.SetFeeder(ipt.feeder)
 		ipt.kafka.registerP(ipt.Jaeger)
 	}
 

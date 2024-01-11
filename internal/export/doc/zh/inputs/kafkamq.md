@@ -51,6 +51,13 @@ Datakit 支持从 Kafka 中订阅消息采集链路、指标和日志信息。�
 1. `kafka_version`: 长度为 3，例如：`1.0.0`，`1.2.1` 等等
 1. `offsets`: 注意是 `Newest` 还是 `Oldest`
 1. `SASL` : 如果开启了安全认证，请正确配置用户和密码，如果 Kafka 监听地址是域名形式，请在 `/etc/hosts` 添加映射 IP
+1. 自 v1.23.0 开始支持多线程模式。
+
+### 消费组和消息分区 {#consumer_group}
+
+目前采集器采用的消费组模式来消费 Kafka 中的消息，消息的每一个分区只能被一个消费者去消费，同一个消息只能被一个消费者消费，去就是说，如果消息有 5 个分区，则最多有 5 个采集器同时消费，当某一个消费者离线或者无法消费时，kafka 会重新分配消费者的消费分区。
+所以，当消息量很大的时候可以通过多开分区并增加消费者来实现负载均衡和提高吞吐量。
+
 
 ### SkyWalking {#kafkamq-skywalking}
 
@@ -274,6 +281,8 @@ X-category=tracing
 
 ## FAQ {#faq}
 
+### :material-chat-question: Pipeline script {#test_Pipeline}
+
 当写好 Pipeline 脚本之后不确定是否能切割正确，可以使用测试命令：
 
 ```shell
@@ -283,5 +292,15 @@ datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 
 切割正确之后，通过在 *datakit.conf* 中开启[数据录制功能](../datakit/datakit-tools-how-to.md#enable-recorder)，可以查看数据是否正确。
 
 连接失败可能是版本问题，请在配置文件中正确填写 kafka 版本。目前支持的版本列表：[0.8.2] - [3.3.1]
+
+### :material-chat-question: 消息堆积 {#message_backlog}
+
+1. 开启多线程模式增加消费能力。
+2. 如果性能到达瓶颈之后，则扩展物理内存和 CPU 。
+3. 增加后端的写入能力。
+4. 取消任何网络带宽限制。
+5. 增加采集器数量并扩大消息分区数量让更多的消费者消费。
+6. 如果上述解决方案依旧无法解决问题，可以使用 [bug-report](../datakit/why-no-data/#bug-report){:target="_blank"} 收集运行时指标分析。
+
 
 其他问题： 通过 `datakit monitor` 命令查看，或者 `datakit monitor -V` 查看。

@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/worker"
+
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -48,10 +50,12 @@ type SkyConsumer struct {
 	DKEndpoint string   `toml:"dk_endpoint"`
 	Topics     []string `toml:"topics"`
 	Namespace  string   `toml:"namespace"`
+	Thread     int      `toml:"thread"`
 
 	topics []string
 	client http.RoundTripper
 	dkURLs map[string]string
+	wp     *worker.WorkerPool
 }
 
 func (sky *SkyConsumer) Init() error {
@@ -82,6 +86,7 @@ func (sky *SkyConsumer) Init() error {
 	if !sky.checkURL() {
 		return fmt.Errorf("checkURL error")
 	}
+	sky.wp = worker.NewWorkerPool(sky.DoMsg, sky.Thread)
 	return nil
 }
 
@@ -102,6 +107,19 @@ func (sky *SkyConsumer) GetTopics() []string {
 }
 
 func (sky *SkyConsumer) Process(msg *sarama.ConsumerMessage) error {
+	if sky.wp != nil {
+		f := sky.wp.GetWorker()
+		go func(message *sarama.ConsumerMessage) {
+			_ = f(message)
+			sky.wp.PutWorker(f)
+		}(msg)
+		return nil
+	} else {
+		return sky.DoMsg(msg)
+	}
+}
+
+func (sky *SkyConsumer) DoMsg(msg *sarama.ConsumerMessage) error {
 	u, ok := sky.dkURLs[msg.Topic]
 	if !ok {
 		log.Warnf("can not find Topic:[%s] url", msg.Topic)

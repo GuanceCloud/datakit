@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"github.com/IBM/sarama"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -94,6 +96,7 @@ func TestCustom_Process(t *testing.T) {
 				MetricTopicsMap: tt.fields.metricTopicsMap,
 				SpiltTopicsMap:  tt.fields.SpiltTopicsMap,
 				feeder:          tt.fields.feeder,
+				Tagger:          datakit.DefaultGlobalTagger(),
 			}
 			mq.Process(tt.args.msg)
 			ps, err := tt.fields.feeder.AnyPoints(time.Second)

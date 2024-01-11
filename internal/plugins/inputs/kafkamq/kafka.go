@@ -201,9 +201,11 @@ func (kc *kafkaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 			}
 			topic := msg.Topic
 			partition := fmt.Sprint(msg.Partition)
+			startTime := time.Now()
 			if p, ok := kc.process[topic]; ok {
 				if err := p.Process(msg); err == nil {
 					kafkaConsumeMessages.WithLabelValues(topic, partition, "ok").Add(1)
+					processMessageCostVec.WithLabelValues(topic).Observe(float64(time.Since(startTime).Nanoseconds()))
 				} else {
 					kafkaConsumeMessages.WithLabelValues(topic, partition, "fail").Add(1)
 				}

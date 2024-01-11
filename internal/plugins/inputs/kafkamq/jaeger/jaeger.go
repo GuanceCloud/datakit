@@ -10,6 +10,14 @@ import (
 	"bytes"
 	"net/http"
 	"net/url"
+	"sync"
+
+	"github.com/GuanceCloud/cliutils/point"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/worker"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/IBM/sarama"
@@ -23,9 +31,16 @@ var (
 type Consumer struct {
 	DKEndpoint string   `toml:"dk_endpoint"`
 	Topics     []string `toml:"topics"`
+	Source     string   `toml:"source"`
+	Thread     int      `toml:"thread"`
 
 	dkURL     string
+	feeder    dkio.Feeder
+	ptsLock   sync.Mutex
+	ptsCache  []*point.Point
 	transport http.RoundTripper
+
+	wp *worker.WorkerPool
 }
 
 func (mq *Consumer) Init() error {
@@ -39,6 +54,9 @@ func (mq *Consumer) Init() error {
 	newURL := baseURL.ResolveReference(&url.URL{Path: jaegerPath})
 	mq.dkURL = newURL.String()
 	mq.transport = http.DefaultTransport
+	mq.wp = worker.NewWorkerPool(mq.DoMsg, mq.Thread)
+	mq.ptsCache = make([]*point.Point, 0)
+	itrace.SetLogger(log)
 	return nil
 }
 
@@ -46,7 +64,11 @@ func (mq *Consumer) GetTopics() []string {
 	return mq.Topics
 }
 
-func (mq *Consumer) Process(msg *sarama.ConsumerMessage) error {
+func (mq *Consumer) DoMsg(msg *sarama.ConsumerMessage) error {
+	if mq.Source == "daoke" {
+		mq.DaoKeOTELMsg(msg)
+		return nil
+	}
 	r, err := http.NewRequest(http.MethodPost, mq.dkURL, bytes.NewBuffer(msg.Value))
 	if err != nil {
 		log.Errorf("new request err=%v", err)
@@ -62,4 +84,41 @@ func (mq *Consumer) Process(msg *sarama.ConsumerMessage) error {
 
 	log.Debugf("Response status code: %d", resp.StatusCode)
 	return nil
+}
+
+func (mq *Consumer) DaoKeOTELMsg(msg *sarama.ConsumerMessage) {
+	pt, err := itrace.ParseToJaeger(msg.Value)
+	if err != nil {
+		log.Warnf("err=%v", err)
+		return
+	}
+	mq.ptsLock.Lock()
+	defer mq.ptsLock.Unlock()
+	mq.ptsCache = append(mq.ptsCache, pt)
+	if len(mq.ptsCache) >= 100 {
+		pts := make([]*point.Point, 0, 100)
+		pts = append(pts, mq.ptsCache...)
+		err = mq.feeder.Feed("otel_jaeger", point.Tracing, pts)
+		if err != nil {
+			log.Errorf("err=%v", err)
+		}
+		mq.ptsCache = make([]*point.Point, 0)
+	}
+}
+
+func (mq *Consumer) Process(msg *sarama.ConsumerMessage) error {
+	if mq.wp != nil {
+		f := mq.wp.GetWorker()
+		go func(message *sarama.ConsumerMessage) {
+			_ = f(message)
+			mq.wp.PutWorker(f)
+		}(msg)
+		return nil
+	} else {
+		return mq.DoMsg(msg)
+	}
+}
+
+func (mq *Consumer) SetFeeder(feeder dkio.Feeder) {
+	mq.feeder = feeder
 }

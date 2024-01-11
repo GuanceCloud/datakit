@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/worker"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/IBM/sarama"
 )
@@ -27,8 +29,9 @@ type OTELHandle struct {
 	MetricAPI    string   `toml:"metric_api"`
 	TraceTopics  []string `toml:"trace_topics"`
 	MetricTopics []string `toml:"metric_topics"`
-
-	transport http.RoundTripper
+	Thread       int      `toml:"thread"`
+	wp           *worker.WorkerPool
+	transport    http.RoundTripper
 }
 
 func (mq *OTELHandle) Init() error {
@@ -52,6 +55,7 @@ func (mq *OTELHandle) Init() error {
 	}
 
 	mq.transport = http.DefaultTransport
+	mq.wp = worker.NewWorkerPool(mq.DoMsg, mq.Thread)
 	return nil
 }
 
@@ -59,7 +63,7 @@ func (mq *OTELHandle) GetTopics() []string {
 	return append(mq.TraceTopics, mq.MetricTopics...)
 }
 
-func (mq *OTELHandle) Process(msg *sarama.ConsumerMessage) error {
+func (mq *OTELHandle) DoMsg(msg *sarama.ConsumerMessage) error {
 	remoteURL := ""
 	if u, ok := traceTopicEndpoint[msg.Topic]; ok {
 		remoteURL = u
@@ -82,4 +86,17 @@ func (mq *OTELHandle) Process(msg *sarama.ConsumerMessage) error {
 
 	log.Debugf("Response status code: %d", resp.StatusCode)
 	return nil
+}
+
+func (mq *OTELHandle) Process(msg *sarama.ConsumerMessage) error {
+	if mq.wp != nil {
+		f := mq.wp.GetWorker()
+		go func(message *sarama.ConsumerMessage) {
+			_ = f(message)
+			mq.wp.PutWorker(f)
+		}(msg)
+		return nil
+	} else {
+		return mq.DoMsg(msg)
+	}
 }

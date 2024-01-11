@@ -11,12 +11,15 @@ import (
 	"fmt"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/IBM/sarama"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kafkamq/worker"
 )
 
 var (
@@ -38,7 +41,10 @@ type Custom struct {
 	RumTopicsMap    map[string]string `toml:"rum_topic_map"`
 	SpiltTopicsMap  map[string]bool   `toml:"spilt_topic_map"`
 	SpiltBody       bool              `toml:"spilt_json_body"`
+	Thread          int               `toml:"thread"`
+	wp              *worker.WorkerPool
 	feeder          dkio.Feeder
+	Tagger          datakit.GlobalTagger
 }
 
 // Init 初始化消息.
@@ -51,6 +57,8 @@ func (mq *Custom) Init() error {
 		log.Warnf("no custom topics")
 		return fmt.Errorf("no custom topics")
 	}
+	mq.wp = worker.NewWorkerPool(mq.DoMsg, mq.Thread)
+	mq.Tagger = datakit.DefaultGlobalTagger()
 	return nil
 }
 
@@ -82,6 +90,22 @@ func (mq *Custom) GetTopics() []string {
 
 // Process TopicProcess implement.
 func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
+	if mq.wp != nil {
+		f := mq.wp.GetWorker()
+		go func(message *sarama.ConsumerMessage) {
+			err := f(message)
+			if err != nil {
+				log.Errorf("process message err=%v", err)
+			}
+			mq.wp.PutWorker(f)
+		}(msg)
+		return nil
+	} else {
+		return mq.DoMsg(msg)
+	}
+}
+
+func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 	var (
 		err              error
 		topic            = msg.Topic
@@ -129,11 +153,13 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
 		if p, ok := mq.LogTopicsMap[topic]; ok {
 			fields[pipeline.FieldMessage] = msgStr
 			plMap[topic] = p
+			opts = append(point.DefaultLoggingOptions(), point.WithExtraTags(mq.Tagger.HostTags()))
 		}
 		if p, ok := mq.MetricTopicsMap[topic]; ok {
 			category = point.Metric
 			tags[pipeline.FieldMessage] = msgStr
 			plMap[topic] = p
+			opts = append(point.DefaultMetricOptions(), point.WithExtraTags(mq.Tagger.HostTags()))
 		}
 
 		if p, ok := mq.RumTopicsMap[topic]; ok {
@@ -141,6 +167,7 @@ func (mq *Custom) Process(msg *sarama.ConsumerMessage) error {
 			fields[pipeline.FieldMessage] = msgStr
 			tags["app_id"] = topic     // 这里只是一个占位符，没有实际意义，但是 rum 数据中的 app_id 是必须要有的字段。
 			plMap[topic+"_"+topic] = p // 这也是 pl 中要必须的格式： app_id_xxx。
+			opts = append(opts, point.WithExtraTags(mq.Tagger.HostTags()))
 		}
 		if len(plMap) == 0 {
 			err = fmt.Errorf("can not find [%s] pipeline script", topic)
