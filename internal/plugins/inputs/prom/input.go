@@ -391,14 +391,6 @@ func (i *Input) Init() error {
 		}
 		i.urls = append(i.urls, uu)
 
-		// add extra `instance' tag, the tag take higher priority
-		// over global tags.
-		if !i.DisableInstanceTag {
-			if _, ok := i.Tags["instance"]; !ok {
-				i.Tags["instance"] = uu.Host
-			}
-		}
-
 		var globalTags map[string]string
 		if i.Election {
 			globalTags = i.Tagger.ElectionTags()
@@ -409,6 +401,12 @@ func (i *Input) Init() error {
 		}
 
 		temp := inputs.MergeTags(globalTags, i.Tags, u)
+		// Add extra `instance` tag, from url
+		if !i.DisableInstanceTag {
+			if _, ok := temp["instance"]; !ok {
+				temp["instance"] = uu.Host
+			}
+		}
 		tempTags := urlTags{}
 		for k, v := range temp {
 			tempTags = append(tempTags, struct {
