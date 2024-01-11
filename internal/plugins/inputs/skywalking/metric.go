@@ -16,6 +16,28 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+func meterDataToPoint(data *agentv3.MeterData) *point.Point {
+	singel := data.GetSingleValue()
+	if singel == nil {
+		return nil
+	}
+	metric := &MetricMeasurement{
+		name:   data.Service,
+		tags:   make(map[string]string),
+		fields: make(map[string]interface{}),
+	}
+	labels := singel.GetLabels()
+	for _, label := range labels {
+		metric.tags[label.GetName()] = label.GetValue()
+	}
+	ts := data.GetTimestamp()
+
+	metric.fields[singel.Name] = singel.GetValue()
+	metric.ts = time.UnixMilli(ts) // time
+
+	return metric.Point()
+}
+
 // func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {.
 func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time, ipt *Input) []*point.Point {
 	var metrics []*point.Point

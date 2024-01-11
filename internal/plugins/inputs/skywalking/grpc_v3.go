@@ -48,6 +48,7 @@ func runGRPCV3(ipt *Input) {
 	// register API version 9.4.0
 	agentv3.RegisterTraceSegmentReportServiceServer(skySvr, &TraceReportServerV3{})
 	eventv3.RegisterEventServiceServer(skySvr, &EventServerV3{})
+	agentv3.RegisterMeterReportServiceServer(skySvr, &MeterReportServiceServerImpl{feeder: ipt.feeder})
 	agentv3.RegisterJVMMetricReportServiceServer(skySvr, &JVMMetricReportServerV3{ipt: ipt})
 	loggingv3.RegisterLogReportServiceServer(skySvr, &LoggingServerV3{Ipt: ipt})
 	profilev3.RegisterProfileTaskServer(skySvr, &ProfileTaskServerV3{})
@@ -59,6 +60,50 @@ func runGRPCV3(ipt *Input) {
 	}
 
 	log.Debug("### skywalking v3 exits")
+}
+
+type MeterReportServiceServerImpl struct {
+	feeder dkio.Feeder
+	agentv3.UnimplementedMeterReportServiceServer
+}
+
+func (m *MeterReportServiceServerImpl) Collect(collect agentv3.MeterReportService_CollectServer) error {
+	meters, err := collect.Recv()
+	if err != nil {
+		return err
+	}
+
+	pt := meterDataToPoint(meters)
+	if pt == nil {
+		return nil
+	}
+
+	err = m.feeder.Feed("skywalking_meter", point.Metric, []*point.Point{pt})
+	if err != nil {
+		log.Warnf("feeder error=%v", err)
+	}
+	return nil
+}
+
+func (m *MeterReportServiceServerImpl) CollectBatch(collects agentv3.MeterReportService_CollectBatchServer) error {
+	meters, err := collects.Recv()
+	if err != nil {
+		return nil
+	}
+	datas := meters.GetMeterData()
+	pts := make([]*point.Point, 0)
+	for _, data := range datas {
+		pt := meterDataToPoint(data)
+		if pt != nil {
+			pts = append(pts, pt)
+		}
+	}
+	err = m.feeder.Feed("skywalking_meter", point.Metric, pts)
+	if err != nil {
+		log.Warnf("feeder error=%v", err)
+	}
+
+	return nil
 }
 
 type TraceReportServerV3Old struct {
