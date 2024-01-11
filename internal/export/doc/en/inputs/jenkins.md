@@ -1,5 +1,19 @@
+---
+title     : 'Jenkins'
+summary   : 'Collect Jenkins metrics and logs'
+__int_icon      : 'icon/jenkins'
+dashboard :
+  - desc  : 'Jenkins'
+    path  : 'dashboard/en/jenkins'
+monitor   :
+  - desc  : 'Jenkins'
+    path  : 'monitor/en/jenkins'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Jenkins
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 The Jenkins collector monitors Jenkins through plugin `Metrics` data collection, including but not limited to the number of tasks, system cpu usage, `jvm cpu` usage, and so on
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 - JenKins version >= `2.332.1`; Already tested version:
     - [x] 2.332.1
@@ -17,54 +33,13 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 - Download the `Metric` plug-in, [management plug-in page](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric plug-in page](https://plugins.jenkins.io/metrics/){:target="_blank"}
 - Generate `Metric Access keys` on the JenKins administration page `your_manage_host/configure`
 
-## Configuration {#config}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/jenkins` directory under the DataKit installation directory, copy `jenkins.conf.sample` and name it `jenkins.conf`. Examples are as follows:
     
     ```toml
-        
-    [[inputs.jenkins]]
-      ## Set true if you want to collect metric from url below.
-      enable_collect = true
-    
-      ## The Jenkins URL in the format "schema://host:port",required
-      url = "http://my-jenkins-instance:8080"
-    
-      ## Metric Access Key ,generate in your-jenkins-host:/configure,required
-      key = ""
-    
-      ## Set response_timeout
-      # response_timeout = "5s"
-    
-      ## Optional TLS Config
-      # tls_ca = "/xx/ca.pem"
-      # tls_cert = "/xx/cert.pem"
-      # tls_key = "/xx/key.pem"
-      ## Use SSL but skip chain & host verification
-      # insecure_skip_verify = false
-    
-      ## set true to receive jenkins CI event
-      enable_ci_visibility = true
-    
-      ## which port to listen to jenkins CI event
-      ci_event_port = ":9539"
-    
-      # [inputs.jenkins.log]
-      # files = []
-      # #grok pipeline script path
-      # pipeline = "jenkins.p"
-    
-      [inputs.jenkins.tags]
-      # some_tag = "some_value"
-      # more_tag = "some_other_value"
-      # ...
-    
-      [inputs.jenkins.ci_extra_tags]
-      # some_tag = "some_value"
-      # more_tag = "some_other_value"
-    
+    {{ CodeBlock .InputSample 4 }}
     ```
     
     Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
@@ -72,8 +47,9 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
-## Jenkins CI Visibility {#ci-visibility}
+### Jenkins CI Visibility {#ci-visibility}
 
 The Jenkins collector can realize CI visualization by receiving the CI Event from the Jenkins datadog plugin.
 
@@ -87,22 +63,22 @@ Jenkins CI Visibility opening method:
 
 After configuration, Jenkins can send CI events to Datakit through Datadog Plugin.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit).
-You can specify additional labels for collected metrics in the configuration by `[inputs.jenkins.tags]`:
+You can specify additional labels for collected metrics in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.jenkins.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
 
-You can specify additional tags for the Jenkins CI Event in the configuration by `[inputs.jenkins.ci_extra_tags]`:
+You can specify additional tags for the Jenkins CI Event in the configuration by `[inputs.{{.InputName}}.ci_extra_tags]`:
 
 ```toml
- [inputs.jenkins.ci_extra_tags]
+ [inputs.{{.InputName}}.ci_extra_tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 ```
@@ -124,7 +100,7 @@ You can specify additional tags for the Jenkins CI Event in the configuration by
 
 ## Log Collection {#logging}
 
-To collect the JenKins log, open `files` in JenKins.conf and write to the absolute path of the JenKins log file. For example:
+To collect the JenKins log, open `files` in *{{.InputName}}.conf* and write to the absolute path of the JenKins log file. For example:
 
 ```toml
     [[inputs.JenKins]]
@@ -138,12 +114,12 @@ When log collection is turned on, a log with a log `source` of `jenkins` is gene
 
 >Note: DataKit must be installed on the host where JenKins is located to collect JenKins logs.
 
-## Log Pipeline Feature Cut Field Description {#pipeline}
+### Log Pipeline Feature Cut Field Description {#pipeline}
 
 - JenKins Universal Log Cutting
 
 Example of common log text:
-```
+```log
 2021-05-18 03:08:58.053+0000 [id=32] INFO jenkins.InitReactorRunner$1#onAttained: Started all plugins
 ```
 
