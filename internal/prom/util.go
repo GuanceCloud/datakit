@@ -63,8 +63,7 @@ func (p *Prom) validMetricName(name string) bool {
 	// blacklist first
 	if len(p.opt.metricNameReFilterIgnore) > 0 {
 		for _, p := range p.opt.metricNameReFilterIgnore {
-			match := p.MatchString(name)
-			if match {
+			if p.MatchString(name) {
 				return false
 			}
 		}
@@ -74,12 +73,13 @@ func (p *Prom) validMetricName(name string) bool {
 	if len(p.opt.metricNameReFilter) == 0 {
 		return true
 	}
+
 	for _, p := range p.opt.metricNameReFilter {
-		match := p.MatchString(name)
-		if match {
+		if p.MatchString(name) {
 			return true
 		}
 	}
+
 	return false
 }
 
