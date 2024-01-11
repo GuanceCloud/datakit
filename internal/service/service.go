@@ -8,49 +8,108 @@ package service
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 
 	"github.com/kardianos/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
-	Name        = "datakit"
-	description = `Collects data and upload it to DataFlux.`
-	Executable  string
-	Arguments   []string
-
-	Entry func()
-
-	option = map[string]interface{}{
-		"RestartSec":         10, // 重启间隔.
-		"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
-		"StartLimitBurst":    5,
-	}
-
-	StopCh     = make(chan interface{})
-	waitStopCh = make(chan interface{})
-	sLogger    service.Logger
+	serviceName  = "datakit"
+	displayName  = "datakit"
+	serviceEntry func()
+	stopCh       = make(chan any)
+	waitStopCh   = make(chan any)
+	sLogger      service.Logger
 )
+
+type serviceOption func(sconf *service.Config)
+
+func Name() string {
+	return serviceName
+}
+
+func DisplayName() string {
+	return displayName
+}
+
+func WithUser(userName string) serviceOption {
+	return func(sconf *service.Config) {
+		if userName != "" {
+			sconf.UserName = userName
+		}
+	}
+}
+
+func WithMemLimit(mem string) serviceOption {
+	return func(sconf *service.Config) {
+		if mem != "" {
+			sconf.Option["MemoryLimit"] = mem
+		}
+	}
+}
+
+func WithCPULimit(cpu string) serviceOption {
+	return func(sconf *service.Config) {
+		if cpu != "" {
+			sconf.Option["CPUQuota"] = cpu
+		}
+	}
+}
+
+func WithName(name string) serviceOption {
+	return func(sconf *service.Config) {
+		sconf.Name = name
+		sconf.DisplayName = name
+	}
+}
+
+func WithDescription(desc string) serviceOption {
+	return func(sconf *service.Config) {
+		sconf.Description = desc
+	}
+}
+
+func WithExecutable(exec string, args []string) serviceOption {
+	return func(sconf *service.Config) {
+		sconf.Executable = exec
+		sconf.Arguments = args
+	}
+}
 
 type program struct{}
 
-func NewService(userName string) (service.Service, error) {
-	prog := &program{}
-
+func NewService(opts ...serviceOption) (service.Service, error) {
 	scfg := &service.Config{
-		Name:        Name,
-		DisplayName: Name,
-		Description: description,
-		Executable:  Executable,
-		Arguments:   Arguments,
-		Option:      option,
-		UserName:    userName,
+		Option: map[string]any{
+			"RestartSec":         10, // 重启间隔.
+			"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
+			"StartLimitBurst":    5,
+		},
+		Name:        serviceName,
+		DisplayName: displayName,
+		Description: "Collects data and upload it to Guance Cloud.",
+		Executable:  datakit.DatakitBinaryPath(),
+		UserName:    "root",
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(scfg)
+		}
+	}
+
+	if scfg.UserName == "root" {
+		scfg.Option["MemoryLimit"] = ""
+		scfg.Option["CPUQuota"] = ""
 	}
 
 	if runtime.GOOS == "darwin" {
 		scfg.Name = "com.guance.datakit"
 	}
 
+	prog := &program{}
 	svc, err := service.New(prog, scfg)
 	if err != nil {
 		return nil, err
@@ -59,8 +118,15 @@ func NewService(userName string) (service.Service, error) {
 	return svc, nil
 }
 
-func StartService() error {
-	svc, err := NewService("")
+func StartService(entry func()) error {
+	serviceEntry = entry
+
+	executable := filepath.Join(datakit.InstallDir, "datakit")
+	if runtime.GOOS == datakit.OSWindows {
+		executable += ".exe"
+	}
+
+	svc, err := NewService(WithExecutable(executable, nil))
 	if err != nil {
 		return err
 	}
@@ -90,16 +156,16 @@ func StartService() error {
 }
 
 func (p *program) Start(s service.Service) error {
-	if Entry == nil {
-		return fmt.Errorf("entry not set")
+	if serviceEntry == nil {
+		return fmt.Errorf("service entry not set")
 	}
 
-	Entry()
+	serviceEntry()
 	return nil
 }
 
 func (p *program) Stop(s service.Service) error {
-	close(StopCh)
+	close(stopCh)
 
 	// We must wait here:
 	// On windows, we stop datakit in services.msc, if datakit process do not
@@ -107,6 +173,10 @@ func (p *program) Stop(s service.Service) error {
 	// exit unexpected
 	<-waitStopCh
 	return nil
+}
+
+func Wait() <-chan any {
+	return stopCh
 }
 
 func Stop() {
