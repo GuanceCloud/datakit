@@ -12,64 +12,30 @@ import (
 )
 
 func TestBuildLabelsOption(t *testing.T) {
-	t.Run("build-labels-option-for-non-metric", func(t *testing.T) {
+	cases := []struct {
+		inAsTagKeys    []string
+		inCustomerKeys []string
+		out            labelsOption
+	}{
 		{
-			enableLabelAsTags := true
-			asTagKeys := []string{"app", "name"}
-			customerKeys := []string{"sink-project", "name"}
-
-			out := labelsOption{all: true, keys: nil}
-
-			res := buildLabelsOptionForNonMetric(enableLabelAsTags, asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
+			inAsTagKeys:    []string{"app"},
+			inCustomerKeys: []string{},
+			out:            labelsOption{all: false, keys: []string{"app"}},
+		},
 		{
-			enableLabelAsTags := false
-			asTagKeys := []string{"app", "name"}
-			customerKeys := []string{"sink-project", "name"}
-
-			out := labelsOption{all: false, keys: []string{"app", "name", "sink-project"}}
-
-			res := buildLabelsOptionForNonMetric(enableLabelAsTags, asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
+			inAsTagKeys:    []string{"app", "name"},
+			inCustomerKeys: []string{"sink-project", "name"},
+			out:            labelsOption{all: false, keys: []string{"app", "name", "sink-project"}},
+		},
 		{
-			enableLabelAsTags := false
-			var asTagKeys []string
-			var customerKeys []string
+			inAsTagKeys:    []string{""},
+			inCustomerKeys: []string{"sink-project", "name"},
+			out:            labelsOption{all: true, keys: nil},
+		},
+	}
 
-			out := labelsOption{all: false, keys: []string{}}
-
-			res := buildLabelsOptionForNonMetric(enableLabelAsTags, asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
-	})
-
-	t.Run("build-labels-option-for-metric", func(t *testing.T) {
-		{
-			asTagKeys := []string{"app", "name"}
-			customerKeys := []string{"sink-project", "name"}
-
-			out := labelsOption{all: false, keys: []string{"app", "name", "sink-project"}}
-
-			res := buildLabelsOptionForMetric(asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
-		{
-			asTagKeys := []string{""}
-			customerKeys := []string{"sink-project", "name"}
-			out := labelsOption{all: true}
-
-			res := buildLabelsOptionForMetric(asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
-		{
-			var asTagKeys []string
-			customerKeys := []string{"sink-project"}
-			out := labelsOption{all: false, keys: []string{"sink-project"}}
-
-			res := buildLabelsOptionForMetric(asTagKeys, customerKeys)
-			assert.Equal(t, out, res)
-		}
-	})
+	for _, tc := range cases {
+		res := buildLabelsOption(tc.inAsTagKeys, tc.inCustomerKeys)
+		assert.Equal(t, tc.out, res)
+	}
 }

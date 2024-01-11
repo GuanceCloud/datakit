@@ -265,19 +265,17 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		tags["cluster_name_k8s"] = name
 	}
 
-	optForMetric := buildLabelsOptionForMetric(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
-	optForNonMetric := buildLabelsOptionForNonMetric(
-		ipt.DeprecatedEnableExtractK8sLabelAsTags,
-		ipt.ExtractK8sLabelAsTagsV2,
-		config.Cfg.Dataway.GlobalCustomerKeys)
+	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
+	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
 	cfg := kubernetes.Config{
-		NodeName:        config.Cfg.Hostname,
-		NodeLocal:       ipt.EnableK8sNodeLocal,
-		EnableK8sMetric: ipt.EnableK8sMetric,
-		EnableK8sObject: true,
-		EnablePodMetric: ipt.EnablePodMetric,
-		EnableK8sEvent:  ipt.EnableK8sEvent,
+		NodeName:                      config.Cfg.Hostname,
+		NodeLocal:                     ipt.EnableK8sNodeLocal,
+		EnableK8sMetric:               ipt.EnableK8sMetric,
+		EnableK8sObject:               true,
+		EnablePodMetric:               ipt.EnablePodMetric,
+		EnableK8sEvent:                ipt.EnableK8sEvent,
+		EnableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{
 			All:  optForMetric.all,
 			Keys: optForMetric.keys,
@@ -303,8 +301,7 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 	}
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
-
-	opt := buildLabelsOptionForMetric(nil, config.Cfg.Dataway.GlobalCustomerKeys)
+	opt := buildLabelsOption(nil, config.Cfg.Dataway.GlobalCustomerKeys)
 
 	cfg := discovery.Config{
 		EnablePrometheusPodAnnotations:     ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations,
@@ -373,14 +370,7 @@ type labelsOption struct {
 	keys []string
 }
 
-func buildLabelsOptionForNonMetric(enableLabelAsTags bool, asTagKeys, customerKeys []string) labelsOption {
-	if enableLabelAsTags {
-		return labelsOption{all: true}
-	}
-	return buildLabelsOptionForMetric(asTagKeys, customerKeys)
-}
-
-func buildLabelsOptionForMetric(asTagKeys, customerKeys []string) labelsOption {
+func buildLabelsOption(asTagKeys, customerKeys []string) labelsOption {
 	// e.g. [""] (all)
 	if len(asTagKeys) == 1 && asTagKeys[0] == "" {
 		return labelsOption{all: true}

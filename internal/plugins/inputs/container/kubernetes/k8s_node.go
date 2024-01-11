@@ -156,7 +156,11 @@ func (m *nodeMetadata) newObject(conf *Config) pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+		if conf.EnableExtractK8sLabelAsTagsV1 {
+			obj.SetLabelAsTags(item.Labels, true /*all labels*/, nil)
+		} else {
+			obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+		}
 		res = append(res, obj)
 	}
 

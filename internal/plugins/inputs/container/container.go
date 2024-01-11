@@ -26,13 +26,13 @@ import (
 )
 
 type container struct {
-	ipt       *Input
-	runtime   runtime.ContainerRuntime
-	k8sClient k8sclient.Client
-
-	podLabelAsTagsForNonMetric labelsOption
-	podLabelAsTagsForMetric    labelsOption
-	enableCollectLogging       bool
+	ipt                           *Input
+	runtime                       runtime.ContainerRuntime
+	k8sClient                     k8sclient.Client
+	enableCollectLogging          bool
+	enableExtractK8sLabelAsTagsV1 bool
+	podLabelAsTagsForNonMetric    labelsOption
+	podLabelAsTagsForMetric       labelsOption
 
 	loggingFilters []filter.Filter
 	logTable       *logTable
@@ -76,22 +76,20 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
-	optForMetric := buildLabelsOptionForMetric(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
-	optForNonMetric := buildLabelsOptionForNonMetric(
-		ipt.DeprecatedEnableExtractK8sLabelAsTags,
-		ipt.ExtractK8sLabelAsTagsV2,
-		config.Cfg.Dataway.GlobalCustomerKeys)
+	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
+	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
 	return &container{
-		ipt:                        ipt,
-		runtime:                    r,
-		k8sClient:                  k8sClient,
-		enableCollectLogging:       true,
-		podLabelAsTagsForNonMetric: optForNonMetric,
-		podLabelAsTagsForMetric:    optForMetric,
-		loggingFilters:             filters,
-		logTable:                   newLogTable(),
-		extraTags:                  tags,
+		ipt:                           ipt,
+		runtime:                       r,
+		k8sClient:                     k8sClient,
+		enableCollectLogging:          true,
+		enableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
+		podLabelAsTagsForNonMetric:    optForNonMetric,
+		podLabelAsTagsForMetric:       optForMetric,
+		loggingFilters:                filters,
+		logTable:                      newLogTable(),
+		extraTags:                     tags,
 	}, nil
 }
 
@@ -261,7 +259,11 @@ func (c *container) Logging(_ func([]*point.Point) error) {
 
 		instance.setTagsToLogConfigs(instance.tags())
 		instance.setTagsToLogConfigs(c.extraTags)
-		instance.setLabelAsTags(instance.podLabels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)
+		if c.enableExtractK8sLabelAsTagsV1 {
+			instance.setLabelAsTags(instance.podLabels, true /*all labels*/, nil)
+		} else {
+			instance.setLabelAsTags(instance.podLabels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)
+		}
 
 		c.ipt.setLoggingExtraSourceMapToLogConfigs(instance.configs)
 		c.ipt.setLoggingSourceMultilineMapToLogConfigs(instance.configs)
