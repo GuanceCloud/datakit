@@ -72,6 +72,10 @@ func WithIgnoreReqErr(b bool) PromOption       { return func(opt *option) { opt.
 func WithMetricTypes(strs []string) PromOption { return func(opt *option) { opt.metricTypes = strs } }
 func WithMetricNameFilter(strs []string) PromOption {
 	return func(opt *option) {
+		if len(strs) == 0 {
+			return
+		}
+
 		opt.metricNameReFilter = make([]*regexp.Regexp, 0, len(strs))
 		for _, x := range strs {
 			if re, err := regexp.Compile(x); err != nil {
@@ -87,6 +91,10 @@ func WithMetricNameFilter(strs []string) PromOption {
 
 func WithMetricNameFilterIgnore(strs []string) PromOption {
 	return func(opt *option) {
+		if len(strs) == 0 {
+			return
+		}
+
 		opt.metricNameReFilterIgnore = make([]*regexp.Regexp, 0, len(strs))
 		for _, x := range strs {
 			if re, err := regexp.Compile(x); err != nil {

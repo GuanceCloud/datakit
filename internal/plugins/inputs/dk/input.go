@@ -162,9 +162,6 @@ func (ipt *Input) setup(listen string) {
 			ipt.url = u.String()
 		}
 	}
-
-	// Always append the block list.
-	ipt.MetricFilter = append(ipt.MetricFilter, alwaysBlockedMetrics...)
 }
 
 func (ipt *Input) Run() {
@@ -181,6 +178,7 @@ func (ipt *Input) Run() {
 			prom.WithSource(source),
 			prom.WithMetricTypes(ipt.MetricTypes),
 			prom.WithMetricNameFilter(ipt.MetricFilter),
+			prom.WithMetricNameFilterIgnore(alwaysBlockedMetrics),
 			prom.WithMeasurementName(measurement),
 			prom.WithTags(ipt.Tags),
 		)
