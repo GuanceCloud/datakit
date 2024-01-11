@@ -858,8 +858,19 @@ func (cs *caseSpec) getPool(endpoint string) (*dockertest.Pool, error) {
 	}
 	err = p.Client.Ping()
 	if err != nil {
-		cs.t.Logf("Could not connect to Docker: %v", err)
-		return nil, err
+		if !strings.HasPrefix(endpoint, "tcp://0.0.0.0:") {
+			return nil, err
+		}
+		// use default docker service
+		cs.t.Log("try default docker")
+		p, err = dockertest.NewPool("")
+		if err != nil {
+			return nil, err
+		} else {
+			if err = p.Client.Ping(); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return p, nil
 }
