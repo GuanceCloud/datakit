@@ -32,6 +32,9 @@ var (
   user = ""
   password = ""
 
+  ## Instance name. If not specified, a connection to the default instance is made.
+  instance_name = ""
+
   ## (optional) collection interval, default is 10s
   interval = "10s"
 
@@ -112,15 +115,16 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host        string            `toml:"host"`
-	User        string            `toml:"user"`
-	Password    string            `toml:"password"`
-	Interval    datakit.Duration  `toml:"interval"`
-	Tags        map[string]string `toml:"tags"`
-	Log         *sqlserverlog     `toml:"log"`
-	Database    string            `toml:"database,omitempty"`
-	CustomQuery []*customQuery    `toml:"custom_queries"`
-	AllowTLS10  bool              `toml:"allow_tls10,omitempty"`
+	Host         string            `toml:"host"`
+	User         string            `toml:"user"`
+	Password     string            `toml:"password"`
+	Interval     datakit.Duration  `toml:"interval"`
+	InstanceName string            `toml:"instance_name"`
+	Tags         map[string]string `toml:"tags"`
+	Log          *sqlserverlog     `toml:"log"`
+	Database     string            `toml:"database,omitempty"`
+	CustomQuery  []*customQuery    `toml:"custom_queries"`
+	AllowTLS10   bool              `toml:"allow_tls10,omitempty"`
 
 	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
 	ExcludeQuery           []string `toml:"exclude_query,omitempty"`

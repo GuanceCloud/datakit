@@ -290,6 +290,7 @@ SELECT DISTINCT
 			,'Percent Log Used'
 			,'Log Send Queue KB'
 			,'Redo Queue KB'
+			,'Redo Bytes Remaining'
 			,'Mirrored Write Transactions/sec'
 			,'Group Commit Time'
 			,'Group Commits/Sec'

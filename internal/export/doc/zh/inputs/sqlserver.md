@@ -53,9 +53,16 @@ CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
 GO
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ attention "注意事项"
+
+    注意，执行上述操作需要相应权限的帐号，否则可能会导致用户创建失败或者授权失败。
+
+    - 自建的 SQL Server 需要具备 WITH GRANT OPTION、CREATE ANY LOGIN、CREATE ANY USER、ALTER ANY LOGIN 权限的用户，也可以直接使用具有 sysadmin 角色的用户或者 local 用户授权。
+    - RDS for SQL Server 则需要使用高权限账号进行授权。
+
 ### 采集器配置 {#input-config}
 
-<!-- markdownlint-disable MD046 -->
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
