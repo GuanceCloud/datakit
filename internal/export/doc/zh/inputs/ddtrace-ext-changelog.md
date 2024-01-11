@@ -41,6 +41,48 @@
 
 --->
 
+## v1.25.2-guance (2024/1/10) {#cl-1.25.2-guance}
+
+### 更新 {#cl-1.25.2-guance-fix}
+
+- 链路数据中添加 HTTP Header 信息，[使用命令开启](ddtrace-ext-java/#trace_header)
+
+## v1.25.1-guance (2024/1/4) {#cl-1.25.1-guance}
+
+### 更新 {#cl-1.25.1-guance-fix}
+
+- 将 `Guance_trace_id` 放置在 HTTP 响应体的头部信息中。
+
+## v1.21.1-guance (2023/11/1) {#cl-1.21.1-guance}
+
+### 更新 {#cl-1.21.1-guance-fix}
+
+- 增加 Apache Pulsar 批量消费支持。
+
+## v1.21.0-guance (2023/10/24) {#cl-1.21.0-guance}
+
+### 更新 {#cl-1.21.0-guance-fix}
+
+- 合并最新 DDTrace 分支 v1.21.0 并发布新版本。
+
+## v1.20.3-guance (2023/10/13) {#cl-1.20.3-guance}
+
+### 新增 {#cl-1.20.3-guance-fix}
+
+- 增加 xxl-job 支持 2.2 版本探针。
+
+## v1.20.2-guance (2023/9/25) {#cl-1.20.2-guance}
+
+### 新增 {#cl-1.20.2-guance-fix}
+
+- 增加 Apache Pulsar 探针支持。
+
+## v1.20.1-guance (2023/9/8) {#cl-1.20.1-guance}
+
+### 更新 {#cl-1.20.1-guance-fix}
+
+- 合并最新 DDTrace 分支 v1.20.1 并发布新版本。
+
 ## v1.17.4-guance (2023/7/27) {#cl-1.17.4-guance}
 
 ### 修复 {#cl-1.17.4-guance-fix}

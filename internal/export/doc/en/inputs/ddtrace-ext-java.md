@@ -20,7 +20,16 @@ Here we mainly introduce some extended functions of DDTrace-java. List of main f
 - Get the input parameter information of a specific function
 - MongoDB obfuscation
 - Supported DM8 Database
-- Supported trace-128-id
+- Supported `trace-128-bit-id`
+- Supported Apache Pulsar MQ
+- Support placing `trace_id` in the response header
+- Support putting the requested header information into the span tags
+
+## Tracing Header {#trace_header}
+
+The link information will put the header information of the request and response into the tag.The default state is off. If it needs to be turned on, add the parameter `-Ddd.trace.headers.enabled=true`  during startup.
+
+DDTrace supported version: [v1.25.2](ddtrace-ext-changelog/cl-1.25.2-guance)
 
 ## supported trace-128-id {#trace_128_bit_id}
 
@@ -53,6 +62,8 @@ supported version：
 
 - [x] all
 
+DDTrace supported version: [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
+
 ## supported DM8 Database {#dameng-db}
 Add DM8 Database trace information.
 supported version：
@@ -74,7 +85,10 @@ After the declaration is made in the above way, the corresponding method will be
 
     Since the data type cannot be converted and json serialization requires additional dependencies and overhead, so far only `toString()` processing is done for the parameter value, and secondary processing is done for the result of `toString()`, the length of the field value It cannot exceed <font color="red">1024 characters</font>, and the excess part is discarded.
 
+DDTrace supported version： [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
+
 ## ddtrace agent default port {#agent_port}
+
 ddtrace changes the default remote port 8126 to 9529.
 
 ## redis command args {#redis-command-args}
@@ -153,6 +167,8 @@ After the SQL is executed, this map will be filled into the Span. The final data
 
 
 supported version： Version 2.3 and above are currently supported.
+
+DDTrace supported version：[v0.113.0](ddtrace-ext-changelog/#ccl-0.113.0-new)
 
 ## Dubbo supported {#dubbo}
 

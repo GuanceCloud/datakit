@@ -25,6 +25,48 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.25.2-guance (2024/1/10) {#cl-1.25.2-guance}
+
+### new {#cl-1.25.2-guance-fix}
+
+- By using the environment `dd.trace.headers.enabled=true`, the `header` information can be placed in the `span` tag `servlet_request_header`.
+
+## v1.25.1-guance (2024/1/4) {#cl-1.25.1-guance}
+
+### new {#cl-1.25.1-guance-fix}
+
+- Add `Guance_trace_id` at response header.
+
+## v1.21.1-guance (2023/11/1) {#cl-1.21.1-guance}
+
+### fix {#cl-1.21.1-guance-fix}
+
+- Add Apache Pulsar consumer batch instructions.
+
+## v1.21.0-guance (2023/10/24) {#cl-1.21.0-guance}
+
+### fix {#cl-1.21.0-guance-fix}
+
+- Merge DDTrace tag v1.21.0.
+
+## v1.20.3-guance (2023/10/13) {#cl-1.20.3-guance}
+
+### add {#cl-1.20.3-guance-fix}
+
+- Add xxl-job 2.2 version.
+
+## v1.20.2-guance (2023/9/25) {#cl-1.20.2-guance}
+
+### add {#cl-1.20.2-guance-fix}
+
+- Add Apache Pulsar instructions.
+
+## v1.20.1-guance (2023/9/8) {#cl-1.20.1-guance}
+
+### fix {#cl-1.20.1-guance-fix}
+
+- Merge DDTrace tag v1.20.1 and release new version.
+
 ## v1.17.4-guance (2023/7/27) {#cl-1.17.4-guance}
 
 ### fix {#cl-1.17.4-guance-fix}
