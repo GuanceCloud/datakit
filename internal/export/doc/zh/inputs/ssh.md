@@ -22,7 +22,9 @@ monitor   :
 
 监控 SSH/SFTP 服务，并把数据上报到观测云。
 
-## 采集器配置 {#config}
+## 配置 {#config}
+
+### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"

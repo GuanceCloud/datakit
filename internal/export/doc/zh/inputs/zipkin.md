@@ -24,6 +24,7 @@ Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
 
 ## 配置 {#config}
 
+### 采集器配置 {#input-config}
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

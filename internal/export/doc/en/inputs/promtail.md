@@ -1,5 +1,19 @@
+---
+title     : 'Promtail'
+summary   : 'Collect log data reported by Promtail'
+__int_icon      : 'icon/promtail'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Promtail Data Access
+<!-- markdownlint-enable -->
+
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
@@ -18,19 +32,14 @@ Already tested version:
 - [x] 1.0.0
 - [x] 0.1.0
 
-Go to the `conf.d/log` directory under the DataKit installation directory, copy `promtail.conf.sample` and name it `promtail.conf`. Examples are as follows:
+### Collector Configuration {#input-config}
 
-```toml
+Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
-[inputs.promtail]
-  #  以 legacy 版本接口处理请求时设置为 true，对应 loki 的 API 为 /api/prom/push。
-  legacy = false
-
-  [inputs.promtail.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
- 
-```
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    After configuration, [Restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 ### API Version {#API version}
 
@@ -40,10 +49,10 @@ Using the default Datakit's configuration, namely `legacy = false` for the rest 
 
 ### Custom Tags {#custom tags}
 
-You can add custom tags to log data by configuring `[inputs.promtail.tags]`, as shown below:
+You can add custom tags to log data by configuring `[inputs.{{.InputName}}.tags]`, as shown below:
 
 ```toml
-  [inputs.promtail.tags]
+  [inputs.{{.InputName}}.tags]
     some_tag = "some_value"
     more_tag = "some_other_value"
 ```
@@ -84,3 +93,7 @@ scrape_configs:
           job: varlogs
           __path__: /var/log/*log
 ```
+
+## Logging {#logging}
+
+The logs delivered by Promtail shall prevail.

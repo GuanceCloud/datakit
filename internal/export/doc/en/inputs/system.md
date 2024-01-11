@@ -1,5 +1,19 @@
+---
+title     : 'System'
+summary   : 'Collecting metrics data related to the host system'
+__int_icon      : 'icon/system'
+dashboard :
+  - desc  : 'System'
+    path  : 'dashboard/en/system'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # System
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +22,13 @@
 
 The system collector collects system load, uptime, the number of CPU cores, and the number of users logged in.
 
+## Configuration {#config}
+
 ## Preconditions {#requrements}
 
 None
 
-## Configuration {#config}
+## Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -28,19 +44,19 @@ None
 
     Modifying configuration parameters as environment variables is supported:
     
-    | Environment variable name              | Corresponding configuration parameter item | Parameter example                                                     |
-    | :---                    | ---              | ---                                                          |
-    | `ENV_INPUT_SYSTEM_TAGS` | `tags`           | `tag1=value1,tag2=value2`. If there is a tag with the same name in the configuration file, it will be overwritten. |
-    | `ENV_INPUT_SYSTEM_INTERVAL` | `interval` | `10s` |
+    | Environment variable name   | Corresponding configuration parameter item | Parameter example                                                                                                  |
+    | :-------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+    | `ENV_INPUT_SYSTEM_TAGS`     | `tags`                                     | `tag1=value1,tag2=value2`. If there is a tag with the same name in the configuration file, it will be overwritten. |
+    | `ENV_INPUT_SYSTEM_INTERVAL` | `interval`                                 | `10s`                                                                                                              |
 
 ---
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.system.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.{{.InputName}}.tags]`:
 
-``` toml
- [inputs.system.tags]
+```toml
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

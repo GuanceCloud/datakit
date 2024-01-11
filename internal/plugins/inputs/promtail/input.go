@@ -27,7 +27,9 @@ const (
 	catalogName     = "log"
 	sampleConfig    = `
 [inputs.promtail]
-  #  以 legacy 版本接口处理请求时设置为 true, 对应 loki 的 API 为 /api/prom/push。
+  ##  When processing requests with the legacy version interface,
+  ##  setting it to true corresponds to the Loki API endpoint /api/prom/push.
+  #
   legacy = false
 
   [inputs.promtail.tags]

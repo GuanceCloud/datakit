@@ -113,7 +113,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
 		Type:   "metric",
-		Desc:   "prometheus remote write指标",
+		Desc:   "Prometheus remote write metrics",
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},
 	}

@@ -1,5 +1,19 @@
+---
+title     : 'OceanBase'
+summary   : 'Collect OceanBase metrics'
+__int_icon      : 'icon/oceanbase'
+dashboard :
+  - desc  : 'OceanBase'
+    path  : 'dashboard/en/oceanbase'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # OceanBase
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -12,7 +26,9 @@ Already tested version:
 
 - [x] OceanBase Enterprise 3.2.4
 
-## Precondition {#reqirement}
+## Configuration {#config}
+
+### Precondition {#reqirement}
 
 - Create a monitoring account
 
@@ -111,7 +127,7 @@ After installation, add the installed path `/u01/obclient/lib` to `LD_LIBRARY_PA
 apt-get install -y libaio-dev libaio1
 ```
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -139,7 +155,7 @@ apt-get install -y libaio-dev libaio1
 
     The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.external.tags]`:
 

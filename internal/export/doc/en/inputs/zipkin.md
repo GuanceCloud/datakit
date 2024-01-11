@@ -1,5 +1,19 @@
+---
+title     : 'Zipkin'
+summary   : 'Zipkin Tracing Data Ingestion'
+__int_icon      : 'icon/zipkin'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Zipkin
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,13 +22,9 @@
 
 The Zipkin Agent embedded in Datakit is used to receive, calculate and analyze the data of Zipkin Tracing protocol.
 
-## Zipkin Docs {#docs}
+## Configuration {#config}
 
-- [Quickstart](https://zipkin.io/pages/quickstart.html){:target="_blank"}
-- [Docs](https://zipkin.io/pages/instrumenting.html){:target="_blank"}
-- [Souce Code](https://github.com/openzipkin/zipkin){:target="_blank"}
-
-## Configure Zipkin Agent {#config-agent}
+### Collector Config {#input-config}
 
 === "Host Installation"
 
@@ -45,7 +55,7 @@ The Zipkin Agent embedded in Datakit is used to receive, calculate and analyze t
     | `ENV_INPUT_ZIPKIN_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
     | `ENV_INPUT_ZIPKIN_STORAGE`            | JSON string | `{"storage":"./zipkin_storage", "capacity": 5120}`                               |
 
-## Measurements {#measurements}
+## Tracing {#tracing}
 
 {{range $i, $m := .Measurements}}
 
@@ -65,3 +75,9 @@ The Zipkin Agent embedded in Datakit is used to receive, calculate and analyze t
 {{end}}
 
 {{end}}
+
+## Zipkin Docs {#docs}
+
+- [Quickstart](https://zipkin.io/pages/quickstart.html){:target="_blank"}
+- [Docs](https://zipkin.io/pages/instrumenting.html){:target="_blank"}
+- [Souce Code](https://github.com/openzipkin/zipkin){:target="_blank"}

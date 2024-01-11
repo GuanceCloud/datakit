@@ -1,5 +1,19 @@
+---
+title     : 'Disk S.M.A.R.T'
+summary   : 'Collect disk metrics through smartctl'
+__int_icon      : 'icon/smartctl'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Disk S.M.A.R.T
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 Data collection of computer hard disk running state.
 
-## Preconditions {#requrements}
+## Configuration {#config}
+
+### Preconditions {#requrements}
 
 Installing smartmontools
 
@@ -19,7 +35,7 @@ Installing smartmontools
 - MacOS: `brew install smartmontools -y`
 - WinOS: download [Windows version](https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage){:target="_blank"}
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -35,12 +51,12 @@ Installing smartmontools
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-## Measurements {#requrements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.smart.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ```toml
- [inputs.smart.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

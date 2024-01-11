@@ -22,7 +22,6 @@ monitor   :
 
 SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标
 
-
 ## 配置 {#config}
 
 ### 前置条件 {#requrements}
@@ -78,7 +77,7 @@ GO
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
-#### 日志采集配置 {#logging-config}
+### 日志采集配置 {#logging-config}
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -155,7 +154,7 @@ SQL Server 通用日志文本示例：
 切割后的字段列表如下：
 
 | 字段名   | 字段值                | 说明                                          |
-| ---      | ---                   | ---                                           |
+| -------- | --------------------- | --------------------------------------------- |
 | `msg`    | `spid...`             | 日志内容                                      |
 | `time`   | `1622169967780000000` | 纳秒时间戳（作为行协议时间）                  |
 | `origin` | `spid10s`             | 源                                            |

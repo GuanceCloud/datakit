@@ -1,5 +1,19 @@
+---
+title     : 'NSQ'
+summary   : 'Collect NSQ metrics'
+__int_icon      : 'icon/nsq'
+dashboard :
+  - desc  : 'NSQ'
+    path  : 'dashboard/en/nsq'
+monitor   :
+  - desc  : 'NSQ'
+    path  : 'monitor/en/nsq'
+---
 
+<!-- markdownlint-disable MD025 -->
 # NSQ
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,9 @@
 
 Collect NSQ operation data and report it to Guance Cloud in the form of indicators.
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 - NSQ installed（[NSQ official website](https://nsq.io/){:target="_blank"}）
 
@@ -18,7 +34,7 @@ Collect NSQ operation data and report it to Guance Cloud in the form of indicato
 - [x] 1.1.0
 - [x] 0.3.8
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -41,12 +57,12 @@ Collect NSQ operation data and report it to Guance Cloud in the form of indicato
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.nsq.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.nsq.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

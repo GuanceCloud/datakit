@@ -153,6 +153,14 @@ vmalloc
 workarea
 xpack
 zhangsan
+dnodes
+tdengine
+mnodes
+mnodes
+vgroup
+vgroups
+vnode
+tdengine
 
 ##############################################
 # 缩写
