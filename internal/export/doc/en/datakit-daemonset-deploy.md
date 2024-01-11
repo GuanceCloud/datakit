@@ -149,6 +149,57 @@ spec:
       value: "YYY"    
 ```
 
+## ENV Set Collectors: {#env-setting}
+
+The opening of some collectors can also be injected through ENV_DATAKIT_INPUTS. 
+The following is an injection example of MySQL and Redis collectors:
+
+- The approximate format in datakit.yaml is
+
+```yaml
+spec:
+  containers:
+    - env
+    - name: ENV_XXX
+      value: YYY
+    - name: ENV_DATAKIT_INPUTS
+      value: |
+        [[inputs.mysql]]
+          interval = "10s"
+          ...
+        [inputs.mysql.tags]
+          some_tag = "some_value"
+
+        [[inputs.redis]]
+          interval = "10s"
+          ...
+        [inputs.redis.tags]
+          some_tag = "some_value"
+```
+
+- The approximate format in Helm values.yaml is
+
+```yaml
+  extraEnvs: 
+    - name: "ENV_XXX"
+      value: "YYY"
+    - name: "ENV_DATAKIT_INPUTS"
+      value: |
+        [[inputs.mysql]]
+          interval = "10s"
+          ...
+        [inputs.mysql.tags]
+          some_tag = "some_value"
+
+        [[inputs.redis]]
+          interval = "10s"
+          ...
+        [inputs.redis.tags]
+          some_tag = "some_value"
+```
+
+The injected content will be stored in the conf.d/env_datakit_inputs.conf file of the container.
+
 ### Description of Environment Variable Type {#env-types}
 
 The values of the following environment variables are divided into the following data types:
