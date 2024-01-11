@@ -45,7 +45,7 @@
 
 ### 更新 {#cl-1.25.2-guance-fix}
 
-- 链路数据中添加 HTTP Header 信息，[使用命令开启](ddtrace-ext-java/#trace_header)
+- 链路数据中添加 HTTP Header 信息，[使用命令开启](ddtrace-ext-java.md#trace_header)
 
 ## v1.25.1-guance (2024/1/4) {#cl-1.25.1-guance}
 

@@ -300,7 +300,7 @@ datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 
 3. 增加后端的写入能力。
 4. 取消任何网络带宽限制。
 5. 增加采集器数量并扩大消息分区数量让更多的消费者消费。
-6. 如果上述解决方案依旧无法解决问题，可以使用 [bug-report](../datakit/why-no-data/#bug-report){:target="_blank"} 收集运行时指标分析。
+6. 如果上述解决方案依旧无法解决问题，可以使用 [bug-report](../datakit/why-no-data.md#bug-report){:target="_blank"} 收集运行时指标分析。
 
 
 其他问题： 通过 `datakit monitor` 命令查看，或者 `datakit monitor -V` 查看。
