@@ -7,6 +7,8 @@ package config
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -314,6 +316,15 @@ func (c *Config) loadIOEnvs() {
 func (c *Config) LoadEnvs() error {
 	if c.IO == nil {
 		c.IO = &io.IOConf{}
+	}
+
+	// Save inputs .conf form env to disk.
+	if v := datakit.GetEnv("ENV_DATAKIT_INPUTS"); v != "" {
+		p := filepath.Join(datakit.ConfdDir, "ENV_DATAKIT_INPUTS.conf")
+		if err := os.WriteFile(p, []byte(v), datakit.ConfPerm); err != nil {
+			l.Errorf("error creating %s: %s", p, err)
+			return err
+		}
 	}
 
 	// first load protect mode settings, other settings depends on this flag.

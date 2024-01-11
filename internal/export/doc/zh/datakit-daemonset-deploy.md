@@ -165,6 +165,56 @@ data:
          ...
 ```
 
+## ENV 设置采集器 {#env-setting}
+
+采集器的开启，也可以通过 ENV_DATAKIT_INPUTS 这个环境变量来注入。以下是 MySQL 和 Redis 采集器的注入示例：
+
+- *datakit.yaml* 中其大概格式为
+
+```yaml
+spec:
+  containers:
+    - env
+    - name: ENV_XXX
+      value: YYY
+    - name: ENV_DATAKIT_INPUTS
+      value: |
+        [[inputs.mysql]]
+          interval = "10s"
+          ...
+        [inputs.mysql.tags]
+          some_tag = "some_value"
+
+        [[inputs.redis]]
+          interval = "10s"
+          ...
+        [inputs.redis.tags]
+          some_tag = "some_value"
+```
+
+- Helm values.yaml 中其大概格式为
+
+```yaml
+  extraEnvs: 
+    - name: "ENV_XXX"
+      value: "YYY"
+    - name: "ENV_DATAKIT_INPUTS"
+      value: |
+        [[inputs.mysql]]
+          interval = "10s"
+          ...
+        [inputs.mysql.tags]
+          some_tag = "some_value"
+
+        [[inputs.redis]]
+          interval = "10s"
+          ...
+        [inputs.redis.tags]
+          some_tag = "some_value"
+```
+
+注入的内容，将存入容器的 conf.d/env_datakit_inputs.conf 文件中。
+
 ## Datakit 中其它环境变量设置 {#using-k8-env}
 
 > 注意： ENV_LOG 如果配置成 `stdout`，则不要将 ENV_LOG_LEVEL 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
