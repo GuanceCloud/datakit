@@ -1,0 +1,808 @@
+{
+  "checkers": [
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "jvm_mem_heap_used_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "cluster_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(AVG(`jvm_mem_heap_used_percent`))  BY `cluster_name`",
+              "type": "simple"
+            },
+            "uuid": "2815fcaa-f0b6-4854-b5cd-de046dce3cd0"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "85"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "85"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name"
+        ],
+        "interval": 900,
+        "message": "<<.Monitor.heap_usage_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(AVG(`jvm_mem_heap_used_percent`))  BY `cluster_name`"
+          }
+        ],
+        "title": "<<.Monitor.heap_usage_title>>",
+        "type": "simpleCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "field": "total_search_query_total",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "1800s",
+                  "namespace": "metric",
+                  "q": "M::`elasticsearch_indices_stats`:(LAST(`total_search_query_total`))  [::1800s] BY `host`",
+                  "queryFuncs": [],
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "field": "total_search_query_time_in_millis",
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "1800s",
+                  "namespace": "metric",
+                  "q": "M::`elasticsearch_indices_stats`:(LAST(`total_search_query_time_in_millis`))  [::1800s] BY `host`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, A=\"M::`elasticsearch_indices_stats`:(LAST(`total_search_query_total`))  [::1800s] BY `host`\", B=\"M::`elasticsearch_indices_stats`:(LAST(`total_search_query_time_in_millis`))  [::1800s] BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "4201355b-6d03-48f9-bfab-17bee815eca7"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "checkCount": 1,
+            "conditionLogic": "and",
+            "direction": "both",
+            "periodNum": 3,
+            "status": "critical",
+            "strength": 3
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "checkCount": 1,
+              "conditionLogic": "and",
+              "direction": "both",
+              "periodNum": 3,
+              "status": "critical",
+              "strength": 3
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 1800,
+        "message": "<<.Monitor.search_query_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B, A=\"M::`elasticsearch_indices_stats`:(LAST(`total_search_query_total`))  [::1800s] BY `host`\", B=\"M::`elasticsearch_indices_stats`:(LAST(`total_search_query_time_in_millis`))  [::1800s] BY `host`\")"
+          }
+        ],
+        "title": "<<.Monitor.search_query_title>>",
+        "type": "mutationsCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "thread_pool_rollup_indexing_rejected",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "host"
+              ],
+              "groupByTime": "1800s",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_rollup_indexing_rejected`))  [::1800s] BY `cluster_name`, `host`",
+              "type": "simple"
+            },
+            "uuid": "00d3c9f7-689f-4197-a7c0-aecf2eff3c13"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "checkCount": 1,
+            "conditionLogic": "and",
+            "direction": "up",
+            "periodNum": 3,
+            "status": "critical",
+            "strength": 3
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "checkCount": 1,
+              "conditionLogic": "and",
+              "direction": "up",
+              "periodNum": 3,
+              "status": "critical",
+              "strength": 3
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "host"
+        ],
+        "interval": 1800,
+        "message": "<<.Monitor.rejected_rollup_indexing_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_rollup_indexing_rejected`))  [::1800s] BY `cluster_name`, `host`"
+          }
+        ],
+        "title": "<<.Monitor.rejected_rollup_indexing_title>>",
+        "type": "mutationsCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "thread_pool_transform_indexing_rejected",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "host"
+              ],
+              "groupByTime": "1800s",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_transform_indexing_rejected`))  [::1800s] BY `cluster_name`, `host`",
+              "type": "simple"
+            },
+            "uuid": "33bcade0-1f84-477c-92c2-2eca74a842f0"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "checkCount": 1,
+            "conditionLogic": "and",
+            "direction": "up",
+            "periodNum": 3,
+            "status": "critical",
+            "strength": 3
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "checkCount": 1,
+              "conditionLogic": "and",
+              "direction": "up",
+              "periodNum": 3,
+              "status": "critical",
+              "strength": 3
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "host"
+        ],
+        "interval": 1800,
+        "message": "<<.Monitor.rejected_transform_indexing_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_transform_indexing_rejected`))  [::1800s] BY `cluster_name`, `host`"
+          }
+        ],
+        "title": "<<.Monitor.rejected_transform_indexing_title>>",
+        "type": "mutationsCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "thread_pool_search_rejected",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "host"
+              ],
+              "groupByTime": "1800s",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_search_rejected`))  [::1800s] BY `cluster_name`, `host`",
+              "type": "simple"
+            },
+            "uuid": "5fe00423-5e7a-41d4-8e60-1f7ea5a97368"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "checkCount": 1,
+            "conditionLogic": "and",
+            "direction": "up",
+            "periodNum": 3,
+            "status": "critical",
+            "strength": 3
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "checkCount": 1,
+              "conditionLogic": "and",
+              "direction": "up",
+              "periodNum": 3,
+              "status": "critical",
+              "strength": 3
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "host"
+        ],
+        "interval": 1800,
+        "message": "<<.Monitor.rejected_search_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_search_rejected`))  [::1800s] BY `cluster_name`, `host`"
+          }
+        ],
+        "title": "<<.Monitor.rejected_search_title>>",
+        "type": "mutationsCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "thread_pool_force_merge_rejected",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "funcList": [],
+              "groupBy": [
+                "cluster_name",
+                "host"
+              ],
+              "groupByTime": "1800s",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_force_merge_rejected`))  [::1800s] BY `cluster_name`, `host`",
+              "type": "simple"
+            },
+            "uuid": "dd5f5682-f83d-4e09-adb7-53c723be1cb1"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "checkCount": 1,
+            "conditionLogic": "and",
+            "direction": "up",
+            "periodNum": 3,
+            "status": "critical",
+            "strength": 3
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "checkCount": 1,
+              "conditionLogic": "and",
+              "direction": "up",
+              "periodNum": 3,
+              "status": "critical",
+              "strength": 3
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name",
+          "host"
+        ],
+        "interval": 1800,
+        "message": "<<.Monitor.rejected_merge_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(LAST(`thread_pool_force_merge_rejected`))  [::1800s] BY `cluster_name`, `host`"
+          }
+        ],
+        "title": "<<.Monitor.rejected_merge_title>>",
+        "type": "mutationsCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_cluster_health",
+              "field": "status",
+              "fieldFunc": "last",
+              "fieldType": "string",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "host"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_cluster_health`:(LAST(`status`))  BY `host`",
+              "type": "simple"
+            },
+            "uuid": "42835ca6-b59c-4462-be01-eb20534fb344"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "green"
+                ],
+                "operator": "!="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "green"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 900,
+        "message": "<<.Monitor.cluster_health_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_cluster_health`:(LAST(`status`))  BY `host`"
+          }
+        ],
+        "title": "<<.Monitor.cluster_health_title>>",
+        "type": "simpleCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "Result",
+              "dataSource": "elasticsearch_node_stats",
+              "field": "os_cpu_percent",
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "filters": [],
+              "funcList": [],
+              "groupBy": [
+                "cluster_name"
+              ],
+              "groupByTime": "",
+              "namespace": "metric",
+              "q": "M::`elasticsearch_node_stats`:(AVG(`os_cpu_percent`))  BY `cluster_name`",
+              "type": "simple"
+            },
+            "uuid": "d5d8ba6b-1193-404d-b920-ff22a04f3dfd"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "cluster_name"
+        ],
+        "interval": 900,
+        "message": "<<.Monitor.cpu_usage_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "M::`elasticsearch_node_stats`:(AVG(`os_cpu_percent`))  BY `cluster_name`"
+          }
+        ],
+        "title": "<<.Monitor.cpu_usage_title>>",
+        "type": "simpleCheck"
+      }
+    },
+    {
+      "extend": {
+        "funcName": "",
+        "noDataPeriodCount": null,
+        "querylist": [
+          {
+            "datasource": "dataflux",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "children": [
+                {
+                  "alias": "",
+                  "code": "A",
+                  "dataSource": "elasticsearch_node_stats",
+                  "field": "thread_pool_search_rejected",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`elasticsearch_node_stats`:(AVG(`thread_pool_search_rejected`))  BY `host`",
+                  "type": "simple"
+                },
+                {
+                  "alias": "",
+                  "code": "B",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "field": "total_search_query_total",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "groupByTime": "",
+                  "namespace": "metric",
+                  "q": "M::`elasticsearch_indices_stats`:(AVG(`total_search_query_total`))  BY `host`",
+                  "type": "simple"
+                }
+              ],
+              "code": "Result",
+              "expression": "A/B",
+              "funcList": [],
+              "q": "eval(A/B, A=\"M::`elasticsearch_node_stats`:(AVG(`thread_pool_search_rejected`))  BY `host`\", B=\"M::`elasticsearch_indices_stats`:(AVG(`total_search_query_total`))  BY `host`\")",
+              "type": "expression"
+            },
+            "uuid": "b37ca09c-600e-4657-8ce1-7c0e2b9bcb0e"
+          }
+        ],
+        "recoverNeedPeriodCount": null,
+        "rules": [
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "status": "critical"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "error"
+          },
+          {
+            "conditionLogic": "and",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [],
+                "operator": ">="
+              }
+            ],
+            "status": "warning"
+          }
+        ]
+      },
+      "is_disable": false,
+      "jsonScript": {
+        "checkerOpt": {
+          "rules": [
+            {
+              "conditionLogic": "and",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "status": "critical"
+            }
+          ]
+        },
+        "every": "1m",
+        "groupBy": [
+          "host"
+        ],
+        "interval": 900,
+        "message": "<<.Monitor.query_reject_message>>",
+        "noDataPeriodCount": 0,
+        "recoverNeedPeriodCount": 0,
+        "targets": [
+          {
+            "alias": "Result",
+            "dql": "eval(A/B, A=\"M::`elasticsearch_node_stats`:(AVG(`thread_pool_search_rejected`))  BY `host`\", B=\"M::`elasticsearch_indices_stats`:(AVG(`total_search_query_total`))  BY `host`\")"
+          }
+        ],
+        "title": "<<.Monitor.query_reject_title>>",
+        "type": "simpleCheck"
+      }
+    }
+  ]
+}
