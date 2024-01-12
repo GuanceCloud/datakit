@@ -106,7 +106,7 @@ func stopDatakit() error {
 		return cmd.Run()
 	}
 
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func startDatakit() error {
 		return cmd.Run()
 	}
 
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func restartDatakit() error {
 }
 
 func uninstallDatakit() error {
-	svc, err := dkservice.NewService()
+	svc, err := dkservice.NewService("")
 	if err != nil {
 		return err
 	}
@@ -205,17 +205,8 @@ func uninstallDatakit() error {
 
 func reinstallDatakit(userName string) error {
 	l.Infof("reinstallDatakit with user: %s", userName)
-	limitCPUMax := fmt.Sprintf("%d%%", int(config.Cfg.ResourceLimitOptions.CPUMax))
-	limitMemMax := fmt.Sprintf("%dM", config.Cfg.ResourceLimitOptions.MemMax)
-	if !config.Cfg.ResourceLimitOptions.Enable {
-		limitCPUMax = ""
-		limitMemMax = ""
-	}
 
-	svc, err := dkservice.NewService(dkservice.WithUser(userName),
-		dkservice.WithMemLimit(limitMemMax),
-		dkservice.WithCPULimit(limitCPUMax),
-	)
+	svc, err := dkservice.NewService(userName)
 	if err != nil {
 		return err
 	}
@@ -227,3 +218,31 @@ func reinstallDatakit(userName string) error {
 
 	return service.Control(svc, "start")
 }
+
+// func datakitStatus() (string, error) {
+//	if runtime.GOOS == datakit.OSWindows {
+//		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)
+//		res, err := cmd.CombinedOutput()
+//		return string(res), err
+//	}
+//
+//	svc, err := dkservice.NewService("")
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	status, err := svc.Status()
+//	if err != nil {
+//		return "", err
+//	}
+//	switch status {
+//	case service.StatusUnknown:
+//		return "unknown", nil
+//	case service.StatusRunning:
+//		return "running", nil
+//	case service.StatusStopped:
+//		return "stopped", nil
+//	default:
+//		return "", fmt.Errorf("should not been here")
+//	}
+//}

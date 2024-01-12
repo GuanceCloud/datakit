@@ -1091,7 +1091,7 @@ github.com/jpillora/backoff
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/kardianos/service v1.2.1 => github.com/GuanceCloud/service v1.2.2
+# github.com/kardianos/service v1.2.1 => github.com/GuanceCloud/service v1.2.1-rc3
 ## explicit; go 1.12
 github.com/kardianos/service
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -2313,7 +2313,7 @@ sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
-# github.com/kardianos/service => github.com/GuanceCloud/service v1.2.2
+# github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
 # github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
 # github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616
 # github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003

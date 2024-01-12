@@ -1,6 +1,15 @@
 # Changelog
 ---
 
+
+## 1.23.1(2024/01/12) {#cl-1.23.1}
+
+This release is a Hotfix release, which fixes the following issues:
+
+- Fix Datakit service error under Windows
+
+---
+
 ## 1.23.0(2024/01/11) {#cl-1.23.0}
 
 This release is an iteration release, with the following updates:
@@ -31,7 +40,6 @@ This release is an iteration release, with the following updates:
 - [SkyWalking](../integrations/skywalking.md) collector now supports Meter data type (#2078)
 - Updated some collector documentation and other bug fixes (#2074/#2067)
 - Optimized upgrade command for Proxy installation (#2033)
-- Optimized resource limitation when installing as non-root user (#2011)
 
 ---
 

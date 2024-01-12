@@ -20,25 +20,19 @@ import (
 
 const maxPathSize = 32 * 1024
 
-const (
-	version                   = "darwin-launchd"
-	defaultDarwinLogDirectory = "/var/log"
-)
+const version = "darwin-launchd"
 
 type darwinSystem struct{}
 
 func (darwinSystem) String() string {
 	return version
 }
-
 func (darwinSystem) Detect() bool {
 	return true
 }
-
 func (darwinSystem) Interactive() bool {
 	return interactive
 }
-
 func (darwinSystem) New(i Interface, c *Config) (Service, error) {
 	s := &darwinLaunchdService{
 		i:      i,
@@ -112,28 +106,6 @@ func (s *darwinLaunchdService) getServiceFilePath() (string, error) {
 	return "/Library/LaunchDaemons/" + s.Name + ".plist", nil
 }
 
-func (s *darwinLaunchdService) logDir() (string, error) {
-	if customDir := s.Option.string(optionLogDirectory, ""); customDir != "" {
-		return customDir, nil
-	}
-	if !s.userService {
-		return defaultDarwinLogDirectory, nil
-	}
-	return s.getHomeDir()
-}
-
-func (s *darwinLaunchdService) getLogPaths() (string, string, error) {
-	logDir, err := s.logDir()
-	if err != nil {
-		return "", "", err
-	}
-	return s.getLogPath(logDir, "out"), s.getLogPath(logDir, "err"), nil
-}
-
-func (s *darwinLaunchdService) getLogPath(logDir, logType string) string {
-	return fmt.Sprintf("%s/%s.%s.log", logDir, s.Name, logType)
-}
-
 func (s *darwinLaunchdService) template() *template.Template {
 	functions := template.FuncMap{
 		"bool": func(v bool) string {
@@ -148,8 +120,9 @@ func (s *darwinLaunchdService) template() *template.Template {
 
 	if customConfig != "" {
 		return template.Must(template.New("").Funcs(functions).Parse(customConfig))
+	} else {
+		return template.Must(template.New("").Funcs(functions).Parse(launchdConfig))
 	}
-	return template.Must(template.New("").Funcs(functions).Parse(launchdConfig))
 }
 
 func (s *darwinLaunchdService) Install() error {
@@ -181,23 +154,20 @@ func (s *darwinLaunchdService) Install() error {
 		return err
 	}
 
-	stdOutPath, stdErrPath, _ := s.getLogPaths()
 	var to = &struct {
 		*Config
 		Path string
 
 		KeepAlive, RunAtLoad bool
 		SessionCreate        bool
-		StandardOutPath      string
-		StandardErrorPath    string
+		StandardOut          bool
+		StandardError        bool
 	}{
-		Config:            s.Config,
-		Path:              path,
-		KeepAlive:         s.Option.bool(optionKeepAlive, optionKeepAliveDefault),
-		RunAtLoad:         s.Option.bool(optionRunAtLoad, optionRunAtLoadDefault),
-		SessionCreate:     s.Option.bool(optionSessionCreate, optionSessionCreateDefault),
-		StandardOutPath:   stdOutPath,
-		StandardErrorPath: stdErrPath,
+		Config:        s.Config,
+		Path:          path,
+		KeepAlive:     s.Option.bool(optionKeepAlive, optionKeepAliveDefault),
+		RunAtLoad:     s.Option.bool(optionRunAtLoad, optionRunAtLoadDefault),
+		SessionCreate: s.Option.bool(optionSessionCreate, optionSessionCreateDefault),
 	}
 
 	return s.template().Execute(f, to)
@@ -246,7 +216,6 @@ func (s *darwinLaunchdService) Start() error {
 	}
 	return run("launchctl", "load", confPath)
 }
-
 func (s *darwinLaunchdService) Stop() error {
 	confPath, err := s.getServiceFilePath()
 	if err != nil {
@@ -254,7 +223,6 @@ func (s *darwinLaunchdService) Stop() error {
 	}
 	return run("launchctl", "unload", confPath)
 }
-
 func (s *darwinLaunchdService) Restart() error {
 	err := s.Stop()
 	if err != nil {
@@ -265,7 +233,9 @@ func (s *darwinLaunchdService) Restart() error {
 }
 
 func (s *darwinLaunchdService) Run() error {
-	err := s.i.Start(s)
+	var err error
+
+	err = s.i.Start(s)
 	if err != nil {
 		return err
 	}
@@ -285,7 +255,6 @@ func (s *darwinLaunchdService) Logger(errs chan<- error) (Logger, error) {
 	}
 	return s.SystemLogger(errs)
 }
-
 func (s *darwinLaunchdService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
@@ -295,13 +264,6 @@ var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
 "http://www.apple.com/DTDs/PropertyList-1.0.dtd" >
 <plist version='1.0'>
   <dict>
-	<key>EnvironmentVariables</key>
-	<dict>
-	{{range $k, $v := .EnvVars -}}
-	<key>{{html $k}}</key>
-	<string>{{html $v}}</string>
-	{{end -}}
-	</dict>
     <key>Label</key>
     <string>{{html .Name}}</string>
     <key>ProgramArguments</key>
@@ -325,11 +287,12 @@ var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
     <{{bool .RunAtLoad}}/>
     <key>Disabled</key>
     <false/>
-
-    {{if .StandardOutPath}}<key>StandardOutPath</key>
-    <string>{{html .StandardOutPath}}</string>{{end}}
-    {{if .StandardErrorPath}}<key>StandardErrorPath</key>
-    <string>{{html .StandardErrorPath}}</string>{{end}}
+    
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/{{html .Name}}.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/{{html .Name}}.err.log</string>
+  
   </dict>
 </plist>
 `

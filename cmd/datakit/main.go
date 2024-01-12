@@ -89,13 +89,14 @@ func main() {
 			config.Cfg.ResourceLimitOptions = config.Cfg.ResourceLimitOptionsDeprecated
 		}
 		if config.Cfg.ResourceLimitOptions != nil {
-			resourcelimit.Run(config.Cfg.ResourceLimitOptions, config.Cfg.DatakitUser)
+			resourcelimit.Run(config.Cfg.ResourceLimitOptions)
 		}
 
 		if workdir != "" {
 			run()
-		} else { // running as system service
-			if err := service.StartService(serviceEntry); err != nil {
+		} else { // running as System service
+			service.Entry = serviceEntry
+			if err := service.StartService(); err != nil {
 				l.Errorf("start service failed: %s", err.Error())
 				return
 			}
@@ -144,31 +145,19 @@ func run() {
 		select {
 		case sig := <-signals:
 			l.Infof("get signal %v, wait & exit", sig)
-			quit()
+			datakit.Quit()
 			l.Info("datakit exit.")
 			goto exit
 
-		case <-service.Wait():
+		case <-service.StopCh:
 			l.Infof("service stopping")
-			quit()
+			datakit.Quit()
 			l.Info("datakit exit.")
 			goto exit
 		}
 	}
 exit:
 	time.Sleep(time.Second)
-}
-
-func quit() {
-	datakit.GlobalExitTime = time.Now()
-	if err := os.Remove(datakit.PidFile); err != nil {
-		l.Warnf("remove PID file(%s) failed: %s, ignored", datakit.PidFile, err)
-	}
-
-	datakit.Exit.Close()
-	datakit.WG.Wait()
-	datakit.GWait()
-	service.Stop()
 }
 
 func tryLoadConfig() {

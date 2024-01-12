@@ -239,7 +239,6 @@ $ systemctl status datakit
     - 资源限制只在[宿主机安装](datakit-install.md)的时候会默认开启
     - 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 和 windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
     - CPU 使用率控制目前不支持这些 windows 操作系统： Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 和 Windows XP。
-    - 非 root 用户改资源限制配置时，必须重装 service。
 
 ???+ tip
 
