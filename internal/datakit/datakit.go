@@ -20,6 +20,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 const (
@@ -119,7 +120,7 @@ const (
 var (
 	Exit           = cliutils.NewSem()
 	WG             = sync.WaitGroup{}
-	GlobalExitTime time.Time
+	globalExitTime time.Time
 
 	Docker     = false
 	Version    = git.Version
@@ -176,7 +177,7 @@ var (
 	MainConfPath           = filepath.Join(ConfdDir, StrDefaultConfFile)
 	MainConfSamplePath     = filepath.Join(ConfdDir, "datakit.conf.sample")
 
-	PidFile = filepath.Join(InstallDir, ".pid")
+	pidFile = filepath.Join(InstallDir, ".pid")
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
@@ -278,7 +279,7 @@ func SetWorkDir(dir string) {
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	CacheDir = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
-	PidFile = filepath.Join(InstallDir, ".pid")
+	pidFile = filepath.Join(InstallDir, ".pid")
 
 	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
 	PythonDDir = filepath.Join(InstallDir, StrPythonD)
@@ -362,14 +363,24 @@ func GWait() {
 		}
 
 		// logging exit waiting time to find these slow-exit modules
-		l.Infof("goroutine Group %q exit, wait %s", g.Name(), time.Since(GlobalExitTime))
+		l.Infof("goroutine Group %q exit, wait %s", g.Name(), time.Since(globalExitTime))
 	}
 
-	l.Infof("all goroutine group exited, total wait %s", time.Since(GlobalExitTime))
+	l.Infof("all goroutine group exited, total wait %s", time.Since(globalExitTime))
+}
+
+func Quit() {
+	globalExitTime = time.Now()
+	_ = os.Remove(pidFile)
+
+	Exit.Close()
+	WG.Wait()
+	GWait()
+	service.Stop()
 }
 
 func PID() (int, error) {
-	if x, err := os.ReadFile(filepath.Clean(PidFile)); err != nil {
+	if x, err := os.ReadFile(filepath.Clean(pidFile)); err != nil {
 		return -1, err
 	} else {
 		if pid, err := strconv.ParseInt(string(x), 10, 32); err != nil {
@@ -382,11 +393,11 @@ func PID() (int, error) {
 
 func SavePid() error {
 	if isRuning() {
-		return fmt.Errorf("datakit still running, PID: %s", PidFile)
+		return fmt.Errorf("datakit still running, PID: %s", pidFile)
 	}
 
 	pid := os.Getpid()
-	return os.WriteFile(PidFile, []byte(fmt.Sprintf("%d", pid)), os.ModePerm)
+	return os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), os.ModePerm)
 }
 
 func isRuning() bool {
@@ -394,7 +405,7 @@ func isRuning() bool {
 	var name string
 	var p *process.Process
 
-	cont, err := os.ReadFile(filepath.Clean(PidFile))
+	cont, err := os.ReadFile(filepath.Clean(pidFile))
 	// pid文件不存在
 	if err != nil {
 		return false
@@ -409,10 +420,6 @@ func isRuning() bool {
 	name, _ = p.Name()
 
 	return name == getBinName()
-}
-
-func DatakitBinaryPath() string {
-	return filepath.Join(InstallDir, getBinName())
 }
 
 func getBinName() string {

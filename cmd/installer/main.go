@@ -84,6 +84,10 @@ var (
 	flagInstallOnly int
 )
 
+const (
+	datakitBin = "datakit"
+)
+
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
@@ -188,7 +192,7 @@ func setDatakitLite() {
 			isLite = v
 		}
 	} else if flagDKUpgrade { // only for upgrading datakit
-		cmd := exec.Command(datakit.DatakitBinaryPath(), "version") //nolint:gosec
+		cmd := exec.Command(dkservice.Executable, "version") //nolint:gosec
 		res, err := cmd.CombinedOutput()
 		if err != nil {
 			l.Warnf("check version failed: %s", err.Error())
@@ -365,6 +369,11 @@ Data           : %s
 
 	var err error
 
+	dkservice.Executable = filepath.Join(datakit.InstallDir, datakitBin)
+	if runtime.GOOS == datakit.OSWindows {
+		dkservice.Executable += ".exe"
+	}
+
 	// fix user name.
 	var userName string
 	if runtime.GOOS == datakit.OSLinux && len(flagUserName) > 0 && flagUserName != "root" {
@@ -384,17 +393,7 @@ Data           : %s
 		l.Infof("datakit service run as user: %q", userName)
 	}
 
-	limitCPUMax := fmt.Sprintf("%d%%", int(installer.LimitCPUMax))
-	limitMemMax := fmt.Sprintf("%dM", installer.LimitMemMax)
-	if installer.LimitDisabled == 1 {
-		limitCPUMax = ""
-		limitMemMax = ""
-	}
-
-	svc, err := dkservice.NewService(dkservice.WithUser(userName),
-		dkservice.WithMemLimit(limitMemMax),
-		dkservice.WithCPULimit(limitCPUMax),
-	)
+	svc, err := dkservice.NewService(userName)
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return

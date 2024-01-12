@@ -89,8 +89,6 @@ const (
 	optionRestartSec         = "RestartSec"
 	optionStartLimitInterval = "StartLimitInterval"
 	optionStartLimitBurst    = "StartLimitBurst"
-	optionCPUQuota    = "CPUQuota"
-	optionMemoryLimit    = "MemoryLimit"
 	optionSuccessExitStatus  = "SuccessExitStatus"
 
 	optionSystemdScript = "SystemdScript"
@@ -98,8 +96,6 @@ const (
 	optionUpstartScript = "UpstartScript"
 	optionLaunchdConfig = "LaunchdConfig"
 	optionOpenRCScript  = "OpenRCScript"
-
-	optionLogDirectory = "LogDirectory"
 )
 
 // Status represents service status as an byte value
@@ -140,8 +136,6 @@ type Config struct {
 
 	// System specific options.
 	Option KeyValue
-
-	EnvVars map[string]string
 }
 
 var (
@@ -192,8 +186,6 @@ func New(i Interface, c *Config) (Service, error) {
 //    - Restart       string (always)           - How shall service be restarted.
 //    - SuccessExitStatus string ()             - The list of exit status that shall be considered as successful,
 //                                                in addition to the default ones.
-//    - LogDirectory string(/var/log)           - The path to the log files directory
-//
 //  * Linux (systemd)
 //    - LimitNOFILE   int    (-1)               - Maximum open files (ulimit -n)
 //                                                (https://serverfault.com/questions/628610/increasing-nproc-for-processes-launched-by-systemd-on-centos-7)
