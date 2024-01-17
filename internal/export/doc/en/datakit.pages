@@ -2,7 +2,7 @@ nav:
   - index.md
   - changelog.md
 
-  - 'DataKit Intro': 
+  - 'DataKit Intro':
     - 'Intro to Overall Architecture': datakit-arch.md
 
   - 'DataKit Installation':
@@ -10,9 +10,10 @@ nav:
     - 'K8s Installation': datakit-daemonset-deploy.md
     - 'Offline Installation': datakit-offline-install.md
     - 'Batch Installation': datakit-batch-deploy.md
-    - 'ECS Fargate Integration': ecs-fargate.md
+    - 'AWS ECS Fargate Integration': ecs-fargate.md
+    - 'AWS EKS Integration': datakit-eks-deploy.md
 
-  - 'Using DataKit': 
+  - 'Using DataKit':
     - Service Management: datakit-service-how-to.md
     - Status Management: datakit-monitor.md
     - 'Update': datakit-update.md
@@ -24,7 +25,7 @@ nav:
     - 'Virtual Internet Access':
       - 'Alibaba Cloud': aliyun-access.md
 
-  - 'DataKit Configuration': 
+  - 'DataKit Configuration':
     - 'Major Configuration': datakit-conf.md
     - 'Collector Configuration': datakit-input-conf.md
     - 'Election Configuration': election.md
