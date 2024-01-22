@@ -131,9 +131,10 @@ func checkDNSChanged(watcher IDNSWatcher) (bool, []string) {
 
 	netIPs, err := net.LookupIP(domain)
 	if err != nil {
-		l.Warnf("LookupIP failed: err = %v, domain = %s", err, domain)
+		l.Warnf("LookupIP for domain %q failed, err %v, maybe this not a domain", domain, err)
 		return false, nil
 	}
+
 	var newIPs []string
 	for _, ip := range netIPs {
 		newIPs = append(newIPs, ip.String())

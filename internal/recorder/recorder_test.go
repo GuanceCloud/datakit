@@ -159,6 +159,28 @@ func TestRecorder(t *T.T) {
 		assert.Len(t, w.data, 0)
 	})
 
+	t.Run(`input-names`, func(t *T.T) {
+		var (
+			r = &Recorder{
+				Enabled:  true,
+				Path:     t.TempDir(),
+				Inputs:   []string{"logging/some-pod"},
+				Encoding: point.Protobuf.String(),
+			}
+			err error
+		)
+
+		r, err = SetupRecorder(r)
+		require.NoError(t, err)
+
+		r.w = &diskWriter{} // reset mocked writer
+		g := point.NewRander()
+		npts := 3
+		rpts := g.Rand(npts)
+
+		require.NoError(t, r.Record(rpts, point.Logging, "logging/some-pod"))
+	})
+
 	t.Run(`record-duration`, func(t *T.T) {
 		var (
 			w    = &mockw{}
@@ -184,7 +206,7 @@ func TestRecorder(t *T.T) {
 			g := point.NewRander()
 			rpts := g.Rand(npts)
 
-			require.NoError(t, r.Record(rpts, point.Metric, "some")) // not support
+			require.NoError(t, r.Record(rpts, point.Metric, "some"))
 			n++
 			time.Sleep(time.Second)
 

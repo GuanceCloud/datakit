@@ -57,7 +57,8 @@ After restart Datakit, the recording directory structure seems like(here list th
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    After record your data, remember to disable the record config(`enable = false`), or every restart of Datakit will recording, and may cause enexpected disk usage.
+    - After record your data, remember to disable the record config(`enable = false`), or every restart of Datakit will recording, and may cause enexpected disk usage
+    - Input's name are not the name in input's TOML conf(`[[inputs.some-name]]`), it's the name from monitor's `Inputs Info` panel, the 1st column. And some input's name may like this `logging/some-pod-name`, we will set it's recording data to */usr/local/datakit/recorder/logging/logging-some-pod-name.1705636073033197000.pbjson*, here we replaced the `/` with `-`
 <!-- markdownlint-enable -->
 
 ### Data Replay {#do-replay}

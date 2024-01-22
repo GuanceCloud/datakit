@@ -54,6 +54,7 @@ This release is an iteration release, with the following updates:
 - Added `node_name` tag to Kubernetes resource count collection (only supported for Pod resources)(#2057)
 - Added `cpu_limit_millicores/mem_limit/mem_used_percent_base_limit` fields to Kubernetes Pod metrics
 - Added `bpf-netlog` plugin to eBPF collector(#2017)
+- Add environments configure for recorder under Kubernetes
 
 ### Bug Fixes {#cl-1.22.0-fix}
 

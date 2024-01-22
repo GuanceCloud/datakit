@@ -75,7 +75,8 @@ DQL used to query data. If no option specified, query interactively. Other avail
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    数据录制完成后，记得关闭该功能（`enable = false`），否则每次 Datakit 启动都会启动录制，可能会消耗大量磁盘。
+    - 数据录制完成后，记得关闭该功能（`enable = false`），否则每次 Datakit 启动都会启动录制，可能会消耗大量磁盘
+    - 采集器名字不完全等同于采集器配置中的名字（`[[inputs.some-name`]]`），而是 monitor *Inputs Info* 面板中第一列中显示的名字。  部分采集器的名字可能这样：`logging/some-pod-name`，此处其存放的数据目录为 */usr/local/datakit/recorder/logging/logging-some-pod-name.1705636073033197000.pbjson*，此处将采集器名字中的 `/` 替换成了 `-`
 <!-- markdownlint-enable -->
 
 ### 数据回放 {#do-replay}

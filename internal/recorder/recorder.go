@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -156,6 +157,9 @@ func (r *Recorder) Record(pts []*point.Point, cat point.Category, input string) 
 	default:
 		return fmt.Errorf("invalid encoding %q", r.Encoding)
 	}
+
+	// NOTE: some input may named as logging/pod-123, we just replace / with -
+	input = strings.ReplaceAll(input, "/", "-")
 
 	if len(dataBytes) > 0 {
 		dpath := filepath.Join(r.Path, cat.String(), fmt.Sprintf("%s.%s%s", input, ts, ext))
