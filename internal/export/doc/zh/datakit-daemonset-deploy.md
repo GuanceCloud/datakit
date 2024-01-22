@@ -429,6 +429,21 @@ spec:
 | `ENV_REFER_TABLE_USE_SQLITE`      | bool   | false  | 否     | 设置是否使用 SQLite 保存数据                            |
 | `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool   | false  | 否     | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
 
+### 数据录制有关环境变量 {#env-recorder}
+
+[:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
+
+数据录制相关的功能，参见[这里的文档](atakit-tools-how-to.md#record-and-replay)。
+
+| 环境变量名称              | 类型     | 默认值                      | 必须   | 说明                                                                                                                 |
+| ---------:                | ----:    | ---:                        | ------ | ----                                                                                                                 |
+| `ENV_ENABLE_RECORDER`     | bool     | false                       | 否     | 设置是否开启数据录制                                                                                                 |
+| `ENV_RECORDER_PATH`       | string   | *Datakit 安装目录/recorder* | 否     | 设置数据录制的存放目录                                                                                               |
+| `ENV_RECORDER_ENCODING`   | string   | v2                          | 否     | 设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式                                                             |
+| `ENV_RECORDER_DURATION`   | duration | 30m                         | 否     | 设置数据录制时长（自 Datakit 启动以后），一旦超过该时长，则不再录制                                                  |
+| `ENV_RECORDER_INPUTS`     | string   | 无，默认录制所有采集器数据  | 否     | 设置录制的采集器名称列表，以英文逗号分割，如 `cpu,mem,disk`                                                          |
+| `ENV_RECORDER_CATEGORIES` | string   | 无，默认录制所有数据分类    | 否     | 设置录制的数据分类列表，以英文逗号分割，如 `metric,logging,object`，完整的 Category 列表参见[这里](apis.md#category) |
+
 ### 其它杂项 {#env-others}
 
 | 环境变量名称                    | 类型     | 默认值 | 必须   | 说明                                                       |

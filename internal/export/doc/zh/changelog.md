@@ -50,6 +50,7 @@
 - Kubernetes 资源数量采集添加 `node_name` tag（仅支持 Pod 资源）（#2057）
 - Kubernetes Pod 指标新增 `cpu_limit_millicores/mem_limit/mem_used_percent_base_limit` 字段
 - eBPF 采集器新增 `bpf-netlog` 插件 (#2017)
+- Kubernetes 中数据录制功能支持通过环境变量配置
 
 ### 问题修复 {#cl-1.22.0-fix}
 

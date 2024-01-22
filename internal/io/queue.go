@@ -33,7 +33,7 @@ func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
 
 	if x.recorder != nil && x.recorder.Enabled {
 		if err := x.recorder.Record(d.points, d.category, d.from); err != nil {
-			log.Warnf("record %d points on %q from %q failed: %s", len(d.points), d.category, d.from, err)
+			log.Warnf("record %d points on %q from %q failed: %s, ignored", len(d.points), d.category, d.from, err)
 		} else {
 			log.Debugf("record %d points on %q from %q ok", len(d.points), d.category, d.from)
 		}

@@ -371,6 +371,21 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_REFER_TABLE_URL`           | string | None     | No     | Set the data source URL                |
 | `ENV_REFER_TABLE_PULL_INTERVAL` | string | 5m     | No     | Set the request interval for the data source URL |
 
+### Recorder Environment Variables {#env-recorder}
+
+[:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
+
+For more info about recorder, see [here](atakit-tools-how-to.md#record-and-replay).
+
+| Environment Variable Name | Type     | Default Value                   | Required | Description                                                                                                                                 |
+| ---------:                | ----:    | ---:                            | ------   | ----                                                                                                                                        |
+| `ENV_ENABLE_RECORDER`     | bool     | false                           | No       | To enable or disable recorder                                                                                                               |
+| `ENV_RECORDER_PATH`       | string   | *datakit-install-dir/recorder*  | No       | Set recorder data path                                                                                                                      |
+| `ENV_RECORDER_ENCODING`   | string   | v2                              | No       | Set recorder format. v1 is lineprotocol, v2 is json                                                                                         |
+| `ENV_RECORDER_DURATION`   | duration | 30m                             | No       | Set recorder duration(since Datakit start). After the duration, the recorder will stop to write data to file                                |
+| `ENV_RECORDER_INPUTS`     | string   | default recording all inputs    | No       | Set allowed input names for recording, splited by comma, i.e., `cpu,mem,disk`                                                               |
+| `ENV_RECORDER_CATEGORIES` | string   | default recoding all categories | No       | Set allowed categories for recording, splited by comma, i.e., `metric,logging,object`, full list of categories see [here](apis.md#category) |
+
 ### Others {#env-others}
 
 | Environment Variable Name        | Type   | Default Value  | Required | Description                                                                                                  |
