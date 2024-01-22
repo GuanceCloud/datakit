@@ -16,7 +16,9 @@ var wpool sync.Pool
 func getWriter() *writer {
 	w := wpool.Get()
 	if w == nil {
-		w = &writer{}
+		w = &writer{
+			httpHeaders: map[string]string{},
+		}
 	}
 
 	return w.(*writer)
@@ -32,7 +34,10 @@ func putWriter(w *writer) {
 	w.batchBytesSize = 0
 	w.batchSize = 0
 	w.fc = nil
-	w.httpHeaders = nil
+
+	for k := range w.httpHeaders {
+		delete(w.httpHeaders, k)
+	}
 	w.httpEncoding = point.LineProtocol
 	wpool.Put(w)
 }

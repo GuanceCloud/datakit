@@ -36,7 +36,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -596,7 +595,8 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 
-	xGlobalTag := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(metadata.tags), config.Cfg.Dataway.GlobalTags(),
+	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata.tags,
+		config.Cfg.Dataway.GlobalTags(),
 		config.Cfg.Dataway.CustomTagKeys())
 	if xGlobalTag == "" {
 		xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()

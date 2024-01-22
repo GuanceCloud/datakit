@@ -64,14 +64,11 @@ func debugFilter(filterConf, data []byte) error {
 			return fmt.Errorf("invalid filter rule: %w", err)
 		}
 
-		var tfdatas []*filter.TFData
+		var tfdatas []*filter.KVs
 		for _, pt := range pts {
-			tfdata := filter.NewTFData(point.CatString(k), pt)
-			if err != nil {
-				return err
-			}
-
-			tfdatas = append(tfdatas, tfdata)
+			kvs := &filter.KVs{}
+			kvs.Setup(point.CatString(k), pt)
+			tfdatas = append(tfdatas, kvs)
 		}
 
 		for i, tfdata := range tfdatas {

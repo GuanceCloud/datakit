@@ -8,13 +8,10 @@ package dataway
 import (
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	pb "google.golang.org/protobuf/proto"
 )
 
@@ -82,8 +79,6 @@ func WithHTTPEncoding(t point.Encoding) WriteOption {
 	}
 }
 
-type groupedPoints []*point.Point
-
 type writer struct {
 	category   point.Category
 	dynamicURL string
@@ -150,76 +145,24 @@ func (dw *Dataway) cleanCache(w *writer, data []byte) error {
 	return nil
 }
 
-// HTTPHeaderGlobalTagValue create X-Global-Tags header value.
-func HTTPHeaderGlobalTagValue(tfdata *filter.TFData, globalTags map[string]string, customerKeys []string) string {
-	if len(globalTags) == 0 && len(customerKeys) == 0 {
-		return ""
+func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*point.Point) {
+	for _, pt := range points {
+		// clear kvs for current pt
+		ptg.kvarr = ptg.kvarr[:0]
+		ptg.extKVs = ptg.extKVs[:0]
+
+		ptg.pt = pt
+		ptg.cat = cat
+
+		tv := ptg.sinkHeaderValue(dw.globalTags, dw.GlobalCustomerKeys)
+
+		ptg.groupedPts[tv] = append(ptg.groupedPts[tv], pt)
 	}
-
-	tfdata.MergeStringKVs()
-
-	strKV := tfdata.Tags
-
-	if len(strKV) == 0 {
-		return ""
-	}
-
-	merge := false
-	for k, v := range strKV {
-		if x, ok := globalTags[k]; ok && x != v { // override value in global tags
-			merge = true
-			break
-		}
-
-		for _, x := range customerKeys {
-			if x == k {
-				merge = true
-				break
-			}
-		}
-	}
-
-	if !merge {
-		return ""
-	}
-
-	// do merge.
-	var arr []string
-	for k, v := range globalTags {
-		if x, ok := strKV[k]; ok && x != v {
-			arr = append(arr, fmt.Sprintf("%s=%s", k, x)) // replace with value in @tfdata
-		} else {
-			arr = append(arr, fmt.Sprintf("%s=%s", k, v))
-		}
-	}
-
-	for k, v := range strKV {
-		for _, x := range customerKeys {
-			if k == x {
-				arr = append(arr, fmt.Sprintf("%s=%s", k, v)) // append customer tag key's value
-			}
-		}
-	}
-
-	sort.Strings(arr)
-	return strings.Join(arr, ",")
 }
 
-func (dw *Dataway) groupPoints(cat point.Category, points []*point.Point) map[string]groupedPoints {
-	res := map[string]groupedPoints{}
-	for _, pt := range points {
-		tfdata := filter.NewTFDataFromPoint(cat, pt)
-
-		tv := HTTPHeaderGlobalTagValue(tfdata, dw.globalTags, dw.GlobalCustomerKeys)
-		if tv == "" {
-			tv = dw.globalTagsHTTPHeaderValue
-		}
-		res[tv] = append(res[tv], pt)
-	}
-
-	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(res)))
-
-	return res
+func (dw *Dataway) groupPoints(ptg *ptGrouper, cat point.Category, points []*point.Point) {
+	dw.doGroupPoints(ptg, cat, points)
+	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(ptg.groupedPts)))
 }
 
 func (dw *Dataway) Write(opts ...WriteOption) error {
@@ -268,15 +211,15 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 
 	// split single point array into multiple part according to
 	// different X-Global-Tags.
-	var groupedPoints map[string]groupedPoints
-	if dw.EnableSinker && (len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) {
-		groupedPoints = dw.groupPoints(w.category, w.points)
-	}
+	if dw.EnableSinker &&
+		(len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) &&
+		len(dw.eps) > 0 {
+		ptg := getGrouper()
+		defer putGrouper(ptg)
 
-	if len(groupedPoints) > 0 && len(dw.eps) > 0 {
-		w.httpHeaders = map[string]string{}
+		dw.groupPoints(ptg, w.category, w.points)
 
-		for k, points := range groupedPoints {
+		for k, points := range ptg.groupedPts {
 			w.httpHeaders[HeaderXGlobalTags] = k
 			w.points = points
 
