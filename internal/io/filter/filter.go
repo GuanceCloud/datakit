@@ -100,7 +100,11 @@ func GetConds(filterArr []string) (fp.WhereConditions, error) {
 // CheckPointFiltered returns whether the point matches the fitler rule.
 // If returns true means they are matched.
 func CheckPointFiltered(conds fp.WhereConditions, category point.Category, pt *point.Point) (bool, error) {
-	return filtered(conds, NewTFData(category, pt)), nil
+	data := getTFData()
+	data.Setup(category, pt)
+	defer putTFData(data)
+
+	return filtered(conds, data), nil
 }
 
 func filtered(conds fp.WhereConditions, data fp.KVs) bool {

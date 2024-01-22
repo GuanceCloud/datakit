@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"golang.org/x/exp/maps"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/proto"
@@ -308,7 +307,9 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 	version = tags["version"]
 	service = tags["service"]
 
-	headerValue := dataway.HTTPHeaderGlobalTagValue(filter.NewTFDataFromMap(tags), globalTags, customTagKeys)
+	headerValue := dataway.SinkHeaderValueFromTags(tags,
+		globalTags,
+		customTagKeys)
 	if headerValue == "" {
 		headerValue = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
 	}
