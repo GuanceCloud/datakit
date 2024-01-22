@@ -85,9 +85,6 @@ func main() {
 		run()
 	} else {
 		// Auto enable resource limit under host running(debug mode and service mode)
-		if config.Cfg.ResourceLimitOptionsDeprecated != nil {
-			config.Cfg.ResourceLimitOptions = config.Cfg.ResourceLimitOptionsDeprecated
-		}
 		if config.Cfg.ResourceLimitOptions != nil {
 			resourcelimit.Run(config.Cfg.ResourceLimitOptions)
 		}

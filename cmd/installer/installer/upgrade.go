@@ -160,6 +160,11 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.EnableElectionTagDeprecated = false
 	}
 
+	if c.ResourceLimitOptionsDeprecated != nil {
+		c.ResourceLimitOptions = c.ResourceLimitOptionsDeprecated
+		c.ResourceLimitOptionsDeprecated = nil
+	}
+
 	c.InstallVer = DataKitVersion
 
 	return c
