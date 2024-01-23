@@ -113,20 +113,29 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
 
     在 Kubernetes 中支持的环境变量如下表：
 
-    | 环境变量名                             | 类型        | 示例                                                                             |
-    | -------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_DDTRACE_ENDPOINTS`          | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
-    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`      | JSON string | `["sink_project", "custom_dd_tag"]`                                              |
-    | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`    | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_DEL_MESSAGE`        | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                          |
-    | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_DDTRACE_SAMPLER`            | float       | 0.3                                                                              |
-    | `ENV_INPUT_DDTRACE_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_DDTRACE_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
-    | `ENV_INPUT_DDTRACE_STORAGE`            | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
+    | 环境变量名                               | 类型        | 示例                                                                             |
+    | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+    | `ENV_INPUT_DDTRACE_ENDPOINTS`            | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
+    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`        | JSON string | `["sink_project", "custom_dd_tag"]`                                              |
+    | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE`   | bool        | true                                                                             |
+    | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`      | bool        | true                                                                             |
+    | `ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX`  | bool        | true                                                                             |
+    | `ENV_INPUT_DDTRACE_DEL_MESSAGE`          | bool        | true                                                                             |
+    | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`      | JSON string | `["404", "403", "400"]`                                                          |
+    | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`       | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
+    | `ENV_INPUT_DDTRACE_SAMPLER`              | float       | 0.3                                                                              |
+    | `ENV_INPUT_DDTRACE_TAGS`                 | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
+    | `ENV_INPUT_DDTRACE_THREADS`              | JSON string | `{"buffer":1000, "threads":100}`                                                 |
+    | `ENV_INPUT_DDTRACE_STORAGE`              | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
 
+
+### 多线路工具串联注意事项 {#trace_propagator}
+
+DDTrace 目前支持的透传协议有：`datadog/b3multi/tracecontext` ，有两种情况需要注意：
+
+- 当使用 `tracecontext` 时，由于链路 ID 为 128 位需要将配置中的 `compatible_otel=true` 开关打开。
+- 当使用 `b3multi` 时，需要注意 `trace_id` 的长度，如果为 64 位的 hex 编码，需要将配置文件中的 `trace_id_64_bit_hex=true` 打开。
+- 更多的透传协议及工具使用请查看： [多链路串联](tracing-propagator.md){:target="_blank"}
 
 ### 注入 Pod 和 Node 信息 {#add-pod-node-info}
 

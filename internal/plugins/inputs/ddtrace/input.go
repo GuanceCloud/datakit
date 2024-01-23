@@ -58,6 +58,9 @@ const (
   ## make span_id and parent_id to hex encoding.
   # compatible_otel=true
 
+  ##  It is possible to compatible B3/B3Multi TraceID with DDTrace.
+  # trace_id_64_bit_hex=true
+
   ## delete trace message
   # del_message = true
 
@@ -120,6 +123,7 @@ type Input struct {
 	CustomerTags     []string                     `toml:"customer_tags"`
 	Endpoints        []string                     `toml:"endpoints"`
 	CompatibleOTEL   bool                         `toml:"compatible_otel"`
+	TraceID64BitHex  bool                         `toml:"trace_id_64_bit_hex"`
 	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus    []string                     `toml:"omit_err_status"`
@@ -280,6 +284,11 @@ func (ipt *Input) RegHTTPHandler() {
 func (ipt *Input) Run() {
 	tags = ipt.Tags
 	if ipt.CompatibleOTEL {
+		spanBase = 16
+	}
+	if ipt.TraceID64BitHex {
+		ignoreTraceIDFromTag = true
+		traceBase = 16
 		spanBase = 16
 	}
 	if len(ipt.CustomerTags) != 0 {

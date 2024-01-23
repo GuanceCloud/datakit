@@ -23,6 +23,7 @@ var _ inputs.ReadEnv = &Input{}
 // ENV_INPUT_DDTRACE_ENDPOINTS : JSON string
 // ENV_INPUT_DDTRACE_IGNORE_TAGS : JSON string
 // ENV_INPUT_DDTRACE_COMPATIBLE_OTEL : bool
+// ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX : bool
 // ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_DDTRACE_OMIT_ERR_STATUS : JSON string
 // ENV_INPUT_DDTRACE_CLOSE_RESOURCE : JSON string
@@ -47,6 +48,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_CUSTOMER_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
 		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
 		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE", "ENV_INPUT_DDTRACE_DEL_MESSAGE",
+		"ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -66,6 +68,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.CompatibleOTEL = ok
 			}
+		case "ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TraceID64BitHex = ok
+			}
+
 		case "ENV_INPUT_DDTRACE_CUSTOMER_TAGS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
