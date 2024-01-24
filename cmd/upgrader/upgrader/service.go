@@ -392,6 +392,10 @@ func upgrade(ctx *gin.Context) {
 	}
 
 	scriptFile, err := saveUpgradeScript(downloadURL)
+	if scriptFile != "" {
+		defer os.Remove(scriptFile) // nolint:errcheck
+	}
+
 	if err != nil {
 		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to download upgrade script: %w", err))
 		return
@@ -407,29 +411,28 @@ func upgrade(ctx *gin.Context) {
 
 func saveUpgradeScript(downloadURL string) (string, error) {
 	downloadURL = strings.TrimRight(downloadURL, "/ ")
-	scriptName := "datakit-upgrade.sh"
+	scriptExt := ".sh"
+
 	if runtime.GOOS == datakit.OSWindows {
 		downloadURL = fmt.Sprintf("%s/install.ps1", downloadURL)
-		scriptName = "datakit-upgrade.ps1"
+		scriptExt = ".ps1"
 	} else {
 		downloadURL = fmt.Sprintf("%s/install.sh", downloadURL)
 	}
 
-	scriptFile := filepath.Join(datakit.InstallDir, scriptName)
-
-	f, err := os.OpenFile(scriptFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644) // nolint:gosec
+	f, err := os.CreateTemp(datakit.InstallDir, fmt.Sprintf("tmp-dk-upgrader-*%s", scriptExt))
 	if err != nil {
-		return "", fmt.Errorf("unable to open script file [%s]: %w", scriptFile, err)
+		return "", fmt.Errorf("unable to create Datakit temporary setup script file: %w", err)
 	}
-	defer func(f *os.File) {
-		_ = f.Close()
-	}(f) //nolint:errcheck
+	defer f.Close() //nolint
 
-	code := ""
-	if code != "" {
-		if _, err := f.WriteString(code); err != nil {
-			return "", fmt.Errorf("unable to write script file[%s]: %w", scriptFile, err)
-		}
+	fileABSPath, err := filepath.Abs(f.Name())
+	if err != nil {
+		return "", fmt.Errorf("unable to get setup file absolute path: %w", err)
+	}
+
+	if err := f.Truncate(0); err != nil {
+		return "", fmt.Errorf("unable to truncate DK setup temp file [%s]: %w", fileABSPath, err)
 	}
 
 	resp, err := http.Get(downloadURL) // nolint:gosec
@@ -443,9 +446,9 @@ func saveUpgradeScript(downloadURL string) (string, error) {
 	defer resp.Body.Close() // nolint:errcheck
 
 	if _, err := io.Copy(f, resp.Body); err != nil {
-		return "", fmt.Errorf("unable to save datakit upgrade script[%s] to local file[%s]: %w", downloadURL, scriptFile, err)
+		return "", fmt.Errorf("unable to save datakit upgrade script[%s] to local file[%s]: %w", downloadURL, fileABSPath, err)
 	}
-	return scriptFile, nil
+	return fileABSPath, nil
 }
 
 func execUpdateCmd(scriptFile string) error {
@@ -482,7 +485,7 @@ func execUpdateCmd(scriptFile string) error {
 	}
 
 	if Cfg.InstallerBaseURL != "" {
-		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s", cmds.CanonicalInstallBaseURL(Cfg.InstallerBaseURL)))
+		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s", strings.TrimRight(cmds.CanonicalInstallBaseURL(Cfg.InstallerBaseURL), "/")))
 	}
 
 	cmd.Env = envs
