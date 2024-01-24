@@ -272,6 +272,10 @@ func (x *dkIO) doFeed(pts []*point.Point,
 	from string,
 	opt *Option,
 ) error {
+	if len(pts) == 0 {
+		log.Warnf("no point from %q", from)
+		return nil
+	}
 	log.Debugf("io feed %s on %s", from, category.String())
 	opt = forceBlocking(category, from, opt)
 

@@ -38,6 +38,7 @@ func TestComposePodMetric(t *testing.T) {
 		out.SetTag("node_name", "node-name-testing")
 		out.SetTag("namespace", "pod-namespace-testing")
 		out.SetField("ready", 0)
+		out.SetField("restarts", 0)
 
 		outPts := pointKVs{out}
 

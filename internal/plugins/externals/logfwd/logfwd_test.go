@@ -36,22 +36,22 @@ func TestForwardFunc(t *testing.T) {
 		{
 			inFilename: "/tmp/111",
 			inText:     "hello,world",
-			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/111","service":"t_service"},"log":"hello,world"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/111","service":"t_service"},"fields":{"log_read_lines":1},"log":"hello,world"}`,
 		},
 		{
 			inFilename: "/tmp/222",
 			inText:     "hello,world,222",
-			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/222","service":"t_service"},"log":"hello,world,222"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/222","service":"t_service"},"fields":{"log_read_lines":1},"log":"hello,world,222"}`,
 		},
 		{
 			inFilename: "/tmp/333",
 			inText:     "hello,world,333",
-			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/333","service":"t_service"},"log":"hello,world,333"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/333","service":"t_service"},"fields":{"log_read_lines":1},"log":"hello,world,333"}`,
 		},
 	}
 
 	for idx, tc := range cases {
-		forwardFunc(lg, write)(tc.inFilename, tc.inText)
+		forwardFunc(lg, write)(tc.inFilename, tc.inText, map[string]interface{}{"log_read_lines": 1})
 		assert.Equal(t, tc.out, writeRevicer[idx])
 	}
 }

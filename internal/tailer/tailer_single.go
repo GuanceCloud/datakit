@@ -529,7 +529,17 @@ func (t *Single) feed(pending []string) {
 
 func (t *Single) feedToRemote(pending []string) {
 	for _, text := range pending {
-		err := t.opt.ForwardFunc(t.filename, text)
+		t.readLines++
+		fields := map[string]interface{}{
+			"log_read_lines":     t.readLines,
+			"log_read_offset":    t.offset,
+			"log_read_time":      t.readTime.UnixNano(),
+			"message_length":     len(text),
+			"filepath":           t.filepath,
+			pipeline.FieldStatus: pipeline.DefaultStatus,
+		}
+
+		err := t.opt.ForwardFunc(t.filename, text, fields)
 		if err != nil {
 			t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
 		}

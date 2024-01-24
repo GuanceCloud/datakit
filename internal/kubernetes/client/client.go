@@ -162,9 +162,14 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 		return nil, err
 	}
 
+	addr := "127.0.0.1"
+	if s := getNodeIP(); s != "" {
+		addr = s
+	}
 	kubeletConfig := KubeletClientConfig{
 		Client:      restConfig,
 		Scheme:      "https",
+		Address:     addr,
 		DefaultPort: 10250,
 	}
 	kubeletClient, err := NewKubeletClientForConfig(&kubeletConfig)
@@ -259,4 +264,15 @@ func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
 
 func (c *client) GetMetricsFromKubelet() (*statsv1alpha1.Summary, error) {
 	return c.kubeletClient.GetMetrics()
+}
+
+func getNodeIP() string {
+	if s := os.Getenv("ENV_K8S_NODE_IP"); s != "" {
+		return s
+	}
+	// Deprecated: use ENV_K8S_NODE_IP
+	if s := os.Getenv("HOST_IP"); s != "" {
+		return s
+	}
+	return ""
 }

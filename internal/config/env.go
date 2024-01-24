@@ -423,6 +423,11 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	// Don't Add to ElectionTags.
+	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
+		c.GlobalHostTags["cluster_name_k8s"] = v
+	}
+
 	// set logging
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
