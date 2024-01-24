@@ -166,6 +166,8 @@ func (s *systemd) Install() error {
 		PIDFile              string
 		LimitNOFILE          int
 		Restart              string
+		CPUQuota			 string
+		MemoryLimit          string
 		StartLimitInterval   int
 		StartLimitBurst      int
 		RestartSec           int
@@ -179,6 +181,8 @@ func (s *systemd) Install() error {
 		s.Option.string(optionPIDFile, ""),
 		s.Option.int(optionLimitNOFILE, optionLimitNOFILEDefault),
 		s.Option.string(optionRestart, "always"),
+		s.Option.string(optionCPUQuota, ""),
+		s.Option.string(optionMemoryLimit, ""),
 		s.Option.int(optionStartLimitInterval, 60),
 		s.Option.int(optionStartLimitBurst, 5),
 		s.Option.int(optionRestartSec, 120),
@@ -303,6 +307,8 @@ ConditionFileIsExecutable={{.Path|cmdEscape}}
 {{if .StartLimitInterval}}StartLimitInterval={{.StartLimitInterval}}{{end}}
 # StartLimitBurst=5
 {{if .StartLimitBurst}}StartLimitBurst={{.StartLimitBurst}}{{end}}
+{{if .CPUQuota}}CPUQuota={{.CPUQuota}}{{end}}
+{{if .MemoryLimit}}MemoryLimit={{.MemoryLimit}}{{end}}
 ExecStart={{.Path|cmdEscape}}{{range .Arguments}} {{.|cmd}}{{end}}
 {{if .ChRoot}}RootDirectory={{.ChRoot|cmd}}{{end}}
 {{if .WorkingDirectory}}WorkingDirectory={{.WorkingDirectory|cmdEscape}}{{end}}

@@ -381,6 +381,7 @@ replace (
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
+
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
 	github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
 	github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616
