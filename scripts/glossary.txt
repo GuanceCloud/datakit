@@ -112,6 +112,7 @@ containerd
 datagram
 ddtrace
 diskcache
+dnodes
 dnssec
 eBPF
 ebpftrace
@@ -122,6 +123,7 @@ gRPC
 guance
 ipfix
 jemalloc
+kafkamq
 keyevent
 kubedns
 kubelet
@@ -133,6 +135,7 @@ logstreaming
 macOS
 mcache
 mitm
+mnodes
 mysqld
 netflow
 nginx
@@ -148,20 +151,16 @@ stderr
 stdout
 syscall
 tcmalloc
+tdengine
 unflushed
 usec
+vgroup
+vgroups
 vmalloc
+vnode
 workarea
 xpack
 zhangsan
-dnodes
-tdengine
-mnodes
-mnodes
-vgroup
-vgroups
-vnode
-tdengine
 
 ##############################################
 # 缩写

@@ -52,6 +52,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_io_build_body_batch_bytes`|`category,encoding,gzip`|Batch HTTP body size|
 |COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
 |COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
+|COUNTER|`datakit_io_dataway_http_drop_point_total`|`category,error`|Dataway write drop points|
 |SUMMARY|`datakit_io_dataway_api_latency_seconds`|`api,status`|Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status|
 |COUNTER|`datakit_io_http_retry_total`|`api,status`|Dataway HTTP retried count|
 |SUMMARY|`datakit_io_grouped_request`|`category`|Grouped requests under sinker|
@@ -64,6 +65,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |COUNTER|`datakit_filter_point_dropped_total`|`category,filters,source`|Dropped points of filters|
 |SUMMARY|`datakit_filter_pull_latency_seconds`|`status`|Filter pull(remote) latency|
 |SUMMARY|`datakit_filter_latency_seconds`|`category,filters,source`|Filter latency of these filters|
+|GAUGE|`datakit_io_queue_points`|`category`|IO module queued(cached) points|
 |COUNTER|`datakit_error_total`|`source,category`|Total errors, only count on error source, not include error message|
 |COUNTER|`datakit_io_feed_point_total`|`name,category`|Input feed point total|
 |COUNTER|`datakit_io_input_filter_point_total`|`name,category`|Input filtered point total|
@@ -76,7 +78,6 @@ We can also playing other metrics too(change the `grep` string), all available m
 |COUNTER|`datakit_io_feed_drop_point_total`|`category,from`|IO feed drop(on non-block mode) points|
 |GAUGE|`datakit_io_flush_workers`|`category`|IO flush workers|
 |COUNTER|`datakit_io_flush_total`|`category`|IO flush total|
-|GAUGE|`datakit_io_queue_points`|`category`|IO module queued(cached) points|
 |GAUGE|`datakit_goroutines`|`N/A`|Goroutine count within Datakit|
 |GAUGE|`datakit_heap_alloc_bytes`|`N/A`|Datakit memory heap bytes|
 |GAUGE|`datakit_sys_alloc_bytes`|`N/A`|Datakit memory system bytes|
@@ -108,8 +109,9 @@ We can also playing other metrics too(change the `grep` string), all available m
 |COUNTER|`datakit_dialtesting_task_invalid_total`|`region,protocol,fail_reason`|Invalid task number|
 |SUMMARY|`datakit_dialtesting_task_check_cost_seconds`|`region,protocol,status`|Task check time|
 |SUMMARY|`datakit_dialtesting_task_run_cost_seconds`|`region,protocol`|Task run time|
-|COUNTER|`datakit_kafkamq_consumer_message_total`|`topic,partition,status`|Kafka consumer message numbers from Datakit start|
-|COUNTER|`datakit_kafkamq_group_election_total`|`N/A`|Kafka group election count|
+|COUNTER|`datakit_input_kafkamq_consumer_message_total`|`topic,partition,status`|Kafka consumer message numbers from Datakit start|
+|COUNTER|`datakit_input_kafkamq_group_election_total`|`N/A`|Kafka group election count|
+|SUMMARY|`datakit_input_kafkamq_process_message_nano`|`topic`|kafkamq process message nanoseconds duration|
 |GAUGE|`datakit_inputs_instance`|`input`|Input instance count|
 |COUNTER|`datakit_inputs_crash_total`|`input`|Input crash count|
 |SUMMARY|`datakit_input_promremote_collect_points`|`source`|Total number of promremote collection points|
@@ -135,11 +137,14 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_input_prom_http_get_bytes`|`mode,source`|HTTP get bytes|
 |SUMMARY|`datakit_input_prom_http_latency_in_second`|`mode,source`|HTTP latency(in second)|
 |GAUGE|`datakit_input_prom_stream_size`|`mode,source`|Stream size|
+|COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|socket feed to IO message count|
+|SUMMARY|`datakit_input_logging_socket_log_length`|`network`|record the length of each log line|
 |COUNTER|`datakit_tailer_collect_multiline_state_total`|`source,filepath,multilinestate`|Tailer multiline state total|
 |COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Tailer rotate total|
 |COUNTER|`datakit_tailer_buffer_force_flush_total`|`source,filepath`|Tailer force flush total|
 |COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Tailer parse fail total|
 |GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
+|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|connect and close count for net.conn|
 |COUNTER|`diskcache_put_bytes_total`|`path`|Cache Put() bytes count|
 |COUNTER|`diskcache_get_total`|`path`|Cache Get() count|
 |COUNTER|`diskcache_wakeup_total`|`path`|Wakeup count on sleeping write file|
