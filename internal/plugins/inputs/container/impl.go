@@ -268,6 +268,9 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
+	l.Infof("Use labels %s for k8s non-metric", optForNonMetric.keys)
+	l.Infof("Use labels %s for k8s metric", optForMetric.keys)
+
 	cfg := kubernetes.Config{
 		NodeName:                      config.Cfg.Hostname,
 		NodeLocal:                     ipt.EnableK8sNodeLocal,

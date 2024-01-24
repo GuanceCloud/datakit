@@ -148,13 +148,14 @@ func startLog(cfg *config, stop <-chan struct{}) {
 type writeMessage func([]byte) error
 
 func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
-	return func(filename, text string) error {
+	return func(filename, text string, fields map[string]interface{}) error {
 		msg := message{
 			Type:     "1",
 			Source:   lg.Source,
 			Pipeline: lg.Pipeline,
 			Log:      text,
 			Tags:     make(map[string]string),
+			Fields:   fields,
 		}
 
 		msg.Tags["filename"] = filename
@@ -306,11 +307,12 @@ func (lg *logging) setup() {
 }
 
 type message struct {
-	Type     string            `json:"type"`
-	Source   string            `json:"source"`
-	Pipeline string            `json:"pipeline,omitempty"`
-	Tags     map[string]string `json:"tags,omitempty"`
-	Log      string            `json:"log"`
+	Type     string                 `json:"type"`
+	Source   string                 `json:"source"`
+	Pipeline string                 `json:"pipeline,omitempty"`
+	Tags     map[string]string      `json:"tags,omitempty"`
+	Fields   map[string]interface{} `json:"fields,omitempty"`
+	Log      string                 `json:"log"`
 }
 
 func (m *message) json() ([]byte, error) {

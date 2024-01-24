@@ -23,6 +23,7 @@ import (
 type KubeletClientConfig struct {
 	Client      *rest.Config
 	Scheme      string
+	Address     string
 	DefaultPort int
 	// UseNodeStatusPort bool
 }
@@ -30,6 +31,7 @@ type KubeletClientConfig struct {
 type kubeletClient struct {
 	client      *http.Client
 	scheme      string
+	address     string
 	defaultPort int
 }
 
@@ -46,13 +48,14 @@ func NewKubeletClientForConfig(config *KubeletClientConfig) (*kubeletClient, err
 
 	return &kubeletClient{
 		client:      c,
+		address:     config.Address,
 		scheme:      config.Scheme,
 		defaultPort: config.DefaultPort,
 	}, nil
 }
 
 func (kc *kubeletClient) GetMetrics() (*statsv1alpha1.Summary, error) {
-	addr := "127.0.0.1"
+	addr := kc.address
 	port := kc.defaultPort
 	path := "/stats/summary"
 

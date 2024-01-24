@@ -26,7 +26,7 @@ const (
 
 var l = logger.DefaultSLogger("socketLog")
 
-type ForwardFunc func(filename, text string) error
+type ForwardFunc func(filename, text string, fields map[string]interface{}) error
 
 type Option struct {
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传

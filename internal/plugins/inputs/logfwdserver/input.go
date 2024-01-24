@@ -114,10 +114,11 @@ func (ipt *Input) Run() {
 }
 
 type message struct {
-	Source   string            `json:"source"`
-	Pipeline string            `json:"pipeline"`
-	Tags     map[string]string `json:"tags"`
-	Log      string            `json:"log"`
+	Source   string                 `json:"source"`
+	Pipeline string                 `json:"pipeline"`
+	Tags     map[string]string      `json:"tags"`
+	Fields   map[string]interface{} `json:"fields"`
+	Log      string                 `json:"log"`
 }
 
 func (ipt *Input) setup() bool {
@@ -163,7 +164,7 @@ func (ipt *Input) setup() bool {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
 
-		pts := makePts(msg.Source, []string{msg.Log}, tags)
+		pts := makePts(msg.Source, []string{msg.Log}, tags, msg.Fields)
 		if len(pts) == 0 {
 			return nil
 		}
@@ -202,7 +203,7 @@ func (ipt *Input) setup() bool {
 	return false
 }
 
-func makePts(source string, cnt []string, tags map[string]string) []*point.Point {
+func makePts(source string, cnt []string, tags map[string]string, originFields map[string]interface{}) []*point.Point {
 	pts := []*point.Point{}
 
 	now := time.Now()
@@ -213,6 +214,9 @@ func makePts(source string, cnt []string, tags map[string]string) []*point.Point
 		fields := map[string]interface{}{
 			pipeline.FieldMessage: cnt,
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
+		}
+		for k, v := range originFields {
+			fields[k] = v
 		}
 
 		pt := point.NewPointV2(

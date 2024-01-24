@@ -290,10 +290,12 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 	if err = ep.writePointData(b, w); err != nil {
 		// 4xx error do not cache data.
 		if errors.Is(err, errWritePoints4XX) {
+			writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
 			return
 		}
 
 		if w.fc == nil { // no cache
+			writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
 			return
 		}
 
@@ -313,6 +315,7 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 				point.CustomObject,
 				point.DynamicDWCategory:
 
+				writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
 				log.Warnf("drop %d pts on %s, not cached", b.npts, w.category)
 
 			default:

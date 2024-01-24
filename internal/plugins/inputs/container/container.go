@@ -26,9 +26,11 @@ import (
 )
 
 type container struct {
-	ipt                           *Input
-	runtime                       runtime.ContainerRuntime
-	k8sClient                     k8sclient.Client
+	ipt       *Input
+	runtime   runtime.ContainerRuntime
+	k8sClient k8sclient.Client
+
+	nodeName                      string
 	enableCollectLogging          bool
 	enableExtractK8sLabelAsTagsV1 bool
 	podLabelAsTagsForNonMetric    labelsOption
@@ -83,6 +85,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		ipt:                           ipt,
 		runtime:                       r,
 		k8sClient:                     k8sClient,
+		nodeName:                      config.Cfg.Hostname,
 		enableCollectLogging:          true,
 		enableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
 		podLabelAsTagsForNonMetric:    optForNonMetric,
@@ -205,6 +208,10 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 		if (idx+1)%goroutineNum == 0 {
 			_ = g.Wait()
 		}
+	}
+
+	if category == "metric" && c.nodeName != "" {
+		res = append(res, buildCountPoint(c.nodeName, res)...)
 	}
 
 	if err := g.Wait(); err != nil {
@@ -572,4 +579,26 @@ func transToPoint(pts []*typed.PointKV, opts []point.Option) []*point.Point {
 	}
 
 	return res
+}
+
+func buildCountPoint(nodeName string, pts []*typed.PointKV) (res []*typed.PointKV) {
+	nsCount := calculateCount(pts)
+	for ns, count := range nsCount {
+		pt := typed.NewPointKV("kubernetes")
+		pt.SetTag("node_name", nodeName)
+		pt.SetTag("namespace", ns)
+		pt.SetField("container", count)
+		res = append(res, pt)
+	}
+	return
+}
+
+func calculateCount(pts []*typed.PointKV) map[string]int {
+	count := make(map[string]int)
+	for _, pt := range pts {
+		if ns := pt.GetTag("namespace"); ns != "" {
+			count[ns]++
+		}
+	}
+	return count
 }

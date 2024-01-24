@@ -50,6 +50,9 @@ func (fo *datawayOutput) WriteLastError(err string, opts ...LastErrorOption) {
 }
 
 func (fo *datawayOutput) Write(data *iodata) error {
+	if len(data.points) == 0 {
+		return nil
+	}
 	ch := fo.chans[data.category]
 
 	start := time.Now()

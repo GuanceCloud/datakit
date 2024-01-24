@@ -21,6 +21,9 @@ func Init(file string) error {
 	var err error
 	initOnce.Do(func() {
 		globalRegister, err = MustNewRegisterFile(file)
+		if err == nil && globalRegister != nil {
+			globalRegister.Clean()
+		}
 	})
 	return err
 }

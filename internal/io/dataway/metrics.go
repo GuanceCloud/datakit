@@ -13,6 +13,7 @@ import (
 var (
 	ptsCounterVec,
 	bytesCounterVec,
+	writeDropPointsCounterVec,
 	httpRetry *prometheus.CounterVec
 
 	flushFailCacheVec,
@@ -36,6 +37,7 @@ func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
 		ptsCounterVec,
 		bytesCounterVec,
+		writeDropPointsCounterVec,
 		apiSumVec,
 		httpRetry,
 		buildBodyCostVec,
@@ -49,6 +51,7 @@ func Metrics() []prometheus.Collector {
 func metricsReset() {
 	ptsCounterVec.Reset()
 	bytesCounterVec.Reset()
+	writeDropPointsCounterVec.Reset()
 	apiSumVec.Reset()
 
 	httpRetry.Reset()
@@ -63,6 +66,7 @@ func doRegister() {
 	metrics.MustRegister(
 		ptsCounterVec,
 		bytesCounterVec,
+		writeDropPointsCounterVec,
 		apiSumVec,
 
 		flushFailCacheVec,
@@ -144,6 +148,16 @@ func init() {
 			Help:      "Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)",
 		},
 		[]string{"category", "enc", "status"},
+	)
+
+	writeDropPointsCounterVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_http_drop_point_total",
+			Help:      "Dataway write drop points",
+		},
+		[]string{"category", "error"},
 	)
 
 	apiSumVec = prometheus.NewSummaryVec(

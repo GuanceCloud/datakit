@@ -119,6 +119,14 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 		}
 		met.SetField("ready", containerReadyCount)
 
+		maxRestarts := 0
+		for _, containerStatus := range item.Status.ContainerStatuses {
+			if int(containerStatus.RestartCount) > maxRestarts {
+				maxRestarts = int(containerStatus.RestartCount)
+			}
+		}
+		met.SetField("restarts", maxRestarts)
+
 		cpuLimit := getMaxCPULimitFromResource(item.Spec.Containers)
 		if cpuLimit != 0 {
 			met.SetField("cpu_limit_millicores", cpuLimit)
@@ -370,6 +378,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"ready":                             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"restarts":                          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"cpu_usage":                         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
 			"cpu_usage_base100":                 &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
 			"cpu_usage_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Total CPU usage (sum of all cores) averaged over the sample window."},
@@ -414,7 +423,6 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"restart":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Deprecated, use restarts)"},
 			"restarts":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"ready":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"available":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},

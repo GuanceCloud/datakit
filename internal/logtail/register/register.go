@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -27,9 +28,17 @@ func (m *MetaData) String() string {
 	return fmt.Sprintf("source: %s, offset: %d", m.Source, m.Offset)
 }
 
+func (m *MetaData) DeepCopy() MetaData {
+	return MetaData{
+		Source: m.Source,
+		Offset: m.Offset,
+	}
+}
+
 type Register interface {
 	Set(string, *MetaData) error
 	Get(string) *MetaData
+	Clean()
 	Flush() error
 }
 
@@ -128,6 +137,34 @@ func (r *register) Get(key string) *MetaData {
 	return v
 }
 
+func (r *register) Clean() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(r.Data) == 0 {
+		l.Info("position is empty")
+		return
+	}
+
+	l.Infof("already existing position len(%d)", len(r.Data))
+	tmp := make(map[string]*MetaData)
+
+	for key, data := range r.Data {
+		filename := getFilename(key)
+		if filename == "" {
+			continue
+		}
+		_, err := os.Stat(filename)
+		if err == nil {
+			newdata := data.DeepCopy()
+			tmp[key] = &newdata
+		}
+	}
+
+	r.Data = tmp
+	l.Infof("now existing posistion len(%d)", len(r.Data))
+}
+
 func parse(b []byte) (*register, error) {
 	r := register{}
 	if len(b) != 0 {
@@ -136,4 +173,11 @@ func parse(b []byte) (*register, error) {
 		}
 	}
 	return &r, nil
+}
+
+func getFilename(key string) string {
+	if res := strings.Split(key, "::"); len(res) > 0 {
+		return res[0]
+	}
+	return ""
 }
