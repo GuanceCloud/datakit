@@ -87,6 +87,8 @@ const (
 	optionLimitNOFILEDefault = -1 // -1 = don't set in configuration
 	optionRestart            = "Restart"
 	optionRestartSec         = "RestartSec"
+	optionCPUQuota    		 = "CPUQuota"
+	optionMemoryLimit    	 = "MemoryLimit"
 	optionStartLimitInterval = "StartLimitInterval"
 	optionStartLimitBurst    = "StartLimitBurst"
 	optionSuccessExitStatus  = "SuccessExitStatus"

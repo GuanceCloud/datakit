@@ -226,7 +226,7 @@ func Install(svc service.Service, userName string) {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
-	l.Infof("Installing service %q...", dkservice.Name)
+	l.Infof("Installing service %q...", dkservice.Name())
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}

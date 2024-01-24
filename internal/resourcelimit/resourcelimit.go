@@ -9,6 +9,7 @@ package resourcelimit
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -23,6 +24,7 @@ var (
 	self                 *process.Process
 	resourceLimitOpt     *ResourceLimitOptions
 	errProcessInitFailed = errors.New("process init failed")
+	userName             string
 )
 
 const (
@@ -47,11 +49,11 @@ func init() {
 	}
 }
 
-func Run(c *ResourceLimitOptions) {
+func Run(c *ResourceLimitOptions, username string) {
 	l = logger.SLogger("resourcelimit")
 
 	resourceLimitOpt = c
-
+	userName = username
 	if c == nil || !c.Enable {
 		return
 	}
@@ -118,6 +120,9 @@ func Info() string {
 	if resourceLimitOpt == nil || !resourceLimitOpt.Enable {
 		return "-"
 	}
-
+	if userName != "root" {
+		return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
+			resourceLimitOpt.Path, resourceLimitOpt.MemMax, resourceLimitOpt.CPUMax)
+	}
 	return info()
 }
