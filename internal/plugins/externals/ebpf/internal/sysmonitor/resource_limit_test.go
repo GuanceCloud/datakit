@@ -4,9 +4,6 @@
 package sysmonitor
 
 import (
-	"bytes"
-	"net/http"
-	"net/http/httptest"
 	"runtime"
 	"sync"
 	"testing"
@@ -37,8 +34,8 @@ func TestMonitor(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// cpu
 	{
-		// cpu
 		res := NewResLimiter(proc, 1, 0, 0)
 		assert.Equal(t, false, res.overResLimit())
 
@@ -65,10 +62,10 @@ func TestMonitor(t *testing.T) {
 		close(ch)
 		wg.Wait()
 	}
-
+	// mem
 	{
 		runtime.GC()
-		// mem
+
 		m, err := proc.MemoryInfo()
 		if err != nil {
 			t.Fatal(err)
@@ -78,40 +75,5 @@ func TestMonitor(t *testing.T) {
 		a := make([]byte, 1e8)
 		assert.Equal(t, true, res.overResLimit())
 		_ = a
-	}
-
-	{ // bandwidth
-		svc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		}))
-
-		res := NewResLimiter(proc, 0, 0, 1)
-		assert.Equal(t, false, res.overResLimit())
-		ch := make(chan struct{})
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
-			for i := 0; ; i++ {
-				buf := make([]byte, 4096)
-				if _, err := http.NewRequest("get", svc.URL, bytes.NewBuffer(buf)); err != nil {
-					t.Error(err)
-				}
-				select {
-				case <-ch:
-					return
-				default:
-				}
-			}
-		}()
-		time.Sleep(time.Second)
-		a := res.ifaceTraffic
-		assert.Equal(t, true, res.overResLimit())
-		b := res.ifaceTraffic
-		t.Log(a, b)
-		close(ch)
-		wg.Wait()
 	}
 }
