@@ -212,7 +212,10 @@ func mergeTraces(traces DDTraces) DDTraces {
 	return merged
 }
 
-var traceOpts = []point.Option{}
+var (
+	ignoreTraceIDFromTag = false
+	traceOpts            = []point.Option{}
+)
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
@@ -248,7 +251,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			spanKV = spanKV.AddTag("runtime_id", v).AddTag(runTimeIDKey, v)
 			delete(span.Meta, runTimeIDKey)
 		}
-		if v, ok := span.Meta["trace_128_bit_id"]; ok {
+		if v, ok := span.Meta["trace_128_bit_id"]; !ignoreTraceIDFromTag && ok {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 

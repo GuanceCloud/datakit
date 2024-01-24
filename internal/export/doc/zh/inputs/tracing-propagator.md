@@ -15,15 +15,15 @@ Trace Context 是 [W3C](https://www.w3.org/TR/trace-context/){:target="_blank"} 
 - `traceparent` 包含了关于当前跟踪的基本信息，如 SpanID 和 ParentSpanID 等，例如：`traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01`
 - `tracestate` 用于传递与跟踪相关的元数据。例如：`tracestate: congo=t61rcWkgMzE`
 
-### B3/B3Multi {#propagators-b3}
+### 1 B3/B3Multi {#propagators-b3}
 
 B3 是一种流行的跟踪协议，它定义了多个 HTTP 头部字段来标识跟踪信息。B3Multi 透传协议是对 B3 协议的扩展，常用的字段有：`X-B3-TraceId`、`X-B3-SpanId`、`X-B3-ParentSpanId`、`X-B3-Sampled`、`X-B3-Flags` 等。
 
-### Jaeger {#propagators-jaeger}
+### 2 Jaeger {#propagators-jaeger}
 
 Jaeger 是一种分布式跟踪系统，它定义了多个 HTTP 头部字段用于传递跟踪信息。常用的字段有：`uber-trace-id`、`jaeger-baggage` 等。
 
-### OpenTracing {#propagators-ot}
+### 3 OpenTracing {#propagators-ot}
 
 OpenTracing 是 OpenTelemetry 的一种透传协议，它定义了多个 HTTP 头部字段用于传递链路信息：
 
@@ -31,11 +31,11 @@ OpenTracing 是 OpenTelemetry 的一种透传协议，它定义了多个 HTTP �
 - `ot-tracer-spanid`：用于传递当前 Span 的 ID，表示一个单独的操作或事件
 - `ot-tracer-sampled`：用于指示是否对该请求进行采样，以决定是否记录请求的追踪信息
 
-### Datadog {#propagators-datadog}
+### 4 Datadog {#propagators-datadog}
 
 Datadog 是一种分布式跟踪系统，它定义了多个 HTTP 头部字段用于传递跟踪信息。常用的字段有：`x-datadog-trace-id`、`x-datadog-parent-id` 等。
 
-### Baggage {#propagators-baggage}
+### 5 Baggage {#propagators-baggage}
 
 Baggage 是 Jaeger 跟踪系统引入的概念，用于传递业务相关的上下文信息。Baggage 通过 HTTP 头部字段 `x-b3-baggage-<key>` 来传递，其中 `key` 是业务上下文的键。
 
@@ -73,8 +73,8 @@ Baggage 真正的意义是传播 `key:value` 性质的键值对，常用于传�
 
 OTEL 所支持的 Tracing 透传协议列表：
 
-| Propagator 列表  | 参考                                                                                                                           |
-| ---              | ---                                                                                                                            |
+| Propagator 列表  | 参考                                                                                                                             |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------|
 | `tracecontext` | [W3C Trace Context](https://www.w3.org/TR/trace-context/){:target="_blank"}                                                    |
 | `baggage`      | [W3C Baggage](https://www.w3.org/TR/baggage/){:target="_blank"}                                                                |
 | `b3`           | [B3](https://github.com/openzipkin/b3-propagation#single-header){:target="_blank"}                                             |
@@ -98,12 +98,12 @@ $env:OTEL_PROPAGATORS="tracecontext,baggage"
 
 ### Datadog {#use-datadog}
 
-| 支持的语言 | 透传协议支持                           | 命令                                                     |
-| :---       | :---                                   | :---                                                     |
-| Node.js    | `datadog/b3multi/tracecontext/b3/none` | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)             |
-| C++        | `datadog/b3multi/b3/none`              | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)             |
-| .NET       | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)             |
-| Java       | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE`(默认 `tracecontext,datadog`)|
+| 支持的语言   | 透传协议支持                                 | 命令                                                      |
+|:--------|:---------------------------------------|:--------------------------------------------------------|
+| Node.js | `datadog/b3multi/tracecontext/b3/none` | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)              |
+| C++     | `datadog/b3multi/b3/none`              | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)              |
+| .NET    | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE`(默认 `datadog`)              |
+| Java    | `datadog/b3multi/tracecontext/none`    | `DD_TRACE_PROPAGATION_STYLE`(默认 `tracecontext,datadog`) |
 
 > 此处 `none` 指不设置 Tracing 协议透传。
 
@@ -162,7 +162,7 @@ SkyWalking 自己的[协议（SW8）](https://skywalking.apache.org/docs/main/ne
 
 可根据具体使用的厂商工具使用相应的透传协议实现链路串联，保证链路完整性。
 
-### 串联示例 {#dd-otel-example}
+### 串联示例：DD-to-OTEL {#dd-otel-example}
 
 这里用一个示例说明下 DDTrace 和 OpenTelemetry 链路数据串联。由上表可知：DDTrace 和 OpenTelemetry 都是支持 W3C Trace Context 协议，可以通过该协议实现链路串联。
 
