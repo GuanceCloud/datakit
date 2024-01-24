@@ -118,7 +118,7 @@ log4j.appender.server.ReconnectionDelay=10000
 
 > The problem is that the SocketAppender sends serialized Java objects instead of plain text. You can use log4j for input, but I do not recommend replacing the logging component. Rather, I rewrite an Appender that sends log data as plain text, and you use it with JSON formatting.
 
-Datakit also supports logging from files [logging from text](logging.md), which is the best solution when socket collection is not available.
+Alternative plan: [Logback Logstash](../best-practices/cloud-native/k8s-logback-socket/#spring-boot){:target="_blank"}
 
 ## Golang {#golang}
 

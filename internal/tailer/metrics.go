@@ -11,11 +11,14 @@ import (
 )
 
 var (
-	multilineVec  *prometheus.CounterVec
-	rotateVec     *prometheus.CounterVec
-	forceFlushVec *prometheus.CounterVec
-	parseFailVec  *prometheus.CounterVec
-	openfileVec   *prometheus.GaugeVec
+	multilineVec     *prometheus.CounterVec
+	rotateVec        *prometheus.CounterVec
+	forceFlushVec    *prometheus.CounterVec
+	parseFailVec     *prometheus.CounterVec
+	openfileVec      *prometheus.GaugeVec
+	socketLogConnect *prometheus.CounterVec
+	socketLogCount   *prometheus.CounterVec
+	socketLogLength  *prometheus.SummaryVec
 )
 
 func setupMetrics() {
@@ -84,9 +87,49 @@ func setupMetrics() {
 			"mode",
 		},
 	)
+	socketLogConnect = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_logging_socket",
+			Name:      "connect_status_total",
+			Help:      "connect and close count for net.conn",
+		},
+		[]string{"network", "status"})
+
+	socketLogCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_logging_socket",
+			Name:      "feed_message_count_total",
+			Help:      "socket feed to IO message count",
+		},
+		[]string{
+			"network",
+		})
+
+	socketLogLength = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "input_logging_socket",
+			Name:      "log_length",
+			Help:      "record the length of each log line",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.90: 0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"network"})
 
 	metrics.MustRegister(
 		multilineVec,
 		openfileVec,
 	)
+
+	metrics.MustRegister(socketLogLength, socketLogCount, socketLogConnect)
+}
+
+//nolint:gochecknoinits
+func init() {
+	setupMetrics()
 }

@@ -309,8 +309,3 @@ func (t *Tailer) getFileList() []string {
 	}
 	return list
 }
-
-//nolint:gochecknoinits
-func init() {
-	setupMetrics()
-}
