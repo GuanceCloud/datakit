@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
-	github.com/GuanceCloud/cliutils v0.1.10-0.20231228035751-9813bd3dd5ca
+	github.com/GuanceCloud/cliutils v0.1.10-0.20240111083316-83dd78f75771
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.3
 	github.com/GuanceCloud/platypus v0.2.9

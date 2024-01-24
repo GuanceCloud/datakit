@@ -157,6 +157,9 @@ func (ipt *Input) getDsnString() string {
 		CheckConnLiveness:    true,
 		User:                 ipt.User,
 		Passwd:               ipt.Pass,
+		Params: map[string]string{
+			"tls": "skip-verify",
+		},
 	}
 
 	if ipt.Port == 0 {

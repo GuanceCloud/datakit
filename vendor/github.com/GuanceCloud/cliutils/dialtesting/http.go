@@ -298,6 +298,7 @@ type HTTPAdvanceOption struct {
 	Certificate    *HTTPOptCertificate `json:"certificate,omitempty"`
 	Proxy          *HTTPOptProxy       `json:"proxy,omitempty"`
 	Secret         *HTTPSecret         `json:"secret,omitempty"`
+	RequestTimeout string              `json:"request_timeout,omitempty"`
 }
 
 type HTTPSecret struct {
@@ -499,6 +500,7 @@ func (t *HTTPTask) Init() error {
 }
 
 func (t *HTTPTask) init(debug bool) error {
+	httpTimeout := 30 * time.Second // default timeout
 	if !debug {
 		// setup frequency
 		du, err := time.ParseDuration(t.Frequency)
@@ -519,68 +521,81 @@ func (t *HTTPTask) init(debug bool) error {
 		return nil
 	}
 
-	// setup HTTP client
-	t.cli = &http.Client{
-		Timeout: 30 * time.Second, // default timeout
-	}
-
 	// advance options
 	opt := t.AdvanceOptions
-	if opt != nil && opt.RequestOptions != nil {
-		// check FollowRedirect
-		if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
-			t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			}
-		}
-	}
 
-	if opt != nil && opt.RequestBody != nil {
-		switch opt.RequestBody.BodyType {
-		case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
-		case "text/html", "multipart/form-data", "", "None": // do nothing
-		default:
-			return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
-		}
-	}
-
-	// TLS opotions
-	if opt != nil && opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
-		if opt.Certificate.IgnoreServerCertificateError {
-			t.cli.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError, //nolint:gosec
-				},
-			}
-		} else {
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
-
-			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
-			if err != nil {
-				return err
-			}
-
-			t.cli.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{ //nolint:gosec
-					RootCAs:      caCertPool,
-					Certificates: []tls.Certificate{cert},
-				},
-			}
-		}
-	}
-
-	// proxy options
-	if opt != nil && opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
-		proxyURL, err := url.Parse(opt.Proxy.URL)
+	if opt != nil && opt.RequestTimeout != "" {
+		du, err := time.ParseDuration(opt.RequestTimeout)
 		if err != nil {
 			return err
 		}
 
-		if t.cli.Transport == nil {
-			t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-		} else {
-			t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+		httpTimeout = du
+	}
+
+	// setup HTTP client
+	t.cli = &http.Client{
+		Timeout: httpTimeout,
+	}
+
+	if opt != nil {
+
+		if opt.RequestOptions != nil {
+			// check FollowRedirect
+			if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
+				t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				}
+			}
+		}
+
+		if opt.RequestBody != nil {
+			switch opt.RequestBody.BodyType {
+			case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
+			case "text/html", "multipart/form-data", "", "None": // do nothing
+			default:
+				return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
+			}
+		}
+
+		// TLS opotions
+		if opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
+			if opt.Certificate.IgnoreServerCertificateError {
+				t.cli.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError, //nolint:gosec
+					},
+				}
+			} else if opt.Certificate.CaCert != "" {
+				caCertPool := x509.NewCertPool()
+				caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+
+				cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+				if err != nil {
+					return err
+				}
+
+				t.cli.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{ //nolint:gosec
+						RootCAs:      caCertPool,
+						Certificates: []tls.Certificate{cert},
+					},
+				}
+			}
+		}
+
+		// proxy options
+		if opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
+			proxyURL, err := url.Parse(opt.Proxy.URL)
+			if err != nil {
+				return err
+			}
+
+			if t.cli.Transport == nil {
+				t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+			} else {
+				t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+			}
 		}
 	}
 
