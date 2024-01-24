@@ -156,6 +156,8 @@ func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*p
 
 		tv := ptg.sinkHeaderValue(dw.globalTags, dw.GlobalCustomerKeys)
 
+		log.Debugf("add point to group %q", tv)
+
 		ptg.groupedPts[tv] = append(ptg.groupedPts[tv], pt)
 	}
 }
@@ -214,6 +216,8 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	if dw.EnableSinker &&
 		(len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) &&
 		len(dw.eps) > 0 {
+		log.Debugf("under sinker...")
+
 		ptg := getGrouper()
 		defer putGrouper(ptg)
 
