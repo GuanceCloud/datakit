@@ -37,6 +37,7 @@ Dubbox
 ElasticSearch
 Fastjson
 Filebeat
+FireLens
 Flink
 Fluentd
 GitLab

@@ -9,10 +9,12 @@ package logstreaming
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
@@ -125,6 +127,99 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		}
 
 		return ipt.feeder.Feed(inputName, point.Logging, pts, nil)
+	case "firelens":
+
+		body, _err := ioutil.ReadAll(param.body)
+		if _err != nil {
+			log.Errorf("url %s failed to read body: %s", urlstr, _err)
+			err = _err
+			break
+		}
+
+		var pts []*point.Point
+
+		logPtOpt := point.DefaultLoggingOptions()
+
+		var decJSON bool
+		if json.Valid(body) {
+			var arr []map[string]any
+			if err := json.Unmarshal(body, &arr); err != nil {
+				log.Debug("url %s, json unmarshal err: %s", urlstr, err)
+			} else {
+				for _, v := range arr {
+					kvs := make(point.KVs, 0, len(v))
+					var ts int64
+					for k, v := range v {
+						switch k {
+						case "log":
+							kvs = kvs.Add(pipeline.FieldMessage, v, false, true)
+						case "date":
+							switch v := v.(type) {
+							case float64:
+								ts = int64(v * 1e9)
+							case float32:
+								ts = int64(v * 1e9)
+							case int64:
+								ts = v * 1e9
+							case int32:
+								ts = int64(v) * 1e9
+							default:
+								kvs = kvs.Add(k, v, false, true)
+							}
+						case "source":
+							kvs = kvs.Add("firelens_source", v, false, true)
+						default:
+							kvs = kvs.Add(k, v, false, true)
+						}
+					}
+
+					if ts == 0 {
+						ts = time.Now().UnixNano()
+					}
+
+					pt := point.NewPointV2(source, kvs, append(
+						logPtOpt,
+						point.WithExtraTags(extraTags),
+						point.WithTime(time.Unix(0, ts)))...)
+					pts = append(pts, pt)
+				}
+				decJSON = true
+			}
+		}
+
+		if !decJSON {
+			var ts int64
+			var kvs point.KVs
+			kvs = kvs.Add(pipeline.FieldMessage, string(body), false, true)
+			if ts == 0 {
+				ts = time.Now().UnixNano()
+			}
+
+			pts = append(pts, point.NewPointV2(source, kvs, append(
+				logPtOpt,
+				point.WithExtraTags(extraTags),
+				point.WithTime(time.Unix(0, ts)))...),
+			)
+		}
+
+		if len(pts) == 0 {
+			log.Debugf("len(points) is zero, skip")
+			return nil
+		}
+
+		var dkopt *dkio.Option
+
+		if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
+			dkopt = &dkio.Option{
+				PlOption: &plmanager.Option{
+					ScriptMap: map[string]string{
+						source: scriptName,
+					},
+				},
+			}
+		}
+
+		return ipt.feeder.Feed(source, point.Logging, pts, dkopt)
 
 	default:
 		scanner := bufio.NewScanner(param.body)
