@@ -100,7 +100,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) handleEvent(event Event) {
-	ts, err := time.Parse("2006-01-02T15:04:05.000000000Z", event.TimeCreated.SystemTime)
+	ts, err := time.Parse(time.RFC3339Nano, event.TimeCreated.SystemTime)
 	if err != nil {
 		l.Error(err.Error())
 		ts = time.Now()
@@ -299,6 +299,10 @@ func formatEventString(
 		0, nil, &bufferUsed)
 	if err != nil && !errors.Is(err, ErrorInsufficientBuffer) {
 		return "", err
+	}
+
+	if bufferUsed < 1 {
+		return "", nil
 	}
 
 	bufferUsed *= 2
