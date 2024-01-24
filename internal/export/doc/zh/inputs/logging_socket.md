@@ -49,14 +49,15 @@ monitor   :
 在 *resources* 中配置 *log4j.xml*，添加 `Socket Appender`：
 
 ``` xml
- <!-- Socket appender socket 配置日志传输到本机 9540 端口，protocol 默认 TCP -->
- <Socket name="socketname" host="localHost" port="9540" charset="utf8">
+ <!-- Socket appender socket 配置日志传输到本机 9530 端口，protocol 默认 TCP -->
+ <Socket name="socketname" host="localhost" port="9530" charset="utf8">
      <!-- 自定义输出格式和序列布局 -->
-     <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
+     <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level [traceId=%X{trace_id} spanId=%X{span_id}] %class{36} %L %M - %msg%xEx%n"/>
 
      <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
      <!-- <SerializedLayout/>-->
 
+     <!-- 第二种输出格式 json-->
      <!-- 注意：配置 compact eventEol 一定要是 true  这样单条日志输出为一行-->
      <!-- 将日志发送到观测云上后会自动将 JSON 展开，所以在这里建议您将日志单条单行输出 -->
      <!-- <JsonLayout  properties="true" compact="true" complete="false" eventEol="true"/>-->
@@ -135,7 +136,8 @@ Logback 中的 `SocketAppender` [无法将纯文本发送到 Socket 上](https:/
 
 > 问题是 `SocketAppender` 发送序列化 Java 对象而不是纯文本。您可以使用 `log4j` 输入，但并不建议更换日志组件，而是重写一个将日志数据发送为纯文本的 `Appender`，并且您将其与 JSON 格式化一起使用。
 
-Datakit 同时支持从文件中采集日志 [从文本中采集日志](logging.md)，可作为 Socket 采集不可用时的最佳方案。
+替代方案： [Logback Logstash 插件最佳实践](../best-practices/cloud-native/k8s-logback-socket/#spring-boot){:target="_blank"}
+
 
 ### Golang {#golang}
 

@@ -7,12 +7,13 @@
 package tailer
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -24,7 +25,8 @@ import (
 )
 
 const (
-	ReadBufferLen = 1024 * 4
+	// 32Mb is max Logging Point field len.
+	maxReadBufferLen = 1024 * 1024 * 32
 )
 
 var g = datakit.G("tailer")
@@ -48,21 +50,23 @@ type socketLogger struct {
 
 	servers []*server
 	feeder  dkio.Feeder
+	ptCache chan *point.Point
 }
 
 func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err error) {
 	sl = &socketLogger{
 		tcpListeners:    make(map[string]net.Listener),
 		udpConns:        make(map[string]net.Conn),
-		socketBufferLen: ReadBufferLen,
+		socketBufferLen: maxReadSize,
 		ignorePatterns: func() []string {
 			if len(ignorePatterns) > 0 {
 				return ignorePatterns[0]
 			}
 			return nil
 		}(),
-		opt:  opt,
-		stop: make(chan struct{}, 1),
+		opt:     opt,
+		stop:    make(chan struct{}, 1),
+		ptCache: make(chan *point.Point, 100),
 	}
 	if err := sl.opt.Init(); err != nil {
 		return nil, err
@@ -102,9 +106,9 @@ func (sl *socketLogger) Start() {
 		}
 		sl.servers = append(sl.servers, s)
 	}
-
-	// 配置无误之后 开始accept
+	// 配置无误之后 开始accept.
 	sl.toReceive()
+	sl.feedV2()
 }
 
 func mkServer(socket string) (s *server, err error) {
@@ -181,92 +185,83 @@ func (sl *socketLogger) accept(listener net.Listener) {
 		conn, err := listener.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
+				l.Infof("tcp conn is close")
 				return
 			}
 			sl.opt.log.Warnf("Error accepting:%s", err.Error())
 			continue
 		}
+		socketLogConnect.WithLabelValues("tcp", "ok").Add(1)
 		g.Go(func(ctx context.Context) error {
-			sl.doSocket(conn)
+			sl.doSocketV2(conn)
 			return nil
 		})
 	}
 }
 
 func (sl *socketLogger) doSocketUDP(conn net.Conn) {
+	data := make([]byte, sl.socketBufferLen)
 	for {
-		data := make([]byte, sl.socketBufferLen)
 		n, err := conn.Read(data)
 		// see:$GOROOT/src/io/io.go:83
 		if err != nil && n == 0 {
-			l.Error("err not nil err=%v", err)
+			l.Errorf("err not nil err=%v", err)
 			return
 		}
+		socketLogConnect.WithLabelValues("udp", "ok").Add(1)
 		l.Debugf("data len =%d", n)
-		pipDate := strings.Split(string(data[:n]), "\n")
-		sl.feed(pipDate)
+		pipDate := bytes.Split(data[:n], []byte{'\n'})
+		for _, s := range pipDate {
+			if len(s) > 0 {
+				sl.makeAndFeedPoint("udp", s)
+			}
+		}
 	}
 }
 
-func (sl *socketLogger) doSocket(conn net.Conn) {
-	var cacheLine string
+func (sl *socketLogger) doSocketV2(conn net.Conn) {
+	defer conn.Close() //nolint
+	reader := bufio.NewReaderSize(conn, sl.socketBufferLen)
+	cacheBts := make([]byte, 0)
 	for {
-		data := make([]byte, sl.socketBufferLen)
-		n, err := conn.Read(data)
-		// see:$GOROOT/src/io/io.go:83
-		if err != nil && n == 0 {
-			l.Error("err not nil err=%v", err)
-			return
+		bts, full, err := reader.ReadLine()
+		if err != nil {
+			l.Warnf("readline err=%v", err)
+			socketLogConnect.WithLabelValues("tcp", "eof").Add(1)
+			break
 		}
-		l.Debugf("data len =%d", n)
-		var pipDate []string
-		var cacheM string
-		pipDate, cacheM = sl.spiltBuffer(cacheLine, string(data[:n]), n == sl.socketBufferLen)
-		cacheLine = cacheM
-		if len(pipDate) != 0 {
-			sl.feed(pipDate)
+		if full {
+			cacheBts = append(cacheBts, bts...)
+			if len(cacheBts) >= maxReadBufferLen {
+				sl.makeAndFeedPoint("tcp", cacheBts)
+				cacheBts = cacheBts[:0]
+			}
+			continue
 		}
+		if len(bts) == 0 {
+			continue
+		}
+		l.Debugf("readline len=%d", len(bts))
+		if len(cacheBts) > 0 {
+			bts = append(cacheBts, bts...)
+			cacheBts = cacheBts[:0]
+		}
+		sl.makeAndFeedPoint("tcp", bts)
 	}
 }
 
-func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (pipdata []string, cacheDate string) {
-	lines := strings.Split(date, "\n")
-	logLen := len(lines)
-	if full && logLen == 1 {
-		fromCache += lines[0]
-		return pipdata, fromCache
-	}
-	if full && !strings.HasSuffix(date, "\n") {
-		cacheDate = lines[logLen-1]
-		logLen -= 1
-	}
-	lines[0] = fromCache + lines[0]
-	pipdata = append(pipdata, lines[0:logLen]...)
-	return pipdata, cacheDate
+func (sl *socketLogger) makeAndFeedPoint(network string, line []byte) {
+	fieles := map[string]interface{}{pipeline.FieldMessage: string(line), pipeline.FieldStatus: pipeline.DefaultStatus}
+
+	pt := point.NewPointV2(sl.opt.Source,
+		append(point.NewTags(sl.tags), point.NewKVs(fieles)...),
+		point.WithTime(time.Now()))
+	socketLogCount.WithLabelValues(network).Add(1)
+	socketLogLength.WithLabelValues(network).Observe(float64(len(line)))
+	sl.ptCache <- pt
 }
 
-func (sl *socketLogger) feed(pending []string) {
-	taskCnt := []string{}
-	for _, data := range pending {
-		if data != "" {
-			taskCnt = append(taskCnt, data)
-		}
-	}
-
-	// -1ns
-	timeNow := time.Now().Add(-time.Duration(len(pending)))
-	res := make([]*point.Point, 0)
-
-	for i, cnt := range taskCnt {
-		fieles := map[string]interface{}{pipeline.FieldMessage: cnt, pipeline.FieldStatus: pipeline.DefaultStatus}
-
-		pt := point.NewPointV2(sl.opt.Source,
-			append(point.NewTags(sl.tags), point.NewKVs(fieles)...),
-			point.WithTime(timeNow.Add(time.Duration(i))))
-
-		res = append(res, pt)
-	}
-
+func (sl *socketLogger) feedV2() {
 	var ioOpt *dkio.Option
 	if sl.opt.Pipeline != "" {
 		ioOpt = &dkio.Option{
@@ -277,9 +272,29 @@ func (sl *socketLogger) feed(pending []string) {
 			},
 		}
 	}
-	if len(res) > 0 {
-		if err := sl.feeder.Feed("socklogging/"+sl.opt.InputName, point.Logging, res, ioOpt); err != nil {
+	ticker := time.NewTicker(time.Second * 5)
+	pts := make([]*point.Point, 0)
+	sendAndReset := func() {
+		if err := sl.feeder.Feed("socklogging/"+sl.opt.InputName, point.Logging, pts, ioOpt); err != nil {
 			l.Error(err)
+		}
+		// 发送成功与否，重置数组，否则内存会一直涨。
+		pts = pts[:0]
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			if len(pts) != 0 {
+				sendAndReset()
+			}
+		case pt := <-sl.ptCache:
+			pts = append(pts, pt)
+			if len(pts) >= 100 {
+				sendAndReset()
+			}
+		case <-sl.stop:
+			return
 		}
 	}
 }
