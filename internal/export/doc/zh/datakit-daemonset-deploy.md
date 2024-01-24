@@ -433,7 +433,7 @@ spec:
 
 [:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
 
-数据录制相关的功能，参见[这里的文档](atakit-tools-how-to.md#record-and-replay)。
+数据录制相关的功能，参见[这里的文档](datakit-tools-how-to.md#record-and-replay)。
 
 | 环境变量名称              | 类型     | 默认值                      | 必须   | 说明                                                                                                                 |
 | ---------:                | ----:    | ---:                        | ------ | ----                                                                                                                 |

@@ -375,7 +375,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 [:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
 
-For more info about recorder, see [here](atakit-tools-how-to.md#record-and-replay).
+For more info about recorder, see [here](datakit-tools-how-to.md#record-and-replay).
 
 | Environment Variable Name | Type     | Default Value                   | Required | Description                                                                                                                                 |
 | ---------:                | ----:    | ---:                            | ------   | ----                                                                                                                                        |

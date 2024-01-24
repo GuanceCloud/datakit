@@ -136,7 +136,7 @@ Logback 中的 `SocketAppender` [无法将纯文本发送到 Socket 上](https:/
 
 > 问题是 `SocketAppender` 发送序列化 Java 对象而不是纯文本。您可以使用 `log4j` 输入，但并不建议更换日志组件，而是重写一个将日志数据发送为纯文本的 `Appender`，并且您将其与 JSON 格式化一起使用。
 
-替代方案： [Logback Logstash 插件最佳实践](../best-practices/cloud-native/k8s-logback-socket/#spring-boot){:target="_blank"}
+替代方案： [Logback Logstash 插件最佳实践](../best-practices/cloud-native/k8s-logback-socket.md#spring-boot){:target="_blank"}
 
 
 ### Golang {#golang}

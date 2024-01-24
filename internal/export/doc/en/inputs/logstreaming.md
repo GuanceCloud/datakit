@@ -44,7 +44,7 @@ logstreaming supports adding parameters to the HTTP URL to manipulate log data. 
 - `pipeline`: Specify the pipeline name required for the data, such as `nginx.p`（`/v1/write/logstreaming?pipeline=nginx.p`）
 - `tags`: Add custom tags, split by `,`, such as `key1=value1` and `key2=value2`（`/v1/write/logstreaming?tags=key1=value1,key2=value2`)
 
-#### FireLens data source types
+#### FireLens data source types {#firelens}
 
 The `log`, `source`, and `date` fields in this type of data will be treated specially. Data example:
 

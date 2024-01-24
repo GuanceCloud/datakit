@@ -18,6 +18,7 @@
 
 - Optimized resource limitation functionality during non-root-user Linux host installation (#2011)
 - Improved matching performance for sink and blacklist, significantly reducing memory consumption (*10X*) (#2077)
+- Log Streaming add [support for FireLens](../integrations/logstreaming.md#firelens) (#2090)
 - Added `log_read_lines` field in Log Forward log collection (#2098)
 - Optimized handling of tag `cluster_name_k8s` in K8s (#2099)
 - Added restart count metric (`restarts`) in K8s Pod metric

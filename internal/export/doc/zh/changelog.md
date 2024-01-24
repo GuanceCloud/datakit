@@ -20,6 +20,7 @@
 
 - 优化主机安装中，Linux 非 root 安装时资源限制功能（#2011）
 - 优化分流和黑名单匹配性能，大幅度（*10X*）减少内存消耗（#2077）
+- Log Streaming 采集[支持 FireLens](../integrations/logstreaming.md#firelens) 类型（#2090）
 - Log Forward 采集日志中增加字段 `log_read_lines`（#2098）
 - 优化 K8s 中对 tag `cluster_name_k8s` 的处理（#2099）
 - K8s Pod 时序指标中增加重启次数（`restarts`）指标
