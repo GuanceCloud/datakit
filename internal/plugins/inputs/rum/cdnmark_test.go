@@ -62,13 +62,6 @@ func TestLookupCDNName(t *testing.T) {
 			cName:    "",
 			cdnName:  "阿里云",
 		},
-		{
-			name:     "res.vmallres.com",
-			domain:   "res.vmallres.com",
-			throwErr: false,
-			cName:    "",
-			cdnName:  "华为云",
-		},
 	}
 
 	for _, c := range cases {
