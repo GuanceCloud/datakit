@@ -46,8 +46,9 @@ monitor   :
 
 Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。参数列表如下：
 
-- `type`：数据格式，目前只支持 `influxdb`。
+- `type`：数据格式，目前只支持 `influxdb` 和 `firelens`。
     - 当 `type` 为 `inflxudb` 时（`/v1/write/logstreaming?type=influxdb`），说明数据本身就是行协议格式（默认 precision 是 `s`），将只添加内置 Tags，不再做其他操作
+    - 当 `type` 为 `firelens` 时 (`/v1/write/logstreaming?type=firelens`)，数据格式应是 JSON 格式的多条日志
     - 当此值为空时，会对数据做分行和 Pipeline 等处理
 - `source`：标识数据来源，即行协议的 measurement。例如 `nginx` 或者 `redis`（`/v1/write/logstreaming?source=nginx`）
     - 当 `type` 是 `influxdb` 时，此值无效
@@ -56,6 +57,33 @@ Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作�
     - 默认为 `source` 参数值。
 - `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/logstreaming?pipeline=nginx.p`）
 - `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/logstreaming?tags=key1=value1,key2=value2`）
+
+#### FireLens 数据源类型
+
+该类型数据中的 `log`, `source`, `date` 字段将会特殊处理，数据示例：
+
+```json
+[
+  {
+    "date": 1705485197.93957,
+    "container_id": "xxxxxxxxxxx-xxxxxxx",
+    "container_name": "nginx_demo",
+    "source": "stdout",
+    "log": "127.0.0.1 - - [19/Jan/2024:11:49:48 +0800] \"GET / HTTP/1.1\" 403 162 \"-\" \"curl/7.81.0\"",
+    "ecs_cluster": "Cluster_demo"
+  },
+  {
+    "date": 1705485197.943546,
+    "container_id": "f68a9aeb3d64493595e89f8821fa3f86-4093234565",
+    "container_name": "javatest",
+    "source": "stdout",
+    "log": "2024/01/19 11:49:48 [error] 1316#1316: *1 directory index of \"/var/www/html/\" is forbidden, client: 127.0.0.1, server: _, request: \"GET / HTTP/1.1\", host: \"localhost\"",
+    "ecs_cluster": "Cluster_Demo"
+  }
+]
+```
+
+在提取出列表中的两条日志后，其中 `log` 将作为数据的 `message` 字段，`date` 将转换为日志的时间，`source` 将被重命名为 `firelens_source`。
 
 ### 使用方式 {#usage}
 
