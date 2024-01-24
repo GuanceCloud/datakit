@@ -232,7 +232,7 @@ func TestWriteWithCache(t *T.T) {
 	})
 }
 
-func TestWritePoints(t *T.T) {
+func TestX(t *T.T) {
 	t.Run("write-100pts-with-group", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, datakit.Logging, r.URL.Path)
@@ -269,15 +269,23 @@ func TestWritePoints(t *T.T) {
 
 		pts := point.RandPoints(100)
 
+		// add extra tags to match group tag key/value
+		for _, pt := range pts {
+			pt.MustAddTag("tag1", "value1")
+			pt.MustAddTag("tag2", "value2")
+		}
+
 		dw := &Dataway{
 			URLs:         []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
 			EnableSinker: true,
 			GZip:         true,
+			// GlobalCustomerKeys: []string{"tag1", "tag2"},
 		}
 		assert.NoError(t, dw.Init(
-			WithGlobalTags(map[string]string{
+			WithGlobalTags(map[string]string{ // add global tag as match group tag key/value
 				"tag1": "value1",
 				"tag2": "value2",
+				"tag3": "value3", // not used
 			})))
 
 		assert.NoError(t, dw.Write(WithCategory(point.Logging), WithPoints(pts)))
@@ -288,7 +296,9 @@ func TestWritePoints(t *T.T) {
 			diskcache.ResetMetrics()
 		})
 	})
+}
 
+func TestWritePoints(t *T.T) {
 	t.Run("write-100pts", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, datakit.Logging, r.URL.Path)
