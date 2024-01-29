@@ -5,16 +5,16 @@ The third-party Tracing data currently supported by Datakit includes:
 - DDTrace
 - Apache Jaeger
 - OpenTelemetry
-- Skywalking
+- SkyWalking
 - Zipkin
 
 ---
 
 ## Datakit Tracing Frontend {#datakit-tracing-frontend}
 
-Tracing Frontend is an API that receives data from a variety of different types of Trace, typically via HTTP or gRPC from a variety of Trace SDKs. When DataKit receives this data, it converts it into a [unified Span structure](datakit-tracing-struct.md). It is then sent to [Backend](#backend) for processing.
+Tracing Frontend is an API that receives data from a variety of different types of Trace, typically via HTTP or gRPC from a variety of Trace SDKs. When DataKit receives this data, it converts it into a [unified Span structure](datakit-tracing-struct.md). It is then sent to [Backend](datakit-tracing.md#datakit-tracing-backend) for processing.
 
-In addition to transforming the Span structure, Tracing Frontend also completes the configuration of the filter unit and arithmetic unit in [Tracing Backend](#backend).
+In addition to transforming the Span structure, Tracing Frontend also completes the configuration of the filter unit and arithmetic unit in [Tracing Backend](datakit-tracing.md#datakit-tracing-backend).
 
 ## Tracing Data Collection Common Configuration {#tracing-common-config}
 
@@ -69,12 +69,12 @@ The tracer generation in the configuration file refers to the currently configur
 - `keep_rare_resource`: If a link from a Resource has not been present within the last hour, the system considers it a rare link and reports it directly to the Data Center.
 - `omit_err_status`: By default, data is reported directly to the Data Center if there is a Span with Error status in the link, and Datakit can be told to ignore links with some HTTP Error Status (for example, 429 too many requests) if the user needs to ignore it.
 - `[inputs.tracer.close_resource]`: Users can configure this to close a Resource link with [span_type](datakit-tracing-struct) as Entry.
-- `[inputs.tracer.sampler]`: Configure the global sampling rate for the current Datakit, [configuration sample](#datakit-samplers).
+- `[inputs.tracer.sampler]`: Configure the global sampling rate for the current Datakit, [configuration sample](datakit-tracing.md#samplers).
 - `[inputs.tracer.tags]`: Configure Datakit Global Tags with a lower priority than `customer_tags` 。
 - `[inputs.tracer.threads]`: Configure the thread queue of the current Tracing Agent to control the CPU and Memory resources available during data processing.
-  - buffer: The cache of the work queue. The larger the configuration, the greater the memory consumption. At the same time, the request sent to the Agent has a greater probability of queuing successfully and returning quickly, otherwise it will be discarded and return a 429 error.
-  - threads: The maximum number of threads in the work queue. The larger the configuration, the more threads started, the higher the CPU consumption. Generally, it is configured as the number of CPU cores.
-  - timeout: The task timed out, the larger the configuration, the longer the buffer.
+    - buffer: The cache of the work queue. The larger the configuration, the greater the memory consumption. At the same time, the request sent to the Agent has a greater probability of queuing successfully and returning quickly, otherwise it will be discarded and return a 429 error.
+    - threads: The maximum number of threads in the work queue. The larger the configuration, the more threads started, the higher the CPU consumption. Generally, it is configured as the number of CPU cores.
+    - timeout: The task timed out, the larger the configuration, the longer the buffer.
 
 ## Datakit Tracing Backend {#datakit-tracing-backend}
 
@@ -86,8 +86,8 @@ The Datakit backend is responsible for manipulating the link data as configured,
 - `omit_status_code_filter`: When `omit_err_status = ["404"]` is configured, an error with a status code of 404 in a link under the HTTP service will not be reported to the Data Center.
 - `penetrate_error_filter`: Datakit default filter, triggered by link error.
 - `close_resource_filter`: Configured in `[inputs.tracer.close_resource]`, the service name is the full service name or `*`, and the resource name is the regular expression of the resource.
-  - Example 1: Configuration such as `login_server = ["^auth\_.*\?id=[0-9]*"]`, then the `login_server` service name `resource` looks like `auth_name?id=123` will be closed
-  - Example 2: If configured as `"*" = ["heart_beat"]`, the `heart_beat` resource on all services under the current Datakit will be closed.
+    - Example 1: Configuration such as `login_server = ["^auth\_.*\?id=[0-9]*"]`, then the `login_server` service name `resource` looks like `auth_name?id=123` will be closed
+    - Example 2: If configured as `"*" = ["heart_beat"]`, the `heart_beat` resource on all services under the current Datakit will be closed.
 - `keep_rare_resource_filter`: When `keep_rare_resource = true` is configured, links determined to be rare will be reported directly to the Data Center.
 
 Filters (Sampler is also a Filter) in the current version of Datakit are executed in a fixed order:

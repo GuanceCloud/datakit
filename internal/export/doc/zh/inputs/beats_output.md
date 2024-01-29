@@ -24,7 +24,7 @@ monitor   :
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [下载地址](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-已测试的版本：
+已测试的 Filebeat 版本：
 
 - [x] 8.6.2
 - [x] 7.17.9
@@ -37,6 +37,8 @@ monitor   :
 - [x] 1.0.0
 
 ## 配置 {#config}
+
+### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"

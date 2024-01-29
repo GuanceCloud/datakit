@@ -6,7 +6,7 @@ dashboard :
   - desc  : 'CPU'
     path  : 'dashboard/en/cpu'
 monitor   :
-  - desc  : 'host detection library'
+  - desc  : 'Host detection library'
     path  : 'monitor/en/host'
 ---
 
@@ -22,6 +22,8 @@ monitor   :
 The CPU collector is used to collect the CPU utilization rate of the system.
 
 ## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 After successfully installing and starting DataKit, the CPU collector will be enabled by default without the need for manual activation.
 
@@ -56,10 +58,10 @@ After successfully installing and starting DataKit, the CPU collector will be en
 
 ## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.cpu.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.cpu.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

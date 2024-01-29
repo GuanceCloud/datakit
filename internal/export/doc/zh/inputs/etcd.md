@@ -34,6 +34,8 @@ etcd 版本 >= 3, 已测试的版本：
 - [x] 3.4.24
 - [x] 3.3.27
 
+### 采集器配置 {#input-config}
+
 开启 etcd，默认的 metrics 接口是 `http://localhost:2379/metrics`，也可以自行在配置文件中修改。
 
 <!-- markdownlint-disable MD046 -->

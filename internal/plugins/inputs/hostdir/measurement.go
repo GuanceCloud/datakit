@@ -29,9 +29,9 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"inodes_used":         &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount, Desc: "Used inode(only this dir used)."},
 		},
 		Tags: map[string]interface{}{
-			"host_directory": inputs.NewTagInfo("the start Dir."),
-			"file_ownership": inputs.NewTagInfo("file ownership."),
-			"file_system":    inputs.NewTagInfo("file system type."),
+			"host_directory": inputs.NewTagInfo("The start Dir."),
+			"file_ownership": inputs.NewTagInfo("File ownership."),
+			"file_system":    inputs.NewTagInfo("File system type."),
 			"mount_point":    &inputs.TagInfo{Desc: "Mount point."},
 		},
 	}

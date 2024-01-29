@@ -17,7 +17,7 @@ command will be prompted, such as:
 > - For remote upgrade, you must upgrade Datakit to [1.5.9](changelog.md#cl-1.5.9)+
 > - If [DataKit < 1.2.7](changelog.md#cl-1.2.7), you can only use `datakit --version`
 > - If DataKit < 1.2.0, [use the upgrade command directly](changelog.md#cl-1.2.0-break-changes)
-
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ``` shell
@@ -72,7 +72,7 @@ If the DataKit is currently in proxy mode, the proxy settings will be automatica
     ``` powershell
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
-
+<!-- markdownlint-enable -->
 ## Auto Upgrade {#auto}
 
 In Linux, in order to facilitate the automatic upgrade of DataKit, tasks can be added through crontab to realize regular upgrade.
@@ -146,7 +146,7 @@ Add the following rule:
 
 Tips: crontab, The basic syntax is as follows
 
-```
+```txt
 *   *   *   *   *     <command to be execute>
 ^   ^   ^   ^   ^
 |   |   |   |   |
@@ -171,15 +171,15 @@ service crond restart
 
 If the installation is successful and an upgrade is attempted, you can see logs like the following in `upgrade_log`:
 
-```
-2021-05-10T09:49:06.083+0800 DEBUG	ota-update datakit/main.go:201	get online version...
-2021-05-10T09:49:07.728+0800 DEBUG	ota-update datakit/main.go:216	online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.1.6-rc0-62-g7a1d0956/7a1d0956
-2021-05-10T09:49:07.728+0800 INFO	ota-update datakit/main.go:224	Up to date(1.1.6-rc0-62-g7a1d0956)
+```txt
+2021-05-10T09:49:06.083+0800 DEBUG  ota-update datakit/main.go:201  get online version...
+2021-05-10T09:49:07.728+0800 DEBUG  ota-update datakit/main.go:216  online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.1.6-rc0-62-g7a1d0956/7a1d0956
+2021-05-10T09:49:07.728+0800 INFO  ota-update datakit/main.go:224  Up to date(1.1.6-rc0-62-g7a1d0956)
 ```
 
 If an upgrade does occur, you will see an upgrade log similar to the following:
 
-```
+```txt
 2021-05-10T09:52:18.352+0800 DEBUG ota-update datakit/main.go:201 get online version...
 2021-05-10T09:52:18.391+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.0.1/7a1d0956
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
@@ -244,26 +244,26 @@ Example：
 $ curl -X POST 'http://127.0.0.1:9542/v1/datakit/upgrade'
 {"msg":"success"}
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     The upgrade process may take a long time.
-
+<!-- markdownlint-enable -->
 ## DataKit Version Downgrade {#downgrade}
 
 If the new version is unsatisfactory and eager to roll back the recovery function of the old version, you can directly reverse upgrade in the following ways:
-
+<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "版本号") }}
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "1.2.3") }}
     ```
 === "Windows"
 
     ```powershell
-{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "版本号") }}
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "1.2.3") }}
     ```
-
+<!-- markdownlint-enable -->
 The version number here can be found on the [DataKit release history](changelog.md) page. Currently, only rollback to [1.2.0](changelog.md#cl-1.2.0) is supported, and previous rc versions do not recommend rollback. After rolling back the version, you may encounter some configurations that are only available in the new version, which cannot be resolved in the rolled back version. For the time being, you can only manually adjust the configuration to adapt to the old version of DataKit.
 
 ## Version Detection Failed Processing {#version-check-failed}

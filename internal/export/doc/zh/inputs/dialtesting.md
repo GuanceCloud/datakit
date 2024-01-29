@@ -52,7 +52,7 @@ monitor   :
 ### 拨测部署图 {#arch}
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
+  ![dialtesting-net-arch](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
 </figure>
 
 ## 指标 {#metric}

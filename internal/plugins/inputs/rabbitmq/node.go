@@ -97,10 +97,10 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 			"sockets_used":    newCountFieldInfo("Number of file descriptors used as sockets"),
 
 			// See: https://documentation.solarwinds.com/en/success_center/appoptics/content/kb/host_infrastructure/integrations/rabbitmq.htm
-			"io_read_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "avg wall time (milliseconds) for each disk read operation in the last statistics interval"),
-			"io_write_avg_time": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "avg wall time (milliseconds) for each disk write operation in the last statistics interval"),
-			"io_seek_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "average wall time (milliseconds) for each seek operation in the last statistics interval"),
-			"io_sync_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "average wall time (milliseconds) for each fsync() operation in the last statistics interval"),
+			"io_read_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each disk read operation in the last statistics interval"),
+			"io_write_avg_time": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each disk write operation in the last statistics interval"),
+			"io_seek_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each seek operation in the last statistics interval"),
+			"io_sync_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each fsync() operation in the last statistics interval"),
 		},
 
 		Tags: map[string]interface{}{

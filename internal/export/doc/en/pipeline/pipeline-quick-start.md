@@ -1,8 +1,7 @@
 # Quick Start
 ---
 
-
-## First Scritp {#fist-script}
+## First Script {#first-script}
 
 - To configure Pipeline in DataKit, write the following Pipeline file, which is assumed to be named *nginx.p*. Store it in the *[Datakit installation directory]/pipeline* directory.
 
@@ -28,7 +27,7 @@ drop_origin_data()
 
 - Configure the corresponding collector to use the above script
 
-Take the logging collector as an example, just configure the field `pipeline_path`. Note that the script name of the pipeline is configured here, not the path. All the pipeline scripts referenced here must be stored in the `<DataKit installation directory/pipeline>` directory:
+Take the logging collector as an example, just configure the field `pipeline_path`. Note that the script name of the Pipeline is configured here, not the path. All the Pipeline scripts referenced here must be stored in the `<DataKit installation directory/pipeline>` directory:
 
 ```python
 [[inputs.logging]]
@@ -48,22 +47,22 @@ Take the logging collector as an example, just configure the field `pipeline_pat
 
 Restart the collector to cut the corresponding log.
 
-## Debug grok and pipeline {#debug}
+## Debug grok and Pipeline {#debug}
 
-Specify the pipeline script name and enter a piece of text to determine whether the extraction is successful or not.
+Specify the Pipeline script name and enter a piece of text to determine whether the extraction is successful or not.
 
-> The pipeline script must be placed in the *[DataKit installation path]/pipeline* directory.
+> The Pipeline script must be placed in the `[DataKit installation path]/pipeline` directory.
 
 ```shell
 $ datakit pipeline -P your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # Indicate successful cutting
 {
-	"code"   : "io/io.go: 458",       # Corresponding code position
-	"level"  : "DEBUG",               # Corresponding log level
-	"module" : "io",                  # Corresponding code module
-	"msg"    : "post cost 6.87021ms", # Pure log attributes
-	"time"   : 1610358231887000000    # Log time (Unix nanosecond timestamp)
-	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+    "code"   : "io/io.go: 458",       # Corresponding code position
+    "level"  : "DEBUG",               # Corresponding log level
+    "module" : "io",                  # Corresponding code module
+    "msg"    : "post cost 6.87021ms", # Pure log attributes
+    "time"   : 1610358231887000000    # Log time (Unix nanosecond timestamp)
+    "message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
 ```
 
@@ -72,14 +71,14 @@ Extraction failure example (only `message` is left, indicating that other fields
 ```shell
 $ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 {
-	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+    "message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
 ```
 
 > If the debug text is complex, you can write it to a file (sample.log) and debug it as follows:
 
 ```shell
-$ datakit pipeline -P your_pipeline.p -F sample.log
+datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
 For more Pipeline debugging commands, see `datakit help pipeline`.
@@ -105,28 +104,28 @@ grokq > 2021-01-25T18:37:22.016+0800
 grokq > Q                              # Q or exit 
 Bye!
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     In Windows environment, debug in Powershell.
-
+<!-- markdownlint-enable -->
 ### How to Handle with Multiple Lines {#multiline}
 
 When dealing with some call stack related logs, the logs of the following situations cannot be handled directly with the pattern `GREEDYDATA` since the number of log lines is not fixed:
 
-```
+```txt
 2022-02-10 16:27:36.116 ERROR 1629881 --- [scheduling-1] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
 
-	java.lang.NullPointerException: null
-	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)
-	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)
-	at java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)
-	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)
-	at java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)
-	at java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)
-	at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)
-	at java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)
-	at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
+    java.lang.NullPointerException: null
+    at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)
+    at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)
+    at java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)
+    at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)
+    at java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)
+    at java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)
+    at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)
+    at java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)
+    at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
 ```
 
 Here you can use the `GREEDYLINES` rule for generalization, such as (*/usr/local/datakit/pipeline/test.p*):
@@ -142,7 +141,7 @@ drop_origin_data()
 Save the above multi-line log as *multi-line.log* and debug it:
 
 ```shell
-$ datakit pipeline -P test.p -T "$(<multi-line.log)"
+datakit pipeline -P test.p -T "$(<multi-line.log)"
 ```
 
 The following cutting results are obtained:
@@ -175,10 +174,11 @@ In addition, all collected logs have the following reserved fields. We should no
 | `message`  | string(field) | Original log                                                                |
 | `time`     | int           | Timestamp corresponding to log                                              |
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     Of course, we can override the values of these tags by [specific Pipeline function](pipeline-built-in-function.md#fn-set-tag).
+<!-- markdownlint-enable -->
 
 Once the Pipeline cut-out field has the same name as the existing Tag (case sensitive), it will cause the following data error. Therefore, it is recommended to bypass these field naming in Pipeline cutting.
 
@@ -191,11 +191,11 @@ same key xxx in tag and field
 
 Take Datakit's own log cutting as an example. Datakit's own log form is as follows:
 
-```
+```txt
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
 ```
 
-Write the corresponding pipeline：
+Write the corresponding Pipeline：
 
 ```python
 # pipeline for datakit log
@@ -210,7 +210,7 @@ drop_origin_data()       # discard the original log text (not recommended)
 
 Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under `<DataKit installation path>/pipeline/pattern` .
 
-> Note that the user-defined pattern must be placed in the *[Datakit installation path]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other pipeline scripts):
+> Note that the user-defined pattern must be placed in the *[Datakit installation path]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other Pipeline scripts):
 
 ```Shell
 $ cat pipeline/pattern/datakit
@@ -224,7 +224,7 @@ _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 _dklog_msg %{GREEDYDATA}
 ```
 
-Now that you have the pipeline and its referenced pattern, you can cut this line of logs through Datakit's built-in pipeline debugging tool:
+Now that you have the Pipeline and its referenced pattern, you can cut this line of logs through Datakit's built-in Pipeline debugging tool:
 
 ```Shell
 # Extract successful examples
@@ -240,9 +240,9 @@ Extracted data(cost: 421.705µs):
 ```
 
 ## FAQ {#faq}
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
-
+<!-- markdownlint-enable -->
 Pipeline:
 
 ```python
@@ -254,7 +254,7 @@ json(_, @timestamp, "time")
 
 The error reported is as follows:
 
-```
+```txt
 [E] new piepline failed: 4:8 parse error: unexpected character: '@'
 ```
 
@@ -267,9 +267,9 @@ json(_, `@timestamp`, "time")
 ```
 
 See [Basic syntax rules of Pipeline](pipeline-platypus-grammar.md)
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
-
+<!-- markdownlint-enable -->
 The order is as follows:
 
 ```shell
@@ -280,11 +280,11 @@ $ datakit pipeline -P test.p -T "..."
 ---
 
 A: Pipeline scripts for debugging. Place them in *[Datakit installation path]/pipeline* Directory.
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to cut logs in many different formats in one Pipeline? {#if-else}
-
+<!-- markdownlint-enable -->
 In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, you can give priority to matching the Grok with higher frequency according to the frequency of logs, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     In log cutting, Grok matching is the most expensive part, so avoiding repeated Grok matching can greatly improve the cutting performance of Grok.
@@ -305,12 +305,13 @@ In daily logs, because of different services, logs will take on various forms. A
         }
     }
     ```
-
+<!-- markdownlint-enable -->
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to discard field cut? {#drop-keys}
+<!-- markdownlint-enable -->
+In some cases, all we need is a few fields in the middle of log, but it is difficult to skip the previous parts, such as:
 
-In some cases, all we need is a few fields in the middle of log, but it is difficult to skip the previous parts, such as: 
-
-```
+```txt
 200 356 1 0 44 30032 other messages
 ```
 
@@ -319,18 +320,18 @@ Where we only need the value of `44` , which may be code response delay, we can 
 ```python
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: `add_pattern()` Escape Problem {#escape}
-
+<!-- markdownlint-enable -->
 When you use `add_pattern()` to add local patterns, you are prone to escape problems, such as the following pattern (used to match file paths and file names):
 
-```
+```txt
 (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```
 
 If we put it in the global pattern directory (that is, *pipeline/pattern* directory), we can write this:
 
-```
+```txt
 # my-test
 source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 ```

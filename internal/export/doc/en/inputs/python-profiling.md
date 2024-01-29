@@ -62,7 +62,7 @@ After the program starts, ddtrace will collect data regularly (once every minute
 
 `py-spy` is a non-invasive Python performance metrics sampling tool provided by the open source community that runs alone and has low impact on target program load.
 
-`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit, observation cloud provides a branch version [py-spy-for-datakit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}, which is based on the original version with a few modifications and supports automatic profiling.
+`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit, observation cloud provides a branch version [py-spy-for-Datakit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}, which is based on the original version with a few modifications and supports automatic profiling.
 Data is sent to DataKit.
 
 - Installation
@@ -95,7 +95,7 @@ cargo install py-spy-for-datakit
 
 - Use
 
-py-spy-for-datakit adds the `datakit` command to the original `py-spy` subcommand, which is specially used to send sampled data to DataKit. You can enter `py-spy-for-datakit help datakit` to view the usage help:
+py-spy-for-Datakit adds the `datakit` command to the original `py-spy` subcommand, which is specially used to send sampled data to DataKit. You can enter `py-spy-for-datakit help datakit` to view the usage help:
 
 | Parameter                 | Description                                                                           | Default Value                            |
 | -------------------- | ----------------------------------------------                                 | --------------------              |
@@ -110,7 +110,7 @@ py-spy-for-datakit adds the `datakit` command to the original `py-spy` subcomman
 | -s, --subprocesses   | Whether to analyze child processes                                                                 | false                             |
 | -i, --idle           | Whether to sample non-running threads                                                       | false                             |
 
-py-spy-for-datakit can analyze the currently running program by passing the process PID of the running Python program to py-spy-for-datakit using the `--pid <PID>` or `-p <PID>` parameter.
+py-spy-for-Datakit can analyze the currently running program by passing the process PID of the running Python program to py-spy-for-Datakit using the `--pid <PID>` or `-p <PID>` parameter.
 
 Assuming your Python application is currently running a process PID of 12345 and DataKit listens at 127.0. 0.1: 9529, use commands similar to this:
 
@@ -127,7 +127,8 @@ py-spy-for-datakit datakit \
 
 If you are prompted for `sudo` permission, prefix the command with `sudo`.
 
-py-spy-for-datakit also supports startup commands directly to Python projects, so that you don't need to specify process PID, and data sampling will be carried out when the program starts. The running command at this time is similar:
+py-spy-for-Datakit also supports startup commands directly to Python projects, so that you don't need to specify process PID, and data sampling will be carried out when the program starts. The running command at this time is similar:
+
 ```shell
 py-spy-for-datakit datakit \
   --host 127.0.0.1 \

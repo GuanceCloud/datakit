@@ -1,5 +1,28 @@
+---
+title: 'Basic Collection Of Containers'
+summary: 'Collect metrics, objects, and log data for Container and Kubernetes, and report them to the guance cloud.'
+__int_icon:    'icon/kubernetes/'  
+dashboard:
+  - desc: 'Kubernetes Dashboard'
+    path: 'dashboard/en/kubernetes'
+  - desc: 'Kubernetes Services Dashboard'
+    path: 'dashboard/en/kubernetes_services'
+  - desc: 'Kubernetes Nodes Overview Dashboard'
+    path: 'dashboard/en/kubernetes_nodes_overview'
+  - desc: 'Kubernetes Pods Overview Dashboard'
+    path: 'dashboard/en/kubernetes_pods_overview'
+  - desc: 'Kubernetes Events Dashboard'
+    path: 'dashboard/en/kubernetes_events'
+ 
+monitor:
+  - desc: 'Kubernetes'
+    path: 'monitor/en/kubernetes'
+---
 
+
+<!-- markdownlint-disable MD025 -->
 # Container Data Collection
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -8,17 +31,19 @@
 
 Collect indicators, objects and log data of container and Kubernetes and report them to Guance Cloud.
 
-## Preconditions {#requrements}
+## Configuration {#config}
+
+### Preconditions {#requrements}
 
 - At present, container supported Docker/Containerd/CRI-O runtime
     - Docker v17.04 and above should be installed, Container v15.1 and above should be installed, CRI-O 1.20.1 and above should be installed.
 - Collecting Kubernetes data requires the DataKit to [be deployed as a DaemonSet](datakit-daemonset-deploy.md).
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
-    - Container collection supports both Docker and Containerd runtimes[:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7), and both are enabled by default.
+    - Container collection supports both Docker and Containerd runtime[:octicons-tag-24: Version-1.5.7](../datakit/changelog.md#cl-1.5.7), and both are enabled by default.
 
-## Configuration {#config}
 
 === "host installation"
 
@@ -36,7 +61,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
     Container collectors in Kubernetes generally turn on automatically by default and do not need to be configured through *container.conf*. However, the configuration parameters can be adjusted by the following environment variables:
     
-    | Environment Variable Name                                                     | Descrition                                                                                                                                                                                                                                                                                                                                                               | Default Value                                                                                           | Parameter example (need to be enclosed in double quotation marks when configuring yaml)           |
+    | Environment Variable Name                                                     | Description                                                                                                                                                                                                                                                                                                                                                               | Default Value                                                                                           | Parameter example (need to be enclosed in double quotation marks when configuring yaml)           |
     | ----:                                                                         | ----:                                                                                                                                                                                                                                                                                                                                                                    | ----:                                                                                                   | ----                                                                                              |
     | `ENV_INPUT_CONTAINER_ENDPOINTS`                                               | Append to container endpoints                                                                                                                                                                                                                                                                                                                                            | "unix:///var/run/docker.sock,unix:///var/run/containerd/containerd.sock,unix:///var/run/crio/crio.sock" | `"unix:///<new_path>/run/containerd.sock"`                                                        |
     | `ENV_INPUT_CONTAINER_DOCKER_ENDPOINT`                                         | Deprecated. Specify the enpoint of Docker Engine                                                                                                                                                                                                                                                                                                                         | "unix:///var/run/docker.sock"                                                                           | `"unix:///var/run/docker.sock"`                                                                   |
@@ -48,10 +73,10 @@ Collect indicators, objects and log data of container and Kubernetes and report 
     | `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS`                               | Deprecated. Should the labels of the resources be appended to the tags collected? Only Pod metrics, objects, and Node objects will be added, and the labels of container logs belonging to the Pod will also be added. If the key of a label contains a dot character, it will be replaced with a hyphen.                                                                | false                                                                                                   | `"true"`/`"false"`                                                                                |
     | `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2`                            | Append the labels of the resource to the tag of the non-metric (like object and logging) data. Label keys should be specified, if there is only one key and it is an empty string (e.g. `[""]`), all labels will be added to the tag. The container will inherit the Pod labels. If the key of the label has the dot character, it will be changed to a horizontal line. | []                                                                                                      | `["app","name"]`                                                                                  |
     | `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC`                 | Append the labels of the resource to the tag of the metric data. Label keys should be specified, if there is only one key and it is an empty string (e.g. `[""]`), all labels will be added to the tag. The container will inherit the Pod labels. If the key of the label has the dot character, it will be changed to a horizontal line.                               | []                                                                                                      | `["app","name"]`                                                                                  |
-    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`     | Whether to turn on Prometheuse Pod Annotations and collect metrics automatically                                                                                                                                                                                                                                                                                         | false                                                                                                   | `"true"`/`"false"`                                                                                |
-    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS` | Whether to turn on Prometheuse Service Annotations and collect metrics automatically                                                                                                                                                                                                                                                                                     | false                                                                                                   | `"true"`/`"false"`                                                                                |
-    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS`        | Whether to turn on automatic discovery of Prometheuse PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd.md#config)                                                                                                                                                                                          | false                                                                                                   | `"true"`/`"false"`                                                                                |
-    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS`    | Whether to turn on automatic discovery of Prometheuse ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd.md#config)                                                                                                                                                                                      | false                                                                                                   | `"true"`/`"false"`                                                                                |
+    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`     | Whether to turn on Prometheus Pod Annotations and collect metrics automatically                                                                                                                                                                                                                                                                                         | false                                                                                                   | `"true"`/`"false"`                                                                                |
+    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS` | Whether to turn on Prometheus Service Annotations and collect metrics automatically                                                                                                                                                                                                                                                                                     | false                                                                                                   | `"true"`/`"false"`                                                                                |
+    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS`        | Whether to turn on automatic discovery of Prometheus PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd.md#config)                                                                                                                                                                                          | false                                                                                                   | `"true"`/`"false"`                                                                                |
+    | `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS`    | Whether to turn on automatic discovery of Prometheus ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd.md#config)                                                                                                                                                                                      | false                                                                                                   | `"true"`/`"false"`                                                                                |
     | `ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG`                                   | include condition of container log, filtering with image                                                                                                                                                                                                                                                                                                                 | None                                                                                                    | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                                   |
     | `ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG`                                   | exclude condition of container log, filtering with image                                                                                                                                                                                                                                                                                                                 | None                                                                                                    | `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`                                                   |
     | `ENV_INPUT_CONTAINER_KUBERNETES_URL`                                          | k8s api-server access address                                                                                                                                                                                                                                                                                                                                            | "https://kubernetes.default:443"                                                                        | `"https://kubernetes.default:443"`                                                                |
@@ -83,7 +108,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
     - Object data collection interval is 5 minutes and metric data collection interval is 20 seconds. Configuration is not supported for the time being.
     - Acquired log has a maximum length of 32MB per line (including after `multiline_match` processing), the excess will be truncated and discarded.
 
-#### Docker and Containerd Sock File Configuration {#docker-containerd-sock}
+### Docker and Containerd Sock File Configuration {#sock-config}
 
 If the sock path of Docker or Containerd is not the default, you need to specify the sock file path. According to different deployment methods of DataKit, the methods are different. Take Containerd as an example:
 
@@ -113,16 +138,46 @@ If the sock path of Docker or Containerd is not the default, you need to specify
       name: containerd-socket
     ```
 ---
+<!-- markdownlint-enable -->
 
-## Log Collection {#logging-config}
+Environment Variables `ENV_INPUT_CONTAINER_ENDPOINTS` is added to the existing endpoints configuration, and the actual endpoints configuration may have many items. The collector will remove duplicates and connect and collect them one by one.
+
+The default endpoints configuration is:
+
+```yaml
+  endpoints = [
+    "unix:///var/run/docker.sock",
+    "unix:///var/run/containerd/containerd.sock",
+    "unix:///var/run/crio/crio.sock",
+  ] 
+```
+
+Using Environment Variables `ENV_INPUT_CONTAINER_ENDPOINTS` is`["unix:///path/to/new//run/containerd.sock"]`,The final endpoints configuration is as follows:
+
+```yaml
+  endpoints = [
+    "unix:///var/run/docker.sock",
+    "unix:///var/run/containerd/containerd.sock",
+    "unix:///var/run/crio/crio.sock",
+    "unix:///path/to/new//run/containerd.sock",
+  ] 
+```
+
+The collector will connect and collect these containers during runtime. If the sock file does not exist, an error log will be output when the first connection fails, which does not affect subsequent collection.
+
+### Prometheus Exporter Metrics Collection {#k8s-prom-exporter}
+
+<!-- markdownlint-disable MD024 -->
+If the Pod/container has exposed Prometheus metrics, there are two ways to collect them, see [here](kubernetes-prom.md).
+
+
+### Log Collection {#logging-config}
 
 See [here](container-log.md) for the relevant configuration of log collection.
 
-### Prometheuse Exporter Metrics Collection {#k8s-prom-exporter}
+---
 
-If the Pod/container has exposed Prometheuse metrics, there are two ways to collect them, see [here](kubernetes-prom.md).
-
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.container.tags]`:
 
@@ -133,13 +188,12 @@ For all of the following data collections, a global tag named `host` is appended
   # ...
 ```
 
-### Metrics {#metrics}
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -149,17 +203,17 @@ For all of the following data collections, a global tag named `host` is appended
 
 - Metrics
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 
-### Objects {#objects}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -174,13 +228,13 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-### Logs {#logging}
+## Logs {#logging}
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
 
-#### `{{$m.Name}}`
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -190,9 +244,10 @@ For all of the following data collections, a global tag named `host` is appended
 
 - Metrics
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
+<!-- markdownlint-enable -->
 
 ## Link Dataway Sink Function {#link-dataway-sink}
 
@@ -221,7 +276,9 @@ rules:
 
 In addition, the Datakit Pod needs to have the `hostNetwork: true` configuration item enabled.
 
+<!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}
+<!-- markdownlint-enable -->
 
 Datakit collects yaml configurations for resources such as Kubernetes Pod or Service and stores them in the `yaml` field of the object data. If the yaml contains sensitive data (such as passwords), Datakit does not support manually configuring and shielding sensitive fields for the time being. It is recommended to use Kubernetes' official practice, that is, to use ConfigMap or Secret to hide sensitive fields.
 
@@ -233,7 +290,7 @@ For example, you now need to add a password to the env, which would normally be 
       image: redis
       env:
         - name: SECRET_PASSWORD
-	  value: password123
+    value: password123
 ```
 
 When orchestrating yaml configuration, passwords will be stored in clear text, which is very unsafe. You can use Kubernetes Secret to implement hiding as follows:
@@ -265,7 +322,7 @@ Using Secret in env:
       image: redis
       env:
         - name: SECRET_PASSWORD
-	  valueFrom:
+    valueFrom:
           secretKeyRef:
             name: mysecret
             key: password
@@ -277,5 +334,5 @@ See [doc](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/#using-
 ## More Readings {#more-reading}
 
 - [eBPF Collector: Support flow collection in container environment](ebpf.md)
-- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex) 
+- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)
 - [Several configurations of DataKit under Kubernetes](k8s-config-how-to.md)

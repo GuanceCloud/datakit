@@ -30,6 +30,7 @@ DaemonSet
 DataDog
 Datakit
 Dataway
+diskio
 DialTesting
 Distro
 Dubbo
@@ -56,6 +57,7 @@ JXMFetch
 Jedis
 Jenkins
 Jolokia
+JVM
 KafkaMQ
 Kodo
 Kubernetes
@@ -105,6 +107,7 @@ Weblogic
 Websphere
 XDAs
 Zipkin
+catalina
 cgroup
 clidriver
 configfile
@@ -141,12 +144,15 @@ netflow
 nginx
 nsec
 nullable
+nvme
 pprof
 promremote
 rwlock
 schedulability
 sflow
 sharded
+smartmontools
+solr
 stderr
 stdout
 syscall
@@ -161,6 +167,21 @@ vnode
 workarea
 xpack
 zhangsan
+dnodes
+tdengine
+mnodes
+vgroup
+vgroups
+vnode
+tdengine
+lineprotocol
+goyacc
+gofumpt
+golint
+JihuLab
+runtimes
+Tencent
+pythond
 
 ##############################################
 # 缩写
@@ -177,6 +198,7 @@ RUM
 SAAS
 SNMP
 MITM
+APM
 
 ##############################################
 # 合成词
@@ -201,7 +223,10 @@ counterrate
 COUNTERRATE
 defragmentation
 defragmented
+Diskio
+dnsflow
 freeable
+httpflow
 interestingstats
 ISAPI
 maxcallstackdepth
@@ -238,11 +263,14 @@ diskcache
 bboltdb
 unsynced
 defrag
+traceroute
 txns
 fsyncing
 goroutines
 mallocs
 mspan
+refactorings
+spid
 
 ##############################################
 # 连词
@@ -256,7 +284,12 @@ golangci
 !java
 !json
 !Json
-!pipeline
 !sink
 !sql
 !最
+
+##############################################
+# 拼音
+##############################################
+Dianping
+Meituan

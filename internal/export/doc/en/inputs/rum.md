@@ -45,7 +45,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 - Since [1.2.7](../datakit/changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
 
 ### Collector Configuration {#input-config}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -64,13 +64,13 @@ It is recommended that RUM be deployed separately on the public network, not wit
 
 === "Kubernetes"
 
-    In datakit.yaml, the environment variable `ENV_DEFAULT_ENABLED_INPUTS` adds the rum collector name (as shown in the first in `value` below):
+    In *datakit.yaml*, the environment variable `ENV_DEFAULT_ENABLED_INPUTS` adds the rum collector name (as shown in the first in `value` below):
 
     ```yaml
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
-
+<!-- markdownlint-enable -->
 ### Security Restrictions {#security-setting}
 
 Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
@@ -117,9 +117,9 @@ The RUM collector collects the following metric sets by default:
 Usually, js files in production environment or App code on mobile side will be confused and compressed to reduce the size of application. The call stack when an error occurs is quite different from the source code at development time, which is inconvenient for debugging (`troubleshoot`). If you need to locate errors in the source code, you have to rely on the `sourcemap` file.
 
 DataKit supports this mapping of source code file information by zipping the corresponding symbol table file, named *<app_id\>-<env\>-<version\>.zip* and uploading it to *<DataKit Installation Directory\>/data/rum/<platform\>* so that the reported `error` measurement data can be automatically converted and the `error_stack_source` field appended to the metric set.
-
-### Install the sourcemap Toolset {#install-tools}
-
+<!-- markdownlint-disable MD025 -->
+### Install the sourcemap tools {#install-tools}
+<!-- markdownlint-enable -->
 First, you need to install the corresponding symbol restoration tool. Datakit provides a one-click installation command to simplify the installation of the tool:
 
 ```shell
@@ -129,7 +129,7 @@ sudo datakit install --symbol-tools
 If a software installation fails during the installation process, you may need to manually install the corresponding software according to the error prompt.
 
 ### Zip Packaging Instructions {#zip}
-
+<!-- markdownlint-disable MD046 -->
 === "Web"
 
     After the js file is obfuscated and compressed by webpack, the `.map` file is zip compressed and packaged, and then copied to the *<DataKit installation directory\>/data/rum/web* directory. It is necessary to ensure that the uncompressed file path of the compressed package is consistent with the URL path in `error_stack`. Assume the following `error_stack`：
@@ -293,7 +293,6 @@ If a software installation fails during the installation process, you may need t
 
 ---
 
-<!-- markdownlint-disable MD046 -->
 ???+ attention "For RUM Headless"
 
     For [RUM headless](../dataflux-func/headless.md), you can upload these package files on web pages, and following upload/delete operations are not required.
@@ -318,6 +317,7 @@ curl -X DELETE '<datakit_address>/v1/sourcemap?app_id=<app_id>&env=<env>&version
 ```
 
 [Verify sourcemap](../datakit/apis.md#api-sourcemap-check):
+
 ```shell
 curl -X GET '<datakit_address>/v1/sourcemap/check?app_id=<app_id>&env=<env>&version=<version>&platform=<platform>&error_stack=<error_stack>'
 ```
@@ -365,7 +365,7 @@ We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.m
 
 ## RUM Session Replay {#rum-session-replay}
 
-As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit. 
+As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit.
 
 ```toml
 [[inputs.rum]]

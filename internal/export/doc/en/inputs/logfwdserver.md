@@ -1,5 +1,19 @@
+---
+title     : 'Log Forward'
+summary   : 'Collect log data in Pod through sidecar method'
+__int_icon      : 'icon/logfwd'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-# logfwdserver
+<!-- markdownlint-disable MD025 -->
+# {{.InputName}}
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -12,8 +26,11 @@ Logfwdserver will turn on the websocket function, which is used together with lo
 
 See [here](logfwd.md) for the use of logfwd.
 
-## Configuration {#datakit-conf}
+## Configuration {#config}
 
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -27,3 +44,4 @@ See [here](logfwd.md) for the use of logfwd.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->

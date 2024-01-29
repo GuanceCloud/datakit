@@ -44,7 +44,7 @@ Proxy collector used to proxy HTTP request.
 
 ## Network Topology {#network-topo}
 
-If all local Datakits proxied there HTTP(s) requests to some proxy input:
+If all local Datakit Proxied there HTTP(s) requests to some proxy input:
 
 ```toml
 # /usr/local/datakit/conf.d/datakit.conf
@@ -80,7 +80,7 @@ end
 
 We can enable MITM mode to observe more details about the proxy input:
 
-- All local Datakits connect to the proxy, it must enable option `tls_insecure`:
+- All local Datakit connect to the proxy, it must enable option `tls_insecure`:
 
 ```toml
 # /usr/local/datakit/conf.d/datakit.conf
@@ -89,15 +89,15 @@ We can enable MITM mode to observe more details about the proxy input:
   # some other configures...
 ```
 
-Here the *insecure* means all local Datakits must trust the TLS certificate within the proxy server(the Proxy input), the certificate source is [here](https://github.com/elazarl/goproxy/blob/master/certs.go).
+Here the *insecure* means all local Datakit must trust the TLS certificate within the proxy server(the Proxy input), the certificate source is [here](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}.
 
-- Once Datakit trust the certificate, the proxy will see all details the the HTTP(s) request, and export more prometheus metrics about them
+- Once Datakit trust the certificate, the proxy will see all details the the HTTP(s) request, and export more Prometheus metrics about them
 - The proxy will re-send the request to Dataway(and with **valid** TLS certificate)
 
 <!-- markdownlint-disable MD046 -->
-???+ attention 
+???+ attention
 
-    While MITM enabled, the performance of Proxy input will decrease dramatically, beacase the Proxy need to read&copy incomming request. See more details about the benchmark below.
+    While MITM enabled, the performance of Proxy input will decrease dramatically, because the Proxy need to read&copy incoming request. See more details about the benchmark below.
 <!-- markdownlint-enable -->
 
 ## Metrics {#metric}
@@ -110,7 +110,7 @@ Proxy input export some Prometheus metrics:
 | *internal/plugins/inputs/proxy* | COUNTER | `datakit_input_proxy_api_total`           | `api,method`        | Proxied API total               |
 | *internal/plugins/inputs/proxy* | SUMMARY | `datakit_input_proxy_api_latency_seconds` | `api,method,status` | Proxied API latency             |
 
-If some datakit enabled Proxy input, there will be some metrics in dashboard of Datakit.
+If some Datakit enabled Proxy input, there will be some metrics in dashboard of Datakit.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -132,7 +132,7 @@ We got a simple HTTP(s) server & client to benchmark the proxy input. Basic sett
 The command seems like this:
 
 ```shell
-$ ./cli -c 16 -r 100 -f metric.data -proxy http://localhost:19530
+$./cli -c 16 -r 100 -f metric.data -proxy http://localhost:19530
 ```
 
 We got following result(in Prometheus metrics):
@@ -180,4 +180,4 @@ Conclusion:
 - Without MITM, the TPS is 1600/0.249329709 = 6417/Sec
 - With MITM, the TPS decrease to 1600/29.454341333 = 54/sec
 
-So we do **NOT** recomment to enable MITM, it's a settings for debugging or testing.
+So we do **NOT** recommend to enable MITM, it's a settings for debugging or testing.

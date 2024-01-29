@@ -11,7 +11,7 @@ DataKit Filter is used to filter the collected line protocol data and filter out
 | Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                                         |
 | ----                      | ----                        | ----                          | ----                    | ----                   | ----                                                                                |
 | Pipeline                  | :material-check:            | :material-check:              | :material-check:        | :material-check:       | By configuring Pipeline in the collector or writing Pipeline in Guance Cloud Studio |
-| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in Guance Cloud Studio or configure filter in datakit.conf           |
+| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in Guance Cloud Studio or configure filter in DataKit.conf           |
 
 It can be seen from the table that Filter is a more convenient data filtering tool than Pipeline if only some data is simply filtered out.
 
@@ -21,7 +21,7 @@ The main function of Filter is data filtering, which is based on judging the col
 
 The basic syntax pattern for filters is:
 
-```
+```txt
 { conditions [AND/OR conditons] }
 ```
 
@@ -41,9 +41,9 @@ Among them, `conditions` can be a combination of other conditions. Here are some
 As (most) data collected by DataKit is reported in the form of line protocol, all filters work on top of line protocol. Filters support data filtering on the following data:
 
 - Measurement name: For different types of data, the business attribution of measurement is different, as follows:
-  - For time series data (M), a `measurement` tag is injected into its tag list when the filter is running, so you can write a metric set-based filter as follows:`{  measurement = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`.
-  - For object data (O), when the filter runs, a `class` tag is injected into its tag list, so an object-based filter can be written like this: `{  class = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
-  - For log data (L), when the filter runs, a `source` tag is injected into its tag list, so an object-based filter can be written like this: `{  trace = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
+    - For time series data (M), a `measurement` tag is injected into its tag list when the filter is running, so you can write a metric set-based filter as follows:`{  measurement = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`.
+    - For object data (O), when the filter runs, a `class` tag is injected into its tag list, so an object-based filter can be written like this: `{  class = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
+    - For log data (L), when the filter runs, a `source` tag is injected into its tag list, so an object-based filter can be written like this: `{  trace = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`
 
 > If there is a tag named `measurement/class/source` **in the original tag, the tag values of the original measurement/class/source will not exist during the filter running**
 
@@ -95,7 +95,7 @@ In `datakt.conf`, you can manually configure blacklist filtering, as shown in th
 
     Filters in *datakit.conf* developped for debugging, you should use web-side Blacklist for production usage. Once the filter is configured in *datakit.conf*, the Blacklist configured in web-side will **no longer take effect**.
 
-    PS: Blacklist will be deprecated in the future, we recomment use Pipeline `drop()` to drop unwanted data.
+    PS: Blacklist will be deprecated in the future, we recommend use Pipeline `drop()` to drop unwanted data.
 <!-- markdownlint-enable -->
 
 The configuration here should follow the following rules:
@@ -116,14 +116,14 @@ The basic syntax rules of filter are basically the same as Pipeline, see [here](
 Support basic numerical comparison operations:
 
 - Judge equality
-  - `=`
-  - `!=`
+    - `=`
+    - `!=`
 
 - Judge the value
-  - `>`
-  - `>=`
-  - `<`
-  - `<=`
+    - `>`
+    - `>=`
+    - `<`
+    - `<=`
 
 - Parenthesis expression: Used for logical combination between arbitrary relationships, such as:
 
@@ -138,6 +138,7 @@ In addition, the following list operations are supported:
 | `IN`, `NOTIN`       | Numeric list   | Whether the specified field is in a list, and multi-type cluttering is supported in the list           | `{ abc IN [1,2, "foo", 3.5]}`     |
 | `MATCH`, `NOTMATCH` | Regular expression list | Whether the specified field matches the regular in the list, which only supports string types | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     **Only ordinary data types** such as string, integer, floating point can appear in the list. Other expressions are not supported.
@@ -151,6 +152,7 @@ In addition, the following list operations are supported:
     ```
     
     In line protocol, all fields of **and their values are case-sensitive**.
+<!-- markdownlint-enable -->
 
 ## Usage Example {#usage}
 
@@ -189,11 +191,11 @@ The configuration file is as follows:
     ]
 ```
 
-Open 2 Profilings:
+Open 2 Profiling:
 
-```
-$ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profiling_test.py
-$ DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profiling_test.py
+```shell
+DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=7.8.9 python3 profiling_test.py
+DD_ENV=testing DD_SERVICE=2-profiling-python DD_VERSION=7.8.9 python3 profiling_test.py
 ```
 
 Python source code file `profiling_test.py`:
@@ -240,7 +242,7 @@ After a while, you can see in the center that the log level `warn` is filtered o
 
 >Warm Tip: If you install AdBlock advertising plugin, you may report interception to the center. You can temporarily close the AdBlock class plug-in while testing.
 
-We can use three browsers, Chrome, Firefox and Safari, to access the website. Suppose we want to filter out the access of Chome browser, and the configuration file can read as follows:
+We can use three browsers, Chrome, Firefox and Safari, to access the website. Suppose we want to filter out the access of Chrome browser, and the configuration file can read as follows:
 
 ```toml
 [io]
@@ -312,7 +314,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
 --data-raw 'user create_time=1656383652424,df_date_range="9",df_event_id="event-21946fc19eaf4c5cb1a698f659bf74ca",df_message="【xxx】(xxx@xx.com)进入了工作空间",df_status="info",df_title="【xxx】(xxx@xx.com)进入了工作空间",df_user_id="acnt_a5d6130c19524a6b9fe91d421eaf8603",user_email="xxx@xx.com",user_name="xxx" 1658040035652416000'
 ```
 
-You can see in the datakit monitor that the `df_date_range` for `10` is filtered out.
+You can see in the DataKit monitor that the `df_date_range` for `10` is filtered out.
 
 ### Custom Object {#co}
 
@@ -339,11 +341,13 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 --data-raw 'aliyun_ecs,name="ecs_name",host="ecs_host" instanceid="ecs_instanceid",os="ecs_os",status="ecs_status",creat_time="ecs_creat_time",publicip="1.1.1.1",regionid="cn-qinghai",privateip="192.168.1.12",cpu="ecs_cpu",memory=204800000000'
 ```
 
-You can see in the datakit monitor that `regionid` for `cn-qingdao` is filtered out.
+You can see in the DataKit monitor that `regionid` for `cn-qingdao` is filtered out.
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: View Synchronized Filters {#debug-filter}
+<!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 

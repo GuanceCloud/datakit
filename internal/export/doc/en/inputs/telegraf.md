@@ -6,11 +6,13 @@
 
 ---
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Before using Telegraf, it is recommended to determine whether DataKit can meet the expected data collection. If DataKit is already supported, Telegraf is not recommended for collection, which may lead to data conflicts and cause problems in use.
 
 Telegraf is an open source data collection tool. DataKit can access the data set collected by Telegraf through simple configuration.
+<!-- markdownlint-enable -->
 
 ## Telegraf Installation {#install}
 
@@ -36,7 +38,7 @@ Default profile path:
 
 - Mac: `/usr/local/etc/telegraf.conf`
 - Linux: `/etc/telegraf/telegraf.conf`
-- Windows: The configuration file is in the Telegraf binary sibling directory (depending on the specific installation) 
+- Windows: The configuration file is in the Telegraf binary sibling directory (depending on the specific installation)
 
 > Note: Under Mac, if you [install through `datakit install --telegraf`](datakit-tools-how-to#extras), the configuration directory is the same as Linux.
 

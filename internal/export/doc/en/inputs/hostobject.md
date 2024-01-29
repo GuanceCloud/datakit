@@ -20,9 +20,11 @@ monitor   :
 
 ---
 
-Hostobject is used to collect basic host information, such as hardware model, basic resource consumption and so on.
+Host Object is used to collect basic host information, such as hardware model, basic resource consumption and so on.
 
 ## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 In general, the host object is turned on by default and does not need to be configured.
 
@@ -64,7 +66,7 @@ Datakit turns on cloud synchronization by default, and currently supports Alibab
   cloud_provider = "aliyun"
 ```
 
-You can turn off cloud synchronization by configuring `disable_cloud_provider_sync = true` in the hostobject configuration file.
+You can turn off cloud synchronization by configuring `disable_cloud_provider_sync = true` in the Host Object configuration file.
 
 ## Object {#object}
 
@@ -248,6 +250,10 @@ The `collectors` field is a list of objects with the following fields for each o
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
+
 ### :material-chat-question: Why no `entries` and `entries_limit`, the value shows -1？ {#no-entries}
+
+<!-- markdownlint-enable -->
 
 Need to load `nf_conntrack` module, run `modprobe nf_conntrack` in a terminal.

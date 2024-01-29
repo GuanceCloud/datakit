@@ -1,26 +1,27 @@
 # Integrated Document Merge
 ---
 
-This document focuses on how to incorporate existing integration documents into datakit's documentation. The existing integration documentation is at [here](https://www.yuque.com/dataflux/integrations){:target="_blank"}.
-
+This document focuses on how to incorporate existing integration documents into DataKit's documentation. The existing integration documentation is at [here](https://www.yuque.com/dataflux/integrations){:target="_blank"}.
+<!-- markdownlint-disable MD046 -->
 ???+ Attention
 
-    Documents related to datakit integration are not recommended to be modified directly in *dataflux-doc/docs/integrations*, because datakit's own document export is overwritten to this directory, which may cause documents manually added to *dataflux-doc/docs/integrations* to be overwritten.
-
+    Documents related to DataKit integration are not recommended to be modified directly in *dataflux-doc/docs/integrations*, because DataKit's own document export is overwritten to this directory, which may cause documents manually added to *dataflux-doc/docs/integrations* to be overwritten.
+<!-- markdownlint-enable -->
 Noun definition:
 
-- Document library: Refers to the new document library dataflux-doc
+- Document library: Refers to the new document library `dataflux-doc`
 
-There are several possibilities for merging the integration document into the datakit document:
+There are several possibilities for merging the integration document into the DataKit document:
 
 - Merge integration documents: Extend existing collector documents directly, such as [CPU integration documents](https://www.yuque.com/dataflux/integrations/fyiw75){:target="_blank"}, which can be merged directly into the collector's cpu.md (man/manuals/cpu.md)
-- Add a datakit document: If there is no corresponding document in the datakit, you need to add a document in the datkit manually
+
+- Add a DataKit document: If there is no corresponding document in the DataKit, you need to add a document in the DataKit manually
 
 The following will explain how to merge for the above situations.
 
 ## Merge Integration Document {#merge}
 
-In the existing datakit documents, most of the contents in the integrated documents are already available, but the main missing information is screenshot information and scene navigation. In addition, the environment configuration and metric information are basically available. Therefore, when merging, you only need to add some screenshot information:
+In the existing DataKit documents, most of the contents in the integrated documents are already available, but the main missing information is screenshot information and scene navigation. In addition, the environment configuration and metric information are basically available. Therefore, when merging, you only need to add some screenshot information:
 
 - In the integrated document of the existing language sparrow, get the link address of the screenshot and download it directly from the current integrated document library:
 
@@ -32,21 +33,21 @@ wget http://yuque-img-url.png -O imgs/input-xxx-2.png
 ...
 ```
 
-> Note: Do not download images to the same documentation directory as the datakit project.
+> Note: Do not download images to the same documentation directory as the DataKit project.
 
 For a specific collector, there may be multiple screenshots here. It is recommended to save these pictures with a fixed naming convention, that is, all the pictures are saved in the *imgs* directory of the integrated document library, and each collector-related picture is prefixed with `input-` and named according to the number.
 
-After downloading the picture, add it to the datakit document, as shown in the existing CPU collector sample (man/manuals/cpu.md).
+After downloading the picture, add it to the DataKit document, as shown in the existing CPU collector sample (man/manuals/cpu.md).
 
 - Compile DataKit
 
-As the document of datakit itself is modified, it needs to be compiled to take effect. datakit compilation, see [here](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md){:target="_blank"}.
+As the document of DataKit itself is modified, it needs to be compiled to take effect. DataKit compilation, see [here](https://github.com/GuanceCloud/datakit/blob/github-mirror/README.zh_CN.md){:target="_blank"}.
 
-If the compilation process is difficult, you can ignore it for the time being, and directly submit the above changes to the merge request to the datakit repository, which can be compiled by the development side for the time being and finally synchronized to the document library.
+If the compilation process is difficult, you can ignore it for the time being, and directly submit the above changes to the merge request to the DataKit repository, which can be compiled by the development side for the time being and finally synchronized to the document library.
 
-## Add datakit Doc {#add}
+## Add DataKit Doc {#add}
 
-For integration documents that are not supported by direct collectors in datakit, it will be easier to add them. Let's take resin in the existing integration library as an example to illustrate the above process.
+For integration documents that are not supported by direct collectors in DataKit, it will be easier to add them. Let's take resin in the existing integration library as an example to illustrate the above process.
 
 - Get the markdown text from the existing page of the language sparrow and save it to the *man/manuals/* directory
 
@@ -65,19 +66,19 @@ Because resin is a kind of web server, we put it with nginx/apache in the existi
   - resin.md
 ```
 
-- Modify mkdocs.sh script
+- Modify `mkdocs.sh` script
 
-Modify the mkdocs.sh script to add the new document to the export list:
+Modify the `mkdocs.sh` script to add the new document to the export list:
 
-```
+```shell
 cp man/manuals/resin.md $integration_docs_dir/
 ```
 
 ## Document Generation and Export {#export}
 
-In datakit's existing repository, you can implement the two steps of compiling and publishing by directly executing mkdocs.sh. In mkdocs.sh, the document is currently exported directly into two copies, synchronized to the datakit and integrations directories of the document library.
+In DataKit's existing repository, you can implement the two steps of compiling and publishing by directly executing `mkdocs.sh`. In `mkdocs.sh`, the document is currently exported directly into two copies, synchronized to the DataKit and integrations directories of the document library.
 
-If you want to insert pictures into your document, you can place them in the *imgs* directories of datakit and integrations, respectively. For how to reference pictures, refer to [example above](#merge).
+If you want to insert pictures into your document, you can place them in the *imgs* directories of DataKit and integrations, respectively. For how to reference pictures, refer to [example above](integrations-to-dk-howto.md#merge).
 
 Let's talk about the local operation mode of the document library. The main steps are as follows.
 
@@ -89,17 +90,18 @@ git clone ssh://git@gitlab.jiagouyun.com:40022/zy-docs/dataflux-doc.git
 cd dataflux-doc
 pip install -r requirements.txt # You may be asked to update the pip version during the period
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    After mkdocs is installed, you may need to set $PATH, and the setting of Mac may be like this (you can find the binary location of mkdocs under find):
+    After `mkdocs` is installed, you may need to set $PATH, and the setting of Mac may be like this (you can find the binary location of `mkdocs` under find):
     
     ``` shell
     PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
     ```
-- Familiar with *mkdocs.sh*
+<!-- markdownlint-enable -->
+- Familiar with `mkdocs.sh`
 
-There is a mkdocs.sh script in the DataKit root directory, which exports all DataKit documents, copies them to different directories in the document library and finally starts the local document service.
+There is a `mkdocs.sh` script in the DataKit root directory, which exports all DataKit documents, copies them to different directories in the document library and finally starts the local document service.
 
-- Visit local http://localhost:8000
-- After debugging, submit the Merge Request to the `mkdocs` branch of the datakit project
+- Visit local <http://localhost:8000>
+- After debugging, submit the Merge Request to the `mkdocs` branch of the DataKit project

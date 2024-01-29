@@ -1,5 +1,18 @@
+---
+title     : 'Cloudprober'
+summary   : 'Collect Cloudprober data'
+__int_icon      : 'icon/cloudprober'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Cloudprober Access
+<!-- markdownlint-enable -->
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple:
@@ -8,7 +21,11 @@
 
 Cloudprober is an open source tracking and monitoring application. The DataKit can be easily configured to access the data set collected by Cloudprober.
 
-## Cloudprober Installation {#install}
+## Configuration {#config}
+
+### Preconditions {#requirements}
+
+Cloudprober Installation:
 
 Take Ubuntu `cloudprober-v0.11.2` as an example. Download way as follows. See [Download Page](https://github.com/google/cloudprober/releases){:target="_blank"}：
 
@@ -17,15 +34,14 @@ curl -O https://github.com/google/cloudprober/releases/download/v0.11.2/cloudpro
 ```
 
 Unzip
+
 ```shell
 unzip cloudprober-v0.11.2-ubuntu-x86_64.zip
 ```
 
-## Cloudprober Configuration {#config}
-
 Take probing Baidu as an example, create a  `cloudprober.cfg` file and write it:
 
-```
+```conf
 probe {
   name: "baidu_homepage"
   type: HTTP
@@ -37,14 +53,15 @@ probe {
 }
 ```
 
-## Running Cloudprober  {#start}
+Running Cloudprober:
 
 ```shell
 ./cloudprober --config_file /your_path/cloudprober.cfg
 ```
 
-## Turning on the Collector {#enable-input}
+### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/cloudprober` directory under the DataKit installation directory, copy `cloudprober.conf.sample` and name it `cloudprober.conf`. Examples are as follows:
@@ -70,10 +87,9 @@ probe {
     
     ```
 
-
-​    
-    After confuguration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->

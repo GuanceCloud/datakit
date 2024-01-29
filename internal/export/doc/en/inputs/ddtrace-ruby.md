@@ -4,7 +4,7 @@
 
 ## Install Dependence {#dependence}
 
-**RAILS APPLICATIONS**
+### Rails Applications {#rails-app}
 
 1. Add ddtrace gem to your Gemfile:
 
@@ -15,7 +15,7 @@ gem 'ddtrace', require: 'ddtrace/auto_instrument'
 
 1. Install the gem using bundle.
 
-2. Create the configuration file config/initializers/datadog.rb:
+2. Create the configuration file `config/initializers/datadog.rb`:
 
 ```rb
 Datadog.configure do |c|
@@ -24,18 +24,17 @@ Datadog.configure do |c|
 end
 ```
 
-**RUBY APPLICATIONS**
+### Ruby Applications {#ruby-app}
 
-1. Add ddtrace gem to your Gemfile:
+- Add ddtrace gem to your Gemfile:
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. Install the gem using bundle.
-
-3. Add require 'ddtrace/auto_instrument' to Ruby code. **Note:** It needs to be loaded after all the library and framework are loaded.
+- Install the gem using bundle.
+- Add require 'ddtrace/auto_instrument' to Ruby code. **Note:** It needs to be loaded after all the library and framework are loaded.
 
 ```rb
 # Example frameworks and libraries
@@ -55,18 +54,18 @@ Datadog.configure do |c|
 end
 ```
 
-**CONFIGURING OPENTRACING**
+### Configuring OpenTracing {#open-tracing}
 
-1. Add ddtrace gem to your Gemfile:
+- Add ddtrace gem to your Gemfile:
 
 ```shell
 source 'https://rubygems.org'
 gem 'ddtrace'
 ```
 
-2. Install the gem using bundle.
+- Install the gem using bundle.
 
-3. Add the following code to the OpenTracing configuration:
+- Add the following code to the OpenTracing configuration:
 
 ```rb
 require 'opentracing'
@@ -78,7 +77,7 @@ require 'datadog/opentracer'
 OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
 ```
 
-4. Add configuration blocks to Ruby applications:
+- Add configuration blocks to Ruby applications:
 
 ```rb
 Datadog.configure do |c|
@@ -90,7 +89,7 @@ Datadog.configure do |c|
 end
 ```
 
-**INTEGRATION INSTRUMENTATION**
+### Integration Instrumentation {#integration}
 
 Many libraries and frameworks support automatic detection out of the box. Automatic detection can be turned on by simple configuration. Using the Datadog.configure API:
 

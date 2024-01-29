@@ -125,7 +125,7 @@ node_filesystem_files{device="/dev/disk1s4",fstype="apfs",mountpoint="/private/v
 node_filesystem_files{device="/dev/disk3s1",fstype="apfs",mountpoint="/Volumes/PostgreSQL 13.2-2"} 9.223372036854776e+18
 node_filesystem_files{device="/dev/disk5s1",fstype="apfs",mountpoint="/Volumes/Git 2.15.0 Mavericks Intel Universal"} 9.223372036854776e+18
 node_filesystem_files{device="map -hosts",fstype="autofs",mountpoint="/net"} 0
-node_filesystem_files{device="map auto_home",fstype="autof
+node_filesystem_files{device="map auto_home",fstype="autof}
 ```
 
 对 Influxdb 而言，上面数据的一种组织方式为

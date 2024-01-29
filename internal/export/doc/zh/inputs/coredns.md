@@ -45,7 +45,7 @@ CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
-## 指标 {#metrics}
+## 指标 {#metric}
 
 {{ range $i, $m := .Measurements }}
 

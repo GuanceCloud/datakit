@@ -1,16 +1,32 @@
+---
+title     : 'PostgreSQL'
+summary   : 'Collect PostgreSQL metrics'
+__int_icon      : 'icon/postgresql'
+dashboard :
+  - desc  : 'PostgrepSQL'
+    path  : 'dashboard/en/postgresql'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # PostgreSQL
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-Postgresql collector can collect the running status index from Postgresql instance, and collect the index to Guance Cloud to help monitor and analyze various abnormal situations of Postgresql.
+PostgreSQL collector can collect the running status index from PostgreSQL instance, and collect the index to Guance Cloud to help monitor and analyze various abnormal situations of PostgreSQL.
 
-## Preconditions {#reqirement}
+## Configuration {#config}
 
-- Postgresql version >= 9.0
+### Preconditions {#reqirement}
+
+- PostgreSQL version >= 9.0
 - Create user
 
 ```sql
@@ -24,19 +40,27 @@ create user datakit with password '<PASSWORD>';
 grant SELECT ON pg_stat_database to datakit;
 ```
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
-Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+<!-- markdownlint-disable MD046 -->
+=== "Host Installation"
 
-```toml
-{{.InputSample}}
-```
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
-After setting it, restart the DataKit.
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
 
-## Measurements {#measurements}
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or it can be named by `[[inputs.postgresql.tags]]` alternative host in the configuration.
+=== "Kubernetes"
+
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
+
+## Metric {#metric}
+
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or it can be named by `[[inputs.{{.InputName}}.tags]]` alternative host in the configuration.
 
 {{ range $i, $m := .Measurements }}
 
@@ -54,9 +78,9 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Log Collection {#logging}
 
-- Postgresql logs are output to `stderr` by default. To open file logs, configure them in postgresql's configuration file `/etc/postgresql/<VERSION>/main/postgresql.conf` as follows:
+- PostgreSQL logs are output to `stderr` by default. To open file logs, configure them in postgresql's configuration file `/etc/postgresql/<VERSION>/main/postgresql.conf` as follows:
 
-```
+```toml
 logging_collector = on    # Enable log writing to files
 
 log_directory = 'pg_log'  # Set the file storage directory, absolute path or relative path (relative PGDATA)
@@ -74,9 +98,9 @@ log_file_mode = 0644
 
 For more configuration, please refer to the [doc](https://www.postgresql.org/docs/11/runtime-config-logging.html){:target="_blank"}。
 
-- The Postgresql collector does not have log collection enabled by default. You can open `files` in `conf.d/db/postgresql.conf`  and write to the absolute path of the Postgresql log file. For example:
+- The PostgreSQL collector does not have log collection enabled by default. You can open `files` in `conf.d/db/postgresql.conf`  and write to the absolute path of the PostgreSQL log file. For example:
 
-```
+```toml
 [[inputs.postgresql]]
 
   ...
@@ -91,28 +115,28 @@ When log collection is turned on, a log with a log `source` of `postgresql` is g
 
 - Log collection only supports logs on hosts where DataKit is installed.
 
-## Log Pipeline Cut {#pipeline}
+### Log Pipeline Cut {#pipeline}
 
 The original log is
 
-```
+``` log
 2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG:  statement:
-		SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
-		FROM pg_stat_database psd
-		JOIN pg_database pd ON psd.datname = pd.datname
-		WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
-		AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
+        SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
+        FROM pg_stat_database psd
+        JOIN pg_database pd ON psd.datname = pd.datname
+        WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
+        AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
 ```
 
 Description of the cut field:
 
-| Field name           | Field Value                  | Description                                                      |
-| ---              | ---                     | ---                                                       |
-| application_name | pgAdmin 4 - DB:postgres | The name of the application connecting to the current database                                |
-| db_name          | test                    | Database accessed                                              |
-| process_id       | 74305                   | The client process ID of the current connection                                    |
-| remote_host      | 127.0.0.1               | Address of the client                                              |
-| session_id       | 60b48f01.12241          | ID of the current session                                              |
-| user             | postgres                | Current Access User Name                                            |
-| status           | LOG                     | Current log level (LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO) |
-| time             | 1622445825110000000     | Log generation time                                              |
+| Field name         | Field Value               | Description                                                    |
+| ------------------ | ------------------------- | -------------------------------------------------------------- |
+| `application_name` | `pgAdmin 4 - DB:postgres` | The name of the application connecting to the current database |
+| `db_name`          | `test`                    | Database accessed                                              |
+| `process_id`       | `74305`                   | The client process ID of the current connection                |
+| `remote_host`      | `127.0.0.1`               | Address of the client                                          |
+| `session_id`       | `60b48f01.12241`          | ID of the current session                                      |
+| `user`             | `postgres`                | Current Access User Name                                       |
+| `status`           | `LOG`                     | Current log level (LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)  |
+| `time`             | `1622445825110000000`     | Log generation time                                            |

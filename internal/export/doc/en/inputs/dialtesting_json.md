@@ -1,12 +1,12 @@
 # Defining Dialing Test Tasks Through Local JSON
 ---
 
-In some cases, you may not be able to connect to SAAS's dialing task service. In this case, we can define the dialing task through the local json file.
+In some cases, you may not be able to connect to SAAS's dialing task service. In this case, we can define the dialing task through the local JSON file.
 
 ## Configuration {#config}
 
 ### Configure Collector {#config-inputs}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/network` directory under the DataKit installation directory, copy `dialtesting.conf.sample` and name it `dialtesting.conf`. Examples are as follows:
@@ -30,7 +30,7 @@ In some cases, you may not be able to connect to SAAS's dialing task service. In
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-
+<!-- markdownlint-enable -->
 ---
 
 The specific country/region and ISP selection can be selected as shown in the following figure (note that you don't really create a new "self-built node", just provide an alternative source here):
@@ -117,7 +117,7 @@ The following is a specific dialing test example:
 }
 ```
 
->  After editing this JSON, it is recommended to find some（[online tools](https://www.json.cn/){:target="_blank"} or [this tool](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）to verify that the JSON format is correct. If the JSON format is incorrect, the dialing test will not take effect.
+> After editing this JSON, it is recommended to find some（[online tools](https://www.json.cn/){:target="_blank"} or [this tool](https://jsonformatter.curiousconcept.com/#){:target="_blank"}）to verify that the JSON format is correct. If the JSON format is incorrect, the dialing test will not take effect.
 
 After configuration, restart DataKit.
 
@@ -141,17 +141,16 @@ The public fields of dialing test tasks are defined as follows:
 
 #### HTTP Dial Test {#http}
 
-**Extra field**
+Extra field:
 
 | Field              | Type   | Whether Required | Description                                    |
 | :---              | ---    | ---      | ---                                     |
 | `method`          | string | Y        | HTTP request method                           |
 | `url`             | string | Y        | Complete HTTP request address                   |
 
-
 The overall JSON structure is as follows:
 
-```
+```json
 {
   "HTTP": [
     {
@@ -387,7 +386,7 @@ Among them, `auth` only supports ordinary username and password authentication, 
 
 `private_key` example:
 
-```
+```txt
 -----BEGIN PRIVATE KEY-----
 MIIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -420,7 +419,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxNn+/x
 
 Here is an example of `certificate`:
 
-```
+```txt
 -----BEGIN CERTIFICATE-----
 MIIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -485,43 +484,43 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 The complete JSON structure is as follows:
 
-```
+```json
 {
-	"TCP": [
-		{
-			"name": "tcp-test",
-			"host": "www.baidu.com",
-			"port": "80",
+  "TCP": [
+    {
+      "name": "tcp-test",
+      "host": "www.baidu.com",
+      "port": "80",
       "message": "hello",
-			"timeout": "10ms",
-			"enable_traceroute": true,
-			"post_url": "https://<your-dataway-host>?token=<your-token>",
-			"status": "OK",
-			"frequency": "60s",
-			"success_when_logic": "and",
-			"success_when": [
-				{
-					"response_time":[ 
-						{
-							"is_contain_dns": true,
-							"target": "10ms"
-						}
-					],
+      "timeout": "10ms",
+      "enable_traceroute": true,
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "60s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time":[ 
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
           "response_message": [
               {
                   "is": "hello"
               }
           ],
-					"hops": [
-						{
-							"op": "eq",
-							"target": 20
-						}
-					]
-				}
-			]
-		}
-	]
+          "hops": [
+            {
+              "op": "eq",
+              "target": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -615,48 +614,48 @@ The complete JSON structure is as follows:
 
 ``` json
 {
-	"ICMP": [
-		{
-			"name": "icmp-test",
-			"host": "www.baidu.com",
-			"timeout": "10ms",
-			"packet_count": 3,
-			"enable_traceroute": true,
-			"post_url": "https://<your-dataway-host>?token=<your-token>",
-			"status": "OK",
-			"frequency": "10s",
-			"success_when_logic": "and",
-			"success_when": [
-				{
-					"response_time": [
-						{
-							"func": "avg",
-							"op": "leq",
-							"target": "50ms"
-						}
-					],
-					"packet_loss_percent": [
-						{
-							"op": "leq",
-							"target": 20
-						}
-					],
-					"hops": [
-						{
-							"op": "eq",
-							"target": 20
-						}
-					],
-					"packets": [
-						{
-							"op": "geq",
-							"target": 1
-						}
-					]
-				}
-			]
-		}
-	]
+  "ICMP": [
+    {
+      "name": "icmp-test",
+      "host": "www.baidu.com",
+      "timeout": "10ms",
+      "packet_count": 3,
+      "enable_traceroute": true,
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "func": "avg",
+              "op": "leq",
+              "target": "50ms"
+            }
+          ],
+          "packet_loss_percent": [
+            {
+              "op": "leq",
+              "target": 20
+            }
+          ],
+          "hops": [
+            {
+              "op": "eq",
+              "target": 20
+            }
+          ],
+          "packets": [
+            {
+              "op": "geq",
+              "target": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -767,52 +766,52 @@ The complete JSON structure is as follows:
 
 ```json
 {
-	"WEBSOCKET": [
-		{
-			"name": "websocket-test",
-			"url": "ws://localhost:8080",
-			"message": "hello",
-			"post_url": "https://<your-dataway-host>?token=<your-token>",
-			"status": "OK",
-			"frequency": "10s",
-			"success_when_logic": "and",
-			"success_when": [
-				{
-					"response_time": [
-						{
-							"is_contain_dns": true,
-							"target": "10ms"
-						}
-					],
-					"response_message": [
-						{
-							"is": "hello1"
-						}
-					],
-					"header": {
-						"status": [
-							{
-								"is": "ok"
-							}
-						]
-					}
-				}
-			],
-			"advance_options": {
-				"request_options": {
-					"timeout": "10s",
-					"headers": {
-						"x-token": "aaaaaaa",
-						"x-header": "111111"
-					}
-				},
-				"auth": {
-					"username": "admin",
-					"password": "123456"
-				}
-			}
-		}
-	]
+  "WEBSOCKET": [
+    {
+      "name": "websocket-test",
+      "url": "ws://localhost:8080",
+      "message": "hello",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "response_message": [
+            {
+              "is": "hello1"
+            }
+          ],
+          "header": {
+            "status": [
+              {
+                "is": "ok"
+              }
+            ]
+          }
+        }
+      ],
+      "advance_options": {
+        "request_options": {
+          "timeout": "10s",
+          "headers": {
+            "x-token": "aaaaaaa",
+            "x-header": "111111"
+          }
+        },
+        "auth": {
+          "username": "admin",
+          "password": "123456"
+        }
+      }
+    }
+  ]
 }
 ```
 

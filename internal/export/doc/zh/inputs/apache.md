@@ -57,6 +57,8 @@ $ sudo apachectl restart
 ...
 ```
 
+### 采集器配置 {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
@@ -105,9 +107,9 @@ $ sudo apachectl restart
 如需采集 Apache 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 Apache 日志文件的绝对路径。比如：
 
 ```toml
-[[inputs.apache]]
+[[inputs.{{.InputName}}]]
   ...
-  [inputs.apache.log]
+  [inputs.{{.InputName}}.log]
     files = [
       "/var/log/apache2/error.log",
       "/var/log/apache2/access.log"

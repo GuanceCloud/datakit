@@ -48,7 +48,7 @@ Restart Datakit to make configuration take effect.
 
 - Tomcat configuration:
 
-Create the file `setenv.sh` under `/usr/local/tomcat/bin` and give it execuate permission, then write the following:
+Create the file `setenv.sh` under `/usr/local/tomcat/bin` and give it execute permission, then write the following:
 
 ```sh
 export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
@@ -60,10 +60,10 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 
 The parameters are described below:
 
-- `javaagent`: Fill in the full path to `dd-java-agent.jar`; 
-- `Ddd.jmxfetch.enabled`: Fill in `true`, which means the dd-trace collection function is enabled; 
-- `Ddd.jmxfetch.statsd.host`: Fill in the network address that Datakit listens to. No port number is included; 
-- `Ddd.jmxfetch.statsd.port`: Fill in the port number that Datakit listens to. Usually `8125`, as determined by the Datakit side configuration; 
+- `javaagent`: Fill in the full path to `dd-java-agent.jar`;
+- `Ddd.jmxfetch.enabled`: Fill in `true`, which means the dd-trace collection function is enabled;
+- `Ddd.jmxfetch.statsd.host`: Fill in the network address that Datakit listens to. No port number is included;
+- `Ddd.jmxfetch.statsd.port`: Fill in the port number that Datakit listens to. Usually `8125`, as determined by the Datakit side configuration;
 - `Ddd.jmxfetch.tomcat.enabled`: Fill in `true`, which means the Tomcat collect function of dd-trace is enabled. When enabled, the metrics set named `tomcat` will showing up;
 
 Restart Datakit to make configuration take effect.
@@ -145,7 +145,7 @@ The list of cut fields is as follows:
 | status_code  | 200                        | HTTP status code                             |
 | bytes        | 2066                       | Number of bytes of HTTP response body        |
 
-- Cataline / Host-manager / Localhost / Manager Log
+- Catalina / Host-manager / Localhost / Manager Log
 
 log example:
 
@@ -165,7 +165,7 @@ the list of cut fields is as follows:
 
 ## Jolokia {#jolokia}
 
-> Deprecated, removed in new version) {#jolokia}
+> Deprecated, removed in new version {#jolokia}
 
 ### Config {#jolokia-config}
 
@@ -177,7 +177,7 @@ the list of cut fields is as follows:
 
 Download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, rename it to `jolokia.war`, and place it in tomcat's webapps directory. You can also get the jolokia war package from the data directory under the Datakit installation directory. Edit `tomcat-users.xml` in tomcat's conf directory and add the user whose `role` is `jolokia`.
 
-Take `apache-tomcat-9.0.45` as an example (the username and password of the jolokia user in the example must be modified) :
+Take `apache-tomcat-9.0.45` as an example (the username and password of the `jolokia` user in the example must be modified) :
 
 ```shell
 $ cd apache-tomcat-9.0.45/
@@ -210,6 +210,7 @@ $ $tomcat_dir/bin/startup.sh
 
 Go to `http://localhost:8080/jolokia` to see if the configuration was successful.
 
+<!-- markdownlint-disable MD046 -->
 ### Configuration {#jolokia-input-config}
 
 === "Host Installation"
@@ -284,10 +285,11 @@ Go to `http://localhost:8080/jolokia` to see if the configuration was successful
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ## Measurement {#measurements}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.tomcat.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration through `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
  [inputs.tomcat.tags]
@@ -355,7 +357,7 @@ The list of cut fields is as follows:
 | status_code  | 200                        | HTTP status code                             |
 | bytes        | 2066                       | Number of bytes of HTTP response body        |
 
-- Cataline / Host-manager / Localhost / Manager Log
+- Catalina / Host-manager / Localhost / Manager Log
 
 Log example:
 

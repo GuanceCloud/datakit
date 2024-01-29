@@ -6,7 +6,7 @@ dashboard :
   - desc  : 'Disk IO'
     path  : 'dashboard/en/diskio'
 monitor   :
-  - desc  : 'host detection library'
+  - desc  : 'Host detection library'
     path  : 'monitor/en/host'
 ---
 
@@ -26,7 +26,7 @@ Diskio collector is used to collect the index of disk flow and time.
 
 After successfully installing and starting DataKit, the DiskIO collector will be enabled by default without the need for manual activation.
 
-### Precondition {#requests}
+### Precondition {#requirement}
 
 For some older versions of Windows operating systems, if you encounter an error with Datakit: **"The system cannot find the file specified."**
 
@@ -93,9 +93,9 @@ For all of the following data collections, a global tag named `host` is appended
 
 By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../../developers/pythond/).
 
-**Preconditions**
+Preconditions
 
-- [Enable pythond collector](../developers/pythond.md) 
+- [Enable Pythond collector](../developers/pythond.md)
 
 Enter the DataKit installation directory, copy the `pythond.conf.sample` file and rename it to `pythond.conf`. Modify the corresponding configuration as follows:
 
@@ -119,7 +119,7 @@ Enter the DataKit installation directory, copy the `pythond.conf.sample` file an
 
 - Install `sar` command. You can refer to [https://github.com/sysstat/sysstat#installation](https://github.com/sysstat/sysstat#installation){:target="_blank"}
 
-Install from Ubuntu 
+Install from Ubuntu
 
 ```shell
 sudo apt-get install sysstat
@@ -266,9 +266,9 @@ The `sar` command can obtain many useful [disk metrics](https://man7.org/linux/m
 
 ## FAQ {#faq}
 
-### What is the data source for diskio metrics on Linux hosts {#linux-diskio}
+### What is the data source on Linux hosts {#linux-diskio}
 
-On Linux hosts, the metrics are parsed and calculated from the _/proc/diskstats_ file; an explanation of each column can be found in [_procfs-diskstats_](https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats){:target="_blank"};
+On Linux hosts, the metrics are parsed and calculated from the */proc/diskstats* file; an explanation of each column can be found in [*procfs-diskstats*](https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats){:target="_blank"};
 
 The corresponding relationship between some data source columns and indicators is as follows:
 

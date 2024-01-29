@@ -1,5 +1,19 @@
+---
+title     : 'Oracle'
+summary   : 'Collect Oracle Metric'
+__int_icon      : 'icon/oracle'
+dashboard :
+  - desc  : 'Oracle'
+    path  : 'dashboard/en/oracle'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Oracle
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -9,7 +23,7 @@
 Oracle monitoring metrics collection has the following data collection functions.
 
 - process correlation
-- tablespace related data
+- Tablespace related data
 - system data collection
 - Custom query data collection
 
@@ -19,7 +33,9 @@ Already tested version:
 - [x] Oracle 12c
 - [x] Oracle 11g
 
-## Precondition {#reqirement}
+## Configuration {#config}
+
+### Precondition {#reqirement}
 
 - Create a monitoring account
 
@@ -54,7 +70,7 @@ GRANT SELECT ON V_$SYSMETRIC TO datakit;
 GRANT SELECT ON V_$SYSTEM_PARAMETER TO datakit;
 ```
 
-In CDB installations it is possible to monitor tablespaces from CDB (container database) and all PDBs (pluggable databases). In such case, a common user is needed with the correct rights:
+If you want to monitor table spaces from the CDB and all PDBs, you need a common user with the appropriate permissions:
 
 ```sql
 -- Create the datakit user. Replace the password placeholder with a secure password.
@@ -86,6 +102,7 @@ GRANT SELECT ON DBA_TABLESPACE_USAGE_METRICS TO datakit;
 GRANT SELECT ON DBA_USERS TO datakit;
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Some of the SQL above may lead to non-existent failure due to diverse Oracle version, just ignore it.
@@ -131,13 +148,13 @@ Select the appropriate installation package based on the operating system and Or
         && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
     ```
 
-- For some OS need to install additional dependent libraries: 
+- For some OS need to install additional dependent libraries:
 
 ```shell
 apt-get install -y libaio-dev libaio1
 ```
 
-## Configuration {#input-config}
+### Configuration {#input-config}
 
 === "Host Installation"
 
@@ -164,8 +181,9 @@ apt-get install -y libaio-dev libaio1
     ```
 
     The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
+<!-- markdownlint-enable -->
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.external.tags]`:
 
@@ -194,7 +212,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oracle_log`.
 
-This function is disabled by default, user could enabling it by modify Datakit's Oracle configuraion like followings:
+This function is disabled by default, user could enabling it by modify Datakit's Oracle configuration like followings:
 
 Change the string value after `--slow-query-time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
 
@@ -212,7 +230,7 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
     [More fields](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7).
 
 ???+ attention "Attention"
-    - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millsecond, this function is disabled, which is also the default state.
+    - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millisecond, this function is disabled, which is also the default state.
     - The SQL would not display here when NOT executed completed.
 
 ## Custom Query {#custom}
@@ -220,15 +238,16 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
 Support custom query collects. Guide and example is `custom_queries` in the [Configuration](oracle.md#input-config) above.
 
 ## FAQ {#faq}
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to view the running log of Oracle Collector? {#faq-logging}
+<!-- markdownlint-enable -->
 
 Because the Oracle collector is an external collector, its logs by default are stored separately in *[Datakit-install-path]/externals/oracle.log*.
 
 In addition, the log path could modified by using `--log` parameter in configuration file.
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: After Oracle collection is configured, why is there no data displayed in monitor? {#faq-no-data}
-
+<!-- markdownlint-enable -->
 There are several possible reasons:
 
 - Oracle dynamic library dependencies are problematic
@@ -241,11 +260,11 @@ As the Oracle collector is compiled independently and CGO is turned on, its runt
 
 ```shell
 $ ldd <Datakit-install-path>/externals/oracle
-	linux-vdso.so.1 (0x00007ffed33f9000)
-	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
-	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
-	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
-	/lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
+  linux-vdso.so.1 (0x00007ffed33f9000)
+  libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
+  libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
+  libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
+  /lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
 ```
 
 If the following information is reported, it is basically caused by the low glibc version on the current machine:
@@ -257,7 +276,7 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 - Oracle Collector is only available on Linux x86_64/ARM64 architecture DataKit and is not supported on other platforms.
 
 This means that the Oracle collector can only run on x86_64/ARM64 Linux, and no other platform can run the current Oracle collector.
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Why can't see `oracle_system` measurements? {#faq-no-system}
-
+<!-- markdownlint-enable -->
 It needs to taking 1 minute to see them after the database system starting up.

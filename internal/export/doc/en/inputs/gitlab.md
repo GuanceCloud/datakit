@@ -4,7 +4,7 @@ summary   : 'Collect Gitlab metrics and logs'
 __int_icon      : 'icon/gitlab'
 dashboard :
   - desc  : 'GitLab'
-    path  : 'dashboard/zh/gitlab'
+    path  : 'dashboard/en/gitlab'
 monitor   :
   - desc  : 'N/A'
     path  : '-'
@@ -23,6 +23,8 @@ monitor   :
 Collect GitLab operation data and report it to Guance Cloud in the form of metrics.
 
 ## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 First, you need to open the data collection function of GitLab service and set the white list. See the following sections for specific operations.
 
@@ -46,7 +48,7 @@ After the GitLab setup is complete, configure the DataKit. Note that the data co
 
 ### GitLab Turns on Data Collection {#enable-prom}
 
-GitLab needs to turn on the promtheus data collection function as follows (taking English page as an example):
+GitLab needs to turn on the Prometheus data collection function as follows (taking English page as an example):
 
 - Log in to your GitLab page as an administrator account
 - Go to `Admin Area` > `Settings` > `Metrics and profiling`
@@ -64,21 +66,21 @@ It is not enough to turn on the data collection function. GitLab is very strict 
 
 See [official configuration doc](https://docs.gitlab.com/ee/administration/monitoring/ip_whitelist.html){:target="_blank"}.
 
-### Turn on Gitlab CI Visualization {#ci-visible}
+### Turn on GitLab CI Visualization {#ci-visible}
 
-Ensure that the current Datakit version (1.2. 13 and later) supports Gitlab CI visualization.
+Ensure that the current Datakit version (1.2. 13 and later) supports GitLab CI visualization.
 
-Gitlab CI visualization can be achieved by configuring Gitlab Webhook. The opening steps are as follows:
+GitLab CI visualization can be achieved by configuring GitLab Webhook. The opening steps are as follows:
 
-- In gitlab go to `Settings` > `Webhooks`, configure the URL to http://Datakit_IP:PORT/v1/gitlab, Trigger configure Job events and Pipeline events, and click Add webhook to confirm the addition;
+- In GitLab go to `Settings` > `Webhooks`, configure the URL to http://Datakit_IP:PORT/v1/gitlab, Trigger configure Job events and Pipeline events, and click Add webhook to confirm the addition;
 
-- You can Test whether the Webhook is configured correctly by clicking the Test button, and Datakit should return a status code of 200 when it receives the Webhook. After proper configuration, Datakit can successfully collect CI information of Gitlab.
+- You can Test whether the Webhook is configured correctly by clicking the Test button, and Datakit should return a status code of 200 when it receives the Webhook. After proper configuration, Datakit can successfully collect CI information of GitLab.
 
 After Datakit receives the Webhook Event, it logs the data to the data center.
 
 Note: Additional configuration of Gitlab is required if Gitlab data is sent to Datakit on the local network, see [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html){:target="_blank"}.
 
-In addition, Gitlab CI function does not participate in collector election, and users only need to configure the URL of Gitlab Webhook as the URL of one of Datakit; If you only need Gitlab CI visualization and do not need Gitlab metrics collection, you can turn off metrics collection by configuring `enable_collect = false`.
+In addition, GitLab CI function does not participate in collector election, and users only need to configure the URL of GitLab Webhook as the URL of one of Datakit; If you only need GitLab CI visualization and do not need GitLab metrics collection, you can turn off metrics collection by configuring `enable_collect = false`.
 
 ## Metric {#metric}
 
@@ -87,7 +89,7 @@ For all of the following data collections, a global tag named `host` is appended
 You can specify additional labels for **Gitlab metrics data** in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.gitlab.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -96,13 +98,13 @@ You can specify additional labels for **Gitlab metrics data** in the configurati
 You can specify additional tags for **Gitlab CI data** in the configuration by `[inputs.{{.InputName}}.ci_extra_tags]`:
 
 ``` toml
- [inputs.gitlab.ci_extra_tags]
+ [inputs.{{.InputName}}.ci_extra_tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
 
-Note: To ensure that Gitlab CI functions properly, the extra tags specified for Gitlab CI data do not overwrite tags already in its data (see below for a list of Gitlab CI tags).
+Note: To ensure that GitLab CI functions properly, the extra tags specified for GitLab CI data do not overwrite tags already in its data (see below for a list of GitLab CI tags).
 
 
 

@@ -7,49 +7,52 @@
 - CPU：Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
 - Memory: 16GB  Speed 2133 MT/s
 - DataKit：1.1.8-rc1
-- Log text (nginx access log): 
-```
+- Log text (nginx access log):
+
+``` not-set
 172.17.0.1 - - [06/Jan/2017:16:16:37 +0000] "GET /datadoghq/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
 ```
+
 - Number of logs: 10w lines
-- Using pipeline: See below
+- Using Pipeline: See below
 
 ## Test Result {#result}
 
-| Test Conditions                                                                                                   | Time Consuming   |
-| :--                                                                                                        | ---    |
-| No pipeline, pure log text processing (including encoding, multi-line, field detection and so on)                                              | 3.63 seconds  |
-| Use the full pipeline (see Appendix I)                                                                          | 43.70 seconds|
-| Use a single matching pipeline instead of multiple matching formats, such as nginx error log, as compared to the full version, for access log only (see Appendix II) | 16.91 seconds |
-| Replace the performance-intensive pattern with an optimized single matching pipeline (see Appendix III)                                        | 4.40 seconds |
+| Test Conditions                                                                                                                                                      | Time Consuming   |
+|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------| ---    |
+| No Pipeline, pure log text processing (including encoding, multi-line, field detection and so on)                                                                    | 3.63 seconds  |
+| Use the full Pipeline (see Appendix I)                                                                                                                               | 43.70 seconds|
+| Use a single matching Pipeline instead of multiple matching formats, such as nginx error log, as compared to the full version, for access log only (see Appendix II) | 16.91 seconds |
+| Replace the performance-intensive pattern with an optimized single matching Pipeline (see Appendix III)                                                              | 4.40 seconds |
 
 
 Note:
-> pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished
 
+> Pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished
+>
 > Memory consumption was stable during the test, with no significant increase in usage
-
+>
 > Time-consuming computation for DataKit programs, which may be biased in different environments
 
 ## Comparison {#compare}
 
 Using Fluentd to capture the same 10w row log, CPU utilization increased from 43% to 77% in 3 seconds and then dropped, which can be predicted to be the end of processing.
 
-As Fluentd has a metadate caching mechanism, which outputs results in batches, it is impossible to calculate exactly how much time it takes.
+As Fluentd has a metadata caching mechanism, which outputs results in batches, it is impossible to calculate exactly how much time it takes.
 
-Fluentd's pipeline matching pattern is single, and there is no pipeline with multiple formats of the same data source (for example, nginx only supports access log but not error log).
+Fluentd's Pipeline matching pattern is single, and there is no Pipeline with multiple formats of the same data source (for example, nginx only supports access log but not error log).
 
 ## Conclusion {#conclusion}
 
-In pipeline single matching mode, DataKit log collection processing time is about 30% different from Fluentd.
+In Pipeline single matching mode, DataKit log collection processing time is about 30% different from Fluentd.
 
-However, if you use the full version of the full matching pipeline, the time consumption increases dramatically.
+However, if you use the full version of the full matching Pipeline, the time consumption increases dramatically.
 
 ## Appendix {#appendix}
 
-### 1, full version/full match pipeline {#full-match}
+### 1, full version/full match Pipeline {#full-match}
 
-```
+```python
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
 # access log
@@ -83,9 +86,9 @@ nullif(upstream, "")
 default_time(time)
 ```
 
-### 2, a single matching pipeline {#single-match}
+### 2, a single matching Pipeline {#single-match}
 
-```
+```python
 # access log
 grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
 
@@ -95,9 +98,9 @@ cast(bytes, "int")
 default_time(time)
 ```
 
-### 3, the optimized single matching pipeline (changing IPORHOST, which consumes a lot of performance, to NOTSPACE) {#optimized-pl}
+### 3, the optimized single matching Pipeline {#optimized-pl}
 
-```
+```python
 # access log
 grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
 

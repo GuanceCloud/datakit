@@ -12,11 +12,11 @@ Assuming that a new collector `zhangsan` is added, the following steps are gener
 ```golang
 // Uniformly named Input
 type Input struct {
-	// Some configurable fields
-	...
+  // Some configurable fields
+  ...
 
-	// Generally, each collector can add a user-defined tag
-	Tags   map[string]string
+  // Generally, each collector can add a user-defined tag
+  Tags   map[string]string
 }
 ```
 
@@ -36,11 +36,11 @@ AvailableArchs() []string         // Operating system applicable to collector
 
 ```Golang
 func init() {
-	inputs.Add("zhangsan", func() inputs.Input {
-		return &Input{
-			// Here you can initialize a bunch of default configuration parameters for this collector
-		}
-	})
+  inputs.Add("zhangsan", func() inputs.Input {
+    return &Input{
+      // Here you can initialize a bunch of default configuration parameters for this collector
+    }
+  })
 }
 ```
 
@@ -48,8 +48,8 @@ func init() {
 
 ```Golang
 import (
-	... // Other existing collectors
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zhangsan"
+  ... // Other existing collectors
+  _ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zhangsan"
 )
 ```
 
@@ -57,8 +57,8 @@ import (
 
 ```Golang
 allInputs = map[string]bool{
-	"zhangsan":       false, // Note that it is initially set to false, and then changed to true when the collector is released
-	...
+  "zhangsan":       false, // Note that it is initially set to false, and then changed to true when the collector is released
+  ...
 }
 ```
 
@@ -89,11 +89,11 @@ datakit -M --vvv            # Check the operation of all collectors
 - If the collector function is complete, add `man/manuals/zhangsan.md` document, this can refer to `demo.md`, install the template inside to write
 
 - For measurements in the document, the default is to list all the measurements that can be collected and their respective metrics in the document. Some special measurements or metrics, if there are preconditions, need to be explained in the document.
-  - If a metric set needs to meet certain conditions, it should be described in `MeasurementInfo.Desc` of measurement
-  - If there is a specific precondition for a metric in the measurement, it should be described on `FieldInfo.Desc`.
+    - If a metric set needs to meet certain conditions, it should be described in `MeasurementInfo.Desc` of measurement
+    - If there is a specific precondition for a metric in the measurement, it should be described on `FieldInfo.Desc`.
 
 ## Compile Environment Build {#setup-compile-env}
-
+<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     #### Install Golang
@@ -137,9 +137,9 @@ datakit -M --vvv            # Check the operation of all collectors
     export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
     ```
     
-    #### Install packr2
+    #### Install `packr2`
     
-    Install [packr2](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}
+    Install [`packr2`](https://github.com/gobuffalo/packr/tree/master/v2){:target="_blank"}
     
     `go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
     
@@ -155,7 +155,7 @@ datakit -M --vvv            # Check the operation of all collectors
     - curl
     - [llvm](https://apt.llvm.org/){:target="_blank"}: version >= 10.0
     - clang: version >= 10.0
-    - linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
+    - Linux kernel（>= 5.4.0-99-generic）header file: `apt-get install -y linux-headers-$(uname -r)` 
     - [cspell](https://cspell.org/){:target="_blank"}: `npm install -g cspell@6.31.1`
     - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}: `npm install -g markdownlint-cli@0.34.0`
 
@@ -179,7 +179,7 @@ datakit -M --vvv            # Check the operation of all collectors
 === "Windows"
 
     not supported
-
+<!-- markdownlint-enable -->
 ## Install, Upgrade and Test {#install-upgrade-testing}
 
 After DataKit released new features, we had better do a full set of testing, including installation, upgrade and other processes. All existing DataKit installation files are stored on OSS. Let's use another isolated OSS bucket to do installation and upgrade tests.
@@ -191,7 +191,7 @@ Try this *default OSS path*：`oss://df-storage-dev/` (East China region). The f
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-In this OSS bucket, we specify that each developer has a subdirectory for storing their DataKit test files. The specific script is in the source code `scripts/build.sh`. Copy it to datakit source root directory, and slightly modify, can be used for local compilation and publishing.
+In this OSS bucket, we specify that each developer has a subdirectory for storing their DataKit test files. The specific script is in the source code `scripts/build.sh`. Copy it to DataKit source root directory, and slightly modify, can be used for local compilation and publishing.
 
 ### Custom Directory Running DataKit {#customize-workdir}
 
@@ -199,22 +199,21 @@ DataKit runs in the specified directory (/usr/local/DataKit under Linux) as ==se
 
 1. Update the latest code (dev branch)
 2. Compile
-3. Create the expected datakit working directory, such as `mkdir -p ~/datakit/conf.d`
-4. Generate the default datakit.conf configuration file. Take Linux as an example, execute
+3. Create the expected DataKit working directory, such as `mkdir -p ~/datakit/conf.d`
+4. Generate the default `datakit.conf` configuration file. Take Linux as an example, execute
 
 ```shell
 ./dist/datakit-linux-amd64/datakit tool --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-1. Modify the datakit.conf generated above:
+1. Modify the `datakit.conf` generated above:
+    - Fill in `default_enabled_inputs` and add the list of collectors you want to open, typically `cpu,disk,mem` and so on
+    - `http_api.listen` change the address
+    - Change the token in `dataway.urls`
+    - Change the logging directory/level if necessary
+    - No more
 
-	- Fill in `default_enabled_inputs` and add the list of collectors you want to open, typically `cpu,disk,mem` and so on
-	- `http_api.listen` change the address
-	- Change the token in `dataway.urls`
-	- Change the logging directory/level if necessary
-	- No more
-
-2. Start the datakit, taking Linux as an example: `DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
+2. Start the DataKit, taking Linux as an example: `DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
 3. You can add a new alias to your local bash so that you can just run `ddk` each time you compile the DataKit (that is, Debugging-DataKit)
 
 ```shell
@@ -232,12 +231,12 @@ $ ddk
  - using env:   export GIN_MODE=release
   - using code:  gin.SetMode(gin.ReleaseMode)
 
-	[GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
-	[GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
-	[GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
-	[GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
-	[GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
-	...
+  [GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
+  [GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
+  [GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
+  [GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
+  [GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
+  ...
 ```
 
 You can also execute some command-line tools directly with ddk:
@@ -248,11 +247,11 @@ ddk install --ipdb iploc
 
 # Query IP information
 ddk debug --ipinfo 1.2.3.4
-	    city: Brisbane
-	province: Queensland
-	 country: AU
-	     isp: unknown
-	      ip: 1.2.3.4
+      city: Brisbane
+  province: Queensland
+   country: AU
+       isp: unknown
+        ip: 1.2.3.4
 ```
 
 ## Testing {#testing}
@@ -273,7 +272,7 @@ Sometimes we need to configure more for integration testing:
 
 - If we need to exclude some testing on package, we can add `UT_EXCLUDE` in the alias: `UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp"`
 
-- We can post the testing result to Guance Cloud, add a dataway and the token: `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+- We can post the testing result to Guance Cloud, add a Dataway and the token: `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
 
 The complete example:
 
@@ -290,7 +289,7 @@ The DataKit release consists of two parts:
 
 ### DataKit Release {#release-dk}
 
-The current release of DataKit is implemented in GitLab, which triggers the release of a specific branch of code once it is pushed to GitLab, as shown in _.gitlab-ci.yml_.
+The current release of DataKit is implemented in GitLab, which triggers the release of a specific branch of code once it is pushed to GitLab, as shown in *.gitlab-ci.yml*.
 
 In versions prior to 1.2. 6 inclusive, the DataKit release relied on the output of the command `git describe --tags`. Since 1.2. 7, DataKit versions no longer rely on this mechanism, but by manually specifying the version number, the steps are as follows:
 
@@ -325,11 +324,11 @@ make pub_production_mac VERSION=<the-new-version>
 
 ### Document Publishing {#release-docs}
 
-Documentation can only be published on the development machine by installing [mkdocs](https://www.mkdocs.org/){:target="_blank"}. The process is as follows:
+Documentation can only be published on the development machine by installing [`mkdocs`](https://www.mkdocs.org/){:target="_blank"}. The process is as follows:
 
-- Execute mkdocs.sh
+- Execute `mkdocs.sh`
 
-```
+```shell
 ./mkdocs.sh <the-new-version>
 ```
 
@@ -352,17 +351,17 @@ You can see various modification suggestions in check.err. For false positives, 
 // mnd: Magic number: 16, in <return> detected (gomnd)
 // But a suffix can be added here to mask this check
 func digitVal(ch rune) int {
-	switch {
-	case '0' <= ch && ch <= '9':
-		return int(ch - '0')
-	case 'a' <= ch && ch <= 'f':
-		return int(ch - 'a' + 10)
-	case 'A' <= ch && ch <= 'F':
-		return int(ch - 'A' + 10)
-	}
+  switch {
+  case '0' <= ch && ch <= '9':
+    return int(ch - '0')
+  case 'a' <= ch && ch <= 'f':
+    return int(ch - 'a' + 10)
+  case 'A' <= ch && ch <= 'F':
+    return int(ch - 'A' + 10)
+  }
 
-	// larger than any legal digit val
-	return 16 //nolint:gomnd
+  // larger than any legal digit val
+  return 16 //nolint:gomnd
 }
 ```
 
@@ -377,6 +376,7 @@ However, we do not recommend frequently adding `//nolint:xxx,yyy` to cover. Lint
 // cmd/datakit/cmds/monitor.go
 cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
+
 - Other places that may really need to be closed for inspection should be treated with caution.
 
 ## Troubleshoot DATA RACE {#data-race}
@@ -399,13 +399,13 @@ When a binary runtime with DATA RACE detection function encounters goroutines >=
 WARNING: DATA RACE
 Read at 0x00c000d40160 by goroutine 33:
   gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting.(*HTTPTask).GetResults()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:208 +0x103c
-	...
+    /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:208 +0x103c
+  ...
 
 Previous write at 0x00c000d40160 by goroutine 74:
   gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting.(*HTTPTask).Run.func2()
-	  /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:306 +0x8c
-	...
+    /Users/tanbiao/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/GuanceCloud/cliutils/dialtesting/http.go:306 +0x8c
+  ...
 ```
 
 From these two pieces of information, we can know that the two codes work together on a data object, and at least one of them is a Write operation. However, it should be noted that only WARNING information is printed here, which means that this code does not necessarily lead to data problems, and the final problems need to be identified manually. For example, the following codes will not have data problems:
@@ -415,9 +415,9 @@ From these two pieces of information, we can know that the two codes work togeth
 a = setupObject()
 
 go func() {
-	for {
-		updateObject(a)
-	}
+  for {
+    updateObject(a)
+  }
 }()
 ```
 
@@ -431,7 +431,7 @@ Edit DataKit.conf and add the following configuration fields at the top to turn 
 enable_pprof = true
 ```
 
-> If you install datakit for DaemonSet, you can inject environment variables:
+> If you install DataKit for DaemonSet, you can inject environment variables:
 
 ```yaml
         - name: ENV_ENABLE_PPROF
@@ -446,7 +446,7 @@ Restart DataKit to take effect.
 # Download the current DataKit active memory pprof file
 wget http://<datakit-ip>:6060/debug/pprof/heap
 
-# 下Download the current DataKit Total Allocated Memory pprof file (including memory that has been freed)
+# 下 Download the current DataKit Total Allocated Memory pprof file (including memory that has been freed)
 wget http://<datakit-ip>:6060/debug/pprof/allocs
 ```
 
@@ -456,7 +456,7 @@ Also accessed via the web `http://<datakit-ip>:6060/debug/pprof/heap?=debug=1`. 
 
 ### View Pprof File {#use-pprof}
 
-After downloading to the local, run the following command. After entering the interactive command, you can enter top to view the top10 hotspots of memory consumption:
+After downloading to the local, run the following command. After entering the interactive command, you can enter top to view the top10 hot spots of memory consumption:
 
 ```shell
 $ go tool pprof heap 
@@ -464,7 +464,7 @@ File: datakit
 Type: inuse_space
 Time: Feb 23, 2022 at 9:06pm (CST)
 Entering interactive mode (type "help" for commands, "o" for options)
-(pprof) top                            <------ View top 10 memory hotspots
+(pprof) top                            <------ View top 10 memory hot spots
 Showing nodes accounting for 7719.52kB, 88.28% of 8743.99kB total
 Showing top 10 nodes out of 108
 flat  flat%   sum%        cum   cum%
@@ -487,7 +487,7 @@ Generating report in profile001.pdf
 
 > You can see the allocation of objects by `go tool pprof -sample_index=inuse_objects heap`, and consult `go tool pprof -help` for details.
 
-In the same way, you can view the total allocated memory pprof file allocs. The effect of PDF is roughly as follows:
+In the same way, you can view the total allocated memory pprof file `allocs`. The effect of PDF is roughly as follows:
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }

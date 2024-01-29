@@ -24,14 +24,14 @@ Profile supports collecting dynamic performance data of applications running in 
 
 ## Configuration {#config}
 
-At present, DataKit collects profiling data in two ways: 
+At present, DataKit collects profiling data in two ways:
 
 - Push mode: the DataKit Profile service needs to be opened, and the client actively pushes data to the DataKit
 
 - Pull method: currently only [Go](profile-go.md) support, need to manually configure relevant information
 
 ### DataKit Configuration {#datakit-config}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/profile` directory under the DataKit installation directory, copy `profile.conf.sample` and name it `profile.conf`. The configuration file is described as follows:
@@ -45,7 +45,7 @@ At present, DataKit collects profiling data in two ways:
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-
+<!-- markdownlint-enable -->
 ## Profiling {#profiling}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:

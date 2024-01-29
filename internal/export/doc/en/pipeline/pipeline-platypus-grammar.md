@@ -51,7 +51,7 @@ a = 3
 
 ## Built-in Data Types {#built-in-data-types}
 
-In Platypus, the Pipeline data processor language, by default, the type of the value of a variable can change dynamically, but each value has its data type, which can be one of the **basic types** or * *composite type**
+In Platypus, the Pipeline data processor language, by default, the type of the value of a variable can change dynamically, but each value has its data type, which can be one of the **basic types** or **composite type**
 
 When a variable is not assigned a value, its value is nil, which means no value.
 

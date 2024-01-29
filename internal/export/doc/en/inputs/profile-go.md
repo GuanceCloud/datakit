@@ -8,7 +8,7 @@ Golang built-in tool `pprof` can be used to profiling go process.
 - `runtime/pprof`: By programming, output profiling data to a file.
 - `net/http/pprof`: Download profiling file by http request.
 
-Types of profiles available:: 
+Types of profiles available::
 
 - `goroutine`: Stack traces of all current goroutines
 - `heap`: A sampling of memory allocations of live objects. You can specify the gc GET parameter to run GC before taking the heap sample.
@@ -37,7 +37,7 @@ Enable [profile](profile.md#config)  inputs
 
 ### Integrate dd-trace-go {#push-app-config}
 
-Import [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}, Insert code as follows to your application: 
+Import [dd-trace-go](https://github.com/DataDog/dd-trace-go){:target="_blank"}, Insert code as follows to your application:
 
 ```go
 package main
@@ -95,7 +95,7 @@ Once your go app start, dd-trace-go will send profiling data to DataKit by inter
 
 ### Enable profiling in app {#app-config}
 
-import `pprof` package in your code: 
+import `pprof` package in your code:
 
 ```go
 package main
@@ -114,7 +114,7 @@ Once start your app, you can view page `http://localhost:6060/debug/pprof/heap?d
 
 - Mutex and Block events
 
-Mutex and Block events are disable by default, if you want to enable them, add below code to your app: 
+Mutex and Block events are disable by default, if you want to enable them, add below code to your app:
 
 ```go
 var rate = 1
@@ -169,7 +169,6 @@ Set the collection frequency, where 1/rate events are collected. Values set to 0
 
 <!-- markdownlint-disable MD046 -->
 ???+ note
-    
     If there is no need to enable profile http endpoint, just comment `endpoints` item.
 <!-- markdownlint-enable -->
 
@@ -182,4 +181,4 @@ Set the collection frequency, where 1/rate events are collected. Values set to 0
 - `version`: your app version
 - `enabled_types`: available events: `cpu, goroutine, heap, mutex, block`
 
-You should Restart DataKit after modification. After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile).
+You should Restart DataKit after modification. After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile){:target="_blank"}.

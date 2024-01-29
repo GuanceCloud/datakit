@@ -11,7 +11,7 @@ monitor   :
 ---
 
 <!-- markdownlint-disable MD025 -->
-# Health check 
+# Health check
 <!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.24.0](../datakit/changelog.md#cl-1.24.0)
@@ -42,7 +42,7 @@ The health check collector can regularly monitor the health of processes and net
 
 === "Kubernetes"
 
-    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKits):
+    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported for host-deployed DataKits):
 
     | Environment Variable Name                              | Corresponding Configuration Parameter Item | Parameter Example                                                     |
     | :---                                 | ---              | ---                                                          |

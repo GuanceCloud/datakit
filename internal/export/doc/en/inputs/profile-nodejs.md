@@ -8,9 +8,9 @@ At present, DataKit supports one way to collect NodeJS profiling data, namely [P
 
 [Pyroscope](https://pyroscope.io/){:target="_blank"} is an open source continuous profiling platform, and DataKit already supports displaying its reported profiling data in [Guance](https://www.guance.com/){:target="_blank"}。
 
-Pyscope uses C/S architecture, and its running modes are divided into [Pyroscope Agent](https://pyroscope.io/docs/agent-overview/){:target="_blank"} and [Pyroscope Server](https://pyroscope.io/docs/server-overview/){:target="_blank"}, which are integrated in a binary file and displayed by different command line commands.
+Pyroscope uses C/S architecture, and its running modes are divided into [Pyroscope Agent](https://pyroscope.io/docs/agent-overview/){:target="_blank"} and [Pyroscope Server](https://pyroscope.io/docs/server-overview/){:target="_blank"}, which are integrated in a binary file and displayed by different command line commands.
 
-What you need here is the Pyscope Agent pattern. DataKit has integrated the Pyscope Server functionality and can receive profiling data reported by the Pyscope Agent by exposing the HTTP interface to the outside world.
+What you need here is the Pyroscope Agent pattern. DataKit has integrated the Pyroscope Server functionality and can receive profiling data reported by the Pyroscope Agent by exposing the HTTP interface to the outside world.
 
 profiling data flow: `Pyroscope Agent collects profiling data -> Datakit -> Guance`。
 
@@ -62,20 +62,20 @@ Pyroscope.start()
 
   #  config
   [[inputs.profile.pyroscope]]
-	# listen url
-	url = "0.0.0.0:4040"
+  # listen url
+  url = "0.0.0.0:4040"
 
-	# service name
-	service = "pyroscope-demo"
+  # service name
+  service = "pyroscope-demo"
 
-	# app env
-	env = "dev"
+  # app env
+  env = "dev"
 
-	# app version
-	version = "0.0.0"
+  # app version
+  version = "0.0.0"
 
   [inputs.profile.pyroscope.tags]
-	tag1 = "val1"
+  tag1 = "val1"
 ```
 
 Restart Datakit and your NodeJS application.

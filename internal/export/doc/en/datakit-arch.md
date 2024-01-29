@@ -5,7 +5,7 @@ Datakit is a basic data collection tool running on the user's local machine, whi
 
 DataKit is an important data collection component in Guance Cloud, and almost all the data in Guance Cloud come from DataKit.
 
-# DataKit Basic Network Model {#network-arch}
+## DataKit Basic Network Model {#network-arch}
 
 The DataKit network model is mainly divided into three layers, which can be simply summarized as user environment, DataWay and Guance Cloud center, as shown in the following figure:
 
@@ -15,18 +15,20 @@ The DataKit network model is mainly divided into three layers, which can be simp
 </figure>
 
 1. DataKit mainly collects various metrics through regular collection, and then sends the data to DataWay through HTTP (s) regularly and quantitatively. Each DataKit is configured with a corresponding token to identify different users.
-> If the user's intranet environment does not open the extranet request, [Nginx can be used as a layer Proxy](proxy.md#nginx-proxy), and [Proxy collector](proxy.md) built in DataKit can also be used to realize traffic Proxy.
+
+> If the user's intranet environment does not open the external request, [Nginx can be used as a layer Proxy](proxy.md#nginx-proxy), and [Proxy collector](proxy.md) built in DataKit can also be used to realize traffic Proxy.
+
 1. After DataWay receives the data, it forwards to Guance Cloud, and the data sent to Guance Cloud has API signature.
-3.After Guance Cloud receives the legal data, it writes it into different storage according to different data types.
+1. After Guance Cloud receives the legal data, it writes it into different storage according to different data types.
 
 For data collection services, under normal circumstances, part of the data is allowed to be lost (because the data itself is collected intermittently, and the data in the intermittent period can be regarded as a kind of data loss). At present, the whole data transmission link is protected as follows:
 
 1. When DataKit fails to send a DataWay for some network reason, DataKit caches up to a thousand points of data. When the cached data exceeds this amount, the cache will be cleaned up.
-2. DataWay may fail to send Guance Cloud for some reason, or because the traffic is too large to send it to Guance Cloud, DataWay will persist the data to disk. When the traffic is reduced or the network is restored, these data will be sent to Guance Cloud. Delayed data does not affect timeliness, and timestamps are attached to cached data.
+1. DataWay may fail to send Guance Cloud for some reason, or because the traffic is too large to send it to Guance Cloud, DataWay will persist the data to disk. When the traffic is reduced or the network is restored, these data will be sent to Guance Cloud. Delayed data does not affect timeliness, and timestamps are attached to cached data.
 
 The maximum amount of this disk can also be configured to protect the disk on DataWay in order not to burst the storage of the node. For data that exceeds the usage, DataWay also chooses to discard the data. However, this capacity is generally set to be relatively large.
 
-# DataKit Internal Architecture {#internal-arch}
+## DataKit Internal Architecture {#internal-arch}
 
 The internal architecture of DataKit is relatively simple, as shown in the following figure:
 
@@ -38,24 +40,24 @@ The internal architecture of DataKit is relatively simple, as shown in the follo
 From top to bottom, the interior of DataKit is mainly divided into three layers:
 
 - Top level: including program entry module and some public modules
-	- Configuration loading module: Except for DataKit's own main configuration (`conf.d/datakit.conf`), the configuration of each collector is configured separately. If put together, this configuration file may be very large and not easy to edit.
-	- Service management module: Mainly responsible for the management of the whole DataKit service.
-	- Tool chain module: DataKit, as a client program, not only collects data, but also provides many other peripheral functions, which are implemented in the tool chain module, such as viewing documents, restarting services, updating and so on.
-	- Pipeline module: In log processing, through  [Pipeline script](../developers/pipeline/index.md), the log is cut, and the unstructured log data is converted into structured data. In other non-log data, corresponding data processing can also be performed.
-	- Election module: When a large number of DataKits are deployed, users can make the configuration of all DataKits the same, and then distribute the configuration to each DataKit through [automated batch deployment](datakit-batch-deploy.md) The significance of the election module is that in a cluster, when collecting some data (such as Kubernets cluster index), **should only have one **  DataKit to collect (otherwise, the data will be repeated and pressure will be caused to the collected party). When all DataKit configurations in the cluster are identical, only one DataKit can be collected at any time through the election module.
-	- Document module: DataKit documents are generated by its own code, which is convenient for automatic publication of documents.
-	
+    - Configuration loading module: Except for DataKit's own main configuration (`conf.d/datakit.conf`), the configuration of each collector is configured separately. If put together, this configuration file may be very large and not easy to edit.
+    - Service management module: Mainly responsible for the management of the whole DataKit service.
+    - Tool chain module: DataKit, as a client program, not only collects data, but also provides many other peripheral functions, which are implemented in the tool chain module, such as viewing documents, restarting services, updating and so on.
+    - Pipeline module: In log processing, through  [Pipeline script](../developers/pipeline/index.md), the log is cut, and the unstructured log data is converted into structured data. In other non-log data, corresponding data processing can also be performed.
+    - Election module: When a large number of DataKits are deployed, users can make the configuration of all DataKits the same, and then distribute the configuration to each DataKit through [automated batch deployment](datakit-batch-deploy.md) The significance of the election module is that in a cluster, when collecting some data (such as Kubernetes cluster index), **should only have one**  DataKit to collect (otherwise, the data will be repeated and pressure will be caused to the collected party). When all DataKit configurations in the cluster are identical, only one DataKit can be collected at any time through the election module.
+    - Document module: DataKit documents are generated by its own code, which is convenient for automatic publication of documents.
+
 - Transport layer: responsible for almost all data input and output.
-	- HTTP service module: DataKit supports access to third-party data, such as [Telegraf](telegraf.md)/[Prometheus](prom.md), and more data sources can be accessed later. At present, these data are accessed through HTTP.
-	- IO module: Each data collection plug-in will send data to IO module after each collection. IO module encapsulates a unified data construction, processing and sending interface, which is convenient to access the data collected by various collector plug-ins. In addition, the IO module sends data to DataWay over HTTP (s) at a certain rhythm (periodic, quantitative).
+    - HTTP service module: DataKit supports access to third-party data, such as [Telegraf](telegraf.md)/[Prometheus](prom.md), and more data sources can be accessed later. At present, these data are accessed through HTTP.
+    - IO module: Each data collection plug-in will send data to IO module after each collection. IO module encapsulates a unified data construction, processing and sending interface, which is convenient to access the data collected by various collector plug-ins. In addition, the IO module sends data to DataWay over HTTP (s) at a certain rhythm (periodic, quantitative).
 
 - Collection layer: responsible for collecting various data. According to the type of collection, it is divided into two categories:
-	- Active collection type: This type of collector collects according to the configured fixed frequency, such as [CPU](cpu.md), [network card traffic](net.md), [cloud dial test](dialtesting.md), etc.
-	- Passive acquisition type: This kind of collector usually realizes acquisition by external data input, such as [RUM](rum.md)、[Tracing](ddtrace.md), etc. They generally run outside of DataKit, and can standardize the data through DataKit's open[Data Upload API](apis.md), and then upload it to Guance Cloud.
+    - Active collection type: This type of collector collects according to the configured fixed frequency, such as [CPU](cpu.md), [network card traffic](net.md), [cloud dial test](dialtesting.md), etc.
+    - Passive acquisition type: This kind of collector usually realizes acquisition by external data input, such as [RUM](rum.md)、[Tracing](ddtrace.md), etc. They generally run outside of DataKit, and can standardize the data through DataKit's open[Data Upload API](apis.md), and then upload it to Guance Cloud.
 
-	Each different collector runs independently in an independent goroutine, and is protected by an outer layer. Even if a single collector collapses for some reasons (each collector can crash up to 6 times during the running period), it will not affect the overall operation of DataKit.
+    Each different collector runs independently in an independent goroutine, and is protected by an outer layer. Even if a single collector collapses for some reasons (each collector can crash up to 6 times during the running period), it will not affect the overall operation of DataKit.
 
-	In order to avoid unexpected performance loss caused by the collector to the user environment, such as setting the collection frequency too high (sets `1m` to `1ms`), DataKit has a global protection mode (the protection mode can be turned off globally, similar to the system firewall), and for these unexpected wrong settings, DataKit will automatically adjust to relatively normal settings.
+    In order to avoid unexpected performance loss caused by the collector to the user environment, such as setting the collection frequency too high (sets `1m` to `1ms`), DataKit has a global protection mode (the protection mode can be turned off globally, similar to the system firewall), and for these unexpected wrong settings, DataKit will automatically adjust to relatively normal settings.
 
 Most of the DataKit code (98 +%) is developed in Golang and currently supports the mainstream  [Linux/Mac/Windows platform](datakit-service-how-to.md#install-dir). Because DataKit runs as a service (resident) in the user environment, DataKit should not depend too much on the running environment and should not cause obvious performance consumption in the user environment. At present, the basic operation performance of DataKit is as follows:
 

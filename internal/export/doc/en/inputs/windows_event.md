@@ -11,7 +11,7 @@ monitor   :
 ---
 
 <!-- markdownlint-disable MD025 -->
-# Windows 事件
+# Windows Event
 <!-- markdownlint-enable -->
 
 ---
@@ -30,7 +30,7 @@ Windows Event Log Collection is used to collect applications, security, systems 
 
 ### Collector Configuration {#input-config}
 
-Go to the `conf.d/windows` directory under the DataKit installation directory, copy `windows_event.conf.sample` and name it `windows_event.conf`. Examples are as follows:
+Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `windows_event.conf`. Examples are as follows:
 
 ```toml
 {{.InputSample}}

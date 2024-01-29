@@ -23,7 +23,9 @@ Cloudprober 是一个开源的跟踪和监控应用程序。DataKit 通过简单
 
 ## 配置 {#config}
 
-### Cloudprober 安装 {#install}
+### 前置条件 {#requirements}
+
+Cloudprober 安装：
 
 以 Ubuntu `cloudprober-v0.11.2` 为例，下载如下，其他版本或系统参见[下载页面](https://github.com/google/cloudprober/releases){:target="_blank"}：
 
@@ -51,7 +53,7 @@ probe {
 }
 ```
 
-#### 运行 Cloudprober  {#start}
+运行 Cloudprober：
 
 ```shell
 ./cloudprober --config_file /your_path/cloudprober.cfg

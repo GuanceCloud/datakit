@@ -14,8 +14,6 @@ monitor   :
 # Net
 <!-- markdownlint-enable -->
 
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

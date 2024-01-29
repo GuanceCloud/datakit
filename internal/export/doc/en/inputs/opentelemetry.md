@@ -1,5 +1,21 @@
+---
+title     : 'OpenTelemetry'
+summary   : 'Collect OpenTelemetry metric, log and APM data'
+__int_icon      : 'icon/opentelemetry'
+dashboard :
+  - desc  : 'Opentelemetry JVM Monitoring View'
+    path  : 'dashboard/en/opentelemetry'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # OpenTelemetry
+<!-- markdownlint-enable -->
+
+{{.AvailableArchs}}
+
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
@@ -14,10 +30,12 @@ OTEL provides vendor-independent implementations that export observation class d
 
 The purpose of this article is to introduce how to configure and enable OTEL data access on Datakit, and the best practices of Java and Go.
 
-***Version Notes***: Datakit currently only accesses OTEL v1 version of otlp data.
+***Version Notes***: Datakit currently only accesses OTEL v1 version of OTLP data.
 
 <!-- markdownlint-disable MD046 -->
 ## Configuration {#config}
+
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -35,7 +53,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 
     Multiple environment variables supported that can be used in Kubernetes showing below:
 
-    | Envrionment Variable Name           | Type        | Example                                                                                                  |
+    | Environment Variable Name           | Type        | Example                                                                                                  |
     | ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
     | `ENV_INPUT_OTEL_CUSTOMER_TAGS`      | JSON string | `["sink_project", "custom.tag"]`                                                                         |
     | `ENV_INPUT_OTEL_KEEP_RARE_RESOURCE` | bool        | true                                                                                                     |
@@ -58,12 +76,12 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 2. The route of the http protocol is configurable and the default request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`
 3. When data of type `float` `double` is involved, a maximum of two decimal places are reserved.
 4. Both http and grpc support the gzip compression format. You can configure the environment variable in exporter to turn it on: `OTEL_EXPORTER_OTLP_COMPRESSION = gzip`; gzip is not turned on by default.
-5. The http protocol request format supports both json and protobuf serialization formats. But grpc only supports protobuf.
+5. The http protocol request format supports both JSON and Protobuf serialization formats. But grpc only supports Protobuf.
 
-Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of datakit is `/otel/v1/trace` and `/otel/v1/metric`,
+Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of Datakit is `/otel/v1/trace` and `/otel/v1/metric`,
 if you want to use the HTTP protocol, you need to configure `trace` and `trace` separately `metric`,
 
-The default request routes of otlp are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
+The default request routes of OTLP are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
 
 ## General SDK Configuration {#sdk-configuration}
 
@@ -187,7 +205,7 @@ The OpenTelemetry Java Agent obtains the MBean's indicator information from the 
 
 You can enable and disable JMX metrics collection by command `otel.jmx.enabled=true/false`, which is enabled by default.
 
-To control the time interval between MBean detection attempts, one can use the otel.jmx.discovery.delay property, which defines the number of milliseconds to elapse between the first and the next detection cycle.
+To control the time interval between MBean detection attempts, one can use the OTEL.jmx.discovery.delay property, which defines the number of milliseconds to elapse between the first and the next detection cycle.
 
 In addition, the acquisition configuration of some third-party software built in the Agent. For details, please refer to: [JMX Metric Insight](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
 
@@ -208,7 +226,8 @@ In addition, the acquisition configuration of some third-party software built in
 {{ end }}
 
 ## More Docs {#more-readings}
-- Go open source address [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
+
+- Go open source address [OpenTelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
 - Official user manual: [opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
 - Environment variable configuration: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
-- GitHub GuanceCloud version [opentelemetry-java-instrumentation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- GitHub GuanceCloud version [OpenTelemetry-Java-instrumentation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}

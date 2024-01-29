@@ -1,8 +1,21 @@
-
-# Filebeat
+---
+title     : 'Filebeat'
+summary   : 'Receive log collected by Filebeat '
+__int_icon      : 'icon/beats'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
 ---
 
-:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+<!-- markdownlint-disable MD025 -->
+# Filebeat
+<!-- markdownlint-enable -->
+---
+
+{{.AvailableArchs}}
 
 ---
 
@@ -11,7 +24,7 @@ This document focuses on [Elastic Beats](https://www.elastic.co/products/beats/)
 - [Filebeat](https://www.elastic.co/beats/filebeat/){:target="_blank"}
 - [Download Address](http://www.elastic.co/cn/downloads/past-releases/filebeat-7-17-3){:target="_blank"}
 
-Already tested version:
+Already tested Filebeat version:
 
 - [x] 8.6.2
 - [x] 7.17.9
@@ -23,8 +36,11 @@ Already tested version:
 - [x] 1.1.0
 - [x] 1.0.0
 
-## Configure the Collector {#config-input}
+## Configuration {#config}
 
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -44,6 +60,7 @@ Already tested version:
 ???+ attention
 
     If the `inputs.beats_output.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
+<!-- markdownlint-enable -->
 
 ### Configure Filebeat {#config-filebeat}
 
@@ -312,18 +329,16 @@ processors:
 #migration.6_to_7.enabled: true
 ```
 
-## Measurements {#measurements}
+## Log {#logging}
 
 All of the following data collections are appended by default with global tags named `host` (the value is the host name where Filebeat is located) and `filepath` (the value is the full path of the Filebeat collection file), or other tags can be specified in the configuration through `[inputs.beats_output.tags]`.
 
 ``` toml
- [inputs.beats_output.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
 ```
-
-
 
 {{ range $i, $m := .Measurements }}
 

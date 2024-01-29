@@ -11,7 +11,7 @@
 This document describes how to capture Prometheus metrics exposed by custom Pods in Kubernetes clusters in two ways:
 
 - Expose the pointer interface to the DataKit through Annotations
-- Expose the metric interface to the DataKit by automatically discovering Kubernetes endpoint services to prometheus
+- Expose the metric interface to the DataKit by automatically discovering Kubernetes endpoint services to Prometheus
 
 The usage of the two methods will be explained in detail below.
 
@@ -44,6 +44,7 @@ The following wildcard characters are supported:
 - `$PODNAME`: Pod Name
 - `$NODENAME`: The name of the Node where the Pod is located
 
+<!-- markdownlint-disable MD046 -->
 !!! tip
 
     Instead of automatically adding tags such as `namespace` and `pod_name`, the Prom collector can add additional tags using wildcards in the config above, for example:
@@ -54,6 +55,7 @@ The following wildcard characters are supported:
         pod_name = "$PODNAME"
         node_name = "$NODENAME"
     ```
+<!-- markdownlint-enable -->
 
 ### Select Specified Pod IP {#pod-ip}
 
@@ -97,9 +99,11 @@ spec:
               node_name = "$NODENAME"
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The `annotations` must be added under the `template` field so that the Pod created by *deployment.yaml* carries `datakit/prom.instances`.
+<!-- markdownlint-enable -->
 
 
 - Create a resource with the new yaml
@@ -110,7 +114,9 @@ kubectl apply -f deployment.yaml
 
 At this point, Annotations has been added. DataKit later reads the Pod's Annotations and collects the metrics exposed on `url`.
 
+<!-- markdownlint-disable MD013 -->
 ## Automatically Discover the Service Exposure Metrics Interface {#auto-discovery-metrics-with-prometheus}
+<!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.5.10](../datakit/changelog.md#cl-1.5.10)
 
@@ -172,9 +178,11 @@ Datakit automatically discovers a Service with `prometheus.io/scrape: "true"` an
 
 The IP address of the collect target is `PodIP`.
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Datakit doesn't collects the Service itself, it collects the Pod that the Service is paired with.
+<!-- markdownlint-enable -->
 
 
 The collection interval is 1 minute.

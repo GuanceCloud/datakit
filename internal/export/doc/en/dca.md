@@ -41,7 +41,7 @@ guance -.-> |Datakit list| dca
 ```
 
 ## Start DCA Service {#config}
-
+<!-- markdownlint-disable MD046 -->
 === "DCA enabled on host installation"
 
     Add the following environment variables before installing the command:
@@ -57,7 +57,7 @@ guance -.-> |Datakit list| dca
     
     After successful installation, the DCA service will start, and the default port is 9531. To modify the listening address and port, set the environment variable `DK_DCA_LISTEN`, for example `DK_DCA_LISTEN=192.168.1.101:9531`。
 
-=== "datakit.conf"
+=== "`datakit.conf`"
 
     Modify configuration file `datakit.conf`:
     
@@ -84,15 +84,15 @@ guance -.-> |Datakit list| dca
 ???+ Attention
 
     To open the DCA service, you must configure a whitelist, and if you need to allow access to all addresses, you can either set `DK_DCA_WHITE_LIST=0.0.0.0/0` during installation or `white_list = ["0.0.0.0/0"]` in *datakit.conf*.
-
+<!-- markdownlint-enable -->
 ## DCA Web Service {#dca-web}
-
+<!-- markdownlint-disable MD046 -->
 ???+ Attention
 
     Different versions of DataKit interfaces may differ, and it is recommended to upgrade DataKit to the latest version in order to better use DCA. In addition, the Web version of DCA and desktop version still have some missing functions, which will be added slowly later, *and gradually abandon the current desktop version*.
-
-DCA Web is the Web version of DCA client, which provides the interface proxy of DataKit by deploying a back-end service and provides a front-end Web page to access DataKit. 
-
+<!-- markdownlint-enable -->
+DCA Web is the Web version of DCA client, which provides the interface proxy of DataKit by deploying a back-end service and provides a front-end Web page to access DataKit.
+<!-- markdownlint-disable MD046 -->
 === "Docker"
 
     Docker installation can be found in the document [installing Docker](https://docs.docker.com/desktop/install/linux-install/){:target="_blank"}.
@@ -233,23 +233,23 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
     $ kubectl apply -f dca.yaml
     $ kubectl get pod -n datakit
     ```
-
+<!-- markdownlint-enable -->
 ### Environment Variable Configuration {#envs}
 
 By default, DCA will adopt the default configuration of the system. If you need to customize the configuration, you can modify it by injecting environment variables. The following environment variables are currently supported:
 
 | Environment Variable Name            | Type   | Default Value                         | Description                                                                                            |
 | :---------              | ----:  | :---                           | ------                                                                                          |
-| `DCA_INNER_HOST`        | string | https://auth-api.guance.com    | auth API address of Guance Cloud                                                                          |
-| `DCA_FRONT_HOST`        | string | https://console-api.guance.com | Guance Cloud console API address                                                                         |
-| `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, without proxying the DataKit API |
+| `DCA_INNER_HOST`        | string | <https://auth-api.guance.com>    | auth API address of Guance Cloud                                                                          |
+| `DCA_FRONT_HOST`        | string | <https://console-api.guance.com> | Guance Cloud console API address                                                                         |
+| `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, but does not proxy the DataKit API |
 | `DCA_LOG_LEVEL`         | string |                                | Log level, the value is NONE/DEBUG/INFO/WARN/ERROR. If logging is not required, it can be set to NONE.                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | The log is output to a file under `/usr/src/dca/logs`. If you need to write the log to `stdout`, you can set it to `true` |
 
 Example:
 
 ```shell
-$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
+docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
 ```
 
 ### Log in to DCA {#login}
@@ -294,7 +294,7 @@ Note: DCA does not support configuration of collector at present, so it is neces
 
 #### View Log Pipeline {#view-pipeline}
 
-After connecting to the DataKit remotely, click「Pipelines」to view the pipeline file that comes with the DataKit by default. Refer to the document [text data processing ](pipeline.md) for pipeline.
+After connecting to the DataKit remotely, click「Pipelines」to view the Pipeline file that comes with the DataKit by default. Refer to the document [text data processing](pipeline.md) for Pipeline.
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca_2_5.png){ width="800" }

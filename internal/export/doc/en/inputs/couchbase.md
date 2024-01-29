@@ -6,7 +6,7 @@ dashboard :
   - desc  : 'Couchbase dashboard'
     path  : 'dashboard/en/couchbase'
 monitor   :
-  - desc  : 'null'
+  - desc  : 'N/A'
     path  : '-'
 ---
 
@@ -19,7 +19,7 @@ monitor   :
 
 ---
 
-The Couchbase collector can take metrics from the Couchbase server. 
+The Couchbase collector can take metrics from the Couchbase server.
 
 
 Already tested version:
@@ -27,7 +27,7 @@ Already tested version:
 - [x] Couchbase enterprise-7.2.0
 - [x] Couchbase community-7.2.0
 
-## Config {#config}
+## Configuration {#config}
 
 ### Preconditions {#requirements}
 
@@ -48,6 +48,8 @@ Already tested version:
     - To collect data, several ports `8091` `9102` `18091` `19102` need to be used. When collecting data remotely, these ports need to be opened.
 <!-- markdownlint-enable -->
 
+### Collector Configuration {#input-conifg}
+
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
@@ -61,7 +63,6 @@ Already tested version:
 
 === "Kubernetes"
 
-    
     The configuration parameters can be adjusted by the following environment variables:
 
     | Environment Variable Name       | Parameter Item | Parameter example                                                |

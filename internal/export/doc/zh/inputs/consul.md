@@ -21,7 +21,7 @@ monitor   :
 
 Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prometheus 格式的数据
 
-## 配置 {#input-config}
+## 配置 {#config}
 
 ### 前置条件 {#requirements}
 
@@ -44,6 +44,8 @@ sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz
 ```shell
 ./consul_exporter     
 ```
+
+### 采集器配置 {input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"

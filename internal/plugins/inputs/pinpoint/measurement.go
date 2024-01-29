@@ -98,13 +98,13 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"hostname":     &inputs.TagInfo{Desc: "指标说明"},
-			"agent_id":     &inputs.TagInfo{Desc: "服务 Agent ID"},
-			"ip":           &inputs.TagInfo{Desc: "agent ip"},
-			"pid":          &inputs.TagInfo{Desc: "服务 pid"},
-			"ports":        &inputs.TagInfo{Desc: "开启的端口"},
-			"container":    &inputs.TagInfo{Desc: "是否为容器"},
-			"agentVersion": &inputs.TagInfo{Desc: "Pinpoint 版本"},
+			"hostname":     &inputs.TagInfo{Desc: "Host name"},
+			"agent_id":     &inputs.TagInfo{Desc: "Agent ID"},
+			"ip":           &inputs.TagInfo{Desc: "Agent IP"},
+			"pid":          &inputs.TagInfo{Desc: "Process ID"},
+			"ports":        &inputs.TagInfo{Desc: "Open ports"},
+			"container":    &inputs.TagInfo{Desc: "Whether it is a container"},
+			"agentVersion": &inputs.TagInfo{Desc: "Pinpoint agent version"},
 		},
 		Type: "metric",
 	}

@@ -26,7 +26,7 @@ monitor   :
 
 成功安装 DataKit 并启动后，会默认开启 DiskIO 采集器，无需手动开启。
 
-### 前置条件 {#requests}
+### 前置条件 {#requirement}
 
 对于部分旧版本 Windows 操作系统，如若遇到 Datakit 报错： **"The system cannot find the file specified."**
 

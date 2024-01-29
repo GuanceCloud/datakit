@@ -163,7 +163,7 @@ In order to standardize the basic writing of Markdown and keep the spelling of t
 
 Since the Markdown format of MkDocs introduces a lot of extended functions, it breaks the established standard of standard Markdown, which leads to some false positives in markdownlint's current inspection of MkDocs. Through the following methods, we can block the specified text blocks. check item.
 
-For example, the following documents are for displaying Tab-style documents, but the standard Markdown considers the indentation here to be a code block, but does not specify the language type of the code, which will trigger [MD046](https://github.com/DavidAnson /markdownlint/blob/main/doc/Rules.md#md046---code-block-style){:target="_blank"} The inspection item reports an error, but we can block it by adding comments in the corresponding format at the beginning and end This check item:
+For example, the following documents are for displaying Tab-style documents, but the standard Markdown considers the indentation here to be a code block, but does not specify the language type of the code, which will trigger [MD046](https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md#md046---code-block-style){:target="_blank"} The inspection item reports an error, but we can block it by adding comments in the corresponding format at the beginning and end This check item:
 
 ```markdown
 <!-- markdownlint-disable MD046 -->
@@ -240,11 +240,11 @@ I write an English sentence, but it is followed by a Chinese comma ...
 
 In the daily document writing process, we generally make the following types of document links:
 
-- Links to other documents within the docbase in the form: `This is a section of text with [internal document link](some-other.md#some-section)`
+- Links to other documents within the document library in the form: `This is a section of text with [internal document link](some-other.md#some-section)`
 
 - Links to external sites in the form: `This is a text with [external site link](https://host.com#some-section){:target="_blank"}`
 
-- References to other sections of the current document, such as: `See description of [previous chapter](#prev-section)`, or `See description of [previous chapter](current.md#prev-section) describe `
+- References to other sections of the current document, such as: `See description of [previous chapter](#prev-section)`, or `See description of [previous chapter](current.md#prev-section) describe`
 
 In order to avoid false positives from the 404 detection program, the following specifications must be followed:
 
@@ -256,7 +256,7 @@ In order to avoid false positives from the 404 detection program, the following 
 
 - The form of the link must be exact and not:
 
-    - With meaningless extra spaces like ` see this [invalid link](https://invalid-link.com)`
+    - With meaningless extra spaces like ` see this [invalid link](https://invalid-link.com){:target="_blank"}`
     - Extra `#` like ` see this [invalid link](some.md#invalid-link/#)`
 
 - If there is a link description in the normal text, the link needs to be formatted with a code font, otherwise a 404 false positive will be triggered. For example: `` Please set the host address to `http://localhost:8080` ``, after the localhost link in this article is decorated with code fonts, it will not trigger 404 false positives.

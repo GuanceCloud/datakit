@@ -26,6 +26,7 @@ Monitor SSH/SFTP services and report data to Guance Cloud.
 
 ### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -39,6 +40,7 @@ Monitor SSH/SFTP services and report data to Guance Cloud.
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ## Metric {#metric}
 

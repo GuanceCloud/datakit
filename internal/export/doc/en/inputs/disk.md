@@ -22,7 +22,7 @@ monitor   :
 
 ---
 
-Disk collector is used to collect disk information, such as disk storage space, inodes usage, etc.
+Disk collector is used to collect disk information, such as disk storage space, inode usage, etc.
 
 ## Configuration {#config}
 
@@ -30,13 +30,12 @@ After successfully installing and starting DataKit, the disk collector will be e
 
 <!-- markdownlint-disable MD046 -->
 
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
-
-​    
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -59,10 +58,10 @@ After successfully installing and starting DataKit, the disk collector will be e
 
 ## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.disk.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.disk.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

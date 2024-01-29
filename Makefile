@@ -398,8 +398,8 @@ endef
 
 exportdir=dist/export
 # only check ZH docs, EN docs too many errors
-docs_dir=$(exportdir)/guance-doc/docs/zh
-docs_template_dir=internal/export/doc/zh
+docs_dir=$(exportdir)/guance-doc/docs/
+docs_template_dir=internal/export/doc/
 
 md_lint:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \

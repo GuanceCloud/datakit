@@ -1,21 +1,35 @@
+---
+title     : 'SkyWalking'
+summary   : 'SkyWalking Tracing Data Ingestion'
+__int_icon      : 'icon/skywalking'
+dashboard :
+  - desc  : 'Skywalking JVM Monitoring View'
+    path  : 'dashboard/en/skywalking'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # SkyWalking
+<!-- markdownlint-enable -->
+
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
-The SkyWalking Agent embedded in Datakit is used to receive, compute and analyze Skywalking Tracing protocol data.
+The SkyWalking Agent embedded in Datakit is used to receive, compute and analyze SkyWalking Tracing protocol data.
 
 ## SkyWalking Doc {#doc}
 
 > APM v8.8. 3 is currently incompatible and cannot be used. V8.5. 0 v8.6. 0 v8.7. 0 is currently supported.
 
-- [Quickstart](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/){:target="_blank"}
+- [Quick Start](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/){:target="_blank"}
 - [Docs](https://skywalking.apache.org/docs/){:target="_blank"}
 - [Clients Download](https://skywalking.apache.org/downloads/){:target="_blank"}
-- [Souce Code](https://github.com/apache/skywalking){:target="_blank"}
+- [Source Code](https://github.com/apache/skywalking){:target="_blank"}
 
 ## Configure SkyWalking Client {#client-config}
 
@@ -28,8 +42,9 @@ agent.service_name=${SW_AGENT_NAME:your-service-name}
 collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-agent-port>}
 ```
 
-## Configure SkyWalking Agent {#agent-config}
+## Configure SkyWalking Agent {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Install On Local Host"
 
     Go to the `conf.d/skywalking` directory under the DataKit installation directory, copy `skywalking.conf.sample` and name it `skywalking.conf`. Examples are as follows:
@@ -70,7 +85,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 
     Multiple environment variables supported that can be used in Kubernetes showing below:
 
-    | Envrionment Variable Name                 | Type        | Example                                                                              |
+    | Environment Variable Name                 | Type        | Example                                                                              |
     | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
     | `ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS`     | JSON string | `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`                        |
     | `ENV_INPUT_SKYWALKING_GRPC_ENDPOINT`      | string      | "127.0.0.1:11800"                                                                    |
@@ -84,6 +99,8 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
     | `ENV_INPUT_SKYWALKING_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                     |
     | `ENV_INPUT_SKYWALKING_STORAGE`            | JSON string | `{"storage":"./skywalking_storage", "capacity": 5120}`                               |
 
+<!-- markdownlint-enable -->
+
 ## Restart Java Client {#start-java}
 
 ```command
@@ -91,9 +108,11 @@ java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
 
 ## Send Log to Datakit {#logging}
+
 - log4j2
 
 The toolkit dependency package is added to the maven or gradle.
+
 ```xml
   <dependency>
     <groupId>org.apache.skywalking</groupId>
@@ -103,6 +122,7 @@ The toolkit dependency package is added to the maven or gradle.
 ```
 
 Sent through grpc protocol:
+
 ```xml
   <GRPCLogClientAppender name="grpc-log">
     <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"/>
@@ -111,12 +131,12 @@ Sent through grpc protocol:
 
 Others:
 
-- [log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
-- [logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
+- [Log4j-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-log4j-1.x.md){:target="_blank"}
+- [Logback-1.x](https://github.com/apache/skywalking-java/blob/main/docs/en/setup/service-agent/java-agent/Application-toolkit-logback-1.x.md){:target="_blank"}
 
 ## SkyWalking JVM Measurement {#jvm-measurements}
 
-jvm metrics collected by skywalking language agent.
+jvm metrics collected by SkyWalking language agent.
 
 - Tag
 

@@ -232,7 +232,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"queue_size":            newCountFieldInfo("The number of jobs that are in the Jenkins build queue."),
 			"queue_stuck":           newCountFieldInfo("he number of jobs that are in the Jenkins build queue and currently in the blocked state"),
 
-			"system_cpu_load":           newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM’s Operating System JMX bean"),
+			"system_cpu_load":           newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM Operating System JMX bean"),
 			"vm_blocked_count":          newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
 			"vm_count":                  newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
 			"vm_cpu_load":               newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),

@@ -53,6 +53,7 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 ### Input Configuration {#config-input}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -83,8 +84,9 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
     1. If the `inputs.snmp.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
     2. The IP address (required in specified device mode)/segment (required in auto-discovery mode) of the device, the version number of the SNMP protocol and the corresponding authentication fields are required.
-    3. "Specified device mode" and "auto-discovery mode", the two modes can coexist, but the SNMP protocol version number and the corresponding authentification fields must be the same among devices.
+    3. "Specified device mode" and "auto-discovery mode", the two modes can coexist, but the SNMP protocol version number and the corresponding authentication fields must be the same among devices.
 
+<!-- markdownlint-enable -->
 
 ### Configure SNMP {#config-snmp}
 
@@ -92,6 +94,7 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 When SNMP devices are in the default, the general SNMP protocol is closed, you need to enter the management interface to open manually. At the same time, it is necessary to select the protocol version and fill in the corresponding information according to the actual situation.
 
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     Some devices require additional configuration to release SNMP for security, which varies from device to device. For example, Huawei is a firewall, so it is necessary to check SNMP in "Enable Access Management" to release it. You can use the `snmpwalk` command to test whether the acquisition side and the device side are configured to connect successfully(These commands runs on the host which Datakit running on):
@@ -110,6 +113,8 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
     sudo apt–get install snmp                # Ubuntu
     ```
 
+<!-- markdownlint-enable -->
+
 - On the DataKit side, configure collection.
 
 ## Advanced features {#advanced-features}
@@ -118,7 +123,7 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
 
 If you find that the data reported by the collected device does not contain the indicators you want, then you may need to define an additional Profile for the device.
 
-All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to snmp protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"} to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
+All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to SNMP protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"} to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
 
 To add metrics or a custom configuration, list the MIB name, table name, table OID, symbol, and symbol OID, for example:
 
@@ -182,9 +187,11 @@ As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined
 - When device data is captured for an OID of `1.3.6.1.4.1.9.3.6.3.0`, the field with the name `serial_number` will added to the `device_meta` field(JSON), and appended to the set `snmp_object` to be reported as an Object;
 - When device data is captured for an OID of `1.3.6.1.4.1.232.9.2.2.32`, the field with the name `temperature` will added to the the metric set `snmp_metric` and reported as a Metric;
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The folder `conf.d/snmp/profiles` requires the SNMP collector to run once before it appears.
+<!-- markdownlint-enable -->
 
 ## Metric {#metric}
 
@@ -197,10 +204,13 @@ All of the following data collections are appended by default with the name `hos
   # ...
 ```
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     All the following measurements and their metrics contain only some common fields, some device-specific fields, and some additional fields will be added according to different configurations and device models.
+<!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
@@ -215,7 +225,8 @@ All of the following data collections are appended by default with the name `hos
 
 - field list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}
 
@@ -235,17 +246,18 @@ All of the following data collections are appended by default with the name `hos
 
 - field list
 
-{{$m.FieldsMarkdownTable}} {{end}}
-
+{{$m.FieldsMarkdownTable}}
 {{ end }}
 
+{{ end }}
+<!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
 
 ### :material-chat-question: How dows Datakit find devices? {#faq-discover}
 
 Datakit supports "Specified device mode" and "auto-discovery mode" two modes. The two modes can enabled at the same time.
 
-In "specified device mode", Datakit communicates with the specificed IP device using the SNMP protocol to know its current online status.
+In "specified device mode", Datakit communicates with the specified IP device using the SNMP protocol to know its current online status.
 
 In "auto-discovery mode", Datakit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, Datakit assumes that there is a SNMP device on that IP.
 
@@ -255,8 +267,11 @@ Datakit collects generic base-line metrics from all devices. If you can't find t
 
 To archiving this, you probably needs to download the device's OID manual from its official website.
 
-### :material-chat-question: Why I can't see any metrics in [Guance](https://console.guance.com/){:target="_blank"} after I completed configruation? {#faq-no-metrics}
+### :material-chat-question: Why I can't see any metrics in [Guance](https://console.guance.com/){:target="_blank"} after I completed configuration? {#faq-no-metrics}
+
+<!-- markdownlint-enable -->
 
 Try loosening ACLs/firewall rules for your devices.
 
 Run `snmpwalk -O bentU -v 2c -c <COMMUNITY_STRING> <IP_ADDRESS>:<PORT> 1.3.6` from the host Datakit is running on. If you get a timeout without any response, there is likely something blocking Datakit from collecting metrics from your device.
+

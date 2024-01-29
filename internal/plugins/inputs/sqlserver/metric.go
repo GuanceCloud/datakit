@@ -76,16 +76,16 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 			"physical_memory":     newByteFieldInfo("Total physical memory on the machine"),
 			"virtual_memory":      newByteFieldInfo("Amount of virtual memory available to the process in user mode."),
 			"target_memory":       newByteFieldInfo("Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed."),
-			"db_online":           newCountFieldInfo("num of database state in online"),
-			"db_offline":          newCountFieldInfo("num of database state in offline"),
-			"db_recovering":       newCountFieldInfo("num of database state in recovering"),
-			"db_recovery_pending": newCountFieldInfo("num of database state in recovery_pending"),
-			"db_restoring":        newCountFieldInfo("num of database state in restoring"),
-			"db_suspect":          newCountFieldInfo("num of database state in suspect"),
-			"server_memory":       newByteFieldInfo("memory used"),
+			"db_online":           newCountFieldInfo("Num of database state in online"),
+			"db_offline":          newCountFieldInfo("Num of database state in offline"),
+			"db_recovering":       newCountFieldInfo("Num of database state in recovering"),
+			"db_recovery_pending": newCountFieldInfo("Num of database state in recovery_pending"),
+			"db_restoring":        newCountFieldInfo("Num of database state in restoring"),
+			"db_suspect":          newCountFieldInfo("Num of database state in suspect"),
+			"server_memory":       newByteFieldInfo("Memory used"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 		},
 	}
 }
@@ -113,7 +113,7 @@ func (m *Performance) Info() *inputs.MeasurementInfo {
 			"counter_name":   inputs.NewTagInfo("Name of the counter. To get more information about a counter, this is the name of the topic to select from the list of counters in Use SQL Server Objects."),
 			"counter_type":   inputs.NewTagInfo("Type of the counter"),
 			"instance":       inputs.NewTagInfo("Name of the specific instance of the counter"),
-			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 		},
 	}
 }
@@ -136,9 +136,9 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 			"waiting_tasks_count": newCountFieldInfo("Number of waits on this wait type. This counter is incremented at the start of each wait."),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"wait_type":      inputs.NewTagInfo("Name of the wait type. For more information, see Types of Waits, later in this topic"),
-			"wait_category":  inputs.NewTagInfo("wait category info"),
+			"wait_category":  inputs.NewTagInfo("Wait category info"),
 		},
 	}
 }
@@ -164,11 +164,11 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 			"rg_write_stall_ms": newTimeFieldInfo("Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for writes. Is not nullable."),
 		},
 		Tags: map[string]interface{}{
-			"database_name":     inputs.NewTagInfo("database name"),
+			"database_name":     inputs.NewTagInfo("Database name"),
 			"file_type":         inputs.NewTagInfo("Description of the file type, `ROWS/LOG/FILESTREAM/FULLTEXT` (Full-text catalogs earlier than SQL Server 2008.)"),
 			"logical_filename":  inputs.NewTagInfo("Logical name of the file in the database"),
 			"physical_filename": inputs.NewTagInfo("Operating-system file name."),
-			"sqlserver_host":    inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
 		},
 	}
 }
@@ -182,7 +182,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
 		Type: "metric",
-		Desc: "one row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
+		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"active_workers_count":      newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."),
 			"context_switches_count":    newCountFieldInfo("Number of context switches that have occurred on this scheduler"),
@@ -201,7 +201,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"cpu_id":         inputs.NewTagInfo("CPU ID assigned to the scheduler."),
-			"sqlserver_host": inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"scheduler_id":   inputs.NewTagInfo("ID of the scheduler. All schedulers that are used to run regular queries have ID numbers less than 1048576. Those schedulers that have IDs greater than or equal to 1048576 are used internally by SQL Server, such as the dedicated administrator connection scheduler. Is not nullable."),
 		},
 	}
@@ -222,7 +222,7 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 			"volume_used_space_bytes":      newByteFieldInfo("Used size in bytes of the volume"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host":     inputs.NewTagInfo("host name which installed SQLServer"),
+			"sqlserver_host":     inputs.NewTagInfo("Host name which installed SQLServer"),
 			"volume_mount_point": inputs.NewTagInfo("Mount point at which the volume is rooted. Can return an empty string. Returns null on Linux operating system."),
 		},
 	}

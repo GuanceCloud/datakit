@@ -24,6 +24,8 @@ The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze J
 
 ## Configuration {#config}
 
+### Collector Configuration {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
@@ -45,7 +47,7 @@ The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze J
 
     Multiple environment variables supported that can be used in Kubernetes showing below:
 
-    | Envrionment Variable Name             | Type        | Example                                                                          |
+    | Environment Variable Name             | Type        | Example                                                                          |
     | ------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
     | `ENV_INPUT_JAEGER_HTTP_ENDPOINT`      | string      | "/apis/traces"                                                                   |
     | `ENV_INPUT_JAEGER_UDP_ENDPOINT`       | string      | "127.0.0.1:6831"                                                                 |

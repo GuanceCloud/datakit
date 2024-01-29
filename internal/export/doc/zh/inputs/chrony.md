@@ -60,6 +60,8 @@ Update interval : 0.0 seconds
 Leap status     : Normal
 ```
 
+### 采集器配置 {input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

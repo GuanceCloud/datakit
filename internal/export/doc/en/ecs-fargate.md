@@ -1,4 +1,3 @@
-Translation:
 
 # Integrated with AWS ECS Fargate
 ---

@@ -1,63 +1,63 @@
-<!-- This file required to translate to EN. -->
-# DQL 与其它几种查询语言的对比
+# Comparison of DQL and several other query languages
+
 ---
 
-DQL 是观测云统一的查询语言，为便于大家学习这种语言，下面我们选取几种不同的查询语言来与之对比，以便大家能较为快速的理解和运用 DQL。
+DQL is the unified query language of Observation Cloud. In order to make it easier for everyone to learn this language, below we select several different query languages to compare with them, so that everyone can understand and use DQL more quickly.
 
-这里我们暂时选择 [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} 和 [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"} 俩种语言。大家较为熟知的 SQL 语句因为其形式、功能等与 DQL 大相庭径，此处暂略。
+Here we temporarily choose two languages: [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} and [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"}. The well-known SQL statement is very different from DQL in its form and function, so it will not be mentioned here.
 
-PromQL 是 [Prometheuse](https://prometheus.io/){:target="_blank"} 中用于查询其时序数据的一种查询语言；LogQL 是用于 [Grafana Loki](https://grafana.com/oss/loki/){:target="_blank"} 的一种日志查询语言，它跟 DQL 一样，借鉴了 PromQL 的语法结构。总体上，这三种语言的结构类似，但细微处各有不同。下文将从如下几个方面加以阐述：
+PromQL is a query language used in [Prometheus](https://prometheus.io/){:target="_blank"} to query its time series data; LogQL is a log query language used in [Grafana Loki](https://grafana.com/oss/loki/){:target="_blank"}. Like DQL, it draws on the syntax structure of PromQL. Overall, the three languages have similar structures, but they differ in subtle ways. The following will elaborate on the following aspects:
 
-- 基本语法结构的差异
-- 支持的常用预定义函数
-- 常用查询写法对比
+- Differences in basic grammatical structures
+- Supported commonly used predefined functions
+- Comparison of commonly used query writing methods
 
-## 基本语法结构 {#syntax}
+## Basic syntax structure {#syntax}
 
-| 查询语言  | 基本结构 |
-| --------- | -------  |
-| PromQL    | `指标 {条件过滤列表} [起始时间:结束时间]`
-| LogQL     | `{stream-selector} log-pipeline` |
-| DQL       | `namespace::指标集:(指标列表) [起始时间:结束时间:分组间隔] { 条件过滤列表 } GROUP-BY-clause ORDER-BY-clause` |
+| query language | basic structure                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| PromQL         | `metric-name {conditions} [start-time:end-time]`                                                                          |
+| LogQL          | `{stream-selector} log-pipeline`                                                                                          |
+| DQL            | `namespace::measurement:(metric-list) [start-time:end-time:time-interval] { conditions } GROUP-BY-clause ORDER-BY-clause` |
 
-下面分别加以说明。
+They are explained below.
 
 ### PromQL {#p}
 
-在 Prometheuse 中，相关指标是离散形式组织的。在其查询中，可直接查找对应的指标，如：
+In Prometheus, relevant metrics are organized in discrete form. In its query, you can directly find the corresponding indicators, such as:
 
-```
+``` not-set
 http_requests_total{environment="prometheus", method!="GET"}
 ```
 
-此处即查找指标 `http_requests_total`，通过指定其 label 限制条件（`environment` 和 `method`）来过滤数据。
+Here we look for the metric `http_requests_total` and filter the data by specifying its label constraints (`environment` and `method`).
 
-> 注：PromeQL 称这里的 label 限制条件为 Label Matchers。
+> Note: PromQL calls the label constraints here Label Matchers.
 
 ### LogQL {#l}
 
-顾名思义，LogQL 主要用于日志内容查询，如：
+As the name suggests, LogQL is mainly used for log content query, such as:
 
-```
+``` not-set
 {container="query-frontend", namespace="loki-dev"} |= "metrics.go" | logfmt | duration > 10s and throughput_mb < 500
 ```
 
-此处 `{...}` 里面的，LogQL 称之为 Stream Selector，其旨在于划定数据查询范围（类似于 SQL 中的 `FROM ...` 部分）；半部分则称之为 Log Pipeline，其主要处理日志信息的提取和过滤。
+Here in `{...}`, LogQL calls it Stream Selector, which is designed to delineate the data query range (similar to the `FROM...` part in SQL); the half part is called Log Pipeline , which mainly deals with the extraction and filtering of log information.
 
 ### DQL {#d}
 
-DQL 覆盖面较为全面，相比于 PromQL 只能用于查找 Prometheuse 中的时序数据、LogQL 只能用于查找日志数据，DQL 作为全平台数据查询语言，其主要查询如下几种数据：
+DQL has relatively comprehensive coverage. Compared with PromQL, which can only be used to find time series data in Prometheus, and LogQL, which can only be used to find log data, DQL, as a full-platform data query language, mainly queries the following types of data:
 
-- 时序数据
-- 日志数据
-- 对象数据
-- 应用性能追踪（APM）数据
-- 用户行为检测（RUM）数据
-- 关键事件数据
-- 安全巡检数据
+- Metric
+- Logging
+- Object
+- Tracing
+- RUM
+- KeyEvent
+- Security
 - ...
 
-随着业务功能不断拓展，DQL 将封装更多不同的查询引擎（目前支持 InfluxDB 以及 ElasticSearch 两种）。其基本语法结构如下：
+As business functions continue to expand, DQL will encapsulate more different query engines (currently supporting InfluxDB and ElasticSearch). Its basic grammatical structure is as follows:
 
 ```python
 namespace::measurement:(field-or-tag-list) { where-conditions } [time-range] BY-clause ORDER-BY-clause
@@ -65,55 +65,56 @@ namespace::measurement:(field-or-tag-list) { where-conditions } [time-range] BY-
 
 如：
 
-```
+``` not-set
 metric::cpu:(usage_system, usage_user) { usage_idle > 0.9 } [2d:1d:1h] BY hostname
 ```
 
-此处，`metric` 指定了要查询时序数据（可简单理解成 MySQL 中的一个 DB），而 `cpu` 就是其中的一种指标集（类似于 MySQL 中的 Table），并且指定查找其中的两个字段 `usage_system` 和 `usage_user`；接着，`{...}` 中的表示过滤条件，最后 `[...]` 表示查询的时间范围：前天到昨天一段时间内，以 1h 为聚合间隔。
+Here, `metric` specifies that time series data is to be queried (can be simply understood as a DB in MySQL), and `cpu` is one of the metric sets (similar to Table in MySQL), and two of them are specified to be searched. The fields `usage_system` and `usage_user`; then, the ones in `{...}` represent the filter conditions, and finally `[...]` represents the time range of the query: from the day before yesterday to yesterday, with 1h as the aggregation interval.
 
-更多示例：
+More examples:
 
-```
-# 查询 K8s 中的 pod 对象（object）
+```not-set
+# Query the pod object in K8s
 object::kubelet_pod:(name, age) { cpu_usage > 30.0 } [10m] BY namespace
 
-# 查找名为 my_service 应用的日志（message 字段）
+# Find the log of the application named my_service (message field)
 logging::my_service:(message) [1d]
 
-# 查看应用性能追踪（T 即 tracing）中，持续时间 > 1000us 的 span 数据，并且按照 operation 来分组
+# View span data with duration > 1000us in application performance tracing (T stands for tracing), and group them by operation
 T::my_service { duration > 1000 } [10m] BY operation
 ```
 
-## 横向对比 {#compare}
+## Horizontal comparison {#compare}
 
-| 查询语言  | 主要领域                | 支持时序查询       | 支持日志查询 | 是否支持 HTTP API                                                  | 是否支持 Pipeline 切割              | 支持时间范围查找 | 支持 group by 聚合 |
-| --------- | -------                 | ---                | -----        | ---------                                                          | ----                                | -----            | ---                |
-| PromQL    | Prometheuse 指标查询    | 支持               | 不支持       | [支持](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | 不支持                              | 支持             | [支持](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"}               |
-| LogQL     | 主要用于查询日志        | 支持从日志生成指标 | 支持         | [支持](https://grafana.com/docs/loki/latest/api/){:target="_blank"}                  | 支持                                | 支持             | [支持](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}               |
-| DQL       | DataFlux 全平台数据查询 | 支持               | 支持         | [支持](apis.md#api-raw-query){:target="_blank"}       | 不支持（在 DataKit 端已预先切割好） | 支持             | 支持               |
+| query language | Main areas                        | Support time series query             | Support log query | Whether to support HTTP API                                                          | Whether to support Pipeline               | Support time range search | Support group by aggregation                                                                                        |
+| -------------- | --------------------------------- | ------------------------------------- | ----------------- | ------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| PromQL         | Prometheus metric query           | support                               | not support       | [support](https://prometheus.io/docs/prometheus/latest/querying/api/){:target="_blank"} | not support                               | support                   | [support](https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators){:target="_blank"} |
+| LogQL          | Mainly used to query logs         | Supports generating metrics from logs | support           | [support](https://grafana.com/docs/loki/latest/api/){:target="_blank"}               | support                                   | support                   | [support](https://grafana.com/docs/loki/latest/logql/#aggregation-operators){:target="_blank"}                      |
+| DQL            | DataFlux full platform data query | support                               | support           | [support](apis.md#api-raw-query){:target="_blank"}                                   | not support (Pre-cut on the DataKit side) | support                   | support                                                                                                             |
 
-### 数据处理函数支持情况 {#funcs}
+### Data processing function support {#funcs}
 
-- [PromQL 支持的函数列表](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions){:target="_blank"}
-- [LogQL 支持的函数列表](https://grafana.com/docs/loki/latest/logql/#metric-queries){:target="_blank"}
-- [DQL 支持的函数列表](../dql/funcs.md){:target="_blank"}
+- [PromQL supported functions](https://prometheus.io/docs/prometheus/latest/querying/functions/#functions){:target="_blank"}
+- [LogQL supported functions](https://grafana.com/docs/loki/latest/logql/#metric-queries){:target="_blank"}
+- [DQL supported functions](../dql/funcs.md){:target="_blank"}
 
-## 常见查询语句写法对比 {#basic-query}
+<!-- markdownlint-disable MD013 -->
+## Comparison of common query statement writing methods {#basic-query}
+<!-- markdownlint-enable -->
+### General data query and filtering {#q-filter}
 
-### 普通数据查询及过滤 {#q-filter}
-
-```
+```not-set
 # LogQL
 {cluster="ops-tools1", namespace="dev", job="query-frontend"} |= "metrics.go" !="out of order" | logfmt | duration > 30s or status_code!="200"
 
 # DQL
 L::dev {cluster='ops-tools1', job='query=frontend', message != match("out of order"), (duraton > 30s OR stataus_code != 201)}
 
-# PromQL（PromQL 不支持普通意义上的 OR 过滤）
+# PromQL（PromQL does not support OR filtering in the ordinary sense）
 http_requests_total{cluster='ops-tools1', job!='query=frontend', duration > 30s}
 ```
 
-### 带聚合的查询以及过滤 {#q-groupby}
+### Querying and filtering with aggregation {#q-groupby}
 
 ```python
 # LogQL
@@ -122,6 +123,6 @@ sum by (org_id) ({source="ops-tools",container="app-dev"} |= "metrics.go" | logf
 # PromQL
 histogram_quantile(0.9, sum by (job, le) (rate(http_request_duration_seconds_bucket[10m])))
 
-# DQL（注意，ops-tools 两边需加上 ``，不然被解析成减法表达式）
+# DQL (note that ops-tools needs to be added with `` on both sides, otherwise it will be parsed into a subtraction expression)
 L::`ops-tools`:(bytes_processed) {filename = "metrics.go", container="app-dev"} [2m] BY sum(orig_id)
 ```

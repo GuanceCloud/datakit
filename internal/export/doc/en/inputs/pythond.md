@@ -57,7 +57,7 @@ Create a folder named as Python package under the path `datakit/python.d`, then 
 
 For example, as the Python package name is `Demo`, the path is like below. The `demo.py` is the Python script, and its name could change to whatever you want.
 
-```
+```shell
 datakit
    └── python.d
        ├── Demo
@@ -67,7 +67,7 @@ datakit
 You need the user to inherit the `DataKitFramework` class and then override the `run` method.
 
 >The `DataKitFramework` class source code file path is `datakit_framework.py` at `datakit/python.d/core/datakit_framework.py`.
-
+<!-- markdownlint-disable MD046 -->
 ??? note "Python script example"
     ```python
     #encoding: utf-8
@@ -190,7 +190,7 @@ You need the user to inherit the `DataKitFramework` class and then override the 
         #         **kwargs
         #         )
     ```
-
+<!-- markdownlint-enable -->
 Python SDK API definition (see `datakit_framework.py`):
 
 - Reporting metrics data: `feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;
@@ -297,7 +297,7 @@ Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directo
 
 Support the use of git repo. Once git repo is enabled, the path filled in args in conf is relative to the path of `gitrepos` . For example, args will fill in `mytest` in the following case:
 
-```
+```shell
 ├── datakit
 └── gitrepos
     └── myconf
@@ -366,7 +366,7 @@ class MyTest(DataKitFramework):
 
 Step 2: We don't turn on git repo here. Put `test.py` under the `mytest` folder of `python.d`:
 
-```
+```shell
 └── python.d
     ├── mytest
     │   ├── test.py
@@ -397,9 +397,9 @@ sudo datakit service -R
 ```
 
 ## FAQ {#faq}
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to Troubleshoot Errors {#log}
-
+<!-- markdownlint-enable -->
 If the results are not as expected, you can view the following log files:
 
 - `~/_datakit_pythond_cli.log`

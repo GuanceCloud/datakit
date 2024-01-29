@@ -62,7 +62,7 @@ download this version jar: [v1.26.2-guance](https://static.guance.com/dd-image/o
 ### new {#cl-1.26.0-guance-new}
 
 - Merge OpenTelemetry tag v1.26.0
-- Support Dameng database [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/5){:target="_blank"}
+- Support Damned database [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/5){:target="_blank"}
 
 ---
 

@@ -38,18 +38,18 @@ See  [https://www.nvidia.com/Download/index.aspx]( https://www.nvidia.com/Downlo
 
     ???+ attention
 
-        1. Datakit can remotely collect GPU server indicators through SSH (when remote collection is enabled, the local configuration will be invalid).
+        1. DataKit can remotely collect GPU server indicators through SSH (when remote collection is enabled, the local configuration will be invalid).
         1. The number of `remote_addrs` configured can be more than the number of `remote_users` `remote_passwords` `remote_rsa_paths`.If not enough, it will match the first value.
         1. Can be collected through `remote_addrs`+`remote_users`+`remote_passwords`.
         1. It can also be collected through `remote_addrs`+`remote_users`+`remote_rsa_paths`. (`remote_passwords` will be invalid after configuring the RSA public key).
-        1. After turning on remote collection, elections must be turned on. (Prevent multiple Datakits from uploading duplicate data).
+        1. After turning on remote collection, elections must be turned on. (Prevent multiple DataKit from uploading duplicate data).
         1. For security reasons, you can change the SSH port number or create a dedicated account for GPU remote collection.
 
     After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
-    Supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKit):
+    Supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported for host-deployed DataKit):
 
     | Environment Variable Name               | Corresponding Configuration Parameter Item         | Parameter Example                                                    |
     | :-----------------------------          | ---                      | ---                                                          |
@@ -82,7 +82,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
--  Tags
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
@@ -219,18 +219,18 @@ After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#mana
 
 ### DCGM Metrics {#dcgm-metric}
 
-| Metrics | Description | Data Type |
-| --- | --- | --- |
-|  DCGM_FI_DEV_DEC_UTIL                |  gauge, Decoder utilization (in %).                                | int |
-|  DCGM_FI_DEV_ENC_UTIL                |  gauge, Encoder utilization (in %).                                | int |
-|  DCGM_FI_DEV_FB_FREE                 |  gauge, Framebuffer memory free (in MiB).                          | int |
-|  DCGM_FI_DEV_FB_USED                 |  gauge, Framebuffer memory used (in MiB).                          | int |
-|  DCGM_FI_DEV_GPU_TEMP                |  gauge, GPU temperature (in C).                                    | int |
-|  DCGM_FI_DEV_GPU_UTIL                |  gauge, GPU utilization (in %).                                    | int |
-|  DCGM_FI_DEV_MEM_CLOCK               |  gauge, Memory clock frequency (in MHz).                           | int |
-|  DCGM_FI_DEV_MEM_COPY_UTIL           |  gauge, Memory utilization (in %).                                 | int |
-|  DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL  |  counter, Total number of NVLink bandwidth counters for all lanes. | int |
-|  DCGM_FI_DEV_PCIE_REPLAY_COUNTER     |  counter, Total number of PCIe retries.                            | int |
-|  DCGM_FI_DEV_SM_CLOCK                |  gauge, SM clock frequency (in MHz).                               | int |
-|  DCGM_FI_DEV_VGPU_LICENSE_STATUS     |  gauge, vGPU License status                                        | int |
-|  DCGM_FI_DEV_XID_ERRORS              |  gauge, Value of the last XID error encountered.                   | int |
+| Metrics | Description                                                       | Data Type |
+| --- |-------------------------------------------------------------------| --- |
+|  DCGM_FI_DEV_DEC_UTIL                | gauge, Decoder utilization (in %).                                | int |
+|  DCGM_FI_DEV_ENC_UTIL                | gauge, Encoder utilization (in %).                                | int |
+|  DCGM_FI_DEV_FB_FREE                 | gauge, Frame buffer memory free (in MiB).                         | int |
+|  DCGM_FI_DEV_FB_USED                 | gauge, Frame buffer memory used (in MiB).                         | int |
+|  DCGM_FI_DEV_GPU_TEMP                | gauge, GPU temperature (in C).                                    | int |
+|  DCGM_FI_DEV_GPU_UTIL                | gauge, GPU utilization (in %).                                    | int |
+|  DCGM_FI_DEV_MEM_CLOCK               | gauge, Memory clock frequency (in MHz).                           | int |
+|  DCGM_FI_DEV_MEM_COPY_UTIL           | gauge, Memory utilization (in %).                                 | int |
+|  DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL  | counter, Total number of NVLink bandwidth counters for all lanes. | int |
+|  DCGM_FI_DEV_PCIE_REPLAY_COUNTER     | counter, Total number of PCIe retries.                            | int |
+|  DCGM_FI_DEV_SM_CLOCK                | gauge, SM clock frequency (in MHz).                               | int |
+|  DCGM_FI_DEV_VGPU_LICENSE_STATUS     | gauge, vGPU License status                                        | int |
+|  DCGM_FI_DEV_XID_ERRORS              | gauge, Value of the last XID error encountered.                   | int |

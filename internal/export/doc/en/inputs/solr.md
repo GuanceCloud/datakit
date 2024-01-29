@@ -20,7 +20,7 @@ monitor   :
 
 ---
 
-Solr collector, which collects statistics of solr cache, request times, and so on.
+Solr collector, which collects statistics of Solr Cache, Request Times, and so on.
 
 ## Configuration {#config}
 
@@ -35,6 +35,7 @@ Already tested version:
 
 ### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/db` directory under the DataKit installation directory, copy `solr.conf.sample` and name it  `solr.conf`. Examples are as follows:
@@ -48,6 +49,7 @@ Already tested version:
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 ---
 
@@ -88,15 +90,15 @@ For all of the following data collections, a global tag named `host` is appended
 
 Example of cutting logs:
 
-```
+```log
 2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter
 ```
 
 Cut fields:
 
-| Field Name   | Field Value                        |
-| -------- | ----------------------------- |
-| Reporter | webapp.reporter               |
-| status   | INFO                          |
-| thread   | org.apache.solr.core.SolrCore |
-| time     | 1380630788319000000           |
+| Field Name | Field Value                   |
+| ---------- | ----------------------------- |
+| Reporter   | webapp.reporter               |
+| status     | INFO                          |
+| thread     | org.apache.solr.core.SolrCore |
+| time       | 1380630788319000000           |

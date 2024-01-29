@@ -6,19 +6,19 @@
 
 Install the NodeJS extension for ddtrace.
 
-**NodeJS v12+**
+- **NodeJS v12+**
 
 ```shell
 npm install dd-trace --save
 ```
 
-**NodeJS v10 v8**
+- **NodeJS v10 v8**
 
 ```shell
 npm install dd-trace@latest-node10
 ```
 
-**Note:** You need to import and initialize the ddtracer lib before any NodeJS code or loading any Module. If the ddtracer lib is not properly initialized, it may not receive the detection data.
+**Note:** You need to import and initialize the ddtrace lib before any NodeJS code or loading any Module. If the ddtrace lib is not properly initialized, it may not receive the detection data.
 
 ## Example {#example}
 
@@ -29,15 +29,15 @@ In an environment that simply runs JavaScript:
 const tracer = require("dd-trace").init();
 ```
 
-For environments that use TypeScript and bundlers and support EcmaScript Module syntax, you need to initialize ddtracer in a different file:
+For environments that use TypeScript and bundlers and support ECMAScript Module syntax, you need to initialize ddtrace in a different file:
 
-**server.ts**
+- **server.ts**
 
 ```ts
 import "./tracer"; // must come before importing any instrumented module.
 ```
 
-**tracer.ts**
+- **tracer.ts**
 
 ```ts
 import tracer from "dd-trace";
@@ -45,7 +45,7 @@ tracer.init(); // initialized in a different file to avoid hoisting.
 export default tracer;
 ```
 
-In addition, if the default configuration is valid enough or ddtracer is successfully configured through environment variables, you can directly introduce module into your code:
+In addition, if the default configuration is valid enough or ddtrace is successfully configured through environment variables, you can directly introduce module into your code:
 
 ```js
 import "dd-trace/init";
@@ -63,7 +63,7 @@ DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 
 - DD_ENV: Set environment variables for the service.
 - DD_VERSION: APP version number.
-- DD_SERVICE: Used to set the service name of the application, using the name field in package. json by default.
+- DD_SERVICE: Used to set the service name of the application, using the name field in package. JSON by default.
 - DD_SERVICE_MAPPING: Define service name mappings for renaming services in Tracing.
 - DD_TAGS: Add default Tags for each Span.
 - DD_TRACE_AGENT_HOSTNAME: The name of the address where Datakit listens, default localhost.

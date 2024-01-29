@@ -52,6 +52,8 @@ vim /etc/clickhouse-server/config.xml
 
 详见[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus){:target="_blank"}
 
+### 采集器配置 {input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 

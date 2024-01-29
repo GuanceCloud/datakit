@@ -31,7 +31,7 @@ Prerequisites:
 
 - Recommended Kubernetes version 1.24.1 or above and internet access (to download yaml file and pull images).
 - Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"} are enabled.
-- Ensure admissionregistration.k8s.io/v1 API is enabled.
+- Ensure `admissionregistration.k8s.io/v1` API is enabled.
 
 ### Installation Steps {#datakit-operator-install}
 
@@ -110,20 +110,20 @@ The default configuration is as follows:
 
 In `admission_inject`, you can configure `ddtrace` and `logfwd` more finely:
 
-- `images` is a collection of Key/Value pairs with fixed keys, where modifying the Value allows for customisation of image paths.
+- `images` is a collection of Key/Value pairs with fixed keys, where modifying the Value allows for customization of image paths.
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    The Datakit Operator's ddtrace agent image is stored centrally at pubrepo.guance.com/datakit-operator. For certain special environments that may not have access to this image repository, it is possible to modify the environment variables and specify an image path, as follows:
+    The Datakit Operator's ddtrace agent image is stored centrally at `pubrepo.guance.com/datakit-operator`. For certain special environments that may not have access to this image repository, it is possible to modify the environment variables and specify an image path, as follows:
     
-    1. In an environment that can access pubrepo.guance.com, pull the image pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance and save it to your own image repository, for example inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance.
-    1. Modify the JSON configuration by changing admission_inject->ddtrace->images->java_agent_image to inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance, and apply this YAML.
+    1. In an environment that can access `pubrepo.guance.com`, pull the image `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance` and save it to your own image repository, for example `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`.
+    1. Modify the JSON configuration by changing admission_inject->ddtrace->images->java_agent_image to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`, and apply this YAML.
     1. Thereafter, the Datakit Operator will use the new Java Agent image path.
     
     **The Datakit Operator does not check images. If the image path is incorrect, Kubernetes will throw an error when creating the image.**
     
-    If a version has already been specified in the admission.datakit/java-lib.version annotation, for example admission.datakit/java-lib.version:v2.0.1-guance or admission.datakit/java-lib.version:latest, the v2.0.1-guance version will be used.
+    If a version has already been specified in the `admission.datakit/java-lib.version` annotation, for example `admission.datakit/java-lib.version:v2.0.1-guance` or `admission.datakit/java-lib.version:latest`, the v2.0.1-guance version will be used.
 <!-- markdownlint-enable -->
 
 - `envs` is also a collection of Key/Value pairs, but with variable keys and values. The Datakit Operator injects all Key/Value environment variables into the target container. For example, add FAKE_ENV to envs:
@@ -162,22 +162,23 @@ In Datakit Operator v1.4.2 and later versions, `envs` `envs` support for the Kub
 - `status.podIPs`:  The IP addresses is a dual-stack version of status.podIP, the first is always the same as status.podIP.
 
 If that write is not recognized, it is converted to a plain string and added to the environment variable. For example `"POD_NAME":"{fieldRef:metadata.PODNAME}"`, which is the wrong way to write it, ends up in the environment variable being `POD_NAME={fieldRef:metadata.PODNAME}`.
-
+<!-- markdownlint-disable MD013 -->
 ## Using Datakit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
-
+<!-- markdownlint-enable -->
 In large Kubernetes clusters, it can be quite difficult to make bulk configuration changes. Datakit-Operator will determine whether or not to modify or inject data based on Annotation configuration.
 
 The following functions are currently supported:
 
 - Injection of `ddtrace` agent and environment
 - Mounting of `logfwd` sidecar and enabling log collection
-
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
     Only version v1 of `deployments/daemonsets/cronjobs/jobs/statefulsets` Kind is supported, and because Datakit-Operator actually operates on the PodTemplate, Pod is not supported. In this article, we will use `Deployment` to describe these five kinds of Kind.
-
+<!-- markdownlint-enable -->
+<!-- markdownlint-disable MD013 -->
 ### Injection of ddtrace Agent and Relevant Environment Variables {#datakit-operator-inject-lib}
-
+<!-- markdownlint-enable -->
 #### Usage {#datakit-operator-inject-lib-usage}
 
 1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
@@ -218,7 +219,7 @@ spec:
 Create a resource using yaml file:
 
 ```shell
-$ kubectl apply -f nginx.yaml
+kubectl apply -f nginx.yaml
 ```
 
 Verify as follows:
@@ -231,9 +232,9 @@ nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
 $ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
 datakit-lib-init
 ```
-
+<!-- markdownlint-disable MD013 -->
 ### Injecting Logfwd Program and Enabling Log Collection {#datakit-operator-inject-logfwd}
-
+<!-- markdownlint-enable -->
 #### Prerequisites {#datakit-operator-inject-logfwd-prerequisites}
 
 [logfwd](logfwd.md#using) is a proprietary log collection application for Datakit. To use it, you need to first deploy Datakit in the same Kubernetes cluster and satisfy the following two conditions:
@@ -280,7 +281,7 @@ Parameter explanation can refer to [logfwd configuration](logfwd.md#config):
     - `ignore` filters file paths using glob rules. If it meets any filtering condition, the file will not be collected.
     - `source` is the data source. If it is empty, `'default'` will be used by default.
     - `service` adds a new tag. If it is empty, `$source` will be used by default.
-    - `pipeline` is the pipeline script path. If it is empty, `$source.p` will be used. If `$source.p` does not exist, the pipeline will not be used. (This script file exists on the DataKit side.)
+    - `pipeline` is the Pipeline script path. If it is empty, `$source.p` will be used. If `$source.p` does not exist, the Pipeline will not be used. (This script file exists on the DataKit side.)
     - `character_encoding` selects an encoding. If the encoding is incorrect, the data cannot be viewed. It is recommended to leave it blank. Supported encodings include `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or "".
     - `multiline_match` is for multiline matching, as described in [Datakit Log Multiline Configuration](logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
     - `tags` adds additional tags in JSON map format, such as `{ "key1":"value1", "key2":"value2" }`.
@@ -338,4 +339,4 @@ Finally, you can check whether the logs have been collected on the Observability
 
 References：
 
-- Kubernetes [Admission Controlle](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
+- Kubernetes [Admission Controller](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

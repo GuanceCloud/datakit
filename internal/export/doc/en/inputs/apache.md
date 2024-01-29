@@ -56,6 +56,8 @@ Allow from [YOUR_IP]
 sudo apachectl restart
 ```
 
+### Collector Configuration {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "Host installation"
 
@@ -84,7 +86,7 @@ For all of the following data collections, a global tag named  `host` is appende
 
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}` {#{{$m.Name}}}
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -95,17 +97,15 @@ For all of the following data collections, a global tag named  `host` is appende
 - metric list
 
 {{$m.FieldsMarkdownTable}}
-
-{{ end }} 
-
+{{ end }}
 ## Log Collection {#logging}
 
 To collect the Apache log, open  `files` in {{.InputName}}.conf and write to the absolute path of the Apache log file. For example:
 
 ```toml
-[[inputs.apache]]
+[[inputs.{{.InputName}}]]
   ...
-  [inputs.apache.log]
+  [inputs.{{.InputName}}.log]
     files = [
       "/var/log/apache2/error.log",
       "/var/log/apache2/access.log"
@@ -124,9 +124,9 @@ When log collection is turned on, logs with `apache` log (`source`) will be gene
 
 - Apache Error Log Cutting
 
-Error Log Text Example 
+Error Log Text Example
 
-```
+```log
 [Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status
 ```
 
@@ -143,7 +143,7 @@ The list of cut fields is as follows:
 
 Example of access log text:
 
-``` 
+```log
 127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917
 ```
 

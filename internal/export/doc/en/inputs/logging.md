@@ -1,5 +1,18 @@
+---
+title     : 'File Log'
+summary   : 'Collect log data on the host'
+__int_icon      : 'icon/logging'
+dashboard :
+  - desc  : 'Log'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # File Log
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -13,6 +26,9 @@ This document focuses on local disk log collection and Socket log collection:
 
 ## Configuration {#config}
 
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 === "Host deployment"
 
     Go to the `conf.d/log` directory under the DataKit installation directory, copy `logging.conf.sample` and name it `logging.conf`. Examples are as follows:
@@ -96,21 +112,22 @@ This document focuses on local disk log collection and Socket log collection:
     - [Configure log collection based on container image](container.md#logging-with-image-config)
     - [Collect Pod internal logs in Sidecar form](logfwd.md)
 
-???+ Note "关于 `ignore_dead_log` 的说明"
+???+ Note "Notes on `ignore_dead_log`"
 
     If the file is already being collected, but no new log is written within 1 hour, DataKit will close the collection of the file. During this period (1h), the file **cannot** be physically deleted (for example, after `rm`, the file is only marked for deletion, and the file will not be actually deleted until DataKit closes it).
+<!-- markdownlint-enable -->
 
 ### socket Collection Log {#socket}
 
 Comment out `logfiles` in conf and configure `sockets`. Take log4j2 as an example:
 
 ``` xml
- <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
+ <!-- The socket configuration log is transmitted to the local port 9540, the protocol defaults to tcp -->
  <Socket name="name1" host="localHost" port="9540" charset="utf8">
-     <!-- 输出格式  序列布局-->
+     <!-- Output format Sequence layout-->
      <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
 
-     <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
+     <!--Note: Do not enable serialization for transmission to the socket collector. Currently, DataKit cannot deserialize. Please use plain text for transmission-->
      <!-- <SerializedLayout/>-->
  </Socket>
 ```
@@ -135,7 +152,7 @@ Regular expression style used in log collector [reference](https://golang.org/pk
 
 Assume that the original data is:
 
-```
+```not-set
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
@@ -149,7 +166,7 @@ ZeroDivisionError: division by zero
 
 The cut out three line protocol points are as follows (line numbers are 1/2/8 respectively). You can see that the `Traceback ...` paragraph (lines 3-6) does not form a single log, but is appended to the `message` field of the previous log (line 2).
 
-```
+```not-set
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 1.0" 1611746438938808642
 testing,filename=/tmp/094318188 message="2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
@@ -171,9 +188,9 @@ Because there are multiple multi-row configurations for the log, their prioritie
 1. `multiline_match` is not empty, only the current rule is used
 2. Use source to `multiline_match` mapping configuration (`logging_source_multiline_map` exists only in the container log), using only this rule if the corresponding multiline rule can be found using source
 3. Turn on `auto_multiline_detection`, which matches in these multiline rules if `auto_multiline_extra_patterns` is not empty
-3. Turn on `auto_multiline_detection` and, if `auto_multiline_extra_patterns` is empty, use the default automatic multiline match rule list, namely:
+4. Turn on `auto_multiline_detection` and, if `auto_multiline_extra_patterns` is empty, use the default automatic multiline match rule list, namely:
 
-```
+```not-set
 // time.RFC3339, "2006-01-02T15:04:05Z07:00"
 `^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
 
@@ -214,7 +231,9 @@ Because there are multiple multi-row configurations for the log, their prioritie
 `^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 ```
 
+<!-- markdownlint-disable MD013 -->
 #### Restrictions on Processing Very Long Multi-line Logs {#too-long-logs}
+<!-- markdownlint-enable -->
 
 At present, a single multi-line log of no more than 32MiB can be processed at most. If the actual multi-line log exceeds 32MiB, DataKit will recognize it as multiple. For example, let's assume that there are several lines of logs as follows, and we want to identify them as a single log:
 
@@ -223,11 +242,11 @@ At present, a single multi-line log of no more than 32MiB can be processed at mo
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
+      ...                                 <---- Omitting 32MiB here - 800 bytes, plus the 4 lines above, is just over 32MiB
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
           response = self.full_dispatch_request()
              ZeroDivisionError: division by zero
-2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- A new multi-line log
 Traceback (most recent call last):
  ...
 ```
@@ -241,7 +260,7 @@ Number 1: 32MiB of the head
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
+      ...                                 <---- Omitting 32MiB here - 800 bytes, plus the 4 lines above, is just over 32MiB
 ```
 
 Number 2: Remove the 32MiB in the header, and the rest will become a log independently
@@ -255,7 +274,7 @@ Number 2: Remove the 32MiB in the header, and the rest will become a log indepen
 Number 3: The following is a brand-new log:
 
 ```log
-2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- 全新的一条多行日志
+2020-10-23 06:41:56,688 INFO demo.py 5.0  <---- A new multi-line log
 Traceback (most recent call last):
  ...
 ```
@@ -292,10 +311,11 @@ Valid `status` field values are as follows (case-insensitive):
 
 Example: Assume the text data is as follows:
 
-```
+```not-set
 12115:M 08 Jan 17:45:41.572 # Server started, Redis version 3.0.6
 ```
-pipeline script:
+
+Pipeline script:
 
 ```python
 add_pattern("date2", "%{MONTHDAY} %{MONTH} %{YEAR}?%{TIME}")
@@ -322,8 +342,8 @@ Final result:
 A few considerations for Pipeline:
 
 - Default to `<source-name>.p` if `pipeline` is empty in the logging.conf configuration file (default to `nginx` assuming `source` is `nginx.p`)
-- If `<source-name.p>` does not exist, the pipeline feature will not be enabled
-- All pipeline script files are stored in the pipeline directory under the DataKit installation path
+- If `<source-name.p>` does not exist, the Pipeline feature will not be enabled
+- All Pipeline script files are stored in the Pipeline directory under the DataKit installation path
 - If the log file is configured with a wildcard directory, the logging collector will automatically discover new log files to ensure that new log files that meet the rules can be collected as soon as possible
 
 ### Introduction of Glob Rules {#grok-rules}
@@ -331,19 +351,19 @@ A few considerations for Pipeline:
 Use glob rules to specify log files more conveniently, as well as automatic discovery and file filtering.
 
 | Wildcard character | Description                                                         | Regular Example | Matching Sample           | Mismatch                    |
-| :--                | ---                                                                 | ---             | ---                       | ----                        |
+| :--                | ---                                                                 | ---             | ---                       |-----------------------------|
 | `*`                | Match any number of any characters, including none                  | `Law*`          | Law, Laws, Lawyer         | GrokLaw, La, aw             |
 | `?`                | Match any single character                                          | `?at`           | Cat, cat, Bat, bat        | at                          |
 | `[abc]`            | Match a character given in parentheses                              | `[CB]at`        | Cat, Bat                  | cat, bat                    |
 | `[a-z]`            | Match a character in the range given in parentheses                 | `Letter[0-9]`   | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
 | `[!abc]`           | Match a character not given in parentheses                          | `[!C]at`        | Bat, bat, cat             | Cat                         |
-| `[!a-z]`           | Match a character that is not within the given range in parentheses | `Letter[!3-5]`  | Letter1…                  | Letter3 … Letter5, Letterxx |
+| `[!a-z]`           | Match a character that is not within the given range in parentheses | `Letter[!3-5]`  | Letter1…                  | Letter3 … Letter5, Letter x |
 
 Also, in addition to the glob standard rules described above, the collector also supports `**` recursive file traversal, as shown in the sample configuration. For more information on Grok, see [here](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
 
 ### Special Bytecode Filtering for Logs {#ansi-decode}
 
-The log may contain some unreadable bytecodes (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to true.
+The log may contain some unreadable bytecode (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to true.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -365,7 +385,7 @@ PASS
 
 The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.logging.tags]`:
 
@@ -400,21 +420,25 @@ After DataKit is started, the log file configured in `logfiles` ==will be collec
 
 In addition, once a log file is collected, a log will be automatically triggered, which reads as follows:
 
-```
+```not-set
 First Message. filename: /some/path/to/new/log ...
 ```
 
 If you see such information, prove that the specified file ==has started to be collected, but no new log data has been generated at present==. In addition, there is a certain delay in uploading, processing and warehousing log data, and even if new data is generated, it needs to wait for a certain time (< 1min).
 
+<!-- markdownlint-disable MD013 -->
 ### Mutex of Disk Log Collection and Socket Log Collection {#exclusion}
+<!-- markdownlint-enable -->
 
 The two collection methods are mutually exclusive at present. When collecting logs in Socket mode, the `logfiles` field in the configuration should be left blank: `logfiles=[]`
 
 ### Remote File Collection Scheme {#remote-ntfs}
 
-On linux, you can mount the file path of the host where the log is located to the DataKit host by [NFS mode](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}, and the logging collector can configure the corresponding log path.
+On Linux, you can mount the file path of the host where the log is located to the DataKit host by [NFS mode](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}, and the logging collector can configure the corresponding log path.
 
+<!-- markdownlint-disable MD013 -->
 ### MacOS Log Collector Error `operation not permitted` {#mac-no-permission}
+<!-- markdownlint-enable -->
 
 In MacOS, because of system security policy, the DataKit log collector may fail to open files, error `operation not permitted`, refer to [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}.
 
@@ -438,19 +462,21 @@ head -c 1g path/to/your/log.txt | gzip | wc -c
 
 What we get here is the compressed bytes. According to the calculation method of network bits (x8), the calculation method is as follows, so that we can get the approximate bandwidth consumption:
 
-```
+```not-set
 bytes * 2 * 8 /1024/1024 = xxx MBit
 ```
 
 But in fact, the compression ratio of DataKit will not be so high, because DataKit will not send 1GB of data at one time, and it will be sent several times, and this compression ratio is about 85% (that is, 100MB is compressed to 15MB), so a general calculation method is:
 
-```
+```not-set
 1GB * 2 * 8 * 0.15/1024/1024 = xxx MBit
 ```
 
+<!-- markdownlint-disable MD046 -->
 ??? info
 
     Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../developers/pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
+<!-- markdownlint-enable -->
 
 ## Extended reading {#more-reading}
 
@@ -459,4 +485,4 @@ But in fact, the compression ratio of DataKit will not be so high, because DataK
 - [Pipeline debugging](../developers/pipeline/pipeline-quick-start.md#debug)
 - [Pipeline Performance Test and Comparison](logging-pipeline-bench.md)
 - [Collect container internal logs via Sidecar (logfwd)](logfwd.md)
-- [Configure correctly with regular expressions](datakit-input-conf#debug-regex) 
+- [Configure correctly with regular expressions](datakit-input-conf#debug-regex)

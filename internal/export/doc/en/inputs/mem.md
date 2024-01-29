@@ -22,12 +22,14 @@ monitor   :
 
 ---
 
-Mem collector is used to collect system memory information, some general metrics such as total memory, used memory and so on. 
+Mem collector is used to collect system memory information, some general metrics such as total memory, used memory and so on.
 
 
 ## Configuration {#config}
 
 After successfully installing and starting DataKit, the Mem collector will be enabled by default without the need for manual activation.
+
+### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 

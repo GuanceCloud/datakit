@@ -93,7 +93,7 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path."},
 			"host":              inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
 		},
 	}
@@ -135,7 +135,7 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -168,8 +168,8 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
-			"name":              inputs.NewTagInfo("the name of GC generation"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
+			"name":              inputs.NewTagInfo("The name of GC generation."),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -204,7 +204,7 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -238,7 +238,7 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}
@@ -261,14 +261,14 @@ func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaMemoryPool,
 		Fields: map[string]interface{}{
-			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java memory pool allocated"},
+			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java memory pool allocated."},
 			"Usagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java  memory pool available."},
-			"Usagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java memory pool committed to be used"},
+			"Usagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java memory pool committed to be used."},
 			"Usageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java memory pool used."},
 
-			"PeakUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial peak Java memory pool allocated"},
+			"PeakUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial peak Java memory pool allocated."},
 			"PeakUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum peak Java  memory pool available."},
-			"PeakUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool committed to be used"},
+			"PeakUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool committed to be used."},
 			"PeakUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool used."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
@@ -278,8 +278,8 @@ func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path"),
-			"name":              inputs.NewTagInfo("the name of space"),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
+			"name":              inputs.NewTagInfo("The name of space."),
 			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
 		},
 	}

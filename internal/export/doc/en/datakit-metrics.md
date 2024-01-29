@@ -8,7 +8,7 @@ Foe better self-observability, Datakit has exported many Prometheus metrics amon
 
 Since Datakit [Version 1.5.9](changelog.md#cl-1.5.9), we can visit `http://localhost:9529/metrics` to see these metrics(Different release may got some new or renamed metrics).
 
-We have used these metrics in [Datakit monitor](datakit-monitor.md), and we can *playing* these metrics with some tricks like this(refresh CPU usage of Datakit): 
+We have used these metrics in [Datakit monitor](datakit-monitor.md), and we can *playing* these metrics with some tricks like this(refresh CPU usage of Datakit):
 
 ```shell
 # play CPU usage of Datakit on every 3 seconds
