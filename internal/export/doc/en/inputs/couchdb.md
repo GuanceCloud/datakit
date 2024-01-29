@@ -19,16 +19,17 @@ monitor   :
 
 ---
 
-CouchDB collector is used to collect metric data related to CouchDB, and currently it only supports data in Prometheus format. 
+CouchDB collector is used to collect metric data related to CouchDB, and currently it only supports data in Prometheus format.
 
 Already tested version:
 
 - [x] CouchDB 3.3.2
 - [x] CouchDB 3.2
-- [ ] CouchDB 3.1 this and versions earlier than this do not support 
+- [ ] CouchDB 3.1 this and versions earlier than this do not support
 
+## Configuration {#config}
 
-## Preconditions {#requirements}
+### Preconditions {#requirements}
 
 - Install CouchDB server
   
@@ -69,7 +70,7 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
     - bind_address = 127.0.0.1 If it is a local collection, there is no need to modify it.
 <!-- markdownlint-enable -->
 
-## Config {#input-config}
+### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"

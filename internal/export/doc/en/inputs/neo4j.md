@@ -19,7 +19,7 @@ monitor   :
 
 ---
 
-Neo4j collector is used to collect metric data related to Neo4j, and currently it only supports data in Prometheus format. 
+Neo4j collector is used to collect metric data related to Neo4j, and currently it only supports data in Prometheus format.
 
 Already tested version:
 
@@ -29,7 +29,9 @@ Already tested version:
 - [ ] Neo4j 3.3.0 enterprise this and versions earlier than this do not support
 - [ ] Neo4j 5.11.0 community all community versions do not support
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 - Install Neo4j server
   
@@ -66,7 +68,7 @@ See [official document](https://neo4j.com/docs/operations-manual/current/install
     - 0.0.0.0:2004 If it is a local collection, need be localhost:2004.
 <!-- markdownlint-enable -->
 
-## Config {#input-config}
+### Config {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"

@@ -1,7 +1,7 @@
 # Auto Attach DDTrace-Java Agent
 
-This Java tool is mainly used to inject DDTrace-java agent into the currently running Java process without manually configuring and restarting the host Java process.
-
+This Java tool is mainly used to inject DDTrace-Java agent into the currently running Java process without manually configuring and restarting the host Java process.
+<!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
 -   [:material-language-java: :material-download:](https://static.guance.com/ddtrace/agent-attach-java.jar){:target="_blank"} ·
@@ -10,10 +10,10 @@ This Java tool is mainly used to inject DDTrace-java agent into the currently ru
     [:octicons-history-16:](https://github.com/GuanceCloud/agent-attach-java/releases){:target="_blank"}
 
 </div>
-
+<!-- markdownlint-enable -->
 ## principle {#principle}
 
-Attach after the JVM is started and load through the Attach API. This method will execute the agentmain method after the agent is loaded.
+Attach after the JVM is started and load through the Attach API. This method will execute the agent main method after the agent is loaded.
 
 ## download {#download}
 
@@ -70,6 +70,7 @@ mv target/agent-attach-java-jar-with-dependencies.jar agent-attach-java.jar
 ```
 
 use -h ：
+
 ```txt
 root@q-PC:agent-attach-java$ java -jar target/agent-attach-java-jar-with-dependencies.jar -h
 java -jar agent-attach-java.jar [-options <dd options>]
@@ -108,12 +109,12 @@ Parameter Description:
 Java run：
 
 ```shell
-$ java -jar agent-attach-java.jar
+java -jar agent-attach-java.jar
 ```
 
-## Auto attach dd-java-agent.jar {#dynamic-inject-ddagent-java}
+## Auto attach `dd-java-agent.jar`` {#dynamic-inject-ddagent-java}
 
-- download dd-java-agent.jar，and put to */usr/local/ddtrace/*.
+- download `dd-java-agent.jar`, and put to */usr/local/ddtrace/*.
 
 ```shell
 mkdir -p /usr/local/ddtrace
@@ -123,11 +124,11 @@ wget https://static.guance.com/ddtrace/dd-java-agent.jar
 
 ???+ attention
 
-You must use [Extended DDTrace] (ddtrace-ext-java.md), otherwise the automatic injection function is limited (various Trace parameters cannot be set).
+You must use [Extended DDTrace](ddtrace-ext-java.md), otherwise the automatic injection function is limited (various Trace parameters cannot be set).
 
 - Start Java application (ignored if Java application is started)
 
-- use agent-attach-java.jar attach to *dd-trace-java.jar*
+- use `agent-attach-java.jar` attach to `dd-trace-java.jar`
 
 ```shell
 java -jar agent-attach-java.jar \
@@ -184,5 +185,5 @@ Exception in thread "main" java.lang.UnsupportedClassVersionError: com/guance/ja
         at sun.launcher.LauncherHelper.checkAndLoadMain(LauncherHelper.java:495)
 ```
 
-This is because the compile time version is too low and the runtime version is too high. 
+This is because the compile time version is too low and the runtime version is too high.
 Replace the version or use the current version to recompile.

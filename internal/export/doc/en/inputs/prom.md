@@ -10,8 +10,9 @@ monitor   :
     path  : '-'
 ---
 
-
+<!-- markdownlint-disable MD025 -->
 # Prometheus Exporter Data Collection
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -26,10 +27,11 @@ The Prom collector can obtain all kinds of metric data exposed by Prometheus Exp
 
 ### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 Only metric data in Prometheus form can be accessed.
 === "Host Installation"
 
-    Go to the `conf.d/prom` directory under the DataKit installation directory, copy `prom.conf.sample` and name it `prom.conf`. Examples are as follows:
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -49,7 +51,7 @@ Only metric data in Prometheus form can be accessed.
     [[inputs.prom]]
         interval = "10s"
     ```
-
+<!-- markdownlint-enable -->
 ### Configure Extra header {#extra-header}
 
 The Prom collector supports configuring additional request headers in HTTP requests for data pull, as follows:
@@ -66,7 +68,7 @@ The Prom collector supports configuring additional request headers in HTTP reque
 
 `tags_rename` can replace the tag name of the collected Prometheus Exporter data, and `overwrite_exist_tags` is used to open the option of overwriting existing tags. For example, for existing Prometheus Exporter data:
 
-```
+```not-set
 http_request_duration_seconds_bucket{le="0.003",status_code="404",tag_exists="yes", method="GET"} 1
 ```
 
@@ -98,9 +100,9 @@ Note that the tag name here is case-sensitive, and you can test the data with th
 
 ## Protocol Conversion Description {#proto-transfer}
 
-Because the data format of Prometheus is different from the line protocol format of Infuxdb. For Prometheus, the following is a piece of data exposed in a K8s cluster:
+Because the data format of Prometheus is different from the line protocol format of Influxdb. For Prometheus, the following is a piece of data exposed in a K8s cluster:
 
-```
+```not-set
 node_filesystem_avail_bytes{device="/dev/disk1s1",fstype="apfs",mountpoint="/"} 1.21585664e+08
 node_filesystem_avail_bytes{device="/dev/disk1s4",fstype="apfs",mountpoint="/private/var/vm"} 1.2623872e+08
 node_filesystem_avail_bytes{device="/dev/disk3s1",fstype="apfs",mountpoint="/Volumes/PostgreSQL 13.2-2"} 3.7269504e+07
@@ -125,9 +127,9 @@ node_filesystem_files{device="map -hosts",fstype="autofs",mountpoint="/net"} 0
 node_filesystem_files{device="map auto_home",fstype="autof
 ```
 
-For Infuxdb, one way to organize the above data is
+For Influxdb, one way to organize the above data is
 
-```
+```not-set
 node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.223372036854776e+18 time
 ```
 
@@ -135,11 +137,11 @@ Its organizational basis is:
 
 - In Prometheus exposed metrics, if the name prefix is `node_filesystem`, then it is specified on the line protocol measurement `node_filesystem`.
 - Place the original Prometheus metrics with their prefixes cut off into the metrics of the measurement `node_filesystem`.
-- By default, all tags in Prometheus (that is, parts in `{}` remain in the row protocol of Infuxdb
+- By default, all tags in Prometheus (that is, parts in `{}` )remain in the row protocol of Influxdb
 
 To achieve this cutting purpose, you can configure `prom.conf` as follows
 
-```
+```not-set
   [[inputs.prom.measurements]]
     prefix = "node_filesystem_"
     name = "node_filesystem"
@@ -166,7 +168,7 @@ Parameter description:
 
 Output sample:
 
-```
+```not-set
 ================= Line Protocol Points ==================
 
  prom_node,device=disk0 disk_written_sectors_total=146531.087890625 1623379432917573000

@@ -32,7 +32,7 @@ Test data:
 
 Use the functions `json()` and `load_json()` functions to extract:
 
-- load_json
+- `load_json`
 
 ```python
 data = load_json(_)
@@ -49,7 +49,7 @@ add_key(status, data["status"])
 add_key(cost, data["cost"])
 ```
 
-- json
+- `json`
 
 ```python
 json(_, tcpSeq, tcpSeq)

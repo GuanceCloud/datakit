@@ -92,12 +92,12 @@ add_pattern("time", "(?:[^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second
 # Extract the time field from the original input through grok. Assuming the input is 12:30:59, the {"hour": 12, "minute": 30, "second": 59}
 grok(_, "%{time}")
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - If a pattern with the same name occurs, the local pattern takes precedence (that is, the local pattern overrides the global pattern).
-    - In the pipeline script, [add_pattern()](#fn-add-pattern) needs to be called before the [grok()](#fn-grok) function, otherwise the first data fetch will fail.
-
+    - In the Pipeline script, [add_pattern()](#fn-add-pattern) needs to be called before the [grok()](#fn-grok) function, otherwise the first data fetch will fail.
+<!-- markdownlint-enable -->
 ### Built-in Pattern List {#builtin-patterns}
 
 DataKit has some commonly used Patterns built in, which we can use directly when using Grok cutting:

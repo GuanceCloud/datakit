@@ -27,8 +27,9 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
 - [x] CouchDB 3.2
 - [ ] CouchDBCouchDB 3.1 及以下版本不支持
 
+## 配置 {#config}
 
-## 前置条件 {#requirements}
+### 前置条件 {#requirements}
 
 - 安装 CouchDB 服务
   
@@ -69,7 +70,7 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
     - bind_address = 127.0.0.1 如果是本地采集，就不需要修改。
 <!-- markdownlint-enable -->
 
-## 配置 {#input-config}
+### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"

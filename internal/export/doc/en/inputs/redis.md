@@ -24,8 +24,8 @@ Redis indicator collector, which collects the following data:
 
 - Turn on AOF data persistence and collect relevant metrics
 - RDB data persistence metrics
-- Slowlog monitoring metrics
-- bigkey scan monitoring
+- Slow Log monitoring metrics
+- Big Key scan monitoring
 - Master-slave replication
 
 ## Configuration {#config}
@@ -45,7 +45,7 @@ When collecting data under the master-slave architecture, please configure the h
 
 Create Monitor User (**optional**)
 
-redis6.0+ goes to the rediss-cli command line, create the user and authorize
+redis6.0+ goes to the `redis-cli` command line, create the user and authorize
 
 ```sql
 ACL SETUSER username >password
@@ -53,7 +53,7 @@ ACL SETUSER username on +@dangerous
 ACL SETUSER username on +ping
 ```
 
-- goes to the rediss-cli command line, authorization statistics hotkey information
+- goes to the `redis-cli` command line, authorization statistics hotkey information
 
 ```sql
 CONFIG SET maxmemory-policy allkeys-lfu
@@ -112,7 +112,7 @@ To collect Redis logs, you need to open the log file `redis.config` output confi
 <!-- markdownlint-enable -->
 
 ## Metrics {#metric}
-
+<!-- markdownlint-disable MD009 -->
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
@@ -134,7 +134,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.TagsMarkdownTable}}
 
-- feld list
+- field list
 
 {{$m.FieldsMarkdownTable}} {{end}}
 
@@ -160,12 +160,12 @@ For all of the following data collections, a global tag named `host` is appended
 {{$m.FieldsMarkdownTable}} {{end}}
 
 {{ end }}
-
+<!-- markdownlint-enable -->
 ### Logging Pipeline {#pipeline}
 
 The original log is:
 
-```
+```log
 122:M 14 May 2019 19:11:40.164 * Background saving terminated with success
 ```
 

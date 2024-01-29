@@ -56,38 +56,6 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 <!-- markdownlint-enable -->
 
-在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
-
-参考 [Kafka Quick Start](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
-
-```shell
-export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
-```
-
-进入 Kafka 目录下启动一个 Producer：
-
-```shell
-bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
-```
-
-复制出一个 kafka.conf 以开启多个 Kafka 采集器，并配置该 url：
-
-```toml
-  urls = ["http://localhost:8090/jolokia"]
-```
-
-并将采集 Producer 指标部分的字段去掉注释：
-
-```toml
-  # The following metrics are available on producer instances.  
-  [[inputs.kafka.metric]]
-    name       = "kafka_producer"
-    mbean      = "kafka.producer:type=*,client-id=*"
-    tag_keys   = ["client-id", "type"]
-```
-
-重启 Datakit，这时 Datakit 便可采集到 Producer 实例的指标。
-
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
@@ -136,9 +104,9 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 如需采集 Kafka 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 kafka 日志文件的绝对路径。比如：
 
 ```toml
-[[inputs.kafka]]
+[[inputs.{{.InputName}}]]
   ...
-  [inputs.kafka.log]
+  [inputs.{{.InputName}}.log]
     files = ["/usr/local/var/log/kafka/error.log","/usr/local/var/log/kafka/kafka.log"]
 ```
 
@@ -160,3 +128,42 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 | name   | io.confluent.connect.s3.storage.S3OutputStream:286     |
 | status | DEBUG                                                  |
 | time   | 1594105469333000000                                    |
+
+## FAQ {#faq}
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: 为什么看不到 `kafka_producer` / `kafka_consumer` / `kafka_connect` 指标集？ {#faq-no-data}
+
+在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
+
+参考 [Kafka Quick Start](https://kafka.apache.org/quickstart){:target="_blank"} ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
+
+```shell
+export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
+```
+
+进入 Kafka 目录下启动一个 Producer：
+
+```shell
+bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+```
+
+复制出一个 kafka.conf 以开启多个 Kafka 采集器，并配置该 url：
+
+```toml
+  urls = ["http://localhost:8090/jolokia"]
+```
+
+并将采集 Producer 指标部分的字段去掉注释：
+
+```toml
+  # The following metrics are available on producer instances.  
+  [[inputs.{{.InputName}}.metric]]
+    name       = "kafka_producer"
+    mbean      = "kafka.producer:type=*,client-id=*"
+    tag_keys   = ["client-id", "type"]
+```
+
+重启 Datakit，这时 Datakit 便可采集到 Producer 实例的指标。
+
+<!-- markdownlint-enable -->

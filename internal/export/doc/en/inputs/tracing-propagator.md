@@ -63,7 +63,7 @@ The open source address of the product:
 
 - [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} is a product under CNCF. At the same time, Observation Cloud also [extended it](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
 - [Jaeger](https://github.com/jaegertracing/jaeger){:target="_blank"} also belongs to CNCF
-- [Datadog](https://github.com/DataDog){:target="_blank"} is a multilingual link tool, in which Observation Cloud has [extended](https://github.com/GuanceCloud /dd-trace-java){:target="_blank"}
+- [Datadog](https://github.com/DataDog){:target="_blank"} is a multilingual link tool, in which Observation Cloud has [extended](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"}
 - [SkyWalking](https://github.com/apache?q=skywalking&type=all&language=&sort=){:target="_blank"} is an open source product under the Apache Foundation
 - [Zipkin](https://github.com/OpenZipkin){:target="_blank"} There are link tools in multiple languages.
 
@@ -202,7 +202,7 @@ After `compatible_otel=true`, all DDTrace `span_id` and `parent_id` will become 
 <!-- markdownlint-disable MD046 -->
 ???+ tip "Convert `span_id` from digital to hexadecimal"
 
-    In the loggging, the SpanId in DDTrace is still in decimal, you need to extract `span_id` in the Pipeline for collecting logs and convert it into a hexadecimal number string (the original logging text will not be modified):
+    In the logging, the SpanId in DDTrace is still in decimal, you need to extract `span_id` in the Pipeline for collecting logs and convert it into a hexadecimal number string (the original logging text will not be modified):
 
     ```python
     # convert string to int64

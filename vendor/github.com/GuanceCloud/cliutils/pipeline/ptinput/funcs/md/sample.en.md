@@ -5,6 +5,7 @@ Function prototype: `fn sample(p)`
 Function description: Choose to collect/discard data with probability p.
 
 Function parameters:
+
 - `p`: the probability that the sample function returns true, the value range is [0, 1]
 
 Example:

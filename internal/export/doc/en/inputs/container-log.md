@@ -17,12 +17,11 @@ Console output (stdout/stderr) is written to files by the container runtime, and
 
 If you want to customize the collection configuration, it can be done through adding container environment variables or Kubernetes Pod Annotations.
 
-- The following are the key scenarios for custom configurations:
-
-  - For container environment variables, the key must be set as `DATAKIT_LOGS_CONFIG`.
-  - For Pod Annotations, there are two possible formats:
-    - `datakit/$CONTAINER_NAME.logs`, where `$CONTAINER_NAME` needs to be replaced with the current Pod's container name. This format is used in multi-container environments.
-    - `datakit/logs` applies to all containers of the Pod.
+-The following are the key scenarios for custom configurations:
+    - For container environment variables, the key must be set as `DATAKIT_LOGS_CONFIG`.
+    - For Pod Annotations, there are two possible formats:
+        - `datakit/$CONTAINER_NAME.logs`, where `$CONTAINER_NAME` needs to be replaced with the current Pod's container name. This format is used in multi-container environments.
+        - `datakit/logs` applies to all containers of the Pod.
 
 <!-- markdownlint-disable MD046-->
 ???+ info
@@ -48,23 +47,21 @@ If you want to customize the collection configuration, it can be done through ad
 
 Field explanations:
 
-| Field Name           | Possible Values   | Explanation                                                                                                                                                          |
-| -----                | ----              | ----                                                                                                                                                                |
-| `disable`            | true/false        | Whether to disable log collection for the container. The default value is `false`.                                                                                   |
-| `type`               | `file`/empty      | The type of collection. If collecting logs from container internal files, it must be set as `file`. The default value is empty, which means collecting `stdout/stderr`. |
-| `path`               | string            | The configuration file path. If collecting logs from container internal files, it should be set as the path of the volume, which is accessible from outside the container. The default is not required when collecting `stdout/stderr`.                      |
-| `source`             | string            | The source of the logs. Refer to [Configuring the Source for Container Log Collection](container.md#config-logging-source).                                         |
-| `service`            | string            | The service to which the logs belong. The default value is the log source (`source`).                                                                                |
-| `pipeline`           | string            | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                      |
+| Field Name           | Possible Values           | Explanation                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disable`            | true/false                | Whether to disable log collection for the container. The default value is `false`.                                                                                                                                                                                                             |
+| `type`               | `file`/empty              | The type of collection. If collecting logs from container internal files, it must be set as `file`. The default value is empty, which means collecting `stdout/stderr`.                                                                                                                        |
+| `path`               | string                    | The configuration file path. If collecting logs from container internal files, it should be set as the path of the volume, which is accessible from outside the container. The default is not required when collecting `stdout/stderr`.                                                        |
+| `source`             | string                    | The source of the logs. Refer to [Configuring the Source for Container Log Collection](container.md#config-logging-source).                                                                                                                                                                    |
+| `service`            | string                    | The service to which the logs belong. The default value is the log source (`source`).                                                                                                                                                                                                          |
+| `pipeline`           | string                    | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                                                                                                                                                  |
 | `multiline_match`    | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
-| `character_encoding` | string            | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                |
-| `tags`               | key/value pairs   | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).                                                     |
-
+| `character_encoding` | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
+| `tags`               | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).                                                                                                          |
 
 Below is a complete example:
 
-
-<!-- markdownlint-disable -->
+<!-- markdownlint-disable MD046 -->
 === "Container Environment Variables"
 
     ``` shell
@@ -88,8 +85,6 @@ Below is a complete example:
     $ docker run --name log-output -env DATAKIT_LOGS_CONFIG='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
     ```
 
-
-<!-- markdownlint-disable -->
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="log-output.yaml"
@@ -127,10 +122,8 @@ Below is a complete example:
 
     ``` yaml
     $ kubectl apply -f log-output.yaml
+    ...
     ```
-
-
-<!-- markdownlint-enable -->
 
 ???+ attention
 
@@ -144,18 +137,19 @@ Below is a complete example:
     ```
     If a Pod/Container log is already being collected, adding configuration via the `kubectl annotate` command does not take effect.
 
+<!-- markdownlint-enable -->
 
 ## Logging for Log Files Inside Containers {#logging-with-inside-config}
 
 For log files inside containers, the configuration is similar to logging console output, except that you need to specify the file path. Other configurations are mostly the same.
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The configured file path is not the path inside the container but the path accessible from the outside through volume.
     
     Similarly, you can add the configuration either as a container environment variable or a Kubernetes Pod Annotation. The key and value remain the same as mentioned earlier. Please refer to the previous section for details.
-
+<!-- markdownlint-enable -->
 
 Here is a complete example:
 
@@ -185,8 +179,6 @@ Here is a complete example:
     $ docker run --env DATAKIT_LOGS_CONFIG="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
     ```
 
-
-<!-- markdownlint-disable MD046 -->
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="logging.yaml"
@@ -234,19 +226,20 @@ Here is a complete example:
               name: opt
           volumes:
           - name: opt
-	    emptyDir: {}
+        emptyDir: {}
     ```
 
     ``` yaml
     $ kubectl apply -f logging.yaml
     ```
-
+<!-- markdownlint-enable -->
 
 For log files inside containers, in a Kubernetes environment, you can also achieve collection by adding a sidecar. Please refer to [here](logfwd.md) for more information.
 
+<!-- markdownlint-disable MD013 -->
 ### Adjust Log Collection According to Container Image {#logging-with-image-config}
-
-By default, DataKit collects stdout/stderr logs for all containers on your machine/Node, which may not be expected. Sometimes, we want to collect only (or not) the logs of some containerss, where the target container/Pod can be indirectly referred to by the mirror name.
+<!-- markdownlint-enable -->
+By default, DataKit collects stdout/stderr logs for all containers on your machine/Node, which may not be expected. Sometimes, we want to collect only (or not) the logs of some containers, where the target container/Pod can be indirectly referred to by the mirror name.
 
 <!-- markdownlint-disable MD046 -->
 === "host installation"
@@ -286,8 +279,6 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     The configuration rules for `container_include_log` and `container_exclude_log` are complex, and their simultaneous use can result in a variety of priority cases. It is recommended to use only `container_exclude_log`.
 
-
-<!-- markdownlint-disable MD046 -->
 === "Kubernetes"
 
     The following environment variables can be used
@@ -317,7 +308,6 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
         value: namespace:foo  # Specify the namespace or its wildcard
     ```
 
-
 ???+ tip "How to view a mirror"
 
     Docker：
@@ -334,12 +324,12 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
 <!-- markdownlint-enable -->
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The priority of the global configuration `container_exclude_log` is lower than the custom configuration `disable` within the container. For example, if `container_exclude_log = ["image:*"]` is configured to exclude all logs, but there is a Pod Annotation as follows:
     
-    ```json
+    ``` JSON
     [
       {
           "disable": false,
@@ -361,10 +351,13 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of disable=true.
 
+<!-- markdownlint-enable -->
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Issue with Soft Links in Log Directories {#log-path-link}
+<!-- markdownlint-enable -->
 
 Normally, Datakit retrieves the path of log files from the container/Kubernetes API and collects the file accordingly.
 
@@ -380,39 +373,41 @@ lrwxrwxrwx 1 root root   20 Oct  8 10:06 pods -> /mnt/container_logs/
 
 To enable Datakit to collect the log file, `/mnt/container_logs` hostPath needs to be mounted. For example, the following can be added to `datakit.yaml`:
 
-```yaml
-    # .. omitted..
-    spec:
-      containers:
-      - name: datakit
-        image: pubrepo.guance.com/datakit/datakit:1.16.0
-        volumeMounts:
-        - mountPath: /mnt/container_logs
-          name: container-logs
-      # .. omitted..
-      volumes:
-      - hostPath:
-          path: /mnt/container_logs
-        name: container-logs
+``` yaml
+# .. omitted..
+spec:
+  containers:
+  - name: datakit
+    image: pubrepo.guance.com/datakit/datakit:1.16.0
+    volumeMounts:
+    - mountPath: /mnt/container_logs
+      name: container-logs
+  # .. omitted..
+  volumes:
+  - hostPath:
+      path: /mnt/container_logs
+    name: container-logs
 ```
 
 This situation is not very common and is usually only executed when it is known in advance that there is a soft link in the path or when Datakit logs indicate collection errors.
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Source Setting for Container Log Collection {#config-logging-source}
-
+<!-- markdownlint-enable -->
 In the container environment, the log `source` setting is a very important configuration item, which directly affects the display effect on the page. However, it would be cruel to configure a source for each container's logs one by one. Without manually configuring the container log source, DataKit has the following rule (descending priority) for automatically inferring the source of the container log:
 
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The so-called not manually specifying the container log source means that it is not specified in Pod Annotation or in container.conf (currently there is no configuration item specifying the container log source in container.conf).
-
+<!-- markdownlint-enable -->
 
 - Container's own name: The name that can be seen through `docker ps` or `crictl ps`.
 - Container name specified by Kubernetes: Obtained from the `io.kubernetes.container.name` label of the container.
 - `default`: Default `source`.
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Wildcard Collection of Log Files in Containers {#config-logging-source}
+<!-- markdownlint-enable -->
 
 To collect log files within a container, you need to add a configuration in Annotations/Labels and specify the `path` as follows:
 

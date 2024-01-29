@@ -32,7 +32,7 @@ Notice:
 
 After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from `Observation Cloud`, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
 
-![pipeline-offload](img/pipeline-offload.drawio.png)
+![`pipeline-offload`](img/pipeline-offload.drawio.png)
 
 ## Deploy post-level data processor
 

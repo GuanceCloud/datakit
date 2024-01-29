@@ -4,7 +4,7 @@ summary   : 'Collect InfluxDB metrics'
 __int_icon      : 'icon/influxdb'
 dashboard :
   - desc  : 'InfluxDB'
-    path  : 'dashboard/zh/influxdb'
+    path  : 'dashboard/en/influxdb'
 monitor   :
   - desc  : 'N/A'
     path  : '-'
@@ -20,13 +20,13 @@ monitor   :
 
 ---
 
-The InfuxDB collector is used to collect the data of the InfuxDB.
+The InfluxDB collector is used to collect the data of the InfluxDB.
 
 ## Configuration {#config}
 
 ### Preconditions {#requirements}
 
-The infuxdb collector is only applicable to infuxdb v1.x, and the prom collector is required for infuxdb v2.x.
+The influxdb collector is only applicable to influxdb v1.x, and the prom collector is required for influxdb v2.x.
 
 Already tested version:
 
@@ -50,7 +50,8 @@ Already tested version:
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
 
-### Sample Prom Collector Configuration for InfuxDB v2.x {#prom-config}
+
+### InfluxDB v2.x {#prom-config}
 
 ```toml
 [[inputs.prom]]
@@ -126,7 +127,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 ## Log Collection {#logging}
 
-To collect the InfuxDB log, open `files` in {{.InputName}}.conf and write to the absolute path of the InfuxDB log file. For example:
+To collect the InfluxDB log, open `files` in {{.InputName}}.conf and write to the absolute path of the InfluxDB log file. For example:
 
 ```toml
 [inputs.{{.InputName}}.log]

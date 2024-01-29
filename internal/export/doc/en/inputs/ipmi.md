@@ -32,7 +32,7 @@ IPMI enables the operation and maintenance system to obtain the operation health
 
 - Install the `ipmitool` Toolkit
 
-DataKit collects IPMI data through the [ipmitool][1]  tool, so it needs to be installed on the machine. It can be installed by the following command:
+DataKit collects IPMI data through the [`ipmitool`][1]  tool, so it needs to be installed on the machine. It can be installed by the following command:
 
 ```shell
 # CentOS
@@ -55,7 +55,7 @@ modprobe ipmi_devintf
 After successful installation, you can see the information output by ipmi server by running the following command:
 
 ```shell
-ipmitool -I lanplus -H <IP地址> -U <用户名> -P <密码> sdr elist
+ipmitool -I lanplus -H <IP 地址> -U <用户名> -P <密码> sdr elist
 
 SEL              | 72h | ns  |  7.1 | No Reading
 Intrusion        | 73h | ok  |  7.1 | 
@@ -93,7 +93,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 === "Kubernetes"
 
-    Modification of configuration parameters as environment variables is supported in Kubernetes (effective only when the DataKit is running in K8s daemonset mode, which is not supported on host-deployed DataKits):
+    Modification of configuration parameters as environment variables is supported in Kubernetes (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported on host-deployed DataKits):
     
     | Environment Variable Name                          | Corresponding Configuration Parameter Item     | Parameter Example                                                     |
     | :------------------------           | ---                  | ---                                                          |
@@ -121,7 +121,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 ???+ tip "Configuration"
 
     - The keywords for each parameter classification are all in lowercase
-    - Refer to ipmitool -I The data returned by the command, then the keywords are reasonably configured
+    - Refer to `ipmitool -I ...` The data returned by the command, then the keywords are reasonably configured
 <!-- markdownlint-enable -->
 
 <!--
@@ -162,7 +162,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ range $i, $m := .Measurements }}
 
--  Tag
+- Tag
 
 {{$m.TagsMarkdownTable}}
 

@@ -13,24 +13,25 @@ A typical configuration collector file has the following structure:
 
 ```toml
 [[inputs.some_name]] # The line is required to indicate which collector configuration this toml file is
-	key = value
-	...
+  key = value
+  ...
 
 [[inputs.some_name.other_options]] # The line is optional, and some collectors are configured with this line, while others are not
-	key = value
-	...
+  key = value
+  ...
 ```
-
+<!-- markdownlint-disable MD046 -->
 ??? attention
 
     Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations must be placed in the `conf.d` directory (or its lower subdirectory) and must be suffixed by `.conf`, otherwise DataKit will ignore the processing of the configuration file.
-
+<!-- markdownlint-enable -->
 ## How to Modify Collector Configuration {#modify-input-conf}
 
 At present, some collectors can be turned on without configuration, while others need to edit the configuration manually.
 
+<!-- markdownlint-disable MD013 -->
 ### Enable Multiple Collections with the Same Collector {#input-multi-inst}
-
+<!-- markdownlint-enable -->
 Taking MySQL as an example, if you want to configure multiple different MySQL collections, there are two ways:
 
 1. Add a new conf file, such as *mysql-2.conf*, which can be placed in the same directory as the existing *mysql.conf*.
@@ -75,7 +76,7 @@ Taking MySQL as an example, if you want to configure multiple different MySQL co
 # Continue to add another one below
 #-----------------------------------------
 [[inputs.mysql]]
-	...
+  ...
 ```
 
 The second method is probably simpler to manage, which manages all collectors with the same name with the same conf, and the first method may lead to confusion in the configuration directory.
@@ -92,7 +93,7 @@ To sum up, the structure of the second multi-acquisition configuration is as fol
 ```
 
 This is actually a Toml array structure, the structure is suitable for multiple configurations of all collectors.
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - Two collector configuration files with identical contents (file names can be different). To prevent misconfiguration, only one of them will be applied.
@@ -100,26 +101,25 @@ This is actually a Toml array structure, the structure is suitable for multiple 
     - Configuring multiple different collectors (such as MySQL and Nginx) into one conf is not recommended, which can cause some odd problems and is not easy to administer.
     
     - Some collectors are limited to single-instance operation, see [input-singleton for details](#input-singleton).
-
+<!-- markdownlint-enable -->
 ### Single Instance Collector {#input-singleton}
 
 Some collectors only allow a single instance to run, and even if multiple copies are configured, only a single instance will run. These single instance collectors are listed as follows:
 
-| Collector Name                            | Description                                                                           |
-| ------------------------------------- | -----------------------------------------------                                |
-| [cpu](cpu.md)                         | Collect the CPU usage of the host                                                        |
-| [disk](disk.md)                       | Collect disk occupancy                                                               |
-| [diskio](diskio.md)                   | Collect the disk IO status of the host                                                         |
-| [ebpf](ebpf.md)                       | Collect TCP and UDP connection information of host network, Bash execution log, etc.                                |
-| [mem](mem.md)                         | Collect the memory usage of the host                                                         |
-| [swap](swap.md)                       | Collect Swap memory usage                                                         |
-| [system](system.md)                   | Collect the load of host operating system                                                           |
-| [net](net.md)                         | Collect host network traffic                                                           |
-| [netstat](netstat.md)                 | Collect network connections, including TCP/UDP connections, waiting for connections, waiting for processing requests, etc.                |
-| [host_processes](host_processes.md)   | Collect the list of resident (surviving for more than 10min) processes on the host                                      |
-| [hostobject](hostobject.md)           | Collect basic information of host computer (such as operating system information, hardware information, etc.)                                 |
-| [container](container.md)             | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
-
+| Collector Name                        | Description                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`cpu`](cpu.md)                         | Collect the CPU usage of the host                                                                                                           |
+| [`disk`](disk.md)                       | Collect disk occupancy                                                                                                                      |
+| [`diskio`](diskio.md)                   | Collect the disk IO status of the host                                                                                                      |
+| [`ebpf`](ebpf.md)                     | Collect TCP and UDP connection information of host network, Bash execution log, etc.                                                        |
+| [`mem`](mem.md)                       | Collect the memory usage of the host                                                                                                        |
+| [`swap`](swap.md)                     | Collect Swap memory usage                                                                                                                   |
+| [`system`](system.md)                 | Collect the load of host operating system                                                                                                   |
+| [`net`](net.md)                       | Collect host network traffic                                                                                                                |
+| [`netstat`](netstat.md)               | Collect network connections, including TCP/UDP connections, waiting for connections, waiting for processing requests, etc.                  |
+| [`host_processes`](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
+| [`hostobject`](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
+| [`container`](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
 
 ### Close the Specific Collector {#disable-inputs}
 
@@ -165,12 +165,12 @@ Sometimes, we want to temporarily shut down a collector, and there are two ways:
 ```
 
 In contrast, the first approach is more crude and simple, and the second one needs to be carefully modified, which may lead to Toml configuration errors.
-
+<!-- markdownlint-disable MD013 -->
 ### Regular Expressions in Collector Configuration {#debug-regex}
-
+<!-- markdownlint-enable -->
 When editing the collector configuration, some regular expressions may need to be configured.
 
-Since DataKit is mostly developed using Golang, the regular wildmatch used in the configuration section is also implemented using Golang's own regular implementation. As there are some differences in the regular systems of different languages, it is difficult to write the configuration correctly at one time.
+Since DataKit is mostly developed using Golang, the regular wild match used in the configuration section is also implemented using Golang's own regular implementation. As there are some differences in the regular systems of different languages, it is difficult to write the configuration correctly at one time.
 
 We recommend an [online tool to debug our regular wildcard](https://regex101.com/){:target="_blank"}. As shown in the following figure:
 
@@ -185,17 +185,17 @@ In addition, since Toml is used in the configuration of DataKit, it is recommend
 After DataKit is installed, a batch of collectors will be turned on by default without manual opening. These collectors are generally related to the host, and the list is as follows:
 
 | Collector Name                      | Description                                                                                                                                 |
-| ---                                 | ---                                                                                                                                         |
-| [cpu](cpu.md)                       | Collect the CPU usage of the host                                                                                                           |
-| [disk](disk.md)                     | Collect disk occupancy                                                                                                                      |
-| [diskio](diskio.md)                 | Collect the disk IO status of the host                                                                                                      |
-| [mem](mem.md)                       | Collect the memory usage of the host                                                                                                        |
-| [swap](swap.md)                     | Collect Swap memory usage                                                                                                                   |
-| [system](system.md)                 | Collect the load of host operating system                                                                                                   |
-| [net](net.md)                       | Collect host network traffic                                                                                                                |
-| [host_processes](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
-| [hostobject](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
-| [container](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`cpu`](cpu.md)                       | Collect the CPU usage of the host                                                                                                           |
+| [`disk`](disk.md)                     | Collect disk occupancy                                                                                                                      |
+| [`diskio`](diskio.md)                 | Collect the disk IO status of the host                                                                                                      |
+| [`mem`](mem.md)                       | Collect the memory usage of the host                                                                                                        |
+| [`swap`](swap.md)                     | Collect Swap memory usage                                                                                                                   |
+| [`system`](system.md)                 | Collect the load of host operating system                                                                                                   |
+| [`net`](net.md)                       | Collect host network traffic                                                                                                                |
+| [`host_processes`](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
+| [`hostobject`](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
+| [`container`](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
 
 ## For More Readings {#more}
 

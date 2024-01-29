@@ -69,7 +69,7 @@ GRANT SELECT ON performance_schema.* TO 'datakit'@'localhost';
 GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1` <br/>
@@ -121,7 +121,7 @@ Select the appropriate installation package based on the operating system and Oc
 
 After installation, add the installed path `/u01/obclient/lib` to `LD_LIBRARY_PATH` environment variable in the following configuration file.
 
-- For some OS need to install additional dependent libraries: 
+- For some OS need to install additional dependent libraries:
 
 ```shell
 apt-get install -y libaio-dev libaio1
@@ -154,7 +154,7 @@ apt-get install -y libaio-dev libaio1
     ```
 
     The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
-
+<!-- markdownlint-enable -->
 ## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.external.tags]`:
@@ -184,7 +184,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oceanbase_log`.
 
-This function is disabled by default, user could enabling it by modify Datakit's OceanBase configuraion like followings:
+This function is disabled by default, user could enabling it by modify Datakit's OceanBase configuration like followings:
 
 Change the string value after `--slow-query-time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
 
@@ -197,14 +197,14 @@ Change the string value after `--slow-query-time` from `0s` to the threshold tim
 
 ???+ info "Fields description"
     - `failed_obfuscate`：SQL obfuscated failed reason. Only exist when SQL obfuscated failed. Original SQL will be reported when SQL obfuscated failed.
-    [More fields](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688).
+    [More fields](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}.
 
 ???+ attention "Attention"
-    - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millsecond, this function is disabled, which is also the default state.
+    - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millisecond, this function is disabled, which is also the default state.
     - The SQL would not display here when NOT executed completed.
 
 ## FAQ {#faq}
-
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to view the running log of OceanBase Collector? {#faq-logging}
 
 Because the OceanBase collector is an external collector, its logs by default are stored separately in *[Datakit-install-path]/externals/oceanbase.log*.
@@ -212,7 +212,7 @@ Because the OceanBase collector is an external collector, its logs by default ar
 In addition, the log path could modified by using `--log` parameter in configuration file.
 
 ### :material-chat-question: After OceanBase collection is configured, why is there no data displayed in monitor? {#faq-no-data}
-
+<!-- markdownlint-enable -->
 There are several possible reasons:
 
 - OceanBase dynamic library dependencies are problematic
@@ -225,11 +225,11 @@ As the OceanBase collector is compiled independently and CGO is turned on, its r
 
 ```shell
 $ ldd <Datakit-install-path>/externals/oceanbase
-	linux-vdso.so.1 (0x00007ffed33f9000)
-	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
-	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
-	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
-	/lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
+    linux-vdso.so.1 (0x00007ffed33f9000)
+    libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
+    libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
+    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f70142cc000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007f70144fc000)
 ```
 
 If the following information is reported, it is basically caused by the low glibc version on the current machine:

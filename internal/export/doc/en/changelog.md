@@ -1,6 +1,8 @@
 # Changelog
 ---
 
+## 1.24.0(2024/01/24) {#cl-1.24.0}
+
 ### New Features {#cl-1.24.0-new}
 
 - Added [Host Health Check collector](../integrations/host_healthcheck.md) (#2061)
@@ -17,7 +19,7 @@
 ### Feature Enhancements {#cl-1.24.0-opt}
 
 - Optimized resource limitation functionality during non-root-user Linux host installation (#2011)
-- Improved matching performance for sink and blacklist, significantly reducing memory consumption (*10X*) (#2077)
+- Improved matching performance for Sink and blacklist, significantly reducing memory consumption (*10X*) (#2077)
 - Log Streaming add [support for FireLens](../integrations/logstreaming.md#firelens) (#2090)
 - Added `log_read_lines` field in Log Forward log collection (#2098)
 - Optimized handling of tag `cluster_name_k8s` in K8s (#2099)
@@ -43,7 +45,7 @@ This release is an iteration release, with the following updates:
 
 - Support configuring any collector's configure via environment variable (`ENV_DATAKIT_INPUTS`) for Kubernetes deployment (#2068)
 - Container collector now supports more fine-grained configuration by converting Kubernetes object labels to tags (#2064)
-    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC`: support converting labels to tags for metric data 
+    - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC`: support converting labels to tags for metric data
     - `ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2`: support converting labels to tags for non-metric data (e.g. objects/logging)
 
 ### Bug Fixes {#cl-1.23.0-fix}
@@ -95,7 +97,7 @@ This release is an iteration release, with the following updates:
 - Update SDK for [PostgreSQL](../integrations/postgresql.md) collector(#2044)
 - Update default configuration for [ElasticSearch](../integrations/elasticsearch.md) collector(#2048)
 - Added additional ENV configuration options during K8s installation(#2025)
-- Optimized datakit exported Prometheus metrics
+- Optimized DataKit exported Prometheus metrics
 - Updated integration documentation for some collectors
 
 ---
@@ -177,7 +179,7 @@ This release is an iterative release with the following updates:
 - Optimized built-in dashboard and monitor for MySQL/PostgreSQL/SQLServer(#2008/#2007/#2013/#2024)
 - Optimized Prom collector's metrics name(#2014)
 - Optimized Proxy collector and release basic benchmark(#1988)
-- Container loggging tags add support for Pod Labels(#2006)
+- Container logging tags add support for Pod Labels(#2006)
 - Set `NODE_LOCAL` as the default mode when collecting Kubernetes data(and need additional settings for [RBAC](../integrations/container.md#rbac-nodes-stats))(#2025)
 - Optimized tracing handle(on memory usage)(#1966)
 - Update PinPoint collector(#1947)
@@ -191,7 +193,7 @@ This release is a Hotfix release, which fixes the following issues:
 
 ### Bug fix{#cl-1.19.2-fix}
 
-- Fix diskcache bug that drop data on session replay 
+- Fix diskcache bug that drop data on session replay
 - Add Prometheus metrics on collecting Kubernetes related data
 
 ---
@@ -207,6 +209,7 @@ This release is a Hotfix release, which fixes the following issues:
 ---
 
 ## 1.19.0(2023/11/16) {#cl-1.19.0}
+
 This release is an iterative release with the following updates:
 
 ### New addition {#cl-1.19.0-new}
@@ -311,7 +314,7 @@ This release is a Hotfix release, which fixes the following issues:
 
 - Fix dialtesting bug that do not upload data(#1931)
 
-### New featuress {#cl-1.17.1-new}
+### New features {#cl-1.17.1-new}
 
 - eBPF can also [build APM data](../integrations/ebpftrace.md) to trace process/thread relationship under Linux(#1835)
 - Pipeline add new function [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
@@ -381,7 +384,7 @@ This release is an iterative release, mainly including the following updates:
 
 - Fixed an issue where environment variable `ENV_GLOBAL_HOST_TAGS` couldn't fetch the hostname of the machine by `__datakit_hostname` (#1874)
 - Fixed an issue where the open_files field was missing from the metrics data of the [host_processes](../integrations/host_processes.md) collector (#1875)
-- Fixed an issue where the Pinpoint collector had a large number of empty resources and was using too much memory (#1857 #1849) 
+- Fixed an issue where the Pinpoint collector had a large number of empty resources and was using too much memory (#1857 #1849)
 
 ### Function optimization {#cl-1.16.0-opt}
 
@@ -425,7 +428,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Function optimization {#cl-1.15.0-opt}
 
-- [DataKit Lite](datakit-install.md#lite-install) add [logging collector](../integrations/loggging.md)(#1861)
+- [DataKit Lite](datakit-install.md#lite-install) add [logging collector](../integrations/logging.md)(#1861)
 - [`Bug Report`](why-no-data.md#bug-report) supports disabling profile data collection(to avoid pressure on the current Datakit) (#1868)
 - Optimize Datakit image size (#1869)
 - Docs:
@@ -453,7 +456,7 @@ This release is an iterative release, mainly including the following updates:
 
 - Optimize Prometheus metrics collecting(streaming collection) in Kubernetes to avoid possible large memory usage(#1853/#1845)
 
-- Fix [colored loggging](../integrations/logging.md#ansi-decode)
+- Fix [colored logging](../integrations/logging.md#ansi-decode)
     - For Kubernetes, the environment key is `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES`
 
 ---
@@ -584,7 +587,7 @@ This release is an iterative release, mainly including the following updates:
 ### Bug fixes {#cl-1.12.0-fix}
 
 - Fix the problem that the `owner` field is missing in the dial test collector (#1789)
-- Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list](#1776)
+- Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list] (#1776)
 - Fix RUM API cross domain issue (#1785)
 
 [^trace-black-list]: Various types of Trace will carry various business fields (called Tag, Annotation or Attribute, etc.) on its data. In order to collect more data, Datakit accepts these fields by default.
@@ -774,7 +777,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Bug fixes {#cl-1.8.0-fix}
 
-- Fix dialing precheck issue (#1629)
+- Fix dialing pre-check issue (#1629)
 - Fix two field issues in SNMP collection (#1632)
 - Fixed the default port conflict between the upgrade service and other services (#1646)
 
@@ -936,7 +939,7 @@ This release is an iteration release and includes the following updates:
 - Added a large batch of integration tests (#1479/#1460/#1436/#1428/#1407)
 - Optimized the configuration of the IO module and added a configuration field for the number of upload workers (#1536)
     - [Kubernetes](datakit-daemonset-deploy.md#env-io)
-    - [datakit.conf](datakit-conf.md#io-tuning)
+    - [`datakit.conf``](datakit-conf.md#io-tuning)
 
 ### Breaking Changes {#cl-1.5.9-brk}
 
@@ -954,7 +957,7 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 
 - Fix the issue of possible loss of container log collection (#1520)
 - Automatically create the Pythond directory after Datakit startup (#1484)
-- Remove the singleton restriction of the [hostdir](hostdir.md) input(#1498)
+- Remove the singleton restriction of the [`hostdir`](hostdir.md) input(#1498)
 - Fix a problem with the eBPF numeric construction (#1509)
 - Fix the issue of parameter recognition in the Datakit monitor (#1506)
 
@@ -964,14 +967,14 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 - Improve support for [cgroup v2](datakit-conf.md#resource-limit) (#1494)
 - Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
 - Pipeline
-  - Add protective measures to the [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)
-  - Optimize the functionality of [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) and [`delete()`](../developers/pipeline/pipeline-built-in-function.md#fn-delete) for processing JSON keys.
+    - Add protective measures to the [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)
+    - Optimize the functionality of [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) and [`delete()`](../developers/pipeline/pipeline-built-in-function.md#fn-delete) for processing JSON keys.
 - Other engineering optimizations (#1500)
 
 ### Documentation Adjustments {#cl-1.5.8-doc}
 
 - Add [documentation](datakit-offline-install.md#k8s-offline) for full offline installation of Kubernetes (#1480)
-- Improve documentation related to statsd and ddtrace-java (#1481/#1507)
+- Improve documentation related to statsd and `ddtrace-java` (#1481/#1507)
 - Supplement documentation related to TDEngine (#1486)
 - Remove outdated field descriptions from the disk input documentation (#1488)
 - Improve documentation for the Oracle input(#1519)
@@ -989,7 +992,7 @@ This release is an iterative release with the following updates:
     - Add new function [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
     - Add new function[`datatime()`](../developers/pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
 - Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
-- diskio add extended metrics on [io wait](diskio.md#extend)(#1472)
+- Disk io add extended metrics on [io wait](diskio.md#extend)(#1472)
 - Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
 <!-- - Update document on [Datakit Operator Configure](datakit-operator.md)(#1482) -->
 
@@ -997,18 +1000,18 @@ This release is an iterative release with the following updates:
 
 - Fix Pipeline related bugs(#1476/#1469/#1471/#1466)
 - Fix *datakit.yaml* missing `request` field, this may cause Datakit pod always pending(#1470)
-- Disable always-retrying on cloud synchronous, this produce a lot of warnning logging(#1433)
-- Fix encoding error in logging hisgory cache file(#1474)
+- Disable always-retrying on cloud synchronous, this produce a lot of warning logging(#1433)
+- Fix encoding error in logging history cache file(#1474)
 
 ### Features Optimizations {#cl-1.5.7-opt}
 
 - Optimize Point Checker(#1478)
-- Optimize Pipeline funciton [`replace()`](../developers/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
+- Optimize Pipeline function [`replace()`](../developers/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
 - Optimize Datakit installation under Windows(#1406)
-- Optimize [confd](confd.md) configuration($1402)
+- Optimize [Confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)
 - Add more testing on [Nginx](nginx.md)(#1399)
-- Refactor [otel agent](opentelemetry.md)(#1409)
+- Refactor [OTEL agent](opentelemetry.md)(#1409)
 - Update [Datakit Monitor](datakit-monitor.md#specify-module)(#1261)
 
 ## 1.5.6(2023/02/23) {#cl-1.5.6}
@@ -1032,7 +1035,7 @@ This release is an iterative release with the following updates:
 - Fixed tag-key-naming during Point building(#1413#1408)
 - Fixed Datakit Monitor charset issue (#1405)
 - Fixed OTEL tag override issue (#1396)
-- Fixed public API white list issue (#1467) 
+- Fixed public API white list issue (#1467)
 
 ### Features Optimizations {#cl-1.5.6-opt}
 
@@ -1042,7 +1045,7 @@ This release is an iterative release with the following updates:
 - Optimized Pod/ReplicaSet/Deployment's relationship in K8s (#1368)
 - Partially apply new Point constructor (#1400)
 - Add [eBPF](ebpf.md) support on default installing (#1448)
-- Add CDN support during install downloadings (#1457)
+- Add CDN support during install downloading (#1457)
 
 ### Breaking Changes {#cl-1.5.6-brk}
 

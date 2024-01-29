@@ -1,5 +1,19 @@
+---
+title     : 'Net'
+summary   : 'Collect NIC metrics data'
+__int_icon: 'icon/net'
+dashboard :
+  - desc  : 'Net'
+    path  : 'dashboard/en/net'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Net
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,11 +22,13 @@
 
 Net collector is used to collect host network information, such as traffic information of each network interface. For Linux, system-wide TCP and UDP statistics will be collected.
 
-## Preconditions {#requirements}
+## Config {#config}
 
-None
+After successfully installing and launching DataKit, the Net Collector is automatically enabled and does not require manual activation.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
 
 === "Host Installation"
 
@@ -36,12 +52,14 @@ None
     | `ENV_INPUT_NET_INTERVAL`                  | `interval`                  | `10s`                                                        |
     | `ENV_INPUT_NET_INTERFACES`                | `interfaces`                | `'''eth[\w-]+''', '''lo'''` 以英文逗号隔开                   |
 
-## Measurements {#measurements}
+<!-- markdownlint-enable -->
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.net.tags]`:
+## Metric {#metric}
+
+For all the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.net.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -60,8 +78,6 @@ For all of the following data collections, a global tag named `host` is appended
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-
 
 ## More Readings {#more-readings}
 

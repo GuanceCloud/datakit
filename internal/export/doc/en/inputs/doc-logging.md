@@ -1,5 +1,6 @@
+<!-- markdownlint-disable MD013 -->
 # Design and Implementation of Datakit Log Collection System
-
+<!-- markdownlint-enable -->
 ## Preface {#head}
 
 Log collection is an important item of Guance Cloud Datakit, which processes the actively collected or passively received log data and finally uploads it to the Guance Cloud center. Log collection can be divided into "network stream data" and "local disk file" according to data sources.
@@ -10,7 +11,7 @@ Basically, they passively receive the data sent by the log generator by subscrib
 
 The most common example is to look at the Docker log. When the command `docker logs -f CONTAIENR_NAME` is executed, the Docker starts a separate process and connects to the main process, receiving the data sent by the main process and outputting it to the terminal. Although the Docker logging process and the main process are on the same host, their interaction is through the local loopback network.
 
-More complex weblog scenarios, such as Kubenetes clusters, have logs spread across different Nodes and need to be forwarded in api-server, which is twice as complex as Docker's single access link.
+More complex weblog scenarios, such as Kubernetes clusters, have logs spread across different Nodes and need to be forwarded in api-server, which is twice as complex as Docker's single access link.
 
 However, most logs obtained through the network have a problem-it is impossible to specify the log location. The log receiver can only choose to receive logs from the head, and may receive hundreds of thousands of logs at a time; Or start from the tail, something like `tail -f` only receives the latest data that is currently generated. If the process at the log receiver restarts, the log during this period will be lost.
 
@@ -30,7 +31,7 @@ This paper, focusing on "local disk file", will be divided into three aspects fr
 
 Additionally, the Datakit log collection execution flow is as follows, covering and subdividing the above "three aspects":
 
-```
+```txt
     glob Discover Files       Docker API Discover Files      Discover Files
          |                       |                            |
          ------------------------------------------------------
@@ -72,7 +73,7 @@ Since you want to read and collect log files, you must first locate the file loc
 
 - Normal log files
 - Docker Stdout/Stderr, which is managed and dropped by the Docker service itself (Datakit currently only supports parsing the `json-file` driver)
-- Containerd Stdout/Stderr. Containerd has no strategy for outputting logs. At present, Containerd Stdout/Stderr is managed by kubelet component of Kubenetes, which will be collectively referred to as `Containerd（CRI）`
+- Containerd Stdout/Stderr. Containerd has no strategy for outputting logs. At present, Containerd Stdout/Stderr is managed by kubelet component of Kubernetes, which will be collectively referred to as `Containerd（CRI）`
 
 ### Found Common Log File {#discovery-log}
 
@@ -84,7 +85,7 @@ In Datakit, the glob mode is used to configure the file path, which uses wildcar
 
 For example, there are now the following files:
 
-```
+```shell
 $ tree /tmp
 /tmp
 ├── datakit
@@ -103,9 +104,9 @@ In the Datakit logging collector, you can specify the log files to collect by co
 - Collect all files in the `datakit` directory with glob `/tmp/datakit/*`
 - Collect all files with the name `datakit` and the corresponding glob is `/tmp/datakit/datakit-*log`
 - Collect `mysql.log`, but with `mysql.d` and `mysql` directories in between, there are several ways to navigate to the `mysql.log` file:
-   - Specify directly: `/tmp/mysql.d/mysql/mysql.log`
-   - A single asterisk specifies: `/tmp/*/*/mysql.log`, which is rarely used
-   - Double star `double star`): `/tmp/**/mysql.log`, a simpler and more common way to use the double star `**` instead of the intermediate multi-tier directory structure
+    - Specify directly: `/tmp/mysql.d/mysql/mysql.log`
+    - A single asterisk specifies: `/tmp/*/*/mysql.log`, which is rarely used
+    - Double star `double star`): `/tmp/**/mysql.log`, a simpler and more common way to use the double star `**` instead of the intermediate multi-tier directory structure
 
 After using glob to specify the file path in the configuration file, Datakit periodically searches disk for files that meet the rules, and if it finds that they are not in the collection list, it adds them and collects them.
 
@@ -118,7 +119,7 @@ There are two ways to output logs in a container:
 
 Datakit gets the `LogPath` of the specified container by connecting to the sock file of Docker or Containerd and accessing their API, similar to executing `docker inspect --format='{{`{{.LogPath}}`}}' $INSTANCE_ID`:
 
-```
+```shell
 $ docker inspect --format='{{`{{.LogPath}}`}}' cf681e
 /var/lib/docker/containers/cf681eXXXX/cf681eXXXX-json.log
 ```
@@ -127,7 +128,7 @@ Once the container `LogPath` is obtained, the log collection is created using th
 
 ## Collect Log Data and Process {#log-process}
 
-###  Log Collection Scheduler {#scheduler}
+### Log Collection Scheduler {#scheduler}
 
 After getting a log file path, because Datakit is written in Golang, it usually chooses to open one or more goroutines to collect files independently. The model is simple and easy to implement, which Datakit did before.
 
@@ -148,7 +149,7 @@ To ensure finer manipulation and higher performance, Datakit uses only the most 
 - The last character of this 4KiB data is just a newline character, which can be divided into N parts, and there is no surplus.
 - The last character of this 4KiB data is not a newline character. Compared with the above, there are only N-1 copies of this division, and there is a remaining part, which will be added to the head of the next 4KiB data, and so on.
 
-In Datakit's code, here `update CursorPosition`, `copy` and `truncate` for the same buff to maximize memory reuse. 
+In Datakit's code, here `update CursorPosition`, `copy` and `truncate` for the same buff to maximize memory reuse.
 
 After processing, the read data has become line by line, which can be moved to the next level of the execution stream, namely transcoding and special character processing.
 
@@ -160,8 +161,8 @@ Data transcoding is a very common behavior, which requires specifying the encodi
 
 "Special characters" here refer to the color characters in the data. For example, the following command will output a red `rea`  word at the command line terminal:
 
-```
-$ RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
+```shell
+RED='\033[0;31m' && NC='\033[0m' && print "${RED}red${NC}"
 ```
 
 If you do not process and delete color characters, the final log data will also have `\033[0;31m`, not only lack of aesthetics, take up storage, and may have a negative impact on subsequent data processing. Therefore, special color characters should be screened out here.
@@ -174,18 +175,22 @@ However, for a mature log output framework, there must be a way to turn off colo
 
 "Parsing row data" is primarily for container Stdout/Stderr logs. When the container runtime manages and drops the log, it adds some additional information fields, such as when it was generated, whether the source is `stdout` or `stderr`, whether this log is truncated, and so on. Datakit needs to parse this data and extract the corresponding fields.
 
-- The Docker json-file log is in the following single format, JSON format, and the body is in the `log` field. If the end of the `log` content is `\n` , this row of data is complete and not truncated; If it is not `\n`, it means that the data is too long for more than 16KB and is truncated, and the rest of it is in the next JSON.
-    ```
+- The Docker `json-file` log is in the following single format, JSON format, and the body is in the `log` field. If the end of the `log` content is `\n` , this row of data is complete and not truncated; If it is not `\n`, it means that the data is too long for more than 16KB and is truncated, and the rest of it is in the next JSON.
+
+    ```txt
     {"log":"2022/09/14 15:11:11 Bash For Loop Examples. Hello, world! Testing output.\n","stream":"stdout","time":"2022-09-14T15:11:11.125641305Z"}
     ```
+
 - The Containerd (CRI) single log format is as follows, with fields separated by spaces. Like Docker, Containerd (CRI) has a log truncation flag, the third field `P`, in addition to `F`. `P` means `Partial`, that is, incomplete and truncated; `F` means `Full`.
-    ```
+
+    ```txt
     2016-10-06T00:17:09.669794202Z stdout P log content 1
     2016-10-06T00:17:09.669794202Z stdout F log content 2
     ```
+
     The spliced log data is `log content 1 log content 2`.
 
-By parsing the row data, we can get the log body, stdout/sterr and other information. According to the mark, we can determine whether it is an incomplete truncated log and splice the log. There is no truncation in ordinary log files, and a single line of data in a file can theoretically be infinitely long.
+By parsing the row data, we can get the log body, stdout/stderr and other information. According to the mark, we can determine whether it is an incomplete truncated log and splice the log. There is no truncation in ordinary log files, and a single line of data in a file can theoretically be infinitely long.
 
 In addition, a single log line is truncated, and after splicing, it also belongs to a one-line log, instead of a multi-line log mentioned below, which are two different concepts.
 
@@ -193,7 +198,7 @@ In addition, a single log line is truncated, and after splicing, it also belongs
 
 Multi-line processing is a very important part of log collection, which makes some data that do not conform to the characteristics conform to the characteristics without losing the data. For example, the log file has the following data, which is a common Python stack print:
 
-```
+```txt
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
@@ -206,7 +211,7 @@ If there is no multi-line processing, the final data is the above 7 lines, which
 
 After effective multi-line processing, these 7 rows of data will become 3 rows, and the result is as follows:
 
-```
+```txt
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]\nTraceback (most recent call last):\n  File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app\n    response = self.full_dispatch_request()
 2020-10-23 06:41:56,688 INFO demo.py 5.0
@@ -232,11 +237,11 @@ The implementation of Pipeline is more complex, it consists of abstract syntax t
 
 Just look at the usage scenario, give a simple example, the original text is as follows:
 
-```
+```txt
 2020-10-23 06:41:56,688 INFO demo.py 1.0
 ```
 
-pipeline script:
+Pipeline script:
 
 ```python
 grok(_, "%{date:time} %{NOTSPACE:status} %{GREEDYDATA:msg}")
@@ -264,7 +269,7 @@ Data sending is a very common behavior, and there are basically three steps in D
 
 However, the operations after sending are essential and crucial, namely, "synchronizing the reading position of the current file" and "detecting the file status".
 
-### Syncronization {#sync}
+### Synchronization {#sync}
 
 In the first section of the article, when introducing "network flow data", it was mentioned that in order to be able to continue reading log files at a fixed point, instead of only supporting "reading from the beginning of the file" or `tail -f` mode, Datakit introduced an important operation-recording the reading position of the current file.
 
@@ -289,7 +294,7 @@ The state of a disk file is not static, and the file may be deleted, renamed, or
 
 - The file is rotated:
     - File rotate is a very complicated logic. Generally speaking, the file name remains unchanged, but the specific file pointed to by the file name changes, such as its inode. A typical example is Docker log drop.
-    
+
 Datakit will regularly check whether rotate has occurred in the file currently being collected. The logic of checking is to open a new file handle with this file name, call a function like `SameFile()`, and judge whether the two handles point to the same. If they are inconsistent, it means that rotate has occurred in the current file name.
 
 Once it detects that the file has rotated, Datakit collects the remaining data of the current file (until EOF), reopens the file, which is already a new file, and then operates as usual.
@@ -302,7 +307,7 @@ Supplementary links:
 
 - [Introduction to the glob schema](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}
 - [Datakit automatic multiline configuration](https://docs.guance.com/integrations/logging/#auto-multiline){:target="_blank"}
-- [Datakit pipeline processing](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
+- [Datakit Pipeline processing](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
 - [Docker truncates discussions over 16KiB logs](https://github.com/moby/moby/issues/34855){:target="_blank"}
 - [Docker truncates more than 16KiB of source code](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13){:target="_blank"}
 - [Docker logging driver](https://docs.docker.com/config/containers/logging/local/){:target="_blank"}

@@ -17,14 +17,15 @@ Pipeline can do the following on the data collected by DataKit:
 
 - Add, delete, and modify the values or data types of field and tag
 - Change field to tag
-- Modify measurment name
+- Modify measurement name
 - Drop current data（[drop()](pipeline-built-in-function.md#fn-drop)）
 - Terminate the run of the Pipeline script（[exit()](pipeline-built-in-function.md#fn-exit)）
 - ...
 
-## Input Data Struct {#input-data-struct}
+## Input Data Structure {#input-data-struct}
 
 All types of data will be encapsulated into a Point structure before being processed by the Pipeline script, and its structure can be regarded as:
+
 ``` not-set
 struct Point {
    Name:      str          # Equivalent to the measurement name of Metric data,
@@ -62,15 +63,14 @@ Prompt:
 
 - In the tags/fields map of point, **Any key cannot and will not appear in tags and fields at the same time**;
 
-- You can read the value of the corresponding key in the tags/fields map of the point through a custom identifier or the function `get_key()` in the Pipeline; but modifying the value of the key in Tags or Fields needs to be done through other built-in functions, such as `add_key ` and other functions; where `_` can be regarded as an alias of the key `message`.
+- You can read the value of the corresponding key in the tags/fields map of the point through a custom identifier or the function `get_key()` in the Pipeline; but modifying the value of the key in Tags or Fields needs to be done through other built-in functions, such as `add_key` and other functions; where `_` can be regarded as an alias of the key `message`.
 
 - After the script finishes running, if there is a key named `time` in the tags/fields map of point, it will be deleted; if its value is int64 type, its value will be assigned to the time of point and then deleted. If time is a string, you can try to convert it to int64 using the function `default_time()`.
 
 - You can use the `drop()` function to mark the input Point as being dropped. After the script execution ends, the data will not be uploaded.
-
+<!-- markdownlint-disable MD013 -->
 ## Pipeline Script Storage, Indexing, and Matching {#script-store-index-match}
-
-
+<!-- markdownlint-enable -->
 ### Script Storage and Indexing {#store-and-index}
 
 Currently, Pipeline scripts are divided into four namespaces by source, with indexing priority decreasing, as shown in the following table:
@@ -86,7 +86,7 @@ Notice:
 
 - Do not modify the automatically generated collector default script in the *pipeline* directory, if modified, the script will be overwritten after DataKit starts;
 - It is recommended to add local scripts corresponding to the data category under the *pipeline/[category]/* directory;
-- Except the *pipeline* directory, please do not modify other script directories (remote, confd, gitrepo) in any form.
+- Except the *pipeline* directory, please do not modify other script directories (`remote`, `confd`, `gitrepo`) in any form.
 
 When DataKit selects the corresponding Pipeline, the index priority of the scripts in these four namespaces is decreasing. Take `cpu` metric set as an example, when *metric/cpu.p* is required, DataKit searches in the following order:
 
@@ -103,7 +103,7 @@ We will create indexes for scripts under each data category separately. This fun
 
 The above four types of Pipeline directories store Pipeline scripts as follows:
 
-```
+```shell
 ├── pattern   <-- dedicated to custom patterns
 ├── apache.p
 ├── consul.p
@@ -143,13 +143,13 @@ All of the above data and script matching strategies depend on the data feature 
 
 1. Generate a data feature string with a specific point tag/field:
    - APM's Tracing and Profiling category data：
-       - Use the value of `service`** in **tags/fields to generate a data feature string. For example, if DataKit collects a piece of data, if the value of `service` is `service-a`, `service-a` will be generated, corresponding to the script name `service-a.p`, and then it will be in the script of the *Tracing/Profiling* category Search under the index;
+       - Use the value of `service` **in** tags/fields to generate a data feature string. For example, if DataKit collects a piece of data, if the value of `service` is `service-a`, `service-a` will be generated, corresponding to the script name `service-a.p`, and then it will be in the script of the *Tracing/Profiling* category Search under the index;
    - Scheck's Security category data signature string:
-       - Use the value of `category`** in **tags/fields to generate a data feature string. For example, DataKit receives a piece of Security data, if the value of `category` is `system`, it will generate `system`, corresponding to the script name `system.p`.
+       - Use the value of `category` **in** tags/fields to generate a data feature string. For example, DataKit receives a piece of Security data, if the value of `category` is `system`, it will generate `system`, corresponding to the script name `system.p`.
 
 2. Generate data feature string with specific point tag/field and point name:
    - RUM category data for RUM:
-     - Use the value of `app_id`** in **tags/fields and the value of **point name** to generate a data feature string; take the value of point name as `action` as an example, generate `<app_id>_action`, corresponding to Script name `<app_id>_action.p`;
+     - Use the value of `app_id` **in** tags/fields and the value of **point name** to generate a data feature string; take the value of point name as `action` as an example, generate `<app_id>_action`, corresponding to Script name `<app_id>_action.p`;
 
 3. Use point name to generate data feature string:
    - Logging/Metric/Network/Object/... and all other categories:
@@ -159,7 +159,7 @@ All of the above data and script matching strategies depend on the data feature 
 
 > The sample script is for reference only. Please write it according to the requirements for specific use.
 
-### Processing Timeseries Data {#M}
+### Processing Time Series Data {#M}
 
 The following example is used to show how to modify tag and field with Pipeline. With DQL, we can know the fields of a CPU measurement as follows:
 
@@ -259,4 +259,4 @@ if process_name == "nginx" {
 }
 ```
 
-After restarting DataKit, the corresponding Ngxin process object will not be collected again (the central object has an expiration policy, and it takes 5 ~ 10min for the original nginx object to automatically expire).
+After restarting DataKit, the corresponding Nginx process object will not be collected again (the central object has an expiration policy, and it takes 5 ~ 10min for the original nginx object to automatically expire).

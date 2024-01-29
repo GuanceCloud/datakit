@@ -5,10 +5,10 @@
 
 ---
 
-When Datakit cannot access the extranet, a proxy can be deployed on the intranet to send traffic. This article provides two implementations:
+When Datakit cannot access the external, a proxy can be deployed on the intranet to send traffic. This article provides two implementations:
 
 - Through DataKit's built-in forward proxy service
-- Use Nginx as the proxy servrice
+- Use Nginx as the proxy service
 
 ## Use DataKit Proxy {#datakit}
 
@@ -18,7 +18,7 @@ Detailed proxy input configure, please refer to [here](../integrations/proxy.md)
 
 - Set the proxy mode of _proxy Datakit_.
 
-Go to the `conf.d/` directory under the proxy DataKit installation directory and configure the proxy service in *datakit.conf*. As follows:
+Go to the `conf.d/` directory under the proxy DataKit installation directory and configure the proxy service in _datakit.conf_. As follows:
 
 ```toml
 [dataway]
@@ -42,7 +42,7 @@ If the proxy server works properly, the workspace will receive metric data `prox
 Proxy HTTPS traffic nginx uses a 4-layer transparent proxy mode, that is, it needs:
 
 - a transparent nginx proxy server that can access the external network
-- The client where datakit resides uses the hosts file for domain name configuration
+- The client where DataKit resides uses the hosts file for domain name configuration
 
 ### Configure the `Nginx` Proxy Service {#config-nginx-proxy}
 
@@ -64,7 +64,7 @@ http {
 }
 ```
 
-Proxy HTTP traffic here nginx uses 7 layers of transparent proxy (this section can be skipped if proxy HTTP is not needed): 
+Proxy HTTP traffic here nginx uses 7 layers of transparent proxy (this section can be skipped if proxy HTTP is not needed):
 
 ```not-set
 # Proxy HTTP
@@ -101,7 +101,9 @@ $ nginx -s reload # reload configuration
 ...
 ```
 
-# Configure the Domain Name on the `Datakit` Agent Machine
+<!-- markdownlint-disable MD013 -->
+## Configure the Domain Name on the `Datakit` Agent Machine
+<!-- markdownlint-enable -->
 
 Let's assume that `192.168.1.66` is the IP address of the nginx transparent proxy server.
 
@@ -120,7 +122,7 @@ $ sudo vi /etc/hosts
 ```
 
 On the agent machine, test whether the agent is normal:
-
+<!-- markdownlint-disable MD046 -->
 === "Linux/Unix Shell"
 
     ```shell
@@ -150,3 +152,4 @@ On the agent machine, test whether the agent is normal:
     ```PowerShell
     [Net.ServicePointManager]::SecurityProtocol
     ```
+<!-- markdownlint-enable -->

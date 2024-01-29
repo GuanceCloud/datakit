@@ -30,7 +30,7 @@ In *datakit.conf*, you can enable data recording. When enabled, Datakit records 
     categories = ["logging", "metric"] # Recording categories. All categories are enabled if the list empty
 ```
 
-After restart Datakit, the recording directory structure seems like(here list the metric pbjson examples):
+After restart Datakit, the recording directory structure seems like(here list the metric `pbjson` examples):
 
 ```shell
 [ 416] /usr/local/datakit/recorder/
@@ -57,7 +57,7 @@ After restart Datakit, the recording directory structure seems like(here list th
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    - After record your data, remember to disable the record config(`enable = false`), or every restart of Datakit will recording, and may cause enexpected disk usage
+    - After record your data, remember to disable the record config(`enable = false`), or every restart of Datakit will recording, and may cause unexpected disk usage
     - Input's name are not the name in input's TOML conf(`[[inputs.some-name]]`), it's the name from monitor's `Inputs Info` panel, the 1st column. And some input's name may like this `logging/some-pod-name`, we will set it's recording data to */usr/local/datakit/recorder/logging/logging-some-pod-name.1705636073033197000.pbjson*, here we replaced the `/` with `-`
 <!-- markdownlint-enable -->
 
@@ -65,7 +65,7 @@ After restart Datakit, the recording directory structure seems like(here list th
 
 [:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)
 
-After Datakit has recorded the data, we can save the data in the directory in Git or some other way (** Do not to change the directory naming and structure under *recorder/* **), and then import the data into Guance Cloud with the following command:
+After Datakit has recorded the data, we can save the data in the directory in Git or some other way (**Do not to change the directory naming and structure under *recorder/***), and then import the data into Guance Cloud with the following command:
 
 ```shell
 $ datakit import -P /usr/local/datakit/recorder -D https://openway.guance.com?token=tkn_xxxxxxxxx
@@ -147,9 +147,9 @@ datakit tool --completer-script > datakit-completer.sh
 You can view the running status of DataKit on the terminal, and its effect is similar to that of the monitor page on the browser side:
 
 DataKit's new monitor usage [see here](datakit-monitor.md).
-
+<!-- markdownlint-disable MD013 -->
 ## Check Whether the Collector is Configured Correctly {#check-conf}
-
+<!-- markdownlint-enable -->
 After editing the collector's configuration file, there may be some configuration errors (such as the configuration file format error), which can be checked by the following command:
 
 ```shell
@@ -232,11 +232,11 @@ create_time 1639657028706
 ```
 
 **Partial field description**
- - category: default to `default`, or an alternative value of `input`, indicating that it is associated with a collector (`input`)
- - status: Event level, and the desirable values are `info`, `warning` and `error`
+    - category: default to `default`, or an alternative value of `input`, indicating that it is associated with a collector (`input`)
+    - status: Event level, and the desirable values are `info`, `warning` and `error`
 
 ## DataKit Update IP Database File {#install-ipdb}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     - You can install/update the IP Geographic Repository directly using the following command (here you can select another IP Address Repository `geolite2` by simply replacing  `iploc` with `geolite2`):
@@ -245,7 +245,7 @@ create_time 1639657028706
     datakit install --ipdb iploc
     ```
     
-    - Modify the datakit.conf configuration after updating the IP geo-repository:
+    - Modify the `datakit.conf` configuration after updating the IP geo-repository:
     
     ``` toml
     [pipeline]
@@ -352,7 +352,7 @@ create_time 1639657028706
       province:
        country:
     ```
-
+<!-- markdownlint-enable -->
 ## DataKit Installing Third-party Software {#extras}
 
 ### Telegraf Integration {#telegraf}
@@ -394,11 +394,11 @@ datakit install --ebpf
 ```
 
 If you are prompted `open /usr/local/datakit/externals/datakit-ebpf: text file busy`, stop the DataKit service before executing the command.
-
+<!-- markdownlint-disable MD046 -->
 ???+ warning
 
     The install command has been remove in [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk).
-
+<!-- markdownlint-enable -->
 ## View Cloud Property Data {#cloudinfo}
 
 If the DataKit is installed on a cloud server (currently supports `aliyun/tencent/aws/hwcloud/azure`), you can view some of the cloud attribute data with the following commands, such as (marked `-` to indicate that the field is invalid):
@@ -457,7 +457,7 @@ datakit tool --parse-lp /path/to/file --json
 
 [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)
 
-To check if data is filtered by Blacklist(Filter), we can test by using following datakit commands:
+To check if data is filtered by Blacklist(Filter), we can test by using following DataKit commands:
 
 <!-- markdownlint-disable MD046 -->
 === "Linux/macOS"

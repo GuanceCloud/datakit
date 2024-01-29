@@ -35,11 +35,11 @@ The process collector can monitor various running processes in the system, acqui
 ### Preconditions {#requirements}
 
 - The process collector does not collect process metrics by default. To collect metrics-related data, set `open_metric` to `true` in `host_processes.conf`. For example:
-                              
+
 ```toml
 [[inputs.host_processes]]
-	...
-	 open_metric = true
+    ...
+     open_metric = true
 ```
 
 ### Collector Configuration {#input-config}
@@ -58,7 +58,7 @@ The process collector can monitor various running processes in the system, acqui
 
 === "Kubernetes"
 
-    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s daemonset mode, which is not supported for host-deployed DataKits):
+    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported for host-deployed DataKits):
     
     | Environment Variable Name                              | Corresponding Configuration Parameter Item | Parameter Example                                                     |
     | :---                                    | ---              | ---                                                          |
@@ -99,7 +99,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 - field list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 
@@ -120,7 +120,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 - field list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 

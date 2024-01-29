@@ -18,7 +18,7 @@ DataKit currently supports three major platforms, Linux/Windows/Mac:
 
 After installation, the list of DataKit directories is roughly as follows:
 
-```
+```txt
 ├── [4.4K]  conf.d
 ├── [ 160]  data
 ├── [ 64M]  datakit
@@ -30,35 +30,38 @@ After installation, the list of DataKit directories is roughly as follows:
 
 Among them:
 
-- `conf.d`: Store configuration examples for all collectors. The DataKit main configuration file datakit.conf is located in the directory.
+- `conf.d`: Store configuration examples for all collectors. The DataKit main configuration file `datakit.conf` is located in the directory.
 - `data`: Store data files needed for DataKit to run, such as IP address database, etc.
 - `datakit`: DataKit main program, `datakit.exe` in Windows
 - `externals`: Part of the collector is not integrated in the DataKit main program, it's all here.
 - `pipeline` holds script code for text processing.
 - `gin.log`: DataKit can receive external HTTP data input, and this log file is equivalent to HTTP access-log.
-- `log`: Datakit run log (under Linux/Mac platform, datakit run log is in */var/log/datakit* directory).
-
+- `log`: Datakit run log (under Linux/Mac platform, DataKit run log is in */var/log/datakit* directory).
+<!-- markdownlint-disable MD046 -->
 ???+ tip "View kernel version"
 
     - Linux/Mac：`uname -r`
     - Windows: Execute the `cmd` command (hold down the Win key + `r`, enter `cmd` carriage return) and enter `winver` to get system version information
-
+<!-- markdownlint-enable -->
 ## DataKit Service Management {#manage-service}
 
 DataKit can be directly managed using the following command:
 
 ```shell
 # Linux/Mac may need to add sudo
-datakit service -T # stop
-datakit service -S # start
-datakit service -R # restart
+# stop
+datakit service -T
+# start
+datakit service -S
+# restart
+datakit service -R
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ tip
 
     You can view more help information through `datakit help service`.
-
-#### Service Management Failure Handling {#when-service-failed}
+<!-- markdownlint-enable -->
+### Service Management Failure Handling {#when-service-failed}
 
 Sometimes a service operation may fail due to a bug in some DataKit components (for example, the service does not stop after `datakit service -T`), which can be enforced as follows.
 
@@ -83,7 +86,7 @@ sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
-#### Service Uninstall and Reinstall {#uninstall-reinstall}
+### Service Uninstall and Reinstall {#uninstall-reinstall}
 
 You can uninstall or restore the DataKit service directly using the following command:
 

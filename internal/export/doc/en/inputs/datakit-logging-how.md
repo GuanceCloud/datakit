@@ -7,9 +7,9 @@ Core issues:
 
 - Why the configuration of log collection is so complicated
 - How the log data is processed
-
+<!-- markdownlint-disable MD013 -->
 ## Why is the Configuration of Log Collection So Complicated {#why}
-
+<!-- markdownlint-enable -->
 We can know from [this document](datakit-logging.md) that because of the various sources of logs, there are various ways to configure logs, so it is necessary for us to sort them out here for everyone to understand.
 
 In the process of log collection, DataKit has two types of collection methods: active and passive:
@@ -98,18 +98,18 @@ In DataKit, logs are currently processed in the following stages (enumerated in 
 
 After reading (receiving) the log from the outside, the basic processing will be carried out in the acquisition stage. These processes include log segmentation (dividing large text into several independent bare logs), coding and decoding (converting to UTF8 coding), eliminating some disturbing color characters and so on.
 
-- Single Log Cutting 
+- Single Log Cutting
 
 If the corresponding log is configured with Pipeline cutting, then each log (including a single multi-line log) will be cut by Pipeline, which is mainly divided into two steps:
 
-  1. Grok/Json cutting: Through Grok/Json, a single Raw log is cut into structured data. 
-	1. The extracted fields are processed finely, such as [completing IP information](../developers/pipeline/pipeline-built-in-function.md#fn-geoip), [desensitizing logs](../developers/pipeline/pipeline-built-in-function.md#fn-cover), etc.
+1. Grok/JSON cutting: Through Grok/JSON, a single Raw log is cut into structured data.
+1. The extracted fields are processed finely, such as [completing IP information](../developers/pipeline/pipeline-built-in-function.md#fn-geoip), [desensitizing logs](../developers/pipeline/pipeline-built-in-function.md#fn-cover), etc.
 
 - Blacklist（Filter）
 
 [Filter is a set of filters](datakit-filter.md), which receives a set of structured data and decides whether the data is discarded or not through certain logical judgment. Filter is a set of logical operation rules distributed by the center (actively pulled by DataKit), and its form is roughly as follows:
 
-```
+```txt
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 

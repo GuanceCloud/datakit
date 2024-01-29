@@ -51,7 +51,7 @@ grant SELECT ON pg_stat_database to datakit;
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 

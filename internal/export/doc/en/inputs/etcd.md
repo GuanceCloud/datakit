@@ -4,9 +4,9 @@ summary   : 'Collect etcd metrics'
 __int_icon      : 'icon/etcd'
 dashboard :
   - desc  : 'etcd'
-    path  : 'dashboard/zh/etcd'
+    path  : 'dashboard/en/etcd'
   - desc  : 'etcd-k8s'
-    path  : 'dashboard/zh/etcd-k8s'    
+    path  : 'dashboard/en/etcd-k8s'    
 monitor   :
   - desc  : 'N/A'
     path  : '-'
@@ -33,6 +33,8 @@ etcd version >= 3, Already tested version:
 - [x] 3.5.7
 - [x] 3.4.24
 - [x] 3.3.27
+
+### Collector Configuration {#input-config}
 
 Open etcd, the default metrics interface is `http://localhost:2379/metrics`, or you can modify it in your configuration file.
 

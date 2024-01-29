@@ -45,7 +45,7 @@ CoreDNS collector is used to collect metric data related to CoreDNS.
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
 
-## Measurements {#metrics}
+## Metric {#metric}
 
 {{ range $i, $m := .Measurements }}
 

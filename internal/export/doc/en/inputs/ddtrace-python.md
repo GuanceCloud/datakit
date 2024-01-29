@@ -24,9 +24,11 @@ pip install --upgrade pip
 
 ## Code Example {#example}
 
-**service_a.py**
-
 ```python
+#
+# service_a.py
+#
+
 from flask import Flask, request
 import requests, os
 from ddtrace import tracer
@@ -54,9 +56,12 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=54321, debug=True)
 ```
 
-**service_b.py**
-
 ```python
+#
+# service_b.py
+#
+
+
 from flask import Flask, request
 import os, time, requests
 from ddtrace import tracer
@@ -86,9 +91,9 @@ if __name__ == '__main__':
 
 ## Run {#run}
 
-Take the Webserver Flask application commonly used in Python as an example. In the example, `SERVICE_A` provides the HTTP service and calls the `SERVICE_B` HTTP service.
+Take the Web Server Flask application commonly used in Python as an example. In the example, `SERVICE_A` provides the HTTP service and calls the `SERVICE_B` HTTP service.
 
-**Run SERVICE_A**
+- Run SERVICE_A
 
 ```shell
 DD_SERVICE=SERVICE_A \
@@ -99,7 +104,7 @@ DD_AGENT_PORT=9529 \
 ddtrace-run python3 service_a.py &> a.log &
 ```
 
-**Run SERVICE_B**
+- Run SERVICE_B
 
 ```shell
 DD_SERVICE=SERVICE_B \
@@ -123,7 +128,7 @@ curl http://localhost:54321/stop
 curl http://localhost:54322/stop
 ```
 
-## Environment Variable Support {#envs} 
+## Environment Variable Support {#envs}
 
 - DD_ENV: Set environment variables for the service.
 - DD_VERSION: APP version number.

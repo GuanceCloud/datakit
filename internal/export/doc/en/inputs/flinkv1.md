@@ -1,5 +1,19 @@
+---
+title     : 'Flink'
+summary   : 'Collect Flink metrics'
+__int_icon      : 'icon/flink'
+dashboard :
+  - desc  : 'Flink'
+    path  : 'dashboard/en/flink'
+monitor   :
+  - desc  : 'Flink'
+    path  : 'monitor/en/flink'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Flink
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,28 +22,28 @@
 
 Flink collector can take many metrics from Flink instances, such as Flink server status and network status, and collect the metrics to DataFlux to help you monitor and analyze various abnormal situations of Flink.
 
-## Install Deployment {#install-flink}
+## Configuration  {#config}
 
-Explanation: Example Flink version is: Flink 1.14. 2 (CentOS), each version of the indicator may be different
+### Preconditions {#requirements}
 
-## Preconditions {#requirements}
+> Explanation: Example Flink version is: Flink 1.14. 2 (CentOS), each version of the indicator may be different.
 
-At present, flink officially provides two methods for reporting metrics: [Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus){:target="_blank"} and [PrometheusPushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway){:target="_blank"}. Their main differences are:
+At present, Flink officially provides two methods for reporting metrics: [Prometheus](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheus){:target="_blank"} and [PrometheusPushGateway](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/deployment/metric_reporters/#prometheuspushgateway){:target="_blank"}. Their main differences are:
 
-- PrometheusPushGateway is to report all metrics of the cluster to pushgateway in a unified way, so you need to install pushgateway additionally.
+- Prometheus PushGateway is to report all metrics of the cluster to PushGateway in a unified way, so you need to install PushGateway additionally.
 - Prometheus mode requires each node of the cluster to expose a unique port, and does not need to install other software, but it requires N available ports, which is slightly complicated to configure.
 
 ### PrometheusPushGateway Way (recommended) {#push-gateway}
 
-- Download and Install: pushgateway can be downloaded at [Prometheuse official page](https://prometheus.io/download/#pushgateway){:target="_blank"}.
+- Download and Install: PushGateway can be downloaded at [Prometheuse official page](https://prometheus.io/download/#pushgateway){:target="_blank"}.
 
-Start pushgateway: (This command is for reference only, and the specific command may vary according to the actual environment)
+Start PushGateway: (This command is for reference only, and the specific command may vary according to the actual environment)
 
 ```shell
 nohup ./pushgateway &
 ```
 
-- Configure `flink-conf.yaml` to report metrics uniformly to pushgateway
+- Configure `flink-conf.yaml` to report metrics uniformly to PushGateway
 
 Configure the configuration file for Flink `conf/flink-conf.yaml` sample:
 
@@ -67,12 +81,12 @@ metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusRepor
 metrics.reporter.prom.port: 9250-9260
 ```
 
-> Note: The `metrics.reporter.prom.port` setting is based on the number of clustered jobmanagers and taskmanagers
+> Note: The `metrics.reporter.prom.port` setting is based on the number of clustered `jobmanagers` and `taskmanager`
 
 - Restart the Flink cluster application configuration
 - curl http://{Flink iP}:9250-9260 to start collecting
 
-## Measurements {#measurements}
+## Metric {#metric}
 
 Flink collects multiple metrics by default, and these [metrics](https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/ops/metrics/#system-metrics){:target="_blank"} provide insight into the current state.
 

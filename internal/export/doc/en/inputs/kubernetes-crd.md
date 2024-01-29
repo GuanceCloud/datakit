@@ -5,17 +5,17 @@
 
 ---
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental) 
+[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ## Introduction {#intro}
 
-This document describes how to create a DataKit resouce in a Kubernetes cluster and configure an extension collector.
+This document describes how to create a DataKit resource in a Kubernetes cluster and configure an extension collector.
 
 ### Add Authentication {#authorization}
 
 If it is an upgraded version of DataKit, you need to add authentication in the `apiVersion: rbac.authorization.k8s.io/v1` entry of `datakit.yaml`, that is, copy the following lines and add them to the end:
 
-```
+```yaml
 - apiGroups:
   - guance.com
   resources:
@@ -25,27 +25,30 @@ If it is an upgraded version of DataKit, you need to add authentication in the `
   - list
 ```
 
-### Creat v1beta1 DataKit Instance, Create DataKit Object {#create}
+<!-- markdownlint-disable MD013 -->
+### Create v1beta1 DataKit Instance, Create DataKit Object {#create}
+<!-- markdownlint-enable -->
 
 Write the following to the yaml configuration, such as `datakit-crd.yaml`, where each field has the following meaning:
 
 - `k8sNamespace`: Specify namespace, locates a collection's Pod with deployment, required
-- `k8sDaemonSet`: Specify the daemonset name to locate a collection's Pod with namespace
+- `k8sDaemonSet`: Specify the DaemonSet name to locate a collection's Pod with namespace
 - `k8sDeployment`: Specify the deployment name, and locates the Pod of a collection with namespace
 - `inputConf`: Collector configuration file, find the corresponding Pod according to namespace and deployment, replace the wildcard information of Pod, and then run the collector according to inputConf content. The following wildcard characters are supported.
-  - `$IP`: Pod's intranet IP
-  - `$NAMESPACE`: Pod Namespace
-  - `$PODNAME`: Pod Name
-  - `$NODENAME`: The name of the current node
+    - `$IP`: Pod's intranet IP
+    - `$NAMESPACE`: Pod Namespace
+    - `$PODNAME`: Pod Name
+    - `$NODENAME`: The name of the current node
 
 Execute the `kubectl apply -f datakit-crd.yaml` command.
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     - DaemonSet and Deployment are two different Kubernetes resources, but here `k8s DaemonSet` and `k8s Deployment` can exist at the same time. That is, under the same Namespace, the Pod created by DaemonSet and the Pod created by Deployment share the same CRD configuration. This is not recommended, however, because fields like `source` are used to identify data sources in specific configurations, and mixing them leads to unclear data boundaries. It is recommended that only one `k8s DaemonSet` and `k8s Deployment` exist in the same CRD configuration.
 
     - Datakit only collects Pod in the same node as it, which belongs to nearby collection and will not be collected across nodes.
-
+<!-- markdownlint-enable -->
 
 ## Example {#example}
 
@@ -115,11 +118,11 @@ spec:
           url="http://prom"
 ```
 
-### Ngxin Ingress Configuration Sample {#example-nginx}
+### Nginx Ingress Configuration Sample {#example-nginx}
 
 Here, we use DataKit CRD extension to collect Ingress metrics, that is, we collect Ingress metrics through prom collector.
 
-#### Prerequirements {#nginx-requirements}
+#### Requirements {#nginx-requirements}
 
 - Deployed [DaemonSet DataKit](../datakit/datakit-daemonset-deploy.md)
 - If the `Deployment` is called `ingress-nginx-controller`, the yaml configuration over there is as follows:
@@ -199,7 +202,7 @@ Prometheus configuration can be found in [link](kubernetes-prom.md)
 
 Execute the following `yaml`:
 
-```
+```yaml
 apiVersion: guance.com/v1beta1
 kind: DataKit
 metadata:
@@ -240,7 +243,7 @@ prom-ingress   18m
 Log in to `Datakit pod` and execute the following command:
 
 ```bash
-$ datakit monitor
+datakit monitor
 ```
 
 <figure markdown>

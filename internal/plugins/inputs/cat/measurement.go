@@ -19,133 +19,133 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"runtime_up-time": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationMS,
-				Desc: "运行时长",
+				Desc: "Runtime.",
 			},
 
 			"runtime_start-time": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationSecond,
-				Desc: "启动时间",
+				Desc: "Start time.",
 			},
 
 			"os_available-processors": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "主机 CPU 核心数",
+				Desc: "The number of available processors in the host.",
 			},
 
 			"os_system-load-average": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "系统负载",
+				Desc: "Average system load.",
 			},
 
 			"os_total-physical-memory": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "总物理内存",
+				Desc: "Total physical memory size.",
 			},
 
 			"os_free-physical-memory": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "空闲内存",
+				Desc: "Free physical memory size.",
 			},
 
 			"os_committed-virtual-memory": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "使用内存",
+				Desc: "Committed virtual memory size.",
 			},
 
 			"os_total-swap-space": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "交换区总大小",
+				Desc: "Total swap space size.",
 			},
 
 			"os_free-swap-space": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "交换区空闲大小",
+				Desc: "Free swap space size",
 			},
 
 			"disk_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "数据节点磁盘总量",
+				Desc: "Total disk size of data nodes.",
 			},
 
 			"disk_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "磁盘空闲大小",
+				Desc: "Free disk size.",
 			},
 
 			"disk_usable": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "使用大小",
+				Desc: "Used disk size.",
 			},
 
 			"memory_max": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "最大使用内存",
+				Desc: "Max memory usage.",
 			},
 
 			"memory_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "总使用内存",
+				Desc: "Total memory size.",
 			},
 
 			"memory_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "释放内存",
+				Desc: "Free memory size.",
 			},
 
 			"memory_heap-usage": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "当前使用内存",
+				Desc: "The usage of heap memory.",
 			},
 
 			"memory_non-heap-usage": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "非堆内存",
+				Desc: "The usage of non heap memory.",
 			},
 
 			"thread_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "总线程数量",
+				Desc: "Total number of threads.",
 			},
 
 			"thread_daemon_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "活跃线程数量",
+				Desc: "The number of daemon threads.",
 			},
 
 			"thread_peek_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "线程峰值",
+				Desc: "Thread peek.",
 			},
 
 			"thread_total_started_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "总初始化过的线程",
+				Desc: "Total number of started threads.",
 			},
 
 			"thread_cat_thread_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "cat 使用线程数量",
+				Desc: "The number of threads used by cat.",
 			},
 
 			"thread_pigeon_thread_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "pigeon 线程数量",
+				Desc: "The number of pigeon threads.",
 			},
 
 			"thread_http_thread_count": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "http 线程数量",
+				Desc: "The number of http threads.",
 			},
 		},
 		Tags: map[string]interface{}{
-			"domain":               &inputs.TagInfo{Desc: "IP 地址"},
-			"hostName":             &inputs.TagInfo{Desc: "主机名"},
-			"runtime_java-version": &inputs.TagInfo{Desc: "Java version"},
-			"runtime_user-name":    &inputs.TagInfo{Desc: "用户名"},
-			"runtime_user-dir":     &inputs.TagInfo{Desc: "启动程序的 jar 包位置"},
-			"os_name":              &inputs.TagInfo{Desc: "操作系统名称：`windows/linux/mac` 等"},
-			"os_arch":              &inputs.TagInfo{Desc: "CPU 架构：amd/arm"},
-			"os_version":           &inputs.TagInfo{Desc: "操作系统的内核版本"},
+			"domain":               &inputs.TagInfo{Desc: "IP address."},
+			"hostName":             &inputs.TagInfo{Desc: "Host name."},
+			"runtime_java-version": &inputs.TagInfo{Desc: "Java version."},
+			"runtime_user-name":    &inputs.TagInfo{Desc: "User name."},
+			"runtime_user-dir":     &inputs.TagInfo{Desc: "The path of jar."},
+			"os_name":              &inputs.TagInfo{Desc: "OS name:'Windows/Linux/Mac',etc."},
+			"os_arch":              &inputs.TagInfo{Desc: "CPU architecture:AMD/ARM."},
+			"os_version":           &inputs.TagInfo{Desc: "The kernel version of the OS."},
 		},
 	}
 }

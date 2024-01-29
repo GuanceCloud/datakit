@@ -1,6 +1,19 @@
-# CAT
+---
+title     : 'CAT'
+summary   : 'The performance, capacity, and business indicator monitoring system of Meituan Dianping'
+__int_icon      : 'icon/cat'
+dashboard :
+  - desc  : 'Cat dashboard'
+    path  : 'dashboard/en/cat'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
 ---
 
+<!-- markdownlint-disable MD025 -->
+# CAT
+<!-- markdownlint-enable -->
+---
 
 [:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0) ·
 [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
@@ -12,9 +25,9 @@
 
 ---
 
-[dianping-cat](https://github.com/dianping/cat){:target="_blank"}  Cat is an open-source distributed real-time monitoring system mainly used to monitor the performance, capacity, and business indicators of the system. It is a monitoring system developed by Meituan Dianping Company and is currently open source and widely used.
+[Dianping-cat](https://github.com/dianping/cat){:target="_blank"}  Cat is an open-source distributed real-time monitoring system mainly used to monitor the performance, capacity, and business indicators of the system. It is a monitoring system developed by Meituan Dianping Company and is currently open source and widely used.
 
-Cat collects various indicator data of the system, such as CPU, memory, network, disk, etc., for real-time monitoring and analysis, helping developers quickly locate and solve system problems. 
+Cat collects various indicator data of the system, such as CPU, memory, network, disk, etc., for real-time monitoring and analysis, helping developers quickly locate and solve system problems.
 At the same time, it also provides some commonly used monitoring functions, such as alarms, statistics, log analysis, etc., to facilitate system monitoring and analysis by developers.
 
 
@@ -27,23 +40,23 @@ Data transmission protocol:
 - Native: Text form separated by specific symbols, currently supported by Datakit.
 
 
-数据分类：
+Data Classification：
 
-| type | long type         | doc               | datakit support | Corresponding data type |
+| type | long type         | doc               | Datakit support | Corresponding data type |
 |------|-------------------|:------------------|:---------------:|:------------------------|
 | t    | transaction start | transaction start |      true       | trace                   |
 | T    | transaction end   | transaction end   |      true       | trace                   |
 | E    | event             | event             |      false      | -                       |
 | M    | metric            | metric            |      false      | -                       |
 | L    | trace             | trace             |      false      | -                       |
-| H    | heartbeat         | heartbeat         |      true       | 指标                      |
+| H    | heartbeat         | heartbeat         |      true       | metric                      |
 
 
 
 
 ## CAT start mode {#cat-start}
 
-The data is all in the datakit, and the web page of cat no longer has data, so the significance of starting is not significant. 
+The data is all in the Datakit, and the web page of cat no longer has data, so the significance of starting is not significant.
 
 Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the observation cloud page. It is not recommended to start a cat_ Home (cat server) service.
 
@@ -51,7 +64,7 @@ The corresponding configuration can be configured in client.xml, please refer to
 
 
 
-## Config {#config}
+## Configuration {#config}
 
 client config：
 
@@ -65,9 +78,11 @@ client config：
 </config>
 ```
 
-> Note: The 9529 port in the configuration is the HTTP port of the datakit. 2280 is the 2280 port opened by the cat input.
+> Note: The 9529 port in the configuration is the HTTP port of the Datakit. 2280 is the 2280 port opened by the cat input.
 
 Datakit config：
+
+<!-- markdownlint-disable MD046 -->
 
     Go to the `conf.d/cat` directory under the DataKit installation directory, copy `cat.conf.sample` and name it `cat.conf`. Examples are as follows:
     
@@ -78,8 +93,8 @@ Datakit config：
 
 === "Kubernetes"
 
-The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-
+    The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-disable MD046 -->
 
 
 Notes on configuration files:
@@ -90,9 +105,9 @@ Notes on configuration files:
 
 ---
 
-## Guance Trace and Metric {#traces_mertics}
+## Guance Trace and Metric {#trace-metric}
 
-### trace {#traces}
+### Guance trace {#guance-trace}
 
 login guance.com, and click on Application Performance.
 
@@ -103,7 +118,8 @@ login guance.com, and click on Application Performance.
 </figure>
 
 
-### Metric {#metrics}
+### Guance metric {#guance-metric}
+
 To [download dashboard](https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/DianPing-Cat%20%E7%9B%91%E6%8E%A7%E8%A7%86%E5%9B%BE.json){:target="_blank"}
 
 At guance `Scenes` -> `dashboard` to `Create Dashboard`.
@@ -117,7 +133,7 @@ Effect display:
 </figure>
 
 
-## Metrics Set {#cat-metrics}
+## Metric {#metric}
 
 {{ range $i, $m := .Measurements }}
 

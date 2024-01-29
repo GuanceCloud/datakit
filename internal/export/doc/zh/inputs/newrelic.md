@@ -1,3 +1,15 @@
+---
+title     : 'New Relic'
+summary   : '接收来自 New Relic Agemt 的数据'
+__int_icon      : ''
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
+
 <!-- markdownlint-disable MD025 -->
 # New Relic For .Net
 <!-- markdownlint-enable -->
@@ -13,6 +25,8 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 ---
 
 ## 配置 {#config}
+
+### 采集器配置 {input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
@@ -58,7 +72,7 @@ PS> iisreset
 
 - 也可以通过安装程序进行安装：
 
-打开[下载目录下载](https://download.newrelic.com/dot_net_agent/6.x_release/){:target="_blank"} 下载 `dotnet agent` 版本 6.27.0 选择对应的安装程序。
+打开[下载目录](https://download.newrelic.com/dot_net_agent/6.x_release/){:target="_blank"} 下载 `dotnet agent` 版本 6.27.0 选择对应的安装程序。
 
 配置 `New Relic Agent`
 
@@ -153,7 +167,7 @@ PS> iisreset
 
 ### TLS 版本不兼容 {#tls-version}
 
-部署 `New Relic Agent` 过程中如果遇到没有数据上报，并且在 `New Relic` 日志中看到类似以下 `ERROR` 信息
+部署 `New Relic Agent` 过程中如果遇到没有数据上报，并且在 `New Relic` 日志中看到类似以下 `ERROR` 信息：
 
 ```log
 NewRelic ERROR: Unable to connect to the New Relic service at collector.newrelic.com:443 : System.Net.WebException:

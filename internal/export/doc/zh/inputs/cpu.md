@@ -23,6 +23,8 @@ CPU 采集器用于系统 CPU 使用率等指标的采集。
 
 ## 配置  {#config}
 
+### 采集器配置 {#input-config}
+
 成功安装 DataKit 并启动后，会默认开启 CPU 采集器，无需手动开启。
 
 <!-- markdownlint-disable MD046 -->

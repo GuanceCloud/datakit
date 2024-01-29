@@ -6,7 +6,7 @@ For the overall observability of log data, it provides a flexible and changeable
 In general, DataKit has the following log collection schemes:
 
 - [Get log from disk file](logging.md)
-- Collect container stdout logs 
+- Collect container stdout logs
 - Push logs to DataKit remotely
 - [Log collection in Sidecar form](logfwd.md)
 
@@ -44,9 +44,8 @@ At present, this collection method is mainly aimed at [stdout logs in container 
 In the existing stdout collection scheme of DataKit (mainly for k8s environment), log collection has the following characteristics:
 
 - Because of the application deployed in the container environment, it is necessary to build the corresponding container image. For DataKit, log collection can be selectively done for some applications based on the image name
-
-	- Collect stdout logs at a fixed point by [selecting part of the image name](container-log.md#logging-with-image-config) (or its wildcard) in ConfigMap's container.conf
-	- Dyeing tags: [By modifying Pod tags through Annotation](container-log.md#logging-with-annotation-or-label), DataKit can identify these special Pods and then collect their stdout logs
+    - Collect stdout logs at a fixed point by [selecting part of the image name](container-log.md#logging-with-image-config) (or its wildcard) in ConfigMap's container.conf
+    - Dyeing tags: [By modifying Pod tags through Annotation](container-log.md#logging-with-annotation-or-label), DataKit can identify these special Pods and then collect their stdout logs
 
 This is also a defect of this strategy, that is, applications are required to output logs to stdout. In general application development, logs are not directly written to stdout (but mainstream logging frameworks generally support output to stdout), which requires developers to adjust log configuration. However, with the increasing popularity of containerized deployment schemes, this scheme is a feasible way to collect logs.
 
@@ -92,7 +91,7 @@ This method can only be used in k8s environment at present, and it has the follo
 
 After the above logs are collected, they all support subsequent Pipeline cutting, but the configuration forms are slightly different:
 
-- Disk Log Collection: Directly configured in logging.conf, where the pipeline name can be specified.
+- Disk Log Collection: Directly configured in logging.conf, where the Pipeline name can be specified.
 - Container stdout log collection: Pipeline cannot be configured in container.conf, because this is for log collection of all containers, and it is difficult to process all logs with a common Pipeline. Therefore, the [Pipeline configuration of related Pod must be specified](container-log.md#logging-with-annotation-or-label) by Annotation.
 - Remote log collection: For TCP/UDP transport, you can also specify the Pipeline configuration in logging.conf. For HTTP transmission, developers need to [configure Pipeline on HTTP request parameters](logstreaming.md#args).
 - Sidecar log collection: In [the configuration of logfwd](logfwd.md#config), configure the Pipeline of the host Pod, which is essentially similar to the container stdout, and is a fixed-point tag for the Pod

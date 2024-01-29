@@ -14,44 +14,47 @@ Advantages of establishing private network connection:
 - **Safer**: The data does not pass through the public network, but completely flows in Alibaba Cloud's private network, leading to safer data.
 - **Lower Cost**: Compared with the high cost of public network bandwidth, the cost of virtual Internet is lower.
 
-At present, the services that have been released are **cn-hangzhou and cn-beijing**, and those in other regions will be put on shelves soon. The structure is as follows:
+At present, the services that have been released are `cn-hangzhou` and `cn-beijing`, and those in other regions will be put on shelves soon. The structure is as follows:
 
-![](imgs/aliyun_1.png)
+![`aliyun_2`](imgs/aliyun_2.png)
 
 ## Subscription Service {#sub-service}
 
 ### Service Deployment Link {#service-dep}
 
-| **Access Site** | **Region Where the Server is Located** | **Compute Nest Deployment Link** |
-| -------- | ---------------------- | ----------- |
-| China 1-hangzhou | cn-hangzhou | [Guance Cloud Data Gateway Virtual Internet-Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"} |
-| China 1-hangzhou | cn-beijing | [Guance Cloud Data Gateway Virtual Internet-from Beijing to Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"} |  
-| China 3-Zhangjiakou | cn-beijing | [Guance Cloud Data Gateway Virtual Internet-from Beijing to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"} | 
-| China 3-Zhangjiakou | cn-hangzhou | [Guance Cloud Data Gateway Virtual Internet-from Hangzhou to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} | 
+| **Access Site**     | **Region Where the Server is Located** | **Compute Nest Deployment Link**                                                                                                                                                                                  |
+| ------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| China 1-Hangzhou    | `cn-hangzhou`                          | [Guance Cloud Data Gateway Virtual Internet-Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"}                     |
+| China 1-Hangzhou    | `cn-beijing`                           | [Guance Cloud Data Gateway Virtual Internet-from Beijing to Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"}     |
+| China 3-Zhangjiakou | `cn-beijing`                           | [Guance Cloud Data Gateway Virtual Internet-from Beijing to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"}  |
+| China 3-Zhangjiakou | `cn-hangzhou`                          | [Guance Cloud Data Gateway Virtual Internet-from Hangzhou to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} |
 
+<!-- markdownlint-disable MD013 -->
 ### Private Network Data Gateway Default Endpoint for Different Regions  {#region-endpoint}
+<!-- markdownlint-enable -->
 
-| **Access Site** | **Region Where the Server is Located** | **Endpoint** |
-| -------- | ---------------------- | ----------- |
-| China 1-Hangzhou | cn-hangzhou | https://openway.guance.com  |
-| China 1-Hangzhou | cn-beijing | https://beijing-openway.guance.com |  
-| China 3-Zhangjiakou | cn-beijing | https://cn3-openway.guance.com | 
-| China 3-Zhangjiakou | cn-hangzhou | https://cn3-openway.guance.com | 
+| **Access Site**     | **Region Where the Server is Located** | **Endpoint**                         |
+| ------------------- | -------------------------------------- | ------------------------------------ |
+| China 1-Hangzhou    | `cn-hangzhou`                          | `https://openway.guance.com`         |
+| China 1-Hangzhou    | `cn-beijing`                           | `https://beijing-openway.guance.com` |
+| China 3-Zhangjiakou | `cn-beijing`                           | `https://cn3-openway.guance.com`     |
+| China 3-Zhangjiakou | `cn-hangzhou`                          | `https://cn3-openway.guance.com`     |
 
 **Virtual Internet services in other regions will be released soon.**
 
 ### Configure Service Subscriptions {#config-sub}
-Sign in with your Alibaba Cloud account and open the above **service deployment link** to subscribe to our virtual Internet service, taking cn-hangzhou as an example:
 
-![](imgs/aliyun_2.png)
+Sign in with your Alibaba Cloud account and open the above **service deployment link** to subscribe to our virtual Internet service, taking `cn-hangzhou` as an example:
+
+![`aliyun_2`](imgs/aliyun_2.png)
 
 1. Select the subscription region first, which must be the same region as the cloud resources deployed by the system you want to access Guance Cloud.
 1. Select the same VPC network of cloud resources deployed by the system to be accessed. **If multiple VPCs need to access the virtual Internet, they can subscribe for many times, and each VPC subscribes once.**
 1. Select an installation group.
 1. Available areas and switches. If multiple available areas and switches are involved, multiple can be added.
-1. Select "Use Recommended Custom Domain Name" and use the default recommended domain name, such as the openway.guance.com domain name for cn-hanghou.
+1. Select "Use Recommended Custom Domain Name" and use the default recommended domain name, such as the `openway.guance.com` domain name for `cn-hanghou`.
 
-Using the default openway.guance.com domain name, it is important to seamlessly switch the data network to a virtual intranet if DataKit has been deployed and implemented within the same VPC.
+Using the default `openway.guance.com` domain name, it is important to seamlessly switch the data network to a virtual intranet if DataKit has been deployed and implemented within the same VPC.
 
 ### Subscription Completion {#sub-com}
 
@@ -69,6 +72,6 @@ The cost situation is mainly divided into two parts:
 
 ## How to Use {#how-to}
 
-After the subscription is completed, it is completely transparent to your DataKit access Guance Cloud. There is no need to modify the DataKit configuration, and the private network connection has been automatically established. You can log in to the cloud host and execute the following ping openway.guance.com command to view the IP pinged. If it is an intranet IP address, it means that you have successfully established a private network connection with the Guance Cloud data gateway:
+After the subscription is completed, it is completely transparent to your DataKit access Guance Cloud. There is no need to modify the DataKit configuration, and the private network connection has been automatically established. You can log in to the cloud host and execute the following ping `openway.guance.com` command to view the IP pinged. If it is an intranet IP address, it means that you have successfully established a private network connection with the Guance Cloud data gateway:
 
-![](imgs/aliyun_3.png)
+![`aliyun_3`](imgs/aliyun_3.png)

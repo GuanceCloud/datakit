@@ -1,5 +1,19 @@
+---
+title     : 'SQLServer'
+summary   : 'Collect SQLServer Metrics'
+__int_icon      : 'icon/sqlserver'
+dashboard :
+  - desc  : 'SQLServer'
+    path  : 'dashboard/en/sqlserver'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # SQLServer
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
@@ -8,7 +22,10 @@
 
 SQL Server Collector collects SQL Server `waitstats`, `database_io` and other related metrics.
 
-## Prerequisites {#requrements}
+
+## Configuration {#config}
+
+### Prerequisites {#requrements}
 
 - SQL Server version >= 2019
 
@@ -16,7 +33,7 @@ SQL Server Collector collects SQL Server `waitstats`, `database_io` and other re
 
 Linux、Windows:
 
-```
+```sql
 USE master;
 GO
 CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
@@ -27,9 +44,9 @@ GRANT VIEW ANY DEFINITION TO [guance];
 GO
 ```
 
-aliyun RDS SQL Server:
+Aliyun RDS SQL Server:
 
-```
+```sql
 USE master;
 GO
 CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
@@ -37,14 +54,8 @@ GO
 
 ```
 
-???+ attention "Attention"
-
-    Note that an account with the appropriate permissions is required to perform this operation above, otherwise it may result in user creation or authorization failure.
-
-    - Self-built SQL Server requires users with WITH GRANT OPTION, CREATE ANY LOGIN, CREATE ANY USER, and ALTER ANY LOGIN permissions, or users with sysadmin role or local user authorization can be used directly. 
-    - RDS for SQL Server requires high-privileged accounts for authorization.
-
-## Configuration {#config}
+<!-- markdownlint-disable MD046 -->
+### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -59,10 +70,30 @@ GO
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
+
+#### Log Collector Configuration {#logging-config}
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+     DataKit must be installed on the host where SQLServer is running.
+<!-- markdownlint-enable -->
+
+To collect SQL Server logs, enable `files` in *{{.InputName}}.conf* and write to the absolute path of the SQL Server log file. For example:
+
+```toml hl_lines="4"
+[[inputs.sqlserver]]
+    ...
+    [inputs.sqlserver.log]
+        files = ["/var/opt/mssql/log/error.log"]
+```
+
+When log collection is turned on, a log with a log (aka *source*) of`sqlserver` is collected.
 
 ## Metrics {#measurements}
 
-For all of the following data collections, a global tag name `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.sqlserver.tags]`:
+For all of the following data collections, a global tag name `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
  [inputs.sqlserver.tags]
@@ -71,7 +102,9 @@ For all of the following data collections, a global tag name `host` is appended 
   # ...
 ```
 
-{{ range $i, $m := .Measurements }} {{if eq $m.Type "metric"}}
+<!-- markdownlint-disable MD024 -->
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
@@ -83,14 +116,15 @@ For all of the following data collections, a global tag name `host` is appended 
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} {{ end }}
-
+{{ end }}
+{{ end }}
 
 ## Logging {#logging}
 
 Following measurements are collected as logs with the level of `info`.
 
-{{ range $i, $m := .Measurements }} {{if eq $m.Type "logging"}}
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
 
 ### `{{$m.Name}}`
 
@@ -102,39 +136,24 @@ Following measurements are collected as logs with the level of `info`.
 
 {{$m.FieldsMarkdownTable}}
 
-{{ end }} {{ end }}
-
-## Collec SQLServer running logging {#logging}
-
-???+ attention
-
-    DataKit must be installed on the host where SQLServer is running.
-
-To collect SQL Server logs, enable `files` in *{{.InputName}}.conf* and write to the absolute path of the SQL Server log file. For example:
-
-```toml hl_lines="4"
-[[inputs.sqlserver]]
-	...
-	[inputs.sqlserver.log]
-		files = ["/var/opt/mssql/log/error.log"]
-```
-
-When log collection is turned on, a log with a log (aka *source*) of`sqlserver` is collected.
+{{ end }}
+{{ end }}
+<!-- markdownlint-enable -->
 
 ### Pipeline for  SQLServer logging {#pipeline}
 
-- SQL Server common log pipeline
+- SQL Server Common Log Pipeline
 
 Example of common log text:
 
-```
+```log
 2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required
 ```
 
 The list of extracted fields are as follows:
 
 | Field Name | Field Value         | Description                                                                                |
-| ---        | ---                 | ---                                                                                        |
+| ---------- | ------------------- | ------------------------------------------------------------------------------------------ |
 | `msg`      | spid...             | log content                                                                                |
 | `time`     | 1622169967780000000 | nanosecond timestamp (as row protocol time)                                                |
 | `origin`   | spid10s             | source                                                                                     |

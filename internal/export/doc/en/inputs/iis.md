@@ -4,10 +4,10 @@ summary   : 'Collect IIS metrics'
 __int_icon      : 'icon/iis'
 dashboard :
   - desc  : 'IIS'
-    path  : 'dashboard/zh/iis'
+    path  : 'dashboard/en/iis'
 monitor   :
   - desc  : 'IIS'
-    path  : 'monitor/zh/iis'
+    path  : 'monitor/en/iis'
 ---
 
 <!-- markdownlint-disable MD025 -->
@@ -28,8 +28,8 @@ Microsoft IIS collector
 
 Operating system requirements::
 
-* Windows Vista and above (excluding Windows Vista)
-* Windows Server 2008 R2 and above
+- Windows Vista and above (excluding Windows Vista)
+- Windows Server 2008 R2 and above
 
 ### Collector Configuration {#input-config}
 
@@ -66,7 +66,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 - metric list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 

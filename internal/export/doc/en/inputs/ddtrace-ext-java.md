@@ -6,11 +6,11 @@
 
 ## Introduction {#intro}
 
-Here we mainly introduce some extended functions of DDTrace-java. List of main features:
+Here we mainly introduce some extended functions of DDTrace-Java. List of main features:
 
 - JDBC SQL obfuscation
 - xxl-jobs
-- dubbo 2/3
+- Dubbo 2/3
 - Thrift
 - RocketMQ
 - log pattern
@@ -36,7 +36,7 @@ DDTrace supported version: [v1.25.2](ddtrace-ext-changelog/cl-1.25.2-guance)
 [:octicons-tag-24: Datakit-1.8.0](../datakit/changelog.md#cl-1.8.0)
 [:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
 
-The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data. 
+The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data.
 Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
 
 To this end, secondary development was carried out on the observation cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
@@ -54,6 +54,7 @@ At present, only DDTrace and OTEL are connected in series, and there is currentl
 
 
 ## supported MongoDB obfuscation {#mongo-obfuscation}
+
 Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
 
 Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
@@ -70,7 +71,9 @@ supported version：
 
 - [x] v8
 
+<!-- markdownlint-disable MD013 -->
 ## Get the input parameter information of a specific function {#dd_trace_methods}
+<!-- markdownlint-enable -->
 **Specific function** mainly refers to the function specified by the business to obtain the corresponding input parameters.
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
@@ -81,9 +84,12 @@ supported version：
 
 After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
 
+<!-- markdownlint-disable MD046 -->
 ???+ info
 
-    Since the data type cannot be converted and json serialization requires additional dependencies and overhead, so far only `toString()` processing is done for the parameter value, and secondary processing is done for the result of `toString()`, the length of the field value It cannot exceed <font color="red">1024 characters</font>, and the excess part is discarded.
+    Since the data type cannot be converted and JSON serialization requires additional dependencies and overhead, so far only `toString()` processing is done for the parameter value, and secondary processing is done for the result of `toString()`, the length of the field value It cannot exceed <font color="red">1024 characters</font>, and the excess part is discarded.
+
+<!-- markdownlint-enable -->
 
 DDTrace supported version： [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
 
@@ -96,7 +102,7 @@ The Resource in the redis link will only display redis.command information, and 
 
 Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the observation cloud link: `redis.command.args=key val`.
 
-Supported version: jedis1.4.0 and above.
+Supported version: `redis1.4.0` and above.
 
 ## log pattern {#log-pattern}
 By modifying the default log pattern, application logs and links are correlated, thereby reducing deployment costs. The logging framework `log4j2` is currently supported, but `logback` is not currently supported.
@@ -132,15 +138,15 @@ After the SQL is executed, this map will be filled into the Span. The final data
   "db.operation":"INSERT",
 
   "db.sql.origin":"INSERT product
-	  (product_id,
-		 product_name,
-		 product_title,
-		 product_price,
-		 product_sale_price,
-		 product_create_date,
-		 product_isEnabled,
-		 product_category_id)
-	  VALUES(null, ?, ?, ?, ?, ?, ?, ?)",
+    (product_id,
+     product_name,
+     product_title,
+     product_price,
+     product_sale_price,
+     product_create_date,
+     product_isEnabled,
+     product_category_id)
+    VALUES(null, ?, ?, ?, ?, ?, ?, ?)",
 
   "db.type":"mysql",
   "db.user":"root",
@@ -158,13 +164,13 @@ After the SQL is executed, this map will be filled into the Span. The final data
   "sql.params.index_7":"16"
 }
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ question "Why is it not filled into the span？"
 
     The meta information here is actually for the relevant developers to check the specific content of the SQL statement. 
     After getting the specific details of the placeholder parameters, by replacing the `?` in `db.sql.origin`, the placeholder parameters can actually be The value is filled in, 
     but the correct replacement cannot be accurately found through string replacement (rather than SQL precise parsing) (may lead to wrong replacement), so **try to keep the original SQL** here, and the details of placeholder parameters are listed separately Listed, here `index_1` means the first placeholder parameter, and so on.
-
+<!-- markdownlint-enable -->
 
 supported version： Version 2.3 and above are currently supported.
 
@@ -172,17 +178,17 @@ DDTrace supported version：[v0.113.0](ddtrace-ext-changelog/#ccl-0.113.0-new)
 
 ## Dubbo supported {#dubbo}
 
-dubbo is an open source framework of Alibaba Cloud, which currently supports dubbo2 and dubbo3.
+Dubbo is an open source framework of Alibaba Cloud, which currently supports Dubbo2 and Dubbo3.
 
-supported version: dubbo2: 2.7.0 and above, dubbo3 has no version restrictions.
+supported version: Dubbo2: 2.7.0 and above, Dubbo3 has no version restrictions.
 
 ## RocketMQ {#rocketmq}
 
 RocketMQ is an open source message queuing framework contributed by Alibaba Cloud to the Apache Foundation. Note: Alibaba Cloud RocketMQ 5.0 and the Apache Foundation are two different libraries.
 
-There is a difference when referencing the library, the apache rocketmq artifactId: `rocketmq-client`, and the artifactId of Alibaba Cloud rocketmq 5.0: `rocketmq-client-java`
+There is a difference when referencing the library, the apache RocketMQ artifactId: `rocketmq-client`, and the artifactId of Alibaba Cloud RocketMQ 5.0: `rocketmq-client-java`
 
-supported version: Currently supports version 4.8.0 and above. Alibaba Cloud Rocketmq service supports version 5.0 and above.
+supported version: Currently supports version 4.8.0 and above. Alibaba Cloud RocketMQ service supports version 5.0 and above.
 
 ## Thrift supported {#thrift}
 
@@ -192,6 +198,6 @@ supported version: 0.9.3 and above.
 
 ## batch injection DDTrace-Java Agent {#java-attach}
 
-The native DDTrace-java batch injection method has certain flaws, and does not support dynamic parameter injection (such as `-Ddd.agent=xxx, -Ddd.agent.port=yyy`, etc.).
+The native DDTrace-Java batch injection method has certain flaws, and does not support dynamic parameter injection (such as `-Ddd.agent=xxx, -Ddd.agent.port=yyy`, etc.).
 
-The extended DDTrace-java adds dynamic parameter injection. For specific usage, see [here](ddtrace-attach.md)
+The extended DDTrace-Java adds dynamic parameter injection. For specific usage, see [here](ddtrace-attach.md)

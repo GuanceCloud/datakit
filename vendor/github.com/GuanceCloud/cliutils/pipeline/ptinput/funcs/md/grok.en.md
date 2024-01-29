@@ -9,6 +9,7 @@ Function parameters:
 - `input`：The text to be extracted can be the original text (`_`) or a `key` after the initial extraction
 - `pattern`: grok expression, the data type of the specified key is supported in the expression: bool, float, int, string (corresponding to Pipeline's str, can also be written as str), the default is string
 - `trim_space`: Delete the leading and trailing blank characters in the extracted characters, the default value is true
+
 ```python
 grok(_, pattern)    #Use the entered text directly as raw data
 grok(key, pattern)  # For a key that has been extracted before, do grok again

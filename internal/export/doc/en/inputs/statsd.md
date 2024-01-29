@@ -11,7 +11,7 @@ monitor   :
 ---
 
 <!-- markdownlint-disable MD025 -->
-# StatsD 数据接入
+# StatsD data access
 <!-- markdownlint-enable -->
 ---
 
@@ -32,6 +32,7 @@ When DDTrace runs as an agent, there is no need for the user to specifically ope
 DDTrace will collect JVM information by default. By default, it will be sent to 'localhost: 8125'
 
 if k8s:
+
 ```shell
 DD_JMXFETCH_STATSD_HOST=datakit_url
 DD_JMXFETCH_STATSD_PORT=8125
@@ -49,6 +50,7 @@ For example, Tomcat or Kafka:
 -Ddd.jmxfetch.kafka.enabled=true 
 ```
 
+<!-- markdownlint-disable MD046 -->
 ### Collector Configuration {#input-config}
 
 === "Host Installation"
@@ -64,6 +66,7 @@ For example, Tomcat or Kafka:
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -82,7 +85,7 @@ In the above example, you need to specify that the key for source is `source_key
 
 The end result is that you can see `statsd/tomcat/cn-shanghai-sq5ei` in the `datakit monitor`, which distinguishes it from other data sources reported to the statsd collector. If the above configuration is not done, then the default display is seen on the `datakit monitor`: `statsd/-/-`.
 
-In addition, there is a configuration swith `save_above_key` that determine whether the tags corresponding to `statsd_source_key` and `statsd_host_key` are reported to the center. The default is not to report(`false`).
+In addition, there is a configuration switch `save_above_key` that determine whether the tags corresponding to `statsd_source_key` and `statsd_host_key` are reported to the center. The default is not to report(`false`).
 
 ## Metric {#metric}
 

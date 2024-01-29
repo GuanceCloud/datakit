@@ -1,12 +1,26 @@
+---
+title     : 'External'
+summary   : 'Start external program for collection'
+__int_icon      : 'icon/external'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # External
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-External Collector launchs outside program to collecting data.
+External Collector launch outside program to collecting data.
 
 ## Configuration {#config}
 
@@ -16,6 +30,7 @@ External Collector launchs outside program to collecting data.
 
 ### Input configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -29,3 +44,4 @@ External Collector launchs outside program to collecting data.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->

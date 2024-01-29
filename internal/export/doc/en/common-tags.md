@@ -11,31 +11,31 @@ These tags are independent of the specific data type, and can be appended to any
 
 | Tag                | Description                                                                                                |
 | ---                | ---                                                                                                 |
-| host               | Hostname, daemonset installation and host installation can all carry this tag, and in certain cases, users can rename the value of this tag. |
+| host               | Hostname, DaemonSet installation and host installation can all carry this tag, and in certain cases, users can rename the value of this tag. |
 | project            | Project name, which is usually set by the user.                                                                          |
-| cluster            | Cluster name, usually set by the user in daemonset installation.                                                         |
+| cluster            | Cluster name, usually set by the user in DaemonSet installation.                                                         |
 | election_namespace | The namespace of the election is not appended by default. See [the document](datakit-daemonset-deploy.md#env-elect).                   |
 | version            | Version number, all tag fields involving version information, should be represented by this tag.                                          |
 
-### Kubernates/Common Tag of Container {#k8s-tags}
+### Kubernetes/Common Tag of Container {#k8s-tags}
 
 These tags are usually added to the collected data, but when it comes to time series collection, some changeable tags (such as `pod_name`) will be ignored by default to save the timeline.
 
 | Tag            | Description                    |
 | ---            | ---                     |
-| pod_name       | Pod name               |
-| deployment     | Deployment name in k8s |
-| service        | Service name in k8s    |
-| namespace      | Namespace name in k8s  |
-| job            | Job name in k8s        |
-| image          | Full name of mirroring in k8s    |
-| image_name     | Abbreviation of mirror name in k8s        |
-| container_name | K8s/Container name in the container      |
-| cronjob        | CronJob name in k8s    |
-| daemonset      | Daemonset name in k8s  |
-| replica_set    | ReplicaSet name in k8s|
-| node_name      | Node name in k8s       |
-| node_ip        | Node IP in k8s          |
+| `pod_name`       | Pod name               |
+| `deployment`     | Deployment name in k8s |
+| `service`        | Service name in k8s    |
+| `namespace`      | Namespace name in k8s  |
+| `job`            | Job name in k8s        |
+| `image`          | Full name of mirroring in k8s    |
+| `image_name`     | Abbreviation of mirror name in k8s        |
+| `container_name` | K8s/Container name in the container      |
+| `cronjob`        | CronJob name in k8s    |
+| `daemonset`      | DaemonSet name in k8s  |
+| `replica_set`    | ReplicaSet name in k8s|
+| `node_name`      | Node name in k8s       |
+| `node_ip`        | Node IP in k8s          |
 
 ## Tag Categorization of Specific Data Types  {#tag-classes}
 

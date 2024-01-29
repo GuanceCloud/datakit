@@ -33,6 +33,8 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 - Download the `Metric` plug-in, [management plug-in page](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric plug-in page](https://plugins.jenkins.io/metrics/){:target="_blank"}
 - Generate `Metric Access keys` on the JenKins administration page `your_manage_host/configure`
 
+### Collector Configuration {#input-config}
+
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
@@ -51,7 +53,7 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 
 ### Jenkins CI Visibility {#ci-visibility}
 
-The Jenkins collector can realize CI visualization by receiving the CI Event from the Jenkins datadog plugin.
+The Jenkins collector can realize CI visualization by receiving the CI Event from the Jenkins Datadog plugin.
 
 Jenkins CI Visibility opening method:
 
@@ -119,6 +121,7 @@ When log collection is turned on, a log with a log `source` of `jenkins` is gene
 - JenKins Universal Log Cutting
 
 Example of common log text:
+
 ```log
 2021-05-18 03:08:58.053+0000 [id=32] INFO jenkins.InitReactorRunner$1#onAttained: Started all plugins
 ```

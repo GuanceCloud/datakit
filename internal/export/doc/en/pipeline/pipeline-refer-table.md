@@ -8,11 +8,11 @@
 ---
 
 Through the Reference Table function, Pipeline supports importing external data for data processing.
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     This feature consumes high memory, with reference to 1.5 million rows of disk occupying about 200MB (JSON file) of non-repetitive data (string type two columns; int, float, bool), the memory footprint is maintained at 950MB ~ 1.2 GB, and the peak memory at update is 2.2 GB ~ 2.7 GB.
-
+<!-- markdownlint-enable -->
 ## Table Structure and Column Data Type {#table-struct}
 
 The table structure is a two-dimensional table, which is distinguished from each other by table name. At least one column needs to exist. The data types of elements in each column must be consistent, and the data types must be one of int (int 64), float (float 64), string and bool.
@@ -30,7 +30,7 @@ Setting primary keys to tables is not supported yet, but you can query through a
 
 ## Import Data from Outside {#import}
 
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Configure reference table url and pull interval in configuration file `datakit.conf` (default interval is 5 minutes)
@@ -44,21 +44,21 @@ Setting primary keys to tables is not supported yet, but you can query through a
 === "Kubernetes"
 
     [see here](../../datakit/datakit-daemonset-deploy.md#env-reftab)
-
+<!-- markdownlint-enable -->
 ---
 
 Supported data formats:
 
-Content-Type: application/json ：
+Content-Type: `application/json` ：
 
-* The data consists of a list of tables, and each table consists of a map with the fields in the map:
+- The data consists of a list of tables, and each table consists of a map with the fields in the map:
 
 | Field Name   | table_name | column_name | column_type                                                         | row_data                                                                                                             |
 | ---      | ---        | --          | --                                                                  | ---                                                                                                                  |
 | Description     | Table Name       | All Column Names    | Column data type, need to correspond to column name, value range "int", "float", "string", "bool" | Multiple rows of data, for int, float, bool types can use corresponding type data or converted to string representation; Elements in [] any must correspond to column names and column types one by one. |
 | Data Type | string     | [ ]string   | [ ]string                                                           | [ ][ ]any                                                                                                            |
 
-* JSON structure:
+- JSON structure:
   
 ```json
 [
@@ -75,7 +75,7 @@ Content-Type: application/json ：
 ]
 ```
 
-* example:
+- example:
 
 ```json
 [
@@ -104,7 +104,7 @@ Content-Type: application/json ：
 
 ## Practice Example {#example}
 
-Write the json text above as the file `test.json` and place the file under/var/www/html after installing nginx with apt in Ubuntu 18.04 +
+Write the JSON text above as the file `test.json` and place the file under/var/www/html after installing nginx with apt in Ubuntu 18.04 +
 
 Execute `curl -v localhost/test.json` to test whether the file can be obtained via HTTP GET, and the output is roughly
 
@@ -134,7 +134,7 @@ Modify the value of refer_table_url in the configuration file `datakit.conf`:
   refer_table_pull_interval = "5m"
 ```
 
-Go into the datakit pipeline logging directory and create the test script `refer_table_for_test.p` and write the following
+Go into the DataKit Pipeline logging directory and create the test script `refer_table_for_test.p` and write the following
 
 ```python
 # Extract table name, column name and column value from input

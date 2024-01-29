@@ -5,26 +5,27 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
 ## Installation {#install}
 
-=== "Daemonset"
+<!-- markdownlint-disable MD046 -->
+=== "DaemonSet"
 
-    Download [datakit.yaml](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
+    Download [`datakit.yaml`](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ???+ attention
     
-        If you want to modify the default configuration of these collectors, you can configure them by [mounting a separate conf in Configmap mode](k8s-config-how-to.md#via-configmap-conf). Some collectors can be adjusted directly by means of environment variables. See the documents of specific collectors for details. All in all, configuring the collector through [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} is always effective when deploying the DataKit in DaemonSet mode, whether it is a collector turned on by default or other collectors.
+        If you want to modify the default configuration of these collectors, you can configure them by [mounting a separate conf in `ConfigMap` mode](k8s-config-how-to.md#via-configmap-conf). Some collectors can be adjusted directly by means of environment variables. See the documents of specific collectors for details. All in all, configuring the collector through [`ConfigMap`](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} is always effective when deploying the DataKit in DaemonSet mode, whether it is a collector turned on by default or other collectors.
     
-    Modify the dataway configuration in `datakit.yaml`
+    Modify the Dataway configuration in `datakit.yaml`
     
     ```yaml
-    	- name: ENV_DATAWAY
-    		value: https://openway.guance.com?token=<your-token> # Fill in the real address of DataWay here
+        - name: ENV_DATAWAY
+            value: https://openway.guance.com?token=<your-token> # Fill in the real address of DataWay here
     ```
     
     If you choose another node, change the corresponding DataWay address here, such as AWS node:
     
     ```yaml
-    	- name: ENV_DATAWAY
-    		value: https://aws-openway.guance.com?token=<your-token> 
+        - name: ENV_DATAWAY
+            value: https://aws-openway.guance.com?token=<your-token> 
     ```
     
     Install yaml
@@ -33,7 +34,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
     $ kubectl apply -f datakit.yaml
     ```
     
-    After installation, a DaemonSet deployment of datakit is created:
+    After installation, a DaemonSet deployment of DataKit is created:
     
     ```shell
     $ kubectl get pod -n datakit
@@ -76,10 +77,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
     ```shell
     $ helm uninstall datakit -n datakit
     ```
+<!-- markdownlint-enable -->
 
 ## Kubernetes Tolerance Configuration {#toleration}
 
-DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify datakit.yaml to adjust the stain tolerance:
+DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify `datakit.yaml` to adjust the stain tolerance:
 
 ```yaml
       tolerations:
@@ -99,11 +101,11 @@ volumeMounts: #  this configuration have existed in datakit.yaml, and you can lo
 - mountPath: /usr/local/datakit/conf.d/db/mysql.conf
   name: datakit-conf
   subPath: mysql.conf
-	readOnly: true
+    readOnly: true
 - mountPath: /usr/local/datakit/conf.d/db/redis.conf
   name: datakit-conf
   subPath: redis.conf
-	readOnly: true
+    readOnly: true
 
 # append directly to the bottom of datakit.yaml
 ---
@@ -114,25 +116,25 @@ metadata:
   namespace: datakit
 data:
     mysql.conf: |-
-		  [[inputs.mysql]]
-			   ...
+          [[inputs.mysql]]
+               ...
     redis.conf: |-
-		  [[inputs.redis]]
-			   ...
+          [[inputs.redis]]
+               ...
 ```
 
-## Settings of Other Environment Variables in DataKit {#using-k8-env}
+## Environment Variables {#using-k8-env}
 
 > Note: If ENV_LOG is configured to `stdout`, do not set ENV_LOG_LEVEL to `debug`, otherwise looping logs may result in large amounts of log data.
 
 In DaemonSet mode, DataKit supports multiple environment variable configurations.
 
-- The approximate format in datakit.yaml is
+- The approximate format in `datakit.yaml` is
 
 ```yaml
 spec:
   containers:
-	- env
+    - env
     - name: ENV_XXX
       value: YYY
     - name: ENV_OTHER_XXX
@@ -151,10 +153,10 @@ spec:
 
 ## ENV Set Collectors: {#env-setting}
 
-The opening of some collectors can also be injected through ENV_DATAKIT_INPUTS. 
+The opening of some collectors can also be injected through ENV_DATAKIT_INPUTS.
 The following is an injection example of MySQL and Redis collectors:
 
-- The approximate format in datakit.yaml is
+- The approximate format in `datakit.yaml` is
 
 ```yaml
 spec:
@@ -205,7 +207,7 @@ The injected content will be stored in the conf.d/env_datakit_inputs.conf file o
 The values of the following environment variables are divided into the following data types:
 
 - string: string type
-- json: some of the more complex configurations that require setting environment variables in the form of a json string
+- JSON: some of the more complex configurations that require setting environment variables in the form of a JSON string
 - bool: switch type. Given **any non-empty string** , this function is turned on. It is recommended to use `"on"` as its value when turned on. If it is not opened, it must be deleted or commented out.
 - string-list: a string separated by an English comma, commonly used to represent a list
 - duration: a string representation of the length of time, such as `10s` for 10 seconds, where the unit supports h/m/s/ms/us/ns. **Don't give a negative value**.
@@ -223,6 +225,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_DEFAULT_ENABLED_INPUTS` | string-list | None          | No       | [The list of collectors](datakit-input-conf.md#default-enabled-inputs) is opened by default, divided by English commas, such as `cpu,mem,disk`, and the old  `ENV_ENABLE_INPUTS` will be discarded. |
 | `ENV_GLOBAL_HOST_TAGS`       | string-list | None          | No       | Global tag, multiple tags are divided by English commas, such as `tag1=val,tag2=val2`. The old `ENV_GLOBAL_TAGS` will be discarded.                                                                 |
 
+<!-- markdownlint-disable MD046 -->
 ???+ note "Distinguish between *global host tag*  and *global election tag*"
 
     `ENV_GLOBAL_HOST_TAGS` is used to specify host class global tags whose values generally follow host transitions, such as host name and host IP. Of course, other tags that do not follow the host changes can also be added. All collectors of non-elective classes are taken by default with the tag specified in `ENV_GLOBAL_HOST_TAGS`.
@@ -234,6 +237,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 ???+ attention "About Protect Mode(ENV_DISABLE_PROTECT_MODE)"
 
     Once protected mode is disabled, some dangerous configuration parameters can be set, and Datakit will accept any configuration parameters. These parameters may cause some Datakit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.
+<!-- markdownlint-enable -->
 
 ### Dataway Configuration Related Environments {#env-dataway}
 
@@ -261,7 +265,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_LOG_ROTATE_BACKUP`   | int    | 5                          | No       | The upper limit count for log files to be reserve.                                                                                       |
 | `ENV_LOG_ROTATE_SIZE_MB`  | int    | 32                         | No       | The threshold for automatic log rotating in MB, which automatically switches to a new file when the log file size reaches the threshold. |
 
-###  Something about DataKit pprof {#env-pprof}
+### Something about DataKit pprof {#env-pprof}
 
 | Environment Variable Name | Type   | Default Value | Required | Description                       |
 | :---                      | :---   | :---          | :---     | :---                              |
@@ -293,7 +297,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | No       | RUM dedicated                                                                                                                                                                                                                       |
 | `ENV_RUM_APP_ID_WHITE_LIST`      | string      | None              | No       | RUM app-id white list, split by `,`,  such as `appid-1,appid-2`.                                                                                                                                                                    |
 
-### Confd Configures Related Environment Variables {#env-confd}
+### Confd Environment Variables {#env-confd}
 
 | Environment Variable Name  | Type   | Applicable Scenario             | Description            | Sample Value                                   |
 | ---                        | ---    | ---                             | ---                    | ---                                            |
@@ -308,15 +312,15 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_CONFD_SEPARATOR`      | string | `redis`                         | Optional default 0     |                                                |
 | `ENV_CONFD_USERNAME`       | string | `etcdv3` or `consul`            | Optional               |                                                |
 
-### Git Configuration Related Environment Variable {#env-git}
+### Git Environment Variable {#env-git}
 
 | Environment Variable Name | Type     | Default Value | Required | Description                                                                                                                                                        |
 | :---                      | :---     | :---          | :---     | :---                                                                                                                                                               |
-| `ENV_GIT_BRANCH`          | string   | None          | No       | Specifies the branch to pull. <stong>If it is empty, it is the default.</strong> And the default is the remotely specified main branch, which is usually `master`. |
+| `ENV_GIT_BRANCH`          | string   | None          | No       | Specifies the branch to pull. **If it is empty, it is the default.** And the default is the remotely specified main branch, which is usually `master`. |
 | `ENV_GIT_INTERVAL`        | duration | None          | No       | The interval of timed pull. (e.g. `1m`)                                                                                                                            |
-| `ENV_GIT_KEY_PATH`        | string   | None          | No       | The full path of the local PrivateKey. (e.g. `/Users/username/.ssh/id_rsa`）                                                                                       |
-| `ENV_GIT_KEY_PW`          | string   | None          | No       | Use password of local PrivateKey. (e.g. `passwd`）                                                                                                                 |
-| `ENV_GIT_URL`             | string   | None          | No       | Manage the remote git repo address of the configuration file. (e.g. `http://username:password@github.com/username/repository.git`）                                |
+| `ENV_GIT_KEY_PATH`        | string   | None          | No       | The full path of the local PrivateKey. (e.g. `/Users/username/.ssh/id_rsa`)                                                                                       |
+| `ENV_GIT_KEY_PW`          | string   | None          | No       | Use password of local PrivateKey. (e.g. `passwd`)                                                                                                                 |
+| `ENV_GIT_URL`             | string   | None          | No       | Manage the remote git repo address of the configuration file. (e.g. `http://username:password@github.com/username/repository.git`)                                |
 
 ### Sinker {#env-sinker}
 
@@ -325,10 +329,10 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_SINKER_GLOBAL_CUSTOMER_KEYS` | string | None          | No       | Sinker Global Customer Key list, keys are splited with `,`                          |
 | `ENV_DATAWAY_ENABLE_SINKER`       | bool   | None          | No       | Enable DataWay Sinker ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)). |
 
-### IO Module Configuring Related Environment Variables {#env-io}
+### IO Module Environment Variables {#env-io}
 
 | Environment Variable Name     | Type     | Default Value      | Required | Description                                                                        |
-| `ENV_IO_FILTERS`              | json     | None               | No       | Add [row protocol filter](datakit-filter)                                          |
+| `ENV_IO_FILTERS`              | JSON     | None               | No       | Add [row protocol filter](datakit-filter)                                          |
 | `ENV_IO_FEED_CHAN_SIZE`       | int      | 1                  | No       | IO channel capacity([:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0))    |
 | `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | No       | IO transmission time frequency                                                     |
 | `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | No       | IO flush workers([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9))         |
@@ -338,21 +342,23 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 | `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | No       | Disk size of send failure cache (in GB)                                            |
 | `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | No       | Periodically send failed tasks cached on disk                                      |
 
+<!-- markdownlint-disable MD046 -->
 ???+ note "description on buffer and queue"
 
     `ENV_IO_MAX_CACHE_COUNT` is used to control the data sending policy, that is, when the number of (row protocol) points of the cache in memory exceeds this value, an attempt is made to send the number of points of the current cache in memory to the center. If the threshold of the cache is set too high, the data will accumulate in memory, causing memory to soar, but will improve the compression effect of GZip. If it is too small, it may affect the transmission throughput.
+<!-- markdownlint-enable -->
 
-`ENV_IO_FILTERS` is a json string, as shown below:
+`ENV_IO_FILTERS` is a JSON string, as shown below:
 
 ```json
 {
   "logging":[
-  	"{ source = 'datakit' and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}",
-  	"{ source = 'abc' and ( host in ['ubt-dev-02', 'tanb-ubt-dev-test-1'] )}"
+      "{ source = 'datakit' and ( host in ['ubt-dev-01', 'tanb-ubt-dev-test'] )}",
+      "{ source = 'abc' and ( host in ['ubt-dev-02', 'tanb-ubt-dev-test-1'] )}"
   ],
 
   "metric":[
-  	"{ measurement in in ['datakit', 'redis_client'] )}"
+      "{ measurement in in ['datakit', 'redis_client'] )}"
   ],
 }
 ```
@@ -381,7 +387,7 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 | ---------:                | ----:    | ---:                            | ------   | ----                                                                                                                                        |
 | `ENV_ENABLE_RECORDER`     | bool     | false                           | No       | To enable or disable recorder                                                                                                               |
 | `ENV_RECORDER_PATH`       | string   | *datakit-install-dir/recorder*  | No       | Set recorder data path                                                                                                                      |
-| `ENV_RECORDER_ENCODING`   | string   | v2                              | No       | Set recorder format. v1 is lineprotocol, v2 is json                                                                                         |
+| `ENV_RECORDER_ENCODING`   | string   | v2                              | No       | Set recorder format. v1 is lineprotocol, v2 is JSON                                                                                         |
 | `ENV_RECORDER_DURATION`   | duration | 30m                             | No       | Set recorder duration(since Datakit start). After the duration, the recorder will stop to write data to file                                |
 | `ENV_RECORDER_INPUTS`     | string   | default recording all inputs    | No       | Set allowed input names for recording, splited by comma, i.e., `cpu,mem,disk`                                                               |
 | `ENV_RECORDER_CATEGORIES` | string   | default recoding all categories | No       | Set allowed categories for recording, splited by comma, i.e., `metric,logging,object`, full list of categories see [here](apis.md#category) |
@@ -403,18 +409,19 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 
 When the k8s node name is different from its corresponding host name, the k8s node name can be replaced by the default collected host name, and the environment variable can be added in *datakit.yaml*:
 
-> This configuration is included by default in datakit.yaml version  [1.2.19](changelog.md#cl-1.2.19). If you upgrade directly from the old version of yaml, you need to make the following manual changes to *datakit.yaml*.
+> This configuration is included by default in `datakit.yaml` version  [1.2.19](changelog.md#cl-1.2.19). If you upgrade directly from the old version of yaml, you need to make the following manual changes to *datakit.yaml*.
 
 ```yaml
 - env:
-	- name: ENV_K8S_NODE_NAME
-		valueFrom:
-			fieldRef:
-				apiVersion: v1
-				fieldPath: spec.nodeName
+    - name: ENV_K8S_NODE_NAME
+        valueFrom:
+            fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
 ```
-
+<!-- markdownlint-disable MD013 -->
 ### Individual Collector-specific Environment Variable {#inputs-envs}
+<!-- markdownlint-enable -->
 
 Some collectors support external injection of environment variables to adjust the default configuration of the collector itself. See each specific collector document for details.
 

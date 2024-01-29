@@ -5,7 +5,6 @@ icon: zy/datakit
 # DataKit
 ---
 
-
 ## Overview {#intro}
 
 DataKit is an open source and integrated data collection Agent, which provides full-platform operating system (Linux/Windows/macOS) support and has comprehensive data collection capabilities, covering various scenarios such as host, container, middleware, Tracing, log and security inspection.
@@ -20,14 +19,14 @@ DataKit is an open source and integrated data collection Agent, which provides f
     - [Prometheus](prom.md)
     - [Statsd](statsd.md)
     - [Fluentd](logstreaming.md)
-    - [Filebeats](beats_output.md)
+    - [Filebeat](beats_output.md)
     - [Function](../dataflux-func/write-data-via-datakit.md)
     - Tracing
         - [OpenTelemetry](opentelemetry.md)
         - [DDTrace](ddtrace.md)
         - [Zipkin](zipkin.md)
         - [Jaeger](jaeger.md)
-        - [Skywalking](skywalking.md)
+        - [SkyWalking](skywalking.md)
 
 ## Description {#spec}
 
@@ -43,9 +42,9 @@ For this part of the function, please use it carefully.
 
 In the process of using the experimental function, related questions can be submitted to issue
 
-- [Gitlab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"} 
+- [GitLab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"}
 - [Github](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}
-- [Jihu](https://jihulab.com/guance-cloud/datakit/-/issues/new){:target="_blank"}
+- [JihuLab](https://jihulab.com/guance-cloud/datakit/-/issues/new){:target="_blank"}
 
 ### Legend Description {#legends}
 

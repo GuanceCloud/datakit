@@ -1,6 +1,18 @@
+---
+title     : 'MongoDB'
+summary   : 'Collect mongodb metrics data'
+__int_icon      : 'icon/mongodb'
+dashboard :
+  - desc  : 'Mongodb'
+    path  : 'dashboard/en/mongodb'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
-
+<!-- markdownlint-disable MD025 -->
 # MongoDB
+<!-- markdownlint-enable -->
 
 ---
 
@@ -10,7 +22,9 @@
 
 MongoDb database, Collection, MongoDb database cluster running status data Collection.
 
-## Preconditions {#requirements}
+## Config {#config}
+
+### Preconditions {#requirements}
 
 - Already tested version:
     - [x] 6.0
@@ -49,8 +63,9 @@ $ mongo
 
 After done with commands above, filling the `user` and `pwd` to Datakit configuration file `conf.d/db/mongodb.conf`.
 
-## Configuration {#config}
+### Collector Configuration {#input-config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -64,14 +79,15 @@ After done with commands above, filling the `user` and `pwd` to Datakit configur
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
-## TLS config (self-signed) {#tls}
+### TLS config (self-signed) {#tls}
 
-Use openssl to generate a certificate file for MongoDB TLS configuration to enable server-side encryption and client-side authentication.
+Use OpenSSL to generate a certificate file for MongoDB TLS configuration to enable server-side encryption and client-side authentication.
 
 - Configure TLS certificates
 
-Install openssl and run the following command:
+Install OpenSSL and run the following command:
 
 ```shell
 sudo apt install openssl -y
@@ -79,7 +95,7 @@ sudo apt install openssl -y
 
 - Configure MongoDB server-side encryption
 
-Use openssl to generate a certificate-level key file, run the following command and enter the corresponding authentication block information at the command prompt:
+Use OpenSSL to generate a certificate-level key file, run the following command and enter the corresponding authentication block information at the command prompt:
 
 ```shell
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes
@@ -126,7 +142,7 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem>
 
 - Configuring MongoDB Client Authentication
 
-Use openssl to generate a certificate-level key file and run the following command:
+Use OpenSSL to generate a certificate-level key file and run the following command:
 
 ```shell
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes
@@ -168,12 +184,12 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 
 **Note:**`insecure_skip_verify` must be `true` in mongodb.conf configuration when using self-signed certificates.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.mongodb.tags]`:
+For all the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ```toml
- [inputs.mongodb.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -199,7 +215,7 @@ Annotate the configuration file `# enable_mongod_log = false` and change `false`
 
 Log raw data sample
 
-```
+```not-set
 {"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}
 ```
 

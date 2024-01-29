@@ -12,9 +12,11 @@ Prometheus has a complete Kubernetes application metrics collection scheme, and 
 2. Create a corresponding CRD instance according to the requirements, which must carry the necessary configuration for collecting target metrics, such as `matchLabels`, `port` and `path` and so on
 3. Prometheus-Operator listens for CRD instances and starts metric collection based on their configuration items
 
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
+<!-- markdownlint-enable -->
 
 Here, Datakit plays the role of step 3, in which Datakit monitors and discovers Prometheus-Operator CRD, starts metric collection according to configuration, and finally uploads it to Guance Cloud.
 
@@ -27,7 +29,7 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
         - interval
           port
           path
-	  params
+      params
     - namespaceSelector:
         any
         matchNames
@@ -38,7 +40,7 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
         - interval
           port
           path
-	  params
+      params
     - namespaceSelector:
         any
         matchNames
@@ -47,19 +49,20 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
 
 ## Examples {#example}
 
-Take the nacos cluster as an example.
+Take the Nacos cluster as an example.
 
-Installing nacos
+Installing Nacos
 
-```
-$ git clone https://github.com/nacos-group/nacos-k8s.git
-$ cd nacos-k8s
-$ chmod +x quick-startup.sh
-$ ./quick-startup.sh
+```bash
+git clone https://github.com/nacos-group/nacos-k8s.git
+cd nacos-k8s
+chmod +x quick-startup.sh
+./quick-startup.sh
 ```
 
-nacos/nacos-quick-start.yaml container port configuration:
-```
+*nacos/nacos-quick-start.yaml* container port configuration:
+
+```yaml
       containers:
         - name: k8snacos
           imagePullPolicy: Always
@@ -74,16 +77,20 @@ nacos/nacos-quick-start.yaml container port configuration:
             - containerPort: 7848
               name: old-raft-rpc
 ```
-- metrics access: $IP:8848/nacos/actuator/prometheus
+
+- metrics access: `$IP:8848/nacos/actuator/prometheus`
+
 - metrics port: 8848
 
-There is now a nacos metrics service in the Kubernetes cluster that collects metrics.
+There is now a Nacos metrics service in the Kubernetes cluster that collects metrics.
 
 ### Create Prometheus-Operator CRD {#create-crd}
 
-1. Install Prometheus-Operator
+- Install Prometheus-Operator
 
-```
+
+
+```bash
 $ wget https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.62.0/bundle.yaml
 $ kubectl apply -f bundle.yaml
 $ kubectl get crd
@@ -97,9 +104,9 @@ servicemonitors.monitoring.coreos.com       2023-08-11T16:31:34Z
 thanosrulers.monitoring.coreos.com          2023-08-11T16:31:34Z
 ```
 
-2. Create PodMonitor
+- Create PodMonitor
 
-```
+```bash
 $ cat pod-monitor.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
@@ -122,12 +129,12 @@ spec:
 $ kubectl apply -f pod-monitor.yaml
 ```
 
-Several important configuration items should be consistent with nacos:
+Several important configuration items should be consistent with Nacos:
 
 - namespace: default
-- app: nacos
+- app: `nacos`
 - port: client
-- path: /nacos/actuator/prometheus
+- path: `/nacos/actuator/prometheus`
 
 Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
 

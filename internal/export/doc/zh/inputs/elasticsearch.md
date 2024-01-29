@@ -189,9 +189,9 @@ PUT _plugins/_security/api/roles/monitor
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 
 ```toml
-[[inputs.elasticsearch]]
+[[inputs.{{.InputName}}]]
   ...
-[inputs.elasticsearch.log]
+[inputs.{{.InputName}}.log]
 files = ["/path/to/your/file.log"]
 ```
 

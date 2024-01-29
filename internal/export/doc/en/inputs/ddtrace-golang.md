@@ -2,7 +2,7 @@
 
 ---
 
-> This document are an overview of dd-trace-go official [github](https://github.com/DataDog/dd-trace-go){:target="_blank"} and maybe outdated. If there any issues to apply this library, please refer to original documents.
+> This document are an overview of dd-trace-go official [GitHub](https://github.com/DataDog/dd-trace-go){:target="_blank"} and maybe outdated. If there any issues to apply this library, please refer to original documents.
 
 ## Install Dependency {#dependence}
 
@@ -26,7 +26,7 @@ We can find more SDKs in the [contrib list](https://github.com/DataDog/dd-trace-
 
 ## Set DataKit {#set-datakit}
 
-First [install][1], [start datakit][2], and open [ddtrace collector][3]
+First [install][1], [start DataKit][2], and open [ddtrace collector][3]
 
 ## Code Example {#code-example}
 
@@ -38,79 +38,79 @@ In the `main()` entry code, set the basic trace parameters and start trace:
 package main
 
 import (
-	"io/ioutil"
-	"os"
-	"time"
+    "io/ioutil"
+    "os"
+    "time"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+    "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
+    "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func main() {
-	tracer.Start(
-		tracer.WithEnv("prod"),
-		tracer.WithService("test-file-read"),
-		tracer.WithServiceVersion("1.2.3"),
-		tracer.WithGlobalTag("project", "add-ddtrace-in-golang-project"),
-	)
+    tracer.Start(
+        tracer.WithEnv("prod"),
+        tracer.WithService("test-file-read"),
+        tracer.WithServiceVersion("1.2.3"),
+        tracer.WithGlobalTag("project", "add-ddtrace-in-golang-project"),
+    )
 
-	// end of app exit, make sure tracer stopped
-	defer tracer.Stop()
+    // end of app exit, make sure tracer stopped
+    defer tracer.Stop()
 
-	tick := time.NewTicker(time.Second)
-	defer tick.Stop()
+    tick := time.NewTicker(time.Second)
+    defer tick.Stop()
 
-	// your-app-main-entry...
-	for {
-		runApp()
-		runAppWithError()
+    // your-app-main-entry...
+    for {
+        runApp()
+        runAppWithError()
 
-		select {
-		case <-tick.C:
-		}
-	}
+        select {
+        case <-tick.C:
+        }
+    }
 }
 
 func runApp() {
-	var err error
-	// Start a root span.
-	span := tracer.StartSpan("get.data")
-	defer span.Finish(tracer.WithError(err))
+    var err error
+    // Start a root span.
+    span := tracer.StartSpan("get.data")
+    defer span.Finish(tracer.WithError(err))
 
-	// Create a child of it, computing the time needed to read a file.
-	child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
-	child.SetTag(ext.ResourceName, os.Args[0])
+    // Create a child of it, computing the time needed to read a file.
+    child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
+    child.SetTag(ext.ResourceName, os.Args[0])
 
-	// Perform an operation.
-	var bts []byte
-	bts, err = ioutil.ReadFile(os.Args[0])
-	span.SetTag("file_len", len(bts))
-	child.Finish(tracer.WithError(err))
+    // Perform an operation.
+    var bts []byte
+    bts, err = ioutil.ReadFile(os.Args[0])
+    span.SetTag("file_len", len(bts))
+    child.Finish(tracer.WithError(err))
 }
 
 func runAppWithError() {
-	var err error
-	// Start a root span.
-	span := tracer.StartSpan("get.data")
+    var err error
+    // Start a root span.
+    span := tracer.StartSpan("get.data")
 
-	// Create a child of it, computing the time needed to read a file.
-	child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
-	child.SetTag(ext.ResourceName, "somefile-not-found.go")
+    // Create a child of it, computing the time needed to read a file.
+    child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
+    child.SetTag(ext.ResourceName, "somefile-not-found.go")
 
-	defer func() {
-		child.Finish(tracer.WithError(err))
-		span.Finish(tracer.WithError(err))
-	}()
+    defer func() {
+        child.Finish(tracer.WithError(err))
+        span.Finish(tracer.WithError(err))
+    }()
 
-	// Perform an error operation.
-	if _, err = ioutil.ReadFile("somefile-not-found.go"); err != nil {
-		// error handle
-	}
+    // Perform an error operation.
+    if _, err = ioutil.ReadFile("somefile-not-found.go"); err != nil {
+        // error handle
+    }
 }
 ```
 
 ### Compile and Run {#run}
-
+<!-- markdownlint-disable MD046 -->
 === "Linux/Mac"
 
     ```shell
@@ -124,7 +124,7 @@ func runAppWithError() {
     go build main.go -o my-app.exe
     $env:DD_AGENT_HOST="localhost"; $env:DD_TRACE_AGENT_PORT="9529"; .\my-app.exe
     ```
-
+<!-- markdownlint-enable -->
 After running the program for a period of time, you can see trace data similar to the following in Guance Cloud:
 
 <figure markdown>
@@ -139,11 +139,11 @@ The following environment variables support specifying some configuration parame
 ```shell
 DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 ```
-
+<!-- markdownlint-disable MD046 -->
 ???+ attention
 
     These environment variables will be overwritten by the corresponding fields injected with `WithXXX()` in the code, so the configuration of code injection has higher priority, and these ENVs will only take effect if the corresponding fields are not specified in the code.
-
+<!-- markdownlint-enable -->
 | Key                       | Default Value      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | :---                      | :--         | :--                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `DD_VERSION`              | -           | Set the application version, such as *1.2.3*, *2022.02.13*                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -161,8 +161,8 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 | `DD_TRACE_ENABLED`        | `true`      | Turn on the trace switch. If you turn the switch off manually, no trace data will be generated.                                                                                                                                                                                                                                                                                                                                                                                    |
 | `DD_SERVICE_MAPPING`      | -           | Rename service name dynamically, and each service name mapping can be separated by spaces and English commas, such as `mysql:mysql-service-name,postgres:postgres-service-name`, `mysql:mysql-service-name postgres:postgres-service-name`                                                                                                                                                                                                                                                                  |
 
-[1]: /datakit/datakit-install/
-[2]: /datakit/datakit-service-how-to/
-[3]: /datakit/ddtrace/#config
-[4]: /datakit/datakit-conf/#config-http-server
-[5]: /datakit/statsd/
+[1]: ../datakit/datakit-install.md
+[2]: ../datakit/datakit-service-how-to.md
+[3]: ../integrations/ddtrace.md#config
+[4]: datakit-conf.md#config-http-server
+[5]: ../integrations/statsd.md

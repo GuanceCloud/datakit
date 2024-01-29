@@ -1,4 +1,18 @@
+---
+title     : 'Diatesting'
+summary   : 'Obtain network performance through network dialing test'
+__int_icon      : 'icon/dialtesting'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
+
+<!-- markdownlint-disable MD025 -->
 # Network Dial Test
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -11,6 +25,7 @@ The collector collects the data of network dialing test results, and all the dat
 
 ### Private Test Node Deployment {#private-deploy}
 
+<!-- markdownlint-disable MD046 -->
 === "host installation"
 
     To deploy private dial-test nodes, you need to [create private dial-test nodes on Guance Cloud page](../usability-monitoring/self-node.md). When you're done, fill in the page with the relevant information in `conf.d/{{.Catalog}}/{{.InputName}}.conf`:
@@ -31,15 +46,16 @@ The collector collects the data of network dialing test results, and all the dat
 
 ???+ attention
 
-    Currently, only linux dial-up nodes support, and the tracing data is stored in the [traceroute](#fields) field of the relevant metrics.
+    Currently, only Linux dial-up nodes support, and the tracing data is stored in the [traceroute](#fields) field of the relevant metrics.
+<!-- markdownlint-enable -->
 
 ### Dial Test Deployment Map {#arch}
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
+  ![dialtesting-net-arch](https://static.guance.com/images/datakit/dialtesting-net-arch.png){ width="800" }
 </figure>
 
-## metric {#metric}
+## Metric {#metric}
 
 Dialtesting collector could expose some [Prometheus metrics](../datakit/datakit-metrics.md). You can upload these metrics to Guance Cloud through [Datakit collector](dk.md). The relevant configuration is as follows:
 
@@ -60,7 +76,7 @@ Dialtesting collector could expose some [Prometheus metrics](../datakit/datakit-
 
 ```
 
-## Measurements {#measurements}
+## Log {#logging}
 
 All of the following data collections are appended with a global tag named `host` by default (the tag value is the host name of the DataKit), or can be named in the configuration by `[[inputs.{{.InputName}}.tags]]` alternative host.
 
@@ -68,7 +84,7 @@ All of the following data collections are appended with a global tag named `host
 
 ### `{{$m.Name}}`
 
--  tag
+- tag
 
 {{$m.TagsMarkdownTable}}
 
@@ -79,7 +95,7 @@ All of the following data collections are appended with a global tag named `host
 {{ end }}
 
 
-## `traceroute` Field Description {#fields}
+### `traceroute` Field Description {#fields}
 
 traceroute is the JSON text of the "route trace" data, and the entire data is an array object in which each array element records a route probe, as shown in the following example:
 
@@ -126,7 +142,7 @@ traceroute is the JSON text of the "route trace" data, and the entire data is an
 ]
 ```
 
-Field description:
+**Field description:**
 
 | Field  | Type      | Description            |
 | :---       | ---           | ---                         |

@@ -1,19 +1,30 @@
+---
+title     : 'Host Directory'
+summary   : 'Collect metrics from file directories'
+__int_icon      : 'icon/hostdir'
+dashboard :
+  - desc  : 'Host Directory'
+    path  : 'dashboard/en/hostdir'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # Host Directory
+<!-- markdownlint-enable -->
+
 ---
 
 {{.AvailableArchs}}
 
 ---
 
-Hostdir collector is used to collect directory files, such as the number of files, all file sizes, etc.
-
-## Preconditions {#requrements}
-
-None
+Host directory collector is used to collect directory files, such as the number of files, all file sizes, etc.
 
 ## Configuration {#config}
 
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -27,14 +38,14 @@ None
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+<!-- markdownlint-enable -->
 
+## Metric {#metric}
 
-## Measurements {#measurements}
-
-For all of the following metric sets, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.hostdir.tags]`:
+For all of the following metric sets, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.hostdir.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...

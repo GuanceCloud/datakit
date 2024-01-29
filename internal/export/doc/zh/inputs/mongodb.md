@@ -81,7 +81,7 @@ $ mongo
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
-### TLS config (self-signed) {#tls}
+### TLS 配置 (self-signed) {#tls}
 
 使用 `openssl` 生成证书文件用于 MongoDB TLS 配置，用于开启服务端加密和客户端认证。
 

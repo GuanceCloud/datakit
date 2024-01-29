@@ -202,11 +202,11 @@ $ env | grep DD_
     - 如果要关闭采样（即采集所有数据），采样率字段需做如下设置：
 
     ``` toml
-    # [inputs.ddtrace.sampler]
+    # [inputs.{{.InputName}}.sampler]
     # sampling_rate = 1.0
     ```
 
-    不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.ddtrace.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
+    不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.{{.InputName}}.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
 
 <!-- markdownlint-enable -->
 
@@ -217,7 +217,7 @@ $ env | grep DD_
 如果有 DDTrace 数据发送给 Datakit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
+  ![input-ddtrace-monitor](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace 将数据发送给了 /v0.4/traces 接口</figcaption>
 </figure>
 
@@ -226,7 +226,7 @@ $ env | grep DD_
 如果 Trace 数据量很大，为避免给主机造成大量的资源开销，可以将 Trace 数据临时缓存到磁盘中，延迟处理：
 
 ``` toml
-[inputs.ddtrace.storage]
+[inputs.{{.InputName}}.storage]
   path = "/path/to/ddtrace-disk-storage"
   capacity = 5120
 ```
@@ -260,7 +260,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ```toml
 # tags is ddtrace configed key value pairs
-[inputs.ddtrace.tags]
+[inputs.{{.InputName}}.tags]
   some_tag = "some_value"
   more_tag = "some_other_value"
 ```
@@ -300,7 +300,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。
 配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
 
-## 链路字段 {#tracing}
+## 链路 {#tracing}
 
 {{range $i, $m := .Measurements}}
 

@@ -17,16 +17,16 @@ The current version (> 1.2. 0) of DataKit supports the following configurations:
 If further summarized, it can be divided into two types:
 
 - DataKit-based configuration
-	- conf
-	- ENV
-	- Git
-	- DCA
+    - conf
+    - ENV
+    - Git
+    - DCA
 - Configuration based on **collected entity**
-	- Annotation
+    - Annotation
 
 Because there are so many different configuration modes, there are priority relationships among different configuration modes, which are decomposed one by one in the order of priority from low to high.
 
-### Configmap {#via-configmap-conf}
+### ConfigMap {#via-configmap-conf}
 
 When DataKit runs in the K8s environment, it is actually not much different from running on the host, and it will still read the collector configuration in the _.conf_ directory. Therefore, it is completely feasible to inject collector configuration through ConfigMap, and sometimes it is even the only way. For example, in the current DataKit version, MySQL collector can only be opened by injecting ConfigMap.
 
@@ -71,7 +71,7 @@ spec:
               "pipeline": "test.p"          # 设置该 Pod 日志的 Pipeline
             }
           ]
-	...
+...
 ```
 
 > Note: Currently, the Annotation mode does not support the mainstream collector opening (currently only [Prom](prom.md)) is supported). More collectors will be added later.
@@ -87,22 +87,22 @@ CRD is a widely used configuration method of Kubernetes. Compared with Annotatio
 Git mode is supported in both host mode and K8s mode, and is essentially a conf configuration, except that its conf file is not in the default _conf. d_ directory, but in the _gitrepo_ directory of the DataKit installation directory. If Git mode is turned on, the default **collector configuration in the _conf.d_ directory is no longer valid** (except for the main configuration of _datakit.conf_), but the original _pipeline_ directory and _pythond_ directory are still valid. As you can see from this, Git is mainly used to manage various text configurations on DataKit, including various collector configurations, Pipeline scripts and Python scripts.
 
 > Note: The DataKit master configuration (_datakit.conf_) cannot be managed by Git.
-
+<!-- markdownlint-disable MD013 -->
 #### Configuration of Default Collector in Git Mode {#def-inputs-under-git}
-
+<!-- markdownlint-enable -->
 In Git mode, there is a very important feature, that is, **conf files of [default collector](datakit-input-conf.md#default-enabled-inputs) are stealthy**, whether in K8s mode or host mode, so it needs some extra work to manage these collector configuration files with Git, otherwise it will cause them to be **collected repeatedly**.
 
 In Git mode, if you want to adjust the configuration of the default collector (you don't want to turn it on or configure it accordingly), there are several ways:
 
 - You can remove them from _datakit.conf_ or _datakit.yaml_ . **At this time, they are not the collectors turned on by default**.
--	If you want to modify the configuration of a specific collector, there are several ways:
-	- Manage their conf through Git
-	- Through the ENV injection mentioned above (depending on whether the collector supports ENV injection)
-	- If the collector supports Annotation tags, it can also be adjusted in this way.
+- If you want to modify the configuration of a specific collector, there are several ways:
+    - Manage their conf through Git
+    - Through the ENV injection mentioned above (depending on whether the collector supports ENV injection)
+    - If the collector supports Annotation tags, it can also be adjusted in this way.
 
 ### DCA Configuration {#dca}
 
-The [DCA](dca.md) configuration is actually a bit like Git, and they all affect the conf/pipeline/python file configuration on the DataKit. Just for DCA, its function is not as powerful as Git, and it is generally only used to manage files on several DataKits in a small scope.
+The [DCA](dca.md) configuration is actually a bit like Git, and they all affect the `conf/pipeline/python` file configuration on the DataKit. Just for DCA, its function is not as powerful as Git, and it is generally only used to manage files on several DataKits in a small scope.
 
 ## Summary {#summary}
 
@@ -110,6 +110,6 @@ So far, several configuration modes on DataKit have been basically introduced. W
 
 ## Extended Reading {#more-readings}
 
-- [DataKit Configuration](datakit-conf.md) 
-- [DataKit Collector Configuration](datakit-input-conf.md) 
-- [Daemonset Installs DataKit](datakit-daemonset-deploy.md)
+- [DataKit Configuration](datakit-conf.md)
+- [DataKit Collector Configuration](datakit-input-conf.md)
+- [DaemonSet Installs DataKit](datakit-daemonset-deploy.md)

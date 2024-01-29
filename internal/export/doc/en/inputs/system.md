@@ -28,6 +28,7 @@ The system collector collects system load, uptime, the number of CPU cores, and 
 
 None
 
+<!-- markdownlint-disable MD046 -->
 ## Collector Configuration {#input-config}
 
 === "Host Installation"
@@ -50,6 +51,7 @@ None
     | `ENV_INPUT_SYSTEM_INTERVAL` | `interval`                                 | `10s`                                                                                                              |
 
 ---
+<!-- markdownlint-enable -->
 
 ## Metric {#metric}
 

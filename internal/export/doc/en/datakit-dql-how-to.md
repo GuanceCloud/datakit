@@ -4,7 +4,7 @@
 
 DataKit supports interactive execution of DQL queries. In interactive mode, DataKit comes with statement completion function:
 
-> More command-line parameter help is available through datakit help dql.
+> More command-line parameter help is available through DataKit help dql.
 
 ```shell
 datakit dql      # or datakit -Q
@@ -24,7 +24,7 @@ Tips：
 
 > Note: Under Windows, execute `datakit dql` in Powershell.
 
-#### Execute DQL query {#dql-once}
+## Execute DQL query {#dql-once}
 
 With regard to DQL queries, DataKit supports the ability to run a single DQL statement:
 
@@ -57,7 +57,7 @@ Note:
 - The following columns are the data corresponding to the collector.
 - When the field is empty, the corresponding column is also empty.
 
-#### DQL Query Leading to JSON Result {#json-result}
+## DQL Query Leading to JSON Result {#json-result}
 
 Output results in JSON, but there is no statistics in JSON mode, such as the number of rows returned and time consumption (to ensure that JSON can be parsed directly).
 
@@ -87,7 +87,7 @@ message ----- json -----  # JSON is clearly marked at the beginning, where messa
 8 rows, 1 series, cost 4ms
 ```
 
-#### Query Data for a Specific Workspace {#query-on-wksp}
+## Query Data for a Specific Workspace {#query-on-wksp}
 
 Query the data of other workspaces by specifying different Token:
 

@@ -11,7 +11,8 @@ const (
   host = "localhost"
   port = 6379
   # unix_socket_path = "/var/run/redis/redis.sock"
-  # 配置多个 db，配置了 dbs，db 也会放入采集列表。dbs=[] 或者不配置则会采集 Redis 中所有非空的 db
+  ## Configure multiple dbs and configure dbs, and the dbs will also be placed in the collection list.
+  ## dbs=[] or not configured, all non-empty dbs in Redis will be collected
   # dbs=[]
   # username = "<USERNAME>"
   # password = "<PASSWORD>"

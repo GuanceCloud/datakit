@@ -23,7 +23,7 @@ monitor   :
 MySQL metrics collection, which collects the following data:
 
 - MySQL global status basic data collection
-- Scheam related data
+- Schema related data
 - InnoDB related metrics
 - Support custom query data collection
 
@@ -82,14 +82,14 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 
 ### Binlog Start {#binlog}
 
-MySQL binlog is not turned on. If you want to count the binlog size, you need to turn on the binlog function corresponding to MySQL:
+MySQL Binlog is not turned on. If you want to count the Binlog size, you need to turn on the Binlog function corresponding to MySQL:
 
 ```sql
--- ON:开启, OFF:关闭
+-- ON: turn on, OFF: turn off
 SHOW VARIABLES LIKE 'log_bin';
 ```
 
-binlog starts, see [this](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"} or [this answer](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}.
+Binlog starts, see [this](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"} or [this answer](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}.
 
 ### Database Performance Metrics Collection {#performance-schema}
 
@@ -144,7 +144,7 @@ performance-schema-consumer-events-statements-history = on
 Account authorization
 
 ```sql
--- 	MySQL 5.6 & 5.7
+-- MySQL 5.6 & 5.7
 GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
 GRANT PROCESS ON *.* TO datakit@'%';
 
@@ -162,7 +162,7 @@ GRANT EXECUTE ON datakit.* to datakit@'%';
 GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
 ```
 
-Create the stored procedure `explain_statement` to get the sql execution plan
+Create the stored procedure `explain_statement` to get the SQL execution plan
 
 ```sql
 DELIMITER $$
@@ -243,7 +243,7 @@ All the following data collection will add a global tag named `host` by default 
 
 - metric list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 
@@ -268,7 +268,7 @@ All the following data collection will add a global tag named `host` by default 
 
 - Metric list
 
-{{$m.FieldsMarkdownTable}} {{end}}
+{{$m.FieldsMarkdownTable}}{{end}}
 
 {{ end }}
 <!-- markdownlint-enable -->
@@ -331,7 +331,7 @@ The list of cut fields is as follows:
 | `bytes_sent`        | `123456`                                                                                    | Number of bytes sent                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
 | `db_ip`             | `1.2.3.4`                                                                                   | ip                             |
-| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | Slow query sql                     |
+| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | Slow query SQL                     |
 | `db_user`           | `root[root]`                                                                                | User                           |
 | `lock_time`         | `0.000184`                                                                                  | Lock time                         |
 | `query_id`          | `35`                                                                                        | query id                        |
@@ -346,7 +346,7 @@ The list of cut fields is as follows:
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Why the measurement `mysql_user_status` is not collected for Aliyun RDS? {#faq-user-no-data}
 
-The measurment is collected from MySQL `performance_schema`. You should check if it is enabled by the SQL below：
+The measurement is collected from MySQL `performance_schema`. You should check if it is enabled by the SQL below：
 
 ```sql
 show variables like "performance_schema";
@@ -359,6 +359,6 @@ show variables like "performance_schema";
 
 ```
 
-If the value is `OFF`, please refer to the [document](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9) to enable it.
+If the value is `OFF`, please refer to the [document](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9){:target="_blank"} to enable it.
 
 <!-- markdownlint-enable -->

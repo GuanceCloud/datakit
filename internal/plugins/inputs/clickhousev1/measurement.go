@@ -174,12 +174,12 @@ func (*asyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 			"jemalloc_retained":                            &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Total number of bytes in virtual memory mappings."},
 		},
 		Tags: map[string]interface{}{
-			"host":     inputs.NewTagInfo("host name"),
+			"host":     inputs.NewTagInfo("Host name"),
 			"instance": inputs.NewTagInfo("Instance endpoint"),
-			"cpu":      inputs.NewTagInfo("cpu id"),
-			"disk":     inputs.NewTagInfo("disk name"),
-			"eth":      inputs.NewTagInfo("eth id"),
-			"unit":     inputs.NewTagInfo("unit name"),
+			"cpu":      inputs.NewTagInfo("Cpu id"),
+			"disk":     inputs.NewTagInfo("Disk name"),
+			"eth":      inputs.NewTagInfo("Eth id"),
+			"unit":     inputs.NewTagInfo("Unit name"),
 		},
 	}
 }
@@ -383,7 +383,7 @@ func (*metricsMeasurement) Info() *inputs.MeasurementInfo {
 			"ZooKeeperWatch":                              &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Number of watches (event subscriptions) in ZooKeeper."},
 		},
 		Tags: map[string]interface{}{
-			"host":     inputs.NewTagInfo("host name"),
+			"host":     inputs.NewTagInfo("Host name"),
 			"instance": inputs.NewTagInfo("Instance endpoint"),
 		},
 	}
@@ -835,7 +835,7 @@ func (*profileEventsMeasurement) Info() *inputs.MeasurementInfo {
 			"ZooKeeperWatchResponse":                                 &inputs.FieldInfo{Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Number of times watch notification has been received from ZooKeeper."},
 		},
 		Tags: map[string]interface{}{
-			"host":     inputs.NewTagInfo("host name"),
+			"host":     inputs.NewTagInfo("Host name"),
 			"instance": inputs.NewTagInfo("Instance endpoint"),
 		},
 	}
@@ -850,7 +850,7 @@ func (*statusInfoMeasurement) Info() *inputs.MeasurementInfo {
 			"DictionaryStatus": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "Dictionary Status."},
 		},
 		Tags: map[string]interface{}{
-			"host":     inputs.NewTagInfo("host name"),
+			"host":     inputs.NewTagInfo("Host name"),
 			"instance": inputs.NewTagInfo("Instance endpoint"),
 		},
 	}

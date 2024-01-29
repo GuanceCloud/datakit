@@ -5,15 +5,15 @@
 
 Datakit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
 
-## dd-trace-java {#ddtrace}
+## dd-trace-Java {#ddtrace}
 
-Firstly Download dd-trace-java from [https://github.com/DataDog/dd-trace-java/releases](https://github.com/DataDog/dd-trace-java/releases) .
+Firstly Download dd-trace-Java from [https://github.com/DataDog/dd-trace-java/releases](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"} .
 
 <!-- markdownlint-disable MD046 -->
 ???+ Note "Requirements"
 
 
-    Datakit is now compatible with dd-trace-java 1.15.x and below, the compatibility with higher version is unknown. please feel free to send your feedback to us if you encounter any incompatibility.
+    Datakit is now compatible with dd-trace-Java 1.15.x and below, the compatibility with higher version is unknown. please feel free to send your feedback to us if you encounter any incompatibility.
     
     Required JDK version:
 
@@ -35,7 +35,7 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
     -jar your-app.jar 
 ```
 
-After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile).
+After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile){:target="_blank"}.
 
 ## Async Profiler {#async-profiler}
 
@@ -83,10 +83,9 @@ sudo sysctl kernel.kptr_restrict=0
 ```
 
 - Install Debug Symbols
-
-Prior to JDK 11, the allocation profiler required HotSpot debug symbols. Oracle JDK already has them embedded in libjvm.so, but in OpenJDK builds they are typically shipped in a separate package, you can install it as follows:
-
 <!-- markdownlint-disable MD046 -->
+If memory allocation (` allocate `) related events need to be collected, it is required to install Debug Symbols. Oracle JDK already has these symbols built-in, so this step can be skipped. OpenJDK needs to be installed, and the installation method is as follows:
+
 === "Debian/Ubuntu"
 
     ```shell
@@ -100,16 +99,15 @@ Prior to JDK 11, the allocation profiler required HotSpot debug symbols. Oracle 
     ```shell
     sudo debuginfo-install java-1.8.0-openjdk
     ```
-<!-- markdownlint-enable -->
 
-The gdb tool can be used to verify if the debug symbols are properly installed for the libjvm library. For example on Linux:
+The gdb tool can be used to verify if the debug symbols are properly installed . For example on Linux:
 
 ```shell
 gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'
 ```
 
 This command's output will either contain Symbol "UseG1GC" is at 0xxxxx or No symbol "UseG1GC" in current context.
-
+<!-- markdownlint-enable -->
 - Check Java process PID
 
 Before collection, you need to know the Java process's PID（use `jps` command）
@@ -131,9 +129,9 @@ Run `profiler.sh` and specify Java process PID：
 Profiling for 10 seconds
 Done
 ```
-
-After about 10s, there will generate a file named `profiling.html` in current workdir, you can use browser to open it.
-
+<!-- markdownlint-disable MD046 -->
+After about 10s, there will generate a file named `profiling.html` in current dir, you can use browser to open it.
+<!-- markdownlint-enable -->
 ### Combine DataKit with async-profiler {#async-datakit}
 
 Requirements:
@@ -160,14 +158,13 @@ There are two integration methods：
 Automated scripts can easily integrate async profiler and DataKit, use as follows:
 
 - create shell script
-
-Create a file named "collect.sh" in current workdir, type follow text：
-
 <!-- markdownlint-disable MD046 -->
+Create a file named "collect.sh" in current dir, type follow text：
+
+
 ???- note "collect.sh"(click to expand)
     ```shell
     set -e
-    
     LIBRARY_VERSION=2.8.3
 
     MAX_JFR_FILE_SIZE=6000000
@@ -212,7 +209,7 @@ Create a file named "collect.sh" in current workdir, type follow text：
         profiling_event=$PROFILING_EVENT
     fi
     
-    # 采集的 java 应用进程 ID, 此处可以自定义需要采集的 java 进程, 比如可以根据进程名称过滤
+    # 采集的 java 应用进程 ID, 此处可以自定义需要采集的 java 进程，比如可以根据进程名称过滤
     java_process_ids=$(jps -q -J-XX:+PerfDisableSharedMem)
     if [ -n "$PROCESS_ID" ]; then
         java_process_ids=`echo $PROCESS_ID | tr "," " "`
@@ -350,7 +347,7 @@ available env：
 - `HOST_NAME`          ：hostname
 - `SERVICE_NAME`       ：your service name
 - `PROFILING_DURATION` ：duration, in seconds
-- `PROFILING_EVENT`    ：events, for example: `cpu/alloc/lock` 
+- `PROFILING_EVENT`    ：events, for example: `cpu/alloc/lock`
 - `PROCESS_ID`         ：target process PID, for example: `98789,33432`
 
 ```shell
@@ -366,9 +363,9 @@ Compared to automated scripts, manual operations have higher degrees of freedom 
 ```shell
 ./profiler.sh -d 10 -o jfr -f profiling.jfr jps
 ```
-
-- prepare "event.json" file
-
+<!-- markdownlint-disable MD046 -->
+- prepare "event.JSON" file
+<!-- markdownlint-enable -->
 ```json
 {
     "tags_profiler": "library_version:2.8.3,library_type:async_profiler,process_id:16718,host:host_name,service:profiling-demo,env:dev,version:1.0.0",

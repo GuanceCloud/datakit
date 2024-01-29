@@ -18,6 +18,6 @@ json(_, first) lowercase(first)
 
 # result
 {
-		"first": "hello"
+    "first": "hello"
 }
 ```

@@ -1,5 +1,18 @@
+---
+title     : 'eBPF'
+summary   : 'Collect Linux network data through eBPF'
+__int_icon      : 'icon/ebpf'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
+---
 
+<!-- markdownlint-disable MD025 -->
 # eBPF
+<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -21,37 +34,65 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
     * Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
 
 
-- `ebpf-trace`:
-    - Application call relationship tracking.
+* `ebpf-trace`:
+    * Application call relationship tracking.
 
-- `bpf-netlog`:
-   - Data category: `Logging`, `Network`
-   - This plugin implements `ebpf-net`’s `netflow/httpflow`
+* `bpf-netlog`:
+    * Data category: `Logging`, `Network`
+    * This plugin implements `ebpf-net`’s `netflow/httpflow`
 
-## Preconditions {#requirements}
+## Configuration {#config}
+
+### Preconditions {#requirements}
 
 For DataKit before v1.5.6, you need to execute the installation command to install:
 
-- v1.2.13 ~ v1.2.18
-  - Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
-  - After the DataKit is installed, manually install the eBPF collector: `datakit install --datakit-ebpf`
-- v1.2.19+
-  - [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
-  - After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
-- v1.5.6+
-  - No manual installation required
+* v1.2.13 ~ v1.2.18
+    * Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+    * After the DataKit is installed, manually install the eBPF collector: `datakit install --datakit-ebpf`
+* v1.2.19+
+    * [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
+    * After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
+* v1.5.6+
+    * No manual installation required
 
-When deploying in Kubernetes environment, you must mount the host's' `/sys/kernel/debug` directory into pod, refer to the latest datakit.yaml;
+When deploying in Kubernetes environment, you must mount the host's' `/sys/kernel/debug` directory into pod, refer to the latest `datakit.yaml`;
+
+### Linux Kernel Version Requirement {#kernel}
+
+In addition to CentOS 7.6+ and Ubuntu 16.04, other distributions recommend that the Linux kernel version is higher than 4.9, otherwise the eBPF collector may not start.
+
+If you want to enable the  *eBPF-conntrack*  plugin, usually requires a higher kernel version, such as v5.4.0 etc., please confirm whether the symbols in the kernel contain `nf_ct_delete` and `__nf_conntrack_hash_insert`, you can execute the following command to view:
+
+```sh
+cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_hash_insert$"
+```
+<!-- markdownlint-disable MD046 -->
+???+ warning "kernel restrictions"
+
+    When the DataKit version is lower than **v1.5.2**, the httpflow data collection in the eBPF-net category cannot be enabled for CentOS 7.6+, because its Linux 3.10.x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
+
+    When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
+<!-- markdownlint-enable -->
+
+### SELinux-enabled System {#selinux}
+
+For SELinux-enabled systems, you need to shut them down (pending subsequent optimization), and execute the following command to shut them down:
+
+```sh
+setenforce 0
+```
 
 ### HTTPS Support {#https}
 
 [:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ·
 [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-If ebpf-net is required to start https request data collection support for processes in the container, you need to mount the overlay directory to the container.
+If eBPF-net is required to start https request data collection support for processes in the container, you need to mount the overlay directory to the container.
 
-datakit.yaml reference changes:
+`datakit.yaml` reference changes:
 
+<!-- markdownlint-disable MD046 -->
 === "Docker"
 
     ```yaml
@@ -82,35 +123,13 @@ datakit.yaml reference changes:
               type: ""
             name: vol-containerd-overlay
     ```
-
+<!-- markdownlint-enable -->
 You can view the overlay mount point through `cat /proc/mounts`
 
-### Linux Kernel Version Requirement {#kernel}
 
-In addition to CentOS 7.6+ and Ubuntu 16.04, other distributions recommend that the Linux kernel version is higher than 4.9, otherwise the ebpf collector may not start.
+### Collector Configuration {#input-config}
 
-If you want to enable the  *ebpf-conntrack*  plugin, usually requires a higher kernel version, such as v5.4.0 etc., please confirm whether the symbols in the kernel contain `nf_ct_delete` and `__nf_conntrack_hash_insert`, you can execute the following command to view:
-
-```sh
-cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_hash_insert$"
-```
-
-???+ warning "kernel restrictions"
-
-    When the DataKit version is lower than **v1.5.2**, the httpflow data collection in the ebpf-net category cannot be enabled for CentOS 7.6+, because its Linux 3.10.x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
-
-    When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
-
-### SELinux-enabled System {#selinux}
-
-For SELinux-enabled systems, you need to shut them down (pending subsequent optimization), and execute the following command to shut them down:
-
-```sh
-setenforce 0
-```
-
-## Configuation {#config}
-
+<!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
@@ -119,23 +138,25 @@ setenforce 0
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    The default configuration does not turn on ebpf-bash. If you need to turn on, add `ebpf-bash` in the `enabled_plugins` configuration item;
+    The default configuration does not turn on eBPF-bash. If you need to turn on, add `eBPF-bash` in the `enabled_plugins` configuration item;
     
     After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    In Kubernetes, collection can be started by ConfigMap or directly enabling ebpf collector by default:
+    In Kubernetes, collection can be started by ConfigMap or directly enabling eBPF collector by default:
     
     1. Refer to the generic [Installation Sample](../datakit/datakit-daemonset-deploy.md#configmap-setting) for the ConfigMap mode.
-    2. Append `ebpf` to the environment variable `ENV_ENABLE_INPUTS` in datakit.yaml, using the default configuration, which only turns on ebpf-net network data collection.
+    2. Append `eBPF` to the environment variable `ENV_ENABLE_INPUTS` in `datakit.yaml`, using the default configuration, which only turns on eBPF-net network data collection.
     
     ```yaml
     - name: ENV_ENABLE_INPUTS
-           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
+           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,eBPF
     ```
-    
-    The ebpf collection configuration in Kubernetes can be adjusted by the following environment variables:
+
+### Environment variables configuration {#input-cfg-field-env}
+
+    The eBPF collection configuration in Kubernetes can be adjusted by the following environment variables:
     
     | Environment variable name | Corresponding configuration parameter item | Parameter example | Description |
     | :------------------------ | ------------------------------------------ |------------------ | ----------- |
@@ -156,6 +177,8 @@ setenforce 0
     | `ENV_INPUT_EBPF_CPU_LIMIT` | `cpu_limit` | `"2.0"` | Maximum number of CPU cores used per unit time limit |
     | `ENV_INPUT_EBPF_MEM_LIMIT` | `mem_limit` | `"4GiB"` | Memory size usage limit |
     | `ENV_INPUT_EBPF_NET_LIMIT` | `net_limit` | `"100MiB/s"` | Network bandwidth (any network card) limit |
+
+<!-- markdownlint-enable -->
 
 ### The blacklist function of the `netlog` plug-in
 
@@ -208,7 +231,7 @@ Operators from highest to lowest:
 | Priority | Op     | Name                        | Binding Direction |
 | -------- | ------ | --------------------------- | ----------------- |
 | 1        | `()`   | parentheses                 | left              |
-| 2        | `! `   | Logical NOT, unary operator | Right             |
+| 2        | `!`   | Logical NOT, unary operator | Right             |
 | 3        | `!=`   | Not equal to                | Left              |
 | 3        | `>=`   | Greater than or equal to    | Left              |
 | 3        | `>`    | greater than                | left              |
@@ -222,38 +245,38 @@ function:
 
 1. **ipnet_contains**
 
-     Function signature: `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
+    Function signature: `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
 
-     Description: Determine whether the address is within the specified network segment
+    Description: Determine whether the address is within the specified network segment
 
      Example:
 
-     ```py
-     ipnet_contains("127.0.0.0/8", ip_saddr)
-     ```
+    ```py
+    ipnet_contains("127.0.0.0/8", ip_saddr)
+    ```
 
-     If the `ip_saddr` value is "127.0.0.1", then this rule returns `true` and the TCP connection packet/UDP packet will be filtered.
+    If the `ip_saddr` value is "127.0.0.1", then this rule returns `true` and the TCP connection packet/UDP packet will be filtered.
 
 2. **has_prefix**
 
-     Function signature: `fn has_prefix(s: str, prefix: str) bool`
+    Function signature: `fn has_prefix(s: str, prefix: str) bool`
 
-     Description: Specifies whether the field contains a certain prefix
+    Description: Specifies whether the field contains a certain prefix
 
-     Example:
+    Example:
 
-     ```py
-     has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
-     ```
+    ```py
+    has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
+    ```
 
-     This rule returns `true` if the pod name is `datakit-kfez321`.
+    This rule returns `true` if the pod name is `datakit-kfez321`.
 
-## Measurements {#measurements}
+## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.ebpf.tags]`:
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
 ``` toml
- [inputs.ebpf.tags]
+ [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -263,11 +286,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
-- tag
+* tag
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+* metric list
 
 {{$m.FieldsMarkdownTable}}
 

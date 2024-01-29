@@ -131,7 +131,6 @@ Pinpoint APM 链路数据较为复杂：
 - 按照 `Depth` 字段判断当前 `Event` 的父子级关系。
 - 遇到数据库查询会将 `sql` 语句替换当前的 '资源' 名称。
 
-
 ## 链路字段 {#tracing}
 
 {{range $i, $m := .Measurements}}
@@ -173,7 +172,6 @@ Pinpoint APM 链路数据较为复杂：
 {{end}}
 
 {{end}}
-
 
 ## Pinpoint 参考资料 {#references}
 
