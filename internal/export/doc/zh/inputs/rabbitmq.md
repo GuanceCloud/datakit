@@ -48,7 +48,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 - 开启 `REST API plug-ins`
 
     ```shell
-    sudo rabbitmq-plugins enable rabbitmq-management
+    sudo rabbitmq-plugins enable rabbitmq_management
     ```
 
 - 创建 user，比如：

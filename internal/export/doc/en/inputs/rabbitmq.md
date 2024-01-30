@@ -48,7 +48,7 @@ RabbitMQ collector monitors RabbitMQ by collecting data through the plug-in `rab
 - Start `REST API plug-ins`
 
     ```shell
-    sudo rabbitmq-plugins enable rabbitmq-management
+    sudo rabbitmq-plugins enable rabbitmq_management
     ```
 
 - Create user, for example:
