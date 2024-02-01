@@ -86,7 +86,6 @@ func (*jvmMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"cpu_usage_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The percentage of CPU usage by the JVM process."},
 			"pid":                             &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The process ID (PID) of the JVM."},
-			"priority":                        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The priority of the JVM process."},
 			"heap_max":                        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The maximum amount of heap memory that can be used by the JVM."},
 			"heap_used":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The amount of heap memory currently being used."},
 			"heap_committed":                  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The amount of heap memory that is currently committed for the JVM."},
