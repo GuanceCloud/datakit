@@ -9,7 +9,6 @@
 package winevent
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
@@ -261,9 +260,9 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 	}
 	message, err := formatEventString(EvtFormatMessageEvent, eventHandle, publisherHandle)
 	if err == nil {
-		scanner := bufio.NewScanner(strings.NewReader(message))
-		scanner.Scan()
-		message = scanner.Text()
+		if len(message) > 1024*1024 { // max 1 MB
+			message = message[0 : 1024*1024]
+		}
 		event.Message = message
 	} else {
 		l.Warn(err)
