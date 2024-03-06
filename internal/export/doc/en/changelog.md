@@ -1,7 +1,43 @@
 # Changelog
+
+---
+
+## Version 1.25.0 (2024/03/06) {#cl-1.25.0}
+
+This release is an iteration release, with the following updates:
+
+### New Features {#cl-1.25.0-new}
+
+- Added new HTTP APIs to update global tags dynamically (#2076)
+- Added collection for Kubernetes PersistentVolume / PersistentVolumeClaim resources (#2109)
+
+### Bug Fixes {#cl-1.25.0-fix}
+
+- Fixed SkyWalking RUM root-span issue (#2131)
+- Fixed incomplete Windows Event collection issue (#2118)
+- Fixed missing `host` field in Pinpoint collection (#2114)
+- Fixed RabbitMQ metrics collection issue (#2108)
+- Fixed compatibility issues with older versions of OpenTelemetry (#2089)
+- Fixed line parsing error for Containerd logs (#2121)
+
+### Enhancements {#cl-1.25.0-opt}
+
+- Improved handling of count data in StatsD by defaulting to floating-point values (#2127)
+- Collector container support for Docker versions 1.24 and above (#2112)
+- Optimized SQLServer collector (#2105)
+- Improved Health Check collector (#2105)
+- Updated default time values for log collection (#2116)
+- Added environment variable `ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB` to disable Kubernetes Job resource collection (#2129)
+- Updated a batch of built-in dashboard for collectors:
+    - ssh (#2125)
+    - etcd (#2101)
+- Miscellaneous updates and documentation enhancements (#2119/#2123/#2115/#2113)
+
 ---
 
 ## 1.24.0(2024/01/24) {#cl-1.24.0}
+
+This release is an iteration release, with the following updates:
 
 ### New Features {#cl-1.24.0-new}
 
