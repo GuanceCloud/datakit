@@ -58,12 +58,12 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "领导者数量",
-                "name": "领导者数量",
-                "unit": "个",
+                "key": "{{.Dashboard.leaders}}",
+                "name": "{{.Dashboard.leaders}}",
+                "unit": "{{.Dashboard.num_unit}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.num_unit}}"
                 ]
               }
             ],
@@ -75,7 +75,7 @@
         "group": {
           "name": null
         },
-        "name": "领导者数量",
+        "name": "{{.Dashboard.leaders}}",
         "pos": {
           "h": 12,
           "w": 8,
@@ -89,7 +89,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "领导者数量",
+              "alias": "{{.Dashboard.leaders}}",
               "code": "A",
               "dataSource": "etcd",
               "field": "server_has_leader",
@@ -110,7 +110,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_has_leader`) AS `领导者数量`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`server_has_leader`) AS `{{.Dashboard.leaders}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -168,8 +168,8 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "接收到 grpc 客户端的总字节数",
-                "name": "接收到 grpc 客户端的总字节数",
+                "key": "{{.Dashboard.bytes_received_grpc}}",
+                "name": "{{.Dashboard.bytes_received_grpc}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -177,8 +177,8 @@
                 ]
               },
               {
-                "key": "发送到 grpc 客户端的总字节数",
-                "name": "发送到 grpc 客户端的总字节数",
+                "key": "{{.Dashboard.bytes_sent_grpc}}",
+                "name": "{{.Dashboard.bytes_sent_grpc}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -194,7 +194,7 @@
         "group": {
           "name": null
         },
-        "name": "grpc接收的字节数",
+        "name": "{{.Dashboard.grpc_bytes}}",
         "pos": {
           "h": 12,
           "w": 8,
@@ -208,7 +208,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "接收到 grpc 客户端的总字节数",
+              "alias": "{{.Dashboard.bytes_received_grpc}}",
               "code": "A",
               "dataSource": "etcd",
               "field": "network_client_grpc_received_bytes_total",
@@ -229,7 +229,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`network_client_grpc_received_bytes_total`) AS `接收到 grpc 客户端的总字节数`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`network_client_grpc_received_bytes_total`) AS `{{.Dashboard.bytes_received_grpc}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -243,7 +243,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "发送到 grpc 客户端的总字节数",
+              "alias": "{{.Dashboard.bytes_sent_grpc}}",
               "code": "B",
               "dataSource": "etcd",
               "field": "network_client_grpc_sent_bytes_total",
@@ -264,7 +264,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`network_client_grpc_sent_bytes_total`) AS `发送到 grpc 客户端的总字节数`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`network_client_grpc_sent_bytes_total`) AS `{{.Dashboard.bytes_sent_grpc}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -324,10 +324,10 @@
               {
                 "key": "last(server_leader_changes_seen_total)",
                 "name": "last(server_leader_changes_seen_total)",
-                "unit": "次",
+                "unit": "{{.Dashboard.time_unit}}",
                 "units": [
                   "custom",
-                  "次"
+                  "{{.Dashboard.time_unit}}"
                 ]
               }
             ],
@@ -339,7 +339,7 @@
         "group": {
           "name": null
         },
-        "name": "领导者变更次数",
+        "name": "{{.Dashboard.leader_change_number}}",
         "pos": {
           "h": 12,
           "w": 8,
@@ -432,12 +432,12 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "已应用的共识提案总数",
-                "name": "已应用的共识提案总数",
-                "unit": "个",
+                "key": "{{.Dashboard.consensus_proposals_applied_number}}",
+                "name": "{{.Dashboard.consensus_proposals_applied_number}}",
+                "unit": "{{.Dashboard.num_unit}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.num_unit}}"
                 ]
               }
             ],
@@ -449,7 +449,7 @@
         "group": {
           "name": null
         },
-        "name": "已应用的共识提案总数",
+        "name": "{{.Dashboard.consensus_proposals_applied_number}}",
         "pos": {
           "h": 15,
           "w": 12,
@@ -463,7 +463,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "已应用的共识提案总数",
+              "alias": "{{.Dashboard.consensus_proposals_applied_number}}",
               "code": "A",
               "dataSource": "etcd",
               "field": "server_proposals_applied_total",
@@ -485,7 +485,7 @@
               "groupByTime": "",
               "labelOp": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_applied_total`) AS `已应用的共识提案总数`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`server_proposals_applied_total`) AS `{{.Dashboard.consensus_proposals_applied_number}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -543,12 +543,12 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "提交的共识提案总数",
-                "name": "提交的共识提案总数",
-                "unit": "个",
+                "key": "{{.Dashboard.consensus_proposals_submitted_number}}",
+                "name": "{{.Dashboard.consensus_proposals_submitted_number}}",
+                "unit": "{{.Dashboard.num_unit}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.num_unit}}"
                 ]
               }
             ],
@@ -560,7 +560,7 @@
         "group": {
           "name": null
         },
-        "name": "提交的共识提案总数",
+        "name": "{{.Dashboard.consensus_proposals_submitted_number}}",
         "pos": {
           "h": 15,
           "w": 12,
@@ -574,7 +574,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "提交的共识提案总数",
+              "alias": "{{.Dashboard.consensus_proposals_submitted_number}}",
               "code": "B",
               "dataSource": "etcd",
               "field": "server_proposals_committed_total",
@@ -595,7 +595,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_committed_total`) AS `提交的共识提案总数`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`server_proposals_committed_total`) AS `{{.Dashboard.consensus_proposals_submitted_number}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -653,12 +653,12 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "当前待处理提案的数量",
-                "name": "当前待处理提案的数量",
-                "unit": "个",
+                "key": "{{.Dashboard.consensus_proposals_pending_number}}",
+                "name": "{{.Dashboard.consensus_proposals_pending_number}}",
+                "unit": "{{.Dashboard.num_unit}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.num_unit}}"
                 ]
               }
             ],
@@ -670,7 +670,7 @@
         "group": {
           "name": null
         },
-        "name": "当前待处理提案的数量",
+        "name": "{{.Dashboard.consensus_proposals_pending_number}}",
         "pos": {
           "h": 15,
           "w": 12,
@@ -684,7 +684,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前待处理提案的数量",
+              "alias": "{{.Dashboard.consensus_proposals_pending_number}}",
               "code": "D",
               "dataSource": "etcd",
               "field": "server_proposals_pending",
@@ -705,7 +705,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_pending`) AS `当前待处理提案的数量`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`server_proposals_pending`) AS `{{.Dashboard.consensus_proposals_pending_number}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -763,12 +763,12 @@
             "titleDesc": "",
             "units": [
               {
-                "key": "看到的失败提案总数",
-                "name": "看到的失败提案总数",
-                "unit": "个",
+                "key": "{{.Dashboard.failed_proposals_number}}",
+                "name": "{{.Dashboard.failed_proposals_number}}",
+                "unit": "{{.Dashboard.num_unit}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.num_unit}}"
                 ]
               }
             ],
@@ -780,7 +780,7 @@
         "group": {
           "name": null
         },
-        "name": "看到的失败提案总数",
+        "name": "{{.Dashboard.failed_proposals_number}}",
         "pos": {
           "h": 15,
           "w": 12,
@@ -794,7 +794,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "看到的失败提案总数",
+              "alias": "{{.Dashboard.failed_proposals_number}}",
               "code": "C",
               "dataSource": "etcd",
               "field": "server_proposals_failed_total",
@@ -815,7 +815,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_failed_total`) AS `看到的失败提案总数`) { `instance` = '#{instance}' }",
+              "q": "M::`etcd`:(AVG(`server_proposals_failed_total`) AS `{{.Dashboard.failed_proposals_number}}`) { `instance` = '#{instance}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -846,7 +846,7 @@
         },
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "name": "集群名称",
+        "name": "{{.Dashboard.cluster_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"
@@ -878,10 +878,10 @@
   "tagInfo": [
     {
       "id": "tag_22aa0e051a6744a4b8b76a2039d884ab",
-      "name": "内置视图"
+      "name": "{{.Dashboard.view}}"
     }
   ],
   "tags": [],
   "thumbnail": "",
-  "title": "Etcd 监控视图（非kubenetes集群）"
+  "title": "{{.Dashboard.title}}"
 }
