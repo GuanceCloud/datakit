@@ -74,19 +74,11 @@ Leap status     : Normal
 
 === "Kubernetes"
 
-    Kubernetes supports modifying configuration parameters in the form of environment variables(Only effective when Datakit runs in K8s DaemonSet mode, not supported by host deployed Datakit):
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    | Environment Variable Name                             | Corresponding Configuration Parameter Item         | Parameter                                                     |
-    | :-----------------------------          | ---                      | ---                                                    |
-    | `ENV_INPUT_CHRONY_INTERVAL`             | `interval`               | `"30s"` (`"10s"` ~ `"60s"`)                            |
-    | `ENV_INPUT_CHRONY_TIMEOUT`              | `timeout`                | `"8s"`  (`"5s"` ~ `"30s"`)                             |
-    | `ENV_INPUT_CHRONY_BIN_PATH`             | `bin_path`               | `"chronyc"`                                            |
-    | `ENV_INPUT_CHRONY_REMOTE_ADDRS`         | `remote_addrs`           | `["192.168.1.1:22"]`                                   |
-    | `ENV_INPUT_CHRONY_REMOTE_USERS`         | `remote_users`           | `["remote_login_name"]`                                |
-    | `ENV_INPUT_CHRONY_REMOTE_RSA_PATHS`     | `remote_rsa_paths`       | `["/home/<your_name>/.ssh/id_rsa"]`                    |
-    | `ENV_INPUT_CHRONY_REMOTE_COMMAND`       | `remote_command`         | `"chronyc -n tracking"`                                |
-    | `ENV_INPUT_CHRONY_TAGS`                 | `tags`                   | `tag1=value1,tag2=value2` If there is a tag with the same name in the configuration file, it will be overwritten. |
-    | `ENV_INPUT_CHRONY_ELECTION`             | `election`               | `"true"` or `"false"`                                   |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

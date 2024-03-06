@@ -44,12 +44,11 @@ System 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    | 环境变量名              | 对应的配置参数项 | 参数示例                                                     |
-    | :---                    | ---              | ---                                                          |
-    | `ENV_INPUT_SYSTEM_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-    | `ENV_INPUT_SYSTEM_INTERVAL` | `interval` | `10s` |
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
+
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 <!-- markdownlint-enable -->
 

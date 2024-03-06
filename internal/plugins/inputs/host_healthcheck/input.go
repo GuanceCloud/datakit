@@ -17,6 +17,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -232,6 +233,19 @@ func (ipt *Input) Run() {
 			return
 		}
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Process", Type: doc.JSON, Example: `[{"names":["nginx","mysql"],"min_run_time":"10m"}]`, Desc: "Check process", DescZh: "检查处理器"},
+		{FieldName: "TCP", Type: doc.JSON, Example: `[{"host_ports":["10.100.1.2:3369","192.168.1.2:6379"],"connection_timeout":"3s"}]`, Desc: "Check TCP", DescZh: "检查 TCP"},
+		{FieldName: "HTTP", Type: doc.JSON, Example: `[{"http_urls":["http://local-ip:port/path/to/api?arg1=x&arg2=y"],"method":"GET","expect_status":200,"timeout":"30s","ignore_insecure_tls":false,"headers":{"Header1":"header-value-1","Hedaer2":"header-value-2"}}]`, Desc: "Check HTTP", DescZh: "检查 HTTP"},
+		{FieldName: "Tags", Type: doc.JSON, Example: `{"some_tag":"some_value","more_tag":"some_other_value"}`},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_HEALTHCHECK_", infos)
 }
 
 // ReadEnv support envs：

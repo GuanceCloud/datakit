@@ -20,6 +20,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -247,6 +248,20 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Devices", Type: doc.List, Example: "`^sda\\d,^sdb\\d,vd.*`", Desc: "Setting interfaces using regular expressions will collect these expected devices", DescZh: "使用正则表达式设置接口将收集这些预期的设备"},
+		{FieldName: "DeviceTags", Type: doc.List, Example: `ID_FS_TYPE,ID_FS_USAGE`, Desc: "Device metadata added tags", DescZh: "设备附加标签"},
+		{FieldName: "NameTemplates", Type: doc.List, Example: `$ID_FS_LABEL,$DM_VG_NAME/$DM_LV_NAME`, Desc: "Using the same metadata source as device_tags", DescZh: "使用与 device_ tags 相同的元数据源"},
+		{FieldName: "SkipSerialNumber", Type: doc.Boolean, Default: `false`, Desc: "disk serial number is not required", DescZh: "不需要磁盘序列号"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_DISKIO_", infos)
 }
 
 // ReadEnv support envs：

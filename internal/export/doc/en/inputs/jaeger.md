@@ -43,22 +43,11 @@ The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze J
 
 === "Kubernetes"
 
-    The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    Multiple environment variables supported that can be used in Kubernetes showing below:
-
-    | Environment Variable Name             | Type        | Example                                                                          |
-    | ------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_JAEGER_HTTP_ENDPOINT`      | string      | "/apis/traces"                                                                   |
-    | `ENV_INPUT_JAEGER_UDP_ENDPOINT`       | string      | "127.0.0.1:6831"                                                                 |
-    | `ENV_INPUT_JAEGER_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                           |
-    | `ENV_INPUT_JAEGER_DEL_MESSAGE`        | bool        | true                                                                             |
-    | `ENV_INPUT_JAEGER_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
-    | `ENV_INPUT_JAEGER_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_JAEGER_SAMPLER`            | float       | 0.3                                                                              |
-    | `ENV_INPUT_JAEGER_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_JAEGER_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                 |
-    | `ENV_INPUT_JAEGER_STORAGE`            | JSON string | `{"storage":"./jaeger_storage", "capacity": 5120}`                               |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

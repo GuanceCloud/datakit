@@ -52,19 +52,11 @@ The built-in Pinpoint Agent in Datakit is used to receive, calculate, and analyz
 
 === "Kubernetes"
 
-    Currently, the collector can be enabled through [ConfigMap method to inject collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    The environment variables supported in Kubernetes are as follows:
-
-    | Environment variable name              | Type        |        Example           |
-    | --------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_PINPOINT_ADDRESS`            | string      | "127.0.0.1:9991"                                                                 |
-    | `ENV_INPUT_PINPOINT_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
-    | `ENV_INPUT_PINPOINT_DEL_MESSAGE`        | bool        | true                                                                             |
-    | `ENV_INPUT_PINPOINT_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_PINPOINT_SAMPLER`            | string      | "0.3"                                                                            |
-    | `ENV_INPUT_PINPOINT_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_PINPOINT_STORAGE`            | JSON string | `{"storage":"./pinpoint_storage", "capacity": 5120}`                             |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 ???+ warning "The Pinpoint Agent in Datakit has the following limitations"
 

@@ -45,13 +45,12 @@ these metrics.
 
 === "Kubernetes"
 
-    Kubernetes supports modifying configuration parameters in the form of environment variables:
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    | Environment Name                  | Description                                                            | Examples                                                                               |
-    | :---                              | ---                                                                    | ---                                                                                    |
-    | `ENV_INPUT_DK_ENABLE_ALL_METRICS` | Enable all metrics, this may collect more than 300+ metrics on Datakit | `on/yes/`                                                                              |
-    | `ENV_INPUT_DK_ADD_METRICS`        | Add extra metrics (JSON array)                                         | `["datakit_io_.*", "datakit_pipeline_.*"]`, Available metrics list [here](../datakit/datakit-metrics.md) |
-    | `ENV_INPUT_DK_ONLY_METRICS`       | **Only** enalbe specified metrics(JSON array)                          | `["datakit_io_.*", "datakit_pipeline_.*"]`                                             |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
+
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}

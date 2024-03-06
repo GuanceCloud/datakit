@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -18,6 +19,25 @@ import (
 )
 
 var _ inputs.ReadEnv = &Input{}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Endpoints", ENVName: "HTTP_ENDPOINTS", ConfField: "endpoints", Type: doc.JSON, Example: `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`, Desc: "HTTP endpoints for tracing", DescZh: "HTTP 端点"},
+		{FieldName: "Address", ENVName: "GRPC_ENDPOINT", ConfField: "address", Type: doc.String, Example: `127.0.0.1:11800`, Desc: "GRPC server", DescZh: "GRPC 服务器"},
+		{FieldName: "Plugins", Type: doc.JSON, Example: `["db.type", "os.call"]`, Desc: "List contains all the widgets used in program that want to be regarded as service", DescZh: "插件列表"},
+		{FieldName: "IgnoreTags", Type: doc.JSON, Example: `["block1","block2"]`, Desc: "Blacklist to prevent tags", DescZh: "标签黑名单"},
+		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
+		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
+		{FieldName: "CloseResource", Type: doc.JSON, Example: `{"service1":["resource1","other"],"service2":["resource2","other"]}`, Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
+		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
+		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: `{"buffer":1000, "threads":100}`, Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
+		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: `{"storage":"./skywalking_storage", "capacity": 5120}`, Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
+		{FieldName: "Tags", Type: doc.JSON, Example: `{"k1":"v1", "k2":"v2", "k3":"v3"}`},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_SKYWALKING_", infos)
+}
 
 // ReadEnv load config from environment values
 // ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS : JSON string

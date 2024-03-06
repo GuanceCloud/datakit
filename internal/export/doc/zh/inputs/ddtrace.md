@@ -109,25 +109,11 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    在 Kubernetes 中支持的环境变量如下表：
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-    | 环境变量名                               | 类型        | 示例                                                                             |
-    | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_DDTRACE_ENDPOINTS`            | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
-    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`        | JSON string | `["sink_project", "custom_dd_tag"]`                                              |
-    | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE`   | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`      | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX`  | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_DEL_MESSAGE`          | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`      | JSON string | `["404", "403", "400"]`                                                          |
-    | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`       | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_DDTRACE_SAMPLER`              | float       | 0.3                                                                              |
-    | `ENV_INPUT_DDTRACE_TAGS`                 | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_DDTRACE_THREADS`              | JSON string | `{"buffer":1000, "threads":100}`                                                 |
-    | `ENV_INPUT_DDTRACE_STORAGE`              | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
-
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 ### 多线路工具串联注意事项 {#trace_propagator}
 

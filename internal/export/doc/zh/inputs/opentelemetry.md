@@ -45,24 +45,11 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    在 Kubernetes 中支持的环境变量如下表：
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-    | 环境变量名                          | 类型        | 示例                                                                                                     |
-    | ----------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
-    | `ENV_INPUT_OTEL_CUSTOMER_TAGS`      | JSON string | `["sink_project", "custom.tag"]`                                                                         |
-    | `ENV_INPUT_OTEL_KEEP_RARE_RESOURCE` | bool        | true                                                                                                     |
-    | `ENV_INPUT_OTEL_DEL_MESSAGE`        | bool        | true                                                                                                     |
-    | `ENV_INPUT_OTEL_OMIT_ERR_STATUS`    | JSON string | `["404", "403", "400"]`                                                                                  |
-    | `ENV_INPUT_OTEL_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`                         |
-    | `ENV_INPUT_OTEL_SAMPLER`            | float       | 0.3                                                                                                      |
-    | `ENV_INPUT_OTEL_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                                                      |
-    | `ENV_INPUT_OTEL_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                                         |
-    | `ENV_INPUT_OTEL_STORAGE`            | JSON string | `{"storage":"./otel_storage", "capacity": 5120}`                                                         |
-    | `ENV_INPUT_OTEL_HTTP`               | JSON string | `{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/trace", "metric_api": "/otel/v1/metric"}` |
-    | `ENV_INPUT_OTEL_GRPC`               | JSON string | `{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`                                |
-    | `ENV_INPUT_OTEL_EXPECTED_HEADERS`   | JSON string | `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`                                                |
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 <!-- markdownlint-enable -->
 

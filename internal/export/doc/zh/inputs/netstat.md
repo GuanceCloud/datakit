@@ -71,14 +71,12 @@ NetStat 指标展示，包括 Tcp 连接数、等待连接、等待处理请求�
 
 === "Kubernetes"
 
-    Kubernetes 中支持以环境变量的方式修改配置参数：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-    | 环境变量名                          | 对应的配置参数项 | 参数示例 |
-    |:-----------------------------     | ---            | ---   |
-    | `ENV_INPUT_NETSTAT_TAGS`          | `tags`         | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-    | `ENV_INPUT_NETSTAT_INTERVAL`      | `interval`     | `10s` |
-    | `ENV_INPUT_NETSTAT_ADDR_PORTS`    | `ports`        | `["1.1.1.1:80","443"]` |
+{{ CodeBlock .InputENVSampleZh 4 }}
+
 <!-- markdownlint-enable -->
 ---
 

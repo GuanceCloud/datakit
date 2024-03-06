@@ -136,6 +136,10 @@ type ReadEnv interface {
 	ReadEnv(map[string]string)
 }
 
+type GetENVDoc interface {
+	GetENVDoc() []*ENVInfo
+}
+
 type LogExampler interface {
 	LogExamples() map[string]map[string]string
 }

@@ -42,15 +42,11 @@ The health check collector can regularly monitor the health of processes and net
 
 === "Kubernetes"
 
-    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported for host-deployed DataKits):
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    | Environment Variable Name                              | Corresponding Configuration Parameter Item | Parameter Example                                                     |
-    | :---                                 | ---              | ---                                                          |
-    | `ENV_INPUT_HEALTHCHECK_INTERVAL`     | `interval`       | `5m`                                               |
-    | `ENV_INPUT_HEALTHCHECK_PROCESS`      | `process`        | `[{"names":["nginx","mysql"],"min_run_time":"10m"}]`|
-    | `ENV_INPUT_HEALTHCHECK_TCP`          | `tcp`            | `[{"host_ports":["10.100.1.2:3369","192.168.1.2:6379"],"connection_timeout":"3s"}]`|
-    | `ENV_INPUT_HEALTHCHECK_HTTP`         | `http`           | `[{"http_urls":["http://local-ip:port/path/to/api?arg1=x&arg2=y"],"method":"GET","expect_status":200,"timeout":"30s","ignore_insecure_tls":false,"headers":{"Header1":"header-value-1","Hedaer2":"header-value-2"}}]`                                               |
-    | `ENV_INPUT_HEALTHCHECK_TAGS`         | `tags`           | `{"some_tag":"some_value","more_tag":"some_other_value"}`|
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

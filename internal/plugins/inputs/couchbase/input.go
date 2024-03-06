@@ -17,6 +17,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -204,6 +205,28 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval", Default: `30s`},
+		{FieldName: "Timeout", Default: `5s`},
+		{FieldName: "Scheme", Type: doc.String, Example: `http or https`, Desc: "URL Scheme", DescZh: "网络协议"},
+		{FieldName: "Host", Type: doc.String, Example: `127.0.0.1`, Desc: "server URL", DescZh: "服务器网址"},
+		{FieldName: "Port", Type: doc.Int, Example: `8091 or 18091`, Desc: "Host port, If https will be 18091", DescZh: "端口号，https 用 18091"},
+		{FieldName: "AdditionalPort", Type: doc.Int, Example: `9102 or 19102`, Desc: "Additional host port for index metric, If https will be 19102", DescZh: "附加的端口号，https 用 19102"},
+		{FieldName: "User", Type: doc.String, Example: `Administrator`, Desc: "User name", DescZh: "登录名"},
+		{FieldName: "Password", Type: doc.String, Example: `123456`, Desc: "Password", DescZh: "登录密码"},
+		{FieldName: "TLSOpen", Type: doc.Boolean, Default: `false`, Desc: "TLS open"},
+		{FieldName: "CacertFile", ENVName: "TLS_CA", Type: doc.String, Example: `/opt/ca.crt`, Desc: "TLS configuration"},
+		{FieldName: "CertFile", ENVName: "TLS_CERT", Type: doc.String, Example: `/opt/peer.crt`, Desc: "TLS configuration"},
+		{FieldName: "KeyFile", ENVName: "TLS_KEY", Type: doc.String, Example: `/opt/peer.key`, Desc: "TLS configuration"},
+		{FieldName: "Election"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_COUCHBASE_", infos)
 }
 
 // ReadEnv support envs：only for K8S.

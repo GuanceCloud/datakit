@@ -43,12 +43,11 @@ None
 
 === "Kubernetes"
 
-    Modifying configuration parameters as environment variables is supported:
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
+
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
     
-    | Environment variable name   | Corresponding configuration parameter item | Parameter example                                                                                                  |
-    | :-------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-    | `ENV_INPUT_SYSTEM_TAGS`     | `tags`                                     | `tag1=value1,tag2=value2`. If there is a tag with the same name in the configuration file, it will be overwritten. |
-    | `ENV_INPUT_SYSTEM_INTERVAL` | `interval`                                 | `10s`                                                                                                              |
+{{ CodeBlock .InputENVSample 4 }}
 
 ---
 <!-- markdownlint-enable -->

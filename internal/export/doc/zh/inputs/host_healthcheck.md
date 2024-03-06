@@ -42,15 +42,11 @@ monitor   :
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数（只在 Datakit 以 K8s DaemonSet 方式运行时生效，主机部署的 Datakit 不支持此功能）：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    | 环境变量名                             | 对应的配置参数项    | 参数示例                                                     |
-    | :---                                 | ---              | ---                                                          |
-    | `ENV_INPUT_HEALTHCHECK_INTERVAL`     | `interval`       | `5m`                                               |
-    | `ENV_INPUT_HEALTHCHECK_PROCESS`      | `process`        | `[{"names":["nginx","mysql"],"min_run_time":"10m"}]`|
-    | `ENV_INPUT_HEALTHCHECK_TCP`          | `tcp`            | `[{"host_ports":["10.100.1.2:3369","192.168.1.2:6379"],"connection_timeout":"3s"}]`|
-    | `ENV_INPUT_HEALTHCHECK_HTTP`         | `http`           | `[{"http_urls":["http://local-ip:port/path/to/api?arg1=x&arg2=y"],"method":"GET","expect_status":200,"timeout":"30s","ignore_insecure_tls":false,"headers":{"Header1":"header-value-1","Hedaer2":"header-value-2"}}]`                                               |
-    | `ENV_INPUT_HEALTHCHECK_TAGS`         | `tags`           | `{"some_tag":"some_value","more_tag":"some_other_value"}`|
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
+
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 <!-- markdownlint-enable -->
 

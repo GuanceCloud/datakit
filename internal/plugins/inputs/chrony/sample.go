@@ -27,7 +27,7 @@ const sampleCfg = `
   # remote_command = "chronyc -n tracking"
 
   ## Set true to enable election
-  election = false
+  election = true
 
 [inputs.chrony.tags]
   # some_tag = "some_value"

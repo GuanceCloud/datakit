@@ -16,6 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -102,6 +103,17 @@ func (*Input) Singleton() {}
 // too many time series.
 var alwaysBlockedMetrics = []string{
 	metrics.DatakitLastError,
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Any", ENVName: "ENABLE_ALL_METRICS", ConfField: "none", Type: doc.Boolean, Example: `any_string`, Desc: "Collect all metrics, any string", DescZh: "采集所有指标，任意非空字符串"},
+		{FieldName: "Any", ENVName: "ADD_METRICS", ConfField: "none", Type: doc.JSON, Example: `["datakit_io_.*", "datakit_pipeline_.*"]`, Desc: "Additional metrics, Available metrics list [here](../datakit/datakit-metrics.md)", DescZh: "追加指标列表，可用的指标名参见[这里](../datakit/datakit-metrics.md)"},
+		{FieldName: "Any", ENVName: "ONLY_METRICS", ConfField: "none", Type: doc.JSON, Example: `["datakit_io_.*", "datakit_pipeline_.*"]`, Desc: "Only enable metrics", DescZh: "只开启指定指标"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_DK_", infos)
 }
 
 // ReadEnv accept specific ENV settings to input.

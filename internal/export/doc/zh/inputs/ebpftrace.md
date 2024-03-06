@@ -137,14 +137,11 @@ monitor   :
           targetPort: 9529
     ```
 
-通过以下环境变量可以调整 Kubernetes 中 ebpftrace 采集配置：
+    通过以下环境变量可以调整 Kubernetes 中 ebpftrace 采集配置：
 
-| 环境变量名                             | 对应的配置参数项   | 参数示例                          | 描述                                   |
-| :------------------------------------- | ------------------ | --------------------------------- | -------------------------------------- |
-| `ENV_INPUT_EBPFTRACE_USE_APP_TRACE_ID` | `use_app_trace_id` | `true`                            | 使用应用侧 trace id 替代 eBPF trace id |
-| `ENV_INPUT_EBPFTRACE_WINDOW`           | `window`           | `20s`                             | 链路 span 的链接时间窗口               |
-| `ENV_INPUT_EBPFTRACE_SAMPLING_RATE`    | `sampling_rate`    | `0.1`                             | 链路采样率                             |
-| `ENV_INPUT_EBPFTRACE_SQLITE_PATH`      | `sqlite_path`      | `/usr/local/datakit/ebpf_spandb/` | SQLite 数据库文件存放路径              |
+{{ CodeBlock .InputENVSampleZh 4 }}
+
+<!-- markdownlint-enable -->
 
 ## 指标 {#metric}
 
