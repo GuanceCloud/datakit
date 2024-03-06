@@ -10,6 +10,12 @@ type ContainerRuntime interface {
 	ListContainers() ([]*Container, error)
 	ContainerStatus(id string) (*ContainerStatus, error)
 	ContainerTop(id string) (*ContainerTop, error)
+	Version() (*VersionInfo, error)
+}
+
+type VersionInfo struct {
+	PlatformName string
+	APIVersion   string
 }
 
 type Container struct {

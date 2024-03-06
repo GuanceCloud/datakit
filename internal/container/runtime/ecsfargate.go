@@ -54,6 +54,20 @@ func NewECSFargateRuntime(agentURL string) (ContainerRuntime, error) {
 	return c, nil
 }
 
+func (c *ecsfargateClient) Version() (*VersionInfo, error) {
+	urlstr := makeURL(c.agentURL, taskPath)
+
+	var v ECSFargateTask
+	if err := c.get(context.Background(), urlstr, &v); err != nil {
+		return nil, err
+	}
+
+	return &VersionInfo{
+		PlatformName: "ecs_fargate",
+		APIVersion:   v.Version,
+	}, nil
+}
+
 func (c *ecsfargateClient) ListContainers() ([]*Container, error) {
 	urlstr := makeURL(c.agentURL, taskPath)
 

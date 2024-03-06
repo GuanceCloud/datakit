@@ -12,6 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkMultilineMatch(b *testing.B) {
+	in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
+	m, _ := New(nil, nil)
+
+	for i := 0; i < b.N; i++ {
+		_, _ = m.ProcessLineString(in[0])
+		_, _ = m.ProcessLineString(in[1])
+		_, _ = m.ProcessLineString("")
+	}
+}
+
 func TestMultilineMatch(t *testing.T) {
 	t.Run("mysql-slowlog", func(t *testing.T) {
 		pattern := "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"
@@ -43,11 +54,11 @@ func TestMultilineMatch(t *testing.T) {
 	})
 
 	t.Run("flushing-two-groups", func(t *testing.T) {
-		pattern := "^\\S"
+		patterns := []string{"^\\S"}
 		in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
 		out := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
 
-		m, err := New([]string{pattern}, nil)
+		m, err := New(patterns, nil)
 		assert.NoError(t, err)
 
 		_, state := m.ProcessLineString(in[0])

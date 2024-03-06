@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultMaxLength       = 32 * 1024 * 1024
+	defaultMaxLength       = 4 * 1024 * 1024
 	defaultMaxLifeDuration = time.Second * 5
 )
 
@@ -69,21 +69,41 @@ func New(patterns []string, opt *Option) (*Multiline, error) {
 	}, err
 }
 
-func (m *Multiline) ProcessLineString(text string) (string, State) {
-	t, b := m.ProcessLine([]byte(text))
-	return string(t), b
-}
-
 var newLine = []byte{'\n'}
+
+func (m *Multiline) ProcessLineString(text string) (string, State) {
+	if m.MatchString(text) {
+		finishedText := m.FlushString()
+		m.buff.WriteString(text)
+		m.lastWriteTime = time.Now()
+		return finishedText, NewMultiline
+	}
+
+	if m.buff.Len() == 0 {
+		return text, NoContext
+	}
+
+	m.buff.Write(newLine)
+	m.buff.WriteString(text)
+
+	if time.Since(m.lastWriteTime) > m.opt.MaxLifeDuration {
+		return m.FlushString(), OverTime
+	}
+	if m.buff.Len() > m.opt.MaxLength {
+		return m.FlushString(), OverLength
+	}
+
+	return "", Written
+}
 
 func (m *Multiline) ProcessLine(text []byte) ([]byte, State) {
 	// --匹配成功--
 	// 清空 buff 并写入新的文本，符合多行行为。记录当前时间。
 	if m.Match(text) {
-		previousText := m.Flush()
+		finishedText := m.Flush()
 		m.buff.Write(text)
 		m.lastWriteTime = time.Now()
-		return previousText, NewMultiline
+		return finishedText, NewMultiline
 	}
 
 	// --匹配失败--
@@ -101,10 +121,8 @@ func (m *Multiline) ProcessLine(text []byte) ([]byte, State) {
 
 	// flush 规则一：单次多行采集时长超出限制
 	if time.Since(m.lastWriteTime) > m.opt.MaxLifeDuration {
-		previousText := m.Flush()
-		return previousText, OverTime
+		return m.Flush(), OverTime
 	}
-
 	// flush 规则二：buff 长度超过限制
 	if m.buff.Len() > m.opt.MaxLength {
 		return m.Flush(), OverLength

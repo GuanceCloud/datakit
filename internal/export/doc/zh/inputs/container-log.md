@@ -88,36 +88,47 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="log-demo.yaml"
-    apiVersion: v1
-    kind: Pod
+    apiVersion: apps/v1
+    kind: Deployment
     metadata:
-      name: log-demo
-      annotations:
-        ## 添加配置，且指定容器为 log-output
-        datakit/log-output.logs: |
-          [{
-              "disable": false,
-              "source":  "log-output-source",
-              "service": "log-output-service",
-              "tags" : {
-                "some_tag": "some_value"
-              }
-          }]
+      name: log-demo-deployment
+      labels:
+        app: log-demo
     spec:
-      containers:
-      - name: log-output
-        image: pubrepo.guance.com/base/ubuntu:18.04
-        args:
-        - /bin/sh
-        - -c
-        - >
-          i=0;
-          while true;
-          do
-            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
-            i=$((i+1));
-            sleep 1;
-          done
+      replicas: 1
+      selector:
+        matchLabels:
+          app: log-demo
+      template:
+        metadata:
+          labels:
+            app: log-demo
+          annotations:
+            ## 添加配置，且指定容器为 log-output
+            datakit/log-output.logs: |
+              [{
+                  "disable": false,
+                  "source":  "log-output-source",
+                  "service": "log-output-service",
+                  "tags" : {
+                    "some_tag": "some_value"
+                  }
+              }]
+        spec:
+          containers:
+          - name: log-output
+            image: pubrepo.guance.com/base/ubuntu:18.04
+            args:
+            - /bin/sh
+            - -c
+            - >
+              i=0;
+              while true;
+              do
+                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
+                i=$((i+1));
+                sleep 1;
+              done
     ```
 
     执行 Kubernetes 命令，应用该配置：
@@ -145,12 +156,6 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 ## 容器内日志文件采集 {#logging-with-inside-config}
 
 对于容器内部的日志文件，和控制台输出日志的区别是需要指定文件路径，其他配置项大同小异。
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    配置的文件路径，不是容器内的文件路径，是通过 volume mount 能在外部访问到的路径。
-<!-- markdownlint-enable -->
 
 同样是添加容器环境变量或 Kubernetes Pod Annotation 的方式，Key 和 Value 基本一致，详见前文。
 
@@ -185,51 +190,62 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="logging.yaml"
-    apiVersion: v1
-    kind: Pod
+    apiVersion: apps/v1
+    kind: Deployment
     metadata:
-      name: log-demo
-      annotations:
-        ## 添加配置，且指定容器为 logging-demo
-        ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/log" 文件，需要先给 "/tmp/opt" 添加 emptyDir volume
-        datakit/logging-demo.logs: |
-          [
-            {
-              "disable": false,
-              "type": "file",
-              "path":"/tmp/opt/log",
-              "source":  "logging-file",
-              "tags" : {
-                "some_tag": "some_value"
-              }
-            },
-            {
-              "disable": false,
-              "source":  "logging-output"
-            }
-          ]
+      name: log-demo-deployment
+      labels:
+        app: log-demo
     spec:
-      containers:
-      - name: logging-demo
-        image: pubrepo.guance.com/base/ubuntu:18.04
-        args:
-        - /bin/sh
-        - -c
-        - >
-          i=0;
-          while true;
-          do
-            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
-            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log;
-            i=$((i+1));
-            sleep 1;
-          done
-        volumeMounts:
-        - mountPath: /tmp/opt
-          name: datakit-vol-opt
-      volumes:
-      - name: datakit-vol-opt
-        emptyDir: {}
+      replicas: 1
+      selector:
+        matchLabels:
+          app: log-demo
+      template:
+        metadata:
+          labels:
+            app: log-demo
+          annotations:
+            ## 添加配置，且指定容器为 logging-demo
+            ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/log" 文件，需要先给 "/tmp/opt" 添加 emptyDir volume
+            datakit/logging-demo.logs: |
+              [
+                {
+                  "disable": false,
+                  "type": "file",
+                  "path":"/tmp/opt/log",
+                  "source":  "logging-file",
+                  "tags" : {
+                    "some_tag": "some_value"
+                  }
+                },
+                {
+                  "disable": false,
+                  "source":  "logging-output"
+                }
+              ]
+        spec:
+          containers:
+          - name: logging-demo
+            image: pubrepo.guance.com/base/ubuntu:18.04
+            args:
+            - /bin/sh
+            - -c
+            - >
+              i=0;
+              while true;
+              do
+                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
+                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log;
+                i=$((i+1));
+                sleep 1;
+              done
+            volumeMounts:
+            - mountPath: /tmp/opt
+              name: datakit-vol-opt
+          volumes:
+          - name: datakit-vol-opt
+            emptyDir: {}
     ```
 
     执行 Kubernetes 命令，应用该配置：

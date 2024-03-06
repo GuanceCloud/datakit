@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	gruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,7 @@ type container struct {
 	podLabelAsTagsForNonMetric    labelsOption
 	podLabelAsTagsForMetric       labelsOption
 
+	maxConcurrent  int
 	loggingFilters []filter.Filter
 	logTable       *logTable
 	extraTags      map[string]string
@@ -76,10 +78,21 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		return nil, err
 	}
 
+	version, err := r.Version()
+	if err != nil {
+		return nil, fmt.Errorf("get runtime version err: %w", err)
+	}
+	l.Infof("connect runtime, platform: %s, api-version: %s", version.PlatformName, version.APIVersion)
+
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
+
+	maxConcurrent := gruntime.NumCPU() + 1
+	if ipt.ContainerMaxConcurrent > 0 {
+		maxConcurrent = ipt.ContainerMaxConcurrent
+	}
 
 	return &container{
 		ipt:                           ipt,
@@ -90,6 +103,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		enableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
 		podLabelAsTagsForNonMetric:    optForNonMetric,
 		podLabelAsTagsForMetric:       optForMetric,
+		maxConcurrent:                 maxConcurrent,
 		loggingFilters:                filters,
 		logTable:                      newLogTable(),
 		extraTags:                     tags,
@@ -125,6 +139,7 @@ func (c *container) Object(feed func(pts []*point.Point) error, opts ...option.C
 	c.gather("object", feed)
 }
 
+// Container collection (Docker/CRI/Fargate) not uses election.
 const containerElection = false
 
 func (c *container) Election() bool { return containerElection }
@@ -158,8 +173,6 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
 }
 
-const goroutineNum = 4
-
 func (c *container) gatherResource(category string, opts []point.Option, feed func(pts []*point.Point) error) error {
 	cList, err := c.runtime.ListContainers()
 	if err != nil {
@@ -178,7 +191,7 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 		p.SetLabelAsTags(labels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "container-" + category})
+	g := goroutine.NewGroup(goroutine.Option{Name: "container-collect-" + category})
 	for idx := range cList {
 		if isPauseContainer(cList[idx]) {
 			continue
@@ -209,8 +222,10 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 			})
 		}(cList[idx])
 
-		if (idx+1)%goroutineNum == 0 {
-			_ = g.Wait()
+		if (idx+1)%c.maxConcurrent == 0 {
+			if err = g.Wait(); err != nil {
+				l.Warn("waiting err: %s", err)
+			}
 		}
 	}
 

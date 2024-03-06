@@ -47,7 +47,9 @@ type Input struct {
 	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
 	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
 	autoDiscoveryOfPromStreamSize                     int
+	disableCollectK8sJob                              bool
 
+	ContainerMaxConcurrent                int               `toml:"container_max_concurrent"`
 	ContainerIncludeLog                   []string          `toml:"container_include_log"`
 	ContainerExcludeLog                   []string          `toml:"container_exclude_log"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`

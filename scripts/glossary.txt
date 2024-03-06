@@ -30,6 +30,7 @@ DaemonSet
 DataDog
 Datakit
 Dataway
+dfpv
 diskio
 DialTesting
 Distro
@@ -52,6 +53,8 @@ IPDB
 Informix
 InnoDB
 Inode
+Inodes
+inodes
 JTDS
 JXMFetch
 Jedis
