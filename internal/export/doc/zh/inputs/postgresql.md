@@ -138,3 +138,12 @@ log_file_mode = 0644
 | `user`             | `postgres`                | 当前访问用户名                                              |
 | `status`           | `LOG`                     | 当前日志的级别（LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO） |
 | `time`             | `1622445825110000000`     | 日志产生时间                                                |
+
+## FAQ {#faq}
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: 缺失指标 `postgresql_lock`, `postgresql_stat`, `postgresql_index`, `postgresql_size`, `postgresql_statio` {#faq-missing-relation-metrics}
+
+这些指标上报，需要开启配置文件中的 `relations` 字段。如果这些指标存在部分缺失，可能是因为相关指标不存在数据导致的。
+
+<!-- markdownlint-enable -->
