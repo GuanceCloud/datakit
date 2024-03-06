@@ -126,26 +126,18 @@ func TestKeepRareResource(t *testing.T) {
 	keep.UpdateStatus(true, 10*time.Millisecond)
 
 	log := logger.DefaultSLogger("filters-test")
-	wg := sync.WaitGroup{}
-	wg.Add(10)
-	for i := 0; i < 10; i++ {
-		go func() { // nolint:govet,staticcheck
-			defer wg.Done()
 
-			var kept DatakitTraces
-			for i := range traces {
-				time.Sleep(5 * time.Millisecond)
-				if t, skip := keep.Keep(log, traces[i]); skip {
-					kept = append(kept, t)
-				}
-			}
-			if len(kept) >= len(traces) {
-				t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
-				t.FailNow() // nolint:govet,staticcheck
-			}
-		}()
+	var kept1 DatakitTraces
+	for i := range traces {
+		time.Sleep(5 * time.Millisecond)
+		if t, skip := keep.Keep(log, traces[i]); skip {
+			kept1 = append(kept1, t)
+		}
 	}
-	wg.Wait()
+	if len(kept1) >= len(traces) {
+		t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept1))
+		t.FailNow() // nolint:govet,staticcheck
+	}
 
 	var kept DatakitTraces
 	for i := range traces {

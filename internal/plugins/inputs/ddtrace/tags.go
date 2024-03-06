@@ -24,7 +24,7 @@ var ddTags = map[string]string{
 	"dd.env":            "dd_env",
 	"error.message":     "error_message",
 	"error.stack":       "error_stack",
-	"error_type":        "error_type",
+	"error.type":        "error_type",
 	"system.pid":        "pid",
 	"error.msg":         "error_message",
 	"project":           "project",
