@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.24.0"
+  CI_VERSION: "1.25.0"
   TEST_VERSION: "1.999.0"
 
 stages:
@@ -68,8 +68,6 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint AUTO_FIX=off
-    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
-    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
