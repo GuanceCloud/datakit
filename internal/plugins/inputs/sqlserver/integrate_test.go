@@ -18,8 +18,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
-	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/denisenkom/go-mssqldb/msdsn"
+	mssql "github.com/microsoft/go-mssqldb"
+	"github.com/microsoft/go-mssqldb/msdsn"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
@@ -450,7 +450,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 					host := net.JoinHostPort(testutils.GetRemote().Host, fmt.Sprint(port))
 
 					connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", User, UserPassword, host)
-					cfg, _, _ := msdsn.Parse(connStr)
+					cfg, _ := msdsn.Parse(connStr)
 					conn := mssql.NewConnectorConfig(cfg)
 					db := sql.OpenDB(conn)
 					defer db.Close()

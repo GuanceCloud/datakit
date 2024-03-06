@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/denisenkom/go-mssqldb/msdsn"
+	mssql "github.com/microsoft/go-mssqldb"
+	"github.com/microsoft/go-mssqldb/msdsn"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
@@ -147,7 +147,7 @@ func (ipt *Input) GetPipeline() []*tailer.Option {
 
 func (ipt *Input) initDB() error {
 	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(ipt.User), url.PathEscape(ipt.Password), url.PathEscape(ipt.Host))
-	cfg, _, err := msdsn.Parse(connStr)
+	cfg, err := msdsn.Parse(connStr)
 	if err != nil {
 		return err
 	}
