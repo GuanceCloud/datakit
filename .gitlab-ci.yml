@@ -68,8 +68,6 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint AUTO_FIX=off
-    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
-    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
   tags:
     - cloudcare-ft
