@@ -89,29 +89,40 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		// 可以将其缓存起来，以 url 的 md5 值为 key
 		extraTags = config.ParseGlobalTags(param.queryValues.Get("tags"))
 	)
+
 	if !param.ignoreURLTags {
 		extraTags["ip_or_hostname"] = param.url.Hostname()
 		extraTags["service"] = completeService(source, param.queryValues.Get("service"))
 	}
 
 	var (
-		urlstr = param.url.String()
-		err    error
+		urlstr   = param.url.String()
+		logPtOpt = point.DefaultLoggingOptions()
+		plopt    *plmanager.Option
+		pts      []*point.Point
 	)
+
+	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
+		plopt = &plmanager.Option{
+			ScriptMap: map[string]string{
+				source: scriptName,
+			},
+		}
+	}
+
 	switch param.queryValues.Get("type") {
 	case "influxdb":
-		body, _err := ioutil.ReadAll(param.body)
-		if _err != nil {
-			log.Errorf("url %s failed to read body: %s", urlstr, _err)
-			err = _err
-			break
+		body, err := ioutil.ReadAll(param.body)
+		if err != nil {
+			log.Errorf("url %s failed to read body: %s", urlstr, err)
+			return err
 		}
 
 		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
 		defer point.PutDecoder(dec)
 
-		pts, err := dec.Decode(body,
-			append(point.DefaultLoggingOptions(),
+		pts, err = dec.Decode(body,
+			append(logPtOpt,
 				point.WithExtraTags(extraTags),
 				point.WithPrecision(point.PrecStr(param.queryValues.Get("precision"))),
 			)...)
@@ -120,25 +131,13 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			return err
 		}
 
-		if len(pts) == 0 {
-			log.Debugf("len(points) is zero, skip")
-
-			return nil
-		}
-
-		return ipt.feeder.Feed(inputName, point.Logging, pts, nil)
 	case "firelens":
 
-		body, _err := ioutil.ReadAll(param.body)
-		if _err != nil {
-			log.Errorf("url %s failed to read body: %s", urlstr, _err)
-			err = _err
-			break
+		body, err := ioutil.ReadAll(param.body)
+		if err != nil {
+			log.Errorf("url %s failed to read body: %s", urlstr, err)
+			return err
 		}
-
-		var pts []*point.Point
-
-		logPtOpt := point.DefaultLoggingOptions()
 
 		var decJSON bool
 		if json.Valid(body) {
@@ -202,29 +201,8 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			)
 		}
 
-		if len(pts) == 0 {
-			log.Debugf("len(points) is zero, skip")
-			return nil
-		}
-
-		var dkopt *dkio.Option
-
-		if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
-			dkopt = &dkio.Option{
-				PlOption: &plmanager.Option{
-					ScriptMap: map[string]string{
-						source: scriptName,
-					},
-				},
-			}
-		}
-
-		return ipt.feeder.Feed(source, point.Logging, pts, dkopt)
-
 	default:
 		scanner := bufio.NewScanner(param.body)
-		pts := make([]*point.Point, 0)
-		opts := point.DefaultLoggingOptions()
 		for scanner.Scan() {
 			var kvs point.KVs
 
@@ -232,31 +210,17 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			kvs = kvs.Add(pipeline.FieldStatus, pipeline.DefaultStatus, false, true)
 
 			pts = append(pts,
-				point.NewPointV2(source,
-					kvs,
-					append(opts, point.WithExtraTags(extraTags))...))
+				point.NewPointV2(source, kvs,
+					append(logPtOpt, point.WithExtraTags(extraTags))...))
 		}
-
-		if len(pts) == 0 {
-			log.Debugf("len(points) is zero, skip")
-
-			return nil
-		}
-
-		var scriptMap map[string]string
-
-		if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
-			scriptMap = map[string]string{
-				source: scriptName,
-			}
-		}
-
-		err = ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{
-			PlOption: &plmanager.Option{
-				ScriptMap: scriptMap,
-			},
-		})
 	}
 
-	return err
+	if len(pts) == 0 {
+		log.Debugf("len(points) is zero, skip")
+		return nil
+	}
+
+	return ipt.feeder.FeedV2(point.Logging, pts,
+		dkio.WithInputName(inputName),
+		dkio.WithPipelineOption(plopt))
 }

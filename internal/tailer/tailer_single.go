@@ -633,18 +633,13 @@ func (t *Single) feedToIO(pending []string) {
 		return
 	}
 
-	if err := t.opt.Feeder.Feed(
-		"logging/"+t.opt.Source,
-		point.Logging,
-		pts,
-		&dkio.Option{
-			PlOption: &manager.Option{
-				DisableAddStatusField: t.opt.DisableAddStatusField,
-				IgnoreStatus:          t.opt.IgnoreStatus,
-				ScriptMap:             map[string]string{t.opt.Source: t.opt.Pipeline},
-			},
-			Blocking: t.opt.BlockingMode,
-		},
+	if err := t.opt.Feeder.FeedV2(point.Logging, pts,
+		dkio.WithInputName("logging/"+t.opt.Source),
+		dkio.WithPipelineOption(&manager.Option{
+			DisableAddStatusField: t.opt.DisableAddStatusField,
+			IgnoreStatus:          t.opt.IgnoreStatus,
+			ScriptMap:             map[string]string{t.opt.Source: t.opt.Pipeline},
+		}),
 	); err != nil {
 		t.opt.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
 	}

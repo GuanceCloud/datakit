@@ -132,7 +132,10 @@ func (ag *Instance) run(ctx context.Context) error {
 				}
 			}
 			if len(pts) > 0 {
-				if err := io.feeder.Feed(inputName, point.Metric, pts, nil); err != nil {
+				if err := ag.feeder.FeedV2(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					l.Warnf("feeder.Feed failed: %s, ignored", err)
 				}
 			}

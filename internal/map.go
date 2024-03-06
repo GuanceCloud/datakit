@@ -15,6 +15,23 @@ func CopyMapString(in map[string]string) map[string]string {
 	return out
 }
 
+// MergeMapString returns a copy merged 2 incoming maps.
+func MergeMapString(ins ...map[string]string) map[string]string {
+	l := 0
+	for _, in := range ins {
+		l += len(in)
+	}
+	out := make(map[string]string, l)
+
+	for _, in := range ins {
+		for k, v := range in {
+			out[k] = v
+		}
+	}
+
+	return out
+}
+
 // CopyMapStringInterface returns a copy of incoming map[string]interface{}.
 func CopyMapStringInterface(in map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(in))

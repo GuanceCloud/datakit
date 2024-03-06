@@ -138,11 +138,12 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 	l.Debugf("received %d logs from promtail, feeding to io...", len(pts))
 
-	if err := ipt.feeder.Feed(source, point.Logging, pts, &dkio.Option{
-		PlOption: &plmanager.Option{
+	if err := ipt.feeder.FeedV2(point.Logging, pts,
+		dkio.WithInputName(source),
+		dkio.WithPipelineOption(&plmanager.Option{
 			ScriptMap: map[string]string{source: pipelinePath},
-		},
-	}); err != nil {
+		}),
+	); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 	} else {
 		resp.WriteHeader(http.StatusNoContent)

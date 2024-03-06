@@ -14,9 +14,10 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -34,7 +35,7 @@ type Input struct {
 	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
 
-	feeder  io.Feeder
+	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -75,7 +76,7 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			if err = ipt.gather(); err != nil {
 				l.Errorf("gather: %s", err.Error())
-				io.FeedLastError(inputName, err.Error())
+				dkio.FeedLastError(inputName, err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
@@ -107,10 +108,10 @@ func (ipt *Input) gather() error {
 	if cache, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
-		return ipt.feeder.Feed(inputName,
-			point.Metric,
-			cache,
-			&io.Option{CollectCost: time.Since(start)})
+		return ipt.feeder.FeedV2(point.Metric, cache,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithInputName(inputName),
+		)
 	}
 }
 
@@ -194,7 +195,7 @@ func init() { //nolint:gochecknoinits
 			Path:     defPath,
 			Interval: defInterval,
 			Timeout:  defTimeout,
-			feeder:   io.DefaultFeeder(),
+			feeder:   dkio.DefaultFeeder(),
 
 			semStop: cliutils.NewSem(),
 		}

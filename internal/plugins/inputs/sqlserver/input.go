@@ -260,7 +260,11 @@ func (ipt *Input) Run() {
 		} else {
 			ipt.getMetric()
 			if len(collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Metric, collectCache, &dkio.Option{CollectCost: time.Since(ipt.start)})
+				err := ipt.feeder.FeedV2(point.Metric, collectCache,
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				)
 				collectCache = collectCache[:0]
 				if err != nil {
 					ipt.lastErr = err
@@ -269,7 +273,11 @@ func (ipt *Input) Run() {
 			}
 
 			if len(loggingCollectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Logging, loggingCollectCache, &dkio.Option{CollectCost: time.Since(ipt.start)})
+				err := ipt.feeder.FeedV2(point.Logging, loggingCollectCache,
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				)
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {
 					ipt.lastErr = err

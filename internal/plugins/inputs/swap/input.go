@@ -167,13 +167,20 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := ipt.Collect(); err == nil {
-				if errFeed := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
-					&dkio.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					dkio.FeedLastError(inputName, errFeed.Error())
-					l.Error(errFeed)
+				if errFeed := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithInputName(metricName),
+				); errFeed != nil {
+					ipt.feeder.FeedLastError(errFeed.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed : %s", errFeed)
 				}
 			} else {
-				dkio.FeedLastError(inputName, err.Error())
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+				)
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():

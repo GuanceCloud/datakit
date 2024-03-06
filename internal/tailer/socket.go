@@ -262,20 +262,21 @@ func (sl *socketLogger) makeAndFeedPoint(network string, line []byte) {
 }
 
 func (sl *socketLogger) feedV2() {
-	var ioOpt *dkio.Option
+	opts := []dkio.FeedOption{
+		dkio.WithInputName("socklogging/" + sl.opt.InputName),
+	}
 	if sl.opt.Pipeline != "" {
-		ioOpt = &dkio.Option{
-			PlOption: &plmanager.Option{
-				DisableAddStatusField: sl.opt.DisableAddStatusField,
-				IgnoreStatus:          sl.ignorePatterns,
-				ScriptMap:             map[string]string{sl.opt.Source: sl.opt.Pipeline},
-			},
-		}
+		opts = append(opts, dkio.WithPipelineOption(&plmanager.Option{
+			DisableAddStatusField: sl.opt.DisableAddStatusField,
+			IgnoreStatus:          sl.ignorePatterns,
+			ScriptMap:             map[string]string{sl.opt.Source: sl.opt.Pipeline},
+		}))
 	}
 	ticker := time.NewTicker(time.Second * 5)
 	pts := make([]*point.Point, 0)
 	sendAndReset := func() {
-		if err := sl.feeder.Feed("socklogging/"+sl.opt.InputName, point.Logging, pts, ioOpt); err != nil {
+		if err := sl.feeder.FeedV2(point.Logging, pts, opts...,
+		); err != nil {
 			l.Error(err)
 		}
 		// 发送成功与否，重置数组，否则内存会一直涨。

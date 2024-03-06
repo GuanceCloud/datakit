@@ -215,6 +215,13 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
 	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 
+	router.GET("/v1/global/host/tags", ginLimiter(reqLimiter), getHostTags)
+	router.POST("/v1/global/host/tags", ginLimiter(reqLimiter), postHostTags)
+	router.DELETE("/v1/global/host/tags", ginLimiter(reqLimiter), deleteHostTags)
+	router.GET("/v1/global/election/tags", ginLimiter(reqLimiter), getElectionTags)
+	router.POST("/v1/global/election/tags", ginLimiter(reqLimiter), postElectionTags)
+	router.DELETE("/v1/global/election/tags", ginLimiter(reqLimiter), deleteElectionTags)
+
 	return router
 }
 

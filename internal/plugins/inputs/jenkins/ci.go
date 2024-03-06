@@ -80,7 +80,10 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		l.Debugf("empty Jenkins CI point array")
 		return
 	}
-	if err := ipt.feeder.Feed("jenkins_ci", point.Logging, pts, &dkio.Option{}); err != nil {
+	if err := ipt.feeder.FeedV2(point.Logging, pts,
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName("jenkins_ci"),
+	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorSource("jenkins_ci"),

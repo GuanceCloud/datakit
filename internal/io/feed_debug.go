@@ -19,20 +19,20 @@ type debugOutput struct{}
 
 var _ FeederOutputer = new(debugOutput)
 
-func (fo *debugOutput) Reader(cat point.Category) <-chan *iodata {
+func (fo *debugOutput) Reader(cat point.Category) <-chan *feedOption {
 	return nil
 }
 
-func (fo *debugOutput) Write(data *iodata) error {
-	for _, pt := range data.points {
+func (fo *debugOutput) Write(data *feedOption) error {
+	for _, pt := range data.pts {
 		cp.Output("%s\n", pt.LineProto())
 	}
 
 	timeSeriesStr := ""
-	if data.category == point.Metric {
+	if data.cat == point.Metric {
 		timeSeriesMap := make(map[string]interface{}, 0)
 
-		for _, pt := range data.points {
+		for _, pt := range data.pts {
 			for _, v := range pt.TimeSeriesHash() {
 				timeSeriesMap[v] = struct{}{}
 			}
@@ -45,7 +45,7 @@ func (fo *debugOutput) Write(data *iodata) error {
 		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 
 	cp.Infof("# [%s] %d points(%q)%s from %s, cost %s | Ctrl+c to exit.\n",
-		date, len(data.points), data.category.Alias(), timeSeriesStr, data.from, data.opt.CollectCost)
+		date, len(data.pts), data.cat.Alias(), timeSeriesStr, data.input, data.collectCost)
 
 	return nil
 }

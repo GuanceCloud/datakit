@@ -41,7 +41,7 @@ func Benchmark_serveWrite(b *testing.B) {
 		_, err := toml.Decode(conf, ipt)
 		require.NoError(b, err)
 
-		feeder := &blankFeeder{}
+		feeder := NewBenchmarkMockedFeeder()
 		ipt.feeder = feeder
 		ipt.tagger = &mockTagger{}
 		ipt.Run()
@@ -86,7 +86,7 @@ func TestInput_serveWrite(t *testing.T) {
 			_, err := toml.Decode(tt.conf, ipt)
 			require.NoError(t, err)
 
-			feeder := &mockFeeder{}
+			feeder := NewUnitTestMockedFeeder()
 			ipt.feeder = feeder
 			ipt.tagger = &mockTagger{}
 			ipt.Run()
@@ -142,7 +142,7 @@ func TestInput_serveWrite_with_source(t *testing.T) {
 			_, err := toml.Decode(tt.conf, ipt)
 			require.NoError(t, err)
 
-			feeder := &mockFeeder{}
+			feeder := NewUnitTestMockedFeeder()
 			ipt.feeder = feeder
 			ipt.tagger = &mockTagger{}
 			ipt.Run()
@@ -186,26 +186,6 @@ func (m httpResponseWriter) Header() http.Header        { return http.Header{} }
 func (m httpResponseWriter) Write([]byte) (int, error)  { return 0, nil }
 func (m httpResponseWriter) WriteHeader(statusCode int) {}
 
-type blankFeeder struct{}
-
-func (m *blankFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*dkio.Option) error {
-	return nil
-}
-func (m *blankFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
-
-type mockFeeder struct {
-	pts []*point.Point
-}
-
-func (m *mockFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*dkio.Option) error {
-	m.pts = append(m.pts, pts...)
-	return nil
-}
-func (m *mockFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
-func (m *mockFeeder) GetPoints() []*point.Point {
-	return m.pts
-}
-
 type mockTagger struct{}
 
 func (t *mockTagger) HostTags() map[string]string {
@@ -217,6 +197,9 @@ func (t *mockTagger) HostTags() map[string]string {
 func (t *mockTagger) ElectionTags() map[string]string {
 	return nil
 }
+func (t *mockTagger) UpdateVersion() {}
+
+func (t *mockTagger) Updated() bool { return false }
 
 // -------- mock data --------
 
@@ -1109,4 +1092,33 @@ func BenchmarkW(b *testing.B) {
 	tk := time.NewTicker(time.Minute * 13)
 	<-tk.C
 	tk.Stop()
+}
+
+// ------ unit test mock feeder ------
+
+type UnitTestMockedFeeder struct {
+	PTs []*point.Point
+}
+
+func NewUnitTestMockedFeeder() *UnitTestMockedFeeder {
+	return &UnitTestMockedFeeder{}
+}
+
+func (m *UnitTestMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
+	m.PTs = append(m.PTs, pts...)
+	return nil
+}
+
+func (m *UnitTestMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	m.PTs = append(m.PTs, pts...)
+	return nil
+}
+
+func (m *UnitTestMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
+func (m *UnitTestMockedFeeder) GetPoints() []*point.Point {
+	return m.PTs
+}
+
+func (m *UnitTestMockedFeeder) Clear() {
+	m.PTs = make([]*point.Point, 0)
 }

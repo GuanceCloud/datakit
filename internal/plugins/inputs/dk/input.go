@@ -17,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -90,7 +90,7 @@ type Input struct {
 	Tags         map[string]string `toml:"tags"`
 
 	Tagger datakit.GlobalTagger `toml:"-"`
-	Feeder io.Feeder            `toml:"-"`
+	feeder dkio.Feeder          `toml:"-"`
 
 	url  string
 	prom *prom.Prom
@@ -216,18 +216,21 @@ func (ipt *Input) Run() {
 		pts, err := ipt.prom.CollectFromHTTPV2(ipt.url)
 		if err != nil {
 			l.Warnf("prom.CollectFromHTTPV2: %s, ignored", err.Error())
-			ipt.Feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorSource(source),
-				io.WithLastErrorCategory(point.Metric),
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorSource(source),
+				dkio.WithLastErrorCategory(point.Metric),
 			)
 		} else if len(pts) > 0 {
-			if err := ipt.Feeder.Feed(source, point.Metric,
-				pts,
-				&io.Option{
-					CollectCost: time.Since(start),
-				}); err != nil {
-				l.Warnf("Feed: %s, ignored", err)
+			if err := ipt.feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithElection(false),
+				dkio.WithInputName(source)); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
 			}
 		}
 
@@ -245,7 +248,7 @@ func (*Input) AvailableArchs() []string {
 
 func def() *Input {
 	return &Input{
-		Feeder:   io.DefaultFeeder(),
+		feeder:   dkio.DefaultFeeder(),
 		url:      fmt.Sprintf("http://%s/metrics", defaultHost),
 		Interval: time.Second * 30,
 		Tags:     map[string]string{},

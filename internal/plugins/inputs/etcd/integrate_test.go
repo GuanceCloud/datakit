@@ -199,7 +199,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		ipt.Feeder = feeder // Flush metric data to testing_metrics
+		ipt.feeder = feeder // Flush metric data to testing_metrics
 
 		// URL from ENV.
 		_, err := toml.Decode(base.conf, ipt)

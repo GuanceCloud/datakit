@@ -159,8 +159,9 @@ func (agg *FlowAggregator) sendFlows(flows []*common.Flow, flushTime time.Time) 
 		logging.Fields["source_port"] = flowPayload.Source.Port
 		logging.Fields["type"] = flowPayload.FlowType
 
-		if err := agg.feeder.Feed(common.InputName+"/"+agg.source, point.Logging,
-			[]*point.Point{logging.Point()}, &dkio.Option{CollectCost: time.Since(flushTime)},
+		if err := agg.feeder.FeedV2(point.Logging, []*point.Point{logging.Point()},
+			dkio.WithCollectCost(time.Since(flushTime)),
+			dkio.WithInputName(common.InputName+"/"+agg.source),
 		); err != nil {
 			l.Errorf("Feed failed: %v", err)
 		}

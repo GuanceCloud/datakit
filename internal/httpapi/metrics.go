@@ -15,6 +15,8 @@ var (
 
 	apiElapsedVec,
 	apiReqSizeVec *p8s.SummaryVec
+
+	apiGlobalTagsUpdatedVec *p8s.GaugeVec
 )
 
 func metricsSetup() {
@@ -68,10 +70,25 @@ func metricsSetup() {
 		},
 	)
 
+	apiGlobalTagsUpdatedVec = p8s.NewGaugeVec(
+		p8s.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "http",
+			Name:      "api_global_tags_last_updated",
+			Help:      "Global tag updated timestamp, in second",
+		},
+		[]string{
+			"api",
+			"method",
+			"status",
+		},
+	)
+
 	metrics.MustRegister(
 		apiElapsedVec,
 		apiReqSizeVec,
 		apiCountVec,
+		apiGlobalTagsUpdatedVec,
 	)
 }
 

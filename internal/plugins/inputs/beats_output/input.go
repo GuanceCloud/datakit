@@ -21,7 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -68,7 +68,7 @@ type Input struct {
 	MaximumLength int               `toml:"maximum_length,omitempty"`
 	Tags          map[string]string `toml:"tags"`
 
-	feeder io.Feeder
+	feeder dkio.Feeder
 
 	semStop *cliutils.Sem // start stop signal
 	stopped bool
@@ -266,13 +266,13 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		pts = append(pts, logging.Point())
 	}
 	if len(pts) > 0 {
-		if err := ipt.feeder.Feed(inputName+"/"+ipt.Listen, point.Logging, pts, &io.Option{
-			PlOption: &plmanager.Option{
+		if err := ipt.feeder.FeedV2(point.Logging, pts,
+			dkio.WithPipelineOption(&plmanager.Option{
 				ScriptMap: map[string]string{
 					ipt.Source: ipt.Pipeline,
 				},
-			},
-		}); err != nil {
+			}),
+			dkio.WithInputName(inputName+"/"+ipt.Listen)); err != nil {
 			l.Error(err)
 		}
 	}
@@ -398,7 +398,7 @@ func getDataPieceFromEvent(event interface{}) *DataStruct {
 func defaultInput() *Input {
 	return &Input{
 		Tags:    make(map[string]string),
-		feeder:  io.DefaultFeeder(),
+		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
 		Tagger:  datakit.DefaultGlobalTagger(),
 	}

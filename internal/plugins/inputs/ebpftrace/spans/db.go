@@ -526,7 +526,9 @@ func (db *DBChunk) GetPtBlobAndFeed(spans []*EBPFSpan, rejectTraceMap map[ID128]
 			pts = append(pts, pt)
 
 			if len(pts) >= feedChunk {
-				if err := io.DefaultFeeder().Feed("ebpf-tracing", point.Tracing, pts, nil); err != nil {
+				if err := io.DefaultFeeder().FeedV2(point.Tracing, pts,
+					io.WithInputName("ebpf-tracing"),
+				); err != nil {
 					l.Debug(err)
 				}
 				pts = make([]*point.Point, 0, feedChunk)
@@ -539,7 +541,9 @@ func (db *DBChunk) GetPtBlobAndFeed(spans []*EBPFSpan, rejectTraceMap map[ID128]
 	}
 
 	if len(pts) > 0 {
-		if err := io.DefaultFeeder().Feed("ebpf-tracing", point.Tracing, pts, nil); err != nil {
+		if err := io.DefaultFeeder().FeedV2(point.Tracing, pts,
+			io.WithInputName("ebpf-tracing"),
+		); err != nil {
 			l.Debug(err)
 		}
 	}

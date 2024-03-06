@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -183,11 +183,15 @@ func (ipt *Input) Run() {
 			if err != nil {
 				l.Errorf("Collect failed: %v", err)
 			} else if len(points) > 0 {
-				if err := ipt.feeder.Feed(inputName, point.Metric, points, &io.Option{CollectCost: time.Since(ipt.start)}); err != nil {
-					l.Errorf(err.Error())
+				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						io.WithLastErrorInput(inputName),
+						dkio.WithLastErrorInput(inputName),
 					)
+					l.Errorf("feed : %s", err)
 				} else {
 					ipt.collectCache = ipt.collectCache[:0]
 				}
@@ -322,7 +326,7 @@ func defaultInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 10},
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
-		feeder:   io.DefaultFeeder(),
+		feeder:   dkio.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),
 		Tagger:   datakit.DefaultGlobalTagger(),
 	}

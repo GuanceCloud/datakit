@@ -165,8 +165,10 @@ func (ipt *Input) doCollect(idx int) error {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.Feed(metricName, point.Metric, pts,
-			&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+		if err := ipt.feeder.FeedV2(point.Metric, pts,
+			dkio.WithCollectCost(time.Since(ipt.start)),
+			dkio.WithElection(ipt.Election),
+			dkio.WithInputName(metricName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(point.Metric),
@@ -298,8 +300,10 @@ func (ipt *Input) handleServerDropWarn() {
 				kvs = kvs.AddTag(k, v)
 			}
 			pts := []*point.Point{point.NewPointV2(inputName, kvs, opts...)}
-			if err := ipt.feeder.Feed(metricName, point.Metric, pts,
-				&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
+			if err := ipt.feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(ipt.start)),
+				dkio.WithElection(ipt.Election),
+				dkio.WithInputName(metricName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 					dkio.WithLastErrorCategory(point.Metric),

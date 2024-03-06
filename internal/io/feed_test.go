@@ -107,7 +107,13 @@ func TestRunpl(t *T.T) {
 				t.Error("!ok")
 			}
 
-			epts, _, _, err := beforeFeed("a", point.Logging, c.pts, c.option)
+			fo := getFeedOption()
+			fo.input = "a"
+			fo.cat = point.Logging
+			fo.pts = c.pts
+			fo.plOption = c.option.PlOption
+			// epts, _, _, err := beforeFeed("a", point.Logging, c.pts, c.option)
+			epts, _, _, err := beforeFeed(fo)
 			if err != nil {
 				t.Error(err)
 			}
@@ -125,12 +131,16 @@ func TestRunpl(t *T.T) {
 
 func Test_forceBlocking(t *T.T) {
 	t.Run(`basic`, func(t *T.T) {
-		assert.Nil(t, forceBlocking(point.Metric, "some", nil))
+		fo := getFeedOption()
+		fo.input = "some"
+		fo.cat = point.Logging
+		opt := forceBlocking(fo)
+		assert.True(t, opt.blocking)
 
-		opt := forceBlocking(point.Logging, "some", nil)
-		assert.True(t, opt.Blocking)
-
-		opt = forceBlocking(point.RUM, "some", nil)
-		assert.True(t, opt.Blocking)
+		fo = getFeedOption()
+		fo.input = "some"
+		fo.cat = point.RUM
+		opt = forceBlocking(fo)
+		assert.True(t, opt.blocking)
 	})
 }

@@ -105,16 +105,16 @@ func (ipt *input) Run() {
 			if err := ipt.collect(); err != nil {
 				l.Error(err)
 			} else {
-				if err := ipt.feeder.Feed(inputName, point.Logging, ipt.collectCache,
-					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-					l.Errorf("Feed failed: %s", err.Error())
-
-					ipt.feeder.FeedLastError("mocked error from demo input",
+				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName)); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 						dkio.WithLastErrorCategory(point.Metric),
 					)
+					l.Errorf("feed measurement: %s", err)
 				}
-
 				ipt.collectCache = ipt.collectCache[:0] // Do not forget to clean cache
 			}
 

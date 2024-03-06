@@ -159,7 +159,7 @@ const (
 	gather_top_stat = true
 	election = false
 [tags]
-	tag1 = "val1"`
+	tag1 = "val1"`  // set conf URL later.
 )
 
 func TestIntegrate(t *testing.T) {

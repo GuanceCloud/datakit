@@ -14,34 +14,34 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 )
 
-func (x *dkIO) cacheData(c *consumer, d *iodata, tryClean bool) {
+func (x *dkIO) cacheData(c *consumer, d *feedOption, tryClean bool) {
 	if d == nil {
 		log.Warn("get empty data, ignored")
 		return
 	}
 
-	if len(d.points) == 0 {
-		log.Warnf("no point from %q", d.from)
+	if len(d.pts) == 0 {
+		log.Warnf("no point from %q", d.input)
 		return
 	}
 
 	defer func() {
-		queuePtsVec.WithLabelValues(d.category.String()).Set(float64(len(c.points)))
+		queuePtsVec.WithLabelValues(d.cat.String()).Set(float64(len(c.points)))
 	}()
 
-	log.Debugf("get iodata(%d points) from %s|%s", len(d.points), d.category, d.from)
+	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.cat, d.input)
 
 	if x.recorder != nil && x.recorder.Enabled {
-		if err := x.recorder.Record(d.points, d.category, d.from); err != nil {
-			log.Warnf("record %d points on %q from %q failed: %s, ignored", len(d.points), d.category, d.from, err)
+		if err := x.recorder.Record(d.pts, d.cat, d.input); err != nil {
+			log.Warnf("record %d points on %q from %q failed: %s", len(d.pts), d.cat, d.input, err)
 		} else {
-			log.Debugf("record %d points on %q from %q ok", len(d.points), d.category, d.from)
+			log.Debugf("record %d points on %q from %q ok", len(d.pts), d.cat, d.input)
 		}
 	} else {
 		log.Debugf("recorder disabled: %+#v", x.recorder)
 	}
 
-	c.points = append(c.points, d.points...)
+	c.points = append(c.points, d.pts...)
 
 	if tryClean && x.maxCacheCount > 0 && len(c.points) > x.maxCacheCount {
 		x.flush(c)

@@ -50,7 +50,7 @@ func TestInput_Collect_BatchLength(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ipt := &Input{}
 
-			feeder := &mockFeeder{}
+			feeder := NewPTLenMockedFeeder()
 			ipt.Feeder = feeder
 
 			ipt.feedBatch(getPoints(tt.ptLength))
@@ -79,20 +79,35 @@ func getPoints(pointLength int) []*point.Point {
 	return measurs
 }
 
-// mock Feeder
+// ------ pt len mock feeder ------
 
-type mockFeeder struct {
+type PTLenMockedFeeder struct {
 	batchLength []int
 }
 
-func (m *mockFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*dkio.Option) error {
+func NewPTLenMockedFeeder() *PTLenMockedFeeder {
+	return &PTLenMockedFeeder{}
+}
+
+func (m *PTLenMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
 	m.batchLength = append(m.batchLength, len(pts))
 	return nil
 }
-func (m *mockFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
-func (m *mockFeeder) GetBatchLength() []int {
+
+func (m *PTLenMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	m.batchLength = append(m.batchLength, len(pts))
+	return nil
+}
+
+func (m *PTLenMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
+
+func (m *PTLenMockedFeeder) GetBatchLength() []int {
 	if m.batchLength == nil {
 		return []int{}
 	}
 	return m.batchLength
+}
+
+func (m *PTLenMockedFeeder) Clear() {
+	m.batchLength = make([]int, 0)
 }

@@ -177,12 +177,12 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 
 		pt := point.NewPointV2(topic, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
-		err = mq.feeder.Feed(topic, category, []*point.Point{pt}, &dkio.Option{
-			PlOption: &plmanager.Option{
+		if err := mq.feeder.FeedV2(category, []*point.Point{pt},
+			dkio.WithInputName(topic),
+			dkio.WithPipelineOption(&plmanager.Option{
 				ScriptMap: plMap,
-			},
-		})
-		if err != nil {
+			}),
+		); err != nil {
 			log.Warnf("feed io err=%v", err)
 		}
 	}

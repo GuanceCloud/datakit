@@ -93,7 +93,10 @@ func (ipt *Input) handleSkyMetricV3(resp http.ResponseWriter, req *http.Request)
 
 	metrics := processMetricsV3(jvm, start, ipt)
 	if len(metrics) != 0 {
-		if err := ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+		if err := ipt.feeder.FeedV2(point.Metric, metrics,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithInputName(jvmMetricName),
+		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorSource(jvmMetricName),
@@ -139,7 +142,9 @@ func handleSkyLoggingV3(resp http.ResponseWriter, req *http.Request) {
 	if pt, err := processLogV3(logdata); err != nil {
 		log.Error(err.Error())
 	} else {
-		if err = iptGlobal.feeder.Feed(logdata.Service, point.Logging, []*point.Point{pt}, nil); err != nil {
+		if err := iptGlobal.feeder.FeedV2(point.Logging, []*point.Point{pt},
+			dkio.WithInputName(logdata.Service),
+		); err != nil {
 			log.Error(err.Error())
 		}
 	}

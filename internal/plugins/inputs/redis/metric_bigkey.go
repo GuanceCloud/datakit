@@ -18,7 +18,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -69,8 +69,9 @@ func (ipt *Input) collectBigKey() error {
 	}
 
 	if len(pts) > 0 {
-		err = ipt.feeder.Feed(redisBigkey, point.Logging, pts, &io.Option{})
-		if err != nil {
+		if err := ipt.feeder.FeedV2(point.Logging, pts,
+			dkio.WithElection(ipt.Election),
+			dkio.WithInputName(redisBigkey)); err != nil {
 			return err
 		}
 	}
@@ -196,8 +197,9 @@ func (ipt *Input) scanBigKey(ctxKey context.Context) error {
 		}
 
 		if len(pts) > 0 {
-			err = ipt.feeder.Feed(redisBigkey, point.Logging, pts, &io.Option{})
-			if err != nil {
+			if err := ipt.feeder.FeedV2(point.Logging, pts,
+				dkio.WithElection(ipt.Election),
+				dkio.WithInputName(redisBigkey)); err != nil {
 				return err
 			}
 		}

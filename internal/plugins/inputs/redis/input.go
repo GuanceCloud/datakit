@@ -196,9 +196,15 @@ func (ipt *Input) Collect() error {
 		}
 
 		if len(pts) > 0 {
-			if err := ipt.feeder.Feed(inputName, point.Metric, pts,
-				&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
-				l.Errorf("FeedMeasurement: %s", err)
+			if err := ipt.feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(ipt.start)),
+				dkio.WithElection(ipt.Election),
+				dkio.WithInputName(inputName)); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
 			}
 		}
 	}

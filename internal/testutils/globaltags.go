@@ -45,6 +45,10 @@ func (m *taggerMock) ElectionTags() map[string]string {
 	return m.electionTags
 }
 
+func (m *taggerMock) UpdateVersion() {}
+
+func (m *taggerMock) Updated() bool { return false }
+
 // DefaultMockTagger How to use?
 //
 //	return &Input{
@@ -72,4 +76,11 @@ func (g *mockTaggerImpl) HostTags() map[string]string {
 
 func (g *mockTaggerImpl) ElectionTags() map[string]string {
 	return map[string]string{"election": "TRUE"}
+}
+
+func (g *mockTaggerImpl) UpdateVersion() {}
+
+// mocked tagger do not need to check if updated.
+func (g *mockTaggerImpl) Updated() bool {
+	return false
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -52,7 +52,7 @@ type input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	feeder io.Feeder
+	feeder dkio.Feeder
 	tagger datakit.GlobalTagger
 
 	urlTags []map[string]string
@@ -105,10 +105,11 @@ func (i *input) Run() {
 			i.Collect()
 
 			if len(i.collectCache) > 0 {
-				if err := i.feeder.Feed(inputName,
-					point.Metric,
-					i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
+				if err := i.feeder.FeedV2(point.Metric, i.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(i.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					l.Errorf("Feed: %s, ignored", err)
 				}
 			}
@@ -185,8 +186,8 @@ func (i *input) Collect() {
 			l.Warnf("unknown scheme %q", resURL.Scheme)
 
 			i.feeder.FeedLastError(fmt.Sprintf("unknown scheme %q", resURL.Scheme),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorCategory(point.Metric))
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric))
 		}
 	}
 }
@@ -195,7 +196,7 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &input{
 			tagger: datakit.DefaultGlobalTagger(),
-			feeder: io.DefaultFeeder(),
+			feeder: dkio.DefaultFeeder(),
 
 			Election: true,
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),

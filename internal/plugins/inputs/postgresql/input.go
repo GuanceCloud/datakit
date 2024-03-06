@@ -24,7 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -204,7 +204,7 @@ type Input struct {
 	pause    bool
 	pauseCh  chan bool
 
-	feeder io.Feeder
+	feeder dkio.Feeder
 	tagger datakit.GlobalTagger
 
 	version  *semver.Version
@@ -826,7 +826,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
+			dkio.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -932,8 +932,8 @@ func (ipt *Input) Run() {
 		if err := ipt.init(); err != nil {
 			l.Errorf("failed to init postgresql: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				io.WithLastErrorInput(inputName),
-				io.WithLastErrorCategory(point.Metric),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
 			)
 		} else {
 			break
@@ -975,19 +975,21 @@ func (ipt *Input) Run() {
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					io.WithLastErrorInput(inputName),
+					dkio.WithLastErrorInput(inputName),
 				)
 				l.Error(err)
 			}
 
 			if len(ipt.collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
-				if err != nil {
+				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						io.WithLastErrorInput(inputName),
+						dkio.WithLastErrorInput(inputName),
 					)
-					l.Error(err.Error())
+					l.Errorf("feed : %s", err)
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}
@@ -1119,7 +1121,7 @@ func NewInput(service Service) *Input {
 		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
 		Election: true,
-		feeder:   io.DefaultFeeder(),
+		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
 	}

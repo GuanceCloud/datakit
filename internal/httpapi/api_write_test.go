@@ -274,7 +274,7 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) feed(string, point.Category, []*point.Point, ...*io.Option) error {
+func (x *apiWriteMock) feed(point.Category, []*point.Point, []io.FeedOption) error {
 	x.t.Helper()
 	x.t.Log("mock feed impl")
 	return nil // do nothing
@@ -628,7 +628,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
-							"name": "1", "host": "my-testing",
+							"name": "1",
 						},
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",
@@ -660,8 +660,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123`,
 					{
 						Measurement: "object-class",
 						Tags: map[string]string{
-							"name":    "1",
-							"cluster": "my-cluster",
+							"name": "1",
 						},
 						Fields: map[string]interface{}{
 							"f1": 1, "message": "dump object message",

@@ -12,9 +12,11 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func runGRPCV1(addr string, ipt *Input) {
@@ -69,7 +71,9 @@ func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.Expo
 		}
 	}
 	if len(points) != 0 {
-		if err := mss.Ipt.feeder.Feed(inputName, point.Metric, points, nil); err != nil {
+		if err := mss.Ipt.feeder.FeedV2(point.Metric, points,
+			dkio.WithInputName(inputName),
+		); err != nil {
 			log.Error(err.Error())
 		}
 	}

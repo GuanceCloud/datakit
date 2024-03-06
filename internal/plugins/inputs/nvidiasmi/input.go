@@ -110,8 +110,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
-					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 						dkio.WithLastErrorCategory(point.Metric),
@@ -121,8 +123,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.collectCacheLog) > 0 {
-				if err := ipt.feeder.Feed(metricName, point.Logging, ipt.collectCacheLog,
-					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCacheLog,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 						dkio.WithLastErrorCategory(point.Metric),
@@ -132,13 +136,15 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.collectCacheWarn) > 0 {
-				if err := ipt.feeder.Feed(metricName, point.Logging, ipt.collectCacheWarn,
-					&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCacheWarn,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 						dkio.WithLastErrorCategory(point.Metric),
 					)
-					l.Errorf("feed warning: %s", err)
+					l.Errorf("feed measurement: %s", err)
 				}
 			}
 		}

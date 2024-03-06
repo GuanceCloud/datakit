@@ -626,13 +626,16 @@ func (ipt *Input) Run() {
 
 			for category, pts := range mpts {
 				if len(pts) > 0 {
-					if err := ipt.feeder.Feed(inputName, category, pts,
-						&dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
-						l.Warnf("dkio.Feed failed: %v", err)
+					if err := ipt.feeder.FeedV2(category, pts,
+						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(inputName),
+					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							dkio.WithLastErrorInput(inputName),
 							dkio.WithLastErrorCategory(gcPoint.Metric),
 						)
+						l.Errorf("feed : %s", err)
 					}
 				}
 			}

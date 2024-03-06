@@ -116,11 +116,13 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	if len(pts) != 0 {
 		var (
 			start = time.Now()
-			opt   = &dkio.Option{Blocking: aga.ioBlockingMode}
 			err   error
 		)
 	IO_FEED_RETRY:
-		if err = aga.feeder.Feed(inputName, point.Tracing, pts, opt); err != nil {
+		if err = aga.feeder.FeedV2(point.Tracing, pts,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithBlocking(aga.ioBlockingMode),
+			dkio.WithInputName(inputName)); err != nil {
 			if aga.retry > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.retry)
 				goto IO_FEED_RETRY

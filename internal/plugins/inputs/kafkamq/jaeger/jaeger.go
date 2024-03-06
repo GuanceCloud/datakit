@@ -98,8 +98,9 @@ func (mq *Consumer) DaoKeOTELMsg(msg *sarama.ConsumerMessage) {
 	if len(mq.ptsCache) >= 100 {
 		pts := make([]*point.Point, 0, 100)
 		pts = append(pts, mq.ptsCache...)
-		err = mq.feeder.Feed("otel_jaeger", point.Tracing, pts)
-		if err != nil {
+		if err := mq.feeder.FeedV2(point.Tracing, pts,
+			dkio.WithInputName("otel_jaeger"),
+		); err != nil {
 			log.Errorf("err=%v", err)
 		}
 		mq.ptsCache = make([]*point.Point, 0)

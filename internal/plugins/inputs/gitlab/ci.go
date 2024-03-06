@@ -623,12 +623,14 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := ipt.feeder.Feed("gitlab_ci", point.Logging, pts, &dkio.Option{}); err != nil {
-		l.Warnf("Feed failed: %s", err.Error())
+	if err := ipt.feeder.FeedV2(point.Logging, pts,
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName("gitlab_ci")); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 			dkio.WithLastErrorCategory(point.Logging),
 		)
+		l.Errorf("feed measurement: %s", err)
 
 		resp.WriteHeader(http.StatusInternalServerError)
 		ipt.reqMemo.remove(digest)

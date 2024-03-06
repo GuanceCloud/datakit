@@ -138,8 +138,10 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			start := time.Now()
 			if err := ipt.Collect(); err == nil {
-				if feedErr := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
-					&dkio.Option{CollectCost: time.Since(start)}); feedErr != nil {
+				if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithInputName(inputName),
+				); feedErr != nil {
 					l.Error(feedErr)
 					dkio.FeedLastError(inputName, feedErr.Error())
 				}

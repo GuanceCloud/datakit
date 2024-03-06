@@ -1457,3 +1457,5 @@ func (m *taggerMock) HostTags() map[string]string {
 func (m *taggerMock) ElectionTags() map[string]string {
 	return m.electionTags
 }
+func (m *taggerMock) UpdateVersion() {}
+func (m *taggerMock) Updated() bool  { return false }

@@ -112,10 +112,10 @@ func (j *JolokiaAgent) Collect() {
 			}
 
 			if len(j.collectCache) > 0 {
-				if err := j.Feeder.Feed(j.PluginName, point.Metric, j.collectCache,
-					&dkio.Option{
-						CollectCost: time.Since(start),
-					}); err != nil {
+				if err := j.Feeder.FeedV2(point.Metric, j.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(j.Election),
+					dkio.WithInputName(j.PluginName)); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
