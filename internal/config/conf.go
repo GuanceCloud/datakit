@@ -371,7 +371,7 @@ func (c *Config) setupGlobalTags() {
 		}
 	}
 
-	if len(c.GlobalHostTags) == 0 {
+	if _, ok := c.GlobalHostTags["host"]; !ok {
 		c.GlobalHostTags["host"] = c.Hostname
 	}
 

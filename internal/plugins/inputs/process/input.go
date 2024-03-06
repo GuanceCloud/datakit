@@ -489,11 +489,11 @@ func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, 
 		return
 	}
 
-	if err := ipt.feeder.Feed(inputName+"/object",
-		point.Object,
-		collectCache,
-		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("FeedMeasurement err :%s", err.Error())
+	if err := ipt.feeder.FeedV2(point.Object, collectCache,
+		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithInputName(inputName+"/object"),
+	); err != nil {
+		l.Errorf("Feed object err :%s", err.Error())
 		ipt.lastErr = err
 	}
 
@@ -539,11 +539,11 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, 
 		return
 	}
 
-	if err := ipt.feeder.Feed(inputName+"/metric",
-		point.Metric,
-		collectCache,
-		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
-		l.Errorf("fedder.Feed :%s", err.Error())
+	if err := ipt.feeder.FeedV2(point.Metric, collectCache,
+		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithInputName(inputName+"/metric"),
+	); err != nil {
+		l.Errorf("Feed metric err :%s", err.Error())
 		ipt.lastErr = err
 	}
 

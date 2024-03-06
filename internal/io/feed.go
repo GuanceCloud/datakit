@@ -10,25 +10,59 @@ import (
 	"fmt"
 	reflect "reflect"
 	"strings"
+	"sync"
 	"time"
 
 	plscript "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 var (
-	_         Feeder = new(ioFeeder)
-	ErrIOBusy        = errors.New("io busy")
+	_ Feeder = new(ioFeeder)
+
+	ErrIOBusy = errors.New("io busy")
+
+	globalTagger = datakit.DynamicGlobalTagger()
+	globalHostTags,
+	globalElectionTags map[string]string // global host tags & global election tags
+	globalHostKVs,
+	globalElectionKVs point.KVs // kvs of global host tags & global election tags
+	rw sync.RWMutex
+
+	feedOptionPool sync.Pool
 )
 
+func getFeedOption() *feedOption {
+	if x := feedOptionPool.Get(); x == nil {
+		return &feedOption{}
+	} else {
+		return x.(*feedOption)
+	}
+}
+
+func putFeedOption(fo *feedOption) {
+	fo.collectCost = 0
+	fo.input = "unknown"
+	fo.version = ""
+	fo.cat = point.UnknownCategory
+	fo.postTimeout = 0
+	fo.blocking = false
+	fo.plOption = nil
+	fo.election = false
+	fo.pts = nil
+
+	feedOptionPool.Put(fo)
+}
+
 type FeederOutputer interface {
-	Write(data *iodata) error
+	Write(fo *feedOption) error
 	WriteLastError(err string, opts ...LastErrorOption)
-	Reader(c point.Category) <-chan *iodata
+	Reader(c point.Category) <-chan *feedOption
 }
 
 // DefaultFeeder get default feeder.
@@ -36,26 +70,57 @@ func DefaultFeeder() Feeder {
 	return &ioFeeder{}
 }
 
-// iodata wraps feeder data to upload queue.
-type iodata struct {
-	category point.Category
-	from     string
-	opt      *Option
-
-	points []*point.Point
-}
-
 // Option used to define various feed options.
+// Deprecated: use FeedOption.
 type Option struct {
 	CollectCost time.Duration
-
-	Version string
-
 	PostTimeout time.Duration
+	Blocking    bool
+	PlOption    *plscript.Option
+	Version     string
+}
 
-	Blocking bool
+type feedOption struct {
+	collectCost,
+	postTimeout time.Duration
+	input,
+	version string
+	cat      point.Category
+	plOption *plscript.Option
+	blocking bool
+	election bool
+	pts      []*point.Point
+}
 
-	PlOption *plscript.Option
+// FeedOption used to define various feed options.
+type FeedOption func(*feedOption)
+
+func WithCollectCost(du time.Duration) FeedOption {
+	return func(fo *feedOption) { fo.collectCost = du }
+}
+
+func WithInputVersion(v string) FeedOption {
+	return func(fo *feedOption) { fo.version = v }
+}
+
+func WithPostTimeout(du time.Duration) FeedOption {
+	return func(fo *feedOption) { fo.postTimeout = du }
+}
+
+func WithBlocking(on bool) FeedOption {
+	return func(fo *feedOption) { fo.blocking = on }
+}
+
+func WithPipelineOption(po *plscript.Option) FeedOption {
+	return func(fo *feedOption) { fo.plOption = po }
+}
+
+func WithElection(on bool) FeedOption {
+	return func(fo *feedOption) { fo.election = on }
+}
+
+func WithInputName(name string) FeedOption {
+	return func(fo *feedOption) { fo.input = name }
 }
 
 type LastErrorOption func(*LastError)
@@ -100,11 +165,17 @@ func WithLastErrorCategory(cats ...point.Category) LastErrorOption {
 
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
+
+	FeedV2(category point.Category, pts []*point.Point, opts ...FeedOption) error
+
 	FeedLastError(err string, opts ...LastErrorOption)
 }
 
 // default IO feed implements.
-type ioFeeder struct{}
+type ioFeeder struct {
+	// global host tags and global election tags
+	// ght, get map[string]string
+}
 
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
@@ -123,12 +194,87 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
 	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
 
+	fo := getFeedOption()
+	fo.input = name
+	fo.cat = category
+	fo.pts = pts
+
 	if len(opts) > 0 && opts[0] != nil {
 		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
-		return defIO.doFeed(pts, category, name, opts[0])
+
+		fo.collectCost = opts[0].CollectCost
+		fo.version = opts[0].Version
+		fo.postTimeout = opts[0].PostTimeout
+		fo.blocking = opts[0].Blocking
+		fo.plOption = opts[0].PlOption
+		return defIO.doFeed(fo)
 	} else {
-		return defIO.doFeed(pts, category, name, nil)
+		return defIO.doFeed(fo)
 	}
+}
+
+func refreshGlobalTags() {
+	rw.Lock()
+	defer rw.Unlock()
+
+	globalHostTags = globalTagger.HostTags()
+	globalElectionTags = globalTagger.ElectionTags()
+	globalHostKVs = globalHostKVs[:0]
+	globalElectionKVs = globalElectionKVs[:0]
+	for k, v := range globalHostTags {
+		globalHostKVs = globalHostKVs.AddTag(k, v)
+	}
+	for k, v := range globalElectionTags {
+		globalElectionKVs = globalElectionKVs.AddTag(k, v)
+	}
+}
+
+func attachTags(pts []*point.Point, elec bool) {
+	rw.RLock()
+	defer rw.RUnlock()
+
+	var kvs point.KVs
+
+	if elec {
+		kvs = globalElectionKVs
+	} else {
+		kvs = globalHostKVs
+	}
+
+	for i := range kvs {
+		for _, pt := range pts {
+			pt.AddKV(kvs[i]) // try add global tags added if tag key not exist.
+		}
+	}
+}
+
+func (f *ioFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...FeedOption) error {
+	fo := getFeedOption()
+	for _, opt := range opts {
+		if opt != nil {
+			opt(fo)
+		}
+	}
+
+	inputsFeedVec.WithLabelValues(fo.input, cat.String()).Inc()
+	inputsFeedPtsVec.WithLabelValues(fo.input, cat.String()).Add(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(fo.input, cat.String()).Set(float64(time.Now().Unix()))
+
+	if globalTagger.Updated() {
+		globalTagger.UpdateVersion()
+		refreshGlobalTags()
+	}
+
+	attachTags(pts, fo.election)
+
+	fo.cat = cat
+	fo.pts = pts
+
+	if len(opts) > 0 {
+		inputsCollectLatencyVec.WithLabelValues(fo.input, cat.String()).Observe(float64(fo.collectCost) / float64(time.Second))
+	}
+
+	return defIO.doFeed(fo)
 }
 
 func PLAggFeed(cat point.Category, name string, data any) error {
@@ -168,12 +314,13 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 		catStr,
 	).Add(float64(bf - len(pts)))
 
+	fo := getFeedOption()
+	fo.pts = pts
+	fo.cat = cat
+	fo.input = name
+
 	if defIO.fo != nil {
-		return defIO.fo.Write(&iodata{
-			category: cat,
-			points:   pts,
-			from:     name,
-		})
+		return defIO.fo.Write(fo)
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil
@@ -181,29 +328,25 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(from string,
-	cat point.Category,
-	pts []*point.Point,
-	opt *Option,
-) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
+func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
 	var plopt *plscript.Option
 	if opt != nil {
-		plopt = opt.PlOption
+		plopt = opt.plOption
 	}
 
 	var offloadCount int
 	var ptCreate map[point.Category][]*point.Point
 
-	after := pts
+	after := opt.pts
 
-	if result, err := pipeline.RunPl(cat, pts, plopt); err != nil {
+	if result, err := pipeline.RunPl(opt.cat, opt.pts, plopt); err != nil {
 		log.Error(err)
 	} else {
 		offloadCount = len(result.PtsOffload())
 
 		if offloadCount > 0 {
 			if offload, ok := plval.GetOffload(); ok && offload != nil {
-				err = offload.Send(cat, result.PtsOffload())
+				err = offload.Send(opt.cat, result.PtsOffload())
 				if err != nil {
 					log.Errorf("offload failed, total %d pts dropped: %v",
 						offloadCount, err)
@@ -219,7 +362,7 @@ func beforeFeed(from string,
 			if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
 				inputsFilteredPtsVec.WithLabelValues(
 					"pipeline/create_point",
-					cat.String(),
+					opt.cat.String(),
 				).Add(float64(filtered))
 			}
 		}
@@ -228,11 +371,11 @@ func beforeFeed(from string,
 	}
 
 	// run filters
-	after = filter.FilterPts(cat, after)
-	if filtered := len(pts) - len(after) - offloadCount; filtered > 0 {
+	after = filter.FilterPts(opt.cat, after)
+	if filtered := len(opt.pts) - len(after) - offloadCount; filtered > 0 {
 		inputsFilteredPtsVec.WithLabelValues(
-			from,
-			cat.String(), // /v1/write/metric -> metric
+			opt.input,
+			opt.cat.String(), // /v1/write/metric -> metric
 		).Add(float64(filtered))
 	}
 
@@ -240,8 +383,8 @@ func beforeFeed(from string,
 }
 
 // make sure non-metric feed are blocking!
-func forceBlocking(cat point.Category, from string, opt *Option) *Option {
-	switch cat {
+func forceBlocking(opt *feedOption) *feedOption {
+	switch opt.cat {
 	case point.Logging,
 		point.Tracing,
 		point.Object,
@@ -253,12 +396,12 @@ func forceBlocking(cat point.Category, from string, opt *Option) *Option {
 		point.Profiling:
 
 		if opt == nil {
-			log.Debugf("no feed option from %q on %q", from, cat.String())
-			opt = &Option{}
+			log.Debugf("no feed option from %q on %q", opt.input, opt.cat.String())
+			opt = &feedOption{}
 		}
 
 		// force blocking!
-		opt.Blocking = true
+		opt.blocking = true
 
 	case point.Metric, point.MetricDeprecated:
 	case point.DynamicDWCategory, point.UnknownCategory:
@@ -267,28 +410,26 @@ func forceBlocking(cat point.Category, from string, opt *Option) *Option {
 	return opt
 }
 
-func (x *dkIO) doFeed(pts []*point.Point,
-	category point.Category,
-	from string,
-	opt *Option,
-) error {
-	if len(pts) == 0 {
-		log.Warnf("no point from %q", from)
+func (x *dkIO) doFeed(opt *feedOption) error {
+	if len(opt.pts) == 0 {
+		log.Warnf("no point from %q", opt.input)
 		return nil
 	}
-	log.Debugf("io feed %s on %s", from, category.String())
-	opt = forceBlocking(category, from, opt)
+	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
+	opt = forceBlocking(opt)
 
-	after, plCreate, offl, err := beforeFeed(from, category, pts, opt)
+	after, plCreate, offl, err := beforeFeed(opt)
 	if err != nil {
 		return err
 	}
 
-	filtered := len(pts) - len(after) - offl
+	filtered := len(opt.pts) - len(after) - offl
+
+	opt.pts = after
 
 	inputsFilteredPtsVec.WithLabelValues(
-		from,
-		category.String(),
+		opt.input,
+		opt.cat.String(),
 	).Add(float64(filtered))
 
 	// Maybe all points been filtered, but we still send the feeding into io.
@@ -297,26 +438,22 @@ func (x *dkIO) doFeed(pts []*point.Point,
 	// points.
 	if x.fo != nil {
 		for cat, v := range plCreate {
-			crName := "create_point/" + from
+			crName := "create_point/" + opt.input
 			crCat := cat.String()
 			inputsFeedVec.WithLabelValues(crName, crCat).Inc()
 			inputsFeedPtsVec.WithLabelValues(crName, crCat).Add(float64(len(v)))
 			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
-			if err := x.fo.Write(&iodata{
-				category: cat,
-				points:   v,
-				from:     "pipeline/create_point",
-			}); err != nil {
+
+			opt.input = "pipeline/create_point"
+			opt.cat = cat
+			opt.pts = v
+
+			if err := x.fo.Write(opt); err != nil {
 				log.Warnf("send pts created by the script: %s", err.Error())
 			}
 		}
 
-		return x.fo.Write(&iodata{
-			category: category,
-			points:   after,
-			from:     from,
-			opt:      opt,
-		})
+		return x.fo.Write(opt)
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil
@@ -336,26 +473,3 @@ func FeedLastError(source, err string, cat ...point.Category) {
 		log.Warnf("feed output not set, ignored")
 	}
 }
-
-// Feed send data to io module.
-//
-// Deprecated: inputs should use DefaultFeeder to get global default feeder.
-/*
-func Feed(name, category string, pts []*dkpt.Point, opt *Option) error {
-	catStr := point.CatURL(category).String()
-
-	inputsFeedVec.WithLabelValues(name, catStr).Inc()
-	inputsFeedPtsVec.WithLabelValues(name, catStr).Add(float64(len(pts)))
-	if opt != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, catStr).Observe(float64(opt.CollectCost) / float64(time.Second))
-	}
-	inputsLastFeedVec.WithLabelValues(name, catStr).Set(float64(time.Now().Unix()))
-
-	if len(pts) == 0 {
-		return nil
-	}
-
-	points := dkpt2point(pts...)
-
-	return defIO.doFeed(points, point.CatURL(category), name, opt)
-} */

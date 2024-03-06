@@ -807,6 +807,12 @@ func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.P
 func (f *MockedFeeder) FeedLastError(err string, opts ...io.LastErrorOption) {
 }
 
+func (f *MockedFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+	return fmt.Errorf("mock error")
+}
+func (f *MockedFeeder) UpdateVersion() {}
+func (f *MockedFeeder) Updated() bool  { return false }
+
 ////////////////////////////////////////////////////////////////////////////////
 
 type MockedFeederEmpty struct {
@@ -827,5 +833,11 @@ func (f *MockedFeederEmpty) Feed(name string, category point.Category, pts []*po
 
 func (f *MockedFeederEmpty) FeedLastError(err string, opts ...io.LastErrorOption) {
 }
+
+func (f *MockedFeederEmpty) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+	return nil
+}
+func (f *MockedFeederEmpty) UpdateVersion() {}
+func (f *MockedFeederEmpty) Updated() bool  { return false }
 
 ////////////////////////////////////////////////////////////////////////////////

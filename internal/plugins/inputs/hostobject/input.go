@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -53,7 +54,8 @@ type Input struct {
 
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
-	Tags map[string]string `toml:"tags,omitempty"`
+	Tags                              map[string]string `toml:"tags,omitempty"`
+	EnableCloudHostTagsGlobalElection bool              `toml:"enable_cloud_host_tags_Global_election"`
 
 	Interval                 time.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore time.Duration `toml:"ignore_inputs_errors_before,omitempty"`
@@ -73,6 +75,7 @@ type Input struct {
 	diskIOCounters DiskIOCounters
 	lastDiskIOInfo diskIOInfo
 	lastNetIOInfo  netIOInfo
+	cloudHostTags  map[string]string
 
 	collectCache []*point.Point
 	semStop      *cliutils.Sem // start stop signal
@@ -97,13 +100,17 @@ func (ipt *Input) Run() {
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(point.Object),
 			)
-		} else if err := ipt.feeder.Feed(inputName,
-			point.Object, ipt.collectCache,
-			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Object),
-			)
+		} else {
+			if err := ipt.feeder.FeedV2(point.Object, ipt.collectCache,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithElection(false),
+				dkio.WithInputName(inputName)); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed measurement: %s", err)
+			}
 		}
 
 		select {
@@ -190,6 +197,26 @@ func (ipt *Input) collect() error {
 
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(hostObjMeasurementName, kvs, opts...))
 
+	needUpdateGlobalTags := false
+	if field := kvs.Get("region"); field != nil {
+		if s := field.GetS(); s != "" && s != ipt.cloudHostTags["region"] {
+			ipt.cloudHostTags["region"] = s
+			needUpdateGlobalTags = true
+		}
+	}
+	if field := kvs.Get("zone_id"); field != nil {
+		if s := field.GetS(); s != "" && s != ipt.cloudHostTags["zone_id"] {
+			ipt.cloudHostTags["zone_id"] = s
+			needUpdateGlobalTags = true
+		}
+	}
+	if needUpdateGlobalTags {
+		httpapi.UpdateHostTags(ipt.cloudHostTags, "cloud_host_meta")
+		if ipt.EnableCloudHostTagsGlobalElection {
+			httpapi.UpdateElectionTags(ipt.cloudHostTags, "cloud_host_meta")
+		}
+	}
+
 	return nil
 }
 
@@ -258,7 +285,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.IgnoreZeroBytesDisk = b
 		}
 	}
-
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/2076
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS to bool: %s, ignore", err)
+		} else {
+			ipt.EnableCloudHostTagsGlobalElection = b
+		}
+	}
 	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
@@ -279,16 +314,18 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 func defaultInput() *Input {
 	return &Input{
-		Interval:                 5 * time.Minute,
-		IgnoreInputsErrorsBefore: 30 * time.Second,
-		IgnoreZeroBytesDisk:      true,
-		diskIOCounters:           diskutil.IOCounters,
-		netIOCounters:            netutil.IOCounters,
+		Interval:                          5 * time.Minute,
+		IgnoreInputsErrorsBefore:          30 * time.Second,
+		IgnoreZeroBytesDisk:               true,
+		EnableCloudHostTagsGlobalElection: true,
+		diskIOCounters:                    diskutil.IOCounters,
+		netIOCounters:                     netutil.IOCounters,
 
-		semStop: cliutils.NewSem(),
-		feeder:  dkio.DefaultFeeder(),
-		Tags:    make(map[string]string),
-		tagger:  datakit.DefaultGlobalTagger(),
+		semStop:       cliutils.NewSem(),
+		feeder:        dkio.DefaultFeeder(),
+		Tags:          make(map[string]string),
+		tagger:        datakit.DefaultGlobalTagger(),
+		cloudHostTags: make(map[string]string),
 	}
 }
 

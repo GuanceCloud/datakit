@@ -523,7 +523,11 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.Feed(snmpmeasurement.SNMPObjectName, point.Object, points, &dkio.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.FeedV2(point.Object, points,
+		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName(snmpmeasurement.SNMPObjectName),
+	); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(snmpmeasurement.InputName),
@@ -539,7 +543,11 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.Feed(snmpmeasurement.SNMPMetricName, point.Metric, points, &dkio.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := ipt.feeder.FeedV2(point.Metric, points,
+		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName(snmpmeasurement.SNMPMetricName),
+	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(snmpmeasurement.InputName),

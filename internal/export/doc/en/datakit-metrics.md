@@ -41,6 +41,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_http_api_elapsed_seconds`|`api,method,status`|API request cost|
 |SUMMARY|`datakit_http_api_req_size_bytes`|`api,method,status`|API request body size|
 |COUNTER|`datakit_http_api_total`|`api,method,status`|API request counter|
+|GAUGE|`datakit_http_api_global_tags_last_updated`|`api,method,status`|Global tag updated timestamp|
 |COUNTER|`datakit_httpcli_tcp_conn_total`|`from,remote,type`|HTTP TCP connection count|
 |COUNTER|`datakit_httpcli_conn_reused_from_idle_total`|`from`|HTTP connection reused from idle count|
 |SUMMARY|`datakit_httpcli_conn_idle_time_seconds`|`from`|HTTP connection idle time|

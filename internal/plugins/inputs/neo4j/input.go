@@ -18,7 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -82,7 +82,7 @@ type (
 		Auth map[string]string `toml:"auth"`
 
 		semStop    *cliutils.Sem
-		feeder     io.Feeder
+		feeder     dkio.Feeder
 		pm         *iprom.Prom
 		mergedTags map[string]urlTags
 		// urlTags    map[string]urlTags
@@ -210,14 +210,16 @@ func (ipt *Input) collect() error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	err = ipt.feeder.Feed(inputName, point.Metric, pts,
-		&io.Option{CollectCost: time.Since(start)})
-	if err != nil {
-		ipt.l.Errorf("Feed: %s", err)
+	if err := ipt.feeder.FeedV2(point.Metric, pts,
+		dkio.WithCollectCost(time.Since(start)),
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(source),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource(source),
+			dkio.WithLastErrorCategory(point.Metric),
 		)
+		l.Errorf("feed measurement: %s", err)
 	}
 
 	return nil
@@ -240,8 +242,8 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 	if err != nil {
 		ipt.l.Errorf("getPts: %s", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(source),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource(source),
 		)
 
 		// Try testing the connect
@@ -379,7 +381,7 @@ func NewInput() *Input {
 		mergedTags: map[string]urlTags{},
 
 		semStop: cliutils.NewSem(),
-		feeder:  io.DefaultFeeder(),
+		feeder:  dkio.DefaultFeeder(),
 		tagger:  datakit.DefaultGlobalTagger(),
 		l:       logger.SLogger(inputName),
 	}

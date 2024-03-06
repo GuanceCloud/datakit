@@ -22,8 +22,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -203,7 +205,10 @@ func (t *tdEngine) run() {
 		case msm := <-msmC:
 			l.Debugf("measurements receive from channel and len =%d", len(msm))
 			if len(msm) > 0 && t.upstream {
-				if err := t.Ipt.feeder.Feed(inputName, point.Metric, msm, nil); err != nil {
+				if err := t.Ipt.feeder.FeedV2(point.Metric, msm,
+					dkio.WithElection(t.Ipt.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					l.Errorf("FeedMeasurement: %s", err)
 				}
 			}

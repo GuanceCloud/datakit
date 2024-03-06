@@ -18,7 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
@@ -127,7 +127,11 @@ func (ipt *Input) collectMetric(collectors []Collector, opts ...option.CollectOp
 			if len(pts) == 0 {
 				return nil
 			}
-			return ipt.Feeder.Feed(c.Name()+"-metric", point.Metric, pts, &io.Option{Blocking: true})
+
+			return ipt.Feeder.FeedV2(point.Metric, pts,
+				dkio.WithBlocking(true),
+				dkio.WithElection(c.Election()),
+				dkio.WithInputName(c.Name()+"-metric"))
 		}
 		c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
 	}
@@ -139,7 +143,10 @@ func (ipt *Input) collectObject(collectors []Collector, opts ...option.CollectOp
 			if len(pts) == 0 {
 				return nil
 			}
-			return ipt.Feeder.Feed(c.Name()+"-object", point.Object, pts, &io.Option{Blocking: true})
+			return ipt.Feeder.FeedV2(point.Object, pts,
+				dkio.WithBlocking(true),
+				dkio.WithElection(c.Election()),
+				dkio.WithInputName(c.Name()+"-object"))
 		}
 		c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
 	}
@@ -151,7 +158,10 @@ func (ipt *Input) collectLogging(collectors []Collector) {
 			if len(pts) == 0 {
 				return nil
 			}
-			return ipt.Feeder.Feed(c.Name()+"-logging", point.Logging, pts, &io.Option{Blocking: true})
+			return ipt.Feeder.FeedV2(point.Logging, pts,
+				dkio.WithBlocking(true),
+				dkio.WithElection(c.Election()),
+				dkio.WithInputName(c.Name()+"-logging"))
 		}
 		c.Logging(fn)
 	}
@@ -173,6 +183,7 @@ func (ipt *Input) startDiscovery() {
 
 type Collector interface {
 	Name() string
+	Election() bool
 	Metric(func(pts []*point.Point) error, ...option.CollectOption)
 	Object(func(pts []*point.Point) error, ...option.CollectOption)
 	Logging(func(pts []*point.Point) error)

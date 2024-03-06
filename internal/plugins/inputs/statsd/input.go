@@ -209,13 +209,14 @@ func (ipt *Input) feedBatch(points []*point.Point) {
 		// i >= len(points)-1 --> last batch
 		// len(pts) >= 1024 --> 1024 pts per batch
 		if i >= len(points)-1 || len(pts) >= 1024 {
-			if err := ipt.Feeder.Feed(ipt.Source, point.Metric, pts,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-				ipt.l.Errorf("Feed: %v", err)
+			if err := ipt.Feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithInputName(ipt.Source)); err != nil {
 				ipt.Feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 					dkio.WithLastErrorSource(ipt.Source),
 				)
+				ipt.l.Errorf("feed measurement: %s", err)
 			}
 
 			pts = []*point.Point{}

@@ -187,8 +187,11 @@ func (ipt *Input) Run() {
 			}
 
 			if m != nil {
-				if err := ipt.feeder.Feed(inputName, point.Metric, []*point.Point{m}, &dkio.Option{CollectCost: time.Since(ipt.start)}); err != nil {
-					l.Warnf("Feed failed: %s, ignored", err.Error())
+				if err := ipt.feeder.FeedV2(point.Metric, []*point.Point{m},
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName)); err != nil {
+					l.Errorf("Feed failed: %s, ignored", err.Error())
 				}
 			}
 

@@ -1006,8 +1006,11 @@ func writeProfilePoint(opt *writeProfilePointOpt) error {
 
 	pt := point.NewPointV2(inputName, append(point.NewTags(pointTags), point.NewKVs(pointFields)...), opts...)
 
-	if err := iptGlobal.feeder.Feed(inputName+opt.inputNameSuffix,
-		point.Profiling, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(pt.Time())}); err != nil {
+	if err := iptGlobal.feeder.FeedV2(point.Profiling, []*point.Point{pt},
+		dkio.WithCollectCost(time.Since(pt.Time())),
+		dkio.WithElection(opt.Input.Election),
+		dkio.WithInputName(inputName+opt.inputNameSuffix),
+	); err != nil {
 		return err
 	}
 

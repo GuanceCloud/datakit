@@ -157,10 +157,11 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 			ScriptMap: map[string]string{pipelineSource: pipelineSource + ".p"},
 		}
 	}
-	if err = ipt.feeder.Feed(inputName, point.RUM, pts, feedOpt); err != nil {
+	if err := ipt.feeder.FeedV2(point.RUM, pts,
+		dkio.WithInputName(inputName),
+	); err != nil {
 		log.Error(err.Error())
 		httpErr(resp, err)
-
 		return
 	}
 

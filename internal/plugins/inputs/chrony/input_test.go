@@ -418,3 +418,7 @@ func (t *mockTagger) HostTags() map[string]string {
 func (t *mockTagger) ElectionTags() map[string]string {
 	return nil
 }
+
+func (g *mockTagger) UpdateVersion() {}
+
+func (g *mockTagger) Updated() bool { return false }

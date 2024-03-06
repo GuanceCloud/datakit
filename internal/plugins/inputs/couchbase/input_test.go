@@ -1172,3 +1172,5 @@ func (t *mockTagger) HostTags() map[string]string {
 func (t *mockTagger) ElectionTags() map[string]string {
 	return nil
 }
+func (t *mockTagger) UpdateVersion() {}
+func (t *mockTagger) Updated() bool  { return false }

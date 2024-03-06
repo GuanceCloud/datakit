@@ -16,7 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -49,7 +49,7 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 
 	pm     *iprom.Prom
-	Feeder io.Feeder
+	feeder dkio.Feeder
 
 	Election bool `toml:"election"`
 	chPause  chan bool
@@ -141,15 +141,17 @@ func (ipt *Input) collect() error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	err = ipt.Feeder.Feed(ioname, point.Metric, pts,
-		&io.Option{CollectCost: time.Since(start)})
-	if err != nil {
-		ipt.l.Errorf("Feed: %s", err)
-		ipt.Feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(ioname),
+	if err := ipt.feeder.FeedV2(point.Metric, pts,
+		dkio.WithCollectCost(time.Since(start)),
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName(ioname)); err != nil {
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Metric),
 		)
+		l.Errorf("feed measurement: %s", err)
 	}
+
 	return nil
 }
 
@@ -161,9 +163,9 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 		ipt.l.Errorf("Collect: %s", err)
 
 		ioname := inputName + "/" + ipt.Source
-		ipt.Feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(ioname),
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource(ioname),
 		)
 
 		// Try testing the connect
@@ -334,7 +336,7 @@ func defaultInput() *Input {
 		urlTags: map[string]urlTags{},
 
 		semStop: cliutils.NewSem(),
-		Feeder:  io.DefaultFeeder(),
+		feeder:  dkio.DefaultFeeder(),
 		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }

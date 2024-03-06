@@ -66,6 +66,7 @@ func (x *dkIO) runConsumer(cat point.Category) {
 		select {
 		case d := <-r:
 			x.cacheData(c, d, true)
+			putFeedOption(d) // release feed options here
 
 		case <-c.flushTiker.C:
 			if len(c.points) > 0 {

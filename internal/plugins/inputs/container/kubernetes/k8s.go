@@ -143,6 +143,10 @@ func (k *Kube) getActiveNamespaces(ctx context.Context) ([]string, error) {
 	return ns, nil
 }
 
+const kubeElection = true
+
+func (k *Kube) Election() bool { return kubeElection }
+
 func getLocalNodeName() (string, error) {
 	var e string
 	if os.Getenv("NODE_NAME") != "" {

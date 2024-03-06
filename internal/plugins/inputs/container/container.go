@@ -125,6 +125,10 @@ func (c *container) Object(feed func(pts []*point.Point) error, opts ...option.C
 	c.gather("object", feed)
 }
 
+const containerElection = false
+
+func (c *container) Election() bool { return containerElection }
+
 func (c *container) gather(category string, feed func(pts []*point.Point) error) {
 	var opts []point.Option
 

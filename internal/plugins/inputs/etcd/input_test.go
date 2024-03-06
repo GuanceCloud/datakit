@@ -25,6 +25,8 @@ func (m *taggerMock) HostTags() map[string]string {
 func (m *taggerMock) ElectionTags() map[string]string {
 	return m.electionTags
 }
+func (m *taggerMock) UpdateVersion() {}
+func (m *taggerMock) Updated() bool  { return false }
 
 // go test -v -timeout 30s -run ^TestInput$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/etcd
 func TestInput(t *T.T) {

@@ -676,6 +676,203 @@ Example of failing return:
 
 Get Datakit Prometheus metrics.
 
+## `/v1/global/host/tags` | `GET` {#api-global-host-tags-get}
+
+Get global-host-tags.
+
+Example of request:
+
+``` shell
+curl 127.0.0.1:9529/v1/global/host/tags
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+## `/v1/global/host/tags` | `POST` {#api-global-host-tags-post}
+
+Create or update global-host-tags.
+
+Example of request:
+
+``` shell
+curl -X POST "127.0.0.1:9529/v1/global/host/tags?tag1=v1&tag2=v2"
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    }
+}
+```
+
+Then, if in host mode, the modified content will be save to `datakit.conf`.
+
+## `/v1/global/host/tags` | `DELETE` {#api-global-host-tags-delete}
+
+Delete some global-host-tags.
+
+Example of request:
+
+``` shell
+curl -X DELETE "127.0.0.1:9529/v1/global/host/tags?tags=tag1,tag3"
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+Then, if in host mode, the modified content will be save to `datakit.conf`.
+
+## `/v1/global/election/tags` | `GET` {#api-global-election-tags-get}
+
+Get global-election-tags.
+
+Example of request:
+
+``` shell
+curl 127.0.0.1:9529/v1/global/election/tags
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "election-tags": {
+        "e": "e"
+    }
+}
+```
+
+## `/v1/global/election/tags` | `POST` {#api-global-election-tags-post}
+
+Create or update global-election-tags.
+
+Example of request:
+
+``` shell
+curl -X POST "127.0.0.1:9529/v1/global/election/tags?tag1=v1&tag2=v2"
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "tag1": "v1",
+        "tag2": "v2",
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+Then, if in host mode, the modified content will be save to `datakit.conf`.
+
+When `global-election-enable = false` Will failing return:
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
+## `/v1/global/election/tags` | `DELETE` {#api-global-election-tags-delete}
+
+Delete some global-election-tags.
+
+Example of request:
+
+``` shell
+curl -X DELETE "127.0.0.1:9529/v1/global/election/tags?tags=tag1,tag3"
+```
+
+Example of successful return:
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+Then, if in host mode, the modified content will be save to `datakit.conf`.
+
+When `global-election-enable = false` Will failing return:
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
 ## DataKit Data Structure Constraint {#lineproto-limitation}
 
 In order to standardize the data of Guance Cloud, the data collected by DataKit is constrained as follows (whether it is data in line protocol or JSON form), and the data that violates the constraints will be processed accordingly.

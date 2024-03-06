@@ -736,6 +736,203 @@ curl "http://localhost:9529/v1/sourcemap/check?app_id=test_sourcemap&env=product
 
 获取 Datakit 暴露的 Prometheus 指标。
 
+## `/v1/global/host/tags` | `GET` {#api-global-host-tags-get}
+
+获取 global-host-tags。
+
+请求示例：
+
+``` shell
+curl 127.0.0.1:9529/v1/global/host/tags
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+## `/v1/global/host/tags` | `POST` {#api-global-host-tags-post}
+
+创建或者更新 global-host-tags。
+
+请求示例：
+
+``` shell
+curl -X POST "127.0.0.1:9529/v1/global/host/tags?tag1=v1&tag2=v2"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+## `/v1/global/host/tags` | `DELETE` {#api-global-host-tags-delete}
+
+删除部分 global-host-tags。
+
+请求示例：
+
+``` shell
+curl -X DELETE "127.0.0.1:9529/v1/global/host/tags?tags=tag1,tag3"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+## `/v1/global/election/tags` | `GET` {#api-global-election-tags-get}
+
+获取 global-election-tags。
+
+请求示例：
+
+``` shell
+curl 127.0.0.1:9529/v1/global/election/tags
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "election-tags": {
+        "e": "e"
+    }
+}
+```
+
+## `/v1/global/election/tags` | `POST` {#api-global-election-tags-post}
+
+创建或者更新 global-election-tags。
+
+请求示例：
+
+``` shell
+curl -X POST "127.0.0.1:9529/v1/global/election/tags?tag1=v1&tag2=v2"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "tag1": "v1",
+        "tag2": "v2",
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
+## `/v1/global/election/tags` | `DELETE` {#api-global-election-tags-delete}
+
+删除部分 global-election-tags。
+
+请求示例：
+
+``` shell
+curl -X DELETE "127.0.0.1:9529/v1/global/election/tags?tags=tag1,tag3"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
 ## DataKit 数据结构约束 {#lineproto-limitation}
 
 为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），并对违反约束的数据将进行相应的处理。

@@ -12,6 +12,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	ppv1 "github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1"
 	"google.golang.org/grpc/metadata"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 func ParsePPAgentStatMessage(md metadata.MD, msg *ppv1.PStatMessage) {
@@ -20,7 +22,9 @@ func ParsePPAgentStatMessage(md metadata.MD, msg *ppv1.PStatMessage) {
 	if statBatch != nil && statBatch.GetAgentStat() != nil {
 		pts = statBatchToPoints(md, statBatch)
 		if len(pts) > 0 && metricFeeder != nil {
-			if err := metricFeeder.Feed(inputName, point.Metric, pts, nil); err != nil {
+			if err := metricFeeder.FeedV2(point.Metric, pts,
+				dkio.WithInputName(inputName),
+			); err != nil {
 				log.Errorf("feed metric to io err=%v", err)
 			}
 		}

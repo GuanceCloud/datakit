@@ -32,6 +32,9 @@ func (t *tagger) HostTags() map[string]string {
 	return t.host
 }
 
+func (g *tagger) UpdateVersion() {}
+func (g *tagger) Updated() bool  { return false }
+
 type feeder struct {
 	errs    []*io.LastError
 	errStrs []string
@@ -53,6 +56,10 @@ func (f *feeder) FeedLastError(err string, opts ...io.LastErrorOption) {
 
 	f.errs = append(f.errs, le)
 	f.errStrs = append(f.errStrs, err)
+}
+
+func (f *feeder) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+	return nil
 }
 
 func listenUDP(urlStr string) (net.Conn, error) {

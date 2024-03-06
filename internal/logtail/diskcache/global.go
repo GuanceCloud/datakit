@@ -91,18 +91,14 @@ func Start(opts ...Option) error {
 							continue
 						}
 
-						if err := c.feeder.Feed(
-							"logging/"+cfg.Source,
-							point.Logging,
-							pts,
-							&dkio.Option{
-								PlOption: &manager.Option{
-									DisableAddStatusField: cfg.DisableAddStatusField,
-									IgnoreStatus:          cfg.IgnoreStatus,
-									ScriptMap:             map[string]string{cfg.Source: cfg.Pipeline},
-								},
-								Blocking: cfg.Blocking,
-							},
+						if err := c.feeder.FeedV2(point.Logging, pts,
+							dkio.WithInputName("logging/"+cfg.Source),
+							dkio.WithPipelineOption(&manager.Option{
+								DisableAddStatusField: cfg.DisableAddStatusField,
+								IgnoreStatus:          cfg.IgnoreStatus,
+								ScriptMap:             map[string]string{cfg.Source: cfg.Pipeline},
+							}),
+							dkio.WithBlocking(cfg.Blocking),
 						); err != nil {
 							l.Warnf("feed %d pts failed: %w", len(pts), err)
 						}

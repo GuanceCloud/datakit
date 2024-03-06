@@ -197,8 +197,9 @@ func (h *Handle) sendToRemote(data []byte) {
 			log.Errorf("from response body decode to point err=%v", err)
 			return
 		}
-		err = h.feeder.Feed("kafkamq_handle", category, pts, &dkio.Option{})
-		if err != nil {
+		if err := h.feeder.FeedV2(category, pts,
+			dkio.WithInputName("kafkamq_handle"),
+		); err != nil {
 			log.Warnf("feed io err=%v", err)
 		}
 		log.Debugf("IsResponsePoint=true, send %d point to dataway", len(pts))

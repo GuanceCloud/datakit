@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -81,8 +81,9 @@ func (ipt *Input) getSlowData() error {
 	}
 
 	if len(pts) > 0 {
-		err = ipt.feeder.Feed(redisSlowlog, point.Logging, pts, &io.Option{})
-		if err != nil {
+		if err := ipt.feeder.FeedV2(point.Logging, pts,
+			dkio.WithElection(ipt.Election),
+			dkio.WithInputName(redisSlowlog)); err != nil {
 			return err
 		}
 	}

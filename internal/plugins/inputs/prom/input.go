@@ -17,7 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -76,7 +76,7 @@ type Input struct {
 	Auth map[string]string `toml:"auth"`
 
 	pm     *iprom.Prom
-	Feeder io.Feeder
+	Feeder dkio.Feeder
 
 	Election bool `toml:"election"`
 	chPause  chan bool
@@ -172,24 +172,28 @@ func (i *Input) collect() error {
 					for _, pt := range pts {
 						// We need to feed each point separately because
 						// each point might have different measurement name.
-						if err := i.Feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
-							&io.Option{CollectCost: time.Since(i.startTime), Blocking: true}); err != nil {
+						if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+							dkio.WithCollectCost(time.Since(i.startTime)),
+							dkio.WithElection(i.Election),
+							dkio.WithInputName(pt.Name()),
+							dkio.WithBlocking(true)); err != nil {
 							i.Feeder.FeedLastError(err.Error(),
-								io.WithLastErrorInput(inputName),
-								io.WithLastErrorSource(inputName+"/"+i.Source),
+								dkio.WithLastErrorInput(inputName),
+								dkio.WithLastErrorSource(inputName+"/"+i.Source),
 							)
+							i.l.Errorf("feed logging: %s", err)
 						}
 					}
-				} else {
-					err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
-						&io.Option{CollectCost: time.Since(i.startTime), Blocking: true})
-					if err != nil {
-						i.l.Errorf("Feed: %s", err)
-						i.Feeder.FeedLastError(err.Error(),
-							io.WithLastErrorInput(inputName),
-							io.WithLastErrorSource(inputName+"/"+i.Source),
-						)
-					}
+				} else if err := i.Feeder.FeedV2(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(i.startTime)),
+					dkio.WithElection(i.Election),
+					dkio.WithInputName(inputName+"/"+i.Source),
+					dkio.WithBlocking(true)); err != nil {
+					i.Feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorSource(inputName+"/"+i.Source),
+					)
+					i.l.Errorf("feed measurement: %s", err)
 				}
 
 				return nil
@@ -224,8 +228,8 @@ func (i *Input) doCollect() error {
 
 		ioname := inputName + "/" + i.Source
 		i.Feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorSource(ioname),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorSource(ioname),
 		)
 
 		// Try testing the connect
@@ -260,24 +264,28 @@ func (i *Input) collectFormURLs() error {
 				for _, pt := range pts {
 					// We need to feed each point separately because
 					// each point might have different measurement name.
-					if err := i.Feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
-						&io.Option{CollectCost: time.Since(i.startTime)}); err != nil {
+					if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+						dkio.WithCollectCost(time.Since(i.startTime)),
+						dkio.WithElection(i.Election),
+						dkio.WithInputName(pt.Name()),
+						dkio.WithBlocking(true)); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
-							io.WithLastErrorInput(inputName),
-							io.WithLastErrorSource(inputName+"/"+i.Source),
+							dkio.WithLastErrorInput(inputName),
+							dkio.WithLastErrorSource(inputName+"/"+i.Source),
 						)
+						i.l.Errorf("feed logging: %s", err)
 					}
 				}
-			} else {
-				err := i.Feeder.Feed(inputName+"/"+i.Source, point.Metric, pts,
-					&io.Option{CollectCost: time.Since(i.startTime)})
-				if err != nil {
-					i.l.Errorf("Feed: %s", err)
-					i.Feeder.FeedLastError(err.Error(),
-						io.WithLastErrorInput(inputName),
-						io.WithLastErrorSource(inputName+"/"+i.Source),
-					)
-				}
+			} else if err := i.Feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(i.startTime)),
+				dkio.WithElection(i.Election),
+				dkio.WithInputName(inputName+"/"+i.Source),
+				dkio.WithBlocking(true)); err != nil {
+				i.Feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorSource(inputName+"/"+i.Source),
+				)
+				i.l.Errorf("feed measurement: %s", err)
 			}
 		}
 	}
@@ -472,7 +480,7 @@ func NewProm() *Input {
 		urlTags: map[string]urlTags{},
 
 		semStop: cliutils.NewSem(),
-		Feeder:  io.DefaultFeeder(),
+		Feeder:  dkio.DefaultFeeder(),
 		Tagger:  datakit.DefaultGlobalTagger(),
 	}
 }

@@ -230,8 +230,10 @@ func (ipt *Input) Run() {
 		}
 
 		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithInputName(inputName),
+			); err != nil {
 				l.Errorf("Feed failed: %v", err)
 			}
 		}

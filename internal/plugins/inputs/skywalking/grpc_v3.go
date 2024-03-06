@@ -78,8 +78,9 @@ func (m *MeterReportServiceServerImpl) Collect(collect agentv3.MeterReportServic
 		return nil
 	}
 
-	err = m.feeder.Feed("skywalking_meter", point.Metric, []*point.Point{pt})
-	if err != nil {
+	if err := m.feeder.FeedV2(point.Metric, []*point.Point{pt},
+		dkio.WithInputName("skywalking_meter"),
+	); err != nil {
 		log.Warnf("feeder error=%v", err)
 	}
 	return nil
@@ -98,8 +99,9 @@ func (m *MeterReportServiceServerImpl) CollectBatch(collects agentv3.MeterReport
 			pts = append(pts, pt)
 		}
 	}
-	err = m.feeder.Feed("skywalking_meter", point.Metric, pts)
-	if err != nil {
+	if err := m.feeder.FeedV2(point.Metric, pts,
+		dkio.WithInputName("skywalking_meter"),
+	); err != nil {
 		log.Warnf("feeder error=%v", err)
 	}
 
@@ -201,7 +203,10 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.J
 
 	metrics := processMetricsV3(newjvm, start, r.ipt)
 	if len(metrics) != 0 {
-		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+		if err := r.ipt.feeder.FeedV2(point.Metric, metrics,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithInputName(jvmMetricName),
+		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorSource(jvmMetricName),
@@ -361,7 +366,10 @@ func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMM
 	start := time.Now()
 	metrics := processMetricsV3(jvm, start, r.ipt)
 	if len(metrics) != 0 {
-		if err := r.ipt.feeder.Feed(jvmMetricName, point.Metric, metrics, &dkio.Option{CollectCost: time.Since(start)}); err != nil {
+		if err := r.ipt.feeder.FeedV2(point.Metric, metrics,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithInputName(jvmMetricName),
+		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorSource(jvmMetricName),
@@ -393,7 +401,9 @@ func (ls *LoggingServerV3) Collect(server loggingv3.LogReportService_CollectServ
 		if pt, err := processLogV3(logData); err != nil {
 			log.Error(err.Error())
 		} else {
-			if err = ls.Ipt.feeder.Feed(logData.Service, point.Logging, []*point.Point{pt}, nil); err != nil {
+			if err := ls.Ipt.feeder.FeedV2(point.Logging, []*point.Point{pt},
+				dkio.WithInputName(logData.Service),
+			); err != nil {
 				log.Error(err.Error())
 			}
 		}

@@ -571,12 +571,14 @@ func (ipt *Input) Run() {
 				)
 				l.Error(err)
 			} else if len(ipt.collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Metric, ipt.collectCache, &dkio.Option{CollectCost: time.Since(start)})
-				if err != nil {
+				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 					)
-					l.Errorf(err.Error())
+					l.Errorf("feed measurement: %s", err)
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}

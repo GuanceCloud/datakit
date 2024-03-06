@@ -110,16 +110,26 @@ func (ipt *Input) Run() {
 
 		// If there is data in the collectCache, submit it
 		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.Feed(metricName, point.Metric, ipt.collectCache,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithInputName(metricName)); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 				l.Errorf("feed measurement: %s", err)
 			}
 		}
 
 		// If there is data in the collectCachePort, submit it
 		if len(ipt.collectCachePort) > 0 {
-			if err := ipt.feeder.Feed(metricNamePort, point.Metric, ipt.collectCachePort,
-				&dkio.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCachePort,
+				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithInputName(metricNamePort)); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
 				l.Errorf("feed measurement: %s", err)
 			}
 		}

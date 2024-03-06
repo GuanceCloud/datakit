@@ -17,10 +17,10 @@ var _ FeederOutputer = new(datawayOutput)
 
 // feederOutput send feeder data to dataway.
 type datawayOutput struct {
-	chans map[point.Category]chan *iodata
+	chans map[point.Category]chan *feedOption
 }
 
-func (fo *datawayOutput) Reader(cat point.Category) <-chan *iodata {
+func (fo *datawayOutput) Reader(cat point.Category) <-chan *feedOption {
 	return fo.chans[cat]
 }
 
@@ -49,26 +49,26 @@ func (fo *datawayOutput) WriteLastError(err string, opts ...LastErrorOption) {
 	lastErrVec.WithLabelValues(le.Input, le.Source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
-func (fo *datawayOutput) Write(data *iodata) error {
-	if len(data.points) == 0 {
+func (fo *datawayOutput) Write(data *feedOption) error {
+	if len(data.pts) == 0 {
 		return nil
 	}
-	ch := fo.chans[data.category]
+	ch := fo.chans[data.cat]
 
 	start := time.Now()
 
-	ioChanLen.WithLabelValues(data.category.String()).Set(float64(len(ch)))
+	ioChanLen.WithLabelValues(data.cat.String()).Set(float64(len(ch)))
 
-	if data.opt != nil && data.opt.Blocking {
+	if data.blocking {
 		select {
 		case ch <- data:
 			feedCost.WithLabelValues(
-				data.category.String(),
-				data.from,
+				data.cat.String(),
+				data.input,
 			).Observe(float64(time.Since(start)) / float64(time.Second))
 			return nil
 		case <-datakit.Exit.Wait():
-			log.Warnf("%s/%s feed skipped on global exit", data.category, data.from)
+			log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)
 			return fmt.Errorf("feed on global exit")
 		}
 	} else {
@@ -76,15 +76,15 @@ func (fo *datawayOutput) Write(data *iodata) error {
 		case ch <- data:
 			return nil
 		case <-datakit.Exit.Wait():
-			log.Warnf("%s/%s feed skipped on global exit", data.category, data.from)
+			log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)
 			return fmt.Errorf("feed on global exit")
 		default:
 			feedDropPoints.WithLabelValues(
-				data.category.String(),
-				data.from,
-			).Add(float64(len(data.points)))
+				data.cat.String(),
+				data.input,
+			).Add(float64(len(data.pts)))
 
-			log.Warnf("io busy, %d (%s/%s) points dropped", len(data.points), data.from, data.category)
+			log.Warnf("io busy, %d (%s/%s) points dropped", len(data.pts), data.input, data.cat)
 			return ErrIOBusy
 		}
 	}
@@ -93,7 +93,7 @@ func (fo *datawayOutput) Write(data *iodata) error {
 // NewDatawayOutput new a Dataway output for feeder, its the default output of feeder.
 func NewDatawayOutput(chanCap int) FeederOutputer {
 	dw := datawayOutput{
-		chans: make(map[point.Category]chan *iodata),
+		chans: make(map[point.Category]chan *feedOption),
 	}
 
 	if chanCap == 0 {
@@ -107,7 +107,7 @@ func NewDatawayOutput(chanCap int) FeederOutputer {
 	ioChanCap.WithLabelValues("all-the-same").Set(float64(chanCap))
 
 	for _, c := range point.AllCategories() {
-		dw.chans[c] = make(chan *iodata, chanCap)
+		dw.chans[c] = make(chan *feedOption, chanCap)
 	}
 
 	return &dw

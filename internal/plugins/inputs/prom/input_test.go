@@ -38,6 +38,8 @@ func (m *taggerMock) HostTags() map[string]string {
 func (m *taggerMock) ElectionTags() map[string]string {
 	return m.electionTags
 }
+func (g *taggerMock) UpdateVersion() {}
+func (g *taggerMock) Updated() bool  { return false }
 
 func TestInputNoBatch(t *T.T) {
 	t.Run("basic", func(t *T.T) {

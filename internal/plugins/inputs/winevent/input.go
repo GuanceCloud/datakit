@@ -80,9 +80,10 @@ func (ipt *Input) Run() {
 				ipt.handleEvent(event)
 			}
 			if len(ipt.collectCache) > 0 {
-				err := ipt.feeder.Feed(inputName, point.Logging,
-					ipt.collectCache, &dkio.Option{CollectCost: time.Since(start)})
-				if err != nil {
+				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithInputName(inputName),
+				); err != nil {
 					l.Error(err.Error())
 					dkio.FeedLastError(inputName, err.Error())
 				}

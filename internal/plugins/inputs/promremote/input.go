@@ -242,11 +242,15 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.Feed(inputName,
-			point.Metric,
-			pts,
-			&dkio.Option{CollectCost: time.Since(start)}); err != nil {
-			l.Warnf("Feed failed: %s, ignored", err)
+		if err := ipt.feeder.FeedV2(point.Metric, pts,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithElection(ipt.Election),
+			dkio.WithInputName(inputName)); err != nil {
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+			l.Errorf("feed measurement: %s", err)
 		}
 	}
 

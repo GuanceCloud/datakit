@@ -290,7 +290,11 @@ func (ipt *Input) getAttributes(devices []string) error {
 					sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
 					pt := point.NewPointV2(sm.name,
 						append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...), opts...)
-					return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
+
+					return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithInputName(inputName),
+					)
 				}
 
 				return nil
@@ -322,7 +326,11 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 							pt := point.NewPointV2(sm.name,
 								append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...),
 								opts...)
-							return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
+
+							return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+								dkio.WithCollectCost(time.Since(start)),
+								dkio.WithInputName(inputName),
+							)
 						}
 						return nil
 					})
@@ -341,7 +349,11 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 						pt := point.NewPointV2(sm.name,
 							append(point.NewTags(sm.tags), point.NewKVs(sm.fields)...),
 							opts...)
-						return ipt.feeder.Feed(inputName, point.Metric, []*point.Point{pt}, &dkio.Option{CollectCost: time.Since(start)})
+
+						return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+							dkio.WithCollectCost(time.Since(start)),
+							dkio.WithInputName(inputName),
+						)
 					}
 
 					return nil

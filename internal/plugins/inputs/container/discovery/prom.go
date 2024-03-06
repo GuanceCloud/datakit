@@ -10,16 +10,19 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
-var defaultPrometheusioConnectKeepAlive = time.Second * 20
+var (
+	defaultPrometheusioConnectKeepAlive = time.Second * 20
+	defaultPromElection                 = false /*collect self node, not election*/
+)
 
 type promRunner struct {
 	conf     *promConfig
 	pm       *iprom.Prom
-	feeder   io.Feeder
+	feeder   dkio.Feeder
 	lastTime time.Time
 
 	currentURL   string
@@ -75,17 +78,21 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
-				err := p.feeder.Feed(pt.Name(), point.Logging, []*point.Point{pt},
-					&io.Option{CollectCost: time.Since(p.lastTime)},
-				)
+				err := p.feeder.FeedV2(point.Logging, []*point.Point{pt},
+					dkio.WithCollectCost(time.Since(p.lastTime)),
+					dkio.WithElection(defaultPromElection),
+					dkio.WithInputName(pt.Name()),
+					dkio.WithBlocking(true))
 				if err != nil {
 					klog.Warnf("failed to feed prom logging: %s, ignored", err)
 				}
 			}
 		} else {
-			err := p.feeder.Feed(p.conf.Source, point.Metric, pts,
-				&io.Option{CollectCost: time.Since(p.lastTime)},
-			)
+			err := p.feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(p.lastTime)),
+				dkio.WithElection(defaultPromElection),
+				dkio.WithInputName(p.conf.Source),
+				dkio.WithBlocking(true))
 			if err != nil {
 				klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 			}

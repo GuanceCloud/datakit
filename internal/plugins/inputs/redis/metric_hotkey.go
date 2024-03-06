@@ -19,7 +19,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -89,8 +89,9 @@ func (ipt *Input) scanHotkey(ctxKey context.Context) error {
 		}
 
 		if len(pts) > 0 {
-			err = ipt.feeder.Feed(redisHotkey, point.Logging, pts, &io.Option{})
-			if err != nil {
+			if err := ipt.feeder.FeedV2(point.Logging, pts,
+				dkio.WithElection(ipt.Election),
+				dkio.WithInputName(redisHotkey)); err != nil {
 				return err
 			}
 		}

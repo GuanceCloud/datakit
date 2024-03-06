@@ -154,6 +154,16 @@ func WithGlobalTags(maps ...map[string]string) dwopt {
 	}
 }
 
+func (dw *Dataway) UpdateGlobalTags(tags map[string]string) {
+	dw.locker.Lock()
+	defer dw.locker.Unlock()
+	dw.globalTags = tags
+	log.Infof("set %d global tags to dataway", len(dw.globalTags))
+	if len(dw.globalTags) > 0 && dw.EnableSinker {
+		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
+	}
+}
+
 func (dw *Dataway) Init(opts ...dwopt) error {
 	log = logger.SLogger("dataway")
 

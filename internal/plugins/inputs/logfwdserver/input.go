@@ -169,17 +169,12 @@ func (ipt *Input) setup() bool {
 			return nil
 		}
 
-		err := ipt.feeder.Feed(
-			name,
-			point.Logging,
-			pts,
-			&dkio.Option{
-				PlOption: &plmanager.Option{
-					ScriptMap: map[string]string{msg.Source: msg.Pipeline},
-				},
-			},
-		)
-		if err != nil {
+		if err := ipt.feeder.FeedV2(point.Logging, pts,
+			dkio.WithInputName(name),
+			dkio.WithPipelineOption(&plmanager.Option{
+				ScriptMap: map[string]string{msg.Source: msg.Pipeline},
+			}),
+		); err != nil {
 			l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
 			return err
 		}

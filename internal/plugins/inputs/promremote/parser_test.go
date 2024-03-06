@@ -14,7 +14,9 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/require"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 )
 
@@ -29,7 +31,7 @@ func Benchmark_Parse(b *testing.B) {
 		_, err := toml.Decode(conf, ipt)
 		require.NoError(b, err)
 
-		feeder := &blankFeeder{}
+		feeder := NewBenchmarkMockedFeeder()
 		ipt.feeder = feeder
 		ipt.tagger = &mockTagger{}
 		ipt.Run()
@@ -91,3 +93,23 @@ func Benchmark_Parse(b *testing.B) {
 		}
 	})
 }
+
+// ------ benchmark mock feeder ------
+
+type BenchmarkMockedFeeder struct {
+	PTs []*point.Point
+}
+
+func NewBenchmarkMockedFeeder() *BenchmarkMockedFeeder {
+	return &BenchmarkMockedFeeder{}
+}
+
+func (m *BenchmarkMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
+	return nil
+}
+
+func (m *BenchmarkMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	return nil
+}
+
+func (m *BenchmarkMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}

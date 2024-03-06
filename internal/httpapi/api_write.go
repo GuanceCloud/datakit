@@ -16,20 +16,19 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 type IAPIWrite interface {
-	feed(string, point.Category, []*point.Point, ...*io.Option) error
+	feed(point.Category, []*point.Point, []io.FeedOption) error
 	geoInfo(string) map[string]string
 }
 
 type apiWriteImpl struct{}
 
-func (x *apiWriteImpl) feed(input string, category point.Category, pts []*point.Point, opt ...*io.Option) error {
+func (x *apiWriteImpl) feed(category point.Category, pts []*point.Point, opt []io.FeedOption) error {
 	f := io.DefaultFeeder()
-	return f.Feed(input, category, pts, opt...)
+	return f.FeedV2(category, pts, opt...)
 }
 
 func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
@@ -149,22 +148,19 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	// add extra tags
-	ignoreGlobalTags := false
+	election := false
 	for _, arg := range []string{
 		ArgIgnoreGlobalHostTags,
 		ArgIgnoreGlobalTags, // deprecated
 	} {
 		if x := q.Get(arg); x != "" {
-			ignoreGlobalTags = true
+			election = true
 		}
 	}
 
-	if !ignoreGlobalTags {
-		appendTags(pts, datakit.GlobalHostTags())
-	}
-
 	if x := q.Get(ArgGlobalElectionTags); x != "" {
-		appendTags(pts, datakit.GlobalElectionTags())
+		// appendTags(pts, datakit.GlobalElectionTags())
+		election = false
 	}
 
 	l.Debugf("received %d(%s) points from %s, pipeline source: %v",
@@ -190,14 +186,18 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		}
 	}
 
-	feedOpt := &io.Option{Version: version}
+	feedOpt := []io.FeedOption{
+		io.WithInputVersion(version),
+		io.WithElection(election),
+		io.WithInputName(input),
+	}
 	if pipelineSource != "" {
-		feedOpt.PlOption = &plmanager.Option{
+		feedOpt = append(feedOpt, io.WithPipelineOption(&plmanager.Option{
 			ScriptMap: map[string]string{pipelineSource: pipelineSource + ".p"},
-		}
+		}))
 	}
 
-	if err := h.feed(input, point.CatURL(categoryURL), pts, feedOpt); err != nil {
+	if err := h.feed(point.CatURL(categoryURL), pts, feedOpt); err != nil {
 		return err, nil
 	}
 
@@ -215,14 +215,6 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	}
 
 	return nil, nil
-}
-
-func appendTags(pts []*point.Point, tags map[string]string) {
-	for k, v := range tags {
-		for _, pt := range pts {
-			pt.AddTag(k, v)
-		}
-	}
 }
 
 func HandleWriteBody(body []byte,

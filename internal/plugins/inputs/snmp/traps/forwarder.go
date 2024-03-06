@@ -115,9 +115,11 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 		TS:     tn,
 	}
 
-	if err := tf.feeder.Feed(trapsObject, point.Object,
-		[]*point.Point{metric.Point()},
-		&dkio.Option{CollectCost: time.Since(tn)}); err != nil {
+	if err := tf.feeder.FeedV2(point.Object, []*point.Point{metric.Point()},
+		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithElection(tf.election),
+		dkio.WithInputName(trapsObject),
+	); err != nil {
 		l.Errorf("Feed object err: %v", err)
 		tf.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(snmpmeasurement.InputName),

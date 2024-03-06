@@ -139,12 +139,13 @@ func TestDropPtsMetric(t *T.T) {
 
 		npts := 100
 
-		assert.ErrorIs(t, dwf.Write(&iodata{
-			from:     `metric-drop-pts-metric`,
-			category: point.Metric,
-			points:   r.Rand(npts),
-			opt:      &Option{Blocking: false},
-		}), ErrIOBusy)
+		fo := getFeedOption()
+		fo.input = "metric-drop-pts-metric"
+		fo.cat = point.Metric
+		fo.pts = r.Rand(npts)
+		fo.blocking = false
+
+		assert.ErrorIs(t, dwf.Write(fo), ErrIOBusy)
 
 		mfs, err := reg.Gather()
 		require.NoError(t, err)
