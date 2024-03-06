@@ -12,10 +12,24 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	case inputs.I18nZh:
 		return map[string]string{
 			//nolint:lll
+			"ssh_check":          "SSH 服务状态",
+			"sftp_check":         "SFTP 服务状态",
+			"sftp_response_time": "SFTP 服务响应时间",
+			"levels_normal":      "正常",
+			"levels_abnormal":    "异常",
+			"host_name":          "主机名",
+			"title":              "SSH 监控视图",
 		}
 	case inputs.I18nEn:
 		return map[string]string{
 			//nolint:lll
+			"ssh_check":          "SSH service status",
+			"sftp_check":         "SFTP service status",
+			"sftp_response_time": "Response time of sftp service",
+			"levels_normal":      "Normal",
+			"levels_abnormal":    "Abnormal",
+			"host_name":          "Host name",
+			"title":              "SSH",
 		}
 	default:
 		return nil
