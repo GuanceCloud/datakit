@@ -271,7 +271,7 @@ Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do no
 | dd.version        | dd_version        | agent version         |
 | error.message     | error_message     | error message         |
 | error.stack       | error_stack       | error stack           |
-| error_type        | error_type        | error type            |
+| error.type        | error_type        | error type            |
 | system.pid        | pid               | pid                   |
 | error.msg         | error_message     | error message         |
 | project           | project           | project               |

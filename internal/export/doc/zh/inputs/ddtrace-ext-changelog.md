@@ -41,6 +41,13 @@
 
 --->
 
+## v1.30.1-guance (2024/2/6) {#cl-1.30.1-guance}
+
+### 更新 {#cl-1.30.1-guance-fix}
+
+- 合并最新 DataDog Java Agent 分支 1.30.0.
+- 链路数据中添加 HTTP Response Body 信息，[使用命令开启](ddtrace-ext-java.md#response_body)
+
 ## v1.25.2-guance (2024/1/10) {#cl-1.25.2-guance}
 
 ### 更新 {#cl-1.25.2-guance-fix}

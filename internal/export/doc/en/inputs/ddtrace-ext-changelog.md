@@ -25,6 +25,13 @@ Currently, DDTrace has added the following extensions to the technology stack：
 <!-- markdownlint-enable -->
 ## changelog {#changelog}
 
+## v1.30.1-guance (2024/2/6) {#cl-1.30.1-guance}
+
+### new {#cl-1.30.1-guance-fix}
+
+- Merge DDTrace tag  1.30.0.
+- To add HTTP Response Body information in the trace data, [the command to enable it is](ddtrace-ext-java.md#response_body)
+
 ## v1.25.2-guance (2024/1/10) {#cl-1.25.2-guance}
 
 ### new {#cl-1.25.2-guance-fix}

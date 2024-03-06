@@ -271,7 +271,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 | dd.version        | dd_version        | agent 版本       |
 | error.message     | error_message     | 错误信息           |
 | error.stack       | error_stack       | 堆栈信息           |
-| error_type        | error_type        | 错误类型           |
+| error.type        | error_type        | 错误类型           |
 | system.pid        | pid               | pid            |
 | error.msg         | error_message     | 错误信息           |
 | project           | project           | project        |
@@ -313,3 +313,4 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 - [DataKit 通用 Tracing 数据采集说明](datakit-tracing.md)
 - [正确使用正则表达式来配置](../datakit/datakit-input-conf.md#debug-regex)
 - [多链路串联](tracing-propagator.md)
+- [Java 接入与异常说明](ddtrace-java.md)
