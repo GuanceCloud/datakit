@@ -31,6 +31,9 @@ const sampleConfig = `
   delete_sets = true
   delete_timings = true
 
+  ## Counter metric is float in new Datakit version, set true if want be int.
+  # set_counter_int = false
+
   ## Percentiles to calculate for timing & histogram stats
   percentiles = [50.0, 90.0, 99.0, 99.9, 99.95, 100.0]
 

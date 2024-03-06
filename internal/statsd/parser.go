@@ -129,29 +129,17 @@ func (col *Collector) parseStatsdLine(line string) error {
 		}
 
 		switch m.mtype {
-		case "g", "ms", "h", "d":
+		case "g", "ms", "h", "d", "c":
 			v, err := strconv.ParseFloat(pipesplit[0], 64)
 			if err != nil {
 				col.opts.l.Errorf("Parsing value to float64, unable to parse metric: %s", line)
 				return errors.New("error parsing statsd line")
 			}
-			m.floatvalue = v
-		case "c":
-			var v int64
-			v, err := strconv.ParseInt(pipesplit[0], 10, 64)
-			if err != nil {
-				v2, err2 := strconv.ParseFloat(pipesplit[0], 64)
-				if err2 != nil {
-					col.opts.l.Errorf("Parsing value to int64, unable to parse metric: %s", line)
-					return errors.New("error parsing statsd line")
-				}
-				v = int64(v2)
-			}
 			// If a sample rate is given with a counter, divide value by the rate
 			if m.samplerate != 0 && m.mtype == "c" {
-				v = int64(float64(v) / m.samplerate)
+				v /= m.samplerate
 			}
-			m.intvalue = v
+			m.floatvalue = v
 		case "s":
 			m.strvalue = pipesplit[0]
 		}
