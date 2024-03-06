@@ -8,7 +8,6 @@ package skywalking
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -42,29 +41,6 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 			if len(span.Refs) > 0 {
 				spanKV = spanKV.Add(itrace.FieldParentID,
 					fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false)
-
-				if span.Refs[0].RefType == agentv3.RefType_CrossProcess && strings.Contains(span.Refs[0].ParentService, "_rum_") {
-					childSpanKV := point.KVs{}
-					childSpanKV = childSpanKV.
-						Add(itrace.FieldTraceID, segment.TraceId, false, false).
-						Add(itrace.FieldParentID, "0", false, false).
-						Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false).
-						AddTag(itrace.TagService, span.Refs[0].ParentService).
-						Add(itrace.FieldResource, span.Refs[0].ParentService, false, false).
-						AddTag(itrace.TagOperation, span.Refs[0].ParentService).
-						AddTag(itrace.TagSource, inputName).
-						AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
-						AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
-						Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond)-int64(time.Microsecond), false, false).
-						Add(itrace.FieldDuration, int64(time.Microsecond), false, false)
-
-					childSpan := point.NewPointV2(inputName, childSpanKV, point.DefaultLoggingOptions()...)
-					dktrace = append(dktrace, &itrace.DkSpan{Point: childSpan})
-
-					if endpoint := span.Refs[0].GetNetworkAddressUsedAtPeer(); endpoint != "" {
-						spanKV = spanKV.AddTag(itrace.TagEndpoint, endpoint)
-					}
-				}
 			} else {
 				spanKV = spanKV.Add(itrace.FieldParentID, "0", false, false)
 			}
