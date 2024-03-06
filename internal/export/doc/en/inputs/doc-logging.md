@@ -134,11 +134,11 @@ After getting a log file path, because Datakit is written in Golang, it usually 
 
 However, if the number of files is too large, the number of goroutines to be opened will also increase, which is very unfavorable to the management of goroutine. So Datakit implements a scheduler for log collection.
 
-Like most scheduler models, Datakit implements multiple pipelines (lines) under the scheduler. When a new log collection is registered with the scheduler, Datakit allocates it according to the weights of each pipeline.
+Like most scheduler models, Datakit implements multiple pipelines (lines) under the scheduler. When a new log collection is registered with the scheduler, Datakit allocates it according to the weights of each Pipeline.
 
-Each pipeline is executed cyclically, that is, A files are collected once (or continuously collected for N seconds, depending on the situation), then B files are collected, and then C files are collected, which can effectively control the number of goroutines and avoid the underlying scheduling and resource competition of a large number of goroutines.
+Each Pipeline is executed cyclically, that is, A files are collected once (or continuously collected for N seconds, depending on the situation), then B files are collected, and then C files are collected, which can effectively control the number of goroutines and avoid the underlying scheduling and resource competition of a large number of goroutines.
 
-If an error is found in this log collection, it will be removed from the pipeline and will not be collected again in the next cycle.
+If an error is found in this log collection, it will be removed from the Pipeline and will not be collected again in the next cycle.
 
 ### Read Data and Split it into Rows {#read}
 
