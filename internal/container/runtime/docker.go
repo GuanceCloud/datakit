@@ -21,7 +21,6 @@ import (
 const DockerRuntime = "docker"
 
 var (
-	version          = "1.21" // 1.24 is when server first started returning its version
 	defaultHeaders   = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	dockerListOption = types.ContainerListOptions{
 		All:     true,
@@ -50,7 +49,7 @@ func VerifyDockerRuntime(endpoint string) error {
 func NewDockerRuntime(endpoint string, procMountPoint string) (ContainerRuntime, error) {
 	client, err := docker.NewClientWithOpts(
 		docker.WithHTTPHeaders(defaultHeaders),
-		docker.WithVersion(version),
+		docker.WithAPIVersionNegotiation(),
 		docker.WithHost(endpoint))
 	if err != nil {
 		return nil, err
@@ -72,6 +71,17 @@ func NewDockerRuntime(endpoint string, procMountPoint string) (ContainerRuntime,
 		runtimeName:    DockerRuntime,
 		runtimeVersion: info.ServerVersion,
 		procMountPoint: procMountPoint,
+	}, nil
+}
+
+func (d *dockerClient) Version() (*VersionInfo, error) {
+	info, err := d.client.ServerVersion(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	return &VersionInfo{
+		PlatformName: info.Platform.Name,
+		APIVersion:   info.APIVersion,
 	}, nil
 }
 

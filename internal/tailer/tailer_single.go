@@ -93,6 +93,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	t.filename = filepath.Base(t.filepath)
 
 	if err := t.seekOffset(); err != nil {
+		t.opt.log.Warnf("set position err: %s", err)
 		return nil, err
 	}
 
@@ -121,36 +122,33 @@ func (t *Single) seekOffset() error {
 		return fmt.Errorf("unexpected file pointer")
 	}
 
-	var ret int64
 	var err error
 
-	func() {
-		if pos := t.getPosition(); pos != -1 {
-			ret, err = t.file.Seek(pos, io.SeekStart)
-			t.opt.log.Infof("set position %d for filename %s", pos, t.filepath)
-			return
+	if pos := t.getPosition(); pos != -1 {
+		t.offset, err = t.file.Seek(pos, io.SeekStart)
+		t.opt.log.Infof("set position %d for filename %s", pos, t.filepath)
+		return err
+	}
+
+	if t.opt.FromBeginning {
+		t.offset, err = t.file.Seek(0, io.SeekStart)
+		t.opt.log.Infof("set start position for filename %s", t.filepath)
+		return err
+	}
+
+	if stat, _err := os.Stat(t.filepath); _err == nil {
+		size := stat.Size()
+		if size < t.opt.FileFromBeginningThresholdSize {
+			t.offset, err = t.file.Seek(0, io.SeekStart)
+			t.opt.log.Infof("set start position for filename %s, because file size %d < %d",
+				t.filepath, size, t.opt.FileFromBeginningThresholdSize)
+			return err
 		}
+	}
 
-		if t.opt.FromBeginning {
-			ret, err = t.file.Seek(0, io.SeekStart)
-			t.opt.log.Infof("set start position for filename %s", t.filepath)
-			return
-		}
+	t.offset, err = t.file.Seek(0, io.SeekEnd)
+	t.opt.log.Infof("set end position for filename %s", t.filepath)
 
-		if stat, _err := os.Stat(t.filepath); _err == nil {
-			if stat.Size() < t.opt.FileFromBeginningThresholdSize {
-				ret, err = t.file.Seek(0, io.SeekStart)
-				t.opt.log.Infof("set start position for filename %s, because file size < %sKiB",
-					t.opt.FileFromBeginningThresholdSize/1024)
-			}
-			return
-		}
-
-		ret, err = t.file.Seek(0, io.SeekEnd)
-		t.opt.log.Infof("set end position for filename %s", t.filepath)
-	}()
-
-	t.offset = ret
 	return err
 }
 
@@ -451,30 +449,28 @@ func (t *Single) generateCRILogs(lines []string) []string {
 			continue
 		}
 
-		var contents []string
-
+		var originalText string
 		if t.partialContentBuff.Len() != 0 {
-			contents = append(contents, t.partialContentBuff.String())
+			t.partialContentBuff.WriteString(criMsg.log)
+			originalText = t.partialContentBuff.String()
 			t.partialContentBuff.Reset()
+		} else {
+			originalText = criMsg.log
 		}
-		contents = append(contents, criMsg.log)
 
-		for _, content := range contents {
-			var text string
-
-			text, err = t.decode(content)
-			if err != nil {
-				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-			}
-
-			text = t.multiline(multiline.TrimRightSpace(text))
-			if text == "" {
-				continue
-			}
-
-			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-			pending = append(pending, logstr)
+		var text string
+		text, err = t.decode(originalText)
+		if err != nil {
+			t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 		}
+
+		text = t.multiline(multiline.TrimRightSpace(text))
+		if text == "" {
+			continue
+		}
+
+		logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+		pending = append(pending, logstr)
 	}
 
 	return pending
@@ -548,8 +544,8 @@ func (t *Single) feedToRemote(pending []string) {
 
 func (t *Single) feedToCache(pending []string) error {
 	res := []*point.Point{}
-	// -1ns
-	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	// -1us
+	timeNow := time.Now().Add(-time.Duration(len(pending)) * time.Microsecond)
 
 	for i, cnt := range pending {
 		t.readLines++
@@ -565,7 +561,7 @@ func (t *Single) feedToCache(pending []string) error {
 
 		pt := point.NewPointV2(t.opt.Source,
 			append(point.NewTags(t.tags), point.NewKVs(fields)...),
-			point.WithTime(timeNow.Add(time.Duration(i))),
+			point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)),
 		)
 		res = append(res, pt)
 	}
@@ -606,8 +602,8 @@ func (t *Single) feedToCache(pending []string) error {
 
 func (t *Single) feedToIO(pending []string) {
 	pts := []*point.Point{}
-	// -1ns
-	timeNow := time.Now().Add(-time.Duration(len(pending)))
+	// -1us
+	timeNow := time.Now().Add(-time.Duration(len(pending)) * time.Microsecond)
 	for i, cnt := range pending {
 		t.readLines++
 
@@ -619,7 +615,7 @@ func (t *Single) feedToIO(pending []string) {
 			pipeline.FieldMessage: cnt,
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
-		opts := append(point.DefaultLoggingOptions(), point.WithTime(timeNow.Add(time.Duration(i))))
+		opts := append(point.DefaultLoggingOptions(), point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)))
 
 		pt := point.NewPointV2(
 			t.opt.Source,

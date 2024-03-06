@@ -88,36 +88,47 @@ Below is a complete example:
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="log-output.yaml"
-    apiVersion: v1
-    kind: Pod
+    apiVersion: apps/v1
+    kind: Deployment
     metadata:
-      name: log-demo
-      annotations:
-        ## Add the configuration and specify the container as log-output
-        datakit/log-output.logs: |
-          [{
-              "disable": false,
-              "source":  "log-output-source",
-              "service": "log-output-service",
-              "tags" : {
-                "some_tag": "some_value"
-              }
-          }]
+      name: log-demo-deployment
+      labels:
+        app: log-demo
     spec:
-      containers:
-      - name: log-output
-        image: pubrepo.guance.com/base/ubuntu:18.04
-        args:
-        - /bin/sh
-        - -c
-        - >
-          i=0;
-          while true;
-          do
-            echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
-            i=$((i+1));
-            sleep 1;
-          done
+      replicas: 1
+      selector:
+        matchLabels:
+          app: log-demo
+      template:
+        metadata:
+          labels:
+            app: log-demo
+          annotations:
+            ## Add the configuration and specify the container as log-output
+            datakit/log-output.logs: |
+              [{
+                  "disable": false,
+                  "source":  "log-output-source",
+                  "service": "log-output-service",
+                  "tags" : {
+                    "some_tag": "some_value"
+                  }
+              }]
+        spec:
+          containers:
+          - name: log-output
+            image: pubrepo.guance.com/base/ubuntu:18.04
+            args:
+            - /bin/sh
+            - -c
+            - >
+              i=0;
+              while true;
+              do
+                echo "$(date +'%F %H:%M:%S')  [$i]  Bash For Loop Examples. Hello, world! Testing output.";
+                i=$((i+1));
+                sleep 1;
+              done
     ```
 
     ``` yaml
@@ -143,13 +154,7 @@ Below is a complete example:
 
 For log files inside containers, the configuration is similar to logging console output, except that you need to specify the file path. Other configurations are mostly the same.
 
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    The configured file path is not the path inside the container but the path accessible from the outside through volume.
-    
-    Similarly, you can add the configuration either as a container environment variable or a Kubernetes Pod Annotation. The key and value remain the same as mentioned earlier. Please refer to the previous section for details.
-<!-- markdownlint-enable -->
+Similarly, you can add the configuration either as a container environment variable or a Kubernetes Pod Annotation. The key and value remain the same as mentioned earlier. Please refer to the previous section for details.
 
 Here is a complete example:
 
@@ -182,29 +187,40 @@ Here is a complete example:
 === "Kubernetes Pod Annotation"
 
     ``` yaml title="logging.yaml"
-    apiVersion: v1
-    kind: Pod
+    apiVersion: apps/v1
+    kind: Deployment
     metadata:
-      name: log-demo
-      annotations:
-        ## Add the configuration and specify the container as logging-demo.
-        ## Configure both file and stdout collection, need to add the emptyDir volume to "/tmp/opt" first.
-        datakit/logging-demo.logs: |
-          [
-            {
-              "disable": false,
-              "type": "file",
-              "path":"/tmp/opt/log",
-              "source":  "logging-file",
-              "tags" : {
-                "some_tag": "some_value"
-              }
-            },
-            {
-              "disable": false,
-              "source":  "logging-output"
-            }
-          ]
+      name: log-demo-deployment
+      labels:
+        app: log-demo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: log-demo
+      template:
+        metadata:
+          labels:
+            app: log-demo
+          annotations:
+            ## Add the configuration and specify the container as logging-demo.
+            ## Configure both file and stdout collection, need to add the emptyDir volume to "/tmp/opt" first.
+            datakit/logging-demo.logs: |
+              [
+                {
+                  "disable": false,
+                  "type": "file",
+                  "path":"/tmp/opt/log",
+                  "source":  "logging-file",
+                  "tags" : {
+                    "some_tag": "some_value"
+                  }
+                },
+                {
+                  "disable": false,
+                  "source":  "logging-output"
+                }
+              ]
         spec:
           containers:
           - name: logging-demo
@@ -223,10 +239,10 @@ Here is a complete example:
               done
             volumeMounts:
             - mountPath: /tmp/opt
-              name: opt
+              name: datakit-vol-opt
           volumes:
-          - name: opt
-        emptyDir: {}
+          - name: datakit-vol-opt
+            emptyDir: {}
     ```
 
     ``` yaml

@@ -48,6 +48,16 @@ type scoredPattern struct {
 	regexp *regexp.Regexp
 }
 
+func (s *scoredPattern) doMatch(b []byte, str string) bool {
+	if len(b) != 0 {
+		return s.regexp.Match(b)
+	}
+	if len(str) != 0 {
+		return s.regexp.MatchString(str)
+	}
+	return false
+}
+
 func (s *scoredPattern) String() string {
 	return fmt.Sprintf("score:%d, regexp:%s", s.score, s.regexp)
 }
@@ -81,15 +91,37 @@ func NewMatcher(additionalPatterns []string) (*Matcher, error) {
 	return m, nil
 }
 
+func (m *Matcher) MatchString(content string) bool {
+	if m.noPattern {
+		return !prefixIsSpace(nil, content)
+	}
+	if m.doMatch(nil, content) {
+		return true
+	}
+	if m.patterns[0].score == 0 {
+		// use default pattern
+		return !prefixIsSpace(nil, content)
+	}
+	return false
+}
+
 func (m *Matcher) Match(content []byte) bool {
 	if m.noPattern {
-		// 为什么要取反？
-		// 因为默认的匹配策略是行首非空白字符，函数功能是确认行首是空白字符，所以要再进行取反
-		return !prefixIsSpace(content)
+		return !prefixIsSpace(content, "")
 	}
+	if m.doMatch(content, "") {
+		return true
+	}
+	if m.patterns[0].score == 0 {
+		// use default pattern
+		return !prefixIsSpace(content, "")
+	}
+	return false
+}
 
+func (m *Matcher) doMatch(b []byte, str string) bool {
 	for idx, scoredPattern := range m.patterns {
-		match := scoredPattern.regexp.Match(content)
+		match := scoredPattern.doMatch(b, str)
 		if match {
 			scoredPattern.score++
 			if idx != 0 {
@@ -100,18 +132,19 @@ func (m *Matcher) Match(content []byte) bool {
 			return true
 		}
 	}
-
-	if m.patterns[0].score == 0 {
-		return !prefixIsSpace(content)
-	}
-
 	return false
 }
 
-func prefixIsSpace(text []byte) bool {
-	if len(text) == 0 {
+func prefixIsSpace(b []byte, str string) bool {
+	if len(b) == 0 && len(str) == 0 {
 		return true
 	}
-	// white space 定义为 '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0
-	return unicode.IsSpace(rune(text[0]))
+	var r rune
+	if len(b) != 0 {
+		r = rune(b[0])
+	} else {
+		r = rune(str[0])
+	}
+	// white space is '\t', '\n', '\v', '\f', '\r', ' ', 0x85, 0xA0
+	return unicode.IsSpace(r)
 }

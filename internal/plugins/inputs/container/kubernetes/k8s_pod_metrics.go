@@ -113,7 +113,7 @@ func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 	cpuMilliCores := cpu.MilliValue()
 	memUsage, _ := mem.AsInt64()
 
-	podMetricsQueryCountVec.WithLabelValues("api-server").Add(float64(1))
+	podMetricsQueryCountVec.WithLabelValues("api-server").Inc()
 
 	return &podSrvMetric{
 		cpuUsage:           float64(cpuMilliCores) / 1e3 * 100.0,
@@ -140,9 +140,23 @@ func (p *podMetricsFromKubelet) GetPodMetrics(ctx context.Context, namespace, na
 		if m != nil {
 			p.metricsCache = m
 		}
-		podMetricsQueryCountVec.WithLabelValues("kubelet").Add(float64(1))
+		podMetricsQueryCountVec.WithLabelValues("kubelet").Inc()
 	}
 	return hitPodMetrics(p.metricsCache, namespace, name)
+}
+
+func (p *podMetricsFromKubelet) GetPodsVolumeInfo(ctx context.Context) ([]*podVolumeInfo, error) {
+	if p.metricsCache == nil {
+		m, err := p.client.GetMetricsFromKubelet()
+		if err != nil {
+			return nil, fmt.Errorf("falied of query kubelet stats/summary, err: %w", err)
+		}
+		if m != nil {
+			p.metricsCache = m
+		}
+		podMetricsQueryCountVec.WithLabelValues("kubelet").Inc()
+	}
+	return composePodsVolumeInfo(p.metricsCache)
 }
 
 func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrvMetric, error) {
@@ -196,4 +210,62 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 		}
 	}
 	return nil, fmt.Errorf("not found %s:%s pod metrics from kubelet", namespace, name)
+}
+
+type podVolumeInfo struct {
+	nodeName, podName, namespace string
+	pvcName, volumeMountName     string
+	available                    int64
+	capacity                     int64
+	used                         int64
+	inodes                       int64
+	inodesUsed                   int64
+	inodesFree                   int64
+}
+
+func composePodsVolumeInfo(item *statsv1alpha1.Summary) ([]*podVolumeInfo, error) {
+	var res []*podVolumeInfo
+
+	for _, pod := range item.Pods {
+		for _, volume := range pod.VolumeStats {
+			if volume.PVCRef == nil {
+				continue
+			}
+			// Must be equal.
+			if volume.PVCRef.Namespace != pod.PodRef.Namespace {
+				continue
+			}
+
+			info := &podVolumeInfo{
+				nodeName:        item.Node.NodeName,
+				podName:         pod.PodRef.Name,
+				namespace:       pod.PodRef.Namespace,
+				pvcName:         volume.PVCRef.Name,
+				volumeMountName: volume.Name,
+			}
+
+			if volume.AvailableBytes != nil {
+				info.available = int64(*volume.AvailableBytes)
+			}
+			if volume.CapacityBytes != nil {
+				info.capacity = int64(*volume.CapacityBytes)
+			}
+			if volume.UsedBytes != nil {
+				info.used = int64(*volume.UsedBytes)
+			}
+			if volume.Inodes != nil {
+				info.inodes = int64(*volume.Inodes)
+			}
+			if volume.InodesUsed != nil {
+				info.inodesUsed = int64(*volume.InodesUsed)
+			}
+			if volume.InodesFree != nil {
+				info.inodesFree = int64(*volume.InodesFree)
+			}
+
+			res = append(res, info)
+		}
+	}
+
+	return res, nil
 }

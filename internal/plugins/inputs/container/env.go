@@ -46,6 +46,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "LoggingMaxMultilineLifeDuration", Type: doc.TimeDuration, Default: `3s`, Desc: `Maximum single multi-row life cycle of log collection. At the end of this cycle, existing multi-row data will be emptied and uploaded to avoid accumulation`, DescZh: `日志采集的单次多行最大生命周期，此周期结束将清空和上传现存的多行数据，避免堆积`},
 		{FieldName: "LoggingRemoveAnsiEscapeCodes", Type: doc.Boolean, Default: `false`, Desc: "Remove `ansi` escape codes and color characters, referred to [`ansi-decode` doc](logging.md#ansi-decode)", DescZh: `日志采集删除包含的颜色字符，详见[日志特殊字符处理说明](logging.md#ansi-decode)`},
 		{FieldName: "LoggingForceFlushLimit", Type: doc.Int, Default: `5`, Desc: `If there are consecutive N empty collections, the existing data will be uploaded to prevent memory occupation caused by accumulated`, DescZh: `日志采集上传限制，如果连续 N 次都采集为空，会将现有的数据上传，避免数据积攒占用内存`},
+		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
+		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
 		{FieldName: "Tags"},
 	}
 
@@ -61,6 +63,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_ENABLE_K8S_METRIC : booler
 // ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
 // ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL : booler
+// ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT: booler
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS : booler
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC : json arrry
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2 : json arrry
@@ -69,6 +72,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
 // ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE : int e.g. "10"
+// ENV_INPUT_CONTAINER_CONTAINER_MAX_CONCURRENT : int
 // ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
 // ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG : []string
 // ENV_INPUT_CONTAINER_KUBERNETES_URL : string
@@ -81,9 +85,10 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
-// ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int.
-// ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler.
+// ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int
+// ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 // ENV_INPUT_CONTAINER_TAGS : "a=b,c=d".
+// ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB : booler.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	///
 	/// base configs
@@ -218,6 +223,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_MAX_CONCURRENT"]; ok {
+		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_CONTAINER_MAX_CONCURRENT to int64: %s, ignore", err)
+		} else {
+			ipt.ContainerMaxConcurrent = int(size)
+		}
+	}
 	///
 	/// logging sample configs
 	///
@@ -288,5 +300,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
 		ipt.LoggingExtraSourceMap = config.ParseGlobalTags(str)
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB to bool: %s, ignore", err)
+		} else {
+			ipt.disableCollectK8sJob = b
+		}
 	}
 }

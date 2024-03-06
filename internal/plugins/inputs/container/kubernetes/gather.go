@@ -32,11 +32,14 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused b
 	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-" + category})
 
 	for typee, constructor := range resources {
-		fieldSelector := ""
-
+		if k.cfg.DisableCollectJob && typee.name == "job" {
+			continue
+		}
 		if paused && k.cfg.NodeLocal && !typee.nodeLocal {
 			continue
 		}
+
+		fieldSelector := ""
 		if k.cfg.NodeLocal && typee.nodeLocal {
 			fieldSelector = getFieldSelector(k.nodeName)
 		}

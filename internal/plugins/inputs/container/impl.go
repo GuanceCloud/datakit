@@ -15,9 +15,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"k8s.io/klog/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -122,34 +124,59 @@ func (ipt *Input) runCollect() {
 }
 
 func (ipt *Input) collectMetric(collectors []Collector, opts ...option.CollectOption) {
-	for _, c := range collectors {
-		fn := func(pts []*point.Point) error {
-			if len(pts) == 0 {
-				return nil
-			}
+	start := time.Now()
 
-			return ipt.Feeder.FeedV2(point.Metric, pts,
-				dkio.WithBlocking(true),
-				dkio.WithElection(c.Election()),
-				dkio.WithInputName(c.Name()+"-metric"))
-		}
-		c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
+	g := goroutine.NewGroup(goroutine.Option{Name: "container/k8s-metric"})
+	for idx := range collectors {
+		func(c Collector) {
+			fn := func(pts []*point.Point) error {
+				if len(pts) == 0 {
+					return nil
+				}
+				return ipt.Feeder.FeedV2(point.Metric, pts,
+					dkio.WithBlocking(true),
+					dkio.WithElection(c.Election()),
+					dkio.WithInputName(c.Name()+"-metric"))
+			}
+			g.Go(func(ctx context.Context) error {
+				c.Metric(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
+				return nil
+			})
+		}(collectors[idx])
 	}
+	if err := g.Wait(); err != nil {
+		klog.Errorf("unexpected collect error: %s", err)
+	}
+
+	totalCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
 }
 
 func (ipt *Input) collectObject(collectors []Collector, opts ...option.CollectOption) {
-	for _, c := range collectors {
-		fn := func(pts []*point.Point) error {
-			if len(pts) == 0 {
-				return nil
+	start := time.Now()
+
+	g := goroutine.NewGroup(goroutine.Option{Name: "container/k8s-object"})
+	for idx := range collectors {
+		func(c Collector) {
+			fn := func(pts []*point.Point) error {
+				if len(pts) == 0 {
+					return nil
+				}
+				return ipt.Feeder.FeedV2(point.Object, pts,
+					dkio.WithBlocking(true),
+					dkio.WithElection(c.Election()),
+					dkio.WithInputName(c.Name()+"-object"))
 			}
-			return ipt.Feeder.FeedV2(point.Object, pts,
-				dkio.WithBlocking(true),
-				dkio.WithElection(c.Election()),
-				dkio.WithInputName(c.Name()+"-object"))
-		}
-		c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
+			g.Go(func(ctx context.Context) error {
+				c.Object(fn, append(opts, option.WithPaused(ipt.pause.Load()))...)
+				return nil
+			})
+		}(collectors[idx])
 	}
+	if err := g.Wait(); err != nil {
+		klog.Errorf("unexpected collect error: %s", err)
+	}
+
+	totalCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
 }
 
 func (ipt *Input) collectLogging(collectors []Collector) {
@@ -290,6 +317,7 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		EnablePodMetric:               ipt.EnablePodMetric,
 		EnableK8sEvent:                ipt.EnableK8sEvent,
 		EnableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
+		DisableCollectJob:             ipt.disableCollectK8sJob,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{
 			All:  optForMetric.all,
 			Keys: optForMetric.keys,

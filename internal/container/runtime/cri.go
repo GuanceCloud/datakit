@@ -52,6 +52,17 @@ var criContainerFilter = &runtimeapi.ContainerFilter{
 	},
 }
 
+func (ct *criClient) Version() (*VersionInfo, error) {
+	info, err := ct.srv.Version("")
+	if err != nil {
+		return nil, err
+	}
+	return &VersionInfo{
+		PlatformName: info.RuntimeName,
+		APIVersion:   info.RuntimeApiVersion,
+	}, nil
+}
+
 var verbose = true
 
 func (ct *criClient) ListContainers() ([]*Container, error) {

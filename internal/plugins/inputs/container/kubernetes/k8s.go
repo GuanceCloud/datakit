@@ -36,6 +36,7 @@ type Config struct {
 	EnablePodMetric               bool
 	EnableExtractK8sLabelAsTagsV1 bool
 	ExtraTags                     map[string]string
+	DisableCollectJob             bool
 
 	LabelAsTagsForMetric    LabelsOption
 	LabelAsTagsForNonMetric LabelsOption
@@ -143,6 +144,7 @@ func (k *Kube) getActiveNamespaces(ctx context.Context) ([]string, error) {
 	return ns, nil
 }
 
+// Kubernetes collection (Deployment/Pod/other..) uses election because it needs access the api-server.
 const kubeElection = true
 
 func (k *Kube) Election() bool { return kubeElection }

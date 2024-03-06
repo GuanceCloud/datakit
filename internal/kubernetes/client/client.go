@@ -46,6 +46,8 @@ type Client interface {
 	GetPods(ns string) corev1.PodInterface
 	GetIngress(ns string) extensionsv1beta1.IngressInterface
 	GetEvents(ns string) corev1.EventInterface
+	GetPersistentVolumes() corev1.PersistentVolumeInterface
+	GetPersistentVolumeClaims(ns string) corev1.PersistentVolumeClaimInterface
 
 	// CRDs
 	GetDatakits(ns string) guancev1beta1.DatakitInterface
@@ -236,6 +238,14 @@ func (c *client) GetIngress(ns string) extensionsv1beta1.IngressInterface {
 
 func (c *client) GetEvents(ns string) corev1.EventInterface {
 	return c.clientset.CoreV1().Events(ns)
+}
+
+func (c *client) GetPersistentVolumes() corev1.PersistentVolumeInterface {
+	return c.clientset.CoreV1().PersistentVolumes()
+}
+
+func (c *client) GetPersistentVolumeClaims(ns string) corev1.PersistentVolumeClaimInterface {
+	return c.clientset.CoreV1().PersistentVolumeClaims(ns)
 }
 
 /// CRDs

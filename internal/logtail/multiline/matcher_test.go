@@ -12,6 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkMatch(b *testing.B) {
+	content := "2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running, Running, Running"
+	m, _ := NewMatcher(GlobalPatterns)
+
+	for i := 0; i < b.N; i++ {
+		_ = m.MatchString(content)
+	}
+}
+
 func TestMatch(t *testing.T) {
 	type in struct {
 		content string

@@ -19,11 +19,8 @@ func (ipt *Input) setLoggingAutoMultilineToLogConfigs(configs logConfigs) {
 		if len(cfg.MultilinePatterns) != 0 {
 			continue
 		}
-		if len(ipt.LoggingAutoMultilineExtraPatterns) != 0 {
-			cfg.MultilinePatterns = ipt.LoggingAutoMultilineExtraPatterns
-		} else {
-			cfg.MultilinePatterns = multiline.GlobalPatterns
-		}
+		cfg.MultilinePatterns = ipt.LoggingAutoMultilineExtraPatterns
+		cfg.MultilinePatterns = append(cfg.MultilinePatterns, multiline.GlobalPatterns...)
 	}
 }
 
