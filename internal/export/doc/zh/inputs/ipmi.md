@@ -93,30 +93,11 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 === "Kubernetes"
 
-    Kubernetes 中支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s DaemonSet 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    | 环境变量名                          | 对应的配置参数项     | 参数示例                                                     |
-    | :------------------------           | ---                  | ---                                                          |
-    | `ENV_INPUT_IPMI_TAGS`               | `tags`               | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-    | `ENV_INPUT_IPMI_INTERVAL`           | `interval`           | `10s`                                                        |
-    | `ENV_INPUT_IPMI_TIMEOUT`            | `timeout`            | `5s`                                                         |
-    | `ENV_INPUT_IPMI_DEOP_WARNING_DELAY` | `drop_warning_delay` | `300s`                                                       |
-    | `ENV_INPUT_IPMI_BIN_PATH`           | `bin_path`           | `"/usr/bin/ipmitool"`                                        |
-    | `ENV_INPUT_IPMI_ENVS`               | `envs`               | `["LD_LIBRARY_PATH=XXXX:$LD_LIBRARY_PATH"]`                  |
-    | `ENV_INPUT_IPMI_SERVERS`            | `ipmi_servers`       | `["192.168.1.1"]`                                            |
-    | `ENV_INPUT_IPMI_INTERFACES`         | `ipmi_interfaces`    | `["lanplus"]`                                                |
-    | `ENV_INPUT_IPMI_USERS`              | `ipmi_users`         | `["root"]`                                                   |
-    | `ENV_INPUT_IPMI_PASSWORDS`          | `ipmi_passwords`     | `["calvin"]`                                                 |
-    | `ENV_INPUT_IPMI_HEX_KEYS`           | `hex_keys`           | `["50415353574F5244"]`                                       |
-    | `ENV_INPUT_IPMI_METRIC_VERSIONS`    | `metric_versions`    | `[2]`                                                        |
-    | `ENV_INPUT_IPMI_REGEXP_CURRENT`     | `regexp_current`     | `["current"]`                                                |
-    | `ENV_INPUT_IPMI_REGEXP_VOLTAGE`     | `regexp_voltage`     | `["voltage"]`                                                |
-    | `ENV_INPUT_IPMI_REGEXP_POWER`       | `regexp_power`       | `["pwr","power"]`                                            |
-    | `ENV_INPUT_IPMI_REGEXP_TEMP`        | `regexp_temp`        | `["temp"]`                                                   |
-    | `ENV_INPUT_IPMI_REGEXP_FAN_SPEED`   | `regexp_fan_speed`   | `["fan"]`                                                    |
-    | `ENV_INPUT_IPMI_REGEXP_USAGE`       | `regexp_usage`       | `["usage"]`                                                  |
-    | `ENV_INPUT_IPMI_REGEXP_COUNT`       | `regexp_count`       | `[]`                                                         |
-    | `ENV_INPUT_IPMI_REGEXP_STATUS`      | `regexp_status`      | `["fan"]`                                                    |
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
+
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 ???+ tip "配置提示"
 

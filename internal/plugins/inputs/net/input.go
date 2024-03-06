@@ -20,6 +20,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -224,6 +225,19 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "IgnoreProtocolStats", Type: doc.Boolean, Default: `false`, Desc: "Ignore reporting of protocol metrics", DescZh: "跳过协议度量的报告"},
+		{FieldName: "EnableVirtualInterfaces", Type: doc.Boolean, Default: `false`, Desc: "Enable collect virtual interfaces stats for Linux", DescZh: "采集 Linux 的虚拟网卡"},
+		{FieldName: "Interfaces", Type: doc.List, Example: `eth[\w-]+,lo`, Desc: "Expected interfaces (regular)", DescZh: "期望采集的网卡（正则）"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_NET_", infos)
 }
 
 // ReadEnv , support envs：

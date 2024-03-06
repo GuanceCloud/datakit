@@ -24,6 +24,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -55,7 +56,7 @@ type (
 		Timeout  time.Duration `toml:"timeout"`
 		BinPath  string        `toml:"bin_path"`
 		getdatassh.SSHServers
-		Tags map[string]string
+		Tags map[string]string `toml:"tags"`
 
 		semStop      *cliutils.Sem
 		collectCache []*point.Point
@@ -350,6 +351,24 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Timeout", Default: `8s`},
+		{FieldName: "BinPath", Type: doc.String, Default: "`chronyc`", Desc: "The path of Chrony", DescZh: "Chrony 的路径"},
+		{FieldName: "RemoteAddrs", Type: doc.JSON, Example: `["192.168.1.1:22","192.168.1.2:22"]`, Desc: "If use remote Chrony servers", DescZh: "可以使用远程 Chrony 服务器"},
+		{FieldName: "RemoteUsers", Type: doc.JSON, Example: `["user_1","user_2"]`, Desc: "Remote login name", DescZh: "远程登录名"},
+		{FieldName: "RemotePasswords", Type: doc.JSON, Example: `["pass_1","pass_2"]`, Desc: "Remote password", DescZh: "远程登录密码"},
+		{FieldName: "RemoteRsaPaths", Type: doc.JSON, Example: `["/home/your_name/.ssh/id_rsa"]`, Desc: "Remote rsa paths", DescZh: "秘钥文件路径"},
+		{FieldName: "RemoteCommand", Type: doc.String, Example: "\"`chronyc -n tracking`\"", Desc: "Remote command", DescZh: "执行指令"},
+		{FieldName: "Election"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_CHRONY_", infos)
 }
 
 // ReadEnv support envs：only for K8S.

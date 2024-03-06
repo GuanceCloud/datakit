@@ -63,26 +63,11 @@ Already tested version:
 
 === "Kubernetes"
 
-    The configuration parameters can be adjusted by the following environment variables:
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    | Environment Variable Name       | Parameter Item | Parameter example                                                |
-    | :-----------------------------        | ---               | ---                                                     |
-    | `ENV_INPUT_COUCHBASE_INTERVAL`        | `interval`        | `"30s"` (`"10s"` ~ `"60s"`)                             |
-    | `ENV_INPUT_COUCHBASE_TIMEOUT`         | `timeout`         | `"5s"`  (`"5s"` ~ `"30s"`)                              |
-    | `ENV_INPUT_COUCHBASE_SCHEME`          | `scheme`          | `"http"` or `"https"`                                   |
-    | `ENV_INPUT_COUCHBASE_HOST`            | `host`            | `"127.0.0.1"`                                           |
-    | `ENV_INPUT_COUCHBASE_PORT`            | `port`            | `8091` or `18091`                                       |
-    | `ENV_INPUT_COUCHBASE_ADDITIONAL_PORT` | `additional_port` | `9102` or `19102`                                       |
-    | `ENV_INPUT_COUCHBASE_USER`            | `user`            | `"Administrator"`                                       |
-    | `ENV_INPUT_COUCHBASE_PASSWORD`        | `password`        | `"123456"`                                              |
-    | `ENV_INPUT_COUCHBASE_TLS_OPEN`        | `tls_open`        | `true` or `false`                                       |
-    | `ENV_INPUT_COUCHBASE_TLS_CA`          | `tls_ca`          | `""`                                                    |
-    | `ENV_INPUT_COUCHBASE_TLS_CERT`        | `tls_cert`        | `"/var/cb/clientcertfiles/travel-sample.pem"`           |
-    | `ENV_INPUT_COUCHBASE_TLS_KEY`         | `tls_key`         | `"/var/cb/clientcertfiles/travel-sample.key"`           |
-    | `ENV_INPUT_COUCHBASE_TAGS`            | `tags`            | `tag1=value1,tag2=value2`                               |
-    | `ENV_INPUT_COUCHBASE_ELECTION`        | `election`        | `true` or `false`                                       |
-
-    The collector can also be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

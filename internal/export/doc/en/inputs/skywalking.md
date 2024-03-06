@@ -81,23 +81,11 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 
 === "Install In Kubernetes Cluster"
 
-    The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    Multiple environment variables supported that can be used in Kubernetes showing below:
-
-    | Environment Variable Name                 | Type        | Example                                                                              |
-    | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
-    | `ENV_INPUT_SKYWALKING_HTTP_ENDPOINTS`     | JSON string | `["/v3/trace", "/v3/metric", "/v3/logging", "/v3/profiling"]`                        |
-    | `ENV_INPUT_SKYWALKING_GRPC_ENDPOINT`      | string      | "127.0.0.1:11800"                                                                    |
-    | `ENV_INPUT_SKYWALKING_PLUGINS`            | JSON string | `["db.type", "os.call"]`                                                             |
-    | `ENV_INPUT_SKYWALKING_IGNORE_TAGS`        | JSON string | `["block1", "block2"]`                                                               |
-    | `ENV_INPUT_SKYWALKING_DEL_MESSAGE`        | bool        | true                                                                                 |
-    | `ENV_INPUT_SKYWALKING_KEEP_RARE_RESOURCE` | bool        | true                                                                                 |
-    | `ENV_INPUT_SKYWALKING_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":    ["resource3"]}` |
-    | `ENV_INPUT_SKYWALKING_SAMPLER`            | float       | 0.3                                                                                  |
-    | `ENV_INPUT_SKYWALKING_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                                  |
-    | `ENV_INPUT_SKYWALKING_THREADS`            | JSON string | `{"buffer":1000, "threads":100}`                                                     |
-    | `ENV_INPUT_SKYWALKING_STORAGE`            | JSON string | `{"storage":"./skywalking_storage", "capacity": 5120}`                               |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

@@ -42,17 +42,11 @@ In general, the host object is turned on by default and does not need to be conf
 
 === "Kubernetes"
 
-    In general, the host object is turned on by default and does not need to be configured. In Kubernetes, it is supported to modify default parameters in the form of environment variables:
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
+
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
     
-    | Environment Variable Name                                           | Corresponding Configuration Parameter Item                | Parameter Description                                                           | Parameter Example                                                                                                   |
-    | :---                                                 | ---                             | ---                                                                | ---                                                                                                        |
-    | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | Allow collection of virtual network card                                                   | `true`/`false`                                                                                             |
-    | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | Ignore disks with size 0                                                | `true`/`false`                                                                                             |
-    | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | Add additional labels                                                       | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten.                                               |
-    | `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | Ignore non-physical disks (such as network disk, NFS, etc., only collect local hard disk/CD ROM/USB disk, etc.) | Just give an arbitrary string value                                                                                     |
-    | `ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE`                      | `exclude_device`                | ignored device                                | `"/dev/loop0","/dev/loop1"` separated by English commas                      |
-    | `ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE`                        | `extra_device`                  | Additional device                            | `"/nfsdata"` separated by English commas                      |
-    | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | Designate cloud service provider                                                       | `aliyun/aws/tencent/hwcloud/azure`                                                                         |
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

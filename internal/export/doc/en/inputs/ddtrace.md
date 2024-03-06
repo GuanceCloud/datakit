@@ -112,24 +112,11 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 
 === "Kubernetes"
 
-    The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-    Multiple environment variables supported that can be used in Kubernetes showing below:
-
-    | Environment Variable Name                | Type        | Example                                                                          |
-    | --------------------------------------   | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_DDTRACE_ENDPOINTS`            | JSON string | `["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`                               |
-    | `ENV_INPUT_DDTRACE_CUSTOMER_TAGS`        | JSON string | `["sink_project", "custom_dd_tag"]`                                              |
-    | `ENV_INPUT_DDTRACE_COMPATIBLE_OTEL`      | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX`  | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_DEL_MESSAGE`          | bool        | true                                                                             | 
-    | `ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE`   | bool        | true                                                                             |
-    | `ENV_INPUT_DDTRACE_OMIT_ERR_STATUS`      | JSON string | `["404", "403", "400"]`                                                          |
-    | `ENV_INPUT_DDTRACE_CLOSE_RESOURCE`       | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_DDTRACE_SAMPLER`              | float       | 0.3                                                                              |
-    | `ENV_INPUT_DDTRACE_TAGS`                 | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_DDTRACE_THREADS`              | JSON string | `{"buffer":1000, "threads":100}`                                                 |
-    | `ENV_INPUT_DDTRACE_STORAGE`              | JSON string | `{"storage":"./ddtrace_storage", "capacity": 5120}`                              |
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
 ### Notes on Linking Multiple Line Tools {#trace_propagator}
 DDTrace currently supports the following propagation protocols: `datadog/b3multi/tracecontext`. There are two things to note:

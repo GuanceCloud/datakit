@@ -21,6 +21,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -252,6 +253,16 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_SYSTEM_", infos)
 }
 
 // ReadEnv support envs：

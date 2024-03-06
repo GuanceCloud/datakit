@@ -23,6 +23,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -361,6 +362,17 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "AddrPorts", Type: doc.JSON, Example: `["1.1.1.1:80","443"]`, Desc: "Groups of ports and add different tags to facilitate statistics", DescZh: "端口分组并添加不同的标签以便于统计"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_NETSTAT_", infos)
 }
 
 // ReadEnv support envs：only for K8S.

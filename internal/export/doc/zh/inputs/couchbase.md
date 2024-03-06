@@ -65,26 +65,11 @@ Couchbase 采集器支持远程采集，可以运行在多种操作系统中。
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数（只在 Datakit 以 K8s DaemonSet 方式运行时生效，主机部署的 Datakit 不支持此功能）：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    | 环境变量名                            | 对应的配置参数项  | 参数示例                                                     |
-    | :-----------------------------        | ---               | ---                                                          |
-    | `ENV_INPUT_COUCHBASE_INTERVAL`        | `interval`        | `"30s"` (`"10s"` ~ `"60s"`)                                  |
-    | `ENV_INPUT_COUCHBASE_TIMEOUT`         | `timeout`         | `"5s"`  (`"5s"` ~ `"30s"`)                                   |
-    | `ENV_INPUT_COUCHBASE_SCHEME`          | `scheme`          | `"http"` or `"https"`                                        |
-    | `ENV_INPUT_COUCHBASE_HOST`            | `host`            | `"127.0.0.1"`                                                |
-    | `ENV_INPUT_COUCHBASE_PORT`            | `port`            | `8091` or `18091`                                            |
-    | `ENV_INPUT_COUCHBASE_ADDITIONAL_PORT` | `additional_port` | `9102` or `19102`                                            |
-    | `ENV_INPUT_COUCHBASE_USER`            | `user`            | `"Administrator"`                                            |
-    | `ENV_INPUT_COUCHBASE_PASSWORD`        | `password`        | `"123456"`                                                   |
-    | `ENV_INPUT_COUCHBASE_TLS_OPEN`        | `tls_open`        | `true` or `false`                                            |
-    | `ENV_INPUT_COUCHBASE_TLS_CA`          | `tls_ca`          | `""`                                                         |
-    | `ENV_INPUT_COUCHBASE_TLS_CERT`        | `tls_cert`        | `"/var/cb/clientcertfiles/travel-sample.pem"`                |
-    | `ENV_INPUT_COUCHBASE_TLS_KEY`         | `tls_key`         | `"/var/cb/clientcertfiles/travel-sample.key"`                |
-    | `ENV_INPUT_COUCHBASE_TAGS`            | `tags`            | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-    | `ENV_INPUT_COUCHBASE_ELECTION`        | `election`        | `true` or `false`                                            |
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-    也可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 <!-- markdownlint-enable -->
 

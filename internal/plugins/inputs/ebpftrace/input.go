@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/spans"
@@ -124,6 +125,23 @@ func initMRRunner(ipt *Input) bool {
 	}
 
 	return true
+}
+
+// SQLitePath    string        `toml:"sqlite_path"`
+// UseAppTraceID bool          `toml:"use_app_trace_id"`
+// Window        time.Duration `toml:"window"`
+// SamplingRate  float64       `toml:"sampling_rate"`
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "SQLitePath", ENVName: "SQLITE_PATH", Type: doc.String, Example: "`/usr/local/datakit/ebpf_spandb/`", Desc: "SQLite database file storage path", DescZh: "SQLite 数据库文件存放路径"},
+		{FieldName: "UseAppTraceID", Type: doc.Boolean, Default: `false`, Desc: "Use application-side trace id instead of eBPF trace id", DescZh: "使用应用侧 trace id 替代 eBPF trace id"},
+		{FieldName: "Window", Type: doc.TimeDuration, Default: `20s`, Desc: "Span's link time window", DescZh: "链路 span 的链接时间窗口"},
+		{FieldName: "SamplingRate", Type: doc.Float, Example: `0.1`, Desc: "Link sampling rate", DescZh: "链路采样率"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_EBPFTRACE_", infos)
 }
 
 func (ipt *Input) ReadEnv(envs map[string]string) {

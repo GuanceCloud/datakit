@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -206,6 +207,21 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "EnableNetVirtualInterfaces", ENVName: "INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES", ConfField: "enable_net_virtual_interfaces", Type: doc.Boolean, Default: `false`, Desc: "Enable collect network virtual interfaces", DescZh: "允许采集虚拟网卡"},
+		{FieldName: "IgnoreZeroBytesDisk", ENVName: "INPUT_HOSTOBJECT_IGNORE_ZERO_BYTES_DISK", ConfField: "ignore_zero_bytes_disk", Type: doc.Boolean, Default: `false`, Desc: "Ignore the disk which space is zero", DescZh: "忽略大小为 0 的磁盘"},
+		{FieldName: "OnlyPhysicalDevice", ENVName: "INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE", ConfField: "only_physical_device", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only, any string", DescZh: "忽略非物理磁盘（如网盘、NFS），任意非空字符串"},
+		{FieldName: "ExcludeDevice", ENVName: "INPUT_HOSTOBJECT_EXCLUDE_DEVICE", ConfField: "exclude_device", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Exclude some with dev prefix", DescZh: "忽略的 device"},
+		{FieldName: "ExtraDevice", ENVName: "INPUT_HOSTOBJECT_EXTRA_DEVICE", ConfField: "extra_device", Type: doc.List, Example: "`/nfsdata,other`", Desc: "Additional device", DescZh: "额外增加的 device"},
+		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
+		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
+	}
+
+	return doc.SetENVDoc("ENV_", infos)
 }
 
 // ReadEnv used to read ENVs while running under DaemonSet.

@@ -40,15 +40,11 @@ monitor   :
 
 === "Kubernetes"
 
-    支持以环境变量的方式修改配置参数：
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    | 环境变量名                            | 对应的配置参数项       | 参数示例                                                                                 |
-    | ---                                   | ---                    | ---                                                                                      |
-    | `ENV_INPUT_DISK_EXCLUDE_DEVICE`       | `exclude_device`       | `"/dev/loop0","/dev/loop1"` 以英文逗号隔开                      |
-    | `ENV_INPUT_DISK_EXTRA_DEVICE`         | `extra_device`         | `"/nfsdata"` 以英文逗号隔开                      |
-    | `ENV_INPUT_DISK_TAGS`                 | `tags`                 | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它                             |
-    | `ENV_INPUT_DISK_ONLY_PHYSICAL_DEVICE` | `only_physical_device` | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）任意给一个字符串值即可 |
-    | `ENV_INPUT_DISK_INTERVAL`             | `interval`             | `10s`                                                                                    |
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
+
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 <!-- markdownlint-enable -->
 

@@ -58,16 +58,11 @@ The process collector can monitor various running processes in the system, acqui
 
 === "Kubernetes"
 
-    It supports modifying configuration parameters as environment variables (effective only when the DataKit is running in K8s DaemonSet mode, which is not supported for host-deployed DataKits):
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
+
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
     
-    | Environment Variable Name                              | Corresponding Configuration Parameter Item | Parameter Example                                                     |
-    | :---                                    | ---              | ---                                                          |
-    | `ENV_INPUT_HOST_PROCESSES_OPEN_METRIC`  | `open_metric`    | `true`/`false`                                               |
-    | `ENV_INPUT_HOST_PROCESSES_TAGS`         | `tags`           | `tag1=value1,tag2=value2`, If there is a tag with the same name in the configuration file, it will be overwritten |
-    | `ENV_INPUT_HOST_PROCESSES_PROCESS_NAME` | `process_name`   | `".*datakit.*", "guance"`, separated by English commas                     |
-    | `ENV_INPUT_HOST_PROCESSES_MIN_RUN_TIME` | `min_run_time`   | `"10m"`                                                      |
-    | `ENV_INPUT_HOST_PROCESSES_ENABLE_LISTEN_PORTS` | `enable_listen_ports`   | `true`/`false`                                                     |
-    | `ENV_INPUT_HOST_PROCESSES_ENABLE_OPEN_FILES` | `enable_open_files`   |`true`/`false`                                                      |
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

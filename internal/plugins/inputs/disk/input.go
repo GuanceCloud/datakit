@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -171,6 +172,26 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
 	}
+}
+
+// Tags          map[string]string `toml:"tags"`
+// ExtraDevice   []string          `toml:"extra_device"`
+// ExcludeDevice []string          `toml:"exclude_device"`
+
+// IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
+// OnlyPhysicalDevice  bool `toml:"only_physical_device"`
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "ExtraDevice", Type: doc.List, Example: "`/nfsdata,other_data`", Desc: "Additional device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "额外的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
+		{FieldName: "ExcludeDevice", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Excluded device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "排除的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
+		{FieldName: "OnlyPhysicalDevice", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only (e.g. hard disks, cd-rom drives, USB keys), and ignore all others (e.g. memory partitions such as /dev/shm)", DescZh: "忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_DISK_", infos)
 }
 
 // ReadEnv support envs：

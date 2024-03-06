@@ -22,6 +22,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -352,6 +353,34 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Timeout", Default: `5s`},
+		{FieldName: "DropWarningDelay", Type: doc.TimeDuration, Default: `5m`, Desc: "Ipmi server drop warning delay", DescZh: "退服告警延迟"},
+		{FieldName: "BinPath", Type: doc.String, Example: "`/usr/bin/ipmitool`", Desc: "The binPath of `ipmitool`", DescZh: "执行文件路径"},
+		{FieldName: "Envs", Type: doc.JSON, Example: `["LD_LIBRARY_PATH=XXXX:$LD_LIBRARY_PATH"]`, Desc: "The envs of LD_LIBRARY_PATH", DescZh: "执行依赖库的路径"},
+		{FieldName: "IpmiServers", ENVName: "SERVERS", ConfField: "ipmi_servers", Type: doc.JSON, Example: `["192.168.1.1","192.168.1.2"]`, Desc: "IPMI servers URL", DescZh: "IPMI 服务器 URL"},
+		{FieldName: "IpmiInterfaces", ENVName: "INTERFACES", ConfField: "ipmi_interfaces", Type: doc.JSON, Example: "[\"`lanplus`\"]", Desc: "The interfaces of IPMI servers", DescZh: "IPMI 服务器接口协议"},
+		{FieldName: "IpmiUsers", ENVName: "USERS", ConfField: "ipmi_users", Type: doc.JSON, Example: `["root"]`, Desc: "User name", DescZh: "登录名"},
+		{FieldName: "IpmiPasswords", ENVName: "PASSWORDS", ConfField: "ipmi_passwords", Type: doc.JSON, Example: `["Calvin"]`, Desc: "Password", DescZh: "登录密码"},
+		{FieldName: "HexKeys", Type: doc.JSON, Example: `["50415353574F5244"]`, Desc: "Provide the hex key for the IMPI connection", DescZh: "十六进制连接秘钥"},
+		{FieldName: "MetricVersions", Type: doc.JSON, Example: `[2] or [3]`, Desc: "Metric versions", DescZh: "指标版本"},
+		{FieldName: "RegexpCurrent", Type: doc.JSON, Example: `["current"]`, Desc: "Regexp of current", DescZh: "电流指标正则"},
+		{FieldName: "RegexpVoltage", Type: doc.JSON, Example: `["voltage"]`, Desc: "Regexp of voltage", DescZh: "电压指标正则"},
+		{FieldName: "RegexpPower", Type: doc.JSON, Example: `["pwr","power"]`, Desc: "Regexp of power", DescZh: "功率指标正则"},
+		{FieldName: "RegexpTemp", Type: doc.JSON, Example: `["temp"]`, Desc: "Regexp of temperature", DescZh: "温度电流指标正则"},
+		{FieldName: "RegexpFanSpeed", Type: doc.JSON, Example: `["fan"]`, Desc: "Regexp of fan speed", DescZh: "风扇转速指标正则"},
+		{FieldName: "RegexpUsage", Type: doc.JSON, Example: `["usage"]`, Desc: "Regexp of usage", DescZh: "使用率指标正则"},
+		{FieldName: "RegexpCount", Type: doc.JSON, Example: `[]`, Desc: "Regexp of count metrics", DescZh: "统计指标正则"},
+		{FieldName: "RegexpStatus", Type: doc.JSON, Example: `["fan"]`, Desc: "Regexp of status metrics", DescZh: "状态指标正则"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_IPMI_", infos)
 }
 
 // ReadEnv support envs：only for K8S.

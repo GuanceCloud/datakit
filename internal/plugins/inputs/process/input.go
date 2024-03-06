@@ -25,6 +25,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -144,6 +145,20 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "OpenMetric", Type: doc.Boolean, Default: `false`, Desc: "Enable process metric collecting", DescZh: "采集处理器指标"},
+		{FieldName: "MatchedProcessNames", ENVName: "PROCESS_NAME", Type: doc.List, Example: `.*datakit.*,guance`, Desc: "Whitelist of process", DescZh: "处理器白名单"},
+		{FieldName: "RunTime", ENVName: "MIN_RUN_TIME", Type: doc.TimeDuration, Default: `10m`, Desc: "Process minimal run time", DescZh: "处理最短运行时间"},
+		{FieldName: "ListenPorts", ENVName: "ENABLE_LISTEN_PORTS", Type: doc.Boolean, Default: `false`, Desc: "Enable listen ports tag", DescZh: "启用监听端口标签"},
+		{FieldName: "OpenFiles", ENVName: "ENABLE_OPEN_FILES", Type: doc.Boolean, Default: `false`, Desc: "Enable open files field", DescZh: "启用打开文件字段"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_HOST_PROCESSES_", infos)
 }
 
 // ReadEnv support envs：

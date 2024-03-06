@@ -52,19 +52,11 @@ Datakit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    在 Kubernetes 中支持的环境变量如下表：
+    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-    | 环境变量名                              | 类型        | 示例                                                                             |
-    | --------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-    | `ENV_INPUT_PINPOINT_ADDRESS`            | string      | "127.0.0.1:9991"                                                                 |
-    | `ENV_INPUT_PINPOINT_KEEP_RARE_RESOURCE` | bool        | true                                                                             |
-    | `ENV_INPUT_PINPOINT_DEL_MESSAGE`        | bool        | true                                                                             |
-    | `ENV_INPUT_PINPOINT_CLOSE_RESOURCE`     | JSON string | `{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}` |
-    | `ENV_INPUT_PINPOINT_SAMPLER`            | string      | "0.3"                                                                            |
-    | `ENV_INPUT_PINPOINT_TAGS`               | JSON string | `{"k1":"v1", "k2":"v2", "k3":"v3"}`                                              |
-    | `ENV_INPUT_PINPOINT_STORAGE`            | JSON string | `{"storage":"./pinpoint_storage", "capacity": 5120}`                             |
+{{ CodeBlock .InputENVSampleZh 4 }}                             |
 
 ???+ warning "Datakit 中的 Pinpoint Agent 存在以下限制"
 

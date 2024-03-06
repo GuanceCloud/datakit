@@ -25,6 +25,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -62,7 +63,7 @@ type Input struct {
 	BinPaths            []string      `toml:"bin_paths"`              // the file path of "nvidia-smi"
 	Timeout             time.Duration `toml:"timeout"`                // "nvidia-smi" timeout
 	ProcessInfoMaxLen   int           `toml:"process_info_max_len"`   // Feed how much log data for ProcessInfos. (0: 0 ,-1: all)
-	gpuDropWarningDelay time.Duration `toml:"gpu_drop_warning_delay"` // GPU drop card warning delay
+	GPUDropWarningDelay time.Duration `toml:"gpu_drop_warning_delay"` // GPU drop card warning delay
 	Envs                []string      `toml:"envs"`                   // exec.Command ENV
 	getdatassh.SSHServers
 
@@ -319,7 +320,7 @@ func (ipt *Input) gpuDropWarning() {
 
 	for i := 0; i < len(ipt.gpus); {
 		// Several items may be deleted, so i++ is placed later
-		if time.Now().UnixNano() > ipt.gpus[i].activeTimestamp+ipt.gpuDropWarningDelay.Nanoseconds() {
+		if time.Now().UnixNano() > ipt.gpus[i].activeTimestamp+ipt.GPUDropWarningDelay.Nanoseconds() {
 			// The survival time stamp of this card exceeds the threshold
 
 			// warning
@@ -381,6 +382,27 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{FieldName: "Interval"},
+		{FieldName: "Timeout", Default: `5s`},
+		{FieldName: "BinPath", Type: doc.JSON, Example: "`[\"/usr/bin/nvidia-smi\"]`", Desc: "The binPath", DescZh: "执行文件路径"},
+		{FieldName: "ProcessInfoMaxLen", Type: doc.Int, Default: `10`, Desc: "Maximum number of GPU processes that consume the most resources", DescZh: "最大收集最耗资源 GPU 进程数"},
+		{FieldName: "GPUDropWarningDelay", Type: doc.TimeDuration, ENVName: "DROP_WARNING_DELAY", ConfField: "gpu_drop_warning_delay", Default: `5m`, Desc: "GPU card drop warning delay", DescZh: "掉卡告警延迟"},
+		{FieldName: "Envs", Type: doc.JSON, Example: `["LD_LIBRARY_PATH=/usr/local/corex/lib/:$LD_LIBRARY_PATH"]`, Desc: "The envs of LD_LIBRARY_PATH", DescZh: "执行依赖库的路径"},
+		{FieldName: "RemoteAddrs", Type: doc.JSON, Example: `["192.168.1.1:22","192.168.1.2:22"]`, Desc: "If use remote GPU servers", DescZh: "远程 GPU 服务器"},
+		{FieldName: "RemoteUsers", Type: doc.JSON, Example: `["user_1","user_2"]`, Desc: "Remote login name", DescZh: "远程登录名"},
+		{FieldName: "RemotePasswords", Type: doc.JSON, Example: `["pass_1","pass_2"]`, Desc: "Remote password", DescZh: "远程登录密码"},
+		{FieldName: "RemoteRsaPaths", Type: doc.JSON, Example: `["/home/your_name/.ssh/id_rsa"]`, Desc: "Remote rsa paths", DescZh: "秘钥文件路径"},
+		{FieldName: "RemoteCommand", Type: doc.String, Example: "\"`nvidia-smi -x -q`\"", Desc: "Remote command", DescZh: "远程执行指令"},
+		{FieldName: "Election"},
+		{FieldName: "Tags"},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_GPUSMI_", infos)
 }
 
 // ReadEnv support envs：only for K8S.
@@ -459,7 +481,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_GPUSMI_DROP_WARNING_DELAY to time.Duration: %s, ignore", err)
 		} else {
-			ipt.gpuDropWarningDelay = config.ProtectedInterval(minInterval,
+			ipt.GPUDropWarningDelay = config.ProtectedInterval(minInterval,
 				maxInterval,
 				da)
 		}
@@ -518,18 +540,28 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	if str, ok := envs["ENV_INPUT_GPUSMI_REMOTE_COMMAND"]; ok {
 		ipt.RemoteCommand = str
 	}
+
+	if str, ok := envs["ENV_INPUT_GPUSMI_ELECTION"]; ok {
+		election, err := strconv.ParseBool(str)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_GPUSMI_ELECTION: %s, ignore", err)
+		} else {
+			ipt.Election = election
+		}
+	}
 }
 
 func newDefaultInput() *Input {
 	ipt := &Input{
 		platform:            runtime.GOOS,
 		Interval:            defaultInterval,
+		Election:            true,
 		semStop:             cliutils.NewSem(),
 		Tags:                make(map[string]string),
 		BinPaths:            []string{"/usr/bin/nvidia-smi"},
 		Timeout:             defaultTimeout,
 		ProcessInfoMaxLen:   10,
-		gpuDropWarningDelay: time.Second * 300,
+		GPUDropWarningDelay: time.Second * 300,
 		gpus:                make([]gpuInfo, 0, 1),
 		Envs:                []string{},
 		pauseCh:             make(chan bool, inputs.ElectionPauseChannelLength),

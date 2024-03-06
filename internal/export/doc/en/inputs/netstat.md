@@ -73,14 +73,12 @@ Netstat metrics collection, including TCP/UDP connections, waiting for connectio
 
 === "Kubernetes"
 
-    Kubernetes supports modifying configuration parameters in the form of environment variables:
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
+    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    
+{{ CodeBlock .InputENVSample 4 }}
 
-    | Environment Variable Name                          | Corresponding Configuration Parameter Item | Parameter Example |
-    |:-----------------------------     | ---            | ---   |
-    | `ENV_INPUT_NETSTAT_TAGS`          | `tags`         | `tag1=value1,tag2=value2`; If there is a tag with the same name in the configuration file, it will be overwritten. |
-    | `ENV_INPUT_NETSTAT_INTERVAL`      | `interval`     | `10s` |
-    | `ENV_INPUT_NETSTAT_ADDR_PORTS`    | `ports`        | `["1.1.1.1:80","443"]` |
 <!-- markdownlint-enable -->
 ---
 

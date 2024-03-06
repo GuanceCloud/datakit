@@ -138,16 +138,12 @@ Please refer to the following deployment method (as shown below): The data gener
           port: 9529
           targetPort: 9529
     ```
+
+    The ebpftrace collection configuration in Kubernetes can be adjusted through the following environment variables:
+
+{{ CodeBlock .InputENVSample 4 }}
+
 <!-- markdownlint-enable -->
-
-The ebpftrace collection configuration in Kubernetes can be adjusted through the following environment variables:
-
-| Environment variable name              | Corresponding configuration parameter items | Parameter example                 | Describe                                               |
-| :------------------------------------- | ------------------------------------------- | --------------------------------- | ------------------------------------------------------ |
-| `ENV_INPUT_EBPFTRACE_USE_APP_TRACE_ID` | `use_app_trace_id`                          | `true`                            | Use application-side trace id instead of eBPF trace id |
-| `ENV_INPUT_EBPFTRACE_WINDOW`           | `window`                                    | `20s`                             | Span's link time window                                |
-| `ENV_INPUT_EBPFTRACE_SAMPLING_RATE`    | `sampling_rate`                             | `0.1`                             | Link sampling rate                                     |
-| `ENV_INPUT_EBPFTRACE_SQLITE_PATH`      | `sqlite_path`                               | `/usr/local/datakit/ebpf_spandb/` | SQLite database file storage path                      |
 
 ## Metric {#metric}
 
