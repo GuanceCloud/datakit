@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
-	pr "github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -36,7 +35,7 @@ type process struct {
 
 	namesRegex []*regexp.Regexp
 	minRunTime time.Duration
-	processes  []*pr.Process
+	processes  map[int32]*processInfo
 }
 
 type tcp struct {
