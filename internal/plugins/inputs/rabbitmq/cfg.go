@@ -232,7 +232,7 @@ type Queue struct {
 	MessageStats         `json:"message_stats"`
 	Memory               int64   `json:"memory"`
 	Consumers            int64   `json:"consumers"`
-	ConsumerUtilisation  float64 `json:"consumer_utilisation"`
+	ConsumerUtilisation  float64 `json:"consumer_utilisation"` //nolint:misspell
 	HeadMessageTimestamp int64   `json:"head_message_timestamp"`
 	Name                 string
 	Node                 string
