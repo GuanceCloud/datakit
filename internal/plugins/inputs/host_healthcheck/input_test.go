@@ -9,7 +9,6 @@ import (
 	"net"
 	h "net/http"
 	"net/http/httptest"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -17,31 +16,21 @@ import (
 )
 
 func TestProcess(t *testing.T) {
+	var pid int32 = 888888
 	input := defaultInput()
 	input.Interval = "1s"
 	input.Process = []*process{{
 		NamesRegex: []string{"datakit", "sleep"},
 		MinRunTime: "2s",
+		processes: map[int32]*processInfo{
+			pid: {
+				pid:  pid,
+				name: "test",
+			},
+		},
 	}}
 
 	input.initConfig()
-
-	cmd := exec.Command("sleep", "60")
-	assert.NoError(t, cmd.Start())
-
-	// to wait the process created above to be collected and then kill it
-outer:
-	for i := 0; i < 10; i++ {
-		for _, p := range input.Process[0].processes {
-			if p.Pid == int32(cmd.Process.Pid) {
-				assert.NoError(t, cmd.Process.Kill())
-				assert.Error(t, cmd.Wait())
-				break outer
-			}
-		}
-		assert.NoError(t, input.Collect())
-		time.Sleep(time.Second)
-	}
 
 	assert.NoError(t, input.Collect())
 	assert.NotEmpty(t, input.collectCache)

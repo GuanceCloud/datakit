@@ -6,6 +6,7 @@
 package healthcheck
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -17,57 +18,50 @@ const (
 	defaultMinRunTime = 10 * time.Minute
 )
 
+type processInfo struct {
+	pid           int32
+	name          string
+	startDuration time.Duration
+}
+
 func (ipt *Input) collectProcess() error {
 	ts := time.Now()
 
+	pses, err := pr.Processes()
+	if err != nil {
+		return fmt.Errorf("get process err: %w", err)
+	}
+
 	for _, process := range ipt.process {
-		processes, pids := ipt.getProcesses(process)
-		for _, p := range process.processes {
-			if _, ok := pids[p.Pid]; !ok {
-				if name, err := p.Name(); err != nil {
-					l.Warnf("get process(%s) name failed, %s", p.Pid, err.Error())
-				} else {
-					startDuration, err := getStartDuration(p)
-					if err != nil {
-						l.Warnf("get process start_duration failed: %s", err.Error())
-					}
-					var kvs point.KVs
-					kvs = kvs.Add("type", "missing", true, true)
-					kvs = kvs.Add("process", name, true, true)
-					kvs = kvs.Add("start_duration", startDuration.Microseconds(), false, true)
-					kvs = kvs.Add("pid", p.Pid, false, true)
-					kvs = kvs.Add("exception", true, false, true)
+		runningProcesses := getMatchedProcess(pses, process)
+		for oldPid, oldInfo := range process.processes {
+			if _, ok := runningProcesses[oldPid]; !ok {
+				l.Infof("process %s(%d) is missing", oldInfo.name, oldPid)
+				var kvs point.KVs
+				kvs = kvs.Add("type", "missing", true, true)
+				kvs = kvs.Add("process", oldInfo.name, true, true)
+				kvs = kvs.Add("start_duration", oldInfo.startDuration.Microseconds(), false, true)
+				kvs = kvs.Add("pid", oldPid, false, true)
+				kvs = kvs.Add("exception", true, false, true)
 
-					for k, v := range ipt.mergedTags {
-						kvs = kvs.AddTag(k, v)
-					}
-
-					opts := point.DefaultMetricOptions()
-					opts = append(opts, point.WithTime(ts))
-
-					ipt.collectCache = append(ipt.collectCache, point.NewPointV2(processMetricName, kvs, opts...))
+				for k, v := range ipt.mergedTags {
+					kvs = kvs.AddTag(k, v)
 				}
+
+				opts := point.DefaultMetricOptions()
+				opts = append(opts, point.WithTime(ts))
+
+				ipt.collectCache = append(ipt.collectCache, point.NewPointV2(processMetricName, kvs, opts...))
 			}
 		}
-		process.processes = processes
+		process.processes = runningProcesses
+		l.Debugf("got %d matched processes: %+#v", len(process.processes), process.processes)
 	}
 	return nil
 }
 
-func (ipt *Input) getProcesses(p *process) (processList []*pr.Process, pids map[int32]bool) {
-	pses, err := pr.Processes()
-	if err != nil {
-		l.Warnf("get process err: %s", err.Error())
-		return
-	}
-
-	processList, pids = getMatchedProcess(pses, p)
-
-	return
-}
-
-func getMatchedProcess(pses []*pr.Process, p *process) (processList []*pr.Process, pids map[int32]bool) {
-	pids = map[int32]bool{}
+func getMatchedProcess(pses []*pr.Process, p *process) (processMap map[int32]*processInfo) {
+	processMap = make(map[int32]*processInfo)
 
 	for _, ps := range pses {
 		name, err := ps.Name()
@@ -76,6 +70,8 @@ func getMatchedProcess(pses []*pr.Process, p *process) (processList []*pr.Proces
 			continue
 		}
 		matched := false
+
+		// check name
 		for _, v := range p.Names {
 			if v == name {
 				matched = true
@@ -83,6 +79,7 @@ func getMatchedProcess(pses []*pr.Process, p *process) (processList []*pr.Proces
 			}
 		}
 
+		// check regexp
 		if !matched {
 			for _, v := range p.namesRegex {
 				if v.MatchString(name) {
@@ -102,11 +99,14 @@ func getMatchedProcess(pses []*pr.Process, p *process) (processList []*pr.Proces
 		}
 
 		if startDuration > p.minRunTime {
-			processList = append(processList, ps)
-			pids[ps.Pid] = true
+			processMap[ps.Pid] = &processInfo{
+				pid:           ps.Pid,
+				name:          name,
+				startDuration: startDuration,
+			}
 		}
 	}
-	return processList, pids
+	return processMap
 }
 
 func getStartDuration(p *pr.Process) (du time.Duration, err error) {
