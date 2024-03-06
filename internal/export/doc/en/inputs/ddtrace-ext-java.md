@@ -24,6 +24,15 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 - Supported Apache Pulsar MQ
 - Support placing `trace_id` in the response header
 - Support putting the requested header information into the span tags
+- Support add HTTP `Response Body` information in the trace data
+
+## HTTP `Response Body` in the trace {#response_body}
+
+The command line opening parameter is `-Ddd.trace.response.body.enabled=true`, the corresponding environment variable is `DD_TRACE_RESPONSE_BODY_ENABLED=true`, and the default value is `false`.
+
+Since getting `response body` causes damage to `response`, the encoding adjustment of `response body` defaults to `utf-8`. If you need to adjust it, use `-Ddd.trace.response.body.encoding=gbk`.
+
+DDTrace supported version: [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
 
 ## Tracing Header {#trace_header}
 

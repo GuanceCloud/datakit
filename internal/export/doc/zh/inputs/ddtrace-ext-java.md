@@ -7,23 +7,32 @@
 
 这里主要介绍一下 DDTrace-Java 的一些扩展功能。主要功能列表：
 
-- JDBC SQL 脱敏功能
-- xxl-jobs 支持
-- Dubbo 2/3 支持
-- Thrift 框架支持
-- RocketMQ 支持
-- Log Pattern 自定义
-- HSF 支持
-- 阿里云 RocketMQ 5.0 支持
+- `JDBC SQL` 脱敏功能
+- `xxl-jobs` 支持
+- `Dubbo 2/3` 支持
+- `Thrift` 框架支持
+- `RocketMQ` 支持
+- `Log Pattern` 自定义
+- 阿里巴巴 RPC 框架 `HSF` 探针支持
+- 阿里云 `RocketMQ` 5.0 支持
 - Redis 链路增加参数
 - 获取特定函数的入参信息
-- 支持 MongoDB 脱敏
+- 支持 `MongoDB` 脱敏
 - 支持达梦国产数据库
 - [支持 trace-id 128 位](ddtrace-128-trace-id.md){:target="_blank"}
-- 支持 PowerJob 框架
-- 支持 Apache Pulsar 消息队列
+- 支持 `PowerJob` 框架
+- 支持 `Apache Pulsar` 消息队列
 - 支持将链路 ID 放到响应的头部中
-- 支持将请求的头部信息放到链路标签中
+- 支持将请求的头部信息 `Header` 放到链路标签中
+- 支持将请求的响应体 `Response Body` 放到链路标签中
+
+## 在链路数据中添加 Response Body 信息 {#response_body}
+
+开启参数：`-Ddd.trace.response.body.enabled=true` 对应的环境变量为 `DD_TRACE_RESPONSE_BODY_ENABLED=true` 默认值为 `false`.
+
+由于获取 `response body` 对 `response` 造成破坏，所以 `response body` 的编码调整默认为 `utf-8`，如需调整，则使用 `-Ddd.trace.response.body.encoding=gbk`.
+
+DDTrace 最低版本支持： [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
 
 ## 链路数据中添加 HTTP Header 信息 {#trace_header}
 
