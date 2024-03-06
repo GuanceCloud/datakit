@@ -158,7 +158,7 @@ func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
 		}
 	}
 
-	return &itrace.DkSpan{Point: point.NewPointV2("pinpointV2", spanKV, point.DefaultLoggingOptions()...)}
+	return &itrace.DkSpan{Point: point.NewPointV2("pinpointV2", spanKV, traceOpts...)}
 }
 
 func fromAgentTag(agentInfo *ppv1.PAgentInfo) map[string]string {
