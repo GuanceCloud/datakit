@@ -91,7 +91,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		afterFilters = dktraces
 	} else {
 		for k := range dktraces {
-			aga.log.Infof("len = %d spans", len(dktraces[k]))
+			aga.log.Debugf("len = %d spans", len(dktraces[k]))
 			var temp DatakitTrace
 			for i := range aga.filters {
 				var skip bool

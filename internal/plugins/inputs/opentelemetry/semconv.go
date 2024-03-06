@@ -82,6 +82,7 @@ var OTELAttributes = map[string]string{
 	"http.route":                "http_route",
 	"http.target":               "http_target",
 	"http.scheme":               "http_scheme",
+	"http.url":                  "http_url",
 	"url.full":                  "url_full",
 	"url.scheme":                "url_scheme",
 	"url.path":                  "url_path",
