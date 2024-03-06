@@ -90,7 +90,6 @@ type metric struct {
 	field      string
 	bucket     string
 	hash       string
-	intvalue   int64
 	floatvalue float64
 	strvalue   string
 	mtype      string
@@ -208,10 +207,18 @@ func (col *Collector) aggregate(m metric) {
 		}
 		// check if the field exists
 		_, ok = cached.fields[m.field]
-		if !ok {
-			cached.fields[m.field] = int64(0)
+		if col.opts.setCounterInt {
+			if !ok {
+				cached.fields[m.field] = int64(0)
+			}
+			cached.fields[m.field] = cached.fields[m.field].(int64) + int64(m.floatvalue)
+		} else {
+			if !ok {
+				cached.fields[m.field] = float64(0)
+			}
+			cached.fields[m.field] = cached.fields[m.field].(float64) + m.floatvalue
 		}
-		cached.fields[m.field] = cached.fields[m.field].(int64) + m.intvalue
+
 		cached.expiresAt = time.Now().Add(col.opts.maxTTL)
 		col.counters[m.hash] = cached
 	case "g":

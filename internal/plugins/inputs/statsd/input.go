@@ -60,6 +60,8 @@ type Input struct {
 	DeleteSets     bool `toml:"delete_sets"`
 	DeleteTimings  bool `toml:"delete_timings"`
 	ConvertNames   bool
+	// Counter metric is float in new Datakit version, set true if want be int.
+	SetCounterInt bool `toml:"set_counter_int"`
 
 	// MetricSeparator is the separator between parts of the metric name.
 	MetricSeparator string `toml:"metric_separator"`
@@ -148,6 +150,7 @@ func (ipt *Input) setup() error {
 		istatsd.WithPercentileLimit(ipt.PercentileLimit),
 		istatsd.WithDeleteGauges(ipt.DeleteGauges),
 		istatsd.WithDeleteCounters(ipt.DeleteCounters),
+		istatsd.WithSetCounterInt(ipt.SetCounterInt),
 		istatsd.WithDeleteSets(ipt.DeleteSets),
 		istatsd.WithDeleteTimings(ipt.DeleteTimings),
 		istatsd.WithConvertNames(ipt.ConvertNames),
@@ -161,7 +164,6 @@ func (ipt *Input) setup() error {
 		istatsd.WithTags(ipt.Tags),
 		istatsd.WithMaxTCPConnections(ipt.MaxTCPConnections),
 		istatsd.WithTCPKeepAlive(ipt.TCPKeepAlive),
-		// istatsd.WithTCPKeepAlivePeriod(ipt.TCPKeepAlivePeriod),
 		istatsd.WithMaxTTL(ipt.MaxTTL),
 	}
 
