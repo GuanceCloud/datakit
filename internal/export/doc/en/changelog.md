@@ -9,7 +9,7 @@ This release is an iteration release, with the following updates:
 ### New Features {#cl-1.25.0-new}
 
 - Added new HTTP APIs to update global tags dynamically (#2076)
-- Added collection for Kubernetes PersistentVolume / PersistentVolumeClaim resources (#2109)
+- Added collection for Kubernetes PersistentVolume / PersistentVolumeClaim resources(and need additional settings for [RBAC](../integrations/container.md#rbac-pv-pvc)) (#2109)
 
 ### Bug Fixes {#cl-1.25.0-fix}
 
