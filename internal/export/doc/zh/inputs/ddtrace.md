@@ -48,7 +48,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
 
     [SDK :material-download:](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
-    [:octicons-arrow-right-24: 示例](ddtrace-java.md)
+    [:octicons-arrow-right-24: 示例](ddtrace-ruby.md)
 
 -   :fontawesome-brands-golang: __Golang__
 
@@ -87,8 +87,8 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     ---
 
     [SDK :material-download:](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
-    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
-    [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
+    [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/dotnet-framework?tab=windows){:target="_blank"} ·
+    [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/dotnet-core?tab=windows){:target="_blank"}
 </div>
 
 ???+ tip
