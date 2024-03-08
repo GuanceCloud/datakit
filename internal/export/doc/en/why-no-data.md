@@ -300,7 +300,7 @@ The list of files is as follows:
 │   └── rum
 │       └── rum.conf.copy
 ├── data
-│   └── .pull
+│   └── pull
 ├── metrics 
 │   ├── metric-1680513455403 
 │   ├── metric-1680513460410
@@ -322,15 +322,16 @@ The list of files is as follows:
 
 Document Explanation
 
-| name      | dir  | description                                                                                                                            |
-| ---:      | ---: | ---:                                                                                                                                   |
-| `config`  | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.                                  |
-| `basic`   | yes   | The os information and environment variables of the runtime.                                                                                              |
-| `data`    | yes   | The blacklist file `.pull`, located in the `data` directory     |
-| `log`     | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                                                           |
-| `profile` | yes  | When pprof is enabled, it will collect profile data. [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default |
-| `metrics` | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>`                                 |
-| `syslog`  | yes  | only supported in `linux`, based on the `journalctl` command                                                                           |
+| name        | dir  | description                                                                                                                            |
+| ---:        | ---: | ---:                                                                                                                                   |
+| `config`    | yes  | Configuration file, including the main configuration and the configuration of the enabled collectors.                                  |
+| `basic`     | yes   | The os information and environment variables of the runtime.                                                                                              |
+| `data`      | yes   | The blacklist file `.pull`, located in the `data` directory     |
+| `log`       | yes  | Latest log files, such as log and gin log, not supporting `stdout` currently                                                           |
+| `profile`   | yes  | When pprof is enabled, it will collect profile data. [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default |
+| `metrics`   | yes  | The data returned by the `/metrics` API is named in the format of `metric-<timestamp in milliseconds>`                                 |
+| `syslog`    | yes  | only supported in `linux`, based on the `journalctl` command                                                                           |
+| `error.log` | no      | output the error messages that occur during the collection process                                                        |
 
 ### Mask sensitive information
 

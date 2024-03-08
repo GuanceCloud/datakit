@@ -324,7 +324,7 @@ $ datakit debug --bug-report --disable-profile
 │   └── rum
 │       └── rum.conf.copy
 ├── data
-│   └── .pull
+│   └── pull
 ├── metrics 
 │   ├── metric-1680513455403 
 │   ├── metric-1680513460410
@@ -345,15 +345,16 @@ $ datakit debug --bug-report --disable-profile
 
 文件说明
 
-| 文件名称  | 是否目录 | 说明                                                                                                    |
-| ---:      | ---:     | ---:                                                                                                    |
-| `config`  | 是       | 配置文件，包括主配置和已开启的采集器配置                                                                |
-| `basic`   | 是       | 运行环境操作系统和环境变量信息                                                                                  |
-| `data`    | 是       | `data` 目录下的黑名单文件，即 `.pull` 文件                                                                                |
-| `log`     | 是       | 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`                                                  |
-| `profile` | 是       | pprof 开启时（[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2)已默认开启），会采集 profile 数据 |
-| `metrics` | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>`                                           |
-| `syslog`  | 是       | 仅支持 `linux`, 基于 `journalctl` 来获取相关日志                                                        |
+| 文件名称       | 是否目录 | 说明                                                                                                    |
+| ---:          | ---:     | ---:                                                                                                    |
+| `config`      | 是       | 配置文件，包括主配置和已开启的采集器配置                                                                |
+| `basic`       | 是       | 运行环境操作系统和环境变量信息                                                                                  |
+| `data`        | 是       | `data` 目录下的黑名单文件，即 `.pull` 文件                                                                                |
+| `log`         | 是       | 最新的日志文件，包括 log 和 gin log，暂不支持 `stdout`                                                  |
+| `profile`     | 是       | pprof 开启时（[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2)已默认开启），会采集 profile 数据 |
+| `metrics`     | 是       | `/metrics` 接口返回的数据，命名格式为 `metric-<时间戳毫秒数>`                                           |
+| `syslog`      | 是       | 仅支持 `linux`, 基于 `journalctl` 来获取相关日志                                                        |
+| `error.log`   | 否       | 记录命令输出过程中出现的错误信息                                                        |
 
 ### 敏感信息处理 {#sensitive}
 

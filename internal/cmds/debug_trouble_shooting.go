@@ -28,7 +28,8 @@ import (
 )
 
 type datakitInfo struct {
-	tmpDir string
+	tmpDir  string
+	errList []string
 }
 
 func (info *datakitInfo) init() error {
@@ -104,13 +105,25 @@ func (info *datakitInfo) collectSystemdLog() error {
 	if err != nil {
 		return err
 	}
+	errMsg := ""
+	defer func() {
+		if len(errMsg) > 0 {
+			info.errList = append(info.errList, fmt.Sprintf("Collect systemd log error: \n%s", errMsg))
+		}
+	}()
 	cmd := exec.Command("journalctl", "-u", "datakit.service", "-n", "10000", "--no-pager") // last 10000 lines
 	res, err := cmd.CombinedOutput()
 	if err != nil {
+		errMsg += err.Error()
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(sysLogDir, fmt.Sprintf("syslog-%d", time.Now().UnixMilli())), res, os.ModePerm)
+	err = os.WriteFile(filepath.Join(sysLogDir, fmt.Sprintf("syslog-%d", time.Now().UnixMilli())), res, os.ModePerm)
+	if err != nil {
+		errMsg += err.Error()
+	}
+
+	return err
 }
 
 func (info *datakitInfo) collectMetrics() error {
@@ -118,6 +131,12 @@ func (info *datakitInfo) collectMetrics() error {
 	if err != nil {
 		return err
 	}
+	errMsg := ""
+	defer func() {
+		if len(errMsg) > 0 {
+			info.errList = append(info.errList, fmt.Sprintf("Collect metrics error: \n%s", errMsg))
+		}
+	}()
 	dkHost := config.Cfg.HTTPAPI.Listen
 	for i := 0; i < 3; i++ {
 		if i != 0 {
@@ -125,12 +144,14 @@ func (info *datakitInfo) collectMetrics() error {
 		}
 		resp, err := http.Get(fmt.Sprintf("http://%s/metrics", dkHost))
 		if err != nil {
+			errMsg += err.Error()
 			return err
 		}
 		defer resp.Body.Close() //nolint:errcheck
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			cp.Warnf("read metrics body error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("read metrics body error: %s\n", err.Error())
 			continue
 		}
 
@@ -138,6 +159,7 @@ func (info *datakitInfo) collectMetrics() error {
 
 		if err != nil {
 			cp.Warnf("write metric file error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("write metric file error: %s\n", err.Error())
 			continue
 		}
 	}
@@ -164,6 +186,8 @@ func (info *datakitInfo) collectProfile() error {
 		"mutex",
 	}
 
+	errMsg := ""
+
 	for _, name := range profileTypes {
 		params := ""
 		if name == "profile" {
@@ -172,6 +196,7 @@ func (info *datakitInfo) collectProfile() error {
 		resp, err := http.Get(fmt.Sprintf("http://%s/debug/pprof/%s?%s", config.Cfg.PProfListen, name, params))
 		if err != nil {
 			cp.Warnf("request profile for %s error: %s\n", name, err.Error())
+			errMsg += fmt.Sprintf("request profile for %s error: %s\n", name, err.Error())
 			continue
 		}
 
@@ -180,6 +205,7 @@ func (info *datakitInfo) collectProfile() error {
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			cp.Warnf("read profile data for %s error: %s\n", name, err.Error())
+			errMsg += fmt.Sprintf("read profile data for %s error: %s\n", name, err.Error())
 			continue
 		}
 
@@ -187,7 +213,12 @@ func (info *datakitInfo) collectProfile() error {
 
 		if err != nil {
 			cp.Warnf("write profile file %s error: %s\n", name, err.Error())
+			errMsg += fmt.Sprintf("write profile file %s error: %s\n", name, err.Error())
 		}
+	}
+
+	if len(errMsg) > 0 {
+		info.errList = append(info.errList, fmt.Sprintf("Collect profile error: \n%s", errMsg))
 	}
 
 	return nil
@@ -256,6 +287,7 @@ func (info *datakitInfo) collectConfig() error {
 	})
 
 	if err != nil {
+		info.errList = append(info.errList, fmt.Sprintf("collect config error: \n%s", err.Error()))
 		return err
 	}
 
@@ -275,7 +307,7 @@ func (info *datakitInfo) collectData() error {
 		return err
 	}
 
-	return info.copyFile(pullFilePath, filepath.Join(dataDir, ".pull"), nil)
+	return info.copyFile(pullFilePath, filepath.Join(dataDir, "pull"), nil)
 }
 
 func (info *datakitInfo) escapeString(str string, kinds []string) string {
@@ -320,10 +352,12 @@ func (info *datakitInfo) collectLog() error {
 	if err != nil {
 		return err
 	}
+	errMsg := ""
 	// copy main log
 	if len(log.Log) > 0 && log.Log != "stdout" {
 		if err := info.copyFile(log.Log, filepath.Join(logDir, "log"), nil); err != nil {
 			cp.Warnf("Collect log error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("Collect log error: %s\n", err.Error())
 		}
 	}
 
@@ -331,7 +365,12 @@ func (info *datakitInfo) collectLog() error {
 	if len(log.GinLog) > 0 && log.GinLog != "stdout" {
 		if err := info.copyFile(log.GinLog, filepath.Join(logDir, "gin.log"), nil); err != nil {
 			cp.Warnf("Collect gin.log error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("Collect gin.log error: %s\n", err.Error())
 		}
+	}
+
+	if len(errMsg) > 0 {
+		info.errList = append(info.errList, fmt.Sprintf("Collect log error: \n%s", errMsg))
 	}
 
 	return nil
@@ -532,6 +571,13 @@ func bugReport() error {
 
 	if err := infoInstance.collect(); err != nil {
 		return err
+	}
+
+	if len(infoInstance.errList) > 0 {
+		if err := os.WriteFile(filepath.Join(infoInstance.tmpDir, "error.log"),
+			[]byte(strings.Join(infoInstance.errList, "\n")), os.ModePerm); err != nil {
+			cp.Warnf("write error.log error: %s\n", err.Error())
+		}
 	}
 
 	if zipPath, err := infoInstance.compressDir(); err != nil {
