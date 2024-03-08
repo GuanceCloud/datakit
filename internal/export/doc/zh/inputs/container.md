@@ -227,7 +227,9 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
+<!-- markdownlint-enable -->
 
 `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
 
@@ -243,6 +245,23 @@ rules:
 ```
 
 此外，Datakit Pod 还需要开启 `hostNetwork: true` 配置项。
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: 采集 PersistentVolumes 和 PersistentVolumeClaims 需要新的权限 {#rbac-pv-pvc}
+<!-- markdownlint-enable -->
+
+Datakit 在 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) 版本支持采集 Kubernetes PersistentVolume 和 PersistentVolumeClaim 的对象数据，采集这两种资源需要新的 RBAC 权限，详细见下：
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datakit
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+```
 
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}

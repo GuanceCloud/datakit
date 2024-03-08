@@ -9,7 +9,7 @@
 ### 新增功能 {#cl-1.25.0-new}
 
 - Datakit API 新增动态更新 Global Tag 的相关接口（#2076）
-- 新增 Kubernetes PersistentVolume / PersistentVolumeClaim 采集（#2109）
+- 新增 Kubernetes PersistentVolume / PersistentVolumeClaim 采集，需要添加额外的 [RBAC](../integrations/container.md#rbac-pv-pvc)（#2109）
 
 ### 问题修复 {#cl-1.25.0-fix}
 

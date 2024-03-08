@@ -34,8 +34,10 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 		klog.Warnf("failed to load events, err: %s", err)
 		return
 	}
+
 	// Do not care old events.
 	resourceVersion := list.ResourceVersion
+	klog.Infof("use event initialresouceVersion %s", resourceVersion)
 
 	watchFunc := func(opt metav1.ListOptions) (kubewatch.Interface, error) {
 		return k.client.GetEvents("").Watch(context.Background(), opt)
@@ -105,6 +107,7 @@ func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 	pt.SetField("involved_uid", string(item.InvolvedObject.UID))
 	pt.SetField("involved_name", item.InvolvedObject.Name)
 	pt.SetField("involved_namespace", item.InvolvedObject.Namespace)
+	pt.SetField("resource_version", item.ResourceVersion)
 	pt.SetField("message", item.Message)
 
 	status := "unknown"

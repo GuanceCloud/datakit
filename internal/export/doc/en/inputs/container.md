@@ -230,7 +230,9 @@ Containers will add Customer Labels of the Pods they belong to.
 
 ## FAQ {#faq}
 
-### NODE_LOCAL mode requires new RBAC permissions {#rbac-nodes-stats}
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
+<!-- markdownlint-enable -->
 
 The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
 
@@ -246,6 +248,23 @@ rules:
 ```
 
 In addition, the Datakit Pod needs to have the `hostNetwork: true` configuration item enabled.
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Collect PersistentVolumes and PersistentVolumeClaims Requires New Permissions {#rbac-pv-pvc}
+<!-- markdownlint-enable -->
+
+Datakit version 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) supported the collection of object data for Kubernetes PersistentVolume and PersistentVolumeClaim, which require new RBAC permissions, as described below:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datakit
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+```
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}
