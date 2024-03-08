@@ -88,7 +88,21 @@ func listenUDP(urlStr string) (net.Conn, error) {
 	}
 }
 
-func listenTCP(t *T.T, urlStr string) (net.Listener, error) {
+func listenTCP(t *T.T, listener net.Listener) {
+	t.Helper()
+
+	go func() {
+		for {
+			conn, _ := listener.Accept() // block here
+
+			if conn != nil {
+				t.Logf("accept %s", conn.RemoteAddr().String())
+			}
+		}
+	}()
+}
+
+func listenFailTCP(t *T.T, urlStr string) (net.Listener, error) {
 	t.Helper()
 
 	u, err := url.Parse(urlStr)
@@ -182,15 +196,19 @@ func TestCollect(t *T.T) {
 	})
 
 	t.Run("tcp", func(t *T.T) {
-		port := testutils.RandPort("tcp")
-		urls := []string{
-			fmt.Sprintf("tcp://127.0.0.1:%d", port),
+		listener, err := net.Listen("tcp", "localhost:0")
+		if err != nil {
+			t.Errorf("mock tcp error: %s", err.Error())
+			assert.Fail(t, err.Error())
 		}
 
-		t.Logf("urls: %q", urls)
+		addr := listener.Addr().(*net.TCPAddr)
+		port := addr.Port
+		urls := []string{
+			addr.Network() + "://" + addr.String(),
+		}
 
-		listener, err := listenTCP(t, urls[0])
-		assert.NoError(t, err)
+		listenTCP(t, listener)
 
 		defer listener.Close()
 
@@ -232,7 +250,7 @@ func TestCollect(t *T.T) {
 			"tcp://127.0.0.1:0",
 		}
 
-		listener, err := listenTCP(t, urls[0])
+		listener, err := listenFailTCP(t, urls[0])
 		assert.NoError(t, err)
 
 		defer listener.Close()

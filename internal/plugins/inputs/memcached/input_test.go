@@ -18,7 +18,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-var address = "localhost:11212"
+var address string
 
 func TestInput(t *testing.T) {
 	memcached := &Input{}
@@ -96,10 +96,13 @@ func TestGatherServer(t *testing.T) {
 func createTcpServer(t *testing.T, serverChan chan<- int8) {
 	t.Helper()
 
-	listener, err := net.Listen("tcp", address)
+	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Errorf("mock tcp error: %s", err.Error())
+		assert.Fail(t, err.Error())
 	}
+	address = listener.Addr().String()
+
 	serverChan <- 1
 	for {
 		conn, err := listener.Accept()

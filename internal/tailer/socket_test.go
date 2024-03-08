@@ -163,11 +163,12 @@ func Test_socketLogger_doSocketV2(t *testing.T) {
 	stop := make(chan struct{})
 	// 开启tcp端口
 	// port := ":19530"
-	tcpPort := testutils.RandPort("tcp")
-	lis, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", tcpPort))
+	lis, err := net.Listen("tcp", "")
 	if err != nil {
 		return
 	}
+	address := lis.Addr().String()
+
 	go func() {
 		for {
 			conn, err := lis.Accept()
@@ -199,7 +200,7 @@ func Test_socketLogger_doSocketV2(t *testing.T) {
 	}
 	go func() {
 		// client send msg
-		conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", tcpPort))
+		conn, err := net.Dial("tcp", address)
 		if err != nil {
 			stop <- struct{}{}
 			return
