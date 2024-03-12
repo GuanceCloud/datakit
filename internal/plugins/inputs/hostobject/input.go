@@ -8,6 +8,9 @@ package hostobject
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -171,12 +174,27 @@ func (ipt *Input) collect() error {
 	kvs = kvs.Add("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec, false, true)
 	kvs = kvs.Add("net_send_bytes_per_sec", message.Host.netSendBytesPerSec, false, true)
 	kvs = kvs.Add("logging_level", message.Host.loggingLevel, false, true)
-
 	kvs = kvs.Add("name", message.Host.HostMeta.HostName, true, true)
 	kvs = kvs.Add("os", message.Host.HostMeta.OS, true, true)
 
 	if !datakit.IsTestMode {
 		kvs = kvs.Add("Scheck", message.Collectors[0].Version, false, true)
+	}
+
+	isDocker := 0
+	if datakit.Docker {
+		isDocker = 1
+	}
+	kvs = kvs.Add("is_docker", isDocker, false, true)
+
+	// check if dk upgrader is available
+	// TODO: check response message whether is valid
+	if res, err := http.Get(fmt.Sprintf("http://%s",
+		net.JoinHostPort(config.Cfg.DKUpgrader.Host, fmt.Sprintf("%d", config.Cfg.DKUpgrader.Port)))); err != nil {
+		l.Warnf("get dk upgrader failed: %s", err.Error())
+	} else {
+		_ = res.Body.Close()
+		kvs = kvs.Add("dk_upgrader", fmt.Sprintf("%s:%d", config.Cfg.DKUpgrader.Host, config.Cfg.DKUpgrader.Port), false, true)
 	}
 
 	// append extra cloud fields: all of them as tags
