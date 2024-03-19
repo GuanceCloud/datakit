@@ -24,9 +24,13 @@ SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指�
 
 ## 配置 {#config}
 
-### 前置条件 {#requrements}
+SQL Server 版本 >= 2012, 已测试的版本：
 
-- SQL Server 版本 >= 2019
+- [x] 2017
+- [x] 2019
+- [x] 2022
+
+### 前置条件 {#requrements}
 
 - 创建用户：
 

@@ -99,6 +99,9 @@ func (ipt *Input) getCustomQueryMetrics() {
 			fields := map[string]interface{}{}
 
 			setHostTagIfNotLoopback(tags, ipt.Host)
+			for k, v := range ipt.Tags {
+				tags[k] = v
+			}
 
 			for _, tag := range customQuery.Tags {
 				if _, ok := row[tag]; ok {
