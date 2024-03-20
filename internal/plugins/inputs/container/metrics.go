@@ -45,7 +45,7 @@ func setupMetrics() {
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "input",
-			Name:      "total_collect_cost_seconds",
+			Name:      "container_total_collect_cost_seconds",
 			Help:      "Total container collect cost",
 		},
 		[]string{

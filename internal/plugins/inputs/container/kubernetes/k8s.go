@@ -46,10 +46,11 @@ type Kube struct {
 	cfg    *Config
 	client k8sClient
 
-	nodeName        string
-	onWatchingEvent *atomic.Bool
-	paused          func() bool
-	done            <-chan interface{}
+	nodeName                 string
+	onWatchingEvent          *atomic.Bool
+	lastEventResourceVersion string
+	paused                   func() bool
+	done                     <-chan interface{}
 }
 
 func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
