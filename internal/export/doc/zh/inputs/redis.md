@@ -34,6 +34,7 @@ Redis 指标采集器，采集以下数据：
 
 - [x] 7.0.11
 - [x] 6.2.12
+- [x] 6.0.8
 - [x] 5.0.14
 - [x] 4.0.14
 
@@ -44,14 +45,14 @@ Redis 指标采集器，采集以下数据：
 
 ```sql
 ACL SETUSER username >password
-ACL SETUSER username on +@dangerous
-ACL SETUSER username on +ping
+ACL SETUSER username on +@dangerous +ping
 ```
 
-- 授权统计 hotkey 信息，进入 `redis-cli` 命令行：
+- 授权统计 `hotkey/bigkey` 信息，进入 `redis-cli` 命令行：
 
 ```sql
 CONFIG SET maxmemory-policy allkeys-lfu
+ACL SETUSER username on +get +@read +@connection +@keyspace ~*
 ```
 
 - 远程采集 hotkey & `bigkey` 需要安装 redis-cli （本机采集时，redis-server 已经包含了 redis-cli）：
@@ -79,7 +80,7 @@ yum install -y  redis
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
 ---
 

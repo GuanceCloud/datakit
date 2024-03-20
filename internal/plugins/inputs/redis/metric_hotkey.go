@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -105,16 +104,14 @@ func (ipt *Input) getHotData(ctxKey context.Context, db int) (string, error) {
 	ctx, cancel := context.WithTimeout(ctxKey, ipt.KeyTimeout)
 	defer cancel()
 
-	args := []string{"redis-cli", "--hotkeys", "-i", ipt.KeyScanSleep}
+	// Official docs be wrong: https://redis.io/docs/connect/cli/
+	// Right example: redis-cli --hotkeys -i 0.1 -u redis://127.0.0.1:6379/0 --user username --pass password
+	u := "redis://" + ipt.Host + ":" + fmt.Sprint(ipt.Port) + "/" + fmt.Sprint(db)
+	args := []string{"redis-cli", "--hotkeys", "-i", ipt.KeyScanSleep, "-u", u}
 	if ipt.Username != "" && ipt.Password != "" {
-		// See also: https://redis.io/docs/connect/cli/
-		// Example: redis-cli --hotkeys -i 0.1 -u redis://LJenkins:p%40ssw0rd@192.168.0.2:6379/0
-		u := url.QueryEscape(ipt.Username) + ":" + url.QueryEscape(ipt.Password)
-		u = "redis://" + u + "@" + ipt.Host + ":" + fmt.Sprint(ipt.Port) + "/" + fmt.Sprint(db)
-		args = append(args, "-u", u)
-	} else {
-		args = append(args, "-h", ipt.Host, "-p", fmt.Sprint(ipt.Port))
+		args = append(args, "--user", ipt.Username, "--pass", ipt.Password)
 	}
+
 	//nolint:gosec
 	c := exec.CommandContext(ctx, args[0], args[1:]...)
 

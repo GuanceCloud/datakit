@@ -404,6 +404,9 @@ func (ipt *Input) setup() {
 	if ipt.DB != -1 && !IsSlicesHave(ipt.DBS, ipt.DB) {
 		ipt.DBS = append(ipt.DBS, ipt.DB)
 	}
+	if len(ipt.DBS) < 1 && (ipt.Hotkey || ipt.BigKey) {
+		l.Errorf("dbs is nil in redis.conf, example: dbs=[0]")
+	}
 
 	ipt.keyDBS = append(ipt.keyDBS, ipt.DBS...)
 }

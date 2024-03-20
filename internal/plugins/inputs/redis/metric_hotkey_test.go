@@ -89,6 +89,40 @@ func TestInput_parseHotData(t *testing.T) {
 			},
 			wantErr: false,
 		},
+
+		{
+			name: "v-6.0.8",
+			fields: fields{
+				mergedTags: map[string]string{"for": "bar"},
+			},
+			args: args{
+				data: mockHotData6_0_8,
+				db:   0,
+			},
+			want: []string{
+				"redis_hotkey,db_name=0,for=bar key=\"wo0\",key_count=5i,message=\"hot key  key: wo0 key_count: 5\",status=\"unknown\"",
+				"redis_hotkey,db_name=0,for=bar key=\"wo11\",key_count=1i,message=\"hot key  key: wo11 key_count: 1\",status=\"unknown\"",
+				"redis_hotkey,db_name=0,for=bar keys_sampled=20i,message=\"hot key  keys_sampled: 20\",status=\"unknown\"",
+			},
+			wantErr: false,
+		},
+
+		{
+			name: "v-7.0",
+			fields: fields{
+				mergedTags: map[string]string{"for": "bar"},
+			},
+			args: args{
+				data: mockHotData7_0,
+				db:   0,
+			},
+			want: []string{
+				"redis_hotkey,db_name=0,for=bar key=\"wo0\",key_count=5i,message=\"hot key  key: wo0 key_count: 5\",status=\"unknown\"",
+				"redis_hotkey,db_name=0,for=bar key=\"wo12\",key_count=1i,message=\"hot key  key: wo12 key_count: 1\",status=\"unknown\"",
+				"redis_hotkey,db_name=0,for=bar keys_sampled=20i,message=\"hot key  keys_sampled: 20\",status=\"unknown\"",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -117,6 +151,176 @@ func TestInput_parseHotData(t *testing.T) {
 	}
 }
 
-var mockHotData01 = "\n# Scanning the entire keyspace to find hot keys as well as\n# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec\n# per 100 SCAN commands (not usually needed).\n\n[00.00%] Hot key 'keySlice53' found so far with counter 5\n[00.00%] Hot key 'keySlice3' found so far with counter 5\n[00.00%] Hot key 'keySlice7' found so far with counter 4\n[00.00%] Hot key 'keySlice87' found so far with counter 4\n[00.00%] Hot key 'keySlice28' found so far with counter 4\n[00.00%] Hot key 'keySlice12' found so far with counter 4\n[00.00%] Hot key '/data/p/net.p' found so far with counter 5\n[00.00%] Hot key 'keySlice85' found so far with counter 4\n[00.00%] Hot key 'keySlice2' found so far with counter 4\n[00.00%] Hot key 'keySlice52' found so far with counter 4\n[09.80%] Hot key 'keySlice23' found so far with counter 4\n[09.80%] Hot key 'keySlice91' found so far with counter 5\n[09.80%] Hot key 'keySlice8' found so far with counter 5\n[09.80%] Hot key '/data/c/net' found so far with counter 4\n[09.80%] Hot key 'keySlice14' found so far with counter 4\n[09.80%] Hot key 'keySlice48' found so far with counter 5\n[09.80%] Hot key 'keySlice57' found so far with counter 5\n[19.61%] Hot key 'keySlice84' found so far with counter 5\n[29.41%] Hot key 'keySlice56' found so far with counter 5\n[29.41%] Hot key 'keySlice78' found so far with counter 5\n[29.41%] Hot key 'keySlice65' found so far with counter 5\n[39.22%] Hot key 'keySlice30' found so far with counter 5\n[39.22%] Hot key 'keySlice15' found so far with counter 5\n[39.22%] Hot key 'keySlice35' found so far with counter 5\n[39.22%] Hot key 'keySlice70' found so far with counter 5\n[50.00%] Hot key 'keySlice17' found so far with counter 5\n[89.22%] Hot key 'keySlice46' found so far with counter 6\n\n-------- summary -------\n\nSampled 102 keys in the keyspace!\nhot key found with counter: 6\tkeyname: keySlice46\nhot key found with counter: 5\tkeyname: keySlice53\nhot key found with counter: 5\tkeyname: keySlice3\nhot key found with counter: 5\tkeyname: /data/p/net.p\nhot key found with counter: 5\tkeyname: keySlice91\nhot key found with counter: 5\tkeyname: keySlice8\nhot key found with counter: 5\tkeyname: keySlice48\nhot key found with counter: 5\tkeyname: keySlice57\nhot key found with counter: 5\tkeyname: keySlice84\nhot key found with counter: 5\tkeyname: keySlice56\nhot key found with counter: 5\tkeyname: keySlice78\nhot key found with counter: 5\tkeyname: keySlice65\nhot key found with counter: 5\tkeyname: keySlice30\nhot key found with counter: 5\tkeyname: keySlice15\nhot key found with counter: 5\tkeyname: keySlice35\nhot key found with counter: 5\tkeyname: keySlice70\n"
+var mockHotData01 = `
+# Scanning the entire keyspace to find hot keys as well as
+# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
+# per 100 SCAN commands (not usually needed).
 
-var mockHotData02 = "Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.\nWarning: AUTH failed\n\n# Scanning the entire keyspace to find hot keys as well as\n# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec\n# per 100 SCAN commands (not usually needed).\n\n[00.00%] Hot key '\"keySlice2052\"' found so far with counter 3\n[00.00%] Hot key '\"keySlice542\"' found so far with counter 2\n[00.00%] Hot key '\"keySlice465\"' found so far with counter 2\n[00.00%] Hot key '\"keySlice2838\"' found so far with counter 4\n[00.00%] Hot key '\"keySlice671\"' found so far with counter 2\n[00.00%] Hot key '\"keySlice1074\"' found so far with counter 2\n[00.00%] Hot key '\"keySlice670\"' found so far with counter 2\n[00.00%] Hot key '\"keySlice2669\"' found so far with counter 4\n[00.00%] Hot key '\"keySlice2340\"' found so far with counter 4\n[00.00%] Hot key '\"keySlice2943\"' found so far with counter 4\n[00.33%] Hot key '\"keySlice2462\"' found so far with counter 4\n[00.33%] Hot key '\"keySlice2275\"' found so far with counter 4\n[00.33%] Hot key '\"keySlice409\"' found so far with counter 2\n[00.33%] Hot key '\"keySlice1805\"' found so far with counter 3\n[00.33%] Hot key '\"keySlice1445\"' found so far with counter 3\n[00.33%] Hot key '\"keySlice33\"' found so far with counter 4\n[00.33%] Hot key '\"keySlice2108\"' found so far with counter 4\n[00.33%] Hot key '\"keySlice1888\"' found so far with counter 3\n[00.33%] Hot key '\"keySlice1723\"' found so far with counter 3\n[00.33%] Hot key '\"keySlice2803\"' found so far with counter 4\n[00.67%] Hot key '\"keySlice2182\"' found so far with counter 4\n[00.67%] Hot key '\"keySlice1480\"' found so far with counter 3\n[00.67%] Hot key '\"keySlice2328\"' found so far with counter 4\n[00.67%] Hot key '\"keySlice2796\"' found so far with counter 4\n[00.67%] Hot key '\"keySlice2791\"' found so far with counter 4\n[01.03%] Hot key '\"keySlice2218\"' found so far with counter 4\n[01.03%] Hot key '\"keySlice2691\"' found so far with counter 4\n[01.03%] Hot key '\"keySlice2514\"' found so far with counter 4\n[01.70%] Hot key '\"keySlice0\"' found so far with counter 6\n\n-------- summary -------\n\nSampled 3006 keys in the keyspace!\nhot key found with counter: 6\tkeyname: \"keySlice0\"\nhot key found with counter: 4\tkeyname: \"keySlice2838\"\nhot key found with counter: 4\tkeyname: \"keySlice2669\"\nhot key found with counter: 4\tkeyname: \"keySlice2340\"\nhot key found with counter: 4\tkeyname: \"keySlice2943\"\nhot key found with counter: 4\tkeyname: \"keySlice2462\"\nhot key found with counter: 4\tkeyname: \"keySlice2275\"\nhot key found with counter: 4\tkeyname: \"keySlice33\"\nhot key found with counter: 4\tkeyname: \"keySlice2108\"\nhot key found with counter: 4\tkeyname: \"keySlice2803\"\nhot key found with counter: 4\tkeyname: \"keySlice2182\"\nhot key found with counter: 4\tkeyname: \"keySlice2328\"\nhot key found with counter: 4\tkeyname: \"keySlice2796\"\nhot key found with counter: 4\tkeyname: \"keySlice2791\"\nhot key found with counter: 4\tkeyname: \"keySlice2218\"\nhot key found with counter: 4\tkeyname: \"keySlice2691\"\n"
+[00.00%] Hot key 'keySlice53' found so far with counter 5
+[00.00%] Hot key 'keySlice3' found so far with counter 5
+[00.00%] Hot key 'keySlice7' found so far with counter 4
+[00.00%] Hot key 'keySlice87' found so far with counter 4
+[00.00%] Hot key 'keySlice28' found so far with counter 4
+[00.00%] Hot key 'keySlice12' found so far with counter 4
+[00.00%] Hot key '/data/p/net.p' found so far with counter 5
+[00.00%] Hot key 'keySlice85' found so far with counter 4
+[00.00%] Hot key 'keySlice2' found so far with counter 4
+[00.00%] Hot key 'keySlice52' found so far with counter 4
+[09.80%] Hot key 'keySlice23' found so far with counter 4
+[09.80%] Hot key 'keySlice91' found so far with counter 5
+[09.80%] Hot key 'keySlice8' found so far with counter 5
+[09.80%] Hot key '/data/c/net' found so far with counter 4
+[09.80%] Hot key 'keySlice14' found so far with counter 4
+[09.80%] Hot key 'keySlice48' found so far with counter 5
+[09.80%] Hot key 'keySlice57' found so far with counter 5
+[19.61%] Hot key 'keySlice84' found so far with counter 5
+[29.41%] Hot key 'keySlice56' found so far with counter 5
+[29.41%] Hot key 'keySlice78' found so far with counter 5
+[29.41%] Hot key 'keySlice65' found so far with counter 5
+[39.22%] Hot key 'keySlice30' found so far with counter 5
+[39.22%] Hot key 'keySlice15' found so far with counter 5
+[39.22%] Hot key 'keySlice35' found so far with counter 5
+[39.22%] Hot key 'keySlice70' found so far with counter 5
+[50.00%] Hot key 'keySlice17' found so far with counter 5
+[89.22%] Hot key 'keySlice46' found so far with counter 6
+
+-------- summary -------
+
+Sampled 102 keys in the keyspace!
+hot key found with counter: 6	keyname: keySlice46
+hot key found with counter: 5	keyname: keySlice53
+hot key found with counter: 5	keyname: keySlice3
+hot key found with counter: 5	keyname: /data/p/net.p
+hot key found with counter: 5	keyname: keySlice91
+hot key found with counter: 5	keyname: keySlice8
+hot key found with counter: 5	keyname: keySlice48
+hot key found with counter: 5	keyname: keySlice57
+hot key found with counter: 5	keyname: keySlice84
+hot key found with counter: 5	keyname: keySlice56
+hot key found with counter: 5	keyname: keySlice78
+hot key found with counter: 5	keyname: keySlice65
+hot key found with counter: 5	keyname: keySlice30
+hot key found with counter: 5	keyname: keySlice15
+hot key found with counter: 5	keyname: keySlice35
+hot key found with counter: 5	keyname: keySlice70
+`
+
+var mockHotData02 = `
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+Warning: AUTH failed
+
+# Scanning the entire keyspace to find hot keys as well as
+# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
+# per 100 SCAN commands (not usually needed).
+
+[00.00%] Hot key '"keySlice2052"' found so far with counter 3
+[00.00%] Hot key '"keySlice542"' found so far with counter 2
+[00.00%] Hot key '"keySlice465"' found so far with counter 2
+[00.00%] Hot key '"keySlice2838"' found so far with counter 4
+[00.00%] Hot key '"keySlice671"' found so far with counter 2
+[00.00%] Hot key '"keySlice1074"' found so far with counter 2
+[00.00%] Hot key '"keySlice670"' found so far with counter 2
+[00.00%] Hot key '"keySlice2669"' found so far with counter 4
+[00.00%] Hot key '"keySlice2340"' found so far with counter 4
+[00.00%] Hot key '"keySlice2943"' found so far with counter 4
+[00.33%] Hot key '"keySlice2462"' found so far with counter 4
+[00.33%] Hot key '"keySlice2275"' found so far with counter 4
+[00.33%] Hot key '"keySlice409"' found so far with counter 2
+[00.33%] Hot key '"keySlice1805"' found so far with counter 3
+[00.33%] Hot key '"keySlice1445"' found so far with counter 3
+[00.33%] Hot key '"keySlice33"' found so far with counter 4
+[00.33%] Hot key '"keySlice2108"' found so far with counter 4
+[00.33%] Hot key '"keySlice1888"' found so far with counter 3
+[00.33%] Hot key '"keySlice1723"' found so far with counter 3
+[00.33%] Hot key '"keySlice2803"' found so far with counter 4
+[00.67%] Hot key '"keySlice2182"' found so far with counter 4
+[00.67%] Hot key '"keySlice1480"' found so far with counter 3
+[00.67%] Hot key '"keySlice2328"' found so far with counter 4
+[00.67%] Hot key '"keySlice2796"' found so far with counter 4
+[00.67%] Hot key '"keySlice2791"' found so far with counter 4
+[01.03%] Hot key '"keySlice2218"' found so far with counter 4
+[01.03%] Hot key '"keySlice2691"' found so far with counter 4
+[01.03%] Hot key '"keySlice2514"' found so far with counter 4
+[01.70%] Hot key '"keySlice0"' found so far with counter 6
+
+-------- summary -------
+
+Sampled 3006 keys in the keyspace!
+hot key found with counter: 6	keyname: "keySlice0"
+hot key found with counter: 4	keyname: "keySlice2838"
+hot key found with counter: 4	keyname: "keySlice2669"
+hot key found with counter: 4	keyname: "keySlice2340"
+hot key found with counter: 4	keyname: "keySlice2943"
+hot key found with counter: 4	keyname: "keySlice2462"
+hot key found with counter: 4	keyname: "keySlice2275"
+hot key found with counter: 4	keyname: "keySlice33"
+hot key found with counter: 4	keyname: "keySlice2108"
+hot key found with counter: 4	keyname: "keySlice2803"
+hot key found with counter: 4	keyname: "keySlice2182"
+hot key found with counter: 4	keyname: "keySlice2328"
+hot key found with counter: 4	keyname: "keySlice2796"
+hot key found with counter: 4	keyname: "keySlice2791"
+hot key found with counter: 4	keyname: "keySlice2218"
+hot key found with counter: 4	keyname: "keySlice2691"
+`
+
+var mockHotData6_0_8 = `Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+
+# Scanning the entire keyspace to find hot keys as well as
+# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
+# per 100 SCAN commands (not usually needed).
+
+[00.00%] Hot key '"wo11"' found so far with counter 1
+[00.00%] Hot key '"wo17"' found so far with counter 1
+[00.00%] Hot key '"wo5"' found so far with counter 1
+[00.00%] Hot key '"wo13"' found so far with counter 1
+[00.00%] Hot key '"wo10"' found so far with counter 1
+[00.00%] Hot key '"wo15"' found so far with counter 1
+[00.00%] Hot key '"wo19"' found so far with counter 1
+[00.00%] Hot key '"wo6"' found so far with counter 1
+[00.00%] Hot key '"wo14"' found so far with counter 1
+[00.00%] Hot key '"wo7"' found so far with counter 1
+[00.00%] Hot key '"wo12"' found so far with counter 1
+[55.00%] Hot key '"wo8"' found so far with counter 1
+[55.00%] Hot key '"wo2"' found so far with counter 1
+[55.00%] Hot key '"wo18"' found so far with counter 1
+[55.00%] Hot key '"wo9"' found so far with counter 1
+[55.00%] Hot key '"wo16"' found so far with counter 1
+[55.00%] Hot key '"wo0"' found so far with counter 5
+
+-------- summary -------
+
+Sampled 20 keys in the keyspace!
+hot key found with counter: 5	keyname: "wo0"
+hot key found with counter: 1	keyname: "wo11"
+`
+
+var mockHotData7_0 = `Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+
+# Scanning the entire keyspace to find hot keys as well as
+# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
+# per 100 SCAN commands (not usually needed).
+
+[00.00%] Hot key '"wo12"' found so far with counter 1
+[00.00%] Hot key '"wo19"' found so far with counter 1
+[00.00%] Hot key '"wo6"' found so far with counter 1
+[00.00%] Hot key '"wo2"' found so far with counter 1
+[00.00%] Hot key '"wo5"' found so far with counter 1
+[00.00%] Hot key '"wo0"' found so far with counter 5
+[00.00%] Hot key '"wo8"' found so far with counter 1
+[00.00%] Hot key '"wo7"' found so far with counter 1
+[00.00%] Hot key '"wo10"' found so far with counter 1
+[00.00%] Hot key '"wo1"' found so far with counter 1
+[50.00%] Hot key '"wo17"' found so far with counter 1
+[50.00%] Hot key '"wo9"' found so far with counter 1
+[50.00%] Hot key '"wo18"' found so far with counter 1
+[50.00%] Hot key '"wo14"' found so far with counter 1
+[50.00%] Hot key '"wo16"' found so far with counter 1
+[50.00%] Hot key '"wo15"' found so far with counter 1
+
+-------- summary -------
+
+Sampled 20 keys in the keyspace!
+hot key found with counter: 5	keyname: "wo0"
+hot key found with counter: 1	keyname: "wo12"
+`
