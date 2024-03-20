@@ -150,6 +150,7 @@ nullable
 nvme
 pprof
 promremote
+quantile
 rwlock
 schedulability
 sflow
