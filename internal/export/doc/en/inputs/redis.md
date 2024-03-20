@@ -34,6 +34,7 @@ Already tested version:
 
 - [x] 7.0.11
 - [x] 6.2.12
+- [x] 6.0.8
 - [x] 5.0.14
 - [x] 4.0.14
 
@@ -49,14 +50,14 @@ redis6.0+ goes to the `redis-cli` command line, create the user and authorize
 
 ```sql
 ACL SETUSER username >password
-ACL SETUSER username on +@dangerous
-ACL SETUSER username on +ping
+ACL SETUSER username on +@dangerous +ping
 ```
 
-- goes to the `redis-cli` command line, authorization statistics hotkey information
+- goes to the `redis-cli` command line, authorization statistics `hotkey/bigkey` information
 
 ```sql
 CONFIG SET maxmemory-policy allkeys-lfu
+ACL SETUSER username on +get +@read +@connection +@keyspace ~*
 ```
 
 - collect hotkey & `bigkey` remote, need install redis-cli (collect local need not install it)
@@ -84,7 +85,7 @@ yum install -y  redis
 
 === "Kubernetes"
 
-    The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
 ---
 
