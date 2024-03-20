@@ -53,6 +53,9 @@ type Config struct {
 	// DCA config
 	DCAConfig *DCAConfig `toml:"dca"`
 
+	// dk_upgrader
+	DKUpgrader *DKUpgraderCfg `toml:"dk_upgrader"`
+
 	// pipeline
 	Pipeline *plmanager.PipelineCfg `toml:"pipeline"`
 
@@ -167,6 +170,11 @@ func DefaultConfig() *Config {
 			Enable:    false,
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
+		},
+
+		DKUpgrader: &DKUpgraderCfg{
+			Host: "0.0.0.0",
+			Port: 9542,
 		},
 
 		Pipeline: &plmanager.PipelineCfg{

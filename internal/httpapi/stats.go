@@ -149,9 +149,11 @@ type inputsStat struct {
 	Category       string        `json:"category"`
 	Frequency      string        `json:"frequency,omitempty"`
 	AvgSize        int64         `json:"avg_size"`
-	Total          int64         `json:"total"`
+	FeedTotal      int64         `json:"feed_total"`
+	PtsTotal       int64         `json:"pts_total"`
 	Count          int64         `json:"count"`
 	Filtered       int64         `json:"filtered"`
+	Errors         int64         `json:"errors"`
 	First          time.Time     `json:"first"`
 	Last           time.Time     `json:"last"`
 	LastErr        string        `json:"last_error,omitempty"`
@@ -449,7 +451,9 @@ func getInputsStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 
 		switch name {
 		case "datakit_io_feed_total":
-			item.Total = int64(pt.GetCounter().GetValue())
+			item.FeedTotal = int64(pt.GetCounter().GetValue())
+		case "datakit_io_feed_point_total":
+			item.PtsTotal = int64(pt.GetCounter().GetValue())
 		case "datakit_io_input_filter_point_total":
 			item.Filtered = int64(pt.GetCounter().GetValue())
 		case "datakit_io_last_feed":
@@ -463,16 +467,17 @@ func getInputsStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 				item.MaxCollectCost = time.Duration(cost)
 			}
 			feedCost[inputName] += cost
+		case "datakit_input_collect_latency_seconds":
+			item.AvgCollectCost = time.Duration(
+				float64(time.Second) * pt.GetSummary().GetSampleSum() /
+					float64(pt.GetSummary().GetSampleCount()))
+		case "datakit_io_last_feed_timestamp_seconds":
+			item.Last = time.Unix(int64(pt.GetGauge().GetValue()), 0)
+		case "datakit_error_total":
+			item.Errors = int64(pt.GetCounter().GetValue())
 		}
 
 		stats.InputsStats[inputName] = item
-	}
-
-	if len(feedCost) > 0 {
-		for n, val := range feedCost {
-			item := stats.InputsStats[n]
-			item.AvgCollectCost = time.Duration(val / float64(stats.InputsStats[n].Total))
-		}
 	}
 }
 
