@@ -8,8 +8,13 @@ package mysql
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -39,10 +44,11 @@ var (
 	l           = logger.DefaultSLogger("mysql")
 )
 
-type tls struct {
-	TLSKey  string `toml:"tls_key"`
-	TLSCert string `toml:"tls_cert"`
-	TLSCA   string `toml:"tls_ca"`
+type TLS struct {
+	TLSKey             string `toml:"tls_key"`
+	TLSCert            string `toml:"tls_cert"`
+	TLSCA              string `toml:"tls_ca"`
+	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 }
 
 type customQuery struct {
@@ -82,11 +88,10 @@ type Input struct {
 	Timeout         string `toml:"connect_timeout"`
 	timeoutDuration time.Duration
 
-	TLS *tls `toml:"tls"`
-
 	Service  string `toml:"service"`
 	Interval datakit.Duration
 
+	TLS  *TLS              `toml:"tls"`
 	Tags map[string]string `toml:"tags"`
 
 	Query  []*customQuery `toml:"custom_queries"`
@@ -151,15 +156,13 @@ func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
 }
 
-func (ipt *Input) getDsnString() string {
+func (ipt *Input) getDsnString() (string, error) {
 	cfg := mysql.Config{
 		AllowNativePasswords: true,
 		CheckConnLiveness:    true,
 		User:                 ipt.User,
 		Passwd:               ipt.Pass,
-		Params: map[string]string{
-			"tls": "skip-verify",
-		},
+		Params:               map[string]string{},
 	}
 
 	if ipt.Port == 0 {
@@ -187,8 +190,55 @@ func (ipt *Input) getDsnString() string {
 		cfg.Params["charset"] = ipt.Charset
 	}
 
-	// tls (todo)
-	return cfg.FormatDSN()
+	if ipt.TLS != nil {
+		tlsConfig, err := createTLSConf(ipt.TLS.TLSCA, ipt.TLS.TLSCert, ipt.TLS.TLSKey)
+		if err != nil {
+			return "", err
+		}
+
+		tlsConfig.InsecureSkipVerify = ipt.TLS.InsecureSkipVerify
+		if err := mysql.RegisterTLSConfig("custom", tlsConfig); err != nil {
+			return "", fmt.Errorf("register tls config failed: %w", err)
+		} else {
+			cfg.Params["tls"] = "custom"
+		}
+	}
+	return cfg.FormatDSN(), nil
+}
+
+func createTLSConf(caFile, certFile, keyFile string) (*tls.Config, error) {
+	if caFile == "" {
+		return &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}, nil
+	}
+
+	var certs []tls.Certificate
+	if certFile != "" && keyFile != "" {
+		// Load client cert
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		} else {
+			certs = append(certs, cert)
+		}
+	}
+	// Load CA cert
+	caCert, err := os.ReadFile(filepath.Clean(caFile))
+	if err != nil {
+		return nil, err
+	}
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, errors.New("failed to append certs from PEM")
+	}
+
+	tlsConfig := &tls.Config{ //nolint:gosec
+		Certificates: certs,
+		RootCAs:      caCertPool,
+	}
+
+	return tlsConfig, nil
 }
 
 //nolint:lll
@@ -236,7 +286,10 @@ func (ipt *Input) initCfg() error {
 		ipt.timeoutDuration = 10 * time.Second
 	}
 
-	dsnStr := ipt.getDsnString()
+	dsnStr, err := ipt.getDsnString()
+	if err != nil {
+		return err
+	}
 
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
@@ -581,6 +634,7 @@ func (ipt *Input) Run() {
 	// Try until init OK.
 	for {
 		if err := ipt.initCfg(); err != nil {
+			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(gcPoint.Metric),

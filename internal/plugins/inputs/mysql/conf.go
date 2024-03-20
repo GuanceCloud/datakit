@@ -35,26 +35,26 @@ const (
   ## Set dbm to true to collect database activity 
   # dbm = false
 
-  # [inputs.mysql.log]
-  # #required, glob logfiles
-  # files = ["/var/log/mysql/*.log"]
-
-  ## glob filteer
-  # ignore = [""]
-
-  ## optional encodings:
-  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-  # character_encoding = ""
-
-  ## The pattern should be a regexp. Note the use of '''this regexp'''
-  ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  # multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
-
-  ## grok pipeline script path
-  # pipeline = "mysql.p"
-
   ## Set true to enable election
   election = true
+
+  [inputs.mysql.log]
+    # #required, glob logfiles
+    # files = ["/var/log/mysql/*.log"]
+
+    ## glob filteer
+    # ignore = [""]
+
+    ## optional encodings:
+    ## "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    # character_encoding = ""
+
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+
+    ## grok pipeline script path
+    pipeline = "mysql.p"
 
   ## Run a custom SQL query and collect corresponding metrics.
   # [[inputs.mysql.custom_queries]]
@@ -78,6 +78,14 @@ const (
   ## Config dbm activity
   [inputs.mysql.dbm_activity]
     enabled = true  
+
+  ## TLS Config
+  [inputs.mysql.tls]
+    # tls_ca = "/etc/mysql/ca.pem"
+    # tls_cert = "/etc/mysql/cert.pem"
+    # tls_key = "/etc/mysql/key.pem"
+    ## Use TLS but skip chain & host verification
+    insecure_skip_verify = true
 
   [inputs.mysql.tags]
     # some_tag = "some_value"
