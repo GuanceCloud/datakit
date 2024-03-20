@@ -227,11 +227,20 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			continue
 		}
 
-		if priority, ok := span.Metrics[keyPriority]; ok && (priority == -1 || priority == -3) {
-			log.Debugf("drop this traceID=%s service=%s", span.TraceID, span.Service)
-			continue
-		}
 		var spanKV point.KVs
+		priority, ok := span.Metrics[keyPriority]
+		if ok {
+			if priority == -1 || priority == -3 {
+				log.Debugf("drop this traceID=%s service=%s", span.TraceID, span.Service)
+				return []*itrace.DkSpan{} // 此处应该返回空的数组。
+			}
+
+			if p, ok := itrace.DDPriorityMap[int(priority)]; ok {
+				// 在采样的结果放到行协议中，如果 DK 有配置采样，则需要该值进行过滤。
+				spanKV = spanKV.Add(itrace.SampleRateKey, p, true, true)
+			}
+		}
+
 		spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID, traceBase), false, false).
 			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase), false, false).
 			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase), false, false).

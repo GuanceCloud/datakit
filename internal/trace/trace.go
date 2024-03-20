@@ -109,6 +109,20 @@ const (
 )
 
 var (
+	SamplerDrop   = "sampler_drop"
+	SamplerKeep   = "sampler_keep"
+	UserDrop      = "user_drop"
+	UserKeep      = "user_keep"
+	DDPriorityMap = map[int]string{
+		PriorityUserKeep:   UserKeep,
+		PriorityUserReject: UserDrop,
+		PriorityAutoKeep:   SamplerKeep,
+		PriorityAutoReject: SamplerDrop,
+	}
+
+	// SampleRateKey 采样的值.
+	SampleRateKey = "sampling_rate"
+
 	sourceTypes = map[string]string{
 		"consul": SpanSourceApp,
 

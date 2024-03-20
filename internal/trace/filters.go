@@ -172,6 +172,15 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 	if len(dktrace) == 0 {
 		return nil, true
 	}
+	if str := dktrace[0].GetTag(SampleRateKey); str != "" {
+		switch str {
+		case UserDrop, SamplerDrop:
+			return nil, true
+		case UserKeep, SamplerKeep:
+			return dktrace, false
+		}
+	}
+
 	traceID := UnifyToUint64ID(dktrace[0].GetFiledToString(FieldTraceID))
 	f := traceID%10000 <= smp.threshold
 	if f {
