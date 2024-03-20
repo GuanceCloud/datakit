@@ -33,7 +33,7 @@ type args struct {
 	hostName           string
 	globalHostTags     map[string]string
 	globalElectionTags map[string]string
-	query              map[string][]string
+	query              []queries
 }
 
 func Test_All(t *testing.T) {
@@ -71,7 +71,7 @@ func case_postHostTags(t *testing.T) {
 				hostName:           "hostMock",
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
-				query:              map[string][]string{"h2": ([]string{"h22"}), "h3": ([]string{"h3"}), "host": ([]string{"no_useful"})},
+				query:              []queries{{"h2", []string{"h22"}}, {"h3", []string{"h3"}}, {"host", []string{"no_useful"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -91,7 +91,7 @@ func case_postHostTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// host will no useful, h2:h22 will recover h2:h2
-				query: map[string][]string{"h2": ([]string{"h22"}), "h3": ([]string{"h3"}), "host": ([]string{"no_useful"})},
+				query: []queries{{"h2", []string{"h22"}}, {"h3", []string{"h3"}}, {"host", []string{"no_useful"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -168,7 +168,7 @@ func case_deleteHostTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// host will no useful
-				query: map[string][]string{"tags": ([]string{"host", "h1", "e1"})},
+				query: []queries{{"tags", []string{"host", "h1", "e1"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -188,7 +188,7 @@ func case_deleteHostTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// host will no useful
-				query: map[string][]string{"tags": ([]string{"host", "h1", "e1"})},
+				query: []queries{{"tags", []string{"host", "h1", "e1"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -264,7 +264,7 @@ func case_postElectionTags(t *testing.T) {
 				hostName:           "hostMock",
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
-				query:              map[string][]string{"e2": ([]string{"e22"}), "e3": ([]string{"e3"}), "host": ([]string{"no_useful"})},
+				query:              []queries{{"e2", []string{"e22"}}, {"e3", []string{"e3"}}, {"host", []string{"no_useful"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -284,7 +284,7 @@ func case_postElectionTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// any is error
-				query: map[string][]string{"h2": ([]string{"h22"}), "h3": ([]string{"h3"}), "host": ([]string{"no_useful"})},
+				query: []queries{{"h2", []string{"h22"}}, {"h3", []string{"h3"}}, {"host", []string{"no_useful"}}},
 			},
 			wantStatusCode: 500,
 		},
@@ -354,7 +354,7 @@ func case_deleteElectionTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// host will no useful
-				query: map[string][]string{"tags": ([]string{"host", "h1", "e1"})},
+				query: []queries{{"tags", []string{"host", "h1", "e1"}}},
 			},
 			wantStatusCode: 200,
 			wantTags: map[string](map[string]string){
@@ -374,7 +374,7 @@ func case_deleteElectionTags(t *testing.T) {
 				globalHostTags:     map[string]string{"h1": "h1", "h2": "h2"},
 				globalElectionTags: map[string]string{"e1": "e1", "e2": "e2"},
 				// any is error
-				query: map[string][]string{"tags": ([]string{"host", "h1", "e1"})},
+				query: []queries{{"tags", []string{"host", "h1", "e1"}}},
 			},
 			wantStatusCode: 500,
 		},
@@ -471,11 +471,16 @@ func (m *mockHandle) getTags() (map[string]string, map[string]string) {
 	return m.hostTags, m.electionTags
 }
 
-func getQueryString(m map[string][]string) string {
+type queries struct {
+	key    string
+	values []string
+}
+
+func getQueryString(q []queries) string {
 	s := ""
-	for k, v := range m {
-		s += "&" + k + "="
-		for i, vv := range v {
+	for _, v := range q {
+		s += "&" + v.key + "="
+		for i, vv := range v.values {
 			if i != 0 {
 				s += ","
 			}
@@ -489,28 +494,28 @@ func getQueryString(m map[string][]string) string {
 func Test_getQueryString(t *testing.T) {
 	tests := []struct {
 		name string
-		m    map[string][]string
+		q    []queries
 		want string
 	}{
 		{
 			name: "01",
-			m:    map[string][]string{"h2": ([]string{"h22"}), "h3": ([]string{"h3"})},
+			q:    []queries{{"h2", []string{"h22"}}, {"h3", []string{"h3"}}},
 			want: "h2=h22&h3=h3",
 		},
 		{
 			name: "02",
-			m:    map[string][]string{"tags": ([]string{"e2", "e3"})},
+			q:    []queries{{"tags", []string{"e2", "e3"}}},
 			want: "tags=e2,e3",
 		},
 		{
 			name: "03",
-			m:    map[string][]string{"tags": ([]string{"e2", "e3"}), "h3": ([]string{"h3"})},
+			q:    []queries{{"tags", []string{"e2", "e3"}}, {"h3", []string{"h3"}}},
 			want: "tags=e2,e3&h3=h3",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getQueryString(tt.m); got != tt.want {
+			if got := getQueryString(tt.q); got != tt.want {
 				t.Errorf("name = %s ,getQueryString() = %v, want %v", tt.name, got, tt.want)
 			}
 		})

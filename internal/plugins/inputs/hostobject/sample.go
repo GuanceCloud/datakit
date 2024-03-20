@@ -36,7 +36,10 @@ ignore_zero_bytes_disk = true
 disable_cloud_provider_sync = false
 
 ## Enable put cloud provider region/zone_id information into global election tags, (default to true).
-# enable_cloud_host_tags_Global_election = true
+# enable_cloud_host_tags_global_election = true
+
+## Enable put cloud provider region/zone_id information into global host tags, (default to true).
+# enable_cloud_host_tags_global_host = true
 
 [inputs.hostobject.tags] # (optional) custom tags
 # cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure, probe automatically if not set
