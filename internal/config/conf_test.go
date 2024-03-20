@@ -32,7 +32,7 @@ func TestDefaultMainConf(t *testing.T) {
 	def.GlobalHostTags = map[string]string{}                // clear:  host tags setted on default conf sample
 	def.Ulimit = 0
 
-	assert.Equal(t, c, def)
+	assert.Equal(t, c.String(), def.String())
 }
 
 func TestEnableDefaultsInputs(t *testing.T) {
