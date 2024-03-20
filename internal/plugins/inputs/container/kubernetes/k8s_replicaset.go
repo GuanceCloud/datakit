@@ -154,8 +154,7 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
-			"replicaset_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
-			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
+			"replicaset":       inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
@@ -181,7 +180,6 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("The UID of ReplicaSet."),
 			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
 			"replicaset_name":  inputs.NewTagInfo("Name must be unique within a namespace."),
-			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace. (Deprecated)"),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"deployment":       inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"statefulset":      inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),

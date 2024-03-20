@@ -82,7 +82,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	if err != nil {
 		return nil, fmt.Errorf("get runtime version err: %w", err)
 	}
-	l.Infof("connect runtime, platform: %s, api-version: %s", version.PlatformName, version.APIVersion)
+	l.Infof("runtime platform: %s, api-version: %s", config.Cfg.Hostname, version.PlatformName, version.APIVersion)
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
@@ -229,15 +229,15 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 		}
 	}
 
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
 	if category == "metric" && c.nodeName != "" {
 		res = append(res, buildCountPoint(c.nodeName, res)...)
 	}
 
-	if err := g.Wait(); err != nil {
-		return err
-	} else {
-		return feed(transToPoint(res, opts))
-	}
+	return feed(transToPoint(res, opts))
 }
 
 func (c *container) Logging(_ func([]*point.Point) error) {

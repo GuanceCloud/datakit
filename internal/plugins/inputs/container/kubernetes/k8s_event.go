@@ -7,6 +7,7 @@ package kubernetes
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
@@ -37,7 +38,8 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 
 	// Do not care old events.
 	resourceVersion := list.ResourceVersion
-	klog.Infof("use event initialresouceVersion %s", resourceVersion)
+	resourceVersion = latestResourveVersion(k.lastEventResourceVersion, resourceVersion)
+	klog.Infof("use event resourceVersion %s", resourceVersion)
 
 	watchFunc := func(opt metav1.ListOptions) (kubewatch.Interface, error) {
 		return k.client.GetEvents("").Watch(context.Background(), opt)
@@ -123,7 +125,19 @@ func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 
 	pts := pointKVs{pt}
 
+	// record resourceVersion
+	k.lastEventResourceVersion = item.ResourceVersion
 	return transToPoint(pts, append(point.DefaultLoggingOptions(), point.WithTime(item.CreationTimestamp.Time)))
+}
+
+// nolint
+func latestResourveVersion(v1, v2 string) string {
+	int1, _ := strconv.Atoi(v1)
+	int2, _ := strconv.Atoi(v2)
+	if int1 < int2 {
+		return v2
+	}
+	return v1
 }
 
 type event struct{ *typed.PointKV }
