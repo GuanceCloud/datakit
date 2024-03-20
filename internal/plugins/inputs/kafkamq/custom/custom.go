@@ -174,7 +174,8 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 			log.Warn(err)
 			return err
 		}
-
+		fields["offset"] = msg.Offset
+		fields["partition"] = msg.Partition
 		pt := point.NewPointV2(topic, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 		if err := mq.feeder.FeedV2(category, []*point.Point{pt},
