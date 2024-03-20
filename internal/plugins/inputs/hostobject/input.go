@@ -55,7 +55,8 @@ type Input struct {
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
 	Tags                              map[string]string `toml:"tags,omitempty"`
-	EnableCloudHostTagsGlobalElection bool              `toml:"enable_cloud_host_tags_Global_election"`
+	EnableCloudHostTagsGlobalElection bool              `toml:"enable_cloud_host_tags_global_election"`
+	EnableCloudHostTagsGlobalHost     bool              `toml:"enable_cloud_host_tags_global_host"`
 
 	Interval                 time.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore time.Duration `toml:"ignore_inputs_errors_before,omitempty"`
@@ -211,7 +212,9 @@ func (ipt *Input) collect() error {
 		}
 	}
 	if needUpdateGlobalTags {
-		httpapi.UpdateHostTags(ipt.cloudHostTags, "cloud_host_meta")
+		if ipt.EnableCloudHostTagsGlobalHost {
+			httpapi.UpdateHostTags(ipt.cloudHostTags, "cloud_host_meta")
+		}
 		if ipt.EnableCloudHostTagsGlobalElection {
 			httpapi.UpdateElectionTags(ipt.cloudHostTags, "cloud_host_meta")
 		}
@@ -244,6 +247,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "OnlyPhysicalDevice", ENVName: "INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE", ConfField: "only_physical_device", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only, any string", DescZh: "忽略非物理磁盘（如网盘、NFS），任意非空字符串"},
 		{FieldName: "ExcludeDevice", ENVName: "INPUT_HOSTOBJECT_EXCLUDE_DEVICE", ConfField: "exclude_device", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Exclude some with dev prefix", DescZh: "忽略的 device"},
 		{FieldName: "ExtraDevice", ENVName: "INPUT_HOSTOBJECT_EXTRA_DEVICE", ConfField: "extra_device", Type: doc.List, Example: "`/nfsdata,other`", Desc: "Additional device", DescZh: "额外增加的 device"},
+		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
+		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
 		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
 		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
 	}
@@ -294,6 +299,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.EnableCloudHostTagsGlobalElection = b
 		}
 	}
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/2136
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS to bool: %s, ignore", err)
+		} else {
+			ipt.EnableCloudHostTagsGlobalHost = b
+		}
+	}
 	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
@@ -318,6 +332,7 @@ func defaultInput() *Input {
 		IgnoreInputsErrorsBefore:          30 * time.Second,
 		IgnoreZeroBytesDisk:               true,
 		EnableCloudHostTagsGlobalElection: true,
+		EnableCloudHostTagsGlobalHost:     true,
 		diskIOCounters:                    diskutil.IOCounters,
 		netIOCounters:                     netutil.IOCounters,
 
