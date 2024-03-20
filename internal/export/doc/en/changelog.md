@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.26.0 (2024/03/20) {#cl-1.26.0}
+
+### New Features {#cl-1.26.0-new}
+
+- Added Doris collector (#2137)
+
+### Bug Fixes {#cl-1.26.0-fix}
+
+- Fixed an issue with DDTrace header sampling leading to repeated sampling (#2131)
+- Fixed an problem with missing tags in SQLServer custom collection (#2144)
+- Resolved duplicate collection issue with Kubernetes Events (#2145)
+- Corrected inaccurate container count collection in Kubernetes (#2146)
+
+### Enhancements {#cl-1.26.0-opt}
+
+- Added upgrade program configuration in *datakit.conf*, also included fields related to the upgrade program in the host object collector (#2124)
+- Improved bug report feature, attaching self-error information in the appendix (#2132)
+- Optimized TLS settings for MySQL collector and default collector configuration file (#2134)
+- Enhanced logic for host-cloud synchronization global tag configuration, allowing tags synced from the cloud to not be added to global-host-tags (#2136)
+- Added `redis-cli` command in Datakit image for easier collection of big-key/hot-key in Redis (#2138)
+- Added `offset/partition` field in data collected from Kafka-MQ (#2140)
+- Miscellaneous updates and documentation enhancements (#2133/#2143)
+
 ---
 
 ## Version 1.25.0 (2024/03/06) {#cl-1.25.0}
