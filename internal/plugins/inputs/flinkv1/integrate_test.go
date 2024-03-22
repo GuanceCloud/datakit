@@ -245,13 +245,13 @@ name = "flink_taskmanager"
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
 				inputs.WithOptionalTags(),
-				inputs.WithOptionalFields("Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_Copy_Count", "Status_JVM_GarbageCollector_Copy_Time", "Status_JVM_GarbageCollector_MarkSweepCompact_Count", "Status_JVM_GarbageCollector_MarkSweepCompact_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "numRegisteredTaskManagers", "numRunningJobs", "taskSlotsAvailable", "taskSlotsTotal", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count"), // nolint:lll
+				inputs.WithOptionalFields(getJobmanagerOptionalFields()...), // nolint:lll
 			},
 			optsTask: []inputs.PointCheckOption{
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
 				inputs.WithOptionalTags("tm_id"),
-				inputs.WithOptionalFields("Status_Flink_Memory_Managed_Total", "Status_Flink_Memory_Managed_Used", "Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "Status_Network_AvailableMemorySegments", "Status_Network_TotalMemorySegments", "Status_Shuffle_Netty_AvailableMemory", "Status_Shuffle_Netty_AvailableMemorySegments", "Status_Shuffle_Netty_TotalMemory", "Status_Shuffle_Netty_TotalMemorySegments", "Status_Shuffle_Netty_UsedMemory", "Status_Shuffle_Netty_UsedMemorySegments"), // nolint:lll
+				inputs.WithOptionalFields(getTaskmanagerOptionalFields()...), // nolint:lll
 			},
 		}, {
 			name:    "remote",
@@ -280,13 +280,13 @@ name = "flink_taskmanager"
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
 				inputs.WithOptionalTags(),
-				inputs.WithOptionalFields("Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_Copy_Count", "Status_JVM_GarbageCollector_Copy_Time", "Status_JVM_GarbageCollector_MarkSweepCompact_Count", "Status_JVM_GarbageCollector_MarkSweepCompact_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "numRegisteredTaskManagers", "numRunningJobs", "taskSlotsAvailable", "taskSlotsTotal", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count"), // nolint:lll
+				inputs.WithOptionalFields(getJobmanagerOptionalFields()...), // nolint:lll
 			},
 			optsTask: []inputs.PointCheckOption{
 				inputs.WithTypeChecking(false),
 				inputs.WithExtraTags(map[string]string{"instance": "", "tag1": "", "tag2": ""}),
 				inputs.WithOptionalTags("tm_id"),
-				inputs.WithOptionalFields("Status_Flink_Memory_Managed_Total", "Status_Flink_Memory_Managed_Used", "Status_JVM_CPU_Load", "Status_JVM_CPU_Time", "Status_JVM_ClassLoader_ClassesLoaded", "Status_JVM_ClassLoader_ClassesUnloaded", "Status_JVM_GarbageCollector_G1_Old_Generation_Count", "Status_JVM_GarbageCollector_G1_Old_Generation_Time", "Status_JVM_GarbageCollector_G1_Young_Generation_Count", "Status_JVM_GarbageCollector_G1_Young_Generation_Time", "Status_JVM_Memory_Direct_Count", "Status_JVM_Memory_Direct_MemoryUsed", "Status_JVM_Memory_Direct_TotalCapacity", "Status_JVM_Memory_Heap_Committed", "Status_JVM_Memory_Heap_Max", "Status_JVM_Memory_Heap_Used", "Status_JVM_Memory_Mapped_Count", "Status_JVM_Memory_Mapped_MemoryUsed", "Status_JVM_Memory_Mapped_TotalCapacity", "Status_JVM_Memory_Metaspace_Committed", "Status_JVM_Memory_Metaspace_Max", "Status_JVM_Memory_Metaspace_Used", "Status_JVM_Memory_NonHeap_Committed", "Status_JVM_Memory_NonHeap_Max", "Status_JVM_Memory_NonHeap_Used", "Status_JVM_Threads_Count", "Status_Network_AvailableMemorySegments", "Status_Network_TotalMemorySegments", "Status_Shuffle_Netty_AvailableMemory", "Status_Shuffle_Netty_AvailableMemorySegments", "Status_Shuffle_Netty_TotalMemory", "Status_Shuffle_Netty_TotalMemorySegments", "Status_Shuffle_Netty_UsedMemory", "Status_Shuffle_Netty_UsedMemorySegments", "Status_Shuffle_Netty_RequestedMemoryUsage"), // nolint:lll
+				inputs.WithOptionalFields(getTaskmanagerOptionalFields()...), // nolint:lll
 			},
 		},
 	}
@@ -395,4 +395,26 @@ func TestIntegrate(t *T.T) {
 			})
 		})
 	}
+}
+
+func getJobmanagerOptionalFields() []string {
+	m := &JobmanagerMeasurement{}
+	info := m.Info()
+	_ = info
+	s := make([]string, 0)
+	for k := range m.Info().Fields {
+		s = append(s, k)
+	}
+	return s
+}
+
+func getTaskmanagerOptionalFields() []string {
+	m := &TaskmanagerMeasurement{}
+	info := m.Info()
+	_ = info
+	s := make([]string, 0)
+	for k := range m.Info().Fields {
+		s = append(s, k)
+	}
+	return s
 }
