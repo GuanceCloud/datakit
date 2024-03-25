@@ -35,25 +35,7 @@ ci_lint_and_ut:
     - nvm use v16.14.0
     - make clean
     - make lint AUTO_FIX=off
-    - export UT_EXCLUDE_INTEGRATION_TESTING="on" # disable integration testing.
-    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
-  tags:
-    - cloudcare-ft
-
-# run unit testing and integration-testing
-ci_testing_only:
-  stage: deploy
-  resource_group: production
-  only:
-    - /^ut-.*$/
-  script:
-    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
-    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
-    - make clean
-    - nvm use v16.14.0
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
-    - make # try build basic binaries
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft
 
@@ -68,7 +50,7 @@ test-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft
 
@@ -81,11 +63,9 @@ test-datakit-testing:
   script:
     - nvm use v16.14.0
     - make clean
-    - export UT_EXCLUDE_INTEGRATION_TESTING="off" # enable integration test
-    - export UT_EXCLUDE_HUGE_INTEGRATION_TESTING="off" # enable huge integration testing.
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
     - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft
 

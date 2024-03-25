@@ -73,6 +73,7 @@ func UnitTestDataKit() error {
 
 	if len(UTExclude) > 0 {
 		for _, ex := range strings.Split(UTExclude, ",") {
+			fmt.Printf("package %q excluded\n", ex)
 			excludes[ex] = true
 		}
 	}
@@ -118,11 +119,18 @@ func UnitTestDataKit() error {
 			skipHuge = true
 		}
 	}
+
 	if !skipHuge {
 		nIdx := 0
 		lenHugePkgs := len(hugePackages)
 		for pkg := range hugePackages {
+			if excludes[pkg] {
+				fmt.Printf("Skip huge test %q\n", pkg)
+				continue
+			}
+
 			nIdx++
+			fmt.Printf("run huge test %q\n", pkg)
 			doWork(1, Job{
 				UTID:    utID,
 				Index:   nIdx,
@@ -134,6 +142,8 @@ func UnitTestDataKit() error {
 
 		costHuge := time.Now()
 		fmt.Printf("Huge tests completed, costs = %v, total = %v\n", costHuge.Sub(costNormal), costHuge.Sub(start))
+	} else {
+		fmt.Printf("All huge tests skipped\n")
 	}
 
 	close(addPassedPkgsJobs)
