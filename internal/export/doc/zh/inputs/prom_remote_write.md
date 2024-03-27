@@ -26,6 +26,8 @@ monitor   :
 
 ### 前置条件 {#requirements}
 
+注意，对于 `vmalert` 的一些早期版本，需要在采集器的配置文件中打开设置 `default_content_encoding = "snappy"`。
+
 开启 Prometheus Remote Write 功能，在 *prometheus.yml* 添加如下配置：
 
 ```yml

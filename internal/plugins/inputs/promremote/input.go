@@ -43,21 +43,22 @@ const (
 )
 
 type Input struct {
-	Path            string            `toml:"path"`
-	Methods         []string          `toml:"methods"`
-	DataSource      string            `toml:"data_source"`
-	MaxBodySize     int64             `toml:"max_body_size"`
-	BasicUsername   string            `toml:"basic_username"`
-	BasicPassword   string            `toml:"basic_password"`
-	HTTPHeaderTags  map[string]string `toml:"http_header_tags"`
-	Tags            map[string]string `toml:"tags"`
-	TagsIgnore      []string          `toml:"tags_ignore"`
-	TagsIgnoreRegex []string          `toml:"tags_ignore_regex"`
-	TagsOnly        []string          `toml:"tags_only"`
-	TagsOnlyRegex   []string          `toml:"tags_only_regex"`
-	TagsRename      map[string]string `toml:"tags_rename"`
-	Overwrite       bool              `toml:"overwrite"`
-	Output          string            `toml:"output"`
+	Path                   string            `toml:"path"`
+	Methods                []string          `toml:"methods"`
+	DefaultContentEncoding string            `toml:"default_content_encoding"`
+	DataSource             string            `toml:"data_source"`
+	MaxBodySize            int64             `toml:"max_body_size"`
+	BasicUsername          string            `toml:"basic_username"`
+	BasicPassword          string            `toml:"basic_password"`
+	HTTPHeaderTags         map[string]string `toml:"http_header_tags"`
+	Tags                   map[string]string `toml:"tags"`
+	TagsIgnore             []string          `toml:"tags_ignore"`
+	TagsIgnoreRegex        []string          `toml:"tags_ignore_regex"`
+	TagsOnly               []string          `toml:"tags_only"`
+	TagsOnlyRegex          []string          `toml:"tags_only_regex"`
+	TagsRename             map[string]string `toml:"tags_rename"`
+	Overwrite              bool              `toml:"overwrite"`
+	Output                 string            `toml:"output"`
 
 	Election bool // forever false
 
@@ -289,6 +290,10 @@ func (ipt *Input) writeFile(data []byte) error {
 
 func (ipt *Input) collectBody(res http.ResponseWriter, req *http.Request, srcBuf *bytesWrap) (*bytesWrap, bool) {
 	encoding := req.Header.Get("Content-Encoding")
+
+	if encoding == "" && ipt.DefaultContentEncoding != "" {
+		encoding = ipt.DefaultContentEncoding
+	}
 
 	switch encoding {
 	case "gzip":

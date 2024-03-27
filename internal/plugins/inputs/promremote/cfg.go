@@ -22,6 +22,11 @@ const (
 
   ## accepted methods
   methods = ["PUT", "POST"]
+  
+  ## If the data is decoded incorrectly, you need to set the default HTTP body encoding;
+  ## this usually occurs when the sender does not correctly pass the encoding in the HTTP header.
+  #
+  # default_content_encoding = "snappy"
 
   ## Part of the request to consume.  Available options are "body" and "query".
   # data_source = "body"
