@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/uber/jaeger-client-go/thrift"
@@ -154,7 +155,8 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			}
 		}
 
-		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		t := time.UnixMicro(span.StartTime)
+		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

@@ -81,8 +81,8 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 						spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 					}
 				}
-
-				pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+				t := time.Unix(int64(span.StartTimeUnixNano)/1e9, int64(span.StartTimeUnixNano)%1e9)
+				pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}

@@ -110,8 +110,8 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 			}
 		}
-
-		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		t := time.UnixMilli(span.StartTime)
+		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

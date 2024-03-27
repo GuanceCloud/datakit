@@ -293,8 +293,8 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 			}
 		}
-
-		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		t := time.Unix(span.Start/1e9, span.Start%1e9)
+		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 
