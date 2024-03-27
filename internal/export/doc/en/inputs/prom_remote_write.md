@@ -26,6 +26,8 @@ Monitor Prometheus Remote Write data and report it to Guance Cloud.
 
 ### Preconditions {#requirements}
 
+Note that for some earlier versions of `vmalert`, the setting `default_content_encoding = "snappy"` needs to be turned on in the collector's configuration file.
+
 Turn on the Prometheus Remote Write feature and add the following configuration in Prometheus.yml:
 
 ```yml
