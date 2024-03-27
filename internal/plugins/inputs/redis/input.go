@@ -58,6 +58,11 @@ type Input struct {
 	Service            string        `toml:"service"`
 	Addr               string        `toml:"-"`
 	Port               int           `toml:"port"`
+	TLSOpen            bool          `toml:"tls_open"`
+	CacertFile         string        `toml:"tls_ca"`
+	CertFile           string        `toml:"tls_cert"`
+	KeyFile            string        `toml:"tls_key"`
+	InsecureSkipVerify bool          `toml:"insecure_skip_verify"`
 	DB                 int           `toml:"db"`
 	SocketTimeout      int           `toml:"socket_timeout"`
 	SlowlogMaxLen      int           `toml:"slowlog-max-len"`
@@ -126,13 +131,28 @@ func (ipt *Input) initCfg() error {
 
 	ipt.Addr = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     ipt.Addr,
-		Username: ipt.Username,
-		Password: ipt.Password, // no password set
-		DB:       ipt.DB,       // use default DB
-	})
+	var client *redis.Client
+	if ipt.TLSOpen {
+		tlsConfig, err := tlsConfig(ipt.CacertFile, ipt.CertFile, ipt.KeyFile, ipt.InsecureSkipVerify)
+		if err != nil {
+			return err
+		}
 
+		client = redis.NewClient(&redis.Options{
+			Addr:      ipt.Addr,
+			TLSConfig: tlsConfig,
+			Username:  ipt.Username,
+			Password:  ipt.Password, // no password set
+			DB:        ipt.DB,       // use default DB
+		})
+	} else {
+		client = redis.NewClient(&redis.Options{
+			Addr:     ipt.Addr,
+			Username: ipt.Username,
+			Password: ipt.Password, // no password set
+			DB:       ipt.DB,       // use default DB
+		})
+	}
 	if ipt.SlowlogMaxLen == 0 {
 		ipt.SlowlogMaxLen = 128
 	}

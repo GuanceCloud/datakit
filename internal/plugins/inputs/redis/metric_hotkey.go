@@ -112,6 +112,13 @@ func (ipt *Input) getHotData(ctxKey context.Context, db int) (string, error) {
 		args = append(args, "--user", ipt.Username, "--pass", ipt.Password)
 	}
 
+	if ipt.TLSOpen {
+		args = append(args, "--tls")
+		args = append(args, "--cacert", ipt.CacertFile)
+		args = append(args, "--cert", ipt.CertFile)
+		args = append(args, "--key", ipt.KeyFile)
+	}
+
 	//nolint:gosec
 	c := exec.CommandContext(ctx, args[0], args[1:]...)
 
