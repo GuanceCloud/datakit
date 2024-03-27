@@ -11,6 +11,8 @@ const (
   host = "localhost"
   port = 6379
 
+  ## If tls_open = true, redis-cli version must up 6.0+
+  ## Otherwise, bigkey and hotkey will not be collect
   ## TLS configuration.
   tls_open = false
   # tls_ca = "/opt/ca.crt"
