@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.26.1 (2024/03/27) {#cl-1.26.1}
+
+This release is a hotfix release that addresses the following issues:
+
+- Fixed an issue with Redis not supporting TLS (#2161)
+- Fixed an issue with Trace data timestamps (#2162)
+- Fixed an issue with vmalert writing to Prometheus Remote Write (#2153)
+
+---
+
 ## 1.26.0 (2024/03/20) {#cl-1.26.0}
 
 ### New Features {#cl-1.26.0-new}
