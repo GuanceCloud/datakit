@@ -597,6 +597,12 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		Family:   reportFamily,
 		Format:   reportFormat,
 		Profiler: "pyroscope",
+		Start:    startTime.Format(time.RFC3339Nano),
+		End:      endTime.Format(time.RFC3339Nano),
+		Attachments: []string{
+			withExtName(pyroscopeFilename, ".pprof"),
+		},
+		TagsProfiler: joinMap(report.inputTags),
 	}
 
 	if err := pushProfileData(
@@ -611,6 +617,7 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		},
 		event,
 	); err != nil {
+		log.Errorf("unable to push pyroscope profile data: %s", err)
 		return err
 	}
 
