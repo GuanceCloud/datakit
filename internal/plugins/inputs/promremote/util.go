@@ -48,7 +48,15 @@ func (p *Parser) getNames(metric string) (measurementName, metricName string) {
 	return p.MeasurementPrefix + measurementName, metricName
 }
 
-func (*Parser) getNamesByDefaultRule(metric string) (measurementName, metricName string) {
+func (p *Parser) getNamesByDefaultRule(metric string) (measurementName, metricName string) {
+	for _, r := range p.Measurements {
+		if strings.HasPrefix(metric, r.Prefix) {
+			measurementName = r.Name
+			metricName = strings.TrimPrefix(metric, r.Prefix)
+			return
+		}
+	}
+
 	measurementName, metricName = metric, metric
 	index := strings.Index(metric, "_")
 	if index != -1 {

@@ -49,14 +49,14 @@ const (
   # measurement_name_filter = ["kubernetes", "container"]
 
   ## metric name prefix
-  # prefix will be added to metric name
+  ## prefix will be added to metric name
   # measurement_prefix = "prefix_"
 
   ## metric name
-  # metric name will be divided by "_" by default.
-  # metric is named by the first divided field, the remaining field is used as the current metric name
-  # metric name will not be divided if measurement_name is configured
-  # measurement_prefix will be added to the start of measurement_name
+  ## metric name will be divided by "_" by default.
+  ## metric is named by the first divided field, the remaining field is used as the current metric name
+  ## metric name will not be divided if measurement_name is configured
+  ## measurement_prefix will be added to the start of measurement_name
   # measurement_name = "prom_remote_write"
 
   ## max body size in bytes, default set to 500MB
@@ -93,6 +93,18 @@ const (
   ## If multiple instances of the http header are present, only the first value will be used
   [inputs.prom_remote_write.http_header_tags]
   # HTTP_HEADER = "TAG_NAME"
+
+  ## Customize measurement set name.
+  ## Treat those metrics with prefix as one set.
+  ## Prioritier over 'measurement_name' configuration.
+  ## Must measurement_name = ""
+  [[inputs.prom_remote_write.measurements]]
+    prefix = "etcd_network_"
+    name = "etcd_network"
+    
+  [[inputs.prom_remote_write.measurements]]
+    prefix = "etcd_server_"
+    name = "etcd_server"
 
   ## custom tags
   [inputs.prom_remote_write.tags]
