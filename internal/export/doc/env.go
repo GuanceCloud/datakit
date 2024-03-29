@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+// ENV type.
 const (
 	Int          = "Int"
 	Float        = "Float"
@@ -23,6 +24,16 @@ const (
 	JSON         = "JSON"
 	List         = "List"
 	TimeDuration = "TimeDuration"
+)
+
+// Doc type.
+const (
+	NonInput = "NonInput"
+)
+
+// Required.
+const (
+	Yes = "Yes"
 )
 
 // Help add default info.

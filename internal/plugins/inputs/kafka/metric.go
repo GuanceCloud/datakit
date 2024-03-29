@@ -781,6 +781,7 @@ var controllerTags = map[string]interface{}{
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_controller",
+		Desc:   "In Kafka cluster mode, a unique controller node will be elected, and only the controller node will receive valid metrics.",
 		Fields: controllerFields,
 		Tags:   controllerTags,
 	}

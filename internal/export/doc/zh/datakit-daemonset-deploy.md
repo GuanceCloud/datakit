@@ -259,14 +259,9 @@ spec:
 
 ### 最常用环境变量 {#env-common}
 
-| 环境变量名称                              | 类型        | 默认值 | 必须   | 说明                                                                                                  |
-| ---------:                                | ----:       | ---:   | ------ | ----                                                                                                  |
-| `ENV_DISABLE_PROTECT_MODE`                | bool        | -      | 否     | 禁用「配置保护」模式              |
-| `ENV_DATAWAY`                             | string      | 无     | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                          |
-| `ENV_DEFAULT_ENABLED_INPUTS`              | string-list | 无     | 否     | 默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk` |
-| `ENV_ENABLE_INPUTS` :fontawesome-solid-x: | string-list | 无     | 否     | 同 ENV_DEFAULT_ENABLED_INPUTS，将废弃                                                                 |
-| `ENV_GLOBAL_HOST_TAGS`                    | string-list | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                        |
-| `ENV_GLOBAL_TAGS` :fontawesome-solid-x:   | string-list | 无     | 否     | 同 ENV_GLOBAL_HOST_TAGS，将废弃                                                                       |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envCommon 0}}
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "区分*全局主机 tag* 和*全局选举 tag*"
@@ -284,113 +279,59 @@ spec:
 
 ### Dataway 配置相关环境变量 {#env-dataway}
 
-| 环境变量名称                    | 类型     | 默认值  | 必须   | 说明                                                                                                                                                    |
-| ---------:                      | ----:    | ---:    | ------ | ----                                                                                                                                                    |
-| `ENV_DATAWAY`                   | string   | 无      | 是     | 配置 DataWay 地址，如 `https://openway.guance.com?token=xxx`                                                                                            |
-| `ENV_DATAWAY_TIMEOUT`           | duration | "30s"   | 否     | 配置 DataWay 请求超时                                                                                                                                   |
-| `ENV_DATAWAY_ENABLE_HTTPTRACE`  | bool     | -       | 否     | 开启 DataWay 请求时 HTTP 层面的指标暴露                                                                                                                 |
-| `ENV_DATAWAY_HTTP_PROXY`        | string   | 无      | 否     | 设置 DataWay HTTP 代理                                                                                                                                  |
-| `ENV_DATAWAY_MAX_IDLE_CONNS`    | int      | 无      | 否     | 设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                                                |
-| `ENV_DATAWAY_IDLE_TIMEOUT`      | duration | "90s"   | 否     | 设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）                                                           |
-| `ENV_DATAWAY_MAX_RETRY_COUNT`   | int      | 4       | 否     | 指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)) |
-| `ENV_DATAWAY_RETRY_DELAY`       | duration | "200ms" | 否     | 数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）                                                    |
-| `ENV_DATAWAY_MAX_RAW_BODY_SIZE` | int      | 10MB    | 否     | 数据上传时单包（未压缩）大小                                                                                                                            |
-| `ENV_DATAWAY_CONTENT_ENCODING`  | string   | `v1`    | 否     | 设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）                                                                                |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envDataway 0}}
+<!-- markdownlint-enable -->
 
 ### 日志配置相关环境变量 {#env-log}
 
-| 环境变量名称               | 类型     | 默认值                       | 必须   | 说明                                                                           |
-| -------------------------: | -------: | ---------------------------: | ------ | ---------------------------------------------                                  |
-| `ENV_GIN_LOG`              | string   | */var/log/datakit/gin.log*   | 否     | 如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出               |
-| `ENV_LOG`                  | string   | */var/log/datakit/log*       | 否     | 如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出                    |
-| `ENV_LOG_LEVEL`            | string   | info                         | 否     | 设置 Datakit 自身日志等级，可选 `info/debug`（不区分大小写）                   |
-| `ENV_DISABLE_LOG_COLOR`    | bool     | -                            | 否     | 关闭日志颜色                                                                   |
-| `ENV_LOG_ROTATE_BACKUP`    | int      | 5                            | 否     | 设置最多保留日志分片的个数                                                     |
-| `ENV_LOG_ROTATE_SIZE_MB`   | int      | 32                           | 否     | 日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件 |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envLog 0}}
+<!-- markdownlint-enable -->
 
 ### Datakit pprof 相关 {#env-pprof}
 
-| 环境变量名称                             | 类型   | 默认值 | 必须   | 说明                 |
-| ---------:                               | ----:  | ---:   | ------ | ----                 |
-| `ENV_ENABLE_PPROF` :fontawesome-solid-x: | bool   | 无     | 否     | 是否开启 `pprof`     |
-| `ENV_PPROF_LISTEN`                       | string | 无     | 否     | `pprof` 服务监听地址 |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envPprof 0}}
+<!-- markdownlint-enable -->
 
 > `ENV_ENABLE_PPROF`：[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof。
 
 ### 选举相关环境变量 {#env-elect}
 
-| 环境变量名称                        | 类型        | 默认值    | 必须   | 说明                                                                                                                                                                                       |
-| ---------:                          | ----:       | ---:      | ------ | ----                                                                                                                                                                                       |
-| `ENV_ENABLE_ELECTION`               | bool        | -         | 否     | 开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                                                        |
-| `ENV_NAMESPACE`                     | string      | `default` | 否     | Datakit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                                        |
-| `ENV_ENABLE_ELECTION_NAMESPACE_TAG` | bool        | -         | 否     | 开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)） |
-| `ENV_GLOBAL_ELECTION_TAGS`          | string-list | 无        | 否     | 全局选举 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`。ENV_GLOBAL_ENV_TAGS 将被弃用                                                                                           |
-| `ENV_CLUSTER_NAME_K8S`              | string      | `default` | 否     | Datakit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）|
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envElect 0}}
+<!-- markdownlint-enable -->
 
 ### HTTP/API 相关环境变量 {#env-http-api}
 
-| 环境变量名称                     | 类型        | 默认值            | 必须   | 说明                                                                                                                                                                                                        |
-| ---------:                       | ----:       | ---:              | ------ | ----                                                                                                                                                                                                        |
-| `ENV_DISABLE_404PAGE`            | bool        | -                 | 否     | 禁用 Datakit 404 页面（公网部署 Datakit RUM 时常用）                                                                                                                                                        |
-| `ENV_HTTP_LISTEN`                | string      | localhost:9529    | 否     | 可修改地址，使得外部可以调用 [Datakit 接口](apis.md)                                                                                                                                                           |
-| `ENV_HTTP_PUBLIC_APIS`           | string-list | 无                | 否     | 允许外部访问的 Datakit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 Datakit 部署在公网时，用来禁用部分 API                                                                                             |
-| `ENV_HTTP_TIMEOUT`               | duration    | 30s               | 否     | 设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)                                                     |
-| `ENV_HTTP_CLOSE_IDLE_CONNECTION` | bool        | -                 | 否     | 如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental) |
-| `ENV_REQUEST_RATE_LIMIT`         | float       | 无                | 否     | 限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)                                                                                                                                              |
-| `ENV_RUM_ORIGIN_IP_HEADER`       | string      | `X-Forwarded-For` | 否     | RUM 专用                                                                                                                                                                                                    |
-| `ENV_RUM_APP_ID_WHITE_LIST`      | string      | 无                | 否     | RUM app-id 白名单列表，以 `,` 分割，如 `appid-1,appid-2`                                                                                                                                                    |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envHTTPAPI 0}}
+<!-- markdownlint-enable -->
 
 ### Confd 配置相关环境变量 {#env-confd}
 
-| 环境变量名                     | 类型   | 适用场景                        | 说明                   | 样例值                                         |
-| ----                           | ----   | ----                            | ----                   | ----                                           |
-| `ENV_CONFD_BACKEND`            | string | 全部                            | 后端源类型             | `etcdv3` 或 `zookeeper` 或 `redis` 或 `consul` |
-| `ENV_CONFD_BASIC_AUTH`         | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
-| `ENV_CONFD_CLIENT_CA_KEYS`     | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
-| `ENV_CONFD_CLIENT_CERT`        | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
-| `ENV_CONFD_CLIENT_KEY`         | string | `etcdv3` 或 `consul` 或 `redis` | 可选                   |                                                |
-| `ENV_CONFD_BACKEND_NODES`      | string | 全部                            | 后端源地址             | `["IP:2379","IP2:2379"]` (Nacos 加 `http://`)  |
-| `ENV_CONFD_PASSWORD`           | string | `etcdv3` 或 `consul` 或 `nacos` | 可选                   |                                                |
-| `ENV_CONFD_SCHEME`             | string | `etcdv3` 或 `consul`            | 可选                   |                                                |
-| `ENV_CONFD_SEPARATOR`          | string | `redis`                         | 可选默认 0             |                                                |
-| `ENV_CONFD_USERNAME`           | string | `etcdv3` 或 `consul` 或 `nacos` | 可选                   |                                                |
-| `ENV_CONFD_ACCESS_KEY`         | string | `nacos` 或 `aws`                | 可选                   |                                                |
-| `ENV_CONFD_SECRET_KEY`         | string | `nacos` 或 `aws`                | 可选                   |                                                |
-| `ENV_CONFD_CIRCLE_INTERVAL`    | string | `nacos` 或 `aws`                | 可选                   | 默认 60                                        |
-| `ENV_CONFD_CONFD_NAMESPACE`    | string | `nacos`                         | 配置信息空间 ID        | `6aa36e0e-bd57-4483-9937-e7c0ccf59599`         |
-| `ENV_CONFD_PIPELINE_NAMESPACE` | string | `nacos`                         | `pipeline` 信息空间 ID | `d10757e6-aa0a-416f-9abf-e1e1e8423497`         |
-| `ENV_CONFD_REGION`             | string | `aws`                           | AWS 服务区             | `cn-north-1`                                   |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envConfd 0}}
+<!-- markdownlint-enable -->
 
 ### Git 配置相关环境变量 {#env-git}
 
-| 环境变量名称       | 类型     | 默认值 | 必须   | 说明                                                                                                   |
-| ---------:         | ----:    | ---:   | ------ | ----                                                                                                   |
-| `ENV_GIT_BRANCH`   | string   | 无     | 否     | 指定拉取的分支。**为空则是默认**，默认是远程指定的主分支，一般是 `master`。                |
-| `ENV_GIT_INTERVAL` | duration | 无     | 否     | 定时拉取的间隔。（如 `1m`）                                                                            |
-| `ENV_GIT_KEY_PATH` | string   | 无     | 否     | 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）                                         |
-| `ENV_GIT_KEY_PW`   | string   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
-| `ENV_GIT_URL`      | string   | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envGit 0}}
+<!-- markdownlint-enable -->
 
 ### Sinker 配置相关环境变量 {#env-sinker}
 
-| 环境变量名称                      | 类型   | 默认值 | 必须   | 说明                                                                                                                                 |
-| ---------:                        | ----:  | ---:   | ------ | ----                                                                                                                                 |
-| `ENV_SINKER_GLOBAL_CUSTOMER_KEYS` | string | 无     | 否     | 指定 Sinker 分流的自定义字段列表，各个 Key 之间以英文逗号分割                                                                        |
-| `ENV_DATAWAY_ENABLE_SINKER`       | bool   | -      | 否     | 开启 DataWay 发送数据时的 Sinker 功能（[:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)），该功能需新版本 Dataway 才能生效 |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envSinker 0}}
+<!-- markdownlint-enable -->
 
 ### IO 模块配置相关环境变量 {#env-io}
 
-| 环境变量名称                  | 类型     | 默认值             | 必须   | 说明                                                                          |
-| ---------:                    | ---:     | ---:               | ------ | ----                                                                          |
-| `ENV_IO_FILTERS`              | JSON     | 无                 | 否     | 添加[行协议过滤器](datakit-filter.md)                                         |
-| `ENV_IO_FLUSH_INTERVAL`       | duration | 10s                | 否     | IO 发送时间频率                                                               |
-| `ENV_IO_FEED_CHAN_SIZE`       | int      | 1                  | 否     | IO 发送队列长度（[:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)） |
-| `ENV_IO_FLUSH_WORKERS`        | int      | `cpu_core * 2 + 1` | 否     | IO 发送 worker 数（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)） |
-| `ENV_IO_MAX_CACHE_COUNT`      | int      | 1000               | 否     | 发送 buffer（点数）大小                                                       |
-| `ENV_IO_ENABLE_CACHE`         | bool     | false              | 否     | 是否开启发送失败的磁盘缓存                                                    |
-| `ENV_IO_CACHE_ALL`            | bool     | false              | 否     | 是否 cache 所有发送失败的数据                                                 |
-| `ENV_IO_CACHE_MAX_SIZE_GB`    | int      | 10                 | 否     | 发送失败缓存的磁盘大小（单位 GB）                                             |
-| `ENV_IO_CACHE_CLEAN_INTERVAL` | duration | 5s                 | 否     | 定期发送缓存在磁盘内的失败任务                                                |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envIO 0}}
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "关于 buffer 和 queue 的说明"
@@ -415,19 +356,15 @@ spec:
 
 ### DCA 相关环境变量 {#env-dca}
 
-| 环境变量名称         | 类型   | 默认值         | 必须   | 说明                                                                                                 |
-| ---------:           | ----:  | ---:           | ------ | ----                                                                                                 |
-| `ENV_DCA_LISTEN`     | string | localhost:9531 | 否     | 可修改改地址，使得 [DCA](dca.md) 客户端能管理该 Datakit，一旦开启 ENV_DCA_LISTEN 即默认启用 DCA 功能 |
-| `ENV_DCA_WHITE_LIST` | string | 无             | 否     | 配置 DCA 白名单，以英文逗号分隔                                                                      |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envDca 0}}
+<!-- markdownlint-enable -->
 
 ### Refer Table 有关环境变量 {#env-reftab}
 
-| 环境变量名称                      | 类型   | 默认值 | 必须   | 说明                                                    |
-| ---------:                        | ----:  | ---:   | ------ | ----                                                    |
-| `ENV_REFER_TABLE_URL`             | string | 无     | 否     | 设置数据源 URL                                          |
-| `ENV_REFER_TABLE_PULL_INTERVAL`   | string | 5m     | 否     | 设置数据源 URL 的请求时间间隔                           |
-| `ENV_REFER_TABLE_USE_SQLITE`      | bool   | false  | 否     | 设置是否使用 SQLite 保存数据                            |
-| `ENV_REFER_TABLE_SQLITE_MEM_MODE` | bool   | false  | 否     | 当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式 |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envRefta 0}}
+<!-- markdownlint-enable -->
 
 ### 数据录制有关环境变量 {#env-recorder}
 
@@ -435,25 +372,15 @@ spec:
 
 数据录制相关的功能，参见[这里的文档](datakit-tools-how-to.md#record-and-replay)。
 
-| 环境变量名称              | 类型     | 默认值                      | 必须   | 说明                                                                                                                 |
-| ---------:                | ----:    | ---:                        | ------ | ----                                                                                                                 |
-| `ENV_ENABLE_RECORDER`     | bool     | false                       | 否     | 设置是否开启数据录制                                                                                                 |
-| `ENV_RECORDER_PATH`       | string   | *Datakit 安装目录/recorder* | 否     | 设置数据录制的存放目录                                                                                               |
-| `ENV_RECORDER_ENCODING`   | string   | v2                          | 否     | 设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式                                                             |
-| `ENV_RECORDER_DURATION`   | duration | 30m                         | 否     | 设置数据录制时长（自 Datakit 启动以后），一旦超过该时长，则不再录制                                                  |
-| `ENV_RECORDER_INPUTS`     | string   | 无，默认录制所有采集器数据  | 否     | 设置录制的采集器名称列表，以英文逗号分割，如 `cpu,mem,disk`                                                          |
-| `ENV_RECORDER_CATEGORIES` | string   | 无，默认录制所有数据分类    | 否     | 设置录制的数据分类列表，以英文逗号分割，如 `metric,logging,object`，完整的 Category 列表参见[这里](apis.md#category) |
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envRecorder 0}}
+<!-- markdownlint-enable -->
 
 ### 其它杂项 {#env-others}
 
-| 环境变量名称                    | 类型     | 默认值 | 必须   | 说明                                                       |
-| ---------:                      | ----:    | ---:   | ------ | ----                                                       |
-| `ENV_CLOUD_PROVIDER`            | string   | 无     | 否     | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`) |
-| `ENV_HOSTNAME`                  | string   | 无     | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
-| `ENV_IPDB`                      | string   | 无     | 否     | 指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种       |
-| `ENV_ULIMIT`                    | int      | 无     | 否     | 指定 Datakit 最大的可打开文件数                            |
-| `ENV_PIPELINE_OFFLOAD_RECEIVER`   | string | `datakit-http`| false | 设置 Offload 目标接收器的类型 |
-| `ENV_PIPELINE_OFFLOAD_ADDRESSES`  |string  | 无   | false | 设置 Offload 目标地址|
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envOthers 0}}
+<!-- markdownlint-enable -->
 
 ### 特殊环境变量 {#env-special}
 

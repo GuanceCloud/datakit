@@ -279,7 +279,7 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 			}
 		} else { // non-input docs, but they related to input, we put them to integrations subdir
 			l.Debugf("add non-input doc %q to integration", f.Name())
-			doc, err = buildNonInputDocs(md, i.opt)
+			doc, err = buildNonInputDocs("doc/inputs/"+f.Name(), md, i.opt)
 			if err != nil {
 				return err
 			}

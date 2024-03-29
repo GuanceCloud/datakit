@@ -171,7 +171,7 @@ func (gd *GuanceDocs) exportDatakitDocs(lang inputs.I18n) error {
 			continue
 		}
 
-		doc, err := buildNonInputDocs(md, gd.opt)
+		doc, err := buildNonInputDocs("doc/"+f.Name(), md, gd.opt)
 		if err != nil {
 			l.Errorf("buildNonInputDocs(%q): %s", f.Name(), err)
 			return err
@@ -229,7 +229,7 @@ func (gd *GuanceDocs) exportInputDocs(lang inputs.I18n) error {
 				return err
 			}
 		} else { // non-input docs, but they related to input, we put them to integrations subdir
-			doc, err = buildNonInputDocs(md, gd.opt)
+			doc, err = buildNonInputDocs("doc/inputs/"+f.Name(), md, gd.opt)
 			if err != nil {
 				return err
 			}

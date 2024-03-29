@@ -89,17 +89,19 @@ func WithIgnoreMissing(on bool) option {
 // and command line output.
 type Params struct {
 	// Various fields used to render meta info into markdown documents.
-	InputName         string
-	Catalog           string
-	InputSample       string
-	Version           string
-	InputENVSample    string
-	InputENVSampleZh  string
-	ReleaseDate       string
-	AvailableArchs    string
-	PipelineFuncs     string
-	PipelineFuncsEN   string
-	DatakitConfSample string
+	InputName           string
+	Catalog             string
+	InputSample         string
+	Version             string
+	InputENVSample      string
+	InputENVSampleZh    string
+	NonInputENVSample   map[string]string
+	NonInputENVSampleZh map[string]string
+	ReleaseDate         string
+	AvailableArchs      string
+	PipelineFuncs       string
+	PipelineFuncsEN     string
+	DatakitConfSample   string
 
 	// Measurements used to render metric info into markdown documents.
 	Measurements []*inputs.MeasurementInfo
@@ -175,7 +177,8 @@ func getENVSample(infos []*inputs.ENVInfo, zh bool) string {
 			s = append(s, "    "+"**Type**: "+info.Type+"\n\n")
 		}
 
-		if info.ConfField != "" {
+		// info.DocType == "" --> input doc
+		if info.DocType == "" && info.ConfField != "" {
 			s = append(s, "    "+"**ConfField**: `"+info.ConfField+"`\n\n")
 		}
 
@@ -185,6 +188,10 @@ func getENVSample(infos []*inputs.ENVInfo, zh bool) string {
 
 		if info.Default != "" {
 			s = append(s, "    "+"**Default**: "+info.Default+"\n\n")
+		}
+
+		if info.Required != "" {
+			s = append(s, "    "+"**Required**: "+info.Required+"\n\n")
 		}
 
 		for _, v := range s {
@@ -197,12 +204,20 @@ func getENVSample(infos []*inputs.ENVInfo, zh bool) string {
 }
 
 // buildNonInputDocs render non-inputs docs.
-func buildNonInputDocs(md []byte, opt *exportOptions) ([]byte, error) {
+func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, error) {
 	p := &Params{
-		Version:     opt.version,
-		ReleaseDate: git.BuildAt,
+		Version:             opt.version,
+		ReleaseDate:         git.BuildAt,
+		NonInputENVSample:   make(map[string]string),
+		NonInputENVSampleZh: make(map[string]string),
+		DatakitConfSample:   datakit.DatakitConfSample,
+	}
 
-		DatakitConfSample: datakit.DatakitConfSample,
+	if _, ok := nonInputDocs[fileName]; ok {
+		for contentName, info := range nonInputDocs[fileName] {
+			p.NonInputENVSample[contentName] = getENVSample(info, false)
+			p.NonInputENVSampleZh[contentName] = getENVSample(info, true)
+		}
 	}
 
 	if buf, err := renderBuf(md, p); err != nil {
