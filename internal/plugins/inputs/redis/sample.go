@@ -23,7 +23,7 @@ const (
   # unix_socket_path = "/var/run/redis/redis.sock"
   ## Configure multiple dbs and configure dbs, and the dbs will also be placed in the collection list.
   ## dbs=[] or not configured, all non-empty dbs in Redis will be collected
-  # dbs=[]
+  # dbs=[0]
   # username = "<USERNAME>"
   # password = "<PASSWORD>"
 

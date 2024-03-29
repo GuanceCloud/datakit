@@ -89,6 +89,8 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 - 标签
 
 {{$m.TagsMarkdownTable}}
