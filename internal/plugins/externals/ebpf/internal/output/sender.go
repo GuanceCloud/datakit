@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -154,7 +155,8 @@ func postData(buf []byte, enc point.Encoding, gzip bool,
 		return err
 	}
 
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(buf)))
+	req.Header.Set("Content-Length", strconv.FormatInt(
+		int64((len(buf))), 10))
 	req.Header.Set("Content-Type", enc.HTTPContentType())
 	if gzip {
 		req.Header.Set("Content-Encoding", "gzip")

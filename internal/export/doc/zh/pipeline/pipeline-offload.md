@@ -9,13 +9,18 @@
 
 ## 配置方式
 
-需要在 `datakit.conf` 主配置文件中进行配置开启，配置见下，当前支持的目标 `receiver` 仅有 `datakit-http`，允许配置多个 `DataKit` 地址以实现负载均衡。
+需要在 `datakit.conf` 主配置文件中进行配置开启，配置见下，当前支持的目标 `receiver` 有 `datakit-http` 和 `ploffload`，允许配置多个 `DataKit` 地址以实现负载均衡。
 
 注意：
 
 - 当前只支持卸载**日志（`Logging`）类别**数据的处理任务；
 - **在 `addresses` 配置项中不能填写当前 `DataKit` 的地址**，否则将形成循环，导致数据永远在当前 `DataKit` 中；
 - 请使目标 `DataKit` 的 `DataWay` 配置与当前 `DataKit` 一致，否则数据接受方发送到其 `DataWay` 地址；
+- 若将 `receiver` 配置为 `ploffload` ，接收端的 DataKit 需要开启的 `ploffload` 采集器。
+
+> 请检查目标网络地址是否可以在本机访问，如目标监听的是环回地址则无法访问
+
+参考配置：
 
 ```txt
 [pipeline]
@@ -23,6 +28,19 @@
   # Offload data processing tasks to post-level data processors.
   [pipeline.offload]
     receiver = "datakit-http"
+    addresses = [
+      # "http://<ip>:<port>"
+    ]
+```
+
+若接收端 DataKit 开启 `ploffload` 采集器，可配置为：
+
+```txt
+[pipeline]
+
+  # Offload data processing tasks to post-level data processors.
+  [pipeline.offload]
+    receiver = "ploffload"
     addresses = [
       # "http://<ip>:<port>"
     ]
