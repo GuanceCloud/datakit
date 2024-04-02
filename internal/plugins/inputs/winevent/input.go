@@ -44,15 +44,46 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (ipt *Input) Init() {
+	// init cache
+	defaultDuration := 30 * time.Second
+	ipt.handleCache = newHandleCache(defaultDuration, 10, func(s string, eh EvtHandle) {
+		if eh != NilHandle {
+			_EvtClose(eh) // nolint:errcheck
+		}
+	})
+
+	ipt.mergedTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
+
+	if ipt.subscribeFlag == 0 {
+		ipt.subscribeFlag = EvtSubscribeToFutureEvents
+	}
+
+	ipt.handleCache.StartCleanWorker(defaultDuration)
+
+	if ipt.EventFetchSize <= 0 {
+		ipt.EventFetchSize = defaultEventFetchSize
+	}
+}
+
 func (ipt *Input) Run() {
-	l = logger.SLogger("win event log")
+	l = logger.SLogger(inputName)
 	var err error
+
+	ipt.Init()
 
 	ipt.subscription, err = ipt.evtSubscribe("", ipt.Query)
 	if err != nil {
-		dkio.FeedLastError(inputName, err.Error())
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+			dkio.WithLastErrorCategory(point.Logging))
 		return
 	}
+	defer func() {
+		if ipt.handleCache != nil {
+			ipt.handleCache.StopCleanWorker()
+		}
+	}()
 
 	for {
 		select {
@@ -65,15 +96,16 @@ func (ipt *Input) Run() {
 			return
 
 		default:
-			time.Sleep(time.Millisecond * 1)
 			start := time.Now()
 			events, err := ipt.fetchEvents(ipt.subscription)
 			if err != nil {
 				if errors.Is(err, ErrorNoMoreItems) {
 					continue
 				}
-				l.Error(err.Error())
-				dkio.FeedLastError(inputName, err.Error())
+				l.Errorf("fetch events failed: %s", err.Error())
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Logging))
 				return
 			}
 			for _, event := range events {
@@ -84,8 +116,10 @@ func (ipt *Input) Run() {
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithInputName(inputName),
 				); err != nil {
-					l.Error(err.Error())
-					dkio.FeedLastError(inputName, err.Error())
+					l.Errorf("feed error: %s", err.Error())
+					ipt.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Logging))
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}
@@ -100,14 +134,11 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) handleEvent(event Event) {
+	var kvs point.KVs
 	ts, err := time.Parse(time.RFC3339Nano, event.TimeCreated.SystemTime)
 	if err != nil {
 		l.Error(err.Error())
 		ts = time.Now()
-	}
-	tags := map[string]string{}
-	for k, v := range ipt.Tags {
-		tags[k] = v
 	}
 
 	msg, err := json.Marshal(event)
@@ -115,30 +146,29 @@ func (ipt *Input) handleEvent(event Event) {
 		l.Error(err.Error())
 		return
 	}
-	fields := map[string]interface{}{
-		"event_source":    event.Source.Name,
-		"event_id":        event.EventID,
-		"version":         event.Version,
-		"task":            event.TaskText,
-		"keyword":         event.Keywords,
-		"event_record_id": event.EventRecordID,
-		"process_id":      int(event.Execution.ProcessID),
-		"channel":         event.Channel,
-		"computer":        event.Computer,
-		"message":         event.Message,
-		"level":           event.LevelText,
-		"total_message":   string(msg),
-		"status":          ipt.getEventStatus(event.Level),
-	}
+
+	kvs = kvs.Add("event_source", event.Source.Name, false, true)
+	kvs = kvs.Add("event_id", event.EventID, false, true)
+	kvs = kvs.Add("version", event.Version, false, true)
+	kvs = kvs.Add("task", event.TaskText, false, true)
+	kvs = kvs.Add("keyword", event.Keywords, false, true)
+	kvs = kvs.Add("event_record_id", event.EventRecordID, false, true)
+	kvs = kvs.Add("process_id", int(event.Execution.ProcessID), false, true)
+	kvs = kvs.Add("channel", event.Channel, false, true)
+	kvs = kvs.Add("computer", event.Computer, false, true)
+	kvs = kvs.Add("message", event.Message, false, true)
+	kvs = kvs.Add("level", event.LevelText, false, true)
+	kvs = kvs.Add("total_message", string(msg), false, true)
+	kvs = kvs.Add("status", ipt.getEventStatus(event.Level), false, true)
 
 	opts := point.CommonLoggingOptions()
 	opts = append(opts, point.WithTime(ts))
 
-	tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
+	for k, v := range ipt.mergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
 
-	pt := point.NewPointV2("windows_event",
-		append(point.NewTags(tags), point.NewKVs(fields)...),
-		opts...)
+	pt := point.NewPointV2("windows_event", kvs, opts...)
 
 	ipt.collectCache = append(ipt.collectCache, pt)
 }
@@ -171,7 +201,7 @@ func (ipt *Input) evtSubscribe(logName, xquery string) (EvtHandle, error) {
 	}
 
 	subsHandle, err := _EvtSubscribe(0, uintptr(sigEvent), logNamePtr, xqueryPtr,
-		0, 0, 0, EvtSubscribeToFutureEvents)
+		0, 0, 0, ipt.subscribeFlag)
 	if err != nil {
 		return 0, err
 	}
@@ -183,7 +213,7 @@ func (ipt *Input) fetchEventHandles(subsHandle EvtHandle) ([]EvtHandle, error) {
 	var eventsNumber uint32
 	var evtReturned uint32
 
-	eventsNumber = 5
+	eventsNumber = ipt.EventFetchSize
 
 	eventHandles := make([]EvtHandle, eventsNumber)
 
@@ -246,46 +276,49 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 		return event, nil //nolint:nilerr
 	}
 
-	publisherHandle, err := openPublisherMetadata(0, event.Source.Name, 0)
-	if err != nil {
-		return event, nil //nolint:nilerr
+	var publisherHandle EvtHandle
+
+	if v := ipt.handleCache.Get(event.Source.Name); v == NilHandle {
+		handle, err := openPublisherMetadata(0, event.Source.Name, 0)
+		if err != nil {
+			return event, nil //nolint:nilerr
+		}
+
+		publisherHandle = handle
+		ipt.handleCache.Put(event.Source.Name, handle)
+	} else {
+		publisherHandle = v
 	}
-	defer _EvtClose(publisherHandle) // nolint:errcheck
 
 	// Populating text values
 	keywords, err := formatEventString(EvtFormatMessageKeyword, eventHandle, publisherHandle)
 	if err == nil {
 		event.Keywords = keywords
-	} else {
-		l.Warn(err)
 	}
+
 	message, err := formatEventString(EvtFormatMessageEvent, eventHandle, publisherHandle)
 	if err == nil {
 		if len(message) > 1024*1024 { // max 1 MB
 			message = message[0 : 1024*1024]
 		}
 		event.Message = message
-	} else {
-		l.Warn(err)
 	}
+
 	level, err := formatEventString(EvtFormatMessageLevel, eventHandle, publisherHandle)
 	if err == nil {
 		event.LevelText = level
-	} else {
-		l.Warn(err)
 	}
+
 	task, err := formatEventString(EvtFormatMessageTask, eventHandle, publisherHandle)
 	if err == nil {
 		event.TaskText = task
-	} else {
-		l.Warn(err)
 	}
+
 	opcode, err := formatEventString(EvtFormatMessageOpcode, eventHandle, publisherHandle)
 	if err == nil {
 		event.OpcodeText = opcode
-	} else {
-		l.Warn(err)
 	}
+
 	return event, nil
 }
 

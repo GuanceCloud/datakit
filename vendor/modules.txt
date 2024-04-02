@@ -176,6 +176,9 @@ github.com/acomagu/bufpipe
 # github.com/aliyun/aliyun-oss-go-sdk v3.0.1+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
+# github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
+## explicit
+github.com/andrewkroh/sys/windows/svc/eventlog
 # github.com/antchfx/xmlquery v1.3.18
 ## explicit; go 1.14
 github.com/antchfx/xmlquery

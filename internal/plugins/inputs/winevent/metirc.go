@@ -37,6 +37,10 @@ var (
     </Query>
   </QueryList>
   '''
+
+  # event_fetch_size is the number of events to fetch per query.
+  event_fetch_size = 5
+
   [inputs.windows_event.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"

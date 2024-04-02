@@ -9,74 +9,199 @@
 package winevent
 
 import (
-	"encoding/json"
-	"fmt"
+	"bytes"
+	"math/rand"
+	"os/exec"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/andrewkroh/sys/windows/svc/eventlog"
+	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func TestRun(t *testing.T) {
-	bufferSize := 1 << 14
-	w := Input{
-		buf: make([]byte, bufferSize),
-	}
-	w.Query = query
+const (
+	providerName = "WinlogbeatTestGo"
+	sourceName   = "Integration Test"
+	gigabyte     = 1 << 30
 
-	w.Run()
+	eventCreateMsgFile = "%SystemRoot%\\System32\\EventCreate.exe"
+)
+
+var testQuery = `<QueryList>
+    <Query Id="0" Path="WinlogbeatTestGo">
+        <Select Path="WinlogbeatTestGo">*</Select>
+    </Query>
+</QueryList>`
+
+// mockFeeder implements Feeder interface
+type mockFeeder struct {
+	ptsNumber int
+	semStop   *cliutils.Sem
+	maxNumber int
 }
 
-func TestHandle(t *testing.T) {
-	msg := `{
-    "Source":{
-        "Name":"Microsoft-Windows-Security-Auditing"
-    },
-    "EventID":4624,
-    "Version":2,
-    "Level":0,
-    "Task":12544,
-    "Opcode":0,
-    "Keywords":"审核成功",
-    "TimeCreated":{
-        "SystemTime":"2021-06-15T11:33:59.981585000Z"
-    },
-    "EventRecordID":10771,
-    "Correlation":{
-        "ActivityID":"{2161fd5e-61c8-0001-cbfd-6121c861d701}",
-        "RelatedActivityID":""
-    },
-    "Execution":{
-        "ProcessID":632,
-        "ThreadID":676,
-        "ProcessName":""
-    },
-    "Channel":"Security",
-    "Computer":"MSEDGEWIN10",
-    "Security":{
-        "UserID":""
-    },
-    "UserData":{
-        "InnerXML":null
-    },
-    "EventData":{
-        "InnerXML":"PERhdGEgTmFtZT0nU3ViamVjdFVzZXJTaWQnPlMtMS01LTE4PC9EYXRhPjxEYXRhIE5hbWU9J1N1YmplY3RVc2VyTmFtZSc+TVNFREdFV0lOMTAkPC9EYXRhPjxEYXRhIE5hbWU9J1N1YmplY3REb21haW5OYW1lJz5XT1JLR1JPVVA8L0RhdGE+PERhdGEgTmFtZT0nU3ViamVjdExvZ29uSWQnPjB4M2U3PC9EYXRhPjxEYXRhIE5hbWU9J1RhcmdldFVzZXJTaWQnPlMtMS01LTE4PC9EYXRhPjxEYXRhIE5hbWU9J1RhcmdldFVzZXJOYW1lJz5TWVNURU08L0RhdGE+PERhdGEgTmFtZT0nVGFyZ2V0RG9tYWluTmFtZSc+TlQgQVVUSE9SSVRZPC9EYXRhPjxEYXRhIE5hbWU9J1RhcmdldExvZ29uSWQnPjB4M2U3PC9EYXRhPjxEYXRhIE5hbWU9J0xvZ29uVHlwZSc+NTwvRGF0YT48RGF0YSBOYW1lPSdMb2dvblByb2Nlc3NOYW1lJz5BZHZhcGkgIDwvRGF0YT48RGF0YSBOYW1lPSdBdXRoZW50aWNhdGlvblBhY2thZ2VOYW1lJz5OZWdvdGlhdGU8L0RhdGE+PERhdGEgTmFtZT0nV29ya3N0YXRpb25OYW1lJz4tPC9EYXRhPjxEYXRhIE5hbWU9J0xvZ29uR3VpZCc+ezAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMH08L0RhdGE+PERhdGEgTmFtZT0nVHJhbnNtaXR0ZWRTZXJ2aWNlcyc+LTwvRGF0YT48RGF0YSBOYW1lPSdMbVBhY2thZ2VOYW1lJz4tPC9EYXRhPjxEYXRhIE5hbWU9J0tleUxlbmd0aCc+MDwvRGF0YT48RGF0YSBOYW1lPSdQcm9jZXNzSWQnPjB4MjcwPC9EYXRhPjxEYXRhIE5hbWU9J1Byb2Nlc3NOYW1lJz5DOlxXaW5kb3dzXFN5c3RlbTMyXHNlcnZpY2VzLmV4ZTwvRGF0YT48RGF0YSBOYW1lPSdJcEFkZHJlc3MnPi08L0RhdGE+PERhdGEgTmFtZT0nSXBQb3J0Jz4tPC9EYXRhPjxEYXRhIE5hbWU9J0ltcGVyc29uYXRpb25MZXZlbCc+JSUxODMzPC9EYXRhPjxEYXRhIE5hbWU9J1Jlc3RyaWN0ZWRBZG1pbk1vZGUnPi08L0RhdGE+PERhdGEgTmFtZT0nVGFyZ2V0T3V0Ym91bmRVc2VyTmFtZSc+LTwvRGF0YT48RGF0YSBOYW1lPSdUYXJnZXRPdXRib3VuZERvbWFpbk5hbWUnPi08L0RhdGE+PERhdGEgTmFtZT0nVmlydHVhbEFjY291bnQnPiUlMTg0MzwvRGF0YT48RGF0YSBOYW1lPSdUYXJnZXRMaW5rZWRMb2dvbklkJz4weDA8L0RhdGE+PERhdGEgTmFtZT0nRWxldmF0ZWRUb2tlbic+JSUxODQyPC9EYXRhPg=="
-    },
-    "Message":"已成功登录帐户。",
-    "LevelText":"信息",
-    "TaskText":"Logon",
-    "OpcodeText":"信息"
-}`
-	e := Event{}
-	err := json.Unmarshal([]byte(msg), &e)
-	if err != nil {
-		l.Error(err.Error())
-		return
+func (m *mockFeeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*io.Option) error {
+	m.ptsNumber += len(pts)
+	if m.maxNumber <= m.ptsNumber {
+		m.semStop.Close()
 	}
-	c := Input{}
-	c.handleEvent(e)
-	for _, v := range c.collectCache {
-		if line, err := v.LineProto(); err != nil {
-			l.Error(err.Error())
-		} else {
-			fmt.Println(line.String())
+
+	return nil
+}
+
+func (m *mockFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+	m.ptsNumber += len(pts)
+	if m.maxNumber <= m.ptsNumber {
+		m.semStop.Close()
+	}
+
+	return nil
+}
+
+func (m *mockFeeder) FeedLastError(err string, opts ...io.LastErrorOption) {}
+
+func TestEventlog(t *testing.T) {
+	writer, teardown := createLog(t)
+	defer teardown()
+
+	setLogSize(t, providerName, gigabyte)
+	go func() {
+		// Publish large test messages.
+		const messageSize = 256 // Originally 31800, such a large value resulted in an empty eventlog under Win10.
+		const totalEvents = 5000
+		for i := 0; i < totalEvents; i++ {
+			safeWriteEvent(t, writer, eventlog.Info, uint32(i%1000)+1, []string{strconv.Itoa(i) + " " + randomSentence(messageSize)})
+		}
+	}()
+
+	semStop := cliutils.NewSem()
+	feeder := &mockFeeder{
+		semStop:   semStop,
+		maxNumber: 5000,
+	}
+	input := &Input{
+		buf:            make([]byte, 1<<14),
+		Query:          testQuery,
+		semStop:        semStop,
+		feeder:         feeder,
+		EventFetchSize: 100,
+		subscribeFlag:  EvtSubscribeStartAtOldestRecord,
+		Tagger:         datakit.DefaultGlobalTagger(),
+	}
+
+	input.Run()
+
+	assert.Equal(t, 5000, feeder.ptsNumber)
+}
+
+// ---- Utility Functions -----
+// refer to https://github.com/elastic/beats/blob/main/winlogbeat/eventlog/wineventlog_test.go#L333
+
+// createLog creates a new event log and returns a handle for writing events
+// to the log.
+func createLog(t testing.TB, messageFiles ...string) (log *eventlog.Log, tearDown func()) {
+	const name = providerName
+	const source = sourceName
+
+	messageFile := eventCreateMsgFile
+	if len(messageFiles) > 0 {
+		messageFile = strings.Join(messageFiles, ";")
+	}
+
+	existed, err := eventlog.Install(name, source, messageFile, true, eventlog.Error|eventlog.Warning|eventlog.Info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if existed {
+		EvtClearLog(NilHandle, name, "") //nolint:errcheck // This is just a resource release.
+	}
+
+	log, err = eventlog.Open(source)
+	//nolint:errcheck // This is just a resource release.
+	if err != nil {
+		eventlog.RemoveSource(name, source)
+		eventlog.RemoveProvider(name)
+		t.Fatal(err)
+	}
+
+	//nolint:errcheck // This is just a resource release.
+	tearDown = func() {
+		log.Close()
+		EvtClearLog(NilHandle, name, "")
+		eventlog.RemoveSource(name, source)
+		eventlog.RemoveProvider(name)
+	}
+
+	return log, tearDown
+}
+
+func safeWriteEvent(t testing.TB, log *eventlog.Log, etype uint16, eid uint32, msgs []string) {
+	deadline := time.Now().Add(time.Second * 10)
+	for {
+		err := log.Report(etype, eid, msgs)
+		if err == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Failed to write event to event log", err)
+			return
 		}
 	}
+}
+
+// setLogSize set the maximum number of bytes that an event log can hold.
+func setLogSize(t testing.TB, provider string, sizeBytes int) {
+	output, err := exec.Command("wevtutil.exe", "sl", "/ms:"+strconv.Itoa(sizeBytes), provider).CombinedOutput() //nolint:gosec // No possibility of command injection.
+	if err != nil {
+		t.Fatal("Failed to set log size", err, string(output))
+	}
+}
+
+var randomWords = []string{
+	"recover",
+	"article",
+	"highway",
+	"bargain",
+	"trolley",
+	"college",
+	"attract",
+	"wriggle",
+	"feather",
+	"neutral",
+	"percent",
+	"quality",
+	"manager",
+	"hunting",
+	"arrange",
+}
+
+func randomSentence(n uint) string {
+	buf := bytes.NewBuffer(make([]byte, n))
+	buf.Reset()
+
+	for {
+		idx := rand.Uint32() % uint32(len(randomWords))
+		word := randomWords[idx]
+
+		if buf.Len()+len(word) <= buf.Cap() {
+			buf.WriteString(randomWords[idx])
+		} else {
+			break
+		}
+
+		if buf.Len()+1 <= buf.Cap() {
+			buf.WriteByte(' ')
+		} else {
+			break
+		}
+	}
+
+	return buf.String()
 }

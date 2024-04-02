@@ -74,6 +74,7 @@ var (
 	procEvtNext                  = modwevtapi.NewProc("EvtNext")
 	procEvtFormatMessage         = modwevtapi.NewProc("EvtFormatMessage")
 	procEvtOpenPublisherMetadata = modwevtapi.NewProc("EvtOpenPublisherMetadata")
+	procEvtClearLog              = modwevtapi.NewProc("EvtClearLog")
 )
 
 func _EvtSubscribe(session EvtHandle, signalEvent uintptr,
@@ -168,6 +169,14 @@ func _EvtOpenPublisherMetadata(session EvtHandle, publisherIdentity *uint16, log
 		} else {
 			err = syscall.EINVAL
 		}
+	}
+	return
+}
+
+func _EvtClearLog(session EvtHandle, channelPath *uint16, targetFilePath *uint16, flags uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procEvtClearLog.Addr(), 4, uintptr(session), uintptr(unsafe.Pointer(channelPath)), uintptr(unsafe.Pointer(targetFilePath)), uintptr(flags), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
 	}
 	return
 }
