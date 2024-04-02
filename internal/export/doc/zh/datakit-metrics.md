@@ -36,12 +36,13 @@ datakit_cpu_usage 4.9920266849857144
 |SUMMARY|`datakit_election_seconds`|`namespace,status`|Election latency|
 |GAUGE|`datakit_goroutine_alive`|`name`|Alive Goroutine count|
 |COUNTER|`datakit_goroutine_stopped_total`|`name`|Stopped Goroutine count|
+|COUNTER|`datakit_goroutine_crashed_total`|`name`|Crashed goroutines count|
 |GAUGE|`datakit_goroutine_groups`|`N/A`|Goroutine group count|
 |SUMMARY|`datakit_goroutine_cost_seconds`|`name`|Goroutine running duration|
 |SUMMARY|`datakit_http_api_elapsed_seconds`|`api,method,status`|API request cost|
 |SUMMARY|`datakit_http_api_req_size_bytes`|`api,method,status`|API request body size|
 |COUNTER|`datakit_http_api_total`|`api,method,status`|API request counter|
-|GAUGE|`datakit_http_api_global_tags_last_updated`|`api,method,status`|Global tag updated timestamp|
+|GAUGE|`datakit_http_api_global_tags_last_updated`|`api,method,status`|Global tag updated timestamp, in second|
 |COUNTER|`datakit_httpcli_tcp_conn_total`|`from,remote,type`|HTTP TCP connection count|
 |COUNTER|`datakit_httpcli_conn_reused_from_idle_total`|`from`|HTTP connection reused from idle count|
 |SUMMARY|`datakit_httpcli_conn_idle_time_seconds`|`from`|HTTP connection idle time|
@@ -85,7 +86,7 @@ datakit_cpu_usage 4.9920266849857144
 |GAUGE|`datakit_cpu_usage`|`N/A`|Datakit CPU usage(%)|
 |GAUGE|`datakit_open_files`|`N/A`|Datakit open files(only available on Linux)|
 |GAUGE|`datakit_cpu_cores`|`N/A`|Datakit CPU cores|
-|GAUGE|`datakit_uptime_seconds`|`auto_update,docker,hostname,lite,resource_limit,version=?,build_at=?,branch=?,os_arch=?`|Datakit uptime|
+|GAUGE|`datakit_uptime_seconds`|`auto_update,docker,hostname,lite,resource_limit,build_at=?,branch=?,os_arch=?,version=?`|Datakit uptime|
 |GAUGE|`datakit_data_overuse`|`N/A`|Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)|
 |COUNTER|`datakit_process_ctx_switch_total`|`type`|Datakit process context switch count(Linux only)|
 |COUNTER|`datakit_process_io_count_total`|`type`|Datakit process IO count|
@@ -95,8 +96,9 @@ datakit_cpu_usage 4.9920266849857144
 |SUMMARY|`datakit_kubernetes_collect_resource_cost_seconds`|`category,kind,fieldselector`|Kubernetes collect resource cost|
 |COUNTER|`datakit_kubernetes_collect_pts_total`|`category`|Kubernetes collect point total|
 |COUNTER|`datakit_kubernetes_pod_metrics_query_total`|`target`|Kubernetes query pod metrics count|
-|SUMMARY|`datakit_container_collect_cost_seconds`|`category`|Container collect cost|
-|COUNTER|`datakit_container_collect_pts_total`|`category`|Container collect point total|
+|SUMMARY|`datakit_input_container_collect_cost_seconds`|`category`|Container collect cost|
+|COUNTER|`datakit_input_container_collect_pts_total`|`category`|Container collect point total|
+|SUMMARY|`datakit_input_container_total_collect_cost_seconds`|`category`|Total container collect cost|
 |SUMMARY|`datakit_dialtesting_task_exec_time_interval_seconds`|`region,protocol`|Task execution time interval|
 |GAUGE|`datakit_dialtesting_worker_job_chan_number`|`type`|The number of the channel for the jobs|
 |GAUGE|`datakit_dialtesting_worker_job_number`|`N/A`|The number of the jobs to send data in parallel|

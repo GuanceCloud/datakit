@@ -11,9 +11,12 @@ import (
 )
 
 var (
-	goroutineGroups     p8s.Gauge
-	goroutineCostVec    *p8s.SummaryVec
-	goroutineStoppedVec *p8s.CounterVec
+	goroutineGroups  p8s.Gauge
+	goroutineCostVec *p8s.SummaryVec
+
+	goroutineStoppedVec,
+	GoroutineCrashedVec *p8s.CounterVec
+
 	goroutineCounterVec *p8s.GaugeVec
 )
 
@@ -36,6 +39,18 @@ func metricsSetup() {
 			Subsystem: "goroutine",
 			Name:      "stopped_total",
 			Help:      "Stopped Goroutine count",
+		},
+		[]string{
+			"name",
+		},
+	)
+
+	GoroutineCrashedVec = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "goroutine",
+			Name:      "crashed_total",
+			Help:      "Crashed goroutines count",
 		},
 		[]string{
 			"name",
@@ -68,6 +83,7 @@ func metricsSetup() {
 		goroutineCostVec,
 		goroutineCounterVec,
 		goroutineStoppedVec,
+		GoroutineCrashedVec,
 	)
 }
 
