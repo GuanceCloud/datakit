@@ -9,13 +9,18 @@ You can use DataKit's Pipeline Offload function to reduce high data latency and 
 
 ## Configuration Method
 
-It needs to be configured and enabled in the `datakit.conf` main configuration file. See below for the configuration. The currently supported target `receiver` is only `datakit-http`, which allows multiple `DataKit` addresses to be configured to achieve load balancing.
+It needs to be configured and enabled in the `datakit.conf` main configuration file. See below for the configuration. Currently supported targets `receiver` are `datakit-http` and `ploffload`, which allows multiple `DataKit` addresses to be configured to achieve load balancing.
 
 Notice:
 
 - Currently only supports unloading **logging (`Logging`) category** data processing tasks;
 - **The address of the current `DataKit` cannot be filled in the `addresses` configuration item**, otherwise a loop will be formed, causing the data to always be in the current `DataKit`;
 - Please make the `DataWay` configuration of the target `DataKit` consistent with the current `DataKit`, otherwise the data recipient sends to its `DataWay` address;
+- If `receiver` is configured as `ploffload`, the DataKit on the receiving end needs to have the `ploffload` collector enabled.
+
+> Please check whether the target network address is locally accessible. The target cannot be reached if it is listening on the loopback address.
+
+Reference configuration:
 
 ```txt
 [pipeline]
@@ -23,6 +28,19 @@ Notice:
   # Offload data processing tasks to post-level data processors.
   [pipeline.offload]
     receiver = "datakit-http"
+    addresses = [
+      # "http://<ip>:<port>"
+    ]
+```
+
+If the receiving end DataKit turns on the `ploffload` collector, it can be configured as:
+
+```txt
+[pipeline]
+
+  # Offload data processing tasks to post-level data processors.
+  [pipeline.offload]
+    receiver = "ploffload"
     addresses = [
       # "http://<ip>:<port>"
     ]

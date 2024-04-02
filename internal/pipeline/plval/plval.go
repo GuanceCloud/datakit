@@ -17,13 +17,13 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/pipeline"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/refertable"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
 )
 
 var (
@@ -113,6 +113,7 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 ) error {
 	l = logger.SLogger("pipeline")
 
+	offload.InitLog()
 	pipeline.InitLog()
 
 	// load grok pattern
@@ -171,7 +172,12 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 	// init offload
 	if cfg != nil && cfg.Offload != nil && cfg.Offload.Receiver != "" &&
 		len(cfg.Offload.Addresses) != 0 {
-		if wkr, err := offload.NewOffloader(cfg.Offload); err != nil {
+		offloadCfg := &offload.OffloadConfig{
+			Receiver:  cfg.Offload.Receiver,
+			Addresses: cfg.Offload.Addresses,
+		}
+
+		if wkr, err := offload.NewOffloader(offloadCfg); err != nil {
 			l.Errorf("init offload worker, error: %v", err)
 		} else {
 			SetOffload(wkr)

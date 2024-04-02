@@ -70,6 +70,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/opentelemetry"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/oracle"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/pinpoint"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ploffload"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/postgresql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile"

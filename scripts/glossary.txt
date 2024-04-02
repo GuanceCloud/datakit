@@ -76,6 +76,7 @@ ODBC
 OpenSSL
 OpenTelemetry
 OpenTracing
+PlOffload
 POSTGRESQL
 Paho
 PostgreSQL
