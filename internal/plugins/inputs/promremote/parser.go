@@ -14,13 +14,15 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/model"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
+	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
 type Parser struct {
-	MetricNameFilter      []string `toml:"metric_name_filter"`
-	MeasurementNameFilter []string `toml:"measurement_name_filter"`
-	MeasurementPrefix     string   `toml:"measurement_prefix"`
-	MeasurementName       string   `toml:"measurement_name"`
+	MetricNameFilter      []string     `toml:"metric_name_filter"`
+	MeasurementNameFilter []string     `toml:"measurement_name_filter"`
+	MeasurementPrefix     string       `toml:"measurement_prefix"`
+	MeasurementName       string       `toml:"measurement_name"`
+	Measurements          []iprom.Rule `toml:"measurements"`
 
 	metricNameReFilter      []*regexp.Regexp
 	measurementNameReFilter []*regexp.Regexp
