@@ -9,6 +9,7 @@ __debug_bin*
 bin
 .suite.json
 .vscode/
+*.test
 *-packr.go
 *.ak
 *.bak

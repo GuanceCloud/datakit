@@ -166,7 +166,7 @@ func (s *systemd) Install() error {
 		PIDFile              string
 		LimitNOFILE          int
 		Restart              string
-		CPUQuota			 string
+		CPUQuota             string
 		MemoryLimit          string
 		StartLimitInterval   int
 		StartLimitBurst      int
