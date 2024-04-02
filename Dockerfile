@@ -7,13 +7,15 @@ RUN mkdir -p /usr/local/datakit \
   && mkdir -p /usr/local/datakit/externals \
   && mkdir -p /opt/oracle
 
-COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
-
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
   && apt-get update \
-  && apt-get --no-install-recommends install -y redis-tools libaio-dev libaio1 unzip wget curl python3 python3-pip libxml2 alien \
+  && apt-get --no-install-recommends install -y lsb-release gpg libaio-dev libaio1 unzip wget curl python3 python3-pip libxml2 alien \
   && pip3 install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
-  && rm -rf /var/lib/apt/lists/*
+  && curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg \
+  && echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | \
+    tee /etc/apt/sources.list.d/redis.list \
+  && apt-get update \
+  && apt-get --no-install-recommends install -y redis-tools
 
 # download 3rd party libraries
 RUN \
@@ -62,5 +64,7 @@ RUN \
 # download data files required by datakit
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
   && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
+
+COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 CMD ["/usr/local/datakit/datakit", "run", "-C"]
