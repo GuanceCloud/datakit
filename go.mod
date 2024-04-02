@@ -351,6 +351,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
+	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/cilium/ebpf v0.11.0
 	github.com/google/gopacket v0.0.0-00010101000000-000000000000
 	github.com/grafana/pyroscope/ebpf v0.2.1

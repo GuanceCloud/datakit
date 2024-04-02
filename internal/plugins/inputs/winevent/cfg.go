@@ -21,6 +21,8 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
+const defaultEventFetchSize = 100
+
 var (
 	l = logger.DefaultSLogger(inputName)
 	// nolint:lll
@@ -45,16 +47,22 @@ var (
 )
 
 type Input struct {
-	Query string            `toml:"xpath_query"`
-	Tags  map[string]string `toml:"tags,omitempty"`
+	Query          string            `toml:"xpath_query"`
+	EventFetchSize uint32            `toml:"event_fetch_size"`
+	Tags           map[string]string `toml:"tags,omitempty"`
 
 	subscription EvtHandle
 	buf          []byte
 	collectCache []*point.Point
 
-	semStop *cliutils.Sem // start stop signal
-	feeder  dkio.Feeder
-	Tagger  datakit.GlobalTagger
+	handleCache *handleCache
+
+	mergedTags map[string]string
+
+	semStop       *cliutils.Sem // start stop signal
+	feeder        dkio.Feeder
+	Tagger        datakit.GlobalTagger
+	subscribeFlag EvtSubscribeFlag
 }
 
 type Event struct {
