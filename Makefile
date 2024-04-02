@@ -159,7 +159,8 @@ define pub_ebpf
 	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-release $(1)             \
 		-upload-addr $(2)         \
-		-archs $(3)               \
+		-download-cdn $(3)        \
+		-archs $(4)               \
 		-pub-ebpf                 \
 		-pub-dir $(PUB_DIR)       \
 		-name $(NAME_EBPF)        \
@@ -237,15 +238,18 @@ pub_local: deps
 
 pub_ebpf_local: deps
 	$(call build_bin, local, $(LOCAL_ARCHS), $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN))
-	$(call pub_ebpf, local, $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
+	$(call pub_ebpf, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
+
+pub_ebpf_local_nobuild: deps
+	$(call pub_ebpf, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
 
 pub_epbf_testing: deps
 	$(call build_bin, testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
-	$(call pub_ebpf, testing, $(TESTING_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
+	$(call pub_ebpf, testing, $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
 
 pub_ebpf_production: deps
-	$(call build_bin, production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_DOWNLOAD_CDN), $(TESTING_DOWNLOAD_CDN))
-	$(call pub_ebpf, production, $(PRODUCTION_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
+	$(call build_bin, production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
+	$(call pub_ebpf, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
 
 testing_notify: deps
 	$(call notify_build, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
