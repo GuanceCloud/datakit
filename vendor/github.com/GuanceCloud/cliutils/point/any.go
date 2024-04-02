@@ -13,6 +13,20 @@ import (
 	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
+var (
+	// EnableMixedArrayField and EnableDictField used to allow mix-typed array and dict/map
+	// value in point field.
+	//
+	// Currently, GuanceDB backend do NOT support mix-typed array and dict.
+	EnableMixedArrayField = false
+	EnableDictField       = false
+)
+
+const (
+	ArrayFieldType = "type.googleapis.com/point.Array"
+	DictFieldType  = "type.googleapis.com/point.Map"
+)
+
 // MustAnyRaw get underlying wrapped value, and panic if any error.
 func MustAnyRaw(x *anypb.Any) any {
 	res, err := AnyRaw(x)
@@ -25,10 +39,18 @@ func MustAnyRaw(x *anypb.Any) any {
 
 // AnyRaw get underlying wrapped value within anypb.
 func AnyRaw(x *anypb.Any) (any, error) {
+	if x == nil {
+		return nil, fmt.Errorf("nil value")
+	}
+
 	switch x.TypeUrl {
-	case "type.googleapis.com/point.Array":
+	case ArrayFieldType:
 		var arr Array
 		if err := proto.Unmarshal(x.Value, &arr); err != nil {
+			return nil, err
+		}
+
+		if err := checkMixTypedArray(&arr); err != nil {
 			return nil, err
 		}
 
@@ -54,7 +76,11 @@ func AnyRaw(x *anypb.Any) (any, error) {
 
 		return res, nil
 
-	case "type.googleapis.com/point.Map":
+	case DictFieldType:
+		if !EnableDictField {
+			return nil, fmt.Errorf("dict/map field value not allowed")
+		}
+
 		var m Map
 		if err := proto.Unmarshal(x.Value, &m); err != nil {
 			return nil, err
@@ -223,7 +249,7 @@ func NewArray(ents ...any) (arr *Array, err error) {
 		Arr: make([]*BasicTypes, 0, len(ents)),
 	}
 
-	for _, v := range ents {
+	for idx, v := range ents {
 		switch x := v.(type) {
 		case int8:
 			arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_I{int64(x)}})
@@ -258,11 +284,30 @@ func NewArray(ents ...any) (arr *Array, err error) {
 		case nil:
 			arr.Arr = append(arr.Arr, nil)
 		default:
-			return nil, fmt.Errorf("unknown type %q within array", reflect.TypeOf(v).String())
+			return nil, fmt.Errorf("unknown element type %q(index: %d) within array",
+				reflect.TypeOf(v).String(), idx)
 		}
 	}
 
+	if err := checkMixTypedArray(arr); err != nil {
+		return nil, err
+	}
+
 	return arr, nil
+}
+
+func checkMixTypedArray(arr *Array) error {
+	if !EnableMixedArrayField && len(arr.Arr) > 1 { // check if array elements are same type
+		firstElemType := reflect.TypeOf(arr.Arr[0].X).String()
+		for idx, elem := range arr.Arr[1:] {
+			if et := reflect.TypeOf(elem.X).String(); et != firstElemType {
+				return fmt.Errorf("mixed type elements found in array([0]: %s <> [%d]: %s)",
+					firstElemType, idx+1, et)
+			}
+		}
+	}
+
+	return nil
 }
 
 // MustNewMap create map value that can be used in point field, and panic if any error.
@@ -277,6 +322,10 @@ func MustNewMap(ents map[string]any) *Map {
 
 // NewMap create map value that can be used in point field.
 func NewMap(ents map[string]any) (dict *Map, err error) {
+	if !EnableDictField {
+		return nil, fmt.Errorf("dict/map field value not allowed")
+	}
+
 	dict = &Map{
 		Map: map[string]*BasicTypes{},
 	}

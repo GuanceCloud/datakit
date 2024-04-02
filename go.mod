@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
-	github.com/GuanceCloud/cliutils v0.1.10-0.20240124054513-d26866f36645
+	github.com/GuanceCloud/cliutils v0.1.11
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.3
 	github.com/GuanceCloud/platypus v0.2.9
@@ -330,7 +330,7 @@ require (
 	k8s.io/client-go v0.25.0
 	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/cri-api v0.20.6
-	k8s.io/klog/v2 v2.80.1 // indirect
+	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
 	k8s.io/metrics v0.20.5
 	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85 // indirect
@@ -380,7 +380,7 @@ replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
-	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.1-rc3
+	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4
 
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
 	github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e

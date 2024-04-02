@@ -539,7 +539,6 @@ func (t *HTTPTask) init(debug bool) error {
 	}
 
 	if opt != nil {
-
 		if opt.RequestOptions != nil {
 			// check FollowRedirect
 			if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348

@@ -108,24 +108,25 @@ func newCfg() *cfg {
 }
 
 func (c *cfg) reset() {
-	c.maxMeasurementLen = 1024
-	c.maxTags = 256
-	c.enc = DefaultEncoding
-	c.maxFields = 1024
-	c.precision = NS
-	c.maxTagKeyLen = defaultKeyLen
-	c.maxFieldKeyLen = defaultKeyLen
-	c.precheck = true
+	c.callback = nil
+	c.disabledKeys = nil
+	c.enableDotInKey = true
 	c.enableStrField = true
 	c.enableU64Field = true
-	c.enableDotInKey = true
+	c.enc = DefaultEncoding
+	c.extraTags = nil
+	c.maxFieldKeyLen = defaultKeyLen
+	c.maxFieldValLen = defaultMaxFieldValLen
+	c.maxFields = 1024
+	c.maxMeasurementLen = 1024
+	c.maxTagKeyLen = defaultKeyLen
 	c.maxTagKeyValComposeLen = 64 * 1024
 	c.maxTagValLen = 1024
-	c.maxFieldValLen = defaultMaxFieldValLen
-	c.extraTags = nil
-	c.disabledKeys = nil
+	c.maxTags = 256
+	c.precheck = true
+	c.precision = NS
 	c.requiredKeys = nil
-	c.callback = nil
+	c.t = time.Time{}
 }
 
 func WithMaxKVComposeLen(n int) Option   { return func(c *cfg) { c.maxTagKeyValComposeLen = n } }
