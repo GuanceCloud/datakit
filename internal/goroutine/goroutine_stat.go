@@ -7,10 +7,7 @@ package goroutine
 
 import (
 	"fmt"
-	"sync"
 	"time"
-
-	"github.com/GuanceCloud/cliutils/logger"
 )
 
 // StatInfo represents each group statistic info.
@@ -21,51 +18,6 @@ type StatInfo struct {
 	MaxCostTime time.Duration `json:"max_cost_time"`
 	ErrCount    int64         `json:"err_count"`
 	totalJobs   int64         // total jobs containing non-finished jobs
-}
-
-// stat cache the group statistic info.
-var (
-	stat = make(map[string]*StatInfo)
-	mu   sync.Mutex
-
-	log = logger.DefaultSLogger("goroutine")
-)
-
-// Option provides the setup of a group.
-type Option struct {
-	Name         string
-	PanicCb      func([]byte) bool
-	PanicTimes   int8
-	PanicTimeout time.Duration
-}
-
-var defaultPanicCallback = func(buf []byte) bool {
-	log.Errorf("recover panic: %s", string(buf))
-	return true
-}
-
-// NewGroup create a custom group.
-func NewGroup(option Option) *Group {
-	log = logger.SLogger("goroutine")
-
-	name := "default"
-	if len(option.Name) > 0 {
-		name = option.Name
-	}
-	g := &Group{
-		name:         name,
-		panicCb:      option.PanicCb,
-		panicTimes:   option.PanicTimes,
-		panicTimeout: option.PanicTimeout,
-	}
-
-	if g.panicCb == nil {
-		g.panicCb = defaultPanicCallback
-	}
-
-	goroutineGroups.Inc()
-
-	return g
 }
 
 // RunningStatInfo represents each running group information.

@@ -12,6 +12,16 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/logger"
+)
+
+// stat cache the group statistic info.
+var (
+	stat = make(map[string]*StatInfo)
+	mu   sync.Mutex
+
+	log = logger.DefaultSLogger("goroutine")
 )
 
 // A Group is a collection of goroutines working on subtasks that are part of
@@ -34,6 +44,42 @@ type Group struct {
 	errOnce    sync.Once
 	workerOnce sync.Once
 	panicTimes int8 // max panic times
+}
+
+// Option provides the setup of a group.
+type Option struct {
+	Name         string
+	PanicCb      func([]byte) bool
+	PanicTimes   int8
+	PanicTimeout time.Duration
+}
+
+// NewGroup create a custom group.
+func NewGroup(option Option) *Group {
+	log = logger.SLogger("goroutine")
+
+	name := "default"
+	if len(option.Name) > 0 {
+		name = option.Name
+	}
+	g := &Group{
+		name:         name,
+		panicCb:      option.PanicCb,
+		panicTimes:   option.PanicTimes,
+		panicTimeout: option.PanicTimeout,
+	}
+
+	if g.panicCb == nil {
+		g.panicCb = func(crashStack []byte) bool {
+			log.Errorf("recover panic: %s", string(crashStack))
+			GoroutineCrashedVec.WithLabelValues(name).Inc()
+			return true
+		}
+	}
+
+	goroutineGroups.Inc()
+
+	return g
 }
 
 // WithContext create a Group.

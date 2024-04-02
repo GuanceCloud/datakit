@@ -332,7 +332,9 @@ func SetLog() {
 // G create a goroutine group, with namespace datakit.
 func G(name string) *goroutine.Group {
 	panicCb := func(b []byte) bool {
-		l.Errorf("%s", b)
+		l.Errorf("recover panic: %s", string(b))
+		goroutine.GoroutineCrashedVec.WithLabelValues(name).Inc()
+
 		select {
 		case <-Exit.Wait(): // don't continue when exit
 			return false

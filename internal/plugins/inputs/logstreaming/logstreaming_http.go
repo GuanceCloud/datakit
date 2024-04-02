@@ -100,6 +100,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		logPtOpt = point.DefaultLoggingOptions()
 		plopt    *plmanager.Option
 		pts      []*point.Point
+		now      = time.Now()
 	)
 
 	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
@@ -173,7 +174,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 					}
 
 					if ts == 0 {
-						ts = time.Now().UnixNano()
+						ts = now.UnixNano()
 					}
 
 					pt := point.NewPointV2(source, kvs, append(
@@ -187,17 +188,13 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		}
 
 		if !decJSON {
-			var ts int64
 			var kvs point.KVs
 			kvs = kvs.Add(pipeline.FieldMessage, string(body), false, true)
-			if ts == 0 {
-				ts = time.Now().UnixNano()
-			}
 
 			pts = append(pts, point.NewPointV2(source, kvs, append(
 				logPtOpt,
 				point.WithExtraTags(extraTags),
-				point.WithTime(time.Unix(0, ts)))...),
+				point.WithTime(now))...),
 			)
 		}
 
@@ -208,10 +205,9 @@ func (ipt *Input) processLogBody(param *parameters) error {
 
 			kvs = kvs.Add(pipeline.FieldMessage, scanner.Text(), false, true)
 			kvs = kvs.Add(pipeline.FieldStatus, pipeline.DefaultStatus, false, true)
-
-			pts = append(pts,
-				point.NewPointV2(source, kvs,
-					append(logPtOpt, point.WithExtraTags(extraTags))...))
+			pt := point.NewPointV2(source, kvs,
+				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...)
+			pts = append(pts, pt)
 		}
 	}
 
