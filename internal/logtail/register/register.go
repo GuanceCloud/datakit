@@ -9,6 +9,7 @@ package register
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 )
 
-const defaultFlushFactor = 32
+var defaultFlushFactor = 512
 
 type MetaData struct {
 	Source string `json:"source"`
@@ -45,49 +46,46 @@ type Register interface {
 type register struct {
 	Data map[string]*MetaData `json:"history"`
 
-	file        string
-	count       int // set count
-	flushFactor int
+	encoder *json.Encoder
+	file    *os.File
+	count   int // set count
 
 	mu sync.Mutex
 }
 
-func MustNewRegisterFile(file string) (Register, error) {
-	return newRegister(file, true)
+func NewRegisterFile(file string) (Register, error) {
+	return newRegister(file)
 }
 
 var l = logger.DefaultSLogger("register")
 
-func newRegister(file string, force bool) (*register, error) {
+func newRegister(file string) (*register, error) {
 	l = logger.SLogger("register")
 
-	var r *register
-	var err error
-
-	func() {
-		b, readErr := os.ReadFile(filepath.Clean(file))
-		if readErr != nil {
-			err = readErr
-			return
-		}
-		r, err = parse(b)
-	}()
-
+	f, err := os.OpenFile(filepath.Clean(file), os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
-		l.Warnf("init register error: %s", err)
-		if force {
-			l.Info("create new register file")
-			r = &register{}
-		} else {
-			return nil, err
-		}
+		l.Warnf("failed of open register file: %s", err)
+		return nil, err
+	}
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		l.Warnf("read register error: %s", err)
+		return nil, err
+	}
+
+	r, err := parse(data)
+	if err != nil {
+		l.Infof("parse err %s, create new register", err)
+		r = &register{}
 	}
 
 	if r.Data == nil {
 		r.Data = make(map[string]*MetaData)
 	}
-	r.file = filepath.Clean(file)
-	r.flushFactor = defaultFlushFactor
+	r.file = f
+	r.encoder = json.NewEncoder(f)
+	r.encoder.SetEscapeHTML(false)
 	r.mu = sync.Mutex{}
 
 	return r, nil
@@ -101,16 +99,14 @@ func (r *register) Flush() error {
 }
 
 func (r *register) flush() error {
-	if r.count != 0 {
-		b, err := json.Marshal(r)
+	if r.count != 0 && r.encoder != nil {
+		_, err := r.file.Seek(0, io.SeekStart)
 		if err != nil {
-			return fmt.Errorf("unable build matedata, err %w", err)
+			return fmt.Errorf("failed of reset file, err %w", err)
 		}
-
-		if err := os.WriteFile(r.file, b, 0o600); err != nil {
-			return fmt.Errorf("failed to write file, err %w", err)
+		if err := r.encoder.Encode(r); err != nil {
+			return fmt.Errorf("failed of encode, err %w", err)
 		}
-
 		r.count = 0
 	}
 	return nil
@@ -122,7 +118,7 @@ func (r *register) Set(key string, value *MetaData) error {
 
 	r.Data[key] = value
 	r.count++
-	if r.count%r.flushFactor == 0 {
+	if r.count%defaultFlushFactor == 0 {
 		return r.flush()
 	}
 

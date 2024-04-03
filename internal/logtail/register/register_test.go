@@ -15,11 +15,6 @@ import (
 )
 
 func TestNewRegister(t *testing.T) {
-	t.Run("nonexisting", func(t *testing.T) {
-		_, err := newRegister("nonexisting", false)
-		assert.Error(t, err)
-	})
-
 	t.Run("parse err", func(t *testing.T) {
 		file, err := os.CreateTemp("", "")
 		assert.NoError(t, err)
@@ -28,8 +23,8 @@ func TestNewRegister(t *testing.T) {
 		_, err = file.WriteString("NO JSON")
 		assert.NoError(t, err)
 
-		_, err = newRegister(file.Name(), false)
-		assert.Error(t, err)
+		_, err = newRegister(file.Name())
+		assert.NoError(t, err)
 	})
 
 	t.Run("ok", func(t *testing.T) {
@@ -41,7 +36,7 @@ func TestNewRegister(t *testing.T) {
 		_, err = file.WriteString(content)
 		assert.NoError(t, err)
 
-		_, err = newRegister(file.Name(), false)
+		_, err = newRegister(file.Name())
 		assert.NoError(t, err)
 	})
 }
@@ -65,9 +60,9 @@ func TestSetAndGet(t *testing.T) {
 	})
 
 	globalRegister = &register{
-		Data:        map[string]*MetaData{},
-		flushFactor: 2,
+		Data: map[string]*MetaData{},
 	}
+	defaultFlushFactor = 2
 
 	t.Run("global set", func(t *testing.T) {
 		inKey := "key"
@@ -97,7 +92,7 @@ func TestFlush(t *testing.T) {
 	assert.NoError(t, err)
 
 	// new register
-	r, err := newRegister(file.Name(), false)
+	r, err := newRegister(file.Name())
 	assert.NoError(t, err)
 
 	err = r.Set("key", &MetaData{Source: "source", Offset: 100})

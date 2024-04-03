@@ -186,8 +186,6 @@ func (t *Single) recordingCache() {
 		t.opt.log.Debugf("recording cache %s err: %s", c, err)
 		return
 	}
-
-	t.opt.log.Debugf("recording cache %s success", c)
 }
 
 func (t *Single) recordingLastCache() {
@@ -201,8 +199,6 @@ func (t *Single) recordingLastCache() {
 		t.opt.log.Debugf("recording last cache %s err: %s", c, err)
 		return
 	}
-
-	t.opt.log.Debugf("recording last cache %s success", c)
 }
 
 func (t *Single) closeFile() {

@@ -12,12 +12,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	prometheusclientv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	prometheusmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	guancev1beta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"k8s.io/client-go/kubernetes"
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -26,8 +28,6 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	statsv1alpha1 "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
-
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 type Client interface {
@@ -98,6 +98,7 @@ func NewKubernetesClientFromBearerTokenString(baseURL, token string) (Client, er
 		},
 		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
 	}
+
 	return newKubernetesClient(restConfig)
 }
 
@@ -140,7 +141,17 @@ type client struct {
 	prometheusMonitoringV1 *prometheusclientv1.Clientset
 }
 
+var doOnce sync.Once
+
 func newKubernetesClient(restConfig *rest.Config) (*client, error) {
+	var err error
+	doOnce.Do(func() {
+		err = guancev1beta1.AddToScheme(clientsetscheme.Scheme)
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -148,9 +159,6 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 
 	guanceClient, err := guancev1beta1.NewForConfig(restConfig)
 	if err != nil {
-		return nil, err
-	}
-	if err := guancev1beta1.AddToScheme(clientsetscheme.Scheme); err != nil {
 		return nil, err
 	}
 
