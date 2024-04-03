@@ -19,12 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
+	"github.com/dustin/go-humanize"
 	"github.com/pyroscope-io/pyroscope/pkg/util/file"
 	hostutil "github.com/shirou/gopsutil/host"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type datakitInfo struct {
@@ -51,47 +53,40 @@ func (info *datakitInfo) clean() error {
 }
 
 func (info *datakitInfo) collect() error {
-	num := 1
-	cp.Infof("%d. collect log files\n", num)
+	cp.Infof("collect log files...\n")
 	if err := info.collectLog(); err != nil {
 		cp.Warnf("collect log files error: %s\n", err.Error())
 	}
-	num++
 
-	cp.Infof("%d. collect config files\n", num)
+	cp.Infof("collect config files...\n")
 	if err := info.collectConfig(); err != nil {
 		cp.Warnf("collect config files error: %s\n", err.Error())
 	}
-	num++
 
-	cp.Infof("%d. collect data files\n", num)
+	cp.Infof("collect data files...\n")
 	if err := info.collectData(); err != nil {
 		cp.Warnf("collect data files error: %s\n", err.Error())
 	}
-	num++
 
-	cp.Infof("%d. collect basic information\n", num)
+	cp.Infof("collect basic information...\n")
 	if err := info.collectInfo(); err != nil {
 		cp.Warnf("collect basic information error: %s\n", err.Error())
 	}
-	num++
 
-	if !*flagDebugDisableProfile {
-		cp.Infof("%d. collect profile\n", num)
+	if !*flagDebugBugreportDisableProfile {
+		cp.Infof("collect profile...\n")
 		if err := info.collectProfile(); err != nil {
 			cp.Warnf("collect profile data error: %s, ignored\n", err.Error())
 		}
-		num++
 	}
 
-	cp.Infof("%d. collect metrics\n", num)
-	if err := info.collectMetrics(); err != nil {
+	cp.Infof("collect metrics...\n")
+	if err := info.collectMetrics(*flagDebugBugreportNMetrics); err != nil {
 		cp.Warnf("collect metrics error: %s\n", err.Error())
 	}
-	num++
 
 	if runtime.GOOS == "linux" {
-		cp.Infof("%d. collect systemd log\n", num)
+		cp.Infof("collect systemd log...\n")
 		if err := info.collectSystemdLog(); err != nil {
 			cp.Warnf("collect systemd log error: %s\n", err.Error())
 		}
@@ -126,19 +121,25 @@ func (info *datakitInfo) collectSystemdLog() error {
 	return err
 }
 
-func (info *datakitInfo) collectMetrics() error {
+func (info *datakitInfo) collectMetrics(round int) error {
 	metricsDir, err := info.makeDir("metrics")
 	if err != nil {
 		return err
 	}
+
 	errMsg := ""
+
 	defer func() {
 		if len(errMsg) > 0 {
 			info.errList = append(info.errList, fmt.Sprintf("Collect metrics error: \n%s", errMsg))
 		}
 	}()
+
 	dkHost := config.Cfg.HTTPAPI.Listen
-	for i := 0; i < 3; i++ {
+
+	for i := 0; i < round; i++ {
+		cp.Infof("    round %d/%d...\n", i+1, round)
+
 		if i != 0 {
 			time.Sleep(5 * time.Second)
 		}
@@ -580,10 +581,49 @@ func bugReport() error {
 		}
 	}
 
-	if zipPath, err := infoInstance.compressDir(); err != nil {
+	var (
+		zipPath string
+		err     error
+	)
+
+	if zipPath, err = infoInstance.compressDir(); err != nil {
 		cp.Errorf("compress zip file failed: %s\n", err.Error())
 	} else {
-		cp.Infof("DataKit info saved into %s\n", zipPath)
+		cp.Infof("bug report saved to %s\n", zipPath)
+	}
+
+	yy, mm, dd := time.Now().Date()
+
+	if *flagDebugBugreportOSS != "" {
+		arr := strings.SplitN(*flagDebugBugreportOSS, ":", 4)
+		if len(arr) != 4 {
+			return fmt.Errorf("object storage info missing, we need format host:bucket:ak:sk")
+		}
+
+		// OSS path must use `/' as dir separator. filepath.Join use `\` under windows.
+		to := fmt.Sprintf("datakit-bugreport/%s/%s",
+			fmt.Sprintf("%d-%02d-%02d", yy, mm, dd),
+			cliutils.XID("dkbr_")+".zip")
+
+		oc := &cliutils.OssCli{
+			Host:       arr[0],
+			PartSize:   512 * 1024 * 1024,
+			BucketName: arr[1],
+			AccessKey:  arr[2],
+			SecretKey:  arr[3],
+		}
+
+		if err := oc.Init(); err != nil {
+			return fmt.Errorf("init OSS client: %w", err)
+		}
+
+		cp.Infof("uploading %s...\n", zipPath)
+		if err := oc.Upload(zipPath, to); err != nil {
+			return fmt.Errorf("oss upload: %w", err)
+		} else {
+			cp.Infof("download URL(size: %s):\n\t%s\n", humanize.SI(float64(oc.UploadedBytes), ""),
+				fmt.Sprintf("https://%s.%s/%s", oc.BucketName, oc.Host, to))
+		}
 	}
 
 	return nil

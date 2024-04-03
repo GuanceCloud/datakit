@@ -262,17 +262,42 @@ After running the command, all log files in the log directory are packaged and c
 When troubleshooting issues with DataKit, it is necessary to manually collect various relevant information such as logs, configuration files, profile data and monitoring data. This process can be cumbersome. To simplify this process, DataKit provides a command that can retrieve all the relevant information at once and package it into a file. Usage is as follows:
 
 ```shell
-datakit debug --bug-report
+$ datakit debug --bug-report
+...
 ```
 
-This command will collect profile data by default which may have a certain performance impact on DataKit. And you can disable collecting profile data by running command ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)):
+<!-- markdownlint-disable MD046 -->
+???+ tip
 
+    - By default, the command will collect profile data, which may have a certain performance impact on DataKit. You can disable the collection of profile data with the following command ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)):
+    
+    ```shell
+    $ datakit debug --bug-report --disable-profile
+    ```
+    
+    After successful execution, a zip file will be generated in the current directory, named in the format `info-<timestamp_in_milliseconds>.zip`.
+    
+    - If you have public internet access, you can directly upload the file to OSS to avoid the hassle of file copying ([:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)):
+    
+    ```shell hl_lines="7"
+    # Make sure to fill in the _correct_ OSS address/Bucket name and the corresponding AS/SK here
+    $ datakit debug --bug-report --oss OSS_HOST:OSS_BUCKET:OSS_ACCESS_KEY:OSS_SECRET_KEY
+    ...
+    bug report saved to info-1711794736881.zip
+    uploading info-1711794736881.zip...
+    download URL(size: 1.394224 M):
+        https://oss_bucket.oss_host/datakit-bugreport/2024-03-30/dkbr_co3v2375mqs8u82aa6sg.zip
+    ```
+    
+    Simply provide us with the link address at the bottom.(Ensure that the files in OSS are publicly accessible, otherwise the link will not be able to download directly.)
+    
+    - By default, the bug report will collect 3 times of DataKit's own metrics, and you can adjust the number of times with the `--nmetrics` option ([:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)):
+    
+    ```shell
+    $ datakit debug --bug-report --nmetrics 10
+    ```
+<!-- markdownlint-enable -->
 
-```shell
-datakit debug --bug-report --disable-profile
-```
-
-After successful execution, a zip file will be generated in the current directory with the naming format of `info-<timestamp in milliseconds>.zip`.
 
 The list of files is as follows:
 

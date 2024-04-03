@@ -289,14 +289,40 @@ $ datakit debug --bug-report
 ...
 ```
 
-默认情况下，该命令会收集 profile 数据，这可能会对 DataKit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
+<!-- markdownlint-disable MD046 -->
+???+ tip
 
-```shell
-$ datakit debug --bug-report --disable-profile
-...
-```
 
-执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
+    - 默认情况下，该命令会收集 profile 数据，这可能会对 DataKit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
+    
+    ```shell
+    $ datakit debug --bug-report --disable-profile
+    ```
+    
+    执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
+    
+    - 如果有公网访问，可以直接将文件上传到 OSS，避免麻烦的文件拷贝（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
+    
+    
+    ```shell hl_lines="7"
+    # 此处*必须填上*正确的 OSS 地址/Bucket 名称以及对应的 AS/SK
+    $ datakit debug --bug-report --oss OSS_HOST:OSS_BUCKET:OSS_ACCESS_KEY:OSS_SECRET_KEY
+    ...
+    bug report saved to info-1711794736881.zip
+    uploading info-1711794736881.zip...
+    download URL(size: 1.394224 M):
+        https://OSS_BUCKET.OSS_HOST/datakit-bugreport/2024-03-30/dkbr_co3v2375mqs8u82aa6sg.zip
+    ```
+    
+    将底部的链接地址贴给我们即可（请确保 OSS 中的文件是公网可访问的，否则该链接无法直接下载）。
+    
+    
+    - 默认情况下，bug report 会收集 3 次 Datakit 自身指标，可以通过 `--nmetrics` 调整这里的次数（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
+    
+    ```shell
+    $ datakit debug --bug-report --nmetrics 10
+    ```
+<!-- markdownlint-enable -->
 
 解压后的文件列表参考如下：
 
