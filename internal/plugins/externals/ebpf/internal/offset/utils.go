@@ -642,7 +642,7 @@ type OffsetTmp struct {
 	CTReplyTuple  uint64 `json:"offset_reply_tuple"`
 }
 
-func DumpOffset(offsetC OffsetGuessC) (string, error) {
+func dumpOffset(offsetC OffsetGuessC) (string, error) {
 	offset := OffsetTmp{
 		SkNum:           uint64(offsetC.offset_sk_num),
 		InetSport:       uint64(offsetC.offset_inet_sport),
@@ -680,7 +680,7 @@ func DumpOffset(offsetC OffsetGuessC) (string, error) {
 	}
 }
 
-func LoadOffset(str string) (OffsetGuessC, error) {
+func loadOffset(str string) (OffsetGuessC, error) {
 	offset := &OffsetTmp{}
 	if err := json.NewDecoder(strings.NewReader(str)).Decode(offset); err != nil {
 		return OffsetGuessC{}, err

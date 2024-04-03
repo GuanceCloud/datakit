@@ -15,6 +15,11 @@ ifeq ($(MACHINE_ARCH),amd64)
 		GO_ARCH := amd64
 endif
 
+DKE_ARCH    := linux/$(GO_ARCH)
+DKE_VERSION := $(shell git describe --tags)
+DKE_COMMIT  := $(shell git rev-parse --short HEAD)
+DKE_DATE    := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
 ARGS ?= ""
 
 SRCPATH ?= .
@@ -120,10 +125,9 @@ bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
 	llvm-strip $(EBPF_BIN_PATH)/*.o --no-strip-all -R .rel.BTF.ext
 
 build: bindata
-	go build -tags="ebpf" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go 
-	# go build -tags="ebpf" -ldflags "-w -s" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go 
-
-
+	go build -tags="ebpf" -ldflags "-w -s \
+		-X 'main.Arch=${DKE_ARCH}' \
+        -X 'main.Date=${DKE_DATE}'" -o $(OUT_PATH) $(SRC_PATH)/cmd/datakit-ebpf/datakit-ebpf.go
 
 clean:
 	rm -r $(OUT_PATH)

@@ -12,7 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
 	"github.com/shirou/gopsutil/host"
-	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 	"golang.org/x/net/context"
 )
@@ -252,7 +252,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 
 // Receive all connections collected in one cycle and send them to DataKit.
 func (tracer *NetFlowTracer) feedHandler(datakitPostURL string, pts []*point.Point, gzip bool) {
-	if err := dkout.FeedPoint(datakitPostURL, pts, gzip); err != nil {
+	if err := exporter.FeedPoint(datakitPostURL, pts, gzip); err != nil {
 		l.Debug(err)
 	}
 }

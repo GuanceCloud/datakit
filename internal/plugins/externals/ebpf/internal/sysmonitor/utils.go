@@ -16,10 +16,10 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 )
 
-var l = logger.DefaultSLogger("ebpf")
+var log = logger.DefaultSLogger("ebpf")
 
 func SetLogger(nl *logger.Logger) {
-	l = nl
+	log = nl
 }
 
 func diff(old, cur map[string]struct{}) (map[string]struct{}, map[string]struct{}) {

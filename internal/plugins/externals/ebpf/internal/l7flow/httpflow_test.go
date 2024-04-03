@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package httpflow
+package l7flow
 
 import (
 	"strconv"

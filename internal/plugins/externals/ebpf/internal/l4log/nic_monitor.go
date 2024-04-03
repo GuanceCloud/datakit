@@ -348,7 +348,7 @@ func ListContainersAndHostNetNS(containerdCtr internalapi.RuntimeService,
 	if containerdCtr != nil {
 		ctrs, err := containerdCtr.ListContainers(nil)
 		if err != nil {
-			log.Errorf("get containerd containers: %w", err)
+			log.Errorf("get containerd containers: %s", err.Error())
 		}
 		for _, c := range ctrs {
 			resp, err := containerdCtr.ContainerStatus(c.Id, true)

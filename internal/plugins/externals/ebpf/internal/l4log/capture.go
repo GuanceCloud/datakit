@@ -15,8 +15,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 	"golang.org/x/sys/unix"
 )
@@ -77,7 +77,8 @@ type PValue struct {
 
 	tcpInfo TCPLog
 
-	httpInfo HTTPLog
+	httpInfo  HTTPLog
+	http2Info HTTP2Log
 
 	lastGetTS int64
 }
@@ -111,8 +112,9 @@ type TCPConns struct {
 	ctrID string
 	nsUID string
 
-	agg     FlowAggTCP
-	aggHTTP FlowAggHTTP
+	agg      FlowAggTCP
+	aggHTTP  FlowAggHTTP
+	aggHTTP2 FlowAggHTTP
 
 	stop chan struct{}
 
@@ -188,6 +190,7 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, b
 				recEstab: true,
 			},
 		},
+		http2Info: *NewH2Log(),
 	}
 	if id, ok := genID128(); ok {
 		// set conn innter traceid
@@ -315,6 +318,8 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 
 	if pktVal.tcpInfo.tcpStatusRec.tcpStatus == TCPEstablished || tcpPayloadSize > 0 {
 		_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
+			pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
+		pktVal.http2Info.Handle(txRx, payload, tcpPayloadSize, ln, k,
 			pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
 	}
 
@@ -608,7 +613,7 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				pts := conns.agg.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
-					if err := output.FeedPoint(conns.aggURL, pts, false); err != nil {
+					if err := exporter.FeedPoint(conns.aggURL, pts, false); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 					}
 				}
@@ -621,7 +626,7 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				pts := conns.aggHTTP.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
-					if err := output.FeedPoint(conns.aggURL, pts, false); err != nil {
+					if err := exporter.FeedPoint(conns.aggURL, pts, false); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 					}
 				}

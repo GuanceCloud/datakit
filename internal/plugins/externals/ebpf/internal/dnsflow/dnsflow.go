@@ -11,8 +11,8 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/gopacket/afpacket"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
-	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
 )
 
 const (
@@ -161,7 +161,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 		case m := <-mCh:
 			if len(m) == 0 {
 				l.Debug("dnsflow: no data")
-			} else if err := dkout.FeedPoint(feedAddr, m, false); err != nil {
+			} else if err := exporter.FeedPoint(feedAddr, m, false); err != nil {
 				l.Error(err)
 			}
 		}

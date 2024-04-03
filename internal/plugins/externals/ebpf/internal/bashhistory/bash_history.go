@@ -18,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
-	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 
 	"golang.org/x/sys/unix"
 )
@@ -135,7 +135,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 		select {
 		case <-ticker.C:
 			if len(cache) > 0 {
-				if err := dkout.FeedPoint(datakitPostURL, cache, false); err != nil {
+				if err := exporter.FeedPoint(datakitPostURL, cache, false); err != nil {
 					l.Error(err)
 				}
 				cache = make([]*point.Point, 0)
@@ -143,7 +143,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 		case pt := <-tracer.ch:
 			cache = append(cache, pt)
 			if len(cache) > 128 {
-				if err := dkout.FeedPoint(datakitPostURL, cache, false); err != nil {
+				if err := exporter.FeedPoint(datakitPostURL, cache, false); err != nil {
 					l.Error(err)
 				}
 				cache = make([]*point.Point, 0)

@@ -158,25 +158,26 @@ You can view the overlay mount point through `cat /proc/mounts`
 
     The eBPF collection configuration in Kubernetes can be adjusted by the following environment variables:
     
-    | Environment variable name | Corresponding configuration parameter item | Parameter example | Description |
-    | :------------------------ | ------------------------------------------ |------------------ | ----------- |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS` | `enabled_plugins` | `ebpf-net,ebpf-trace` | Used to configure the built-in plug-in of the collector |
-    | `ENV_INPUT_EBPF_L7NET_ENABLED` | `l7net_enabled` | `httpflow` | Enable http protocol data collection |
-    | `ENV_INPUT_EBPF_IPV6_DISABLED` | `ipv6_disabled` | `false` | Whether the system does not support IPv6 |
-    | `ENV_INPUT_EBPF_EPHEMERAL_PORT` | `ephemeral_port` | `32768` | The starting position of the ephemeral port |
-    | `ENV_INPUT_EBPF_INTERVAL` | `interval` | `60s` | Data aggregation period |
-    | `ENV_INPUT_EBPF_TRACE_SERVER` | `trace_server` | `<datakit ip>:<datakit port>` | The address of DataKit, you need to enable DataKit `ebpftrace` collector to receive eBPF link data |
-    | `ENV_INPUT_EBPF_TRACE_ALL_PROCESS` | `trace_all_process` | `false` | Trace all processes in the system |
-    | `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST` | `trace_name_blacklist` | `datakit,datakit-ebpf` | The process with the specified process name will be prohibited from collecting link data. The process in the example has been hard-coded to prohibit collection |
-    | `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST` | `trace_env_blacklist` | `datakit,datakit-ebpf` | Processes containing any specified environment variable name will be prohibited from collecting link data |
-    | `ENV_INPUT_EBPF_TRACE_ENV_LIST` | `trace_env_list` | `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME` | The link data of the process containing any specified environment variables will be tracked and reported |
-    | `ENV_INPUT_EBPF_TRACE_NAME_LIST` | `trace_name_list` | `chrome,firefox` | Processes with process names in the specified set will be tracked and reported |
-    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE` | `conv_to_ddtrace` | `false` | Convert all application `trace_id` to decimal strings |
-    | `ENV_NETLOG_BLACKLIST` | `netlog_blacklist` | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | Used to filter packets after packet capture |
-    | `ENV_NETLOG_METRIC_ONLY` | `netlog_metric_only` | `false` | In addition to network metrics, also enable the network logs |
-    | `ENV_INPUT_EBPF_CPU_LIMIT` | `cpu_limit` | `"2.0"` | Maximum number of CPU cores used per unit time limit |
-    | `ENV_INPUT_EBPF_MEM_LIMIT` | `mem_limit` | `"4GiB"` | Memory size usage limit |
-    | `ENV_INPUT_EBPF_NET_LIMIT` | `net_limit` | `"100MiB/s"` | Network bandwidth (any network card) limit |
+    | Environment variable name             | Corresponding configuration parameter item | Parameter example                                  | Description                                                                                                                                                     |
+    | :------------------------------------ | ------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`      | `enabled_plugins`                          | `ebpf-net,ebpf-trace`                              | Used to configure the built-in plug-in of the collector                                                                                                         |
+    | `ENV_INPUT_EBPF_L7NET_ENABLED`        | `l7net_enabled`                            | `httpflow`                                         | Enable http protocol data collection                                                                                                                            |
+    | `ENV_INPUT_EBPF_IPV6_DISABLED`        | `ipv6_disabled`                            | `false`                                            | Whether the system does not support IPv6                                                                                                                        |
+    | `ENV_INPUT_EBPF_EPHEMERAL_PORT`       | `ephemeral_port`                           | `32768`                                            | The starting position of the ephemeral port                                                                                                                     |
+    | `ENV_INPUT_EBPF_INTERVAL`             | `interval`                                 | `60s`                                              | Data aggregation period                                                                                                                                         |
+    | `ENV_INPUT_EBPF_TRACE_SERVER`         | `trace_server`                             | `<datakit ip>:<datakit port>`                      | The address of DataKit, you need to enable DataKit `ebpftrace` collector to receive eBPF link data                                                              |
+    | `ENV_INPUT_EBPF_TRACE_ALL_PROCESS`    | `trace_all_process`                        | `false`                                            | Trace all processes in the system                                                                                                                               |
+    | `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST` | `trace_name_blacklist`                     | `datakit,datakit-ebpf`                             | The process with the specified process name will be prohibited from collecting link data. The process in the example has been hard-coded to prohibit collection |
+    | `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`  | `trace_env_blacklist`                      | `datakit,datakit-ebpf`                             | Processes containing any specified environment variable name will be prohibited from collecting link data                                                       |
+    | `ENV_INPUT_EBPF_TRACE_ENV_LIST`       | `trace_env_list`                           | `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME` | The link data of the process containing any specified environment variables will be tracked and reported                                                        |
+    | `ENV_INPUT_EBPF_TRACE_NAME_LIST`      | `trace_name_list`                          | `chrome,firefox`                                   | Processes with process names in the specified set will be tracked and reported                                                                                  |
+    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`      | `conv_to_ddtrace`                          | `false`                                            | Convert all application `trace_id` to decimal strings                                                                                                           |
+    | `ENV_INPUT_EBPF_NETLOG_BLACKLIST`     | `netlog_blacklist`                         | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | Used to filter packets after packet capture                                                                                                                     |
+    | `ENV_INPUT_EBPF_NETLOG_METRIC`        | `netlog_metric`                            | `true`                                             | collect network metrics                                                                                                                                         |
+    | `ENV_INPUT_EBPF_NETLOG_LOG`           | `netlog_log`                               | `flase`                                            | collect network logs                                                                                                                                            |
+    | `ENV_INPUT_EBPF_CPU_LIMIT`            | `cpu_limit`                                | `"2.0"`                                            | Maximum number of CPU cores used per unit time limit                                                                                                            |
+    | `ENV_INPUT_EBPF_MEM_LIMIT`            | `mem_limit`                                | `"4GiB"`                                           | Memory size usage limit                                                                                                                                         |
+    | `ENV_INPUT_EBPF_NET_LIMIT`            | `net_limit`                                | `"100MiB/s"`                                       | Network bandwidth (any network card) limit                                                                                                                      |
 
 <!-- markdownlint-enable -->
 
@@ -231,7 +232,7 @@ Operators from highest to lowest:
 | Priority | Op     | Name                        | Binding Direction |
 | -------- | ------ | --------------------------- | ----------------- |
 | 1        | `()`   | parentheses                 | left              |
-| 2        | `!`   | Logical NOT, unary operator | Right             |
+| 2        | `!`    | Logical NOT, unary operator | Right             |
 | 3        | `!=`   | Not equal to                | Left              |
 | 3        | `>=`   | Greater than or equal to    | Left              |
 | 3        | `>`    | greater than                | left              |

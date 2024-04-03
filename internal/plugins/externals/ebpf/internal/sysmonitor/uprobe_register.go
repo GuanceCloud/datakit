@@ -82,7 +82,7 @@ func (reg *ProcessUprobeRegister) Register(binPath string, dynamic bool) error {
 		}
 
 		if err := reg.Manager.DetachHook(probeID); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 
 		if err := reg.Manager.AddHook("", &manager.Probe{
@@ -116,7 +116,7 @@ func getUpAttachArgs(binPath string, conf []UprobeConf) ([]uprobeAttachArg, erro
 			}
 		}
 		if syms, err := FindSymbol(f, conf.FuncName); err != nil {
-			l.Debug(err)
+			log.Debug(err)
 		} else {
 			for _, sym := range syms {
 				if sym.Section != elf.SHN_UNDEF {
@@ -199,7 +199,7 @@ func (register *UprobeRegister) ScanAndUpdate() {
 		for _, r := range register.rules {
 			if r.Re.MatchString(k) {
 				if err := r.UnRegister(k); err != nil {
-					l.Error(err)
+					log.Error(err)
 				}
 			}
 		}
@@ -208,9 +208,9 @@ func (register *UprobeRegister) ScanAndUpdate() {
 	for k := range add {
 		for _, r := range register.rules {
 			if r.Re.MatchString(k) {
-				l.Info(k)
+				log.Info(k)
 				if err := r.Register(k); err != nil {
-					l.Error(err)
+					log.Error(err)
 				}
 			}
 		}
@@ -230,7 +230,7 @@ func (register *UprobeRegister) CleanAll() {
 		for _, r := range register.rules {
 			if r.Re.MatchString(k) {
 				if err := r.UnRegister(k); err != nil {
-					l.Debug(err)
+					log.Debug(err)
 				}
 			}
 		}
@@ -239,7 +239,7 @@ func (register *UprobeRegister) CleanAll() {
 
 func (register *UprobeRegister) Monitor(ctx context.Context, scanInterval time.Duration) {
 	if old := atomic.SwapInt32(&register.run, 1); old == 1 {
-		l.Warn(".so monitor started")
+		log.Warn(".so monitor started")
 		return
 	}
 	register.scanInterval = scanInterval
@@ -267,7 +267,7 @@ func NewRegisterFunc(m *manager.Manager, bpfFuncName []string) registerFunc {
 	bfunc = append(bfunc, bpfFuncName...)
 	return func(binPath string) error {
 		uid := ShortID(binPath)
-		l.Info("AddHook: ", binPath, " ShortID: ", uid)
+		log.Info("AddHook: ", binPath, " ShortID: ", uid)
 		for _, fnName := range bfunc {
 			if err := m.AddHook("", &manager.Probe{
 				ProbeIdentificationPair: manager.ProbeIdentificationPair{
@@ -276,7 +276,7 @@ func NewRegisterFunc(m *manager.Manager, bpfFuncName []string) registerFunc {
 				},
 				BinaryPath: binPath,
 			}); err != nil {
-				l.Warn(err)
+				log.Warn(err)
 			}
 		}
 		return nil
@@ -288,7 +288,7 @@ func NewUnRegisterFunc(m *manager.Manager, bpfFuncName []string) unregisterFunc 
 	bfunc = append(bfunc, bpfFuncName...)
 	return func(binPath string) error {
 		uid := ShortID(binPath)
-		l.Info("DetachHook: ", binPath, " ShortID: ", uid)
+		log.Info("DetachHook: ", binPath, " ShortID: ", uid)
 		for _, fnName := range bfunc {
 			p, ok := m.GetProbe(manager.ProbeIdentificationPair{
 				UID:          uid,
@@ -302,11 +302,11 @@ func NewUnRegisterFunc(m *manager.Manager, bpfFuncName []string) unregisterFunc 
 				UID:          uid,
 				EBPFFuncName: fnName,
 			}); err != nil {
-				l.Error(err)
+				log.Error(err)
 			}
 			if pp != nil {
 				if err := pp.Close(); err != nil {
-					l.Warn(err)
+					log.Warn(err)
 				}
 			}
 		}

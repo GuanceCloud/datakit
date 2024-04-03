@@ -194,7 +194,7 @@ func (tracer *SchedTracer) Start(ctx context.Context) error {
 
 	for _, p := range pses {
 		if err := tracer.goProbeRegister(p); err != nil {
-			l.Warn(err)
+			log.Warn(err)
 		}
 	}
 
@@ -275,7 +275,7 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 		}
 
 		if err := tracer.goProbeRegister(p); err != nil {
-			l.Debug(err)
+			log.Debug(err)
 		}
 	case SchedExit:
 		if tracer.processFilter != nil {
@@ -293,7 +293,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 	}
 	env, err := p.Environ()
 	if err != nil {
-		l.Debug(err)
+		log.Debug(err)
 		return nil
 	}
 
@@ -306,7 +306,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 	}
 	exePath, err := p.Exe()
 	if err != nil {
-		l.Debug(err)
+		log.Debug(err)
 		return nil
 	}
 
@@ -341,7 +341,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 	var goVer = [2]int{}
 	inf, err := buildinfo.ReadFile(exeResolvePath)
 	if err != nil {
-		l.Debug(err)
+		log.Debug(err)
 		// if the go version is greater than 1.13+, this function can get the go version
 
 		// do not return, if we can find the symbol, just attach
@@ -359,14 +359,14 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 
 	if syms, err := FindSymbol(elfFile, "runtime.execute"); err == nil {
 		if len(syms) != 1 {
-			l.Debugf("find symbol runtime.execute, exe %s, count %d", exeResolvePath, len(syms))
+			log.Debugf("find symbol runtime.execute, exe %s, count %d", exeResolvePath, len(syms))
 			return nil
 		}
 		symbolAddr = syms[0].Value
 	} else {
 		sym, err := getGoUprobeSymbolFromPCLN(elfFile, goVer[1] >= 20, "runtime.execute")
 		if err != nil {
-			l.Debug(err)
+			log.Debug(err)
 			tracer.attachInfo.AddCannotAttach(exeResolvePath, exeModTime)
 			return nil
 		}
@@ -382,7 +382,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 		return fmt.Errorf("get bpf map bmap_proc_inject failed: %w", err)
 	}
 	if !ok {
-		l.Warn("get bpf map bmap_proc_inject failed")
+		log.Warn("get bpf map bmap_proc_inject failed")
 	}
 
 	// offset, err := FindMemberOffsetFromFile(fpath, "runtime.g", "goid")
@@ -421,7 +421,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 
 		uid = ShortID(exeResolvePath)
 
-		l.Info("DetachHook: file modfied: ", exeResolvePath, " ShortID: ", uid)
+		log.Info("DetachHook: file modfied: ", exeResolvePath, " ShortID: ", uid)
 		for _, fnName := range execGoFnName {
 			p, ok := tracer.Manager.GetProbe(manager.ProbeIdentificationPair{
 				UID:          uid,
@@ -434,12 +434,12 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 				UID:          uid,
 				EBPFFuncName: fnName,
 			}); err != nil {
-				l.Error(err)
+				log.Error(err)
 			}
 			pp := p.Program()
 			if pp != nil {
 				if err := pp.Close(); err != nil {
-					l.Warn(err)
+					log.Warn(err)
 				}
 			}
 		}
@@ -451,7 +451,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 		uid = ShortID(exeResolvePath)
 	}
 
-	l.Info("AddHook: ", exeResolvePath, " ShortID: ", uid)
+	log.Info("AddHook: ", exeResolvePath, " ShortID: ", uid)
 	for _, fnName := range execGoFnName {
 		if err := tracer.Manager.AddHook("", &manager.Probe{
 			ProbeIdentificationPair: manager.ProbeIdentificationPair{
@@ -461,7 +461,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 			UprobeOffset: symbolAddr,
 			BinaryPath:   exeResolvePath,
 		}); err != nil {
-			l.Warn(err)
+			log.Warn(err)
 		}
 	}
 
