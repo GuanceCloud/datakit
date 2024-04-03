@@ -141,14 +141,8 @@ func (d *dialer) run() error {
 		}
 	}
 
-	// check internal network
-	hostName, err := d.task.GetHostName()
-	if err != nil {
-		l.Warnf("get host name error: %s", err.Error())
-	} else if d.ipt.DisableInternalNetworkTask &&
-		httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList) {
-		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
-		return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+	if err := d.checkInternalNetwork(); err != nil {
+		return err
 	}
 
 	for {
@@ -207,8 +201,26 @@ func (d *dialer) run() error {
 				l.Info("task %s stopped", d.task.ID())
 				return nil
 			}
+
+			if err := d.checkInternalNetwork(); err != nil {
+				return err
+			}
 		}
 	}
+}
+
+// checkInternalNetwork check whether the host is allowed to be tested.
+func (d *dialer) checkInternalNetwork() error {
+	hostName, err := d.task.GetHostName()
+	if err != nil {
+		l.Warnf("get host name error: %s", err.Error())
+	} else if d.ipt.DisableInternalNetworkTask &&
+		httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList) {
+		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
+		return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+	}
+
+	return nil
 }
 
 func (d *dialer) feedIO() error {

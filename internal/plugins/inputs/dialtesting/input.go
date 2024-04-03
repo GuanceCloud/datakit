@@ -89,7 +89,7 @@ type Input struct {
 
 	regionName string
 
-	curTasks map[string]*dialer
+	curTasks sync.Map
 	pos      int64 // current largest-task-update-time
 }
 
@@ -359,6 +359,9 @@ func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	func(id string) {
 		g.Go(func(ctx context.Context) error {
 			protectedRun(dialer)
+			defer func() {
+				ipt.curTasks.Delete(id)
+			}()
 			l.Infof("input %s exited", id)
 			return nil
 		})
@@ -524,11 +527,11 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				l.Debugf("update position to %d", ipt.pos)
 			}
 
-			l.Debugf(`%+#v id: %s`, ipt.curTasks[t.ID()], t.ID())
-			if dialer, ok := ipt.curTasks[t.ID()]; ok { // update task
+			if value, ok := ipt.curTasks.Load(t.ID()); ok { // update task
+				dialer := value.(*dialer)
 				if dialer.failCnt >= MaxFails {
 					l.Warnf(`failed %d times,ignore`, dialer.failCnt)
-					delete(ipt.curTasks, t.ID())
+					ipt.curTasks.Delete(t.ID())
 					continue
 				}
 
@@ -537,7 +540,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				}
 
 				if strings.ToLower(t.Status()) == dt.StatusStop {
-					delete(ipt.curTasks, t.ID())
+					ipt.curTasks.Delete(t.ID())
 				}
 			} else { // create new task
 				if strings.ToLower(t.Status()) == dt.StatusStop {
@@ -552,13 +555,12 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				if err != nil {
 					l.Errorf(`%s, ignore`, err.Error())
 				} else {
-					ipt.curTasks[t.ID()] = dialer
+					ipt.curTasks.Store(t.ID(), dialer)
 				}
 			}
 		}
 	}
 
-	l.Debugf("current tasks: %+#v", ipt.curTasks)
 	return nil
 }
 
@@ -718,10 +720,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 }
 
 func (ipt *Input) stopAlltask() {
-	for tid, dialer := range ipt.curTasks {
+	ipt.curTasks.Range(func(key, value any) bool {
+		dialer := value.(*dialer)
 		dialer.stop()
-		delete(ipt.curTasks, tid)
-	}
+		ipt.curTasks.Delete(key)
+		return true
+	})
 }
 
 func getMaskURL(url string) string {
@@ -730,9 +734,8 @@ func getMaskURL(url string) string {
 
 func defaultInput() *Input {
 	return &Input{
-		Tags:     map[string]string{},
-		curTasks: map[string]*dialer{},
-		semStop:  cliutils.NewSem(),
+		Tags:    map[string]string{},
+		semStop: cliutils.NewSem(),
 		cli: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{

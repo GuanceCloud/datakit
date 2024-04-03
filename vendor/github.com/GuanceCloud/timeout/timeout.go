@@ -52,6 +52,7 @@ func New(opts ...Option) gin.HandlerFunc {
 					panicChan <- p
 				}
 			}()
+
 			t.handler(c)
 			finish <- struct{}{}
 		}()
