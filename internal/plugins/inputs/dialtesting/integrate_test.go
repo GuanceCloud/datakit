@@ -372,7 +372,25 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 			} else {
 				caseSpecItem.serviceOK = func(t *testing.T, port string) bool {
 					t.Helper()
-					return true
+					host := testutils.GetRemote().Host
+					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+					defer cancel()
+					ticker := time.NewTicker(time.Second)
+					defer ticker.Stop()
+					for {
+						select {
+						case <-ctx.Done():
+							return false
+						case <-ticker.C:
+							conn, err := net.Dial("tcp", net.JoinHostPort(host, port))
+							if err != nil {
+								continue
+							} else {
+								conn.Close()
+								return true
+							}
+						}
+					}
 				}
 			}
 

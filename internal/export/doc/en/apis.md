@@ -484,7 +484,7 @@ HTTP Code: 400
 
 ## `/v1/dialtesting/debug` | `POST` {#api-debug-dt}
 
-Providing the ability to debug dialtesting remotely.
+Providing the ability to debug dialtesting remotely, and the target network can be controlled through [environment variables](../integrations/dialtesting.md#env).
 
 Example of request: ：
 

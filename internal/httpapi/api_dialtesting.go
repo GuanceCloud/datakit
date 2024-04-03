@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -75,6 +77,14 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")
 	}
 
+	// check internal network
+	hostName, err := t.GetHostName()
+	if err != nil {
+		l.Warnf("get host name error: %s", err.Error())
+	} else if !IsAllowedHost(hostName) {
+		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", hostName)
+	}
+
 	// -- dialtesting debug procedure start --
 	if err := defDialtestingMock.debugInit(t); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
@@ -116,4 +126,60 @@ func getAPIDebugDialtestingRequest(req *http.Request) (*dialtestingDebugRequest,
 	}
 
 	return &reqDebug, nil
+}
+
+// IsInternalHost check whether the host is internal host.
+// if cidrs is not empty, check whether the host is in the cidrs.
+func IsInternalHost(host string, cidrs []string) bool {
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return false
+	}
+
+	if len(cidrs) > 0 {
+		for _, cidr := range cidrs {
+			_, ipNet, err := net.ParseCIDR(cidr)
+			if err != nil {
+				l.Warnf("parse cidr %s failed: %s", cidr, err.Error())
+				continue
+			}
+			for _, ip := range ips {
+				if ipNet.Contains(ip) {
+					return true
+				}
+			}
+		}
+	} else {
+		for _, ip := range ips {
+			if ip.IsLoopback() ||
+				ip.IsPrivate() ||
+				ip.IsLinkLocalUnicast() ||
+				ip.IsLinkLocalMulticast() ||
+				ip.IsUnspecified() {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// IsAllowedHost check whether the host is allowed to be tested.
+func IsAllowedHost(host string) bool {
+	if v := datakit.GetEnv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK"); v != "" {
+		if isDisabled, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK [%s] error: %s, ignored", v, err.Error())
+		} else if isDisabled {
+			cidrs := []string{}
+			if v := datakit.GetEnv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST"); v != "" {
+				if err := json.Unmarshal([]byte(v), &cidrs); err != nil {
+					l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST[%s] error: %s, ignored", v, err.Error())
+				}
+			}
+
+			return !IsInternalHost(host, cidrs)
+		}
+	}
+
+	return true
 }

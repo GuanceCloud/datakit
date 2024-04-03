@@ -429,3 +429,7 @@ func (t *TCPTask) PostURLStr() string {
 func (t *TCPTask) AccessKey() string {
 	return t.AK
 }
+
+func (t *TCPTask) GetHostName() (string, error) {
+	return t.Host, nil
+}

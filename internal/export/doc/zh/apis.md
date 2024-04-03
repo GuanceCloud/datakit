@@ -527,7 +527,7 @@ HTTP Code: 400
 
 ## `/v1/dialtesting/debug` | `POST` {#api-debug-dt}
 
-提供远程调试拨测的功能。
+提供远程调试拨测的功能，可通过[环境变量](../integrations/dialtesting.md#env)来控制禁拨网络。
 
 请求示例：
 

@@ -642,3 +642,7 @@ func (t *HTTPTask) init(debug bool) error {
 
 	return nil
 }
+
+func (t *HTTPTask) GetHostName() (string, error) {
+	return getHostName(t.URL)
+}
