@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
 	pprofile "github.com/google/pprof/profile"
@@ -181,20 +182,48 @@ func (g *GoProfiler) run(i *Input) error {
 	}
 }
 
-func (g *GoProfiler) pullProfile() {
-	event := &eventOpts{
-		Family: goReportFamily,
-		Format: goReportFormat,
+func withExtName(f, ext string) string {
+	if !strings.HasSuffix(f, ext) {
+		return f + ext
+	}
+	return f
+}
+
+func joinMap(m map[string]string) string {
+	if len(m) == 0 {
+		return ""
 	}
 
-	deletaDatas := []*profileData{}
+	var (
+		sb    strings.Builder
+		split byte
+	)
+
+	for k, v := range m {
+		if split > 0 {
+			sb.WriteByte(split)
+		}
+		sb.WriteString(k)
+		sb.WriteByte(':')
+		sb.WriteString(v)
+		split = ','
+	}
+	return sb.String()
+}
+
+func (g *GoProfiler) pullProfile() {
+	var (
+		deltaData      []*profileData
+		deltaFileNames []string
+	)
 	for _, k := range g.EnabledTypes {
 		if p, ok := profileConfigMap[k]; ok {
 			if pData, err := g.pullProfileItem(k, p); err != nil {
 				log.Warnf("profile for %s error: %s", k, err.Error())
 			} else if pData != nil {
 				if p.deltaValues != nil {
-					deletaDatas = append(deletaDatas, pData)
+					deltaData = append(deltaData, pData)
+					deltaFileNames = append(deltaFileNames, withExtName(pData.fileName, ".pprof"))
 				} else if err := pushProfileData(
 					&pushProfileDataOpt{
 						startTime:       pData.startTime,
@@ -205,7 +234,15 @@ func (g *GoProfiler) pullProfile() {
 						inputNameSuffix: "/go",
 						Input:           g.input,
 					},
-					event,
+					&eventOpts{
+						Family:       goReportFamily,
+						Format:       goReportFormat,
+						Profiler:     "golang",
+						Start:        pData.startTime.Format(time.RFC3339Nano),
+						End:          pData.endTime.Format(time.RFC3339Nano),
+						Attachments:  []string{withExtName(pData.fileName, ".pprof")},
+						TagsProfiler: joinMap(g.tags),
+					},
 				); err != nil {
 					log.Warnf("push profile data error: %s", err.Error())
 				}
@@ -216,19 +253,27 @@ func (g *GoProfiler) pullProfile() {
 	}
 
 	// push delta profiles together
-	if len(deletaDatas) > 0 {
-		pData := deletaDatas[0]
+	if len(deltaData) > 0 {
+		pData := deltaData[0]
 		if err := pushProfileData(
 			&pushProfileDataOpt{
 				startTime:       pData.startTime,
 				endTime:         pData.endTime,
-				profiledatas:    deletaDatas,
+				profiledatas:    deltaData,
 				endPoint:        g.url.String(),
 				inputTags:       g.tags,
 				inputNameSuffix: "/go",
 				Input:           g.input,
 			},
-			event,
+			&eventOpts{
+				Family:       goReportFamily,
+				Format:       goReportFormat,
+				Profiler:     "golang",
+				Start:        pData.startTime.Format(time.RFC3339Nano),
+				End:          pData.endTime.Format(time.RFC3339Nano),
+				Attachments:  deltaFileNames,
+				TagsProfiler: joinMap(g.tags),
+			},
 		); err != nil {
 			log.Warnf("push delta profile data error: %s", err.Error())
 		}

@@ -15,7 +15,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -126,8 +125,7 @@ const (
 )
 
 var (
-	log       = logger.DefaultSLogger(inputName)
-	iptGlobal *Input
+	log = logger.DefaultSLogger(inputName)
 
 	_ inputs.HTTPInput     = &Input{}
 	_ inputs.InputV2       = &Input{}
@@ -779,7 +777,6 @@ func (ipt *Input) InitDiskQueueIO() error {
 
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
-	iptGlobal = ipt
 	log.Infof("the input %s is running...", inputName)
 
 	if err := ipt.InitDiskQueueIO(); err != nil {
@@ -862,29 +859,31 @@ type pushProfileDataOpt struct {
 }
 
 type eventOpts struct {
-	Family   string `json:"family"`
-	Format   string `json:"format"`
-	Profiler string `json:"profiler"`
+	Family       string   `json:"family"`
+	Format       string   `json:"format"`
+	Profiler     string   `json:"profiler"`
+	Start        string   `json:"start"`
+	End          string   `json:"end"`
+	Attachments  []string `json:"attachments"`
+	TagsProfiler string   `json:"tags_profiler"`
 }
 
 func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 	b := new(bytes.Buffer)
 	mw := multipart.NewWriter(b)
 
-	for _, profileData := range opt.profiledatas {
-		if ff, err := mw.CreateFormFile(profileData.fileName, profileData.fileName); err != nil {
-			continue
-		} else {
-			if _, err = io.Copy(ff, profileData.buf); err != nil {
-				continue
-			}
+	for _, pd := range opt.profiledatas {
+		ff, err := mw.CreateFormFile(pd.fileName, pd.fileName)
+		if err != nil {
+			return fmt.Errorf("unable to create profiling form file: %w", err)
+		}
+
+		if _, err = io.Copy(ff, pd.buf); err != nil {
+			return fmt.Errorf("unable to copy porfiling data: %w", err)
 		}
 	}
 
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", "form-data; name=\"event\"; filename=\"event.json\"")
-	h.Set("Content-Type", "application/json")
-	f, err := mw.CreatePart(h)
+	f, err := mw.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
 	if err != nil {
 		return err
 	}
@@ -940,80 +939,9 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 		if resp.Content == nil || resp.Content.ProfileID == "" {
 			return fmt.Errorf("fetch profile upload response profileID fail")
 		}
-
-		if err := writeProfilePoint(&writeProfilePointOpt{
-			profileID:       profileID,
-			startTime:       opt.startTime,
-			endTime:         opt.endTime,
-			reportFamily:    event.Family,
-			reportFormat:    event.Format,
-			endPoint:        opt.endPoint,
-			inputTags:       opt.inputTags,
-			inputNameSuffix: opt.inputNameSuffix,
-			Input:           opt.Input,
-		}); err != nil {
-			return fmt.Errorf("write profile point failed: %w", err)
-		}
 	} else {
 		return fmt.Errorf("push profile data failed, response status: %s", resp.Status)
 	}
-	return nil
-}
-
-type writeProfilePointOpt struct {
-	profileID       string
-	startTime       time.Time
-	endTime         time.Time
-	reportFamily    string
-	reportFormat    string
-	endPoint        string
-	inputTags       map[string]string
-	inputNameSuffix string
-	Input           *Input
-}
-
-func writeProfilePoint(opt *writeProfilePointOpt) error {
-	pointTags := map[string]string{
-		TagEndPoint: opt.endPoint,
-		TagLanguage: opt.reportFamily,
-	}
-
-	// extend custom tags
-	for k, v := range opt.inputTags {
-		if _, ok := pointTags[k]; !ok {
-			pointTags[k] = v
-		}
-	}
-
-	//nolint:lll
-	pointFields := map[string]interface{}{
-		FieldProfileID:  opt.profileID,
-		FieldFormat:     opt.reportFormat,
-		FieldDatakitVer: datakit.Version,
-		FieldStart:      opt.startTime.UnixNano(),
-		FieldEnd:        opt.endTime.UnixNano(),
-		FieldDuration:   opt.endTime.Sub(opt.startTime).Nanoseconds(),
-	}
-
-	opts := point.CommonLoggingOptions()
-	opts = append(opts, point.WithTime(opt.startTime))
-
-	if opt.Input.Election {
-		pointTags = inputs.MergeTagsWrapper(pointTags, opt.Input.Tagger.ElectionTags(), opt.inputTags, "")
-	} else {
-		pointTags = inputs.MergeTagsWrapper(pointTags, opt.Input.Tagger.HostTags(), opt.inputTags, "")
-	}
-
-	pt := point.NewPointV2(inputName, append(point.NewTags(pointTags), point.NewKVs(pointFields)...), opts...)
-
-	if err := iptGlobal.feeder.FeedV2(point.Profiling, []*point.Point{pt},
-		dkio.WithCollectCost(time.Since(pt.Time())),
-		dkio.WithElection(opt.Input.Election),
-		dkio.WithInputName(inputName+opt.inputNameSuffix),
-	); err != nil {
-		return err
-	}
-
 	return nil
 }
 
