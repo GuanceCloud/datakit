@@ -1,5 +1,5 @@
 //go:build !linux
 // +build !linux
 
-// Package httpflow collects http(s) request flow
-package httpflow
+// Package l7flow collects http(s) request flow
+package l7flow

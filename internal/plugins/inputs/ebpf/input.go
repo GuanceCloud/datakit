@@ -55,6 +55,8 @@ type Input struct {
 
 	NetlogBlacklist  string `toml:"netlog_blacklist"`
 	NetlogMetricOnly bool   `toml:"netlog_metric_only"`
+	NetlogMetric     bool   `toml:"netlog_metric"`
+	NetlogLog        bool   `toml:"netlog_log"`
 
 	EnabledPlugins []string `toml:"enabled_plugins"`
 	L7NetDisabled  []string `toml:"l7net_disabled"`
@@ -144,19 +146,19 @@ loop:
 
 	if ipt.K8sURL != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("K8S_URL=%s", ipt.K8sConf.K8sURL))
+			fmt.Sprintf("DKE_K8S_URL=%s", ipt.K8sConf.K8sURL))
 	}
 	if ipt.K8sBearerToken != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
+			fmt.Sprintf("DKE_K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
 	}
 	if ipt.K8sBearerTokenStr != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sConf.K8sBearerTokenStr))
+			fmt.Sprintf("DKE_K8S_BEARER_TOKEN=%s", ipt.K8sConf.K8sBearerTokenStr))
 	}
 	if ipt.NetlogBlacklist != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("NETLOG_BLACKLIST=%s", ipt.NetlogBlacklist))
+			fmt.Sprintf("DKE_NETLOG_NET_FILTER=%s", ipt.NetlogBlacklist))
 	}
 
 	if ipt.L7NetDisabled == nil && ipt.L7NetEnabled == nil {
@@ -173,7 +175,7 @@ loop:
 
 	if ipt.IPv6Disabled {
 		ipt.Input.Args = append(ipt.Input.Args,
-			"--ipv6-disabled", "true")
+			"--ipv6-disabled")
 	}
 
 	if ipt.EphemeralPort >= 0 {
@@ -186,9 +188,16 @@ loop:
 			"--interval", ipt.Interval)
 	}
 
-	if !ipt.NetlogMetricOnly {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--netlog-metric-only", "false")
+	{
+		var netlogArgs []string
+		if ipt.NetlogMetric {
+			netlogArgs = append(netlogArgs, "--netlog-metric")
+		}
+		if !ipt.NetlogMetricOnly || ipt.NetlogLog {
+			netlogArgs = append(netlogArgs, "--netlog-log")
+		}
+
+		ipt.Input.Args = append(ipt.Input.Args, netlogArgs...)
 	}
 
 	if ipt.TraceServer != "" {
@@ -198,7 +207,7 @@ loop:
 
 	if ipt.TraceAllProcess {
 		ipt.Input.Args = append(ipt.Input.Args,
-			"--trace-allprocess", "true")
+			"--trace-allprocess")
 	}
 	if len(ipt.TraceENVList) > 0 {
 		ipt.Input.Args = append(ipt.Input.Args,
@@ -220,7 +229,7 @@ loop:
 
 	if ipt.Conv2DD {
 		ipt.Input.Args = append(ipt.Input.Args,
-			"--conv-to-ddtrace", "true")
+			"--conv-to-ddtrace")
 	}
 
 	if ipt.CPULimit != "" {
@@ -251,6 +260,7 @@ loop:
 	if len(enablePlugins) > 0 {
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--enabled", strings.Join(enablePlugins, ","))
+		ipt.Input.Args = append([]string{"run"}, ipt.Input.Args...)
 		l.Infof("ebpf input started")
 		ipt.Input.Run()
 	} else {
@@ -293,8 +303,10 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_INTERVAL        : string
 // ENV_INPUT_EBPF_PPROF_PORT      : int32
 //
-// ENV_NETLOG_BLACKLIST           : string
-// ENV_NETLOG_METRIC_ONLY         : bool
+// ENV_INPUT_EBPF_NETLOG_BLACKLIST   : string
+// ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
+// ENV_INPUT_EBPF_NETLOG_METRIC      : bool
+// ENV_INPUT_EBPF_NETLOG_LOG         : bool
 //
 // ENV_INPUT_EBPF_CPU_LIMIT : string
 // ENV_INPUT_EBPF_MEM_LIMIT : string
@@ -389,12 +401,61 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		ipt.NetlogBlacklist = v
 	}
 
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_BLACKLIST"]; ok {
+		ipt.NetlogBlacklist = v
+	}
+
 	if v, ok := envs["ENV_NETLOG_METRIC_ONLY"]; ok {
 		switch v {
 		case "", "f", "false", "FALSE", "False", "0":
 			ipt.NetlogMetricOnly = false
 		default:
 			ipt.NetlogMetricOnly = true
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_METRIC_ONLY"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogMetricOnly = false
+		default:
+			ipt.NetlogMetricOnly = true
+		}
+	}
+
+	if v, ok := envs["ENV_NETLOG_METRIC"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogMetric = false
+		default:
+			ipt.NetlogMetric = true
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_METRIC"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogMetric = false
+		default:
+			ipt.NetlogMetric = true
+		}
+	}
+
+	if v, ok := envs["ENV_NETLOG_LOG"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogLog = false
+		default:
+			ipt.NetlogLog = true
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_LOG"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetlogLog = false
+		default:
+			ipt.NetlogLog = true
 		}
 	}
 
@@ -416,6 +477,8 @@ func init() { //nolint:gochecknoinits
 			EnabledPlugins:   []string{},
 			Input:            *external.NewInput(),
 			EphemeralPort:    -1,
+			NetlogMetric:     true,
+			NetlogLog:        false,
 			NetlogMetricOnly: true,
 		}
 		ret.Input.Election = false

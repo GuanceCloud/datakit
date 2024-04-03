@@ -101,3 +101,5 @@ y.output
 .docs/
 *.sqlite
 datakit*.tar
+internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf
+internal/plugins/externals/ebpf/demo/

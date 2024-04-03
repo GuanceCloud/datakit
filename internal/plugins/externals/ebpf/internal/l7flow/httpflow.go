@@ -1,8 +1,8 @@
 //go:build linux
 // +build linux
 
-// Package httpflow collects http(s) request flow
-package httpflow
+// Package l7flow collects http(s) request flow
+package l7flow
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ import (
 	"github.com/google/gopacket/afpacket"
 	"github.com/shirou/gopsutil/host"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
-	dkout "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/output"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/hash"
@@ -493,7 +493,7 @@ func feed(url string, data []*point.Point, gzip bool) error {
 	if len(data) == 0 {
 		return nil
 	}
-	if err := dkout.FeedPoint(url, data, gzip); err != nil {
+	if err := exporter.FeedPoint(url, data, gzip); err != nil {
 		return err
 	}
 	return nil

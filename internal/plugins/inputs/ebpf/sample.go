@@ -62,9 +62,10 @@ const configSample = `
   ##
   # netlog_blacklist = "ip_saddr=='127.0.0.1' || ip_daddr=='127.0.0.1'"
 
-  ## bpf-netlog plugin collection metric only
+  ## bpf-netlog plugin collection metric and log
   ##
-  # netlog_metric_only = false
+  netlog_metric = true
+  netlog_log = false
   
   ## eBPF trace generation server center address.
   trace_server = ""

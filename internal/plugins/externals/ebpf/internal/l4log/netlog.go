@@ -28,6 +28,9 @@ var (
 )
 
 func ConfigFunc(netlog, netMetric bool) {
+	log.Info("enable net log: ", netlog)
+	log.Info("enable net metric: ", netMetric)
+
 	enableNetlog = netlog
 	enabledNetMetric = netMetric
 }

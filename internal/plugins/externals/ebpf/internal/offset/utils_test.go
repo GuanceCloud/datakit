@@ -35,12 +35,12 @@ func TestOffsetDumpAndLoad(t *testing.T) {
 		offset_ns_common_inum:    _Ctype_ulonglong(7234567890123456789),
 		offset_socket_sk:         _Ctype_ulonglong(9234567890123456789),
 	}
-	str, err := DumpOffset(offsetExpected)
+	str, err := dumpOffset(offsetExpected)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	offsetActual, err := LoadOffset(str)
+	offsetActual, err := loadOffset(str)
 	if err != nil {
 		t.Fatal(err)
 	}

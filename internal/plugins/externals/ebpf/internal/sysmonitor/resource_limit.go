@@ -4,6 +4,7 @@
 package sysmonitor
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -28,16 +29,35 @@ func SelfProcess() (*process.Process, error) {
 	return process.NewProcess(int32(os.Getpid()))
 }
 
-func NewResLimiter(proc *process.Process, cpuTime, memBytes, bandwidth float64) *ResourceLimiter {
+func NewResLimiter(cpuTime float64, memBytes, bandwidth string,
+) (*ResourceLimiter, error) {
+	var bdw, mem float64
+	if bandwidth != "" {
+		bdw = GetBandwidth(bandwidth)
+	}
+
+	mem = GetBytes(memBytes)
+
+	proc, err := SelfProcess()
+	if err != nil {
+		return nil, fmt.Errorf("get self process: %w", err)
+	} else {
+		log.Infof("set bandwidth limit %s, %.3fMiB/s",
+			bandwidth, bdw/(1024*1024))
+		log.Infof("set memory limit %s, %.3fMiB",
+			memBytes, mem/(1024*1024))
+		log.Infof("set cpu limit %.3fs", cpuTime)
+	}
+
 	return &ResourceLimiter{
 		CPUTime:   cpuTime,
-		MemBytes:  memBytes,
-		Bandwidth: bandwidth,
+		MemBytes:  mem,
+		Bandwidth: bdw,
 		proc:      proc,
-	}
+	}, nil
 }
 
-func (res *ResourceLimiter) MonitorResource() (<-chan struct{}, error) {
+func (res *ResourceLimiter) MonitorResource() <-chan struct{} {
 	ch := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(time.Second * 3)
@@ -51,14 +71,14 @@ func (res *ResourceLimiter) MonitorResource() (<-chan struct{}, error) {
 		}
 	}()
 
-	return ch, nil
+	return ch
 }
 
 func (res *ResourceLimiter) overResLimit() bool {
 	if res.MemBytes > 0 {
 		m, err := res.proc.MemoryInfo()
 		if err != nil {
-			l.Errorf("get memory info error: %w", err)
+			log.Errorf("get memory info error: %w", err)
 			return true
 		}
 
@@ -70,7 +90,7 @@ func (res *ResourceLimiter) overResLimit() bool {
 	if res.CPUTime > 0 {
 		c, err := res.proc.CPUPercent()
 		if err != nil {
-			l.Errorf("get cpu percent error: %w", err)
+			log.Errorf("get cpu percent error: %w", err)
 			return true
 		}
 		c /= 100
@@ -85,7 +105,7 @@ func (res *ResourceLimiter) overResLimit() bool {
 		}()
 		ifaces, err := net.IOCounters(true)
 		if err != nil {
-			l.Errorf("get net io count error: %w", err)
+			log.Errorf("get net io count error: %w", err)
 		}
 		newTraffic := map[string][2]uint64{}
 		for _, neti := range ifaces {

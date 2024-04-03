@@ -164,8 +164,9 @@ setenforce 0
 | `ENV_INPUT_EBPF_TRACE_ENV_LIST`       | `trace_env_list`       | `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME` | 含有任意指定环境变量的进程的链路数据将被跟踪和上报                        |
 | `ENV_INPUT_EBPF_TRACE_NAME_LIST`      | `trace_name_list`      | `chrome,firefox`                                   | 进程名在指定集合内的的进程将被跟踪和上报                                  |
 | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`      | `conv_to_ddtrace`      | `false`                                            | 将所有的应用侧链路 id 转换为 10 进制表示的字符串，兼容用途，非必要不使用  |
-| `ENV_NETLOG_BLACKLIST`                | `netlog_blacklist`     | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | 用于实现在抓包之后的数据包的过滤                                          |
-| `ENV_NETLOG_METRIC_ONLY`              | `netlog_metric_only`   | `false`                                            | 除了网络流数据外，同时开启网络日志功能                                    |
+| `ENV_INPUT_EBPF_NETLOG_BLACKLIST`     | `netlog_blacklist`     | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | 用于实现在抓包之后的数据包的过滤                                          |
+| `ENV_INPUT_EBPF_NETLOG_METRIC`        | `netlog_metric`        | `true`                                             | 从网络数据包分析采集网络指标                                              |
+| `ENV_INPUT_EBPF_NETLOG_LOG`           | `netlog_log`           | `false`                                            | 从网络数据包分析采集网络日志                                              |
 | `ENV_INPUT_EBPF_CPU_LIMIT`            | `cpu_limit`            | `"2.0"`                                            | 单位时间内 CPU 最大核心数使用限制                                         |
 | `ENV_INPUT_EBPF_MEM_LIMIT`            | `mem_limit`            | `"4GiB"`                                           | 内存大小使用限制                                                          |
 | `ENV_INPUT_EBPF_NET_LIMIT`            | `net_limit`            | `"100MiB/s"`                                       | 网络带宽（任意网卡）限制                                                  |

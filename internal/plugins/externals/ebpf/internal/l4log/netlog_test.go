@@ -194,9 +194,13 @@ func TestRetrans(t *testing.T) {
 // 		k8sinfo.AutoUpdate(context.Background())
 // 	}
 
+// 	enableNetlog = true
+// 	enabledNetMetric = true
+// 	initULID()
+
 // 	SetK8sNetInfo(k8sinfo)
 
-// 	output.Init(log)
+// 	exporter.Init(log)
 // 	rt, err := cruntime.NewDockerRuntime("unix:///var/run/docker.sock", "")
 // 	if err != nil {
 // 		t.Error(err)

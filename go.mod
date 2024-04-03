@@ -361,6 +361,7 @@ require (
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
+	github.com/spf13/cobra v1.5.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000
 )
@@ -368,6 +369,7 @@ require (
 require (
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect

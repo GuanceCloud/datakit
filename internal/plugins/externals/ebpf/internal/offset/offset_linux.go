@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -595,4 +596,38 @@ func runUDPServer(ctx context.Context, network, addr string) (uint16, error) {
 	}()
 
 	return uint16(serverPort), nil
+}
+
+func DumpOffset(dir string, offset *OffsetGuessC) error {
+	dirpath := filepath.Join(dir, "externals")
+	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
+
+	offsetStr, err := dumpOffset(*offset)
+	if err != nil {
+		return err
+	}
+
+	fp, err := os.Create(filepath) //nolint:gosec
+	if err != nil {
+		return err
+	}
+
+	if _, err := fp.Write([]byte(offsetStr)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadOffset(dir string) (*OffsetGuessC, error) {
+	dirpath := filepath.Join(dir, "externals")
+	filepath := filepath.Join(dirpath, "datakit-ebpf.offset")
+	offsetByte, err := os.ReadFile(filepath) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	offset, err := loadOffset(string(offsetByte))
+	if err != nil {
+		return nil, err
+	}
+	return &offset, err
 }

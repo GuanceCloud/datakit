@@ -1,4 +1,4 @@
-package output
+package exporter
 
 import (
 	"net/http"
