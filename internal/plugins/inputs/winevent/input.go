@@ -99,29 +99,34 @@ func (ipt *Input) Run() {
 			start := time.Now()
 			events, err := ipt.fetchEvents(ipt.subscription)
 			if err != nil {
-				if errors.Is(err, ErrorNoMoreItems) {
-					continue
-				}
-				l.Errorf("fetch events failed: %s", err.Error())
-				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Logging))
-				return
-			}
-			for _, event := range events {
-				ipt.handleEvent(event)
-			}
-			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
-					dkio.WithInputName(inputName),
-				); err != nil {
-					l.Errorf("feed error: %s", err.Error())
+				if !errors.Is(err, ErrorNoMoreItems) {
+					l.Errorf("fetch events failed: %s", err.Error())
+
 					ipt.feeder.FeedLastError(err.Error(),
 						dkio.WithLastErrorInput(inputName),
 						dkio.WithLastErrorCategory(point.Logging))
+				} // else: ignore no-more-items error
+			}
+
+			if len(events) == 0 { // no event available
+				time.Sleep(10 * time.Millisecond)
+			} else {
+				for _, event := range events {
+					ipt.handleEvent(event)
 				}
-				ipt.collectCache = ipt.collectCache[:0]
+
+				if len(ipt.collectCache) > 0 {
+					if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithInputName(inputName),
+					); err != nil {
+						l.Errorf("feed error: %s", err.Error())
+						ipt.feeder.FeedLastError(err.Error(),
+							dkio.WithLastErrorInput(inputName),
+							dkio.WithLastErrorCategory(point.Logging))
+					}
+					ipt.collectCache = ipt.collectCache[:0]
+				}
 			}
 		}
 	}
