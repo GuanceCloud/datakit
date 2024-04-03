@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.27.0 (April 3, 2024) {#cl-1.27.0}
+
+### New Features {#cl-1.27.0-new}
+
+- Introduced the Pipeline Offload collector, specialized for centralized processing of Pipelines (#1917).
+- Supported BPF-based HTTP/HTTP2/gRPC network data collection to cover lower versions of Linux kernels (#2017).
+
+### Bug Fixes {#cl-1.27.0-fix}
+
+- Fixed the default timestamp disorder issue in Point construction (#2163).
+- Fixed potential crashes in Kubernetes collection (#2176).
+- Fixed Node.js Profiling collection issues (#2149).
+
+### Feature Enhancements {#cl-1.27.0-opt}
+
+- Prometheus Remote Write collection now supports attributing measurement name through metric prefix (#2165).
+- Improved Datakit's own metrics by adding statistics for Goroutine crashes in each module (#2173).
+- Enhanced the bug report feature to support direct upload of info files to OSS (#2170).
+- Optimized the performance of Windows Event collection (#2155).
+- Improved the historical position recording feature in log collection (#2156).
+- Dial testing now supports the option to disable internal network probing (#2142).
+- Various miscellaneous updates and documentation improvements (#2154/#2148/#1975/#2164).
+
+---
+
 ## 1.26.1 (2024/03/27) {#cl-1.26.1}
 
 This release is a hotfix release that addresses the following issues:
