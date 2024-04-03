@@ -189,13 +189,17 @@ var (
 		"find the glob path and print it, provide a configuration file that contains glob statements written on separate lines.")
 	flagDebugRegexConf = fsDebug.String("regex-conf", "",
 		"export regex match results, provide a configuration file where the first line is a regular expression and the rest of the file is text.")
-	flagDebugPromConf       = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
-	flagDebugBugReport      = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
-	flagDebugDisableProfile = fsDebug.Bool("disable-profile", false, "disable profile collection when running bug-report")
-	flagDebugInputConf      = fsDebug.String("input-conf", "", "input TOML conf path")
-	flagDebugHTTPListen     = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")
-	flagDebugFilter         = fsDebug.String("filter", "", "filter configure file(JSON)")
-	flagDebugData           = fsDebug.String("data", "", "data used during debugging")
+	flagDebugPromConf = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
+
+	flagDebugBugReport               = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
+	flagDebugBugreportOSS            = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
+	flagDebugBugreportDisableProfile = fsDebug.Bool("disable-profile", false, "disable profile collection when running bug-report")
+	flagDebugBugreportNMetrics       = fsDebug.Int("nmetrics", 3, "collect N batch of datakit metrics")
+
+	flagDebugInputConf  = fsDebug.String("input-conf", "", "input TOML conf path")
+	flagDebugHTTPListen = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")
+	flagDebugFilter     = fsDebug.String("filter", "", "filter configure file(JSON)")
+	flagDebugData       = fsDebug.String("data", "", "data used during debugging")
 
 	fsDebugUsage = func() {
 		fmt.Printf("usage: datakit debug [options]\n\n")
