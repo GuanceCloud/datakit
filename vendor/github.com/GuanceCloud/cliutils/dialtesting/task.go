@@ -7,6 +7,8 @@
 package dialtesting
 
 import (
+	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -43,6 +45,7 @@ type Task interface {
 	GetOwnerExternalID() string
 	SetOwnerExternalID(string)
 	GetLineData() string
+	GetHostName() (string, error)
 
 	SetRegionID(string)
 	SetAk(string)
@@ -50,4 +53,13 @@ type Task interface {
 	SetUpdateTime(int64)
 
 	Ticker() *time.Ticker
+}
+
+func getHostName(host string) (string, error) {
+	reqURL, err := url.Parse(host)
+	if err != nil {
+		return "", fmt.Errorf("parse host error: %w", err)
+	}
+
+	return reqURL.Hostname(), nil
 }

@@ -492,3 +492,7 @@ func (t *ICMPTask) CheckSum(data []byte) (rt uint16) {
 
 	return ^rt
 }
+
+func (t *ICMPTask) GetHostName() (string, error) {
+	return t.Host, nil
+}

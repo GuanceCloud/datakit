@@ -472,6 +472,10 @@ func (t *WebsocketTask) AccessKey() string {
 	return t.AK
 }
 
+func (t *WebsocketTask) GetHostName() (string, error) {
+	return getHostName(t.URL)
+}
+
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))

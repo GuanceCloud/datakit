@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
@@ -50,6 +51,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		errExpect   error
 		expectRes   map[string]interface{}
 		debugFields map[string]interface{}
+		hook        func()
 	}{
 		{
 			name: "test dial task para wrong",
@@ -130,7 +132,9 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			name: "test dial success4",
 			t: &dialtestingDebugRequest{
 				TaskType: "ICMP",
-				Task:     &dt.ICMPTask{},
+				Task: &dt.ICMPTask{
+					Host: "127.0.0.1",
+				},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
@@ -144,10 +148,86 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
+		{
+			name: "test internal host - private",
+			t: &dialtestingDebugRequest{
+				TaskType: "ICMP",
+				Task: &dt.ICMPTask{
+					Host: "192.168.0.1",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
+			},
+			errInit:   nil,
+			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "192.168.0.1"),
+		},
+		{
+			name: "test internal host cidrs",
+			t: &dialtestingDebugRequest{
+				TaskType: "ICMP",
+				Task: &dt.ICMPTask{
+					Host: "36.155.132.76",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST", `["36.155.132.76/24"]`)
+			},
+			errInit:   nil,
+			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "36.155.132.76"),
+		},
+		{
+			name: "test internal host ok",
+			t: &dialtestingDebugRequest{
+				TaskType: "ICMP",
+				Task: &dt.ICMPTask{
+					Host: "192.168.0.1",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "false")
+			},
+			errInit:   nil,
+			expectRes: map[string]interface{}{"Status": "success"},
+		},
+		{
+			name: "test internal host loopback",
+			t: &dialtestingDebugRequest{
+				TaskType: "icmp",
+				Task: &dt.ICMPTask{
+					Host: "localhost",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
+			},
+			errInit:   nil,
+			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "localhost"),
+		},
+		{
+			name: "test internal host unspecified",
+			t: &dialtestingDebugRequest{
+				TaskType: "icmp",
+				Task: &dt.ICMPTask{
+					Host: "0.0.0.0",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
+			},
+			errInit:   nil,
+			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "0.0.0.0"),
+		},
 	}
 
 	for _, tc := range httpCases {
 		t.Run(tc.name, func(t *testing.T) {
+			os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK")
+			os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST")
+			if tc.hook != nil {
+				tc.hook()
+			}
 			var w http.ResponseWriter
 			errInit = tc.errInit
 			errRun = tc.errRun

@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -66,17 +67,19 @@ const (
 )
 
 type Input struct {
-	Region               string            `toml:"region,omitempty"`
-	RegionID             string            `toml:"region_id"`
-	Server               string            `toml:"server,omitempty"`
-	AK                   string            `toml:"ak"`
-	SK                   string            `toml:"sk"`
-	PullInterval         string            `toml:"pull_interval,omitempty"`
-	TimeOut              *datakit.Duration `toml:"time_out,omitempty"`            // second
-	MaxSendFailCount     int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
-	MaxJobNumber         int               `toml:"max_job_number,omitempty"`      // max job number in parallel
-	MaxJobChanNumber     int               `toml:"max_job_chan_number,omitempty"` // max job chan number
-	TaskExecTimeInterval string            `toml:"task_exec_time_interval,omitempty"`
+	Region                          string            `toml:"region,omitempty"`
+	RegionID                        string            `toml:"region_id"`
+	Server                          string            `toml:"server,omitempty"`
+	AK                              string            `toml:"ak"`
+	SK                              string            `toml:"sk"`
+	PullInterval                    string            `toml:"pull_interval,omitempty"`
+	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`            // second
+	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
+	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`      // max job number in parallel
+	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"` // max job chan number
+	TaskExecTimeInterval            string            `toml:"task_exec_time_interval,omitempty"`
+	DisableInternalNetworkTask      bool              `toml:"disable_internal_network_task,omitempty"`
+	DisabledInternalNetworkCIDRList []string          `toml:"disabled_internal_network_cidr_list,omitempty"`
 
 	Tags map[string]string
 
@@ -122,6 +125,12 @@ const sample = `
 
   # The max number of job chan. Default 1000.
   max_job_chan_number = 1000
+
+  # Disable internal network task.
+  disable_internal_network_task = true
+
+  # Disable internal network cidr list.
+  disabled_internal_network_cidr_list = []
 
   # Custom tags.
   [inputs.dialtesting.tags]
@@ -377,7 +386,7 @@ func protectedRun(d *dialer) {
 		}
 
 		if err := d.run(); err != nil {
-			l.Warnf("run: %s, ignored", err)
+			l.Errorf("run: %s, ignored", err)
 		}
 	}
 
@@ -672,6 +681,8 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, err
 // ENV_INPUT_DIALTESTING_SK: string
 // ENV_INPUT_DIALTESTING_REGION_ID: string
 // ENV_INPUT_DIALTESTING_SERVER: string.
+// ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK: bool.
+// ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST: []string.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
 		ipt.AK = ak
@@ -687,6 +698,22 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if server, ok := envs["ENV_INPUT_DIALTESTING_SERVER"]; ok {
 		ipt.Server = server
+	}
+
+	if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK"]; ok {
+		if isDisabled, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK [%s] error: %s, ignored", v, err.Error())
+		} else if isDisabled {
+			ipt.DisableInternalNetworkTask = true
+			cidrs := []string{}
+			if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST"]; ok {
+				if err := json.Unmarshal([]byte(v), &cidrs); err != nil {
+					l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST[%s] error: %s, ignored", v, err.Error())
+				} else {
+					ipt.DisabledInternalNetworkCIDRList = cidrs
+				}
+			}
+		}
 	}
 }
 

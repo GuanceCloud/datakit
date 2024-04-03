@@ -17,32 +17,28 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type dialer struct {
-	task dt.Task
-
-	ticker *time.Ticker
-
+	task                 dt.Task
+	ipt                  *Input
+	ticker               *time.Ticker
 	initTime             time.Time
 	dialingTime          time.Time // time to run dialtesting test
 	taskExecTimeInterval time.Duration
 	testCnt              int64
 	class                string
+	tags                 map[string]string
+	category             string
+	regionName           string
+	measurementInfo      *inputs.MeasurementInfo
+	seqNumber            int64 // the number of test has been executed
+	failCnt              int
 
-	tags     map[string]string
 	updateCh chan dt.Task
-
-	category   string
-	regionName string
-
-	measurementInfo *inputs.MeasurementInfo
-
-	seqNumber int64 // the number of test has been executed
-
-	failCnt int
-	done    <-chan interface{}
+	done     <-chan interface{}
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
@@ -83,6 +79,7 @@ func newDialer(t dt.Task, ipt *Input) *dialer {
 		measurementInfo:      info,
 		class:                t.Class(),
 		taskExecTimeInterval: ipt.taskExecTimeInterval,
+		ipt:                  ipt,
 	}
 }
 
@@ -142,6 +139,16 @@ func (d *dialer) run() error {
 			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "token_empty").Inc()
 			return fmt.Errorf("token is required")
 		}
+	}
+
+	// check internal network
+	hostName, err := d.task.GetHostName()
+	if err != nil {
+		l.Warnf("get host name error: %s", err.Error())
+	} else if d.ipt.DisableInternalNetworkTask &&
+		httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList) {
+		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
+		return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
 	}
 
 	for {
