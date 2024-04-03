@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 // Package dumpstd dump stderr to file
 package dumpstd
 
