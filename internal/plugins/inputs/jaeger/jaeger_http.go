@@ -122,7 +122,19 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 
 		sourceTags := make(map[string]string)
 		for _, tag := range span.Tags {
-			sourceTags[tag.Key] = tag.String()
+			t := tag.GetVType()
+			switch t {
+			case jaeger.TagType_STRING:
+				sourceTags[tag.Key] = tag.GetVStr()
+			case jaeger.TagType_DOUBLE:
+				sourceTags[tag.Key] = strconv.FormatFloat(tag.GetVDouble(), 'f', -1, 64)
+			case jaeger.TagType_BOOL:
+				sourceTags[tag.Key] = strconv.FormatBool(tag.GetVBool())
+			case jaeger.TagType_LONG:
+				sourceTags[tag.Key] = strconv.FormatInt(tag.GetVLong(), 10)
+			case jaeger.TagType_BINARY:
+				sourceTags[tag.Key] = string(tag.GetVBinary())
+			}
 		}
 
 		if mTags, err := itrace.MergeInToCustomerTags(tags, sourceTags, ignoreTags); err == nil {

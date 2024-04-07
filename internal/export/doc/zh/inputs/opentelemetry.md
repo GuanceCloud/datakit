@@ -202,21 +202,41 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 另外 Agent 内置的一些三方软件的采集配置。具体可以参考： [GitHub OTEL JMX Metric](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
 
-{{ range $i, $m := .Measurements }}
+## 数据字段说明 {#fields}
 
-### `{{$m.Name}}`
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "tracing"}}
+
+### 链路字段说明 {tracing}
 
 {{$m.Desc}}
 
-- 标签
+- 标签（String 类型）
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表（非 String 类型，或者长 String 类型）
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{if eq $m.Type "metric"}}
+
+### 指标类型 {metric}
+
+{{$m.Desc}}
+
+- 指标的标签
 
 {{$m.TagsMarkdownTable}}
 
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }}
+{{end}}
 
 ## 更多文档 {#more-readings}
 

@@ -150,17 +150,32 @@ SkyWalking 会上报一些 JVM 指标数据。
 | `thread_time_waiting_state_count`  | time waiting state thread count.                                                                                                          |    int    |  count  |
 | `thread_waiting_state_count`       | waiting state thread count.                                                                                                               |    int    |  count  |
 
-## 链路字段 {#tracing}
+## 数据字段说明 {#fields}
 
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
 
-### `{{$m.Name}}`
+### 链路字段说明 {tracing}
 
 {{$m.Desc}}
 
-- 标签
+- 标签（String 类型）
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表（非 String 类型，或者长 String 类型）
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{if eq $m.Type "metric"}}
+
+### 指标类型 {metric}
+
+{{$m.Desc}}
+
+- 指标标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -169,7 +184,7 @@ SkyWalking 会上报一些 JVM 指标数据。
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
-{{ end }}
+{{end}}
 
 ## SkyWalking 文档 {#doc}
 

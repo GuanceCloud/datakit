@@ -8,6 +8,8 @@
 - OpenTelemetry
 - SkyWalking
 - Zipkin
+- Cat
+- PinPoint
 
 ---
 
