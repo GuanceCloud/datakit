@@ -2,6 +2,7 @@
 // under the MIT License.
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
+// Some code modified from project Beats (https://github.com/elastic/beats).
 
 //go:build windows
 // +build windows
@@ -42,6 +43,7 @@ type handleCache struct {
 	elements        map[string]*element
 	timeout         time.Duration
 	removalCallback handleCallback
+	postCleanUp     func()
 	stopCh          chan struct{}
 }
 
@@ -70,6 +72,11 @@ func (c *handleCache) Put(k string, v EvtHandle) {
 
 // CleanUp cleans up the expired handles.
 func (c *handleCache) CleanUp() {
+	defer func() {
+		if c.postCleanUp != nil {
+			c.postCleanUp()
+		}
+	}()
 	c.Lock()
 	defer c.Unlock()
 	for k, v := range c.elements {
@@ -115,10 +122,11 @@ func (c *handleCache) StopCleanWorker() {
 }
 
 // newHandleCache creates a new handleCache.
-func newHandleCache(d time.Duration, initialSize int, removalCallback handleCallback) *handleCache {
+func newHandleCache(d time.Duration, initialSize int, removalCallback handleCallback, postCleanUp func()) *handleCache {
 	return &handleCache{
 		timeout:         d,
 		elements:        make(map[string]*element, initialSize),
 		removalCallback: removalCallback,
+		postCleanUp:     postCleanUp,
 	}
 }

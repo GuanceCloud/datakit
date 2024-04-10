@@ -51,6 +51,8 @@ func (ipt *Input) Init() {
 		if eh != NilHandle {
 			_EvtClose(eh) // nolint:errcheck
 		}
+	}, func() {
+		eventCacheNumber.Set(float64(ipt.handleCache.Size()))
 	})
 
 	ipt.mergedTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
@@ -63,6 +65,12 @@ func (ipt *Input) Init() {
 
 	if ipt.EventFetchSize <= 0 {
 		ipt.EventFetchSize = defaultEventFetchSize
+	}
+
+	ipt.winMetaCache = winMetaCache{
+		cache:  make(map[string]winMetaCacheEntry),
+		ttl:    time.Hour,
+		logger: l,
 	}
 }
 
@@ -125,6 +133,13 @@ func (ipt *Input) Run() {
 							dkio.WithLastErrorInput(inputName),
 							dkio.WithLastErrorCategory(point.Logging))
 					}
+					// expose metric
+					pointTime := ipt.collectCache[len(ipt.collectCache)-1].Time()
+					diffTime := time.Since(pointTime).Seconds()
+					if diffTime > 60 {
+						eventTimeDiff.Observe(diffTime)
+					}
+
 					ipt.collectCache = ipt.collectCache[:0]
 				}
 			}
@@ -153,18 +168,18 @@ func (ipt *Input) handleEvent(event Event) {
 	}
 
 	kvs = kvs.Add("event_source", event.Source.Name, false, true)
-	kvs = kvs.Add("event_id", event.EventID, false, true)
+	kvs = kvs.Add("event_id", event.EventID.ID, false, true)
 	kvs = kvs.Add("version", event.Version, false, true)
-	kvs = kvs.Add("task", event.TaskText, false, true)
+	kvs = kvs.Add("task", event.Task, false, true)
 	kvs = kvs.Add("keyword", event.Keywords, false, true)
 	kvs = kvs.Add("event_record_id", event.EventRecordID, false, true)
 	kvs = kvs.Add("process_id", int(event.Execution.ProcessID), false, true)
 	kvs = kvs.Add("channel", event.Channel, false, true)
 	kvs = kvs.Add("computer", event.Computer, false, true)
 	kvs = kvs.Add("message", event.Message, false, true)
-	kvs = kvs.Add("level", event.LevelText, false, true)
+	kvs = kvs.Add("level", event.Level, false, true)
 	kvs = kvs.Add("total_message", string(msg), false, true)
-	kvs = kvs.Add("status", ipt.getEventStatus(event.Level), false, true)
+	kvs = kvs.Add("status", ipt.getEventStatus(int(event.LevelRaw)), false, true)
 
 	opts := point.CommonLoggingOptions()
 	opts = append(opts, point.WithTime(ts))
@@ -260,6 +275,58 @@ func (ipt *Input) fetchEvents(subsHandle EvtHandle) ([]Event, error) {
 	return events, nil
 }
 
+// TODO: publisherMeta
+func (ipt *Input) setValues(publisherMeta *WinMeta, event *Event) {
+	rawKeyword := int64(event.KeywordsRaw)
+
+	if len(event.Keywords) == 0 {
+		for m, k := range keywordsMap {
+			if rawKeyword&m != 0 {
+				event.Keywords = append(event.Keywords, k)
+				rawKeyword &^= m
+			}
+		}
+
+		if publisherMeta != nil {
+			for mask, keyword := range publisherMeta.Keywords {
+				if rawKeyword&mask != 0 {
+					event.Keywords = append(event.Keywords, keyword)
+					rawKeyword &^= mask
+				}
+			}
+		}
+	}
+	event.KeywordsText = strings.Join(event.Keywords, ",")
+
+	var found bool
+	if event.Opcode == "" {
+		if event.OpcodeRaw != nil {
+			event.Opcode, found = opcodesMap[*event.OpcodeRaw]
+			if !found && publisherMeta != nil {
+				event.Opcode = publisherMeta.Opcodes[*event.OpcodeRaw]
+			}
+		}
+	}
+
+	if event.Level == "" {
+		event.Level, found = levelsMap[event.LevelRaw]
+		if !found && publisherMeta != nil {
+			event.Level = publisherMeta.Levels[event.LevelRaw]
+		}
+	}
+
+	if event.Task == "" {
+		if publisherMeta != nil {
+			event.Task, found = publisherMeta.Tasks[event.TaskRaw]
+			if !found {
+				event.Task = tasksMap[event.TaskRaw]
+			}
+		} else {
+			event.Task = tasksMap[event.TaskRaw]
+		}
+	}
+}
+
 func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 	var bufferUsed, propertyCount uint32
 
@@ -281,6 +348,8 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 		return event, nil //nolint:nilerr
 	}
 
+	ipt.setValues(ipt.winMeta(event.Source.Name), &event)
+
 	var publisherHandle EvtHandle
 
 	if v := ipt.handleCache.Get(event.Source.Name); v == NilHandle {
@@ -295,35 +364,43 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 		publisherHandle = v
 	}
 
-	// Populating text values
-	keywords, err := formatEventString(EvtFormatMessageKeyword, eventHandle, publisherHandle)
-	if err == nil {
-		event.Keywords = keywords
-	}
-
-	message, err := formatEventString(EvtFormatMessageEvent, eventHandle, publisherHandle)
-	if err == nil {
-		if len(message) > 1024*1024 { // max 1 MB
-			message = message[0 : 1024*1024]
+	if event.KeywordsText == "" {
+		keywords, err := formatEventString(EvtFormatMessageKeyword, eventHandle, publisherHandle)
+		if err == nil {
+			event.KeywordsText = keywords
 		}
-		event.Message = message
 	}
 
-	level, err := formatEventString(EvtFormatMessageLevel, eventHandle, publisherHandle)
-	if err == nil {
-		event.LevelText = level
+	if event.Message == "" {
+		message, err := formatEventString(EvtFormatMessageEvent, eventHandle, publisherHandle)
+		if err == nil {
+			if len(message) > 1024*1024 { // max 1 MB
+				message = message[0 : 1024*1024]
+			}
+			event.Message = message
+		}
 	}
 
-	task, err := formatEventString(EvtFormatMessageTask, eventHandle, publisherHandle)
-	if err == nil {
-		event.TaskText = task
+	if event.Level == "" {
+		level, err := formatEventString(EvtFormatMessageLevel, eventHandle, publisherHandle)
+		if err == nil {
+			event.Level = level
+		}
 	}
 
-	opcode, err := formatEventString(EvtFormatMessageOpcode, eventHandle, publisherHandle)
-	if err == nil {
-		event.OpcodeText = opcode
+	if event.Task == "" {
+		task, err := formatEventString(EvtFormatMessageTask, eventHandle, publisherHandle)
+		if err == nil {
+			event.Task = task
+		}
 	}
 
+	if event.Opcode == "" {
+		opcode, err := formatEventString(EvtFormatMessageOpcode, eventHandle, publisherHandle)
+		if err == nil {
+			event.Opcode = opcode
+		}
+	}
 	return event, nil
 }
 
@@ -343,18 +420,18 @@ func formatEventString(
 		return "", nil
 	}
 
-	bufferUsed *= 2
-	buffer := make([]byte, bufferUsed)
-	bufferUsed = 0
+	bb := NewPooledByteBuffer()
+	defer bb.Free()
+	bb.Reserve(int(bufferUsed * 2))
 
 	err = _EvtFormatMessage(publisherHandle, eventHandle, 0, 0, 0, messageFlag,
-		uint32(len(buffer)/2), &buffer[0], &bufferUsed)
+		bufferUsed, bb.PtrAt(0), &bufferUsed)
 	bufferUsed *= 2
 	if err != nil {
 		return "", err
 	}
 
-	result, err := DecodeUTF16(buffer[:bufferUsed])
+	result, err := DecodeUTF16(bb.Bytes())
 	if err != nil {
 		return "", err
 	}
