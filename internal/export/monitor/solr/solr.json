@@ -122,7 +122,7 @@
           "core"
         ],
         "interval": 300,
-        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：slor 15分钟请求消息数过高\n>建议：登录集群查看  是否有异常",
+        "message": "<<.Monitor.message>>",
         "noDataMessage": "",
         "noDataTitle": "",
         "recoverNeedPeriodCount": 2,
@@ -132,10 +132,10 @@
             "dql": "M::`solr_request_times`:(LAST(`rate_15min`)) BY `core`"
           }
         ],
-        "title": "slor 15分钟请求消息数过高",
+        "title": "<<.Monitor.title>>",
         "type": "simpleCheck"
       },
-      "monitorName": "默认"
+      "monitorName": "<<.Monitor.default_monitor_name>>"
     }
   ]
 }
