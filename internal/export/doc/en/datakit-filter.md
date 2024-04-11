@@ -1,12 +1,12 @@
 
-# Line Protocol Filter
+# Pointer Filters
 ---
 
 This document mainly describes the basic use and considerations of DataKit Filter.
 
 ## Introduction {#intro}
 
-DataKit Filter is used to filter the collected line protocol data and filter out some unwanted data. Its function is similar to Pipeline, but there is a difference:
+DataKit Filter is used to filter the collected points and filter out some unwanted data, or define some policies for successive handling. Its function is similar to Pipeline, but there is a difference:
 
 | Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                                         |
 | ----                      | ----                        | ----                          | ----                    | ----                   | ----                                                                                |
@@ -38,7 +38,7 @@ Among them, `conditions` can be a combination of other conditions. Here are some
 
 ### Data Range for Filter Action {#spec}
 
-As (most) data collected by DataKit is reported in the form of line protocol, all filters work on top of line protocol. Filters support data filtering on the following data:
+As (most) data collected by DataKit is reported in the form of data point, all filters work on top of data point. Filters support data filtering on the following data:
 
 - Measurement name: For different types of data, the business attribution of measurement is different, as follows:
     - For time series data (M), a `measurement` tag is injected into its tag list when the filter is running, so you can write a metric set-based filter as follows:`{  measurement = re('abc.*') AND ( tag1='def' and field2 = 3.14)}`.
@@ -151,7 +151,7 @@ In addition, the following list operations are supported:
     { ABC IN [1,2, "foo", 3.5]} # ABC is not equal to abe 
     ```
     
-    In line protocol, all fields of **and their values are case-sensitive**.
+    In data point, all fields of **and their values are case-sensitive**.
 <!-- markdownlint-enable -->
 
 ## Usage Example {#usage}
