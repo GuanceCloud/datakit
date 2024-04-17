@@ -25,6 +25,7 @@ func TestDTSender(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, point.LineProtocol.HTTPContentType(), r.Header.Get("Content-Type"))
 			assert.Equal(t, "", r.Header.Get("Content-Encoding")) // default not gzip
+			assert.Equal(t, "dialtesting", r.Header.Get("X-Sub-Category"))
 
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)

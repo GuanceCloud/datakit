@@ -27,6 +27,18 @@ func WithCategory(cat point.Category) WriteOption {
 	}
 }
 
+func WithHTTPHeader(headers map[string]string) WriteOption {
+	return func(w *writer) {
+		for k, v := range headers {
+			if len(v) > 0 { // ignore empty header value
+				w.httpHeaders[k] = v
+			} else {
+				log.Warnf("ignore empty value on header %q", k)
+			}
+		}
+	}
+}
+
 func WithPoints(points []*point.Point) WriteOption {
 	return func(w *writer) {
 		w.points = points
