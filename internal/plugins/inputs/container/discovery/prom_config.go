@@ -106,6 +106,11 @@ func withTags(tags map[string]string) promOption {
 	}
 }
 
+func WithTLSOpen(b bool) promOption        { return func(c *promConfig) { c.TLSOpen = b } }
+func WithCacertFile(str string) promOption { return func(c *promConfig) { c.CacertFile = str } }
+func WithCertFile(str string) promOption   { return func(c *promConfig) { c.CertFile = str } }
+func WithKeyFile(str string) promOption    { return func(c *promConfig) { c.KeyFile = str } }
+
 func withLabelAsTags(m map[string]string, keys []string) promOption {
 	return func(c *promConfig) {
 		if len(keys) == 0 || len(m) == 0 {

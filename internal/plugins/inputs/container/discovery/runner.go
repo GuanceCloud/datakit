@@ -329,7 +329,8 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						measurementName = meas
 					}
 
-					config := newPromConfig(withSource(fmt.Sprintf("k8s/service-monitor(%s)/service(%s)/pod(%s)", item.Name, svc.Name, pod.Name)),
+					opts := []promOption{
+						withSource(fmt.Sprintf("k8s/service-monitor(%s)/service(%s)/pod(%s)", item.Name, svc.Name, pod.Name)),
 						withMeasurementName(measurementName),
 						withURLs([]string{urlstr}),
 						withTag("namespace", pod.Namespace),
@@ -340,8 +341,17 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
 						withTags(getTargetLabels(svc.Labels, item.Spec.TargetLabels)),
 						withLabelAsTags(pod.Labels, d.cfg.LabelAsTags),
-						withInterval(endpoint.Interval))
+						withInterval(endpoint.Interval),
+					}
 
+					if endpoint.TLSConfig != nil && endpoint.TLSConfig.CAFile != "" {
+						opts = append(opts, WithTLSOpen(true),
+							WithCacertFile(endpoint.TLSConfig.CAFile),
+							WithCertFile(endpoint.TLSConfig.CertFile),
+							WithKeyFile(endpoint.TLSConfig.KeyFile))
+					}
+
+					config := newPromConfig(opts...)
 					runner, err := newPromRunnerWithConfig(d, config)
 					if err != nil {
 						klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, err: %s", item.Name, svc.Name, err)
