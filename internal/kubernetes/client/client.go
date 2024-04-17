@@ -7,19 +7,16 @@
 package client
 
 import (
-	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net"
 	"os"
-	"path/filepath"
-	"strings"
-	"sync"
 
 	prometheusclientv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	prometheusmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	guancev1beta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"k8s.io/client-go/kubernetes"
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -28,11 +25,16 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	statsv1alpha1 "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned/typed/metrics/v1beta1"
+
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 type Client interface {
+	RestConfig() *rest.Config
+
 	GetNamespaces() corev1.NamespaceInterface
 	GetNodes() corev1.NodeInterface
+	GetAbsPath(path string) *rest.Request
 
 	// resources
 	GetDeployments(ns string) appsv1.DeploymentInterface
@@ -54,13 +56,11 @@ type Client interface {
 	GetPrmetheusPodMonitors(ns string) prometheusmonitoringv1.PodMonitorInterface
 	GetPrmetheusServiceMonitors(ns string) prometheusmonitoringv1.ServiceMonitorInterface
 
-	// plugins
-	// metrics-server
+	// plugins metrics-server
 	GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface
 	GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
 
-	// kubelet
-	GetMetricsFromKubelet() (*statsv1alpha1.Summary, error)
+	KubeletClient
 }
 
 const (
@@ -70,95 +70,62 @@ const (
 	LimitBurst = 1000
 )
 
-var ErrInvalidBaseURL = errors.New("invalid baseURL, cannot be empty")
+func DefaultConfigInCluster() (*rest.Config, error) {
+	// nolint:gosec
+	const tokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-func NewKubernetesClientFromBearerToken(baseURL, path string) (Client, error) {
-	if baseURL == "" {
-		return nil, ErrInvalidBaseURL
+	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
+	if len(host) == 0 || len(port) == 0 {
+		return nil, fmt.Errorf("unable to load in-cluster configuration")
 	}
-
-	token, err := os.ReadFile(filepath.Clean(path))
+	token, err := ioutil.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewKubernetesClientFromBearerTokenString(baseURL, strings.TrimSpace(string(token)))
+	config := rest.Config{
+		Host:            "https://" + net.JoinHostPort(host, port),
+		TLSClientConfig: rest.TLSClientConfig{Insecure: true},
+		BearerToken:     string(token),
+		BearerTokenFile: tokenFile,
+		RateLimiter:     flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
+	}
+	return &config, nil
 }
 
-func NewKubernetesClientFromBearerTokenString(baseURL, token string) (Client, error) {
-	if baseURL == "" {
-		return nil, ErrInvalidBaseURL
-	}
-
-	restConfig := &rest.Config{
-		Host:        baseURL,
-		BearerToken: token,
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-		},
-		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
-	}
-
-	return newKubernetesClient(restConfig)
-}
-
-func NewKubernetesClientFromTLS(baseURL string, tlsconfig *net.TLSClientConfig) (Client, error) {
-	if baseURL == "" {
-		return nil, ErrInvalidBaseURL
-	}
-
-	if tlsconfig == nil {
-		return nil, fmt.Errorf("tlsconfig is empty pointer")
-	}
-
-	if len(tlsconfig.CaCerts) == 0 {
-		return nil, fmt.Errorf("tlsconfig cacerts is empty")
-	}
-
-	if _, err := tlsconfig.TLSConfig(); err != nil {
+func NewKubernetesClientInCluster() (Client, error) {
+	config, err := DefaultConfigInCluster()
+	if err != nil {
 		return nil, err
 	}
-
-	restConfig := &rest.Config{
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: tlsconfig.InsecureSkipVerify,
-			CAFile:   tlsconfig.CaCerts[0],
-			CertFile: tlsconfig.Cert,
-			KeyFile:  tlsconfig.CertKey,
-		},
-		Host:        baseURL,
-		RateLimiter: flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
-	}
-
-	return newKubernetesClient(restConfig)
+	return newKubernetesClient(config)
 }
 
 type client struct {
-	clientset              *kubernetes.Clientset
-	kubeletClient          *kubeletClient
-	metricsV1beta1         *metricsv1beta1.MetricsV1beta1Client
-	guanceV1beta1          *guancev1beta1.GuanceV1Client
-	prometheusMonitoringV1 *prometheusclientv1.Clientset
+	restConfig           *rest.Config
+	clientset            *kubernetes.Clientset
+	kubeletClient        KubeletClient
+	metricsClient        *metricsv1beta1.MetricsV1beta1Client
+	guanceClient         *guancev1beta1.GuanceV1Client
+	prometheusMonitoring *prometheusclientv1.Clientset
 }
 
-var doOnce sync.Once
-
 func newKubernetesClient(restConfig *rest.Config) (*client, error) {
-	var err error
-	doOnce.Do(func() {
-		err = guancev1beta1.AddToScheme(clientsetscheme.Scheme)
-	})
+	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	kubeletClient, err := NewDefaultKubeletClient(restConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	guanceClient, err := guancev1beta1.NewForConfig(restConfig)
 	if err != nil {
+		return nil, err
+	}
+	if err := guancev1beta1.AddToScheme(clientsetscheme.Scheme); err != nil {
 		return nil, err
 	}
 
@@ -172,28 +139,18 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 		return nil, err
 	}
 
-	addr := "127.0.0.1"
-	if s := getNodeIP(); s != "" {
-		addr = s
-	}
-	kubeletConfig := KubeletClientConfig{
-		Client:      restConfig,
-		Scheme:      "https",
-		Address:     addr,
-		DefaultPort: 10250,
-	}
-	kubeletClient, err := NewKubeletClientForConfig(&kubeletConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	return &client{
-		clientset:              clientset,
-		kubeletClient:          kubeletClient,
-		metricsV1beta1:         metricsClient,
-		guanceV1beta1:          guanceClient,
-		prometheusMonitoringV1: prometheusClient,
+		restConfig:           restConfig,
+		clientset:            clientset,
+		kubeletClient:        kubeletClient,
+		metricsClient:        metricsClient,
+		guanceClient:         guanceClient,
+		prometheusMonitoring: prometheusClient,
 	}, nil
+}
+
+func (c *client) RestConfig() *rest.Config {
+	return c.restConfig
 }
 
 func (c *client) GetNamespaces() corev1.NamespaceInterface {
@@ -256,41 +213,48 @@ func (c *client) GetPersistentVolumeClaims(ns string) corev1.PersistentVolumeCla
 	return c.clientset.CoreV1().PersistentVolumeClaims(ns)
 }
 
+func (c *client) GetAbsPath(path string) *rest.Request {
+	return c.clientset.RESTClient().Get().AbsPath(path)
+}
+
 /// CRDs
 
 func (c *client) GetDatakits(ns string) guancev1beta1.DatakitInterface {
-	return c.guanceV1beta1.Datakits(ns)
+	return c.guanceClient.Datakits(ns)
 }
 
 func (c *client) GetPrmetheusPodMonitors(ns string) prometheusmonitoringv1.PodMonitorInterface {
-	return c.prometheusMonitoringV1.MonitoringV1().PodMonitors(ns)
+	return c.prometheusMonitoring.MonitoringV1().PodMonitors(ns)
 }
 
 func (c *client) GetPrmetheusServiceMonitors(ns string) prometheusmonitoringv1.ServiceMonitorInterface {
-	return c.prometheusMonitoringV1.MonitoringV1().ServiceMonitors(ns)
+	return c.prometheusMonitoring.MonitoringV1().ServiceMonitors(ns)
 }
 
 /// plugins
 
 func (c *client) GetPodMetricses(ns string) metricsv1beta1.PodMetricsInterface {
-	return c.metricsV1beta1.PodMetricses(ns)
+	return c.metricsClient.PodMetricses(ns)
 }
 
 func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface {
-	return c.metricsV1beta1.NodeMetricses()
+	return c.metricsClient.NodeMetricses()
 }
 
-func (c *client) GetMetricsFromKubelet() (*statsv1alpha1.Summary, error) {
+// kubelet
+
+func (c *client) GetStatsSummary() (*statsv1alpha1.Summary, error) {
+	return c.kubeletClient.GetStatsSummary()
+}
+
+func (c *client) GetMetrics() (io.ReadCloser, error) {
 	return c.kubeletClient.GetMetrics()
 }
 
-func getNodeIP() string {
-	if s := os.Getenv("ENV_K8S_NODE_IP"); s != "" {
-		return s
-	}
-	// Deprecated: use ENV_K8S_NODE_IP
-	if s := os.Getenv("HOST_IP"); s != "" {
-		return s
-	}
-	return ""
+func (c *client) GetMetricsCadvisor() (io.ReadCloser, error) {
+	return c.kubeletClient.GetMetricsCadvisor()
+}
+
+func (c *client) GetMetricsResource() (io.ReadCloser, error) {
+	return c.kubeletClient.GetMetricsResource()
 }

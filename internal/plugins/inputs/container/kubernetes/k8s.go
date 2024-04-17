@@ -15,7 +15,8 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 
@@ -25,7 +26,7 @@ import (
 
 var klog = logger.DefaultSLogger("k8s")
 
-type k8sClient client.Client
+type k8sClient k8sclient.Client
 
 type Config struct {
 	NodeName                      string
@@ -34,9 +35,11 @@ type Config struct {
 	EnableK8sObject               bool
 	EnableK8sEvent                bool
 	EnablePodMetric               bool
+	EnableK8sSelfMetricByProm     bool
 	EnableExtractK8sLabelAsTagsV1 bool
 	ExtraTags                     map[string]string
 	DisableCollectJob             bool
+	Feeder                        dkio.Feeder
 
 	LabelAsTagsForMetric    LabelsOption
 	LabelAsTagsForNonMetric LabelsOption
@@ -51,9 +54,11 @@ type Kube struct {
 	lastEventResourceVersion string
 	paused                   func() bool
 	done                     <-chan interface{}
+
+	promCollections []kubeMetricsWithProm
 }
 
-func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
+func NewKubeCollector(client k8sclient.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
 	klog = logger.SLogger("k8s")
 
 	if client == nil {
@@ -68,6 +73,34 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 		return nil, err
 	}
 
+	var promCollections []kubeMetricsWithProm
+	if cfg.EnableK8sSelfMetricByProm {
+		if collection, err := newKubeApiserverCollection(client, cfg.Feeder); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeletCadvisorCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeletMetricsResourceCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeCorednsCollection(client, cfg.Feeder); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeletProxyCollection(cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeControllerManagerCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeSchedulerCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+		if collection, err := newKubeEtcdCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
+			promCollections = append(promCollections, collection)
+		}
+	}
+
 	return &Kube{
 		cfg:             cfg,
 		client:          client,
@@ -75,6 +108,7 @@ func NewKubeCollector(client client.Client, cfg *Config, paused func() bool, don
 		paused:          paused,
 		done:            done,
 		onWatchingEvent: &atomic.Bool{},
+		promCollections: promCollections,
 	}, nil
 }
 
@@ -95,6 +129,14 @@ func (k *Kube) Metric(feed func([]*point.Point) error, opts ...option.CollectOpt
 		return
 	}
 
+	for _, collection := range k.promCollections {
+		if collection.Election() && c.Paused {
+			continue
+		}
+		if err := collection.Collect(); err != nil {
+			klog.Warnf("collect prom err: %s", err)
+		}
+	}
 	k.gather("metric", feed, c.Paused)
 }
 

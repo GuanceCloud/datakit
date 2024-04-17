@@ -271,9 +271,8 @@ func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {
 
 		var client k8sclient.Client
 		var err error
-
 		if datakit.Docker && config.IsKubernetes() {
-			client, err = newKubernetesClient(ipt)
+			client, err = k8sclient.NewKubernetesClientInCluster()
 			if err != nil {
 				l.Warnf("unable to connect k8s client, err: %s, skip", err)
 			}
@@ -293,7 +292,7 @@ func newCollectorsFromContainerEndpoints(ipt *Input) []Collector {
 }
 
 func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
-	client, err := newKubernetesClient(ipt)
+	client, err := k8sclient.NewKubernetesClientInCluster()
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +316,7 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		EnablePodMetric:               ipt.EnablePodMetric,
 		EnableK8sEvent:                ipt.EnableK8sEvent,
 		EnableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
+		EnableK8sSelfMetricByProm:     ipt.EnableK8sSelfMetricByProm,
 		DisableCollectJob:             ipt.disableCollectK8sJob,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{
 			All:  optForMetric.all,
@@ -327,6 +327,7 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 			Keys: optForNonMetric.keys,
 		},
 		ExtraTags: tags,
+		Feeder:    ipt.Feeder,
 	}
 
 	checkPaused := func() bool {
@@ -337,7 +338,7 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 }
 
 func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
-	client, err := newKubernetesClient(ipt)
+	client, err := k8sclient.NewKubernetesClientInCluster()
 	if err != nil {
 		return nil, err
 	}
@@ -357,26 +358,6 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 	}
 
 	return discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait()), nil
-}
-
-func newKubernetesClient(ipt *Input) (k8sclient.Client, error) {
-	if ipt.K8sBearerTokenString != "" {
-		client, err := k8sclient.NewKubernetesClientFromBearerTokenString(ipt.K8sURL, ipt.K8sBearerTokenString)
-		if err != nil {
-			return nil, fmt.Errorf("new k8s client fails for the token string, err: %w", err)
-		}
-		return client, err
-	}
-
-	if ipt.K8sBearerToken != "" {
-		client, err := k8sclient.NewKubernetesClientFromBearerToken(ipt.K8sURL, ipt.K8sBearerToken)
-		if err != nil {
-			return nil, fmt.Errorf("new k8s client fails for the token file, err: %w", err)
-		}
-		return client, err
-	}
-
-	return nil, fmt.Errorf("invalid token or token string, cannot be empty")
 }
 
 func checkEndpoint(endpoint string) error {
