@@ -133,7 +133,7 @@ func newPodMetricsFromKubelet(client k8sClient) *podMetricsFromKubelet {
 
 func (p *podMetricsFromKubelet) GetPodMetrics(ctx context.Context, namespace, name string) (*podSrvMetric, error) {
 	if p.metricsCache == nil {
-		m, err := p.client.GetMetricsFromKubelet()
+		m, err := p.client.GetStatsSummary()
 		if err != nil {
 			return nil, fmt.Errorf("falied of query kubelet stats, err: %w", err)
 		}
@@ -147,7 +147,7 @@ func (p *podMetricsFromKubelet) GetPodMetrics(ctx context.Context, namespace, na
 
 func (p *podMetricsFromKubelet) GetPodsVolumeInfo(ctx context.Context) ([]*podVolumeInfo, error) {
 	if p.metricsCache == nil {
-		m, err := p.client.GetMetricsFromKubelet()
+		m, err := p.client.GetStatsSummary()
 		if err != nil {
 			return nil, fmt.Errorf("falied of query kubelet stats/summary, err: %w", err)
 		}

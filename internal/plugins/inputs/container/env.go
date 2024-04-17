@@ -50,6 +50,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "LoggingForceFlushLimit", Type: doc.Int, Default: `5`, Desc: `If there are consecutive N empty collections, the existing data will be uploaded to prevent memory occupation caused by accumulated`, DescZh: `日志采集上传限制，如果连续 N 次都采集为空，会将现有的数据上传，避免数据积攒占用内存`},
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
+		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
+		{FieldName: "EnableK8sMetricByProm", Type: doc.Boolean, Default: `false`, Desc: `Enable collection of Kubernetes Prometheus data, including APIServer, Scheduler, Etcd, etc.(Experimental)`, DescZh: `开启对 Kubernetes Prometheus 数据的采集，包括 APIServer、Scheduler、Etcd 等（试验中）`},
 		{FieldName: "Tags"},
 	}
 
@@ -66,6 +68,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_ENABLE_POD_METRIC : booler
 // ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL : booler
 // ENV_INPUT_CONTAINER_ENABLE_K8S_EVENT: booler
+// ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM; booler
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS : booler
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC : json arrry
 // ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS_V2 : json arrry
@@ -147,6 +150,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL to bool: %s, ignore", err)
 		} else {
 			ipt.EnableK8sNodeLocal = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM to bool: %s, ignore", err)
+		} else {
+			ipt.EnableK8sSelfMetricByProm = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {

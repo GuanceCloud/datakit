@@ -200,7 +200,7 @@ func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
 
 	// A agent used to count bytes.
 	wCounter := &writeCounter{}
-	pts, err := p.text2Metrics(io.TeeReader(resp.Body, wCounter), u)
+	pts, err := p.ProcessMetrics(io.TeeReader(resp.Body, wCounter), u)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +213,10 @@ func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
 	return pts, nil
 }
 
+func (p *Prom) ProcessMetrics(body io.Reader, u string) ([]*point.Point, error) {
+	return p.text2Metrics(body, u)
+}
+
 // CollectFromFileV2 collect points.
 func (p *Prom) CollectFromFileV2(filepath string) ([]*point.Point, error) {
 	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
@@ -220,7 +224,7 @@ func (p *Prom) CollectFromFileV2(filepath string) ([]*point.Point, error) {
 		return nil, err
 	}
 	defer f.Close() //nolint:errcheck,gosec
-	return p.text2Metrics(f, "")
+	return p.ProcessMetrics(f, "")
 }
 
 // WriteMetricText2File scrapes raw prometheus metric text from u
