@@ -19,6 +19,7 @@ bin
 *.log
 *.o
 *.out
+scripts/v1.data
 *.pdf
 *.pyc
 *.rpm

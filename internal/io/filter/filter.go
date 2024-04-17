@@ -140,12 +140,17 @@ func (f *filter) doFilter(category point.Category, pts []*point.Point) ([]*point
 		isFiltered, err := CheckPointFiltered(conds, category, pt)
 		if err != nil {
 			l.Errorf("pt.Fields: %s, ignored", err.Error())
+			datakit.PutbackPoints(pt)
 			continue // filter it!
 		}
 		if !isFiltered { // Pick those points that not matched filter rules.
 			after = append(after, pt)
-		} else if datakit.LogSinkDetail {
-			l.Infof("(sink_detail) filtered point: (%s) (%s)", category, pt.Pretty())
+		} else {
+			if datakit.LogSinkDetail {
+				l.Infof("(sink_detail) filtered point: (%s) (%s)", category, pt.Pretty())
+			}
+
+			datakit.PutbackPoints(pt)
 		}
 	}
 

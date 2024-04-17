@@ -154,6 +154,28 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
 
+### Point 缓存 {#point-pool}
+
+[:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
+为了优化 Datakit 高负载情况下的内存占用，可以开启 Point Pool 来缓解：
+
+```toml
+# datakit.conf
+[point_pool]
+    enable = true
+    reserved_capacity = 4096
+```
+
+同时，[Datakit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码，相比 v1，它的内存和 CPU 开销都更低。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    在低负载（Datakit 内存占用 100MB 左右）的情况下，开启 Point-Pool 会增加 Datakit 自身的内存占用，但也不至于太多。所谓的高负载，一般指占用内存在 2GB+ 的场景。同时开启后也能改善 Datakit 自身的 CPU 消耗。
+<!-- markdownlint-enable -->
+
 ### IO 模块调参 {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·

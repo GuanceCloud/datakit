@@ -23,6 +23,12 @@ func setupMetrics() {
 			Subsystem: "input",
 			Name:      "container_collect_cost_seconds",
 			Help:      "Container collect cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"category",

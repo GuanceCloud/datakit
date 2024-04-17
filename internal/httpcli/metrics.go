@@ -53,6 +53,12 @@ func init() {
 			Subsystem: subsystem,
 			Name:      "conn_idle_time_seconds",
 			Help:      "HTTP connection idle time",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"from"},
 	)
@@ -63,6 +69,12 @@ func init() {
 			Subsystem: subsystem,
 			Name:      "dns_cost_seconds",
 			Help:      "HTTP DNS cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"from"},
 	)
@@ -73,6 +85,12 @@ func init() {
 			Subsystem: subsystem,
 			Name:      "tls_handshake_seconds",
 			Help:      "HTTP TLS handshake cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"from"},
 	)
@@ -83,6 +101,12 @@ func init() {
 			Subsystem: subsystem,
 			Name:      "http_connect_cost_seconds",
 			Help:      "HTTP connect cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"from"},
 	)
@@ -96,8 +120,8 @@ func init() {
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
-				0.75: 0.0075,
-				0.95: 0.005,
+				0.9:  0.01,
+				0.99: 0.001,
 			},
 
 			MaxAge:     prometheus.DefMaxAge, // 10min

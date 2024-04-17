@@ -10,22 +10,55 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 type body struct {
-	buf     []byte
-	rawLen  int
-	gzon    bool
-	npts    int
-	payload point.Encoding
+	buf        []byte
+	rawLen     int
+	gzon       bool
+	npts       int
+	payloadEnc point.Encoding
+}
+
+func (b *body) reset() {
+	b.buf = nil
+	b.rawLen = 0
+	b.gzon = false
+	b.npts = 0
+	b.payloadEnc = point.LineProtocol
 }
 
 func (b *body) String() string {
 	return fmt.Sprintf("gzon: %v, pts: %d, buf bytes: %d", b.gzon, b.npts, len(b.buf))
 }
 
-func (w *writer) buildPointsBody() ([]*body, error) {
+func (w *writer) zip(data []byte) ([]byte, error) {
+	// reset zipper on multiple parts.
+	// zipper may called multiple times during build HTTP bodies,
+	// so zipper need to reset before next round.
+	if w.parts > 0 {
+		w.zipper.buf.Reset()
+		w.zipper.w.Reset(w.zipper.buf)
+	}
+
+	if _, err := w.zipper.w.Write(data); err != nil {
+		return nil, err
+	}
+
+	if err := w.zipper.w.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := w.zipper.w.Close(); err != nil {
+		return nil, err
+	}
+
+	return w.zipper.buf.Bytes(), nil
+}
+
+type bodyCallback func(w *writer, b *body) error
+
+func (w *writer) buildPointsBody(cb bodyCallback) error {
 	var (
 		start   = time.Now()
 		nptsArr []int
@@ -37,16 +70,12 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 		return nil
 	}
 
-	enc := point.GetEncoder(
+	encOpts := []point.EncoderOption{
 		point.WithEncEncoding(w.httpEncoding),
-
-		// set batch size on point count
-		point.WithEncBatchSize(w.batchSize),
-		// or point's raw bytes(approximately)
-		point.WithEncBatchBytes(w.batchBytesSize),
-
 		point.WithEncFn(encFn),
-	)
+	}
+
+	enc := point.GetEncoder(encOpts...)
 
 	defer func() {
 		buildBodyCostVec.WithLabelValues(
@@ -57,57 +86,71 @@ func (w *writer) buildPointsBody() ([]*body, error) {
 		point.PutEncoder(enc)
 	}()
 
-	batches, err := enc.Encode(w.points)
-	if err != nil {
-		return nil, err
+	enc.EncodeV2(w.points)
+
+	if cap(w.sendBuffer) == 0 {
+		// The buffer not set before, here we make a default
+		// buffer to prevent too-small-buffer error from enc.Next().
+		w.sendBuffer = make([]byte, w.batchBytesSize)
 	}
 
-	var arr []*body
+	for {
+		encodeBytes, ok := enc.Next(w.sendBuffer)
+		if !ok {
+			if err := enc.LastErr(); err != nil {
+				log.Errorf("encode: %s", err.Error())
+				return err
+			}
+			break
+		}
 
-	for idx, batch := range batches {
-		var (
-			buf = batch
-			err error
-		)
+		var err error
+		w.body.reset()
+
+		w.body.buf = encodeBytes
+		w.body.rawLen = len(encodeBytes)
+		w.body.gzon = w.gzip
+		w.body.payloadEnc = w.httpEncoding
+		w.body.npts = -1
 
 		if w.gzip {
-			buf, err = datakit.GZip(batch)
+			w.body.buf, err = w.zip(encodeBytes)
 			if err != nil {
 				log.Errorf("datakit.GZip: %s", err.Error())
 				continue
 			}
 		}
 
-		body := &body{
-			buf:     buf,
-			rawLen:  len(batch),
-			gzon:    w.gzip,
-			payload: w.httpEncoding,
-			npts:    -1,
-		}
-
-		if len(nptsArr) >= idx {
-			body.npts = nptsArr[idx]
-		} else {
-			log.Warnf("batch size not set, set %d points as single batch", len(w.points))
-			body.npts = len(w.points)
-		}
-
-		if !doNotBuildPointRequest {
-			arr = append(arr, body)
-		}
+		w.body.npts = nptsArr[w.parts]
 
 		buildBodyBatchBytesVec.WithLabelValues(
 			w.category.String(),
 			w.httpEncoding.String(),
 			fmt.Sprintf("%v", w.gzip),
-		).Observe(float64(len(body.buf)))
+		).Observe(float64(len(w.body.buf)))
+
+		buildBodyBatchPointsVec.WithLabelValues(
+			w.category.String(),
+			w.httpEncoding.String(),
+			fmt.Sprintf("%v", w.gzip),
+		).Observe(float64(w.body.npts))
+		w.parts++
+
+		if cb != nil {
+			if err := cb(w, w.body); err != nil {
+				log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
+					w.body.npts, w.category, w.gzip, err.Error())
+			} else {
+				log.Debugf("send part %d with %d points to %q ok, bytes: %d/%d(zipped)",
+					w.parts, w.body.npts, w.category, len(encodeBytes), len(w.body.buf))
+			}
+		}
 	}
 
 	buildBodyBatchCountVec.WithLabelValues(
 		w.category.String(),
 		w.httpEncoding.String(),
-	).Observe(float64(len(arr)))
+	).Observe(float64(w.parts))
 
-	return arr, nil
+	return nil
 }

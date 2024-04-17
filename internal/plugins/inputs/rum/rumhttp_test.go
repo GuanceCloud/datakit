@@ -65,7 +65,7 @@ func TestHandleSourcemap(t *testing.T) {
 	assert.NoError(t, ipt.loadSourcemapFile())
 
 	opts := []point.Option{
-		point.WithPrecision(point.MS),
+		point.WithPrecision(point.PrecMS),
 		point.WithTime(time.Now()),
 		point.WithCallback(ipt.parseCallback),
 	}

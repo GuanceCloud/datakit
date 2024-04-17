@@ -25,7 +25,7 @@ func apiBPFTracing(ulid *spans.ULID, mrr MRRunnerInterface) httpapi.APIHandler {
 		var err error
 
 		opts := []point.Option{
-			point.WithPrecision(point.NS),
+			point.WithPrecision(point.PrecNS),
 			point.WithTime(time.Now()),
 		}
 

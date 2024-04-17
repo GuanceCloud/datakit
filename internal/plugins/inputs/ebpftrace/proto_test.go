@@ -19,7 +19,7 @@ var b = `ebpf app_parent_id="8294577262761556516",app_parent_id_l=82945772627615
 
 func TestS(t *testing.T) {
 	opts := []point.Option{
-		point.WithPrecision(point.NS),
+		point.WithPrecision(point.PrecNS),
 		point.WithTime(time.Now()),
 	}
 	pts, err := httpapi.HandleWriteBody([]byte(b), point.LineProtocol, opts...)

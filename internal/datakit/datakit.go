@@ -17,7 +17,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/v3/process"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
@@ -120,6 +123,8 @@ var (
 	Exit           = cliutils.NewSem()
 	WG             = sync.WaitGroup{}
 	GlobalExitTime time.Time
+
+	pointPool point.PointPool
 
 	Docker     = false
 	Version    = git.Version
@@ -432,4 +437,33 @@ func JoinToCacheDir(filename string) string {
 		return filename
 	}
 	return filepath.Join(CacheDir, filename)
+}
+
+// SetupPointPool setup pooled point for global point usage.
+func SetupPointPool(reservedCap int64) {
+	pointPool = point.NewReservedCapPointPool(reservedCap)
+	point.SetPointPool(pointPool)
+
+	metrics.MustRegister(pointPool)
+}
+
+// PutbackPoints return unused points back to pool.
+func PutbackPoints(pts ...*point.Point) {
+	if pointPool != nil {
+		for _, pt := range pts {
+			if pt.HasFlag(point.Ppooled) {
+				pointPool.Put(pt)
+			}
+		}
+	}
+}
+
+// PutbackKVs return unused key-value (kvs that haven't passed
+// to NewPointV2()) back to pool.
+func PutbackKVs(kvs point.KVs) {
+	if pointPool != nil {
+		for _, kv := range kvs {
+			pointPool.PutKV(kv)
+		}
+	}
 }

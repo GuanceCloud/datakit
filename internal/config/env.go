@@ -22,6 +22,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
+func (c *Config) loadPointPool() {
+	if v := datakit.GetEnv("ENV_ENABLE_POINT_POOL"); v != "" {
+		c.PointPool.Enable = true
+
+		if v := datakit.GetEnv("ENV_POINT_POOL_RESERVED_CAPACITY"); v != "" {
+			if i, err := strconv.ParseInt(v, 10, 64); err == nil {
+				c.PointPool.ReservedCapacity = i
+			} else {
+				l.Warnf("invalid ENV_POINT_POOL_RESERVED_CAPACITY: %s, use default %d", v, c.PointPool.ReservedCapacity)
+			}
+		}
+	}
+}
+
 func (c *Config) loadDataway() {
 	if v := datakit.GetEnv("ENV_DATAWAY_CONTENT_ENCODING"); v != "" {
 		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
@@ -464,6 +478,8 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	c.loadDataway()
+
+	c.loadPointPool()
 
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
 		c.Hostname = v

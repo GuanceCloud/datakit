@@ -26,7 +26,7 @@ func TestGetPort(t *testing.T) {
 	t.Run("base-100", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			get := RandPort("tcp")
-			assert.True(t, get > baseOffset)
+			assert.Truef(t, get > baseOffset, "get: %d", get)
 			t.Logf("get: %d -> %d", i, get)
 		}
 

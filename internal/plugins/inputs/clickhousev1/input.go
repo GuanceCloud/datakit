@@ -428,7 +428,7 @@ func (ipt *Input) formatPointSuffix(suffixes []suffixInfo, pt *point.Point) {
 			Key: suffixes[v.suffixID].name,
 			Val: pt.Fields().Get(v.key).Val,
 		}
-		pt.MustAddKV(kv)
+		pt.MustAddKVs(kv)
 
 		// Delete old field(KV).
 		pt.Del(v.key)

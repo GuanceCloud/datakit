@@ -36,8 +36,8 @@ const (
 )
 
 const (
-	namespace = "datakit_input"
-	subSystem = "rum"
+	namespace = "datakit"
+	subSystem = "input_rum"
 )
 
 var ClientRealIPCounter = prometheus.NewCounterVec(prometheus.CounterOpts{

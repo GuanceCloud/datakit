@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -35,21 +36,21 @@ const (
 	inputName = "logstreaming"
 	sampleCfg = `
 [inputs.logstreaming]
-  ignore_url_tags = true
+  ignore_url_tags = false
 
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.logstreaming.threads]
-    # buffer = 100
-    # threads = 8
+  #   buffer = 100
+  #   threads = 8
 
   ## Storage config a local storage space in hard dirver to cache trace data.
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
   # [inputs.logstreaming.storage]
-    # path = "./log_storage"
-    # capacity = 5120
+  #   path = "./log_storage"
+  #   capacity = 5120
 `
 )
 
@@ -64,8 +65,24 @@ type Input struct {
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
+	ScanBufferSize int `toml:"scan_buffer_size"`
+	scanbufPool    *sync.Pool
+
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) getScanbuf() []byte {
+	b := ipt.scanbufPool.Get()
+	if b == nil {
+		b = make([]byte, ipt.ScanBufferSize)
+	}
+
+	return b.([]byte)
+}
+
+func (ipt *Input) putScanbuf(buf []byte) {
+	ipt.scanbufPool.Put(buf) //nolint: staticcheck
 }
 
 func (*Input) Catalog() string { return "log" }
@@ -177,8 +194,10 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:  dkio.DefaultFeeder(),
-		semStop: cliutils.NewSem(),
+		feeder:         dkio.DefaultFeeder(),
+		semStop:        cliutils.NewSem(),
+		ScanBufferSize: 4 * 1024,
+		scanbufPool:    &sync.Pool{},
 	}
 }
 

@@ -188,7 +188,7 @@ func rebuildPoint(pt *point.Point, newMetricName string, willRenameFields, willA
 			Key: newKey,
 			Val: pt.Fields().Get(oldKey).Val,
 		}
-		pt.MustAddKV(kv)
+		pt.MustAddKVs(kv)
 
 		// Delete old field(KV).
 		pt.Del(oldKey)

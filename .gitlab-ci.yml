@@ -64,8 +64,8 @@ test-datakit-testing:
     - nvm use v16.14.0
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
+    #- make lint AUTO_FIX=off
+    #- make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft
 

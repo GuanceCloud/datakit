@@ -22,10 +22,9 @@ func (c *checker) reset() {
 }
 
 func (c *checker) check(pt *Point) *Point {
-	pt.name = c.checkMeasurement(pt.name)
-	pt.kvs = c.checkKVs(pt.kvs)
-
-	pt.warns = c.warns
+	pt.pt.Name = c.checkMeasurement(pt.pt.Name)
+	pt.pt.Fields = c.checkKVs(pt.pt.Fields)
+	pt.pt.Warns = append(pt.pt.Warns, c.warns...)
 
 	// Add more checkings...
 	return pt
@@ -79,9 +78,12 @@ func (c *checker) checkKVs(kvs KVs) KVs {
 	// check each kv valid
 	idx := 0
 	for _, kv := range kvs {
-		if x := c.checkKV(kv); x != nil {
+		if x, ok := c.checkKV(kv, kvs); ok {
 			kvs[idx] = x
 			idx++
+		} else if defaultPTPool != nil {
+			// When point-pool enabled, on drop f, we should put-back to pool.
+			defaultPTPool.PutKV(x)
 		}
 	}
 
@@ -111,116 +113,160 @@ func adjustKV(x string) string {
 	return x
 }
 
-func (c *checker) checkKV(f *Field) *Field {
-	switch f.IsTag {
-	case true:
-		return c.checkTag(f)
-	default:
-		return c.checkField(f)
+func (c *checker) checkKV(f *Field, kvs KVs) (*Field, bool) {
+	if f.IsTag {
+		return c.checkTag(f, kvs)
+	} else {
+		return c.checkField(f, kvs)
 	}
 }
 
-func (c *checker) checkTag(f *Field) *Field {
+func (c *checker) keyConflict(key string, kvs KVs) bool {
+	if kvs.Get(key) != nil { // key exist
+		c.addWarn(WarnKeyNameConflict,
+			fmt.Sprintf("same key after rename(%q), kv dropped", key))
+		return true
+	}
+
+	return false
+}
+
+// checkTag try to auto modify the f. If we need to drop
+// f, we return false.
+func (c *checker) checkTag(f *Field, kvs KVs) (*Field, bool) {
 	if c.cfg.maxTagKeyLen > 0 && len(f.Key) > c.cfg.maxTagKeyLen {
 		c.addWarn(WarnMaxTagKeyLen,
 			fmt.Sprintf("exceed max tag key length(%d), got %d, key truncated",
 				c.cfg.maxTagKeyLen, len(f.Key)))
 
-		f.Key = f.Key[:c.cfg.maxTagKeyLen]
+		newKey := f.Key[:c.cfg.maxTagKeyLen]
+		if c.keyConflict(newKey, kvs) {
+			return f, false
+		} else {
+			f.Key = newKey
+		}
 	}
 
-	if c.cfg.maxTagValLen > 0 && len(f.GetS()) > c.cfg.maxTagValLen {
+	x := f.Val.(*Field_S)
+
+	if c.cfg.maxTagValLen > 0 && len(x.S) > c.cfg.maxTagValLen {
 		c.addWarn(WarnMaxTagValueLen,
 			fmt.Sprintf("exceed max tag value length(%d), got %d, value truncated",
-				c.cfg.maxTagValLen, len(f.GetS())))
+				c.cfg.maxTagValLen, len(x.S)))
 
-		f.Val = &Field_S{S: f.GetS()[:c.cfg.maxTagValLen]}
+		x.S = x.S[:c.cfg.maxTagValLen]
+		f.Val = x
 	}
 
 	// check tag key '\', '\n'
 	if strings.HasSuffix(f.Key, `\`) || strings.Contains(f.Key, "\n") {
 		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s'", f.Key))
 
-		f.Key = adjustKV(f.Key)
+		newKey := adjustKV(f.Key)
+		if c.keyConflict(newKey, kvs) {
+			return f, false
+		} else {
+			f.Key = newKey
+		}
 	}
 
 	// check tag value: '\', '\n'
 	if strings.HasSuffix(f.GetS(), `\`) || strings.Contains(f.GetS(), "\n") {
 		c.addWarn(WarnInvalidTagValue, fmt.Sprintf("invalid tag value %q", f.GetS()))
 
-		f.Val = &Field_S{S: adjustKV(f.GetS())}
+		x.S = adjustKV(x.S)
+		f.Val = x
 	}
 
 	// replace `.' with `_' in tag keys
 	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
 		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s': found `.'", f.Key))
 
-		f.Key = strings.ReplaceAll(f.Key, ".", "_")
+		newKey := strings.ReplaceAll(f.Key, ".", "_")
+		if c.keyConflict(newKey, kvs) {
+			return f, false
+		} else {
+			f.Key = newKey
+		}
 	}
 
-	if c.keyDisabled(NewTagKey(f.Key, "")) {
+	if c.keyDisabled(f.Key) {
 		c.addWarn(WarnTagDisabled, fmt.Sprintf("tag key `%s' disabled", f.Key))
-		return nil
+		return f, false
 	}
 
-	return f
+	return f, true
 }
 
-func (c *checker) checkField(f *Field) *Field {
+// checkField try to auto modify the f. If we need to drop
+// f, we return false.
+func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
 	// trim key
 	if c.cfg.maxFieldKeyLen > 0 && len(f.Key) > c.cfg.maxFieldKeyLen {
-		f.Key = f.Key[:c.cfg.maxFieldKeyLen]
-
 		c.addWarn(WarnMaxFieldKeyLen,
 			fmt.Sprintf("exceed max field key length(%d), got %d, key truncated to %s",
 				c.cfg.maxFieldKeyLen, len(f.Key), f.Key))
+
+		newKey := f.Key[:c.cfg.maxFieldKeyLen]
+
+		if c.keyConflict(newKey, kvs) {
+			return f, false
+		} else {
+			f.Key = newKey
+		}
 	}
 
 	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
 		c.addWarn(WarnDotInkey,
 			fmt.Sprintf("invalid field key `%s': found `.'", f.Key))
 
-		f.Key = strings.ReplaceAll(f.Key, ".", "_")
+		newKey := strings.ReplaceAll(f.Key, ".", "_")
+		if c.keyConflict(newKey, kvs) {
+			return f, false
+		} else {
+			f.Key = newKey
+		}
 	}
 
-	if c.keyDisabled(KVKey(f)) {
+	if c.keyDisabled(f.Key) {
 		c.addWarn(WarnFieldDisabled,
-			fmt.Sprintf("field key `%s' disabled", f.Key))
-		return nil
+			fmt.Sprintf("field key `%s' disabled, value: %v", f.Key, f.Raw()))
+		return nil, false
 	}
 
 	switch x := f.Val.(type) {
 	case *Field_U:
-		if c.cfg.enableU64Field {
-			return f
-		} else {
+		if !c.cfg.enableU64Field {
 			if x.U > uint64(math.MaxInt64) {
 				c.addWarn(WarnMaxFieldValueInt,
 					fmt.Sprintf("too large int field: key=%s, value=%d(> %d)", f.Key, x.U, uint64(math.MaxInt64)))
-				return nil
+				return f, false
 			} else {
 				// Force convert uint64 to int64: to disable line proto like
 				//    `abc,tag=1 f1=32u`
 				// expected is:
 				//    `abc,tag=1 f1=32i`
-				f.Val = &Field_I{I: int64(x.U)}
-				return f
+				if defaultPTPool != nil {
+					defaultPTPool.PutKV(f)
+					f = defaultPTPool.GetKV(f.Key, int64(x.U))
+				} else {
+					f.Val = &Field_I{I: int64(x.U)}
+				}
 			}
 		}
 
 	case *Field_F, *Field_B, *Field_I, *Field_A:
-		return f
+		// pass: they are ok
 
 	case nil:
 		c.addWarn(WarnNilField, fmt.Sprintf("nil field(%s)", f.Key))
-		return f
 
 	case *Field_D: // same as []uint8
 
 		if !c.cfg.enableStrField {
 			c.addWarn(WarnInvalidFieldValueType,
 				fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", f.Key))
-			return nil
+			return f, false
 		}
 
 		if c.cfg.maxFieldValLen > 0 && len(x.D) > c.cfg.maxFieldValLen {
@@ -228,17 +274,16 @@ func (c *checker) checkField(f *Field) *Field {
 				fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated",
 					f.Key, c.cfg.maxFieldValLen, len(x.D)))
 
-			f.Val = &Field_D{D: x.D[:c.cfg.maxFieldValLen]}
+			x.D = x.D[:c.cfg.maxFieldValLen]
+			f.Val = x
 		}
-
-		return f
 
 	case *Field_S: // same as Field_D
 
 		if !c.cfg.enableStrField {
 			c.addWarn(WarnInvalidFieldValueType,
 				fmt.Sprintf("field(%s) dropped with string value, when [DisableStringField] enabled", f.Key))
-			return nil
+			return f, false
 		}
 
 		if c.cfg.maxFieldValLen > 0 && len(x.S) > c.cfg.maxFieldValLen {
@@ -246,23 +291,18 @@ func (c *checker) checkField(f *Field) *Field {
 				fmt.Sprintf("field (%s) exceed max field value length(%d), got %d, value truncated",
 					f.Key, c.cfg.maxFieldValLen, len(x.S)))
 
-			f.Val = &Field_S{S: x.S[:c.cfg.maxFieldValLen]}
+			x.S = x.S[:c.cfg.maxFieldValLen]
+			f.Val = x
 		}
-
-		if validStr := strings.ToValidUTF8(x.S, "?"); validStr != x.S {
-			c.addWarn(WarnInvalidUTF8String,
-				fmt.Sprintf("field (%s) is invalid UTF8 string(got %q), replace invalid rune with '?'", f.Key, x.S))
-			f.Val = &Field_S{S: validStr}
-		}
-
-		return f
 
 	default:
 		c.addWarn(WarnInvalidFieldValueType,
 			fmt.Sprintf("invalid field (%s), value: %s, type: %s",
 				f.Key, f.Val, reflect.TypeOf(f.Val)))
-		return nil
+		return f, false
 	}
+
+	return f, true
 }
 
 func trimSuffixAll(s, sfx string) string {
@@ -277,8 +317,8 @@ func trimSuffixAll(s, sfx string) string {
 	return x
 }
 
-func (c *checker) keyDisabled(k *Key) bool {
-	if k == nil {
+func (c *checker) keyDisabled(k string) bool {
+	if k == "" {
 		return true
 	}
 
@@ -287,7 +327,7 @@ func (c *checker) keyDisabled(k *Key) bool {
 	}
 
 	for _, item := range c.cfg.disabledKeys {
-		if k.key == item.key {
+		if k == item.key {
 			return true
 		}
 	}
@@ -312,4 +352,28 @@ func (c *checker) keyMiss(kvs KVs) KVs {
 	}
 
 	return kvs
+}
+
+// CheckPoints used to check pts on various opts.
+func CheckPoints(pts []*Point, opts ...Option) (arr []*Point) {
+	c := GetCfg(opts...)
+	defer PutCfg(c)
+
+	chk := checker{cfg: c}
+
+	arr = pts[:0]
+
+	for _, pt := range pts {
+		if pt.pt == nil {
+			continue
+		}
+
+		pt = chk.check(pt)
+		pt.SetFlag(Pcheck)
+		pt.pt.Warns = chk.warns
+		arr = append(arr, pt)
+		chk.reset()
+	}
+
+	return arr
 }

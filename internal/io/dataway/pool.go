@@ -13,15 +13,26 @@ import (
 
 var wpool sync.Pool
 
-func getWriter() *writer {
-	w := wpool.Get()
-	if w == nil {
+func getWriter(opts ...WriteOption) *writer {
+	var w *writer
+
+	if x := wpool.Get(); x == nil {
 		w = &writer{
-			httpHeaders: map[string]string{},
+			httpHeaders:    map[string]string{},
+			batchBytesSize: 1 << 20, // 1MB
+			body:           &body{},
+		}
+	} else {
+		w = x.(*writer)
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(w)
 		}
 	}
 
-	return w.(*writer)
+	return w
 }
 
 func putWriter(w *writer) {
@@ -31,9 +42,16 @@ func putWriter(w *writer) {
 	w.gzip = false
 	w.cacheClean = false
 	w.cacheAll = false
-	w.batchBytesSize = 0
+	w.batchBytesSize = 1 << 20
 	w.batchSize = 0
 	w.fc = nil
+	w.parts = 0
+	w.body.reset()
+
+	if w.zipper != nil {
+		w.zipper.buf.Reset()
+		w.zipper.w.Reset(w.zipper.buf)
+	}
 
 	for k := range w.httpHeaders {
 		delete(w.httpHeaders, k)

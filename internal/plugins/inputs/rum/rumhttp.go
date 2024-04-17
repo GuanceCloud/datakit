@@ -87,7 +87,7 @@ func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### RUM request from %s", req.URL.String())
 
 	opts := []point.Option{
-		point.WithPrecision(point.NS),
+		point.WithPrecision(point.PrecNS),
 		point.WithTime(time.Now()),
 	}
 

@@ -109,6 +109,7 @@ func setulimit() {
 	}
 }
 
+// nolint: typecheck
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	setulimit()
