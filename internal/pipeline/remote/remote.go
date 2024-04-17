@@ -300,7 +300,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 	}
 
 	// cleanup all scripts
-	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, nil, nil)
+	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, nil, nil, nil)
 	return nil
 }
 
@@ -433,5 +433,5 @@ func loadContentPipeline(in map[string]map[string]string) {
 		cat := point.CatString(categoryShort)
 		inS[cat] = val
 	}
-	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, inS, nil)
+	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, inS, nil, nil)
 }

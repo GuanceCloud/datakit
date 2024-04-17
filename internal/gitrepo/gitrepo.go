@@ -315,7 +315,7 @@ func reloadCore(ctx context.Context) (int, error) {
 				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
 					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
 						manager.GitRepoScriptNS,
-						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"))
+						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
 				}
 
 			case 4:

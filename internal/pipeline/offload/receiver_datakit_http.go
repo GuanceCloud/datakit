@@ -50,7 +50,7 @@ type DKRecver struct {
 	httpCli *http.Client
 
 	Addresses []string
-	AddrMap   []map[point.Category]string
+	AddrMap   []map[point.Category][2]string
 
 	sync.Mutex
 }
@@ -73,7 +73,7 @@ func NewDKRecver(addresses []string) (*DKRecver, error) {
 	}
 
 	receiver.Addresses = append([]string{}, addresses...)
-	receiver.AddrMap = make([]map[point.Category]string, len(addresses))
+	receiver.AddrMap = make([]map[point.Category][2]string, len(addresses))
 
 	allCat := point.AllCategories()
 
@@ -82,10 +82,10 @@ func NewDKRecver(addresses []string) (*DKRecver, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse url '%s' failed: %w", addr, err)
 		}
-		receiver.AddrMap[i] = map[point.Category]string{}
+		receiver.AddrMap[i] = map[point.Category][2]string{}
 		for _, cat := range allCat {
-			receiver.AddrMap[i][cat] = fmt.Sprintf("%s://%s%s",
-				u.Scheme, u.Host, cat.URL())
+			receiver.AddrMap[i][cat] = [2]string{fmt.Sprintf("%s://%s%s",
+				u.Scheme, u.Host, cat.URL()), u.Host}
 		}
 	}
 
@@ -94,13 +94,33 @@ func NewDKRecver(addresses []string) (*DKRecver, error) {
 
 const batchSize = 128
 
-func (recevier *DKRecver) Send(s uint64, cat point.Category, data []*point.Point) error {
+func (recevier *DKRecver) Send(s uint64, cat point.Category, data []*point.Point) (err error) {
+	tn := time.Now()
 	if len(data) == 0 {
 		return nil
 	}
 
 	i := s % (uint64)(len(recevier.AddrMap))
 	addr := recevier.AddrMap[i][cat]
+
+	totalPts := len(data)
+	var batchN int
+	defer func() {
+		catStr := cat.String()
+		if err != nil {
+			if batchN > 0 {
+				batchN -= 1
+			}
+			c := float64(totalPts - (batchN)*batchSize)
+			ptOffloadErrorCountVec.WithLabelValues(catStr, DKRcv, addr[1]).Add(c)
+			ptOffloadCountVec.WithLabelValues(catStr, DKRcv, addr[1]).Add(c)
+		} else {
+			ptOffloadCountVec.WithLabelValues(catStr, DKRcv, addr[1]).Add(float64(totalPts))
+		}
+
+		ptOffloadCostVec.WithLabelValues(catStr, DKRcv, addr[1]).Observe(
+			float64(time.Since(tn)) / float64(time.Second))
+	}()
 
 	if len(recevier.AddrMap) == 0 {
 		return fmt.Errorf("no server address")
@@ -120,8 +140,9 @@ func (recevier *DKRecver) Send(s uint64, cat point.Category, data []*point.Point
 	}
 
 	for _, d := range dataList {
+		batchN++
 		buffer := bytes.NewReader(d)
-		req, err := http.NewRequest("POST", addr, buffer)
+		req, err := http.NewRequest("POST", addr[0], buffer)
 		if err != nil {
 			return err
 		}

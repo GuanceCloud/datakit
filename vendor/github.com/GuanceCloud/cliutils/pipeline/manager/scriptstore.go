@@ -35,9 +35,9 @@ func InitLog() {
 	l = logger.SLogger("pl-script")
 }
 
-func InitStore(center *Manager, installDir string) {
+func InitStore(center *Manager, installDir string, tags map[string]string) {
 	stats.InitLog()
-	LoadDefaultScripts2Store(center, installDir)
+	LoadDefaultScripts2Store(center, installDir, tags)
 }
 
 func NSFindPriority(ns string) int {
@@ -142,7 +142,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	if !ok {
 		store.indexStore(script)
 
-		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false, "")
+		stats.WriteUpdateTime(script.tags)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     script.name,
 			Category: script.category,
@@ -150,7 +150,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 			Script:   script.script,
 			Op:       stats.EventOpIndex,
 			Time:     time.Now(),
-		})
+		}, script.tags)
 		return
 	}
 
@@ -158,8 +158,8 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 	nsNew := NSFindPriority(script.ns)
 	if nsNew >= nsCur {
 		store.indexStore(script)
-		stats.UpdateScriptStatsMeta(curScript.category, curScript.ns, curScript.name, curScript.script, false, false, "")
-		stats.UpdateScriptStatsMeta(script.category, script.ns, script.name, script.script, true, false, "")
+		stats.WriteUpdateTime(curScript.tags)
+		stats.WriteUpdateTime(script.tags)
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:      script.name,
 			Category:  script.category,
@@ -169,7 +169,7 @@ func (store *ScriptStore) indexUpdate(script *PlScript) {
 			ScriptOld: curScript.script,
 			Op:        stats.EventOpIndexUpdate,
 			Time:      time.Now(),
-		})
+		}, script.tags)
 	}
 }
 
@@ -198,7 +198,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 			Script:   curScript.script,
 			Op:       stats.EventOpIndexDelete,
 			Time:     time.Now(),
-		})
+		}, curScript.tags)
 		return
 	}
 
@@ -206,7 +206,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.indexStore(s)
-				stats.UpdateScriptStatsMeta(s.category, s.ns, s.name, s.script, true, false, "")
+				stats.WriteUpdateTime(s.tags)
 				stats.WriteEvent(&stats.ChangeEvent{
 					Name:      name,
 					Category:  s.category,
@@ -216,7 +216,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 					ScriptOld: curScript.script,
 					Op:        stats.EventOpIndexDeleteAndBack,
 					Time:      time.Now(),
-				})
+				}, s.tags)
 				return
 			}
 		}
@@ -231,10 +231,12 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		Script:   curScript.script,
 		Op:       stats.EventOpIndexDelete,
 		Time:     time.Now(),
-	})
+	}, curScript.tags)
 }
 
-func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]string, scriptPath map[string]string) map[string]error {
+func (store *ScriptStore) UpdateScriptsWithNS(ns string,
+	namedScript, scriptPath, scriptTags map[string]string,
+) map[string]error {
 	store.storage.Lock()
 	defer store.storage.Unlock()
 
@@ -242,8 +244,9 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 		store.storage.scripts[ns] = map[string]*PlScript{}
 	}
 
-	retScripts, retErr := NewScripts(namedScript, scriptPath, ns, store.category,
-		plmap.NewAggBuks(store.cfg.upFn, store.cfg.gTags))
+	aggBuk := plmap.NewAggBuks(store.cfg.upFn, store.cfg.gTags)
+	retScripts, retErr := NewScripts(namedScript, scriptPath, scriptTags, ns, store.category,
+		aggBuk)
 
 	for name, err := range retErr {
 		var errStr string
@@ -259,36 +262,57 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 			Time:         time.Now(),
 			CompileError: errStr,
 		}
-		stats.UpdateScriptStatsMeta(store.category, ns, name, namedScript[name], false, true, errStr)
+
+		sTags := map[string]string{
+			"name":     name,
+			"ns":       ns,
+			"lang":     "platypus",
+			"category": store.category.String(),
+		}
+
+		for k, v := range scriptTags {
+			if _, ok := sTags[k]; !ok {
+				sTags[k] = v
+			}
+		}
+
+		stats.WriteUpdateTime(sTags)
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
 
 		if v, ok := store.storage.scripts[ns][name]; ok {
 			if v.plBuks != nil {
 				v.plBuks.StopAllBukScanner()
 			}
+			if v.cache != nil {
+				v.cache.Stop()
+			}
 			delete(store.storage.scripts[ns], name)
 		}
-		stats.WriteEvent(&change)
+		stats.WriteEvent(&change, sTags)
 	}
 
-	needDelete := map[string]string{}
+	needDelete := map[string]*PlScript{}
 
 	// 在 storage & index 执行删除以及更新操作
 	for name, curScript := range store.storage.scripts[ns] {
 		if newScript, ok := retScripts[name]; ok {
 			store.storage.scripts[ns][name] = newScript
-			stats.UpdateScriptStatsMeta(store.category, ns, name, newScript.script, false, false, "")
+			stats.WriteUpdateTime(newScript.tags)
 			store.indexUpdate(newScript)
 		}
-		needDelete[name] = curScript.script
+		needDelete[name] = curScript
 	}
-	for name, script := range needDelete {
-		stats.UpdateScriptStatsMeta(store.category, ns, name, script, false, true, "")
+
+	for name, scriptDel := range needDelete {
+		stats.WriteUpdateTime(scriptDel.tags)
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
 
 		if v, ok := store.storage.scripts[ns][name]; ok {
 			if v.plBuks != nil {
 				v.plBuks.StopAllBukScanner()
+			}
+			if v.cache != nil {
+				v.cache.Stop()
 			}
 			delete(store.storage.scripts[ns], name)
 		}
@@ -298,7 +322,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	for name, newScript := range retScripts {
 		if _, ok := store.storage.scripts[ns][name]; !ok {
 			store.storage.scripts[ns][name] = newScript
-			stats.UpdateScriptStatsMeta(store.category, ns, name, newScript.script, false, false, "")
+			stats.WriteUpdateTime(newScript.tags)
 			store.indexUpdate(newScript)
 		}
 	}
@@ -309,7 +333,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string, namedScript map[string]
 	return nil
 }
 
-func (store *ScriptStore) LoadDotPScript2Store(ns string, dirPath string, filePath []string) {
+func (store *ScriptStore) LoadDotPScript2Store(ns, dirPath string, scriptTags map[string]string, filePath []string) {
 	if len(filePath) > 0 {
 		namedScript := map[string]string{}
 		scriptPath := map[string]string{}
@@ -321,14 +345,14 @@ func (store *ScriptStore) LoadDotPScript2Store(ns string, dirPath string, filePa
 				namedScript[name] = script
 			}
 		}
-		if err := store.UpdateScriptsWithNS(ns, namedScript, scriptPath); err != nil {
+		if err := store.UpdateScriptsWithNS(ns, namedScript, scriptTags, scriptPath); err != nil {
 			l.Error(err)
 		}
 	}
 
 	if dirPath != "" {
 		namedScript, filePath := ReadPlScriptFromDir(dirPath)
-		if err := store.UpdateScriptsWithNS(ns, namedScript, filePath); err != nil {
+		if err := store.UpdateScriptsWithNS(ns, namedScript, scriptTags, filePath); err != nil {
 			l.Error(err)
 		}
 	}

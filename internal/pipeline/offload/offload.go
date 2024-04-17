@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -23,8 +25,35 @@ const (
 
 var l = logger.DefaultSLogger("pl-offload")
 
-func InitLog() {
+var (
+	ptOffloadCountVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "datakit",
+		Subsystem: "pipeline",
+		Name:      "offload_point_total",
+		Help:      "Pieline offload processed total points",
+	}, []string{"category", "exporter", "remote"})
+
+	ptOffloadErrorCountVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "datakit",
+		Subsystem: "pipeline",
+		Name:      "offload_error_point_total",
+		Help:      "Pipeline offload processed total error points",
+	}, []string{"category", "exporter", "remote"})
+
+	ptOffloadCostVec = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: "datakit",
+		Subsystem: "pipeline",
+		Name:      "offload_cost_seconds",
+		Help:      "Pipeline offload total cost",
+	}, []string{"category", "exporter", "remote"})
+)
+
+func InitOffload() {
 	l = logger.SLogger("pl-offload")
+
+	metrics.MustRegister(ptOffloadCountVec)
+	metrics.MustRegister(ptOffloadErrorCountVec)
+	metrics.MustRegister(ptOffloadCostVec)
 }
 
 type OffloadConfig struct {

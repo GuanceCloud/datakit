@@ -218,13 +218,13 @@ func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string
 		ns := manager.DefaultScriptNS
 		plPath := filepath.Join(datakit.InstallDir, "pipeline")
 		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
-		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category])
+		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category], nil)
 	}
 	{ // gitrepo
 		ns := manager.GitRepoScriptNS
 		plPath := filepath.Join(datakit.GitReposRepoFullPath, "pipeline")
 		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
-		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category])
+		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category], nil)
 	}
 	{ // remote
 		ns := manager.RemoteScriptNS
@@ -236,7 +236,7 @@ func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string
 			for k := range scripts {
 				scriptsPath[k] = filepath.Join(plPath, category.String(), k)
 			}
-			errs[ns] = store.UpdateScriptsWithNS(ns, scripts, scriptsPath)
+			errs[ns] = store.UpdateScriptsWithNS(ns, scripts, scriptsPath, nil)
 		}
 	}
 

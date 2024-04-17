@@ -185,6 +185,15 @@ var (
 
 	//go:embed md/pt_name.en.md
 	docPtNameEN string
+
+	//go:embed md/http_request.en.md
+	docHTTPRequestEN string
+
+	//go:embed md/cache_get.en.md
+	docCacheGetEN string
+
+	//go:embed md/cache_set.en.md
+	docCacheSetEN string
 )
 
 const (
@@ -565,6 +574,27 @@ var (
 
 	ptNameMarkdownEN = PLDoc{
 		Doc: docPtNameEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	HTTPRequestMarkdownEN = PLDoc{
+		Doc: docHTTPRequestEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	CacheGetMarkdownEN = PLDoc{
+		Doc: docCacheGetEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	CacheSetMarkdownEN = PLDoc{
+		Doc: docCacheSetEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eOther},
 		},

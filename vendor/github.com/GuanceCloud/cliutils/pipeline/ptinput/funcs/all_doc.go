@@ -77,6 +77,9 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"parse_int()":              &parseIntMarkdown,
 	"format_int()":             &formatIntMarkdown,
 	"pt_name()":                &ptNameMarkdown,
+	"http_request()":           &HTTPRequestMarkdown,
+	"cache_get()":              &CacheGetMarkdown,
+	"cache_set()":              &CacheSetMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -138,6 +141,9 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"parse_int()":              &parseIntMarkdownEN,
 	"format_int()":             &formatIntMarkdownEN,
 	"pt_name()":                &ptNameMarkdownEN,
+	"http_request()":           &HTTPRequestMarkdownEN,
+	"cache_get()":              &CacheGetMarkdownEN,
+	"cache_set()":              &CacheSetMarkdownEN,
 }
 
 // embed docs.
@@ -316,6 +322,15 @@ var (
 
 	//go:embed md/pt_name.md
 	docPtName string
+
+	//go:embed md/http_request.md
+	docHTTPRequest string
+
+	//go:embed md/cache_get.md
+	docCacheGet string
+
+	//go:embed md/cache_set.md
+	docCacheSet string
 )
 
 const (
@@ -693,6 +708,27 @@ var (
 
 	ptNameMarkdown = PLDoc{
 		Doc: docPtName,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+
+	HTTPRequestMarkdown = PLDoc{
+		Doc: docHTTPRequest,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+
+	CacheGetMarkdown = PLDoc{
+		Doc: docCacheGet,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+
+	CacheSetMarkdown = PLDoc{
+		Doc: docCacheSet,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
 		},
