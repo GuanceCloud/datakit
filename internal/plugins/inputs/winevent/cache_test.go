@@ -19,7 +19,7 @@ var val = EvtHandle(1)
 var key = "a"
 
 func TestCachePutAndGet(t *testing.T) {
-	c := newHandleCache(time.Millisecond, 10, nil)
+	c := newHandleCache(time.Millisecond, 10, nil, nil)
 	c.Put(key, val)
 	assert.Equal(t, val, c.Get(key))
 	time.Sleep(10 * time.Millisecond)
@@ -27,7 +27,7 @@ func TestCachePutAndGet(t *testing.T) {
 }
 
 func TestCacheCleanUp(t *testing.T) {
-	c := newHandleCache(1*time.Millisecond, 10, nil)
+	c := newHandleCache(1*time.Millisecond, 10, nil, nil)
 	c.Put(key, val)
 	assert.Equal(t, 1, c.Size())
 	time.Sleep(10 * time.Millisecond)
@@ -46,7 +46,7 @@ func TestCacheRemoveCallback(t *testing.T) {
 	removeCnt := 0
 	c := newHandleCache(time.Millisecond, 10, func(s string, eh EvtHandle) {
 		removeCnt++
-	})
+	}, nil)
 
 	c.Put("1", val)
 	c.Put("2", val)

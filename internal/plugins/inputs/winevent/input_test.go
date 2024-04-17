@@ -2,6 +2,7 @@
 // under the MIT License.
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
+// Some code modified from project Beats (https://github.com/elastic/beats).
 
 //go:build windows
 // +build windows
@@ -10,6 +11,8 @@ package winevent
 
 import (
 	"bytes"
+	"flag"
+	"fmt"
 	"math/rand"
 	"os/exec"
 	"strconv"
@@ -26,18 +29,22 @@ import (
 )
 
 const (
-	providerName = "WinlogbeatTestGo"
-	sourceName   = "Integration Test"
-	gigabyte     = 1 << 30
+	providerName    = "WinlogbeatTestGo"
+	sourceName      = "Integration Test"
+	gigabyte        = 1 << 30
+	maxEventsNumber = 100000
 
 	eventCreateMsgFile = "%SystemRoot%\\System32\\EventCreate.exe"
 )
 
-var testQuery = `<QueryList>
+var (
+	testQuery = `<QueryList>
     <Query Id="0" Path="WinlogbeatTestGo">
         <Select Path="WinlogbeatTestGo">*</Select>
     </Query>
 </QueryList>`
+	benchTest = flag.Bool("benchtest", false, "Run benchmarks for the eventlog package.")
+)
 
 // mockFeeder implements Feeder interface
 type mockFeeder struct {
@@ -67,24 +74,24 @@ func (m *mockFeeder) FeedV2(category point.Category, pts []*point.Point, opts ..
 func (m *mockFeeder) FeedLastError(err string, opts ...io.LastErrorOption) {}
 
 func TestEventlog(t *testing.T) {
+	maxEventsNumber := 10000
 	writer, teardown := createLog(t)
 	defer teardown()
 
 	setLogSize(t, providerName, gigabyte)
-	go func() {
-		// Publish large test messages.
-		const messageSize = 256 // Originally 31800, such a large value resulted in an empty eventlog under Win10.
-		const totalEvents = 5000
-		for i := 0; i < totalEvents; i++ {
-			safeWriteEvent(t, writer, eventlog.Info, uint32(i%1000)+1, []string{strconv.Itoa(i) + " " + randomSentence(messageSize)})
-		}
-	}()
+
+	// Publish large test messages.
+	const messageSize = 256 // Originally 31800, such a large value resulted in an empty eventlog under Win10.
+	for i := 0; i < maxEventsNumber; i++ {
+		safeWriteEvent(t, writer, eventlog.Info, uint32(i%1000)+1, []string{strconv.Itoa(i) + " " + randomSentence(messageSize)})
+	}
 
 	semStop := cliutils.NewSem()
 	feeder := &mockFeeder{
 		semStop:   semStop,
-		maxNumber: 5000,
+		maxNumber: maxEventsNumber,
 	}
+
 	input := &Input{
 		buf:            make([]byte, 1<<14),
 		Query:          testQuery,
@@ -95,9 +102,76 @@ func TestEventlog(t *testing.T) {
 		Tagger:         datakit.DefaultGlobalTagger(),
 	}
 
+	start := time.Now()
 	input.Run()
 
-	assert.Equal(t, 5000, feeder.ptsNumber)
+	assert.Equal(t, maxEventsNumber, feeder.ptsNumber)
+	t.Logf("Avg: %f", float64(maxEventsNumber)/time.Since(start).Seconds())
+}
+
+func TestBenchmarkEventlog(t *testing.T) {
+	if !*benchTest {
+		t.Skip("-benchtest not enabled")
+	}
+	writer, teardown := createLog(t)
+	defer teardown()
+
+	setLogSize(t, providerName, gigabyte)
+
+	// Publish large test messages.
+	const messageSize = 256 // Originally 31800, such a large value resulted in an empty eventlog under Win10.
+	for i := 0; i < maxEventsNumber; i++ {
+		safeWriteEvent(t, writer, eventlog.Info, uint32(i%1000)+1, []string{strconv.Itoa(i) + " " + randomSentence(messageSize)})
+	}
+
+	for _, fetchSize := range []int{10, 100, 500, 1000} {
+		t.Run(fmt.Sprintf("fetch_size=%d", fetchSize), func(t *testing.T) {
+			result := testing.Benchmark(benchmarkEventlog(fetchSize))
+			outputBenchmarkResults(t, result)
+		})
+	}
+}
+
+func benchmarkEventlog(fetchSize int) func(b *testing.B) {
+	return func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			semStop := cliutils.NewSem()
+			feeder := &mockFeeder{
+				semStop:   semStop,
+				maxNumber: maxEventsNumber,
+			}
+			input := &Input{
+				buf:            make([]byte, 1<<14),
+				Query:          testQuery,
+				semStop:        semStop,
+				feeder:         feeder,
+				EventFetchSize: uint32(fetchSize),
+				subscribeFlag:  EvtSubscribeStartAtOldestRecord,
+				Tagger:         datakit.DefaultGlobalTagger(),
+			}
+			input.Run()
+		}
+		b.StopTimer()
+
+		b.ReportMetric(float64(maxEventsNumber), "events")
+	}
+}
+
+func outputBenchmarkResults(t testing.TB, result testing.BenchmarkResult) {
+	totalBatches := result.N
+	totalEvents := int(result.Extra["events"])
+	totalBytes := result.MemBytes
+	totalAllocs := result.MemAllocs
+
+	eventsPerSec := float64(totalEvents) / result.T.Seconds()
+	bytesPerEvent := float64(totalBytes) / float64(totalEvents)
+	bytesPerBatch := float64(totalBytes) / float64(totalBatches)
+	allocsPerEvent := float64(totalAllocs) / float64(totalEvents)
+	allocsPerBatch := float64(totalAllocs) / float64(totalBatches)
+
+	t.Logf("%.2f events/sec\t %d B/event\t %d B/batch\t %d allocs/event\t %d allocs/batch",
+		eventsPerSec, int(bytesPerEvent), int(bytesPerBatch), int(allocsPerEvent), int(allocsPerBatch))
 }
 
 // ---- Utility Functions -----
@@ -204,4 +278,14 @@ func randomSentence(n uint) string {
 	}
 
 	return buf.String()
+}
+
+func TestDemo(t *testing.T) {
+	t1 := time.Now()
+	time.Sleep(10 * time.Second)
+	t2 := time.Now()
+
+	delta := t1.Sub(t2)
+
+	fmt.Println(delta.Seconds())
 }
