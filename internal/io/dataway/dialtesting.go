@@ -38,7 +38,10 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	// TODO: can not set content encoding here, default use line-protocol
 	w := getWriter(WithPoints(pts),
 		WithDynamicURL(url),
-		WithCategory(point.DynamicDWCategory))
+		WithCategory(point.DynamicDWCategory),
+		WithHTTPHeader(map[string]string{
+			"X-Sub-Category": "dialtesting",
+		}))
 	defer putWriter(w)
 
 	if d.ep == nil {
