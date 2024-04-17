@@ -6,7 +6,7 @@
 
 ### 新加功能 {#cl-1.28.0-new}
 
-- Pipeline 新增 `cache()` 和 `request()` 函数，用于扩展 Pipeline 外部数据源（#2128）
+- Pipeline 新增 `cache_get()/cache_set()/http_request()` 函数，用于扩展 Pipeline 外部数据源（#2128）
 - 支持采集 Kubernetes 系统资源的 Prometheus 指标，目前处于试验性（#2032）
     - 某些云托管的 Kubernetes 可能无法采集，因为它们关闭了对应的功能授权
 

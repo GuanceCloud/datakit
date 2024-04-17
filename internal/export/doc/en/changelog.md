@@ -6,7 +6,7 @@ This release is an iterative update with the following main changes:
 
 ### New Features {#cl-1.28.0-new}
 
-- Added `cache()` and `request()` functions to Pipeline, which extend external data sources for Pipeline (#2128).
+- Added `cache_get()/cache_set()/http_request()` functions to Pipeline, which extend external data sources for Pipeline (#2128).
 - Support for collecting Kubernetes system resource Prometheus metrics has been added, currently in an experimental phase (#2032).
     - Certain cloud-hosted Kubernetes may not be collectible as they have disabled the corresponding feature authorization.
 
