@@ -41,10 +41,16 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
           port
           path
           params
+          tlsConfig
+              caFile
+              certFile
+              keyFile
     - namespaceSelector:
         any
         matchNames
 ```
+
+注意：`tlsConfig` 目前只支持配置证书路径，不支持 Secret 和 ConfigMap，需要把证书 Mount 到 Datakit 容器的相同路径下。
 
 ## 示例 {#example}
 
