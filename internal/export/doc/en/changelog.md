@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.28.0 (April 17, 2024) {#cl-1.28.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.28.0-new}
+
+- Added `cache()` and `request()` functions to Pipeline, which extend external data sources for Pipeline (#2128).
+- Support for collecting Kubernetes system resource Prometheus metrics has been added, currently in an experimental phase (#2032).
+    - Certain cloud-hosted Kubernetes may not be collectible as they have disabled the corresponding feature authorization.
+
+### Bug Fixes {#cl-1.28.0-fix}
+
+- Fixed the filter logic issue for container logs (#2188).
+
+### Feature Enhancements {#cl-1.28.0-opt}
+
+- PrometheusCRD-ServiceMonitor now supports TLS configuration (#2168).
+- Improved network interface information collection under Bond mode (#1877).
+- Further optimized Windows Event collection performance (#2172).
+- Optimized field information extraction in Jaeger APM data collection (#2174).
+- Added the `log_file_inode` field to log collection.
+- New point-pool configuration to optimize Datakit's memory usage under high load scenarios (#2034).
+    - Refactored some Datakit modules to optimize garbage collection (GC) overhead, which may slightly increase memory usage under low-load conditions (the additional memory is mainly used for the memory pool).
+- Other documentation adjustments and minor optimizations (#2191/#2189/#2185/#2181/#2180).
+
+---
+
 ## 1.27.0 (April 3, 2024) {#cl-1.27.0}
 
 ### New Features {#cl-1.27.0-new}
