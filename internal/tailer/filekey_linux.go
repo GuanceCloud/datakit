@@ -13,12 +13,15 @@ import (
 	"syscall"
 )
 
-// nolint
 func getFileKey(file string) string {
-	var inodeStr = "inode"
+	return file + "::" + getInode(file)
+}
+
+func getInode(file string) string {
+	inodeStr := "inode"
 	var stat syscall.Stat_t
 	if err := syscall.Stat(file, &stat); err == nil {
 		inodeStr = strconv.Itoa(int(stat.Ino))
 	}
-	return file + "::" + inodeStr
+	return inodeStr
 }
