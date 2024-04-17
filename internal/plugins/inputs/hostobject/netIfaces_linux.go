@@ -26,7 +26,8 @@ func NetVirtualInterfaces() (map[string]bool, error) {
 	}
 
 	for _, v := range v {
-		if v.IsDir() {
+		bondingPath := fmt.Sprintf("%s/%s/bonding", vnicDevPath, v.Name())
+		if _, err := os.Stat(bondingPath); os.IsNotExist(err) && v.IsDir() {
 			cardVirtual[v.Name()] = true
 		}
 	}

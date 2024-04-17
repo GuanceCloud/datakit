@@ -18,7 +18,6 @@ import (
 	hostutil "github.com/shirou/gopsutil/host"
 	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
-	netutil "github.com/shirou/gopsutil/net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -201,7 +200,7 @@ func getMemInfo() (*MemInfo, error) {
 }
 
 func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
-	ifs, err := netutil.Interfaces()
+	ifs, err := interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
 		return nil, err
