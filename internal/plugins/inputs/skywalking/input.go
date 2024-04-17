@@ -146,7 +146,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&MetricMeasurement{}}
+	return []inputs.Measurement{&MetricMeasurement{}, &itrace.TraceMeasurement{}}
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -282,6 +282,7 @@ func (ipt *Input) Run() {
 		}
 	}
 	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
+	metricOpts = append(point.DefaultMetricOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	tags = ipt.Tags
 	delMessage = ipt.DelMessage
 	// start up grpc v3 routine

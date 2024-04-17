@@ -143,20 +143,38 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 </figure>
 
 
-## 指标 {#metric}
+## 数据字段说明 {#fields}
 
-{{ range $i, $m := .Measurements }}
+{{range $i, $m := .Measurements}}
 
-### `{{$m.Name}}`
+{{if eq $m.Type "tracing"}}
+
+### 链路字段说明 {tracing}
 
 {{$m.Desc}}
 
-- 标签
+- 标签（String 类型）
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表（非 String 类型，或者长 String 类型）
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{if eq $m.Type "metric"}}
+
+### 指标类型 {metric}
+
+{{$m.Desc}}
+
+- 指标的标签
 
 {{$m.TagsMarkdownTable}}
 
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }}
+{{end}}

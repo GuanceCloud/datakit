@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"github.com/GuanceCloud/cliutils/point"
 	commonv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,21 +22,16 @@ func meterDataToPoint(data *agentv3.MeterData) *point.Point {
 	if singel == nil {
 		return nil
 	}
-	metric := &MetricMeasurement{
-		name:   data.Service,
-		tags:   make(map[string]string),
-		fields: make(map[string]interface{}),
-	}
+	var metricKV point.KVs
+
 	labels := singel.GetLabels()
 	for _, label := range labels {
-		metric.tags[label.GetName()] = label.GetValue()
+		metricKV = metricKV.AddTag(label.GetName(), label.GetValue())
 	}
-	ts := data.GetTimestamp()
 
-	metric.fields[singel.Name] = singel.GetValue()
-	metric.ts = time.UnixMilli(ts) // time
-
-	return metric.Point()
+	metricKV = metricKV.Add(singel.Name, singel.GetValue(), false, false)
+	ts := time.UnixMilli(data.GetTimestamp()) // time
+	return point.NewPointV2(data.Service, metricKV, append(metricOpts, point.WithTime(ts))...)
 }
 
 // func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {.
@@ -259,21 +255,7 @@ func extractJVMClass(service string, start time.Time, class *agentv3.Class, ipt 
 	return metric.Point()
 }
 
-var _ inputs.Measurement = &MetricMeasurement{}
-
-type MetricMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *MetricMeasurement) Point() *point.Point {
-	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(datakit.GlobalHostTags()))
-
-	return point.NewPointV2(m.name, append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
-}
+type MetricMeasurement struct{}
 
 func (*MetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

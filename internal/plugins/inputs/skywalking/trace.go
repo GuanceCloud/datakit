@@ -17,7 +17,10 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-var traceOpts = []point.Option{}
+var (
+	traceOpts  = []point.Option{}
+	metricOpts = []point.Option{}
+)
 
 func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 	var dktrace itrace.DatakitTrace
