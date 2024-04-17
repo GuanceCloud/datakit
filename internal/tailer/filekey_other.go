@@ -8,7 +8,10 @@
 
 package tailer
 
-// nolint
 func getFileKey(file string) string {
 	return file
+}
+
+func getInode(file string) string {
+	return ""
 }

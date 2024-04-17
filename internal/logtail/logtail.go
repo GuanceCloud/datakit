@@ -9,25 +9,18 @@ package logtail
 import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
 )
 
 var (
 	logtailCachePath = datakit.JoinToCacheDir("logtail.history")
-
-	l = logger.DefaultSLogger("logtail")
+	l                = logger.DefaultSLogger("logtail")
 )
 
 func InitDefault() error {
 	l = logger.SLogger("logtail")
-
 	if err := register.Init(logtailCachePath); err != nil {
 		l.Warnf("failed to initialize register, err: %s, ignored", err)
-		return err
-	}
-	if err := diskcache.Start(); err != nil {
-		l.Warnf("failed to initialize diskcache, err: %s, ignored", err)
 		return err
 	}
 	return nil

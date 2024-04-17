@@ -37,10 +37,10 @@ type container struct {
 	podLabelAsTagsForNonMetric    labelsOption
 	podLabelAsTagsForMetric       labelsOption
 
-	maxConcurrent  int
-	loggingFilters []filter.Filter
-	logTable       *logTable
-	extraTags      map[string]string
+	maxConcurrent int
+	logFilters    filters
+	logTable      *logTable
+	extraTags     map[string]string
 }
 
 func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
@@ -104,7 +104,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		podLabelAsTagsForNonMetric:    optForNonMetric,
 		podLabelAsTagsForMetric:       optForMetric,
 		maxConcurrent:                 maxConcurrent,
-		loggingFilters:                filters,
+		logFilters:                    filters,
 		logTable:                      newLogTable(),
 		extraTags:                     tags,
 	}, nil
@@ -314,28 +314,12 @@ func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 		return false
 	}
 
-	ignored := c.ignoreContainerLogging(filterImage, ins.image) ||
-		c.ignoreContainerLogging(filterImageName, ins.imageName) ||
-		c.ignoreContainerLogging(filterImageShortName, ins.imageShortName) ||
-		c.ignoreContainerLogging(filterNamespace, ins.podNamespace)
+	pass := matchFilter(c.logFilters, filterImage, ins.image) ||
+		matchFilter(c.logFilters, filterImageName, ins.imageName) ||
+		matchFilter(c.logFilters, filterImageShortName, ins.imageShortName) ||
+		matchFilter(c.logFilters, filterNamespace, ins.podNamespace)
 
-	return !ignored
-}
-
-func (c *container) ignoreContainerLogging(typ filterType, field string) (ignore bool) {
-	if field == "" {
-		return
-	}
-	if len(c.loggingFilters) != len(supportedFilterTypes) {
-		return
-	}
-
-	if c.loggingFilters[typ] != nil {
-		ignore = !c.loggingFilters[typ].Match(field)
-		l.Debugf("container_log filtered status: %v, type %s, field %s", ignore, typ.String(), field)
-	}
-
-	return
+	return pass
 }
 
 func (c *container) transformPoint(info *runtime.Container, setPodLabelAsTags func(p *typed.PointKV, labels map[string]string)) *typed.PointKV {
@@ -521,21 +505,28 @@ func (f filterType) String() string {
 	}
 }
 
-var supportedFilterTypes = []filterType{filterImage, filterImageName, filterImageShortName, filterNamespace}
+var (
+	supportedFilterTypes    = []filterType{filterImage, filterImageName, filterImageShortName, filterNamespace}
+	supportedFilterTypesNum = len(supportedFilterTypes)
+)
 
-func newFilters(include, exclude []string) ([]filter.Filter, error) {
+type filters []filter.Filter
+
+func newFilters(include, exclude []string) (filters, error) {
 	in := splitRules(include)
 	ex := splitRules(exclude)
 
-	supportedFilterTypesLength := len(supportedFilterTypes)
-	if len(in) != supportedFilterTypesLength || len(ex) != supportedFilterTypesLength {
+	if len(in) != supportedFilterTypesNum || len(ex) != supportedFilterTypesNum {
 		return nil, fmt.Errorf("unreachable, invalid filter type, expect len(%d), actual include: %d exclude: %d",
-			supportedFilterTypesLength, len(in), len(ex))
+			supportedFilterTypesNum, len(in), len(ex))
 	}
 
-	filters := make([]filter.Filter, supportedFilterTypesLength)
+	filters := make([]filter.Filter, supportedFilterTypesNum)
 
 	for _, typ := range supportedFilterTypes {
+		if len(in[typ]) == 0 && len(ex[typ]) == 0 {
+			continue
+		}
 		filter, err := filter.NewIncludeExcludeFilter(in[typ], ex[typ])
 		if err != nil {
 			l.Warnf("invalid container_log filter, err: %s, ignored", err)
@@ -547,8 +538,18 @@ func newFilters(include, exclude []string) ([]filter.Filter, error) {
 	return filters, nil
 }
 
+func matchFilter(filters filters, typ filterType, field string) bool {
+	if field == "" || len(filters) != supportedFilterTypesNum {
+		return false
+	}
+	if filters[typ] != nil {
+		return filters[typ].Match(field)
+	}
+	return false
+}
+
 func splitRules(arr []string) [][]string {
-	rules := make([][]string, len(supportedFilterTypes))
+	rules := make([][]string, supportedFilterTypesNum)
 
 	split := func(str, prefix string) string {
 		if !strings.HasPrefix(str, prefix) {

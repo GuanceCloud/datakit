@@ -22,11 +22,9 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/diskcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/register"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
-	"google.golang.org/protobuf/proto"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -41,6 +39,7 @@ const (
 type Single struct {
 	opt                *Option
 	file               *os.File
+	inode              string
 	filepath, filename string
 
 	decoder *encoding.Decoder
@@ -55,8 +54,6 @@ type Single struct {
 	readTime time.Time
 
 	partialContentBuff bytes.Buffer
-
-	enableDiskCache bool
 
 	tags map[string]string
 }
@@ -91,6 +88,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	}
 	t.filepath = t.file.Name()
 	t.filename = filepath.Base(t.filepath)
+	t.inode = getInode(t.filepath)
 
 	if err := t.seekOffset(); err != nil {
 		t.opt.log.Warnf("set position err: %s", err)
@@ -186,6 +184,8 @@ func (t *Single) recordingCache() {
 		t.opt.log.Debugf("recording cache %s err: %s", c, err)
 		return
 	}
+
+	t.opt.log.Debugf("recording cache %s success", c)
 }
 
 func (t *Single) recordingLastCache() {
@@ -199,6 +199,8 @@ func (t *Single) recordingLastCache() {
 		t.opt.log.Debugf("recording last cache %s err: %s", c, err)
 		return
 	}
+
+	t.opt.log.Debugf("recording last cache %s success", c)
 }
 
 func (t *Single) closeFile() {
@@ -227,6 +229,7 @@ func (t *Single) reopen() error {
 
 	t.offset = ret
 	t.opt.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
+	t.inode = getInode(t.filepath)
 
 	rotateVec.WithLabelValues(t.opt.Source, t.filepath).Inc()
 	return nil
@@ -507,15 +510,6 @@ func (t *Single) feed(pending []string) {
 		return
 	}
 	defer t.recordingCache()
-
-	if t.enableDiskCache {
-		err := t.feedToCache(pending)
-		if err == nil {
-			return
-		}
-		t.opt.log.Warnf("failed of save cache, err: %s, retry feed to io", err)
-	}
-
 	t.feedToIO(pending)
 }
 
@@ -526,6 +520,7 @@ func (t *Single) feedToRemote(pending []string) {
 			"log_read_lines":     t.readLines,
 			"log_read_offset":    t.offset,
 			"log_read_time":      t.readTime.UnixNano(),
+			"log_file_inode":     t.inode,
 			"message_length":     len(text),
 			"filepath":           t.filepath,
 			pipeline.FieldStatus: pipeline.DefaultStatus,
@@ -536,64 +531,6 @@ func (t *Single) feedToRemote(pending []string) {
 			t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
 		}
 	}
-}
-
-func (t *Single) feedToCache(pending []string) error {
-	res := []*point.Point{}
-	// -1us
-	timeNow := time.Now().Add(-time.Duration(len(pending)) * time.Microsecond)
-
-	for i, cnt := range pending {
-		t.readLines++
-
-		fields := map[string]interface{}{
-			"log_read_lines":      t.readLines,
-			"log_read_offset":     t.offset,
-			"log_read_time":       t.readTime.UnixNano(),
-			"message_length":      len(cnt),
-			pipeline.FieldMessage: cnt,
-			pipeline.FieldStatus:  pipeline.DefaultStatus,
-		}
-
-		pt := point.NewPointV2(t.opt.Source,
-			append(point.NewTags(t.tags), point.NewKVs(fields)...),
-			point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)),
-		)
-		res = append(res, pt)
-	}
-
-	if len(res) == 0 {
-		return nil
-	}
-
-	encoder := point.GetEncoder(point.WithEncBatchSize(0), point.WithEncEncoding(point.Protobuf))
-
-	ptsDatas, err := encoder.Encode(res)
-	if err != nil {
-		return err
-	}
-	if len(ptsDatas) != 1 {
-		err := fmt.Errorf("invalid pbpoints")
-		return err
-	}
-
-	pbdata := &diskcache.PBData{
-		Points: ptsDatas[0],
-		Config: &diskcache.PBConfig{
-			Source:                t.opt.Source,
-			Pipeline:              t.opt.Pipeline,
-			Blocking:              t.opt.BlockingMode,
-			DisableAddStatusField: t.opt.DisableAddStatusField,
-			IgnoreStatus:          t.opt.IgnoreStatus,
-		},
-	}
-
-	b, err := proto.Marshal(pbdata)
-	if err != nil {
-		return err
-	}
-
-	return diskcache.Put(b)
 }
 
 func (t *Single) feedToIO(pending []string) {
@@ -607,6 +544,7 @@ func (t *Single) feedToIO(pending []string) {
 			"log_read_lines":      t.readLines,
 			"log_read_offset":     t.offset,
 			"log_read_time":       t.readTime.UnixNano(),
+			"log_file_inode":      t.inode,
 			"message_length":      len(cnt),
 			pipeline.FieldMessage: cnt,
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
