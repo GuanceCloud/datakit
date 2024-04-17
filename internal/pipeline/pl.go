@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/pipeline/manager/relation"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -53,7 +54,7 @@ func RunPl(category point.Category, pts []*point.Point,
 	}
 
 	ret := []*point.Point{}
-	offl := []*point.Point{}
+	ptsOffload := []*point.Point{}
 
 	subPt := make(map[point.Category][]*point.Point)
 	for _, pt := range pts {
@@ -71,7 +72,7 @@ func RunPl(category point.Category, pts []*point.Point,
 		if v, ok := plval.GetOffload(); ok && v != nil &&
 			script.NS() == plmanager.RemoteScriptNS &&
 			category == point.Logging {
-			offl = append(offl, pt)
+			ptsOffload = append(ptsOffload, pt)
 			continue
 		}
 
@@ -84,6 +85,7 @@ func RunPl(category point.Category, pts []*point.Point,
 			inputData.SetIPDB(v)
 		}
 
+		// run pl srcipt
 		err := script.Run(inputData, nil, plOpt)
 		if err != nil {
 			l.Warn(err)
@@ -99,6 +101,10 @@ func RunPl(category point.Category, pts []*point.Point,
 			}
 		}
 
+		// oldPt will next be replaced or dropped
+		// put the old point back into the pool
+		datakit.PutbackPoints(pt)
+
 		if inputData.Dropped() { // drop
 			continue
 		}
@@ -108,7 +114,7 @@ func RunPl(category point.Category, pts []*point.Point,
 
 	return &ScriptResult{
 		pts:        ret,
-		ptsOffload: offl,
+		ptsOffload: ptsOffload,
 		ptsCreated: subPt,
 	}, nil
 }

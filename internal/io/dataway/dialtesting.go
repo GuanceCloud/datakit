@@ -35,30 +35,17 @@ func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
 }
 
 func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
-	w := getWriter()
-	defer putWriter(w)
-
 	// TODO: can not set content encoding here, default use line-protocol
-	WithPoints(pts)(w)
-	WithDynamicURL(url)(w)
-	WithCategory(point.DynamicDWCategory)(w)
+	w := getWriter(WithPoints(pts),
+		WithDynamicURL(url),
+		WithCategory(point.DynamicDWCategory))
+	defer putWriter(w)
 
 	if d.ep == nil {
 		return fmt.Errorf("endpoint is not set correctly")
 	}
 
-	arr, err := w.buildPointsBody()
-	if err != nil {
-		return err
-	}
-
-	for _, body := range arr {
-		if err := d.ep.writeBody(w, body); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return w.buildPointsBody(d.ep.writeBody)
 }
 
 // CheckToken checks if token is valid based on the specified scheme and host.

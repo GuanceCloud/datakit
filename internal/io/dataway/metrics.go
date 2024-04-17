@@ -19,6 +19,7 @@ var (
 	flushFailCacheVec,
 	buildBodyCostVec,
 	buildBodyBatchBytesVec,
+	buildBodyBatchPointsVec,
 	buildBodyBatchCountVec,
 	groupedRequestVec,
 	apiSumVec *prometheus.SummaryVec
@@ -42,6 +43,7 @@ func Metrics() []prometheus.Collector {
 		httpRetry,
 		buildBodyCostVec,
 		buildBodyBatchBytesVec,
+		buildBodyBatchPointsVec,
 		buildBodyBatchCountVec,
 		groupedRequestVec,
 		flushFailCacheVec,
@@ -58,6 +60,7 @@ func metricsReset() {
 	flushFailCacheVec.Reset()
 	buildBodyCostVec.Reset()
 	buildBodyBatchBytesVec.Reset()
+	buildBodyBatchPointsVec.Reset()
 	buildBodyBatchCountVec.Reset()
 	groupedRequestVec.Reset()
 }
@@ -73,6 +76,7 @@ func doRegister() {
 		httpRetry,
 		buildBodyCostVec,
 		buildBodyBatchBytesVec,
+		buildBodyBatchPointsVec,
 		buildBodyBatchCountVec,
 		groupedRequestVec,
 	)
@@ -86,6 +90,12 @@ func init() {
 			Subsystem: "io",
 			Name:      "flush_failcache_bytes",
 			Help:      "IO flush fail-cache bytes(in gzip) summary",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"category"},
 	)
@@ -96,10 +106,11 @@ func init() {
 			Subsystem: "io",
 			Name:      "build_body_cost_seconds",
 			Help:      "Build point HTTP body cost",
+
 			Objectives: map[float64]float64{
 				0.5:  0.05,
-				0.75: 0.0075,
-				0.95: 0.005,
+				0.9:  0.01,
+				0.99: 0.001,
 			},
 		},
 		[]string{"category", "encoding"},
@@ -111,6 +122,12 @@ func init() {
 			Subsystem: "io",
 			Name:      "build_body_batches",
 			Help:      "Batch HTTP body batches",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"category", "encoding"},
 	)
@@ -121,10 +138,27 @@ func init() {
 			Subsystem: "io",
 			Name:      "build_body_batch_bytes",
 			Help:      "Batch HTTP body size",
+
 			Objectives: map[float64]float64{
 				0.5:  0.05,
-				0.75: 0.0075,
-				0.95: 0.005,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"category", "encoding", "gzip"},
+	)
+
+	buildBodyBatchPointsVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "build_body_batch_points",
+			Help:      "Batch HTTP body points",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
 			},
 		},
 		[]string{"category", "encoding", "gzip"},
@@ -166,6 +200,12 @@ func init() {
 			Subsystem: "io",
 			Name:      "dataway_api_latency_seconds",
 			Help:      "Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"api", "status"},
 	)

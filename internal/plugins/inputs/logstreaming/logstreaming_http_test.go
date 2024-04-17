@@ -7,8 +7,10 @@
 package logstreaming
 
 import (
+	"bufio"
 	"bytes"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +20,43 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 )
+
+func BenchmarkScanner(b *testing.B) {
+	data := []byte(`111111111111111111111111111111111111111111111111111111
+222222222222222222222222222222222222222222222222222222
+333333333333333333333333333333333333333333333333333333
+444444444444444444444444444444444444444444444444444444
+555555555555555555555555555555555555555555555555555555
+666666666666666666666666666666666666666666666666666666`)
+	buf := bytes.NewBuffer(data)
+
+	scanBuf := make([]byte, 128)
+
+	b.Run("set-scan-buffer", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			scanner := bufio.NewScanner(buf)
+			scanner.Buffer(scanBuf, 64)
+			for scanner.Scan() {
+				// do nothing
+			}
+
+			buf.Reset()
+			buf.Write(data)
+		}
+	})
+
+	b.Run("no-scan-buffer", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			scanner := bufio.NewScanner(buf)
+			for scanner.Scan() {
+				// do nothing
+			}
+
+			buf.Reset()
+			buf.Write(data)
+		}
+	})
+}
 
 func TestInput_processLogBody(t *testing.T) {
 	// influxdb
@@ -88,9 +127,17 @@ this is message
 			args: args{
 				param: &parameters{
 					ignoreURLTags: false,
-					url:           &url.URL{Scheme: "http", Host: "127.0.0.1", Path: "/"},
-					queryValues:   url.Values{"type": []string{"txtType"}, "pipeline": []string{"log.p"}, "source": []string{"testSource"}},
-					body:          obuf,
+					url: &url.URL{
+						Scheme: "http",
+						Host:   "127.0.0.1",
+						Path:   "/",
+					},
+					queryValues: url.Values{
+						"type":     []string{"txtType"},
+						"pipeline": []string{"log.p"},
+						"source":   []string{"testSource"},
+					},
+					body: obuf,
 				},
 			},
 			wantErr: false,
@@ -101,7 +148,8 @@ this is message
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ipt := &Input{
-				feeder: tt.fields.feeder,
+				feeder:      tt.fields.feeder,
+				scanbufPool: &sync.Pool{},
 			}
 
 			if err := ipt.processLogBody(tt.args.param); (err != nil) != tt.wantErr {

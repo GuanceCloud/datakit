@@ -8,10 +8,13 @@ package monitor
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/dustin/go-humanize"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rivo/tview"
@@ -74,6 +77,7 @@ type monitorAPP struct {
 
 	// options
 	verbose       bool
+	dumpMetrics   bool
 	maxTableWidth int
 	maxRun        int
 	refresh       time.Duration
@@ -124,6 +128,19 @@ func (app *monitorAPP) refreshData() {
 			app.mfs, err = app.src.FetchData()
 			if err != nil {
 				app.anyError = fmt.Errorf("request stats failed: %w", err)
+			}
+
+			if app.dumpMetrics && len(app.mfs) > 0 {
+				var arr []*dto.MetricFamily
+				for _, v := range app.mfs {
+					arr = append(arr, v)
+				}
+
+				if err := ioutil.WriteFile(".monitor-metrics", []byte(metrics.MetricFamily2Text(arr)), os.ModePerm); err != nil {
+					l.Warnf("dumpMetrics: %s, ignored", err.Error())
+				} else {
+					l.Debug("dump to .monitor-metrics ok")
+				}
 			}
 
 			app.render()

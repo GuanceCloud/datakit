@@ -81,6 +81,10 @@ func completeService(defaultService, service string) string {
 	return defaultService
 }
 
+const (
+	maxLogLen = 32 * 1024 * 1024
+)
+
 func (ipt *Input) processLogBody(param *parameters) error {
 	var (
 		source = completeSource(param.queryValues.Get("source"))
@@ -88,20 +92,18 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		// 每一条 request 都要解析和创建一个 tags，影响性能
 		// 可以将其缓存起来，以 url 的 md5 值为 key
 		extraTags = config.ParseGlobalTags(param.queryValues.Get("tags"))
-	)
 
-	if !param.ignoreURLTags {
-		extraTags["ip_or_hostname"] = param.url.Hostname()
-		extraTags["service"] = completeService(source, param.queryValues.Get("service"))
-	}
-
-	var (
 		urlstr   = param.url.String()
 		logPtOpt = point.DefaultLoggingOptions()
 		plopt    *plmanager.Option
 		pts      []*point.Point
 		now      = time.Now()
 	)
+
+	if !param.ignoreURLTags {
+		extraTags["ip_or_hostname"] = param.url.Hostname()
+		extraTags["service"] = completeService(source, param.queryValues.Get("service"))
+	}
 
 	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
 		plopt = &plmanager.Option{
@@ -199,7 +201,13 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		}
 
 	default:
+
+		scanBuffer := ipt.getScanbuf()
+		defer ipt.putScanbuf(scanBuffer) // nolint:staticcheck
+
 		scanner := bufio.NewScanner(param.body)
+		scanner.Buffer(scanBuffer, maxLogLen)
+
 		for scanner.Scan() {
 			var kvs point.KVs
 
@@ -212,11 +220,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	}
 
 	if len(pts) == 0 {
-		log.Debugf("len(points) is zero, skip")
+		log.Warnf("len(points) is zero, skip")
 		return nil
 	}
 
 	return ipt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithInputName(inputName),
+		dkio.WithInputName(inputName+"/"+source),
 		dkio.WithPipelineOption(plopt))
 }

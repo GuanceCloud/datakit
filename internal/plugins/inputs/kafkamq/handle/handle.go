@@ -192,7 +192,7 @@ func (h *Handle) sendToRemote(data []byte) {
 		if c, ok := categorys[resp.Header.Get("X-category")]; ok {
 			category = c
 		}
-		pts, err := httpapi.HandleWriteBody(body, ct, point.WithPrecision(point.NS))
+		pts, err := httpapi.HandleWriteBody(body, ct, point.WithPrecision(point.PrecNS))
 		if err != nil {
 			log.Errorf("from response body decode to point err=%v", err)
 			return

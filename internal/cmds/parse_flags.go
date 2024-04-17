@@ -138,6 +138,7 @@ var (
 	flagMonitorModule          = fsMonitor.StringP("module", "M", "", "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
 	flagMonitorOnlyInputs      = fsMonitor.StringP("input", "I", "", "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorFilePath        = fsMonitor.StringP("path", "P", "", "specify the metric file path")
+	flagDumpMetrics            = fsMonitor.Bool("dump-metrics", false, "dump monitor metrics to local file .monitor-metrics")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")

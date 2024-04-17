@@ -22,8 +22,8 @@ func setupMetrics() {
 	fetchErrorVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "fetch_error",
+			Subsystem: "input_container",
+			Name:      "kubernetes_fetch_error",
 			Help:      "Kubernetes resource fetch error",
 		},
 		[]string{
@@ -36,9 +36,15 @@ func setupMetrics() {
 	collectCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "collect_cost_seconds",
+			Subsystem: "input_container",
+			Name:      "kubernetes_collect_cost_seconds",
 			Help:      "Kubernetes collect cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"category",
@@ -48,9 +54,15 @@ func setupMetrics() {
 	collectResourceCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "collect_resource_cost_seconds",
+			Subsystem: "input_container",
+			Name:      "kubernetes_collect_resource_cost_seconds",
 			Help:      "Kubernetes collect resource cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"category",
@@ -62,8 +74,8 @@ func setupMetrics() {
 	collectPtsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "collect_pts_total",
+			Subsystem: "input_container",
+			Name:      "kubernetes_collect_pts_total",
 			Help:      "Kubernetes collect point total",
 		},
 		[]string{
@@ -74,8 +86,8 @@ func setupMetrics() {
 	podMetricsQueryCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
-			Subsystem: "kubernetes",
-			Name:      "pod_metrics_query_total",
+			Subsystem: "input_container",
+			Name:      "kubernetes_pod_metrics_query_total",
 			Help:      "Kubernetes query pod metrics count",
 		},
 		[]string{

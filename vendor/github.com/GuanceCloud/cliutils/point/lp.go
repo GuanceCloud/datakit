@@ -17,35 +17,33 @@ import (
 type Precision int
 
 const (
-	NS Precision = iota // nano-second
-	US                  // micro-second
-	MS                  // milli-second
-	S                   // second
-	M                   // minute
-	H                   // hour
-
-	// XXX: not used.
-	D // day
-	W // week
+	PrecNS Precision = iota // nano-second
+	PrecUS                  // micro-second
+	PrecMS                  // milli-second
+	PrecS                   // second
+	PrecM                   // minute
+	PrecH                   // hour
+	PrecD                   // day
+	PrecW                   // week
 )
 
 func (p Precision) String() string {
 	switch p {
-	case NS:
+	case PrecNS:
 		return "n"
-	case US:
+	case PrecUS:
 		return "u"
-	case MS:
+	case PrecMS:
 		return "ms"
-	case S:
+	case PrecS:
 		return "s"
-	case M:
+	case PrecM:
 		return "m"
-	case H:
+	case PrecH:
 		return "h"
-	case D:
+	case PrecD:
 		return "d"
-	case W:
+	case PrecW:
 		return "w"
 	default:
 		return "unknown"
@@ -55,19 +53,19 @@ func (p Precision) String() string {
 func PrecStr(s string) Precision {
 	switch s {
 	case "n":
-		return NS
+		return PrecNS
 	case "u":
-		return US
+		return PrecUS
 	case "ms":
-		return MS
+		return PrecMS
 	case "s":
-		return S
+		return PrecS
 	case "m":
-		return M
+		return PrecM
 	case "h":
-		return H
+		return PrecH
 	default:
-		return NS
+		return PrecNS
 	}
 }
 
@@ -128,7 +126,9 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 		}
 
 		if c.keySorted {
-			sort.Sort(pt.kvs)
+			kvs := KVs(pt.pt.Fields)
+			sort.Sort(kvs)
+			pt.pt.Fields = kvs
 		}
 
 		if c.callback != nil {
@@ -143,12 +143,14 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 		}
 
 		pt = chk.check(pt)
-		pt.warns = chk.warns
+		pt.pt.Warns = chk.warns
 		chk.reset()
 
-		// re-sort again: check may update pt.kvs
+		// re-sort again: check may update pt.pt.Fields
 		if c.keySorted {
-			sort.Sort(pt.kvs)
+			kvs := KVs(pt.pt.Fields)
+			sort.Sort(kvs)
+			pt.pt.Fields = kvs
 		}
 
 		res = append(res, pt)

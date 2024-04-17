@@ -28,10 +28,13 @@ var (
 	ErrIOBusy = errors.New("io busy")
 
 	globalTagger = datakit.DynamicGlobalTagger()
+
 	globalHostTags,
 	globalElectionTags map[string]string // global host tags & global election tags
+
 	globalHostKVs,
 	globalElectionKVs point.KVs // kvs of global host tags & global election tags
+
 	rw sync.RWMutex
 
 	feedOptionPool sync.Pool
@@ -241,10 +244,8 @@ func attachTags(pts []*point.Point, elec bool) {
 		kvs = globalHostKVs
 	}
 
-	for i := range kvs {
-		for _, pt := range pts {
-			pt.AddKV(kvs[i]) // try add global tags added if tag key not exist.
-		}
+	for _, pt := range pts {
+		pt.CopyTags(kvs...) // try add global tags added if tag key not exist.
 	}
 }
 

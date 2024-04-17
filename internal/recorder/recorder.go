@@ -7,6 +7,7 @@
 package recorder
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +18,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"google.golang.org/protobuf/encoding/protojson"
+
+	protojson "github.com/gogo/protobuf/jsonpb"
 )
 
 const (
@@ -173,8 +175,6 @@ func (r *Recorder) Record(pts []*point.Point, cat point.Category, input string) 
 	return nil
 }
 
-var pbptsMarshalOption = &protojson.MarshalOptions{Multiline: true, Indent: "  "}
-
 func pts2pbjson(pts []*point.Point) ([]byte, error) {
 	pbpts := &point.PBPoints{
 		Arr: make([]*point.PBPoint, 0, len(pts)),
@@ -184,7 +184,13 @@ func pts2pbjson(pts []*point.Point) ([]byte, error) {
 		pbpts.Arr = append(pbpts.Arr, pt.PBPoint())
 	}
 
-	return pbptsMarshalOption.Marshal(pbpts)
+	buf := bytes.Buffer{}
+	m := &protojson.Marshaler{Indent: "  "}
+
+	if err := m.Marshal(&buf, pbpts); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // PBJson2pts unmarshal protobuf-json into points.
@@ -194,7 +200,9 @@ func PBJson2pts(j []byte) ([]*point.Point, error) {
 		pts   []*point.Point
 	)
 
-	if err := protojson.Unmarshal(j, &pbpts); err != nil {
+	buf := bytes.NewBuffer(j)
+
+	if err := protojson.Unmarshal(buf, &pbpts); err != nil {
 		return nil, err
 	} else {
 		for _, pbpt := range pbpts.Arr {

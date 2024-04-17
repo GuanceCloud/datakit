@@ -13,14 +13,14 @@ const (
 var (
 	DefaultMeasurementName = "__default"
 
-	KeyTime        = NewKey("time", KeyType_I)
-	KeyMeasurement = NewKey("measurement", KeyType_S)
-	KeySource      = NewKey("source", KeyType_S)
-	KeyClass       = NewKey("class", KeyType_S)
-	KeyDate        = NewKey("date", KeyType_I)
+	KeyTime        = NewKey("time", I)
+	KeyMeasurement = NewKey("measurement", S)
+	KeySource      = NewKey("source", S)
+	KeyClass       = NewKey("class", S)
+	KeyDate        = NewKey("date", I)
 
-	KeyName   = NewKey("name", KeyType_D, []byte(defaultObjectName))
-	KeyStatus = NewKey("status", KeyType_D, []byte(defaultLoggingStatus))
+	KeyName   = NewKey("name", S, defaultObjectName)
+	KeyStatus = NewKey("status", S, defaultLoggingStatus)
 )
 
 var (

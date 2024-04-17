@@ -153,6 +153,28 @@ The default logging level for DataKit is `info`. Edit `datakit.conf` to modify t
 
 The following content involves some advanced configuration. If you are not sure about the configuration, it is recommended to consult our technical experts.
 
+### Point Pool {#point-pool}
+
+[:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
+To optimize Datakit's memory usage under high load conditions, we can enable *Point Pool* to alleviate the pressure:
+
+```toml
+# datakit.conf
+[point_pool]
+    enable = true
+    reserved_capacity = 4096
+```
+
+We can also enable `content_encoding = "v2"` under [Dataway configure](datakit-conf.md#dataway-settings), with v2 encoding, it has lower memory and CPU overhead compared to v1.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    While Datakit under low load(with a memory footprint of around), enable Point-Pool will eat more memory(we need more memory to cache unused data), but not excessively. The term "high load" typically refer to scenarios where memory consumption reach to 2GB or more. Enabling Point-Pool not only helps to memory usage but also improves Datakit's CPU consumption.
+<!-- markdownlint-enable -->
+
 ### IO Module Parameter Adjustment {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·

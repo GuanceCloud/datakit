@@ -7,9 +7,11 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -128,6 +130,16 @@ func run() {
 		return
 	}
 
+	maxRunTick := time.NewTicker(time.Duration(int64(math.MaxInt64)))
+	if v := datakit.GetEnv("DK_DEBUG_MAX_RUN_DURATION"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err == nil {
+			l.Infof("set max-run-duration to %s", du)
+			maxRunTick.Reset(du)
+		}
+	}
+	defer maxRunTick.Stop()
+
 	l.Info("datakit start ok. Wait signal or service stop...")
 
 	// NOTE:
@@ -136,8 +148,8 @@ func run() {
 	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
 	// exit option.
 	signals := make(chan os.Signal, datakit.CommonChanCap)
+	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 	for {
-		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 		select {
 		case sig := <-signals:
 			l.Infof("get signal %v, wait & exit", sig)
@@ -150,8 +162,13 @@ func run() {
 			quit()
 			l.Info("datakit exit.")
 			goto exit
+		case <-maxRunTick.C:
+			l.Infof("reach max run duration")
+			quit()
+			goto exit
 		}
 	}
+
 exit:
 	time.Sleep(time.Second)
 }
@@ -216,7 +233,40 @@ func startIO() {
 	dkio.Start(opts...)
 }
 
+func gc(du time.Duration) {
+	tick := time.NewTicker(du)
+	defer tick.Stop()
+
+	l.Infof("setup GC on interval %s", du)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-tick.C:
+			runtime.GC()
+		}
+	}
+}
+
 func doRun() error {
+	if config.Cfg.PointPool.Enable {
+		l.Info("point pool enabled with reserved capacity %d", config.Cfg.PointPool.ReservedCapacity)
+		datakit.SetupPointPool(config.Cfg.PointPool.ReservedCapacity)
+	}
+
+	if v := os.Getenv("DK_DEBUG_GC_DURATION"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err != nil {
+			l.Warnf("invalid ENV_GC_DURATION: %q, ignored", v)
+		}
+		if du < time.Second*10 {
+			l.Infof("reset GC ticker from %s to 10s", du)
+			du = time.Second * 10
+		}
+
+		go gc(du)
+	}
+
 	startIO()
 
 	checkutil.CheckConditionExit(func() bool {

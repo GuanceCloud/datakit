@@ -57,13 +57,9 @@ func TestBuildBody(t *T.T) {
 			WithBatchSize(batchSize)
 			WithHTTPEncoding(tc.enc)(w)
 
-			arr, err := w.buildPointsBody()
-			assert.NoError(t, err)
+			assert.NoError(t, w.buildPointsBody(nil))
 
-			t.Logf("get %d bodies", len(arr))
-			for _, b := range arr {
-				t.Logf("body: %s, compress ratio: %.3f", b, float64(len(b.buf))/float64(b.rawLen))
-			}
+			t.Logf("get %d bodies", w.parts)
 		})
 	}
 
@@ -77,8 +73,13 @@ func TestBuildBody(t *T.T) {
 			WithBatchSize(batchSize)(w)
 			WithHTTPEncoding(tc.enc)(w)
 
-			arr, err := w.buildPointsBody()
-			assert.NoError(t, err)
+			var arr []*body
+			cb := func(_ *writer, b *body) error {
+				arr = append(arr, b)
+				return nil
+			}
+
+			w.buildPointsBody(cb)
 
 			var (
 				extractPts []*point.Point
@@ -93,9 +94,13 @@ func TestBuildBody(t *T.T) {
 			for _, x := range arr {
 				assert.True(t, x.npts > 0)
 				assert.True(t, x.rawLen > 0)
-				assert.Equal(t, tc.enc, x.payload)
+				assert.Equal(t, tc.enc, x.payloadEnc)
 
-				raw := x.buf
+				var (
+					raw = x.buf
+					err error
+				)
+
 				if x.gzon {
 					raw, err = uhttp.Unzip(x.buf)
 					require.NoError(t, err)
@@ -125,8 +130,13 @@ func TestBuildBody(t *T.T) {
 			WithBatchBytesSize(bodyByteBatch)(w)
 			WithHTTPEncoding(tc.enc)(w)
 
-			arr, err := w.buildPointsBody()
-			assert.NoError(t, err)
+			var arr []*body
+			cb := func(_ *writer, b *body) error {
+				arr = append(arr, b)
+				return nil
+			}
+
+			w.buildPointsBody(cb)
 
 			assert.True(t, len(arr) > 0)
 
@@ -143,9 +153,12 @@ func TestBuildBody(t *T.T) {
 			for _, x := range arr {
 				assert.True(t, x.npts > 0)
 				assert.True(t, x.rawLen > 0)
-				assert.Equal(t, tc.enc, x.payload)
+				assert.Equal(t, tc.enc, x.payloadEnc)
 
-				raw := x.buf
+				var (
+					raw = x.buf
+					err error
+				)
 				if x.gzon {
 					raw, err = uhttp.Unzip(x.buf)
 					if err != nil {
@@ -161,6 +174,8 @@ func TestBuildBody(t *T.T) {
 			assert.Equal(t, len(tc.pts), len(extractPts))
 
 			for i, got := range extractPts {
+				eq, why := tc.pts[i].EqualWithReason(got)
+				assert.Truef(t, eq, why)
 				assert.Equal(t, tc.pts[i].Pretty(), got.Pretty())
 			}
 		})
@@ -241,8 +256,7 @@ func BenchmarkBuildBody(b *T.B) {
 			WithHTTPEncoding(bc.enc)(w)
 
 			for i := 0; i < b.N; i++ {
-				_, err := w.buildPointsBody()
-				assert.NoError(b, err)
+				w.buildPointsBody(nil)
 			}
 		})
 	}

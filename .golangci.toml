@@ -6,6 +6,7 @@ go = "1.18"
 skip-dirs = [
 # TODO: we should add lint check on the package
 	"internal/obfuscate",
+	"scripts",
 ]
 
 [linters-settings]

@@ -33,9 +33,9 @@ func NewKey(k string, t KeyType, defaultVal ...any) *Key {
 	}
 }
 
-// NewTagKey create tag key with type []byte.
+// NewTagKey create tag key with type string.
 func NewTagKey(k string, defaultVal string) *Key {
-	return NewKey(k, KeyType_D, defaultVal)
+	return NewKey(k, S, defaultVal)
 }
 
 // Key get key-name.
@@ -47,7 +47,7 @@ func (k *Key) Key() string {
 func (k *Key) Type() KeyType {
 	switch len(k.key) {
 	case 0:
-		return KeyType_X
+		return X
 
 	case 1:
 		return KeyType(k.key[0])

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	anypb "google.golang.org/protobuf/types/known/anypb"
+	"golang.org/x/exp/slices"
 )
 
 type KVs []*Field
@@ -61,6 +61,11 @@ func (x KVs) Pretty() string {
 	for _, kv := range x {
 		arr = append(arr, kv.String())
 	}
+
+	// For key-values are not sorted while building the point, we
+	// think they are equal, so sort the string array to remove the
+	// ordering difference between points.
+	sort.Strings(arr)
 
 	return strings.Join(arr, "\n")
 }
@@ -121,6 +126,52 @@ func (x KVs) InfluxTags() (res influxm.Tags) {
 	sort.Sort(res)
 
 	return
+}
+
+func clearKV(kv *Field) *Field {
+	kv.Key = ""
+	kv.IsTag = false
+	kv.Type = UNSPECIFIED
+	kv.Unit = ""
+	return kv
+}
+
+func resetKV(kv *Field) *Field {
+	switch v := kv.Val.(type) {
+	case *Field_I:
+		v.I = 0
+	case *Field_U:
+		v.U = 0
+	case *Field_F:
+		v.F = 0.0
+	case *Field_D:
+		v.D = v.D[:0]
+	case *Field_B:
+		v.B = false
+	case *Field_S:
+		v.S = ""
+	case *Field_A:
+		v.A.TypeUrl = ""
+		v.A.Value = v.A.Value[:0]
+	}
+
+	return kv
+}
+
+// ResetFull reset and reuse key-value.
+func (x KVs) ResetFull() {
+	for i, kv := range x {
+		x[i] = resetKV(clearKV(kv))
+	}
+}
+
+// Reset reset but drop value.
+func (x KVs) Reset() {
+	for i, kv := range x {
+		kv = clearKV(kv)
+		kv.Val = nil // drop Val
+		x[i] = kv
+	}
 }
 
 // Has test if k exist.
@@ -188,17 +239,25 @@ func (x KVs) Fields() (arr KVs) {
 	return arr
 }
 
-// TrimFields keep max-n field kvs.
+// TrimFields keep max-n field kvs and drop the rest.
 func (x KVs) TrimFields(n int) (arr KVs) {
 	cnt := 0
+
+	if len(x) <= n {
+		return x
+	}
 
 	for _, kv := range x {
 		if kv.IsTag {
 			arr = append(arr, kv)
 			continue
-		} else if cnt < n {
-			arr = append(arr, kv)
-			cnt++
+		} else {
+			if cnt < n {
+				arr = append(arr, kv)
+				cnt++
+			} else if defaultPTPool != nil { // drop the kv
+				defaultPTPool.PutKV(kv)
+			}
 		}
 	}
 
@@ -213,9 +272,13 @@ func (x KVs) TrimTags(n int) (arr KVs) {
 		if !kv.IsTag {
 			arr = append(arr, kv)
 			continue
-		} else if cnt < n {
-			arr = append(arr, kv)
-			cnt++
+		} else {
+			if cnt < n {
+				arr = append(arr, kv)
+				cnt++
+			} else if defaultPTPool != nil {
+				defaultPTPool.PutKV(kv)
+			}
 		}
 	}
 
@@ -240,27 +303,43 @@ func (x KVs) FieldCount() (i int) {
 	return
 }
 
-// Del delete specified k.
+// Del delete field from x with Key == k.
 func (x KVs) Del(k string) KVs {
-	i := 0
-	for _, f := range x {
-		if f.Key != k {
-			x[i] = f
-			i++
+	for i, f := range x {
+		if f.Key == k {
+			x = slices.Delete(x, i, i+1)
+			if defaultPTPool != nil {
+				defaultPTPool.PutKV(f)
+			}
 		}
 	}
 
-	// remove not-needed elements.
-	for j := i; j < len(x); j++ {
-		x[j] = nil
-	}
-
-	x = x[:i]
 	return x
 }
 
-// Add add new field
-//
+// AddV2 add new field with opts.
+// If force enabled, overwrite exist key.
+func (x KVs) AddV2(k string, v any, force bool, opts ...KVOption) KVs {
+	kv := NewKV(k, v, opts...)
+
+	for i := range x {
+		if x[i].Key == k { // k exist
+			if force {
+				x[i] = kv // override exist tag/field
+			}
+
+			goto out // ignore the key
+		}
+	}
+
+	x = append(x, kv)
+
+out:
+	return x
+}
+
+// Add add new field.
+// Deprecated: use AddV2
 // If force enabled, overwrite exist key.
 func (x KVs) Add(k string, v any, isTag, force bool) KVs {
 	kv := NewKV(k, v)
@@ -280,7 +359,7 @@ func (x KVs) Add(k string, v any, isTag, force bool) KVs {
 				x[i] = kv // override exist tag/field
 			}
 
-			goto out
+			goto out // ignore the key
 		}
 	}
 
@@ -300,6 +379,10 @@ func (x KVs) MustAddTag(k, v string) KVs {
 }
 
 func (x KVs) AddKV(kv *Field, force bool) KVs {
+	if kv == nil {
+		return x
+	}
+
 	for i := range x {
 		if x[i].Key == kv.Key {
 			if force {
@@ -323,22 +406,21 @@ func (x KVs) MustAddKV(kv *Field) KVs {
 func PBType(v isField_Val) KeyType {
 	switch v.(type) {
 	case *Field_I:
-		return KeyType_I
+		return I
 	case *Field_U:
-		return KeyType_U
+		return U
 	case *Field_F:
-		return KeyType_F
+		return F
 	case *Field_B:
-		return KeyType_B
+		return B
 	case *Field_D:
-		return KeyType_D
+		return D
 	case *Field_S:
-		return KeyType_S
+		return S
 	case *Field_A:
-		return KeyType_A
-
+		return A
 	default: // nil or other types
-		return KeyType_X
+		return X
 	}
 }
 
@@ -348,7 +430,7 @@ func (x KVs) Keys() *Keys {
 
 	for _, f := range x {
 		t := PBType(f.Val)
-		if t == KeyType_X {
+		if t == X {
 			continue // ignore
 		}
 
@@ -358,20 +440,22 @@ func (x KVs) Keys() *Keys {
 	return &Keys{arr: arr}
 }
 
-func KVKey(f *Field) *Key {
-	t := PBType(f.Val)
+func KVKey(kv *Field) *Key {
+	t := PBType(kv.Val)
 
-	return NewKey(f.Key, t)
+	return NewKey(kv.Key, t)
 }
 
 type KVOption func(kv *Field)
 
+// WithKVUnit set value's unit.
 func WithKVUnit(u string) KVOption {
 	return func(kv *Field) {
 		kv.Unit = u
 	}
 }
 
+// WithKVType set field type(count/gauge/rate).
 func WithKVType(t MetricType) KVOption {
 	return func(kv *Field) {
 		kv.Type = t
@@ -389,168 +473,20 @@ func WithKVTagSet(on bool) KVOption {
 	}
 }
 
-// NewKV get kv from specified key and value.
+func doNewKV(k string, v any, opts ...KVOption) *Field {
+	return &Field{
+		Key: k,
+		Val: newVal(v),
+	}
+}
+
+// NewKV get kv on specified key and value.
 func NewKV(k string, v any, opts ...KVOption) *Field {
 	var kv *Field
-
-	switch x := v.(type) {
-	case int8:
-		kv = &Field{Key: k, Val: &Field_I{int64(x)}}
-	case []int8:
-		iarr, err := NewIntArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case uint8:
-		kv = &Field{Key: k, Val: &Field_U{uint64(x)}}
-		// case []uint8 is []byte, skip it.
-
-	case int16:
-		kv = &Field{Key: k, Val: &Field_I{int64(x)}}
-
-	case []int16:
-		iarr, err := NewIntArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case uint16:
-		kv = &Field{Key: k, Val: &Field_U{uint64(x)}}
-
-	case []uint16:
-		iarr, err := NewUintArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case int32:
-		kv = &Field{Key: k, Val: &Field_I{int64(x)}}
-
-	case []int32:
-		iarr, err := NewIntArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case uint32:
-		kv = &Field{Key: k, Val: &Field_U{uint64(x)}}
-
-	case []uint32:
-		iarr, err := NewUintArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case int:
-		kv = &Field{Key: k, Val: &Field_I{int64(x)}}
-
-	case []int:
-		iarr, err := NewIntArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case uint:
-		kv = &Field{Key: k, Val: &Field_U{uint64(x)}}
-
-	case []uint:
-		iarr, err := NewUintArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case int64:
-		kv = &Field{Key: k, Val: &Field_I{x}}
-
-	case []int64:
-		iarr, err := NewIntArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case uint64:
-		kv = &Field{Key: k, Val: &Field_U{x}}
-
-	case []uint64:
-		iarr, err := NewUintArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{iarr}}
-		}
-
-	case float64:
-		kv = &Field{Key: k, Val: &Field_F{x}}
-
-	case []float64:
-		farr, err := NewFloatArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{farr}}
-		}
-
-	case float32:
-		kv = &Field{Key: k, Val: &Field_F{float64(x)}}
-
-	case []float32:
-		farr, err := NewFloatArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{farr}}
-		}
-
-	case string:
-		kv = &Field{Key: k, Val: &Field_S{x}}
-
-	case []string:
-		sarr, err := NewStringArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{sarr}}
-		}
-
-	case []byte:
-		kv = &Field{Key: k, Val: &Field_D{x}}
-
-	case bool:
-		kv = &Field{Key: k, Val: &Field_B{x}}
-
-	case []bool:
-		barr, err := NewBoolArray(x...)
-		if err != nil {
-			kv = &Field{Key: k, Val: nil}
-		} else {
-			kv = &Field{Key: k, Val: &Field_A{barr}}
-		}
-
-	case *anypb.Any:
-		kv = &Field{Key: k, Val: &Field_A{x}}
-
-	case nil: // pass
-		kv = &Field{Key: k, Val: nil}
-
-	default: // value ignored
-		kv = &Field{Key: k, Val: nil}
+	if defaultPTPool != nil {
+		kv = defaultPTPool.GetKV(k, v)
+	} else {
+		kv = doNewKV(k, v, opts...)
 	}
 
 	for _, opt := range opts {
@@ -563,19 +499,19 @@ func NewKV(k string, v any, opts ...KVOption) *Field {
 }
 
 // NewKVs create kvs slice from map structure.
-func NewKVs(kvsMap map[string]interface{}) (kvs KVs) {
-	kvs = make(KVs, 0, len(kvsMap))
-	for k, v := range kvsMap {
-		kvs = append(kvs, NewKV(k, v))
+func NewKVs(kvs map[string]interface{}) (res KVs) {
+	for k, v := range kvs {
+		res = append(res, NewKV(k, v))
 	}
-	return kvs
+
+	return res
 }
 
 // NewTags create tag kvs from map structure.
-func NewTags(tagsMap map[string]string) (tags KVs) {
-	tags = make(KVs, 0, len(tagsMap))
-	for k, v := range tagsMap {
-		tags = append(tags, &Field{IsTag: true, Key: k, Val: &Field_S{S: v}})
+func NewTags(tags map[string]string) (arr KVs) {
+	for k, v := range tags {
+		arr = append(arr, NewKV(k, v, WithKVTagSet(true)))
 	}
-	return tags
+
+	return arr
 }

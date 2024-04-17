@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
-	"strconv"
+	reflect "reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -27,39 +27,6 @@ import (
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	pb "google.golang.org/protobuf/proto"
 )
-
-var (
-	httpFailRatio          = 0 // %n
-	doNotBuildPointRequest = false
-	httpFailStart          time.Time
-	httpFailDuration       time.Duration
-	httpMockedFailResp     *http.Response
-)
-
-// nolint: gochecknoinits
-func init() {
-	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_RATIO"); v != "" {
-		if x, err := strconv.ParseInt(v, 10, 64); err == nil {
-			httpFailRatio = int(x)
-			httpFailStart = time.Now()
-
-			httpMockedFailResp = &http.Response{
-				Status:     http.StatusText(500),
-				StatusCode: 500,
-			}
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_DEBUG_HTTP_FAIL_DURATION"); v != "" {
-		if x, err := time.ParseDuration(v); err == nil {
-			httpFailDuration = x
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_DEBUG_DO_NOT_BUILD_POINT_REQUEST"); v != "" {
-		doNotBuildPointRequest = true
-	}
-}
 
 type endPoint struct {
 	token  string
@@ -287,7 +254,7 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 	w.gzip = b.gzon
 
 	// if send failed, do nothing.
-	if err = ep.writePointData(b, w); err != nil {
+	if err = ep.writePointData(w, b); err != nil {
 		// 4xx error do not cache data.
 		if errors.Is(err, errWritePoints4XX) {
 			writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
@@ -330,30 +297,13 @@ func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
 }
 
 func (ep *endPoint) writePoints(w *writer) error {
-	arr, err := w.buildPointsBody()
-	if err != nil {
-		return err
-	}
-
-	for idx, body := range arr {
-		if err := ep.writeBody(w, body); err != nil {
-			log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
-				len(w.points), w.category, w.gzip, err.Error())
-		} else {
-			log.Debugf("[ok] send %dth batch(%d points, batchSize: %d) to %q(gzip: %v) bytes",
-				idx, body.npts, w.batchSize, w.category, w.gzip)
-		}
-	}
-
-	log.Debugf("[ok] send %d points to %q", len(w.points), w.category)
-
-	return nil
+	return w.buildPointsBody(ep.writeBody)
 }
 
 func doCache(w *writer, b *body) error {
 	if cachedata, err := pb.Marshal(&CacheData{
 		Category:    int32(w.category),
-		PayloadType: int32(b.payload),
+		PayloadType: int32(b.payloadEnc),
 		Payload:     b.buf,
 	}); err != nil {
 		return err
@@ -362,7 +312,7 @@ func doCache(w *writer, b *body) error {
 	}
 }
 
-func (ep *endPoint) writePointData(b *body, w *writer) error {
+func (ep *endPoint) writePointData(w *writer, b *body) error {
 	httpCodeStr := "unknown"
 	requrl, catNotFound := ep.categoryURL[w.category.URL()]
 
@@ -591,7 +541,6 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 			}
 
 			if resp, err = ep.doSendReq(req); err != nil {
-				status = "unknown"
 				return err
 			}
 
@@ -662,10 +611,20 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		// To check if the error is a timeout.
 		if ue, ok := err.(*url.Error); ok { // nolint: errorlint
-			if ue.Timeout() {
+			switch {
+			case ue.Timeout():
 				httpCodeStr = "timeout"
+			case strings.Contains(ue.Error(), "reset by peer"):
+				httpCodeStr = "reset-by-pear"
+			case strings.Contains(ue.Error(), "connection refused"):
+				httpCodeStr = "connection-refused"
+			default:
+				log.Warnf("unwrapped URL error: %s", err.Error())
+				httpCodeStr = "unwrapped-url-error"
 			}
 		}
+
+		log.Warnf("Do: %s, error type: %s", err.Error(), reflect.TypeOf(err))
 
 		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}

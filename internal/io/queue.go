@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 )
@@ -61,6 +62,9 @@ func (x *dkIO) flush(c *consumer) {
 	if err := x.doFlush(c.points, c.category, c.fc); err != nil {
 		log.Warnf("post %d points to %s failed: %s, ignored", len(c.points), c.category, err)
 	}
+
+	// I think here is the best position to put back these points.
+	datakit.PutbackPoints(c.points...)
 
 	c.points = c.points[:0] // clear
 }

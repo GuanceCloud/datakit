@@ -76,7 +76,7 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 	categoryURL := req.URL.Path
 
 	opts := []point.Option{
-		point.WithPrecision(point.NS),
+		point.WithPrecision(point.PrecNS),
 		point.WithTime(time.Now()),
 	}
 

@@ -114,8 +114,9 @@ func TestEndpointMetrics(t *T.T) {
 			x, err := uhttp.Unzip(body)
 			assert.NoError(t, err)
 
-			assert.Equal(t, []byte(`test-1 f1=1i,f2=false 123
-test-2 f1=1i,f2=false 123`), x)
+			assert.Equal(t, `test-1 f1=1i,f2=false 123
+test-2 f1=1i,f2=false 123
+`, string(x))
 
 			t.Logf("body: %q", x)
 
@@ -131,16 +132,15 @@ test-2 f1=1i,f2=false 123`), x)
 		ep, err := newEndpoint(urlstr, withAPIs([]string{datakit.Metric}))
 		assert.NoError(t, err)
 
-		s := &writer{
-			gzip:     true,
-			category: point.Metric,
-			points: []*point.Point{
+		w := getWriter(WithGzip(true),
+			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-			},
-		}
+			}),
+			WithCategory(point.Metric))
+		defer putWriter(w)
 
-		assert.NoError(t, ep.writePoints(s))
+		assert.NoError(t, ep.writePoints(w))
 
 		mfs, err := reg.Gather()
 		require.NoError(t, err)
@@ -186,7 +186,8 @@ test-2 f1=1i,f2=false 123`), x)
 			assert.NoError(t, err)
 
 			assert.Equal(t, []byte(`test-1 f1=1i,f2=false 123
-test-2 f1=1i,f2=false 123`), x)
+test-2 f1=1i,f2=false 123
+`), x)
 
 			t.Logf("body: %q", x)
 
@@ -202,14 +203,14 @@ test-2 f1=1i,f2=false 123`), x)
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)
 
-		w := &writer{
-			gzip:     true,
-			category: point.Metric,
-			points: []*point.Point{
+		w := getWriter(WithCategory(point.Metric),
+			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-			},
-		}
+			}),
+			WithGzip(true),
+		)
+		defer putWriter(w)
 
 		assert.NoError(t, ep.writePoints(w))
 
@@ -258,7 +259,8 @@ test-2 f1=1i,f2=false 123`), x)
 			assert.NoError(t, err)
 
 			assert.Equal(t, []byte(`test-1 f1=1i,f2=false 123
-test-2 f1=1i,f2=false 123`), x)
+test-2 f1=1i,f2=false 123
+`), x)
 
 			t.Logf("body: %q", x)
 
@@ -278,14 +280,12 @@ test-2 f1=1i,f2=false 123`), x)
 		ep, err := newEndpoint(urlstr, withAPIs([]string{datakit.Metric}), withProxy(frontend.URL))
 		assert.NoError(t, err)
 
-		w := &writer{
-			gzip:     true,
-			category: point.Metric,
-			points: []*point.Point{
+		w := getWriter(WithCategory(point.Metric),
+			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-			},
-		}
+			}), WithGzip(true))
+		defer putWriter(w)
 
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)

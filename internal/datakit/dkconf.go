@@ -42,6 +42,13 @@ datakit_user = "root"
 ulimit = 64000
 
 ################################################
+# point_pool: use point pool for better memory usage(Experimental)
+################################################
+[point_pool]
+  enable = false
+  reserved_capacity = 4096
+
+################################################
 # DCA configure
 ################################################
 [dca]

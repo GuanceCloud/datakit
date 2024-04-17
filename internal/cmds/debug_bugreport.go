@@ -192,7 +192,7 @@ func (info *datakitInfo) collectProfile() error {
 	for _, name := range profileTypes {
 		params := ""
 		if name == "profile" {
-			params = "duration=10"
+			params = "duration=30"
 		}
 		resp, err := http.Get(fmt.Sprintf("http://%s/debug/pprof/%s?%s", config.Cfg.PProfListen, name, params))
 		if err != nil {

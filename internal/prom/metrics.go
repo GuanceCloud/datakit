@@ -24,6 +24,12 @@ func metricsSetup() {
 			Subsystem: "input_prom",
 			Name:      "collect_points",
 			Help:      "Total number of prom collection points",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"mode", "source"},
 	)
@@ -34,6 +40,12 @@ func metricsSetup() {
 			Subsystem: "input_prom",
 			Name:      "http_get_bytes",
 			Help:      "HTTP get bytes",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"mode", "source"},
 	)
@@ -44,6 +56,12 @@ func metricsSetup() {
 			Subsystem: "input_prom",
 			Name:      "http_latency_in_second",
 			Help:      "HTTP latency(in second)",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{"mode", "source"},
 	)

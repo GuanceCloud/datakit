@@ -69,7 +69,7 @@ func getRequestData(req *http.Request) (*ptsData, error) {
 	}
 
 	opts := []point.Option{
-		point.WithPrecision(point.NS),
+		point.WithPrecision(point.PrecNS),
 		point.WithTime(time.Now()),
 	}
 

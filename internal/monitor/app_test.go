@@ -16,7 +16,7 @@ func TestApp(t *T.T) {
 	t.Run("app", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
-			w.Write(metrics)
+			w.Write(metricsData)
 		}))
 
 		Start(WithHost("http", ts.Listener.Addr().String()), WithVerbose(true), WithMaxRun(1))
@@ -46,7 +46,7 @@ func TestAppOnNilData(t *T.T) {
 	})
 }
 
-var metrics = []byte(`
+var metricsData = []byte(`
 # HELP datakit_cpu_cores Datakit CPU cores
 # TYPE datakit_cpu_cores gauge
 datakit_cpu_cores 10

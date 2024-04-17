@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"google.golang.org/protobuf/proto"
-	anypb "google.golang.org/protobuf/types/known/anypb"
+	proto "github.com/gogo/protobuf/proto"
+	types "github.com/gogo/protobuf/types"
 )
 
 var (
@@ -28,7 +28,7 @@ const (
 )
 
 // MustAnyRaw get underlying wrapped value, and panic if any error.
-func MustAnyRaw(x *anypb.Any) any {
+func MustAnyRaw(x *types.Any) any {
 	res, err := AnyRaw(x)
 	if err != nil {
 		panic(err.Error())
@@ -37,8 +37,8 @@ func MustAnyRaw(x *anypb.Any) any {
 	return res
 }
 
-// AnyRaw get underlying wrapped value within anypb.
-func AnyRaw(x *anypb.Any) (any, error) {
+// AnyRaw get underlying wrapped value within types.Any.
+func AnyRaw(x *types.Any) (any, error) {
 	if x == nil {
 		return nil, fmt.Errorf("nil value")
 	}
@@ -113,8 +113,8 @@ func AnyRaw(x *anypb.Any) (any, error) {
 	}
 }
 
-// MustNewAnyArray wrapped mix-basic-typed list into anypb.Any, and panic if any error.
-func MustNewAnyArray(a ...any) *anypb.Any {
+// MustNewAnyArray wrapped mix-basic-typed list into types.Any, and panic if any error.
+func MustNewAnyArray(a ...any) *types.Any {
 	if x, err := NewAnyArray(a...); err != nil {
 		panic(err.Error())
 	} else {
@@ -122,18 +122,18 @@ func MustNewAnyArray(a ...any) *anypb.Any {
 	}
 }
 
-// NewAnyArray wrapped mix-basic-typed list into anypb.Any.
-func NewAnyArray(a ...any) (*anypb.Any, error) {
+// NewAnyArray wrapped mix-basic-typed list into types.Any.
+func NewAnyArray(a ...any) (*types.Any, error) {
 	x, err := NewArray(a...)
 	if err != nil {
 		return nil, err
 	}
 
-	return anypb.New(x)
+	return types.MarshalAny(x)
 }
 
-// MustNewIntArray wrapped signed int list into anypb.Any, and panic if any error.
-func MustNewIntArray[T int8 | int16 | int | int32 | int64](i ...T) *anypb.Any {
+// MustNewIntArray wrapped signed int list into types.Any, and panic if any error.
+func MustNewIntArray[T int8 | int16 | int | int32 | int64](i ...T) *types.Any {
 	if x, err := NewIntArray(i...); err != nil {
 		panic(err)
 	} else {
@@ -141,8 +141,8 @@ func MustNewIntArray[T int8 | int16 | int | int32 | int64](i ...T) *anypb.Any {
 	}
 }
 
-// NewIntArray wrapped signed int list into anypb.Any.
-func NewIntArray[T int8 | int16 | int | int32 | int64](i ...T) (*anypb.Any, error) {
+// NewIntArray wrapped signed int list into types.Any.
+func NewIntArray[T int8 | int16 | int | int32 | int64](i ...T) (*types.Any, error) {
 	arr := &Array{
 		Arr: make([]*BasicTypes, 0, len(i)),
 	}
@@ -151,11 +151,11 @@ func NewIntArray[T int8 | int16 | int | int32 | int64](i ...T) (*anypb.Any, erro
 		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_I{int64(v)}})
 	}
 
-	return anypb.New(arr)
+	return types.MarshalAny(arr)
 }
 
-// MustNewUintArray wrapped unsigned int list into anypb.Any, and panic if any error.
-func MustNewUintArray[T uint16 | uint | uint32 | uint64](i ...T) *anypb.Any {
+// MustNewUintArray wrapped unsigned int list into types.Any, and panic if any error.
+func MustNewUintArray[T uint16 | uint | uint32 | uint64](i ...T) *types.Any {
 	if x, err := NewUintArray(i...); err != nil {
 		panic(err)
 	} else {
@@ -163,8 +163,8 @@ func MustNewUintArray[T uint16 | uint | uint32 | uint64](i ...T) *anypb.Any {
 	}
 }
 
-// NewUintArray wrapped unsigned int list into anypb.Any.
-func NewUintArray[T uint16 | uint | uint32 | uint64](i ...T) (*anypb.Any, error) {
+// NewUintArray wrapped unsigned int list into types.Any.
+func NewUintArray[T uint16 | uint | uint32 | uint64](i ...T) (*types.Any, error) {
 	arr := &Array{
 		Arr: make([]*BasicTypes, 0, len(i)),
 	}
@@ -173,11 +173,11 @@ func NewUintArray[T uint16 | uint | uint32 | uint64](i ...T) (*anypb.Any, error)
 		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_U{uint64(v)}})
 	}
 
-	return anypb.New(arr)
+	return types.MarshalAny(arr)
 }
 
-// MustNewFloatArray wrapped float list into anypb.Any, and panic if any error.
-func MustNewFloatArray[T float32 | float64](f ...T) *anypb.Any {
+// MustNewFloatArray wrapped float list into types.Any, and panic if any error.
+func MustNewFloatArray[T float32 | float64](f ...T) *types.Any {
 	if x, err := NewFloatArray(f...); err != nil {
 		panic(err)
 	} else {
@@ -185,8 +185,8 @@ func MustNewFloatArray[T float32 | float64](f ...T) *anypb.Any {
 	}
 }
 
-// NewFloatArray wrapped float list into anypb.Any.
-func NewFloatArray[T float32 | float64](f ...T) (*anypb.Any, error) {
+// NewFloatArray wrapped float list into types.Any.
+func NewFloatArray[T float32 | float64](f ...T) (*types.Any, error) {
 	arr := &Array{
 		Arr: make([]*BasicTypes, 0, len(f)),
 	}
@@ -195,11 +195,11 @@ func NewFloatArray[T float32 | float64](f ...T) (*anypb.Any, error) {
 		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_F{float64(v)}})
 	}
 
-	return anypb.New(arr)
+	return types.MarshalAny(arr)
 }
 
-// MustNewBoolArray wrapped boolean list into anypb.Any, and panic if any error.
-func MustNewBoolArray(b ...bool) *anypb.Any {
+// MustNewBoolArray wrapped boolean list into types.Any, and panic if any error.
+func MustNewBoolArray(b ...bool) *types.Any {
 	if x, err := NewBoolArray(b...); err != nil {
 		panic(err)
 	} else {
@@ -207,8 +207,8 @@ func MustNewBoolArray(b ...bool) *anypb.Any {
 	}
 }
 
-// NewBoolArray wrapped boolean list into anypb.Any.
-func NewBoolArray(b ...bool) (*anypb.Any, error) {
+// NewBoolArray wrapped boolean list into types.Any.
+func NewBoolArray(b ...bool) (*types.Any, error) {
 	arr := &Array{
 		Arr: make([]*BasicTypes, 0, len(b)),
 	}
@@ -217,11 +217,33 @@ func NewBoolArray(b ...bool) (*anypb.Any, error) {
 		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_B{v}})
 	}
 
-	return anypb.New(arr)
+	return types.MarshalAny(arr)
 }
 
-// MustNewStringArray wrapped string list into anypb.Any, and panic if any error.
-func MustNewStringArray(s ...string) *anypb.Any {
+// NewBytesArray wrapped string list into types.Any.
+func NewBytesArray(bytes ...[]byte) (*types.Any, error) {
+	arr := &Array{
+		Arr: make([]*BasicTypes, 0, len(bytes)),
+	}
+
+	for _, b := range bytes {
+		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_D{b}})
+	}
+
+	return types.MarshalAny(arr)
+}
+
+// MustNewBytesArray wrapped string list into types.Any, and panic if any error.
+func MustNewBytesArray(bytes ...[]byte) *types.Any {
+	if x, err := NewBytesArray(bytes...); err != nil {
+		panic(err)
+	} else {
+		return x
+	}
+}
+
+// MustNewStringArray wrapped string list into types.Any, and panic if any error.
+func MustNewStringArray(s ...string) *types.Any {
 	if x, err := NewStringArray(s...); err != nil {
 		panic(err)
 	} else {
@@ -229,8 +251,8 @@ func MustNewStringArray(s ...string) *anypb.Any {
 	}
 }
 
-// NewStringArray wrapped string list into anypb.Any.
-func NewStringArray(s ...string) (*anypb.Any, error) {
+// NewStringArray wrapped string list into types.Any.
+func NewStringArray(s ...string) (*types.Any, error) {
 	arr := &Array{
 		Arr: make([]*BasicTypes, 0, len(s)),
 	}
@@ -239,7 +261,7 @@ func NewStringArray(s ...string) (*anypb.Any, error) {
 		arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_S{v}})
 	}
 
-	return anypb.New(arr)
+	return types.MarshalAny(arr)
 }
 
 // NewArray create array value that can be used in point field.
@@ -281,11 +303,14 @@ func NewArray(ents ...any) (arr *Array, err error) {
 			arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_D{x}})
 		case bool:
 			arr.Arr = append(arr.Arr, &BasicTypes{X: &BasicTypes_B{x}})
-		case nil:
-			arr.Arr = append(arr.Arr, nil)
 		default:
-			return nil, fmt.Errorf("unknown element type %q(index: %d) within array",
-				reflect.TypeOf(v).String(), idx)
+			if x == nil {
+				// gogoproto any do not support nil value.
+				return nil, fmt.Errorf("got nil(index: %d) within array", idx)
+			} else {
+				return nil, fmt.Errorf("unknown element type %q(index: %d) within array",
+					reflect.TypeOf(v).String(), idx)
+			}
 		}
 	}
 
@@ -372,14 +397,14 @@ func NewMap(ents map[string]any) (dict *Map, err error) {
 	return dict, nil
 }
 
-// NewAny create anypb based on exist proto message.
-func NewAny(x proto.Message) (*anypb.Any, error) {
-	return anypb.New(x)
+// NewAny create types.Any based on exist proto message.
+func NewAny(x proto.Message) (*types.Any, error) {
+	return types.MarshalAny(x)
 }
 
 // MustNewAny create anypb based on exist proto message, and panic if any error.
-func MustNewAny(x proto.Message) *anypb.Any {
-	if a, err := anypb.New(x); err != nil {
+func MustNewAny(x proto.Message) *types.Any {
+	if a, err := types.MarshalAny(x); err != nil {
 		panic(err.Error())
 	} else {
 		return a

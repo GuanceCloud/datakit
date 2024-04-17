@@ -8,9 +8,9 @@ package point
 import "time"
 
 func (p *Point) SetName(name string) {
-	p.name = name
+	p.pt.Name = name
 }
 
 func (p *Point) SetTime(t time.Time) {
-	p.time = t
+	p.pt.Time = t.UnixNano()
 }

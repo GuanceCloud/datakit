@@ -67,9 +67,6 @@ func (ipt *input) collect() error {
 	opts = append(opts, point.WithTime(time.Now()))
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 
-	// simulate long-time collect..
-	time.Sleep(time.Second)
-
 	return nil
 }
 
@@ -152,6 +149,8 @@ func (*input) SampleConfig() string {
   election = true
 
   random_points = 100
+
+	interval = "0.1s"
 
 [inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
   # tag_a = "val1"

@@ -277,6 +277,15 @@ spec:
     保护模式一旦被禁用，即可以设置一些危险的配置参数，Datakit 将接受任何配置参数。这些参数可能会导致 Datakit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。
 <!-- markdownlint-enable -->
 
+### Point Pool 配置相关环境变量 {#env-pointpool}
+
+[:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
+[:octicons-beaker-24: Experimental](index.md#experimental)
+
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.envPointPool 0}}
+<!-- markdownlint-enable -->
+
 ### Dataway 配置相关环境变量 {#env-dataway}
 
 <!-- markdownlint-disable MD046 -->
@@ -289,7 +298,7 @@ spec:
 {{ CodeBlock .NonInputENVSampleZh.envLog 0}}
 <!-- markdownlint-enable -->
 
-### Datakit pprof 相关 {#env-pprof}
+### Pprof 相关 {#env-pprof}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envPprof 0}}

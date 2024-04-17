@@ -7,7 +7,6 @@ package datakit
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -21,7 +20,6 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"github.com/klauspost/compress/zstd"
 	pr "github.com/shirou/gopsutil/v3/process"
 
 	"github.com/GuanceCloud/cliutils"
@@ -227,65 +225,6 @@ func NumberFormat(str string) string {
 	}
 
 	return n
-}
-
-func GZipStr(str string) ([]byte, error) {
-	var z bytes.Buffer
-	zw := gzip.NewWriter(&z)
-	if _, err := io.WriteString(zw, str); err != nil {
-		return nil, err
-	}
-
-	if err := zw.Flush(); err != nil {
-		return nil, err
-	}
-
-	if err := zw.Close(); err != nil {
-		return nil, err
-	}
-	return z.Bytes(), nil
-}
-
-func GZip(data []byte) ([]byte, error) {
-	var z bytes.Buffer
-	zw := gzip.NewWriter(&z)
-
-	if _, err := zw.Write(data); err != nil {
-		return nil, err
-	}
-
-	if err := zw.Flush(); err != nil {
-		return nil, err
-	}
-
-	if err := zw.Close(); err != nil {
-		return nil, err
-	}
-	return z.Bytes(), nil
-}
-
-func Zstdzip2(data []byte) ([]byte, error) {
-	enc, _ := zstd.NewWriter(nil, zstd.WithEncoderConcurrency(runtime.NumCPU()), zstd.WithEncoderLevel(zstd.SpeedBestCompression))
-	return enc.EncodeAll(data, make([]byte, 0, len(data))), nil
-}
-
-func Zstdzip(data []byte) ([]byte, error) {
-	out := bytes.NewBuffer(nil)
-	in := bytes.NewBuffer(data)
-
-	enc, err := zstd.NewWriter(out, zstd.WithEncoderConcurrency(runtime.NumCPU()), zstd.WithEncoderLevel(zstd.SpeedBestCompression))
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = io.Copy(enc, in)
-	if err != nil {
-		enc.Close() //nolint: errcheck,gosec
-		return nil, err
-	}
-
-	enc.Close() //nolint: errcheck,gosec
-	return out.Bytes(), nil
 }
 
 var dnsdests = []string{

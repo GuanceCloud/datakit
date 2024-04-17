@@ -30,7 +30,7 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := HandleWriteBody(body, point.LineProtocol, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, point.LineProtocol, point.WithPrecision(point.PrecS)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -55,7 +55,7 @@ func BenchmarkHandleProtobufWriteBody(b *testing.B) {
 	pts, _ := enc.Encode([]*point.Point{pt})
 	body := pts[0]
 	for n := 0; n < b.N; n++ {
-		if _, err := HandleWriteBody(body, point.Protobuf, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, point.Protobuf, point.WithPrecision(point.PrecS)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -79,7 +79,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := HandleWriteBody(body, point.JSON, point.WithPrecision(point.S)); err != nil {
+		if _, err := HandleWriteBody(body, point.JSON, point.WithPrecision(point.PrecS)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -173,7 +173,7 @@ func TestHandleBody(t *testing.T) {
 			]`),
 
 			opts: []point.Option{
-				point.WithPrecision(point.S),
+				point.WithPrecision(point.PrecS),
 			},
 
 			npts: 2,
@@ -184,7 +184,7 @@ func TestHandleBody(t *testing.T) {
 			name: `raw-point-body-with/wthout-timestamp`,
 
 			opts: []point.Option{
-				point.WithPrecision(point.S),
+				point.WithPrecision(point.PrecS),
 			},
 
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"

@@ -41,7 +41,9 @@ var (
 	percentCoverage *regexp.Regexp
 	coverTotal      = atomic.NewFloat64(0.0)
 	excludes        = map[string]bool{
+		// There are multiple-main() within these modules
 		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/proxy/bench": true,
+		"gitlab.jiagouyun.com/cloudcare-tools/datakit/scripts":                             true,
 	}
 
 	noTestPkgs       = make([]string, 0)

@@ -45,7 +45,6 @@ In general, the host object is turned on by default and does not need to be conf
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
-
 {{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->

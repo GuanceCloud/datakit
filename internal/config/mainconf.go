@@ -23,6 +23,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
+type pointPool struct {
+	Enable           bool  `toml:"enable"`
+	ReservedCapacity int64 `toml:"reserved_capacity,omitempty"`
+}
+
 type Config struct {
 	DefaultEnabledInputs []string `toml:"default_enabled_inputs"`
 
@@ -42,6 +47,8 @@ type Config struct {
 	IntervalDeprecated   string `toml:"interval,omitempty"`
 	OutputFileDeprecated string `toml:"output_file,omitempty"`
 	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
+
+	PointPool *pointPool `toml:"point_pool"`
 
 	// pprof
 	EnablePProf bool   `toml:"enable_pprof"`
@@ -109,6 +116,11 @@ type Config struct {
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		DefaultEnabledInputs: []string{},
+		PointPool: &pointPool{
+			Enable:           false,
+			ReservedCapacity: 4096,
+		},
+
 		GlobalHostTags:       map[string]string{},
 		GlobalTagsDeprecated: map[string]string{},
 

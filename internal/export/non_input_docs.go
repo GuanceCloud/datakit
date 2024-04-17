@@ -18,20 +18,21 @@ type content map[string]info
 // example: map["doc/datakit-daemonset-deploy.md"]content
 var nonInputDocs = map[string]content{
 	"doc/datakit-daemonset-deploy.md": {
-		"envCommon":   envCommon(),
-		"envDataway":  envDataway(),
-		"envLog":      envLog(),
-		"envPprof":    envPprof(),
-		"envElect":    envElect(),
-		"envHTTPAPI":  envHTTPAPI(),
-		"envConfd":    envConfd(),
-		"envGit":      envGit(),
-		"envSinker":   envSinker(),
-		"envIO":       envIO(),
-		"envDca":      envDca(),
-		"envRefta":    envRefta(),
-		"envRecorder": envRecorder(),
-		"envOthers":   envOthers(),
+		"envCommon":    envCommon(),
+		"envDataway":   envDataway(),
+		"envLog":       envLog(),
+		"envPprof":     envPprof(),
+		"envElect":     envElect(),
+		"envHTTPAPI":   envHTTPAPI(),
+		"envConfd":     envConfd(),
+		"envGit":       envGit(),
+		"envSinker":    envSinker(),
+		"envIO":        envIO(),
+		"envDca":       envDca(),
+		"envRefta":     envRefta(),
+		"envRecorder":  envRecorder(),
+		"envOthers":    envOthers(),
+		"envPointPool": envPointPool(),
 	},
 }
 
@@ -282,6 +283,20 @@ func envOthers() []*inputs.ENVInfo {
 		{ENVName: "ENV_ULIMIT", Type: doc.Int, Desc: "Specify the maximum number of open files for Datakit", DescZh: "指定 Datakit 最大的可打开文件数"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_RECEIVER", Type: doc.String, Default: "`datakit-http`", Desc: "Set offload receiver", DescZh: "设置 Offload 目标接收器的类型"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_ADDRESSES", Type: doc.List, Example: "`http://aaa:123,http://1.2.3.4:1234`", Desc: "Set offload addresses", DescZh: "设置 Offload 目标地址"},
+	}
+
+	for idx := range infos {
+		infos[idx].DocType = doc.NonInput
+	}
+
+	return doc.SetENVDoc("", infos)
+}
+
+func envPointPool() []*inputs.ENVInfo {
+	// nolint:lll
+	infos := []*inputs.ENVInfo{
+		{ENVName: "ENV_ENABLE_POINT_POOL", Type: doc.Boolean, Example: "`on`", Desc: "Enable point pool", DescZh: "开启 point pool"},
+		{ENVName: "ENV_POINT_POOL_RESERVED_CAPACITY", Type: doc.Int, Desc: "Specify pool capacity(default 4096)", DescZh: "指定 point pool 大小（默认 4096）"},
 	}
 
 	for idx := range infos {

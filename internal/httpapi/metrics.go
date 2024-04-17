@@ -26,10 +26,11 @@ func metricsSetup() {
 			Subsystem: "http",
 			Name:      "api_elapsed_seconds",
 			Help:      "API request cost",
+
 			Objectives: map[float64]float64{
 				0.5:  0.05,
-				0.75: 0.0075,
-				0.95: 0.005,
+				0.9:  0.01,
+				0.99: 0.001,
 			},
 
 			MaxAge:     p8s.DefMaxAge,
@@ -48,6 +49,12 @@ func metricsSetup() {
 			Subsystem: "http",
 			Name:      "api_req_size_bytes",
 			Help:      "API request body size",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"api",

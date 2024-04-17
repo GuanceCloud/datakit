@@ -6,6 +6,8 @@
 package dataway
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 
@@ -58,6 +60,14 @@ func WithCacheClean(on bool) WriteOption {
 func WithGzip(on bool) WriteOption {
 	return func(w *writer) {
 		w.gzip = on
+
+		if on && w.zipper == nil {
+			buf := bytes.Buffer{}
+			w.zipper = &gzipWriter{
+				buf: &buf,
+				w:   gzip.NewWriter(&buf),
+			}
+		}
 	}
 }
 
@@ -69,7 +79,12 @@ func WithBatchSize(n int) WriteOption {
 
 func WithBatchBytesSize(n int) WriteOption {
 	return func(w *writer) {
-		w.batchBytesSize = n
+		if n > 0 {
+			w.batchBytesSize = n
+			if w.sendBuffer == nil {
+				w.sendBuffer = make([]byte, w.batchBytesSize)
+			}
+		}
 	}
 }
 
@@ -79,15 +94,27 @@ func WithHTTPEncoding(t point.Encoding) WriteOption {
 	}
 }
 
+type gzipWriter struct {
+	buf *bytes.Buffer
+	w   *gzip.Writer
+}
+
 type writer struct {
 	category   point.Category
 	dynamicURL string
 
+	body *body
+
 	points []*point.Point
+
+	sendBuffer []byte
 
 	// if bothe batch limit set, prefer batchBytesSize.
 	batchBytesSize int // limit point pyaload bytes approximately
 	batchSize      int // limit point count
+	parts          int
+
+	zipper *gzipWriter
 
 	httpEncoding point.Encoding
 
@@ -134,7 +161,7 @@ func (dw *Dataway) cleanCache(w *writer, data []byte) error {
 	for _, ep := range dw.eps {
 		// If some of endpoint send ok, any failed write will cause re-write on these ok ones.
 		// So, do NOT configure multiple endpoint in dataway URL list.
-		if err := ep.writePointData(&body{buf: pd.Payload}, w); err != nil {
+		if err := ep.writePointData(w, &body{buf: pd.Payload}); err != nil {
 			log.Warnf("cleanCache: %s", err)
 			return err
 		}
@@ -162,30 +189,30 @@ func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*p
 	}
 }
 
-func (dw *Dataway) groupPoints(ptg *ptGrouper, cat point.Category, points []*point.Point) {
+func (dw *Dataway) groupPoints(ptg *ptGrouper,
+	cat point.Category,
+	points []*point.Point,
+) {
 	dw.doGroupPoints(ptg, cat, points)
 	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(ptg.groupedPts)))
 }
 
 func (dw *Dataway) Write(opts ...WriteOption) error {
-	w := getWriter()
+	w := getWriter(
+		// set content encoding(protobuf/line-protocol/json)
+		WithHTTPEncoding(dw.contentEncoding),
+		// setup gzip on or off
+		WithGzip(dw.GZip),
+		// set raw body size limit
+		WithBatchBytesSize(dw.MaxRawBodySize),
+	)
 	defer putWriter(w)
 
+	// Append extra wirte options from caller
 	for _, opt := range opts {
 		if opt != nil {
 			opt(w)
 		}
-	}
-
-	// set content encoding(protobuf/line-protocol/json)
-	WithHTTPEncoding(dw.contentEncoding)(w)
-
-	// setup gzip on or off
-	WithGzip(dw.GZip)(w)
-
-	// set raw body size limit
-	if dw.MaxRawBodySize > 0 {
-		WithBatchBytesSize(dw.MaxRawBodySize)(w)
 	}
 
 	if w.cacheClean {

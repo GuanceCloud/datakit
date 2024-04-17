@@ -88,3 +88,9 @@ func WithSource(str string) APPOption {
 		}
 	}
 }
+
+func WithDumMetrics(on bool) APPOption {
+	return func(app *monitorAPP) {
+		app.dumpMetrics = on
+	}
+}
