@@ -7,7 +7,6 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
-	github.com/GuanceCloud/cliutils v0.1.12-0.20240417025405-6ac69e4ed1a7
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.3
 	github.com/GuanceCloud/platypus v0.2.9
@@ -288,7 +287,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/vishvananda/netlink v1.2.1-beta.2.0.20230807190133-6afddb37c1f0 // indirect
+	github.com/vishvananda/netlink v1.2.1-beta.2.0.20230807190133-6afddb37c1f0
 	github.com/vishvananda/netns v0.0.4
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/weaveworks/common v0.0.0-20210419092856-009d1eebd624 // indirect
@@ -308,7 +307,7 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.6 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.6 // indirect
 	go.mongodb.org/mongo-driver v1.10.2
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.9.0
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
@@ -351,6 +350,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
+	github.com/GuanceCloud/cliutils v1.1.12
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/cilium/ebpf v0.11.0
 	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db

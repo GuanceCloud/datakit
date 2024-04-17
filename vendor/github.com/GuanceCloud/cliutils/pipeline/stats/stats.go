@@ -7,21 +7,16 @@
 package stats
 
 import (
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type EventOP string
 
 const (
 	StatsTimeFormat = "2006-01-02T15:04:05.999Z07:00"
-
-	MaxEventLen   int = 100
-	MaxErrorCount int = 100
 
 	EventOpAdd                EventOP = "ADD"
 	EventOpUpdate             EventOP = "UPDATE"
@@ -31,116 +26,100 @@ const (
 	EventOpIndexDelete        EventOP = "INDEX_DELETE"
 	EventOpIndexDeleteAndBack EventOP = "INDEX_DELETE_AND_BACK"
 	EventOpCompileError       EventOP = "COMPILE_ERROR"
+
+	DefaultSubSystem = "pipeline"
 )
 
 var (
 	l = logger.DefaultSLogger("pl-stats")
 
-	_plstats = Stats{}
+	_plstats Stats
+	_        Stats = (*RecStats)(nil)
 )
+
+func SetStats(st Stats) {
+	_plstats = st
+}
 
 func InitLog() {
 	l = logger.SLogger("pl-stats")
 }
 
-type Stats struct {
-	stats sync.Map
-	event ScriptChangeEvent
+type Stats interface {
+	Metrics() []prometheus.Collector
+	WriteMetric(tags map[string]string, pt, ptDrop, ptError float64, cost time.Duration)
+
+	WriteEvent(event *ChangeEvent, tags map[string]string)
+	ReadEvents(events []*ChangeEvent) []*ChangeEvent
+
+	WriteUpdateTime(tags map[string]string)
 }
 
-func (stats *Stats) WriteEvent(event *ChangeEvent) {
-	stats.event.Write(event)
-}
+func NewRecStats(ns, subsystem string, labelNames []string, eventSize int) *RecStats {
+	var lbs []string
+	mp := map[string]struct{}{}
 
-func (stats *Stats) ReadEvent() []ChangeEvent {
-	return stats.event.Read()
-}
-
-func (stats *Stats) UpdateScriptStatsMeta(category point.Category, ns, name, script string, enable, deleted bool, err string) {
-	ts := time.Now()
-
-	defer func() {
-		plUpdateVec.WithLabelValues(category.String(), name, ns).Set(float64(ts.Unix()))
-	}()
-
-	if stats, loaded := stats.stats.LoadOrStore(StatsKey(category, ns, name), &ScriptStats{
-		meta: ScriptMeta{
-			script:            script,
-			deleted:           deleted,
-			enable:            enable,
-			startTS:           ts,
-			scriptUpdateTS:    ts,
-			scriptUpdateTimes: 1,
-			category:          category,
-			ns:                ns,
-			name:              name,
-			metaUpdateTS:      ts,
-			err:               err,
-		},
-	}); loaded {
-		if stats, ok := stats.(*ScriptStats); ok {
-			stats.UpdateMeta(script, enable, deleted, err)
+	for _, name := range labelNames {
+		if _, ok := mp[name]; !ok {
+			mp[name] = struct{}{}
+			lbs = append(lbs, name)
 		}
 	}
-}
-
-func (stats *Stats) WriteScriptStats(category point.Category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
-	catStr := category.String()
-
-	if pt > 0 {
-		plPtsVec.WithLabelValues(catStr, name, ns).Add(float64(pt))
-	}
-
-	if ptDrop > 0 {
-		plDropVec.WithLabelValues(catStr, name, ns).Add(float64(ptDrop))
-	}
-
-	if ptError > 0 {
-		plErrPtsVec.WithLabelValues(catStr, name, ns).Add(float64(ptDrop))
-	}
-
-	if cost > 0 {
-		plCostVec.WithLabelValues(catStr, name, ns).Observe(float64(cost) / float64(time.Second))
-	}
-}
-
-func (stats *Stats) ReadStats() []ScriptStatsROnly {
-	ret := []ScriptStatsROnly{}
-	stats.stats.Range(func(key, value interface{}) bool {
-		if value, ok := value.(*ScriptStats); ok && value != nil {
-			if v := value.Read(); v != nil {
-				ret = append(ret, *v)
-			}
+	for _, name := range defaultLabelNames {
+		if _, ok := mp[name]; !ok {
+			mp[name] = struct{}{}
+			lbs = append(lbs, name)
 		}
-		return true
-	})
-	return ret
+	}
+
+	return &RecStats{
+		metric: newRecMetric(ns, subsystem, lbs),
+		event:  newRecEvent(eventSize, lbs),
+	}
 }
 
-func WriteEvent(event *ChangeEvent) {
-	_plstats.WriteEvent(event)
+type RecStats struct {
+	metric *RecMetric
+	event  *RecEvent
 }
 
-func ReadEvent() []ChangeEvent {
-	return _plstats.ReadEvent()
+func (stats *RecStats) Metrics() []prometheus.Collector {
+	return stats.metric.Metrics()
 }
 
-func UpdateScriptStatsMeta(category point.Category, ns, name, script string, enable, deleted bool, err string) {
-	_plstats.UpdateScriptStatsMeta(category, ns, name, script, enable, deleted, err)
+func (stats *RecStats) WriteEvent(event *ChangeEvent, tags map[string]string) {
+	stats.event.Write(event, tags)
 }
 
-func WriteScriptStats(category point.Category, ns, name string, pt, ptDrop, ptError uint64, cost int64, err error) {
-	_plstats.WriteScriptStats(category, ns, name, pt, ptDrop, ptError, cost, err)
+func (stats *RecStats) WriteUpdateTime(tags map[string]string) {
+	stats.metric.WriteUpdateTime(tags)
 }
 
-func StatsKey(category point.Category, ns, name string) string {
-	var b strings.Builder
+func (stats *RecStats) WriteMetric(tags map[string]string, pt, ptDrop, ptError float64, cost time.Duration) {
+	stats.metric.WriteMetric(tags, pt, ptDrop, ptError, cost)
+}
 
-	b.WriteString(ns)
-	b.Write([]byte("::"))
-	b.WriteString(category.String())
-	b.Write([]byte("::"))
-	b.WriteString(name)
+func (stats *RecStats) ReadEvents(events []*ChangeEvent) []*ChangeEvent {
+	return stats.event.Read(events)
+}
 
-	return b.String() // ns::cat::name
+func WriteEvent(event *ChangeEvent, tags map[string]string) {
+	if _plstats == nil {
+		return
+	}
+	_plstats.WriteEvent(event, tags)
+}
+
+func WriteUpdateTime(tags map[string]string) {
+	if _plstats == nil {
+		return
+	}
+	_plstats.WriteUpdateTime(tags)
+}
+
+func WriteMetric(tags map[string]string, pt, ptDrop, ptError float64, cost time.Duration) {
+	if _plstats == nil {
+		return
+	}
+	_plstats.WriteMetric(tags, pt, ptDrop, ptError, cost)
 }

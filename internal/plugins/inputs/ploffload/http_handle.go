@@ -42,6 +42,8 @@ func (ipt *Input) handlePlOffload(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	ptCounterVec.WithLabelValues(ptsData.cat.String()).Add(float64(len(ptsData.pts)))
+
 	log.Debugf("category: %s, pts num: %d", ptsData.cat, len(ptsData.pts))
 	if err := ipt.feeder.Feed(ptsData.inputName, ptsData.cat, ptsData.pts, nil); err != nil {
 		log.Error(err.Error())
@@ -200,8 +202,10 @@ func appendTags(pts []*point.Point, tags map[string]string) {
 }
 
 type workerPool struct {
-	jobLen int
-	job    chan *storage.Request
+	chanLen int
+	jobChan chan *storage.Request
+
+	threads int
 
 	fn http.HandlerFunc
 
@@ -209,17 +213,18 @@ type workerPool struct {
 }
 
 func (w *workerPool) Start() {
-	if w.jobLen <= 0 {
-		w.jobLen = 16
+	if w.threads <= 0 {
+		w.threads = 16
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "ploffload_worker_pool"})
 
-	for i := 0; i < w.jobLen; i++ {
+	for i := 0; i < w.threads; i++ {
 		g.Go(func(ctx context.Context) error {
 			for {
 				select {
-				case reqpb := <-w.job:
+				case reqpb := <-w.FeedChan():
+					chanUsageVec.WithLabelValues(chanNameJob).Sub(1)
 					req := convStorageReq2HTTPReq(reqpb)
 					if w.fn != nil {
 						w.fn(&httpapi.NopResponseWriter{}, req)
@@ -236,14 +241,19 @@ func (w *workerPool) Stop() {
 	w.semStop.Close()
 }
 
-func (w *workerPool) FeedChan() chan<- *storage.Request {
-	return w.job
+func (w *workerPool) FeedChan() chan *storage.Request {
+	return w.jobChan
 }
 
-func NewWorkerPool(jobLen int, handle http.HandlerFunc) *workerPool {
+func (w *workerPool) FeedChUsage() int {
+	return len(w.jobChan)
+}
+
+func NewWorkerPool(chanLen int, handle http.HandlerFunc) *workerPool {
 	return &workerPool{
-		jobLen:  jobLen,
-		job:     make(chan *storage.Request, jobLen),
+		chanLen: chanLen,
+		jobChan: make(chan *storage.Request, chanLen),
+		threads: 16,
 		fn:      handle,
 		semStop: cliutils.NewSem(),
 	}
@@ -288,22 +298,23 @@ func HTTPStorageWrapperWithWkrPool(key uint8,
 				RequestUri:       req.RequestURI,
 			}
 
+			if wkrPool != nil {
+				select {
+				case wkrPool.FeedChan() <- reqpb:
+					// 线程池优先，若队列满则进入磁盘缓存阶段
+					// 尽可能的减少磁盘读写
+					chanUsageVec.WithLabelValues(chanNameJob).Add(1)
+					return
+				default:
+				}
+			}
+
 			buf, err := proto.Marshal(reqpb)
 			if err != nil {
 				log.Error(err.Error())
 				resp.WriteHeader(http.StatusBadRequest)
 
 				return
-			}
-
-			if wkrPool != nil {
-				select {
-				case wkrPool.FeedChan() <- reqpb:
-					// 线程池优先，若队列满则进入磁盘缓存阶段
-					// 尽可能的减少磁盘读写
-					return
-				default:
-				}
 			}
 
 			if err = s.Put(key, buf); err != nil {

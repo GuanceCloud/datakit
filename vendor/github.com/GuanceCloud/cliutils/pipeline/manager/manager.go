@@ -195,36 +195,40 @@ func ReadPlScriptFromPlStructPath(basePath string) (
 	return scripts, scriptsPath
 }
 
-func LoadDefaultScripts2Store(center *Manager, rootDir string) {
+func LoadDefaultScripts2Store(center *Manager, rootDir string, tags map[string]string) {
 	if rootDir == "" {
 		return
 	}
 
 	plPath := filepath.Join(rootDir, "pipeline")
-	LoadScripts2StoreFromPlStructPath(center, DefaultScriptNS, plPath)
+	LoadScripts2StoreFromPlStructPath(center, DefaultScriptNS, plPath, tags)
 }
 
-func LoadScripts2StoreFromPlStructPath(center *Manager, ns, plPath string) {
+func LoadScripts2StoreFromPlStructPath(center *Manager, ns, plPath string, tags map[string]string) {
 	if plPath == "" {
 		return
 	}
 
 	scripts, path := ReadPlScriptFromPlStructPath(plPath)
 
-	LoadScripts(center, ns, scripts, path)
+	LoadScripts(center, ns, scripts, path, tags)
 }
 
 // LoadScripts is used to load and clean the script, parameter scripts example: {datakit.Logging: {ScriptName: ScriptContent},... }.
-func LoadScripts(center *Manager, ns string, scripts, scriptPath map[point.Category](map[string]string)) {
+func LoadScripts(center *Manager, ns string, scripts, scriptPath map[point.Category](map[string]string),
+	tags map[string]string,
+) {
 	allCategoryScript := FillScriptCategoryMap(scripts)
 	for category, m := range allCategoryScript {
-		LoadScript(center, category, ns, m, scriptPath[category])
+		LoadScript(center, category, ns, m, scriptPath[category], tags)
 	}
 }
 
-func LoadScript(centor *Manager, category point.Category, ns string, scripts map[string]string, path map[string]string) {
+func LoadScript(centor *Manager, category point.Category, ns string,
+	scripts, path, tags map[string]string,
+) {
 	if v, ok := centor.whichStore(category); ok {
-		v.UpdateScriptsWithNS(ns, scripts, path)
+		v.UpdateScriptsWithNS(ns, scripts, path, tags)
 	}
 }
 

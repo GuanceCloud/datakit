@@ -16,9 +16,11 @@ import (
 	_ "time/tzdata"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
+	plstats "github.com/GuanceCloud/cliutils/pipeline/stats"
 	"github.com/GuanceCloud/cliutils/point"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 
@@ -33,6 +35,13 @@ func InitPipeline(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[s
 	installDir string,
 ) error {
 	l = logger.SLogger("pipeline")
+
+	rec := plstats.NewRecStats("datakit", plstats.DefaultSubSystem, nil, 128)
+
+	metrics.MustRegister(rec.Metrics()...)
+
+	plstats.SetStats(rec)
+
 	return plval.InitPlVal(cfg, upFn, gTags, installDir)
 }
 
@@ -46,7 +55,7 @@ func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*pl
 }
 
 func NewPlScriptSimple(category point.Category, name, script string, buks ...*plmap.AggBuckets) (*plmanager.PlScript, error) {
-	scs, errs := plmanager.NewScripts(map[string]string{name: script}, map[string]string{}, "", category, buks...)
+	scs, errs := plmanager.NewScripts(map[string]string{name: script}, map[string]string{}, nil, "", category, buks...)
 
 	if v, ok := errs[name]; ok {
 		return nil, v
@@ -62,7 +71,7 @@ func NewPlScriptSimple(category point.Category, name, script string, buks ...*pl
 func NewPipelineMulti(category point.Category, scripts map[string]string,
 	scriptPath map[string]string, buks *plmap.AggBuckets,
 ) (map[string]*plmanager.PlScript, map[string]error) {
-	return plmanager.NewScripts(scripts, scriptPath, "", category, buks)
+	return plmanager.NewScripts(scripts, scriptPath, nil, "", category, buks)
 }
 
 type Pipeline struct {

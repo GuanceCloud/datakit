@@ -192,7 +192,7 @@ func TestPipeline(t *testing.T) {
 
 		pl, errs := manager.NewScripts(map[string]string{
 			"test.p": pScrpit,
-		}, nil, "", point.Logging)
+		}, nil, nil, "", point.Logging)
 
 		if len(errs) > 0 {
 			t.Fatal(errs)

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
-	plstats "github.com/GuanceCloud/cliutils/pipeline/stats"
 	dto "github.com/prometheus/client_model/go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
@@ -47,11 +46,10 @@ type DatakitStats struct {
 
 	OpenFiles int `json:"open_files"`
 
-	HTTPMetrics map[string]*APIStat        `json:"http_metrics"`
-	InputsStats map[string]inputsStat      `json:"inputs_status"`
-	IOStats     *Stats                     `json:"io_stats"`
-	PLStats     []plstats.ScriptStatsROnly `json:"pl_stats"`
-	FilterStats *FilterStats               `json:"filter_stats"`
+	HTTPMetrics map[string]*APIStat   `json:"http_metrics"`
+	InputsStats map[string]inputsStat `json:"inputs_status"`
+	IOStats     *Stats                `json:"io_stats"`
+	FilterStats *FilterStats          `json:"filter_stats"`
 
 	WithinDocker bool `json:"docker"`
 	AutoUpdate   bool `json:"auto_update"`
@@ -247,7 +245,6 @@ func GetStats() (*DatakitStats, error) {
 		AvailableInputs: []string{},
 		FilterStats:     &FilterStats{},
 		GoroutineStats:  &goroutineSummary{Items: make(map[string]goroutine.RunningStatInfo, 10)},
-		PLStats:         []plstats.ScriptStatsROnly{},
 		HTTPMetrics:     make(map[string]*APIStat),
 		InputsStats:     make(map[string]inputsStat),
 		EnabledInputs:   make(map[string]*enabledInput),

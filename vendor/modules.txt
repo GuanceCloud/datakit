@@ -40,7 +40,7 @@ github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
 github.com/DataDog/zstd
-# github.com/GuanceCloud/cliutils v0.1.12-0.20240417025405-6ac69e4ed1a7
+# github.com/GuanceCloud/cliutils v1.1.12
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -60,6 +60,7 @@ github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs
 github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb
 github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/geoip
 github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/iploc
+github.com/GuanceCloud/cliutils/pipeline/ptinput/plcache
 github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap
 github.com/GuanceCloud/cliutils/pipeline/ptinput/refertable
 github.com/GuanceCloud/cliutils/pipeline/ptinput/utils

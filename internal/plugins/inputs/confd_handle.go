@@ -50,7 +50,7 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 
 				if managerWkr, ok := plval.GetManager(); ok && managerWkr != nil {
 					plmanager.LoadScripts2StoreFromPlStructPath(managerWkr,
-						plmanager.ConfdScriptNS, datakit.ConfdPipelineDir)
+						plmanager.ConfdScriptNS, datakit.ConfdPipelineDir, nil)
 				}
 			}
 		}

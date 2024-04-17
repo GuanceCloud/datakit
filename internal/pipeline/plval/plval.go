@@ -113,7 +113,7 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 ) error {
 	l = logger.SLogger("pipeline")
 
-	offload.InitLog()
+	offload.InitOffload()
 	pipeline.InitLog()
 
 	// load grok pattern
@@ -129,7 +129,7 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 
 	// init script manager
 	managerIns := plmanager.NewManager(plmanager.NewManagerCfg(upFn, gTagsLi))
-	plmanager.InitStore(managerIns, installDir)
+	plmanager.InitStore(managerIns, installDir, nil)
 	SetManager(managerIns)
 
 	// init ipdb

@@ -78,6 +78,9 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"parse_int":              ParseInt,
 	"format_int":             FormatInt,
 	"pt_name":                PtName,
+	"http_request":           HTTPRequest,
+	"cache_get":              CacheGet,
+	"cache_set":              CacheSet,
 	// disable
 	"json_all": JSONAll,
 }
@@ -143,6 +146,9 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"parse_int":              ParseIntChecking,
 	"format_int":             FormatIntChecking,
 	"pt_name":                PtNameChecking,
+	"http_request":           HTTPRequestChecking,
+	"cache_get":              CacheGetChecking,
+	"cache_set":              CacheSetChecking,
 	// disable
 	"json_all": JSONAllChecking,
 }

@@ -12,6 +12,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -41,9 +43,34 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
+const (
+	chanNameJob = "job_channel"
+)
+
 var (
 	log        = logger.DefaultSLogger(inputName)
 	localCache *storage.Storage
+
+	chanCapVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "datakit",
+		Subsystem: "input_ploffload",
+		Name:      "chan_capacity",
+		Help:      "ploffload channel capacity",
+	}, []string{"channel_name"})
+
+	chanUsageVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "datakit",
+		Subsystem: "input_ploffload",
+		Name:      "chan_usage",
+		Help:      "ploffload channel usage",
+	}, []string{"channel_name"})
+
+	ptCounterVec = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "datakit",
+		Subsystem: "input_ploffload",
+		Name:      "point_total",
+		Help:      "ploffload processed total points",
+	}, []string{"category"})
 )
 
 type Input struct {
@@ -97,7 +124,9 @@ func (ipt *Input) RegHTTPHandler() {
 
 	// 创建工作线程池
 	if ipt.wkr == nil {
-		ipt.wkr = NewWorkerPool(16, ipt.handlePlOffload)
+		chLen := 128
+		chanCapVec.WithLabelValues(chanNameJob).Set(float64(chLen))
+		ipt.wkr = NewWorkerPool(chLen, ipt.handlePlOffload)
 		ipt.wkr.Start()
 	}
 
@@ -180,6 +209,9 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	metrics.MustRegister(chanCapVec)
+	metrics.MustRegister(chanUsageVec)
+	metrics.MustRegister(ptCounterVec)
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

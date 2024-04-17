@@ -490,7 +490,7 @@ func getPipelineData() {
 
 	if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
 		manager.LoadScripts2StoreFromPlStructPath(
-			managerwkr, manager.ConfdScriptNS, datakit.ConfdPipelineDir)
+			managerwkr, manager.ConfdScriptNS, datakit.ConfdPipelineDir, nil)
 	}
 }
 
