@@ -57,16 +57,17 @@ GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut 
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
 # These can be override at runtime by make variables
-VERSION              ?= $(shell git describe --always --tags)
-DATAWAY_URL          ?= "not-set"
-GIT_BRANCH           ?= $(shell git rev-parse --abbrev-ref HEAD)
-DATAKIT_EBPF_ARCHS   ?= linux/arm64,linux/amd64
-IGN_EBPF_INSTALL_ERR ?= 0
-RACE_DETECTION       ?= "off"
-PKGEBPF              ?= false
-AUTO_FIX             ?= on
-UT_EXCLUDE           ?= "not-set"
-DOCKER_REMOTE_HOST   ?= "0.0.0.0" # default use localhost as docker server
+VERSION                     ?= $(shell git describe --always --tags)
+DATAWAY_URL                 ?= "not-set"
+GIT_BRANCH                  ?= $(shell git rev-parse --abbrev-ref HEAD)
+DATAKIT_EBPF_ARCHS          ?= linux/arm64,linux/amd64
+IGN_EBPF_INSTALL_ERR        ?= 0
+RACE_DETECTION              ?= "off"
+PKGEBPF                     ?= false
+AUTO_FIX                    ?= on
+UT_EXCLUDE                  ?= "not-set"
+DOCKER_REMOTE_HOST          ?= "0.0.0.0" # default use localhost as docker server
+MERGE_REQUEST_TARGET_BRANCH ?= ""
 
 ifneq ($(PKGEBPF), false)
 	PKGEBPF_FLAG = -pkg-ebpf
@@ -438,3 +439,13 @@ clean:
 	@rm -rf internal/pipeline/parser/gram_y.go
 	@rm -rf check.err
 	@rm -rf $(PUB_DIR)/*
+
+define check_mr_target_branch
+	@if [ $1 = main -o $1 = master ]; then \
+		printf "$(RED)[FAIL] merge request to branch '$1' disabled\n$(NC)"; \
+		exit -1; \
+	fi
+endef
+
+detect_mr_target_branch:
+	$(call check_mr_target_branch,$(MERGE_REQUEST_TARGET_BRANCH))

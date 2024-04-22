@@ -14,6 +14,8 @@ variables:
   PROJECT: "datakit"
   CI_VERSION: "1.28.1"
   TEST_VERSION: "1.999.0"
+  DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
+  DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
 
 stages:
   - test
@@ -26,14 +28,17 @@ ci_lint_and_ut:
   resource_group: production
   rules:
     # No pipeline when there is a MR whose title starts with Draft
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
+    # Disable merge request to master/main branch
+    - if: $CI_MERGE_REQUEST_TITLE =~ $DISABLED_MR_TITLE
       when: never
+
     # Trigger a pipeline in case of MR event, which means the MR is ready, since we did not go through the first case
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
   script:
     - nvm use v16.14.0
     - make clean
+    - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make lint AUTO_FIX=off
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
