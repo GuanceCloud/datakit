@@ -94,8 +94,22 @@ func TestHandleBody(t *testing.T) {
 		enc  point.Encoding
 		npts int
 
-		opts []point.Option
+		opts      []point.Option
+		expectPts []*point.Point
 	}{
+		{
+			name: `invalid-json`,
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"fields": {"f1": 123, "f.2": 3.4, "f3": "strval"},
+				"time": 123
+			}, # extra ','
+			]`),
+			enc:  point.JSON,
+			fail: true,
+		},
+
 		{
 			name: `json-tag-exceed-limit`,
 
@@ -107,7 +121,8 @@ func TestHandleBody(t *testing.T) {
 			{
 				"measurement":"abc",
 				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
-				"tags": {"t1": "abc", "t2": "def"}
+				"tags": {"t1": "abc", "t2": "def"},
+				"time": 123
 			}
 			]`),
 			enc:  point.JSON,
@@ -119,11 +134,22 @@ func TestHandleBody(t *testing.T) {
 			body: []byte(`[
 			{
 				"measurement":"abc",
-				"fields": {"f1": 123, "f.2": 3.4, "f3": "strval"}
+				"fields": {"f1": 123, "f.2": 3.4, "f3": "strval"},
+				"time": 123
 			}
 			]`),
-			fail: true,
-			enc:  point.JSON,
+			opts: []point.Option{
+				point.WithDotInKey(false),
+			},
+			enc: point.JSON,
+
+			npts: 1,
+			expectPts: []*point.Point{
+				point.NewPointV2("abc",
+					point.NewKVs(nil).AddV2("f1", 123.0 /* int value in json are float */, true).
+						AddV2("f_2", 3.4, true).
+						AddV2("f3", "strval", true), point.WithTimestamp(123)),
+			},
 		},
 
 		{
@@ -131,11 +157,19 @@ func TestHandleBody(t *testing.T) {
 			body: []byte(`[
 			{
 				"measurement":"abc",
+				"time":123,
 				"fields": {"f1": 123, "f2": 3.4, "f3": "strval", "fx": [1,2,3]}
 			}
 			]`),
-			fail: true,
-			enc:  point.JSON,
+			enc: point.JSON,
+
+			expectPts: []*point.Point{
+				point.NewPointV2("abc",
+					point.NewKVs(nil).AddV2("f1", 123.0, true).
+						AddV2("f2", 3.4, true).
+						AddV2("fx", nil, true).
+						AddV2("f3", "strval", true), point.WithTimestamp(123)),
+			},
 		},
 
 		{
@@ -244,11 +278,18 @@ m1 f1=1i,f2="abc" 123`),
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.enc == point.JSON {
-				return
+			pts, err := HandleWriteBody(tc.body, tc.enc, tc.opts...)
+
+			if len(tc.expectPts) > 0 {
+				for i, pt := range tc.expectPts {
+					ok, why := pt.EqualWithReason(pts[i])
+					assert.Truef(t, ok, "why: %s, expect: %s, got %s", why, pt.Pretty(), pts[i].Pretty())
+				}
 			}
 
-			pts, err := HandleWriteBody(tc.body, tc.enc, tc.opts...)
+			if tc.npts > 0 {
+				assert.Len(t, pts, tc.npts)
+			}
 
 			if tc.fail {
 				assert.Error(t, err, "case[%d] expect fail, but ok", i)
@@ -260,8 +301,6 @@ m1 f1=1i,f2="abc" 123`),
 				t.Errorf("[FAIL][%d] handle body failed: %s", i, err)
 				return
 			}
-
-			assert.Equal(t, tc.npts, len(pts))
 
 			for _, pt := range pts {
 				t.Log(pt.Pretty())
