@@ -199,10 +199,10 @@ func FromJSONPoint(j *JSONPoint) *Point {
 	kvs := NewKVs(j.Fields)
 
 	for k, v := range j.Tags {
-		kvs.MustAddTag(k, v)
+		kvs = kvs.MustAddTag(k, v)
 	}
-	return NewPointV2(j.Measurement, kvs, WithTime(time.Unix(0, j.Time)))
 
+	return NewPointV2(j.Measurement, kvs, WithTime(time.Unix(0, j.Time)))
 }
 
 func FromModelsLP(lp influxm.Point) *Point {
