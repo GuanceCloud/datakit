@@ -27,15 +27,9 @@ func WithCategory(cat point.Category) WriteOption {
 	}
 }
 
-func WithHTTPHeader(headers map[string]string) WriteOption {
+func WithHTTPHeader(k, v string) WriteOption {
 	return func(w *writer) {
-		for k, v := range headers {
-			if len(v) > 0 { // ignore empty header value
-				w.httpHeaders[k] = v
-			} else {
-				log.Warnf("ignore empty value on header %q", k)
-			}
-		}
+		w.httpHeaders[k] = v
 	}
 }
 
@@ -103,6 +97,18 @@ func WithBatchBytesSize(n int) WriteOption {
 func WithHTTPEncoding(t point.Encoding) WriteOption {
 	return func(w *writer) {
 		w.httpEncoding = t
+	}
+}
+
+// WithReusable reset some fields of the writer.
+// This make it able to use the writer multiple times before put back to pool.
+func WithReusable() WriteOption {
+	return func(w *writer) {
+		w.parts = 0
+		if w.zipper != nil {
+			w.zipper.buf.Reset()
+			w.zipper.w.Reset(w.zipper.buf)
+		}
 	}
 }
 
@@ -263,8 +269,9 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 		dw.groupPoints(ptg, w.category, w.points)
 
 		for k, points := range ptg.groupedPts {
-			w.httpHeaders[HeaderXGlobalTags] = k
-			w.points = points
+			WithReusable()(w)
+			WithHTTPHeader(HeaderXGlobalTags, k)(w)
+			WithPoints(points)(w)
 
 			// only apply to 1st dataway address
 			if err := dw.eps[0].writePoints(w); err != nil {
@@ -274,6 +281,8 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	} else {
 		// write points to multiple endpoints
 		for _, ep := range dw.eps {
+			WithReusable()(w)
+
 			if err := ep.writePoints(w); err != nil {
 				return err
 			}

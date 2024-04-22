@@ -433,4 +433,51 @@ func TestWritePoints(t *T.T) {
 			diskcache.ResetMetrics()
 		})
 	})
+
+	t.Run("write-with-sink", func(t *T.T) {
+		pts := []*point.Point{
+			point.NewPointV2("m1", point.NewKVs(nil).AddV2("tag1", "val1", true, point.WithKVTagSet(true)).AddV2("f1", 1.23, true)),
+			point.NewPointV2("m2", point.NewKVs(nil).AddV2("tag2", "val2", true, point.WithKVTagSet(true)).AddV2("f2", 3.14, true)),
+		}
+
+		requests := 0
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			assert.Equal(t, point.Protobuf.HTTPContentType(), r.Header.Get("Content-Type"))
+			assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+
+			body, err := io.ReadAll(r.Body)
+			assert.NoError(t, err)
+			x, err := uhttp.Unzip(body)
+			assert.NoError(t, err)
+
+			dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+			defer point.PutDecoder(dec)
+
+			pts, err := dec.Decode(x)
+			assert.NoError(t, err)
+
+			t.Logf("body size: %d/%d, pts: %d", len(body), len(x), len(pts))
+		}))
+
+		dw := &Dataway{
+			URLs:               []string{fmt.Sprintf("%s?token=tkn_some", ts.URL)},
+			ContentEncoding:    "protobuf",
+			EnableSinker:       true,
+			GlobalCustomerKeys: []string{"tag1", "tag2"},
+			GZip:               true,
+		}
+		assert.NoError(t, dw.Init())
+
+		assert.NoError(t, dw.Write(WithPoints(pts), WithCategory(point.Logging)))
+
+		// len(pts) == 2, sinked into 2 requests according to the tags.
+		assert.Equal(t, 2, requests)
+
+		t.Cleanup(func() {
+			ts.Close()
+			metricsReset()
+		})
+	})
 }

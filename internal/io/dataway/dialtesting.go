@@ -39,9 +39,7 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	w := getWriter(WithPoints(pts),
 		WithDynamicURL(url),
 		WithCategory(point.DynamicDWCategory),
-		WithHTTPHeader(map[string]string{
-			"X-Sub-Category": "dialtesting",
-		}))
+		WithHTTPHeader("X-Sub-Category", "dialtesting"))
 	defer putWriter(w)
 
 	if d.ep == nil {

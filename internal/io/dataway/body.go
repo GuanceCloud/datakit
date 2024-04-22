@@ -29,7 +29,7 @@ func (b *body) reset() {
 }
 
 func (b *body) String() string {
-	return fmt.Sprintf("gzon: %v, pts: %d, buf bytes: %d", b.gzon, b.npts, len(b.buf))
+	return fmt.Sprintf("gzon: %v, pts: %d, buf bytes: %d, rawLen: %d", b.gzon, b.npts, len(b.buf), b.rawLen)
 }
 
 func (w *writer) zip(data []byte) ([]byte, error) {

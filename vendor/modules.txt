@@ -354,6 +354,10 @@ github.com/beorn7/perks/quantile
 # github.com/bmatcuk/doublestar/v4 v4.6.0
 ## explicit; go 1.16
 github.com/bmatcuk/doublestar/v4
+# github.com/brianvoe/gofakeit/v6 v6.28.0
+## explicit; go 1.21
+github.com/brianvoe/gofakeit/v6
+github.com/brianvoe/gofakeit/v6/data
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
