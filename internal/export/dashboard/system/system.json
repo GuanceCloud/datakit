@@ -34,7 +34,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "1分钟负载",
+            "tableSortMetricName": "{{.Dashboard.one_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -193,7 +193,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "1分钟负载",
+            "tableSortMetricName": "{{.Dashboard.one_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -272,7 +272,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "1分钟负载",
+            "tableSortMetricName": "{{.Dashboard.one_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -515,7 +515,7 @@
           "value": "show_tag_value(from=['system'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"
@@ -531,5 +531,5 @@
   ],
   "tags": [],
   "thumbnail": "",
-  "title": "System New"
+  "title": "{{.Dashboard.title}}"
 }

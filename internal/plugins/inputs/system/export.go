@@ -10,12 +10,18 @@ import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
+		//nolint:lll
 		return map[string]string{
-			//nolint:lll
+			"one_min_load": "1分钟负载",
+			"host_name":    "主机名",
+			"title":        "System 监控视图",
 		}
 	case inputs.I18nEn:
+		//nolint:lll
 		return map[string]string{
-			//nolint:lll
+			"one_min_load": "1-minute Load",
+			"host_name":    "Host Name",
+			"title":        "System Monitor View",
 		}
 	default:
 		return nil
