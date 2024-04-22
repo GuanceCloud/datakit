@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.28.1 (April 22, 2024) {#cl-1.28.1}
+
+This release is a hotfix that addresses the following issue:
+
+- Fixed an issue where some crashes were causing the drop of data (#2193).
+
+---
+
 ## 1.28.0 (April 17, 2024) {#cl-1.28.0}
 
 This release is an iterative update with the following main changes:

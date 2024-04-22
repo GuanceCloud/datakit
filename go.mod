@@ -352,6 +352,7 @@ require (
 	github.com/DataDog/ebpf-manager v0.2.16
 	github.com/GuanceCloud/cliutils v1.1.12
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0
 	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db
 	github.com/google/gopacket v0.0.0-00010101000000-000000000000
