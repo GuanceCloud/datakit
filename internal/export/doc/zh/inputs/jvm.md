@@ -186,6 +186,11 @@ java -javaagent:dd-java-agent.jar \
 | `gc_major_collection_time`  | The approximate major garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
 | `gc_minor_collection_time`  | The approximate minor garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
 
+
+重点解释一下以下几个指标：`gc_major_collection_count` `gc_minor_collection_count` `gc_major_collection_time` `gc_minor_collection_time`:
+
+指标类型是 `counter` 也就是计数器，在采集过程中每次采集到指标后会和上一次的结果相减，并除以时间，也就是说 这些指标就是每秒的变化速率，并不是实际 `JVM` 中 `MBean` 中的值。
+
 ### 通过 Jolokia 采集 JVM 指标 {#jvm-jolokia}
 
 JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观测云，帮助分析 Java 运行情况。

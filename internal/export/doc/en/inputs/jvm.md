@@ -188,6 +188,11 @@ Each metric has the following tags (the actual tags are affected by Java startup
 | `gc_major_collection_time`  | The approximate major garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
 | `gc_minor_collection_time`  | The approximate minor garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
 
+Focus on explaining the following indicators: `gc_major_collection_count` `gc_minor_collection_count` `gc_major_collection_time` `gc_minor_collection_time`:
+
+The indicator type is composed of three components of `counter`. During the collection process, each time the indicator is collected, it will be subtracted from the previous result and divided by time.
+These indicators are the rate of change per second, which is not actually the case. The value in the `MBean` in the `JVM`.
+
 ## Collect JVM Metrics Through Jolokia  {#jvm-jolokia}
 
 JVM collector can take many metrics through JMX, and collect metrics into Guance Cloud to help analyze Java operation.
