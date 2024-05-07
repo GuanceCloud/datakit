@@ -37,8 +37,8 @@ BenchmarkP8s/n-counter-vec
 BenchmarkP8s/n-counter-vec-10                              12217         98239 ns/op       84167 B/op        1032 allocs/op
 BenchmarkP8s/n-gauge-vec
 BenchmarkP8s/n-gauge-vec-10                                12268         98022 ns/op       82564 B/op        1032 allocs/op
-BenchmarkP8s/n-gauge-vec-with-long-label-vaule
-BenchmarkP8s/n-gauge-vec-with-long-label-vaule-10          10000        103371 ns/op       82565 B/op        1032 allocs/op
+BenchmarkP8s/n-gauge-vec-with-long-label-value
+BenchmarkP8s/n-gauge-vec-with-long-label-value-10          10000        103371 ns/op       82565 B/op        1032 allocs/op
 BenchmarkP8s/n-gauge
 BenchmarkP8s/n-gauge-10                                    15237         78838 ns/op       82566 B/op        1032 allocs/op
 PASS

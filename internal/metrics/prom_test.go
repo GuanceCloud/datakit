@@ -230,7 +230,7 @@ func BenchmarkP8s(b *T.B) {
 		}
 	})
 
-	b.Run("n-gauge-vec-with-long-label-vaule", func(b *T.B) {
+	b.Run("n-gauge-vec-with-long-label-value", func(b *T.B) {
 		var (
 			arr []*p8s.GaugeVec
 			reg = prometheus.NewRegistry()

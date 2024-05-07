@@ -1,0 +1,907 @@
+{
+  "dashboardBindSet": [],
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "inner",
+  "dashboardType": "CUSTOM",
+  "iconSet": {},
+  "main": {
+    "charts": [
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colors": [],
+            "currentChartType": "table",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 100,
+            "mainMeasurementQueryCode": "D",
+            "mainMeasurementSort": "top",
+            "openThousandsSeparator": false,
+            "pageSize": 0,
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showColumns": [],
+            "showFieldMapping": false,
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "custom",
+            "units": [
+              {
+                "key": "size",
+                "name": "size",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "used",
+                "name": "used",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "available",
+                "name": "available",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              },
+              {
+                "key": "%used",
+                "name": "%used",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "valColorMappings": [
+              {
+                "bgColor": "",
+                "field": "%used",
+                "fontColor": "#8ABE75",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "bgColor": "",
+                "field": "%used",
+                "fontColor": "#D96A6A",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "90"
+                ]
+              }
+            ],
+            "valMappings": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "DiskFree of pvc",
+        "pos": {
+          "h": 31,
+          "w": 24,
+          "x": 0,
+          "y": 18
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "size",
+              "code": "A",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "capacity",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`capacity`) as `size`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "used",
+              "code": "B",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "used",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`used`) as `used`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "available",
+              "code": "C",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "available",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`available`) as `available`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "%used",
+              "code": "D",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`used_percent`) as `%used`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "inodes_used",
+              "code": "F",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "inodes_used",
+              "fieldFunc": "avg",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(avg(`inodes_used`) as `inodes_used`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          },
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "inodes_free",
+              "code": "G",
+              "dataSource": "kube_dfpv",
+              "dataSourceFunc": "",
+              "field": "inodes_free",
+              "fieldFunc": "last",
+              "fill": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name",
+                "namespace",
+                "node_name",
+                "pod_name",
+                "volume_mount_name"
+              ],
+              "labelOp": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`inodes_free`) as `inodes_free`) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`, `namespace`, `node_name`, `pod_name`, `volume_mount_name`",
+              "queryFuncs": [],
+              "type": "dql",
+              "withLabels": []
+            },
+            "type": "table",
+            "unit": ""
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#676767",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "0",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "PersistentVolumes",
+        "pos": {
+          "h": 9,
+          "w": 3,
+          "x": 12,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kubernetes_persistentvolumes",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "a6c01ac0-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_persistentvolumes`:(count(`*`)) { `cluster_name_k8s` = '#{cluster}' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bgColor": "",
+            "changeWorkspace": false,
+            "colors": [],
+            "compareType": "",
+            "currentChartType": "singlestat",
+            "downsample": "last",
+            "fixedTime": "",
+            "fontColor": "#676767",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "lineColor": "#3AB8FF",
+            "mappings": [],
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "0",
+            "sequenceChartType": "line",
+            "showFieldMapping": false,
+            "showLine": false,
+            "showLineAxis": false,
+            "showTitle": true,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "PersistentVolumeClaims",
+        "pos": {
+          "h": 9,
+          "w": 3,
+          "x": 12,
+          "y": 9
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kubernetes_persistentvolumeclaims",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "9a8a3060-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "id": "9e5960d0-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_persistentvolumeclaims`:(count(`*`)) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' }",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "singlestat",
+            "unit": ""
+          }
+        ],
+        "type": "singlestat"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "changeWorkspace": false,
+            "colorLevel": 3,
+            "colors": [],
+            "currentChartType": "hexgon",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levelArr": [
+              {
+                "color": "#E5F7FF",
+                "isAuto": true,
+                "max": -1,
+                "min": -1
+              },
+              {
+                "color": "#B9E8FE",
+                "isAuto": true,
+                "max": -1,
+                "min": -1
+              },
+              {
+                "color": "#91D4FF",
+                "isAuto": true,
+                "max": -1,
+                "min": -1
+              },
+              {
+                "color": "#68C0FF",
+                "isAuto": true,
+                "max": -1,
+                "min": -1
+              },
+              {
+                "color": "#3FA9FF",
+                "isAuto": true,
+                "max": -1,
+                "min": -1
+              }
+            ],
+            "levels": [],
+            "mainMeasurementQueryCode": "A",
+            "openThousandsSeparator": true,
+            "precision": "0",
+            "rangeColor": "",
+            "rangeColorKey": "light-blue",
+            "showFieldMapping": false,
+            "showLegend": "bottom",
+            "showTitle": true,
+            "slimit": 20,
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "unitType": "global",
+            "units": []
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Number of PVC per namespace",
+        "pos": {
+          "h": 18,
+          "w": 9,
+          "x": 15,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kubernetes_persistentvolumeclaims",
+              "field": "*",
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "fill": "",
+              "filters": [
+                {
+                  "id": "b9c55630-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "id": "bd3d8d00-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "namespace"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "object",
+              "q": "O::`kubernetes_persistentvolumeclaims`:(count(`*`)) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `namespace`",
+              "queryFuncs": [],
+              "search": "",
+              "type": "simple"
+            },
+            "type": "hexgon",
+            "unit": ""
+          }
+        ],
+        "type": "hexgon"
+      },
+      {
+        "extend": {
+          "fixedTime": "",
+          "isRefresh": false,
+          "settings": {
+            "alias": [],
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "changeWorkspace": false,
+            "chartType": "bar",
+            "color": "#48B6E5",
+            "colorMappings": [
+              {
+                "bgColor": "#4498F1",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "<",
+                "value": [
+                  "90"
+                ]
+              },
+              {
+                "bgColor": "#F26379",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": ">=",
+                "value": [
+                  "90"
+                ]
+              }
+            ],
+            "colors": [],
+            "currentChartType": "toplist",
+            "fixedTime": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "isTimeInterval": false,
+            "levels": [],
+            "mainMeasurementLimit": 10,
+            "mainMeasurementQueryCode": "A",
+            "mainMeasurementSort": "top",
+            "openCompare": false,
+            "openThousandsSeparator": true,
+            "precision": "2",
+            "showFieldMapping": false,
+            "showTableHead": true,
+            "showTitle": true,
+            "showTopSize": true,
+            "slimit": 20,
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "tableSortMetricName": "",
+            "tableSortType": "top",
+            "timeInterval": "auto",
+            "titleDesc": "",
+            "topSize": 10,
+            "undefined": [],
+            "unitType": "global",
+            "units": [
+              {
+                "key": "last(used_percent)",
+                "name": "last(used_percent)",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ]
+          }
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Most used-intensive pvc (top 10)",
+        "pos": {
+          "h": 18,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "queries": [
+          {
+            "color": "",
+            "datasource": "dataflux",
+            "name": "",
+            "qtype": "dql",
+            "query": {
+              "alias": "",
+              "code": "A",
+              "dataSource": "kube_dfpv",
+              "field": "used_percent",
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "fill": null,
+              "filters": [
+                {
+                  "id": "8a160010-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "cluster_name_k8s",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{cluster}",
+                  "values": []
+                },
+                {
+                  "id": "8df7f530-ea8d-11ee-a3dc-59f8264beca7",
+                  "logic": "and",
+                  "name": "namespace",
+                  "op": "=",
+                  "type": "keyword",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "funcList": [],
+              "groupBy": [
+                "pvc_name"
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "namespace": "metric",
+              "q": "M::`kube_dfpv`:(last(`used_percent`)) { `cluster_name_k8s` = '#{cluster}' and `namespace` = '#{namespace}' } BY `pvc_name`",
+              "queryFuncs": [],
+              "type": "simple"
+            },
+            "type": "toplist",
+            "unit": ""
+          }
+        ],
+        "type": "toplist"
+      }
+    ],
+    "groups": [
+      "Overview"
+    ],
+    "type": "template",
+    "vars": [
+      {
+        "code": "cluster",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['kube_dfpv'], keyin=['cluster_name_k8s'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "cluster",
+        "seq": 0,
+        "type": "QUERY",
+        "valueSort": "asc"
+      },
+      {
+        "code": "namespace",
+        "datasource": "dataflux",
+        "definition": {
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          },
+          "field": "",
+          "metric": "",
+          "object": "",
+          "tag": "",
+          "value": "show_tag_value(from=['kube_dfpv'], keyin=['namespace'])"
+        },
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "name": "namespace",
+        "seq": 1,
+        "type": "QUERY",
+        "valueSort": "asc"
+      }
+    ]
+  },
+  "summary": "",
+  "tagInfo": [],
+  "thumbnail": "",
+  "title": "k8s-pvc（调试中）"
+}

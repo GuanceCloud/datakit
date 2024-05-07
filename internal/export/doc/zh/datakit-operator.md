@@ -6,17 +6,6 @@
 
 ---
 
-## 更新历史
-
-### v1.4.3(2023/12/21)
-
-改动如下：
-
-- 修复在注入 logfwd 时，如果 logfiles 写通配路径会导致 mount 错误的问题
-- 修复在注入 logfwd 时，如果该 Pod 有 2 个及以上的容器，会注入失败并影响原 Pod 启动的严重问题
-
----
-
 ## 概述和安装 {#datakit-operator-overview-and-install}
 
 Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
@@ -35,6 +24,10 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 
 ### 安装步骤 {#datakit-operator-install}
 
+<!-- markdownlint-disable MD046 -->
+
+=== "Deployment"
+
 下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
 
 ``` shell
@@ -46,6 +39,42 @@ $ kubectl get pod -n datakit
 NAME                               READY   STATUS    RESTARTS   AGE
 datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
 ```
+
+=== "Helm"
+
+    前提条件
+
+    * Kubernetes >= 1.14
+    * Helm >= 3.0+
+
+    ```shell
+    $ helm install datakit-operator datakit-operator \
+         --repo  https://pubrepo.guance.com/chartrepo/datakit-operator \
+         -n datakit --create-namespace
+    ```
+
+    查看部署状态：
+
+    ```shell
+    $ helm -n datakit list
+    ```
+
+    可以通过如下命令来升级：
+
+    ```shell
+    $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
+    $ helm upgrade datakit-operator datakit-operator \
+        --repo https://pubrepo.guance.com/chartrepo/datakit-operator \
+        -n datakit \
+        -f values.yaml
+    ```
+
+    可以通过如下命令来卸载：
+
+    ```shell
+    $ helm uninstall datakit-operator -n datakit
+    ```
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -68,8 +97,10 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     "log_level":     "info",
     "admission_inject": {
         "ddtrace": {
+            "enabled_namespaces":     [],
+            "enabled_labelselectors": [],
             "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.20.2-guance",
+                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance",
                 "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
                 "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
             },
@@ -78,6 +109,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                 "DD_TRACE_AGENT_PORT":     "9529",
                 "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
                 "DD_JMXFETCH_STATSD_PORT": "8125",
+                "DD_SERVICE":              "{fieldRef:metadata.labels['service']}",
                 "POD_NAME":                "{fieldRef:metadata.name}",
                 "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
                 "NODE_NAME":               "{fieldRef:spec.nodeName}",
@@ -85,8 +117,11 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
             }
         },
         "logfwd": {
+            "options": {
+                "reuse_exist_volume": "false"
+            },
             "images": {
-                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.15.2"
+                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.28.1"
             }
         },
         "profiler": {
@@ -108,9 +143,51 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 }
 ```
 
-其中，`admission_inject` 允许对 `ddtrace` 和 `logfwd` 做更精细的配置：
+主要的配置项是 `admission_inject`，它涉及到注入 `ddtrace` 和 `logfwd` 的各个方面。具体见下。
 
-- `images` 是多个 Key/Value，Key 是固定的，修改 Value 值实现自定义 image 路径。
+<!-- markdownlint-disable MD013 -->
+#### enabled_namespaces 和 enabled_labelselectors 配置 {#datakit-operator-config-ddtrace-enabled}
+<!-- markdownlint-disable MD013 -->
+
+`enabled_namespaces` 和 `enabled_labelselectors` 是 `ddtrace` 专属，可以对匹配到的 Pod 资源执行注入，不需要再给 Pod 添加 Annotation。它们的写法如下：
+
+```json
+{
+    "server_listen": "0.0.0.0:9543",
+    "log_level":     "info",
+    "admission_inject": {
+        "ddtrace": {
+            "enabled_namespaces": [
+                {
+                    "namespace": "testns",  # 指定 namespace
+                    "language": "java"      # 指定需要注入的 agent 语言
+                }
+            ],
+            "enabled_labelselectors": [
+                {
+                    "labelselector": "app=log-output",  # 指定 labelselector
+                    "language": "java"                  # 指定需要注入的 agent 语言
+                }
+            ]
+            # other..
+        }
+    }
+}
+```
+
+如果一个 Pod 即满足 `enabled_namespaces` 规则，又满足 `enabled_labelselectors`，以 `enabled_labelselectors` 配置为准。
+
+关于 labelselector 的编写规范，可参考此[官方文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}。
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    - 在 Kubernetes 1.16.9 或更早版本，Admission 不记录 Pod Namespace，所以无法使用 `enabled_namespaces` 功能。
+<!-- markdownlint-enable -->
+
+#### 应用 images 配置  {#datakit-operator-config-images}
+
+`images` 是多个 Key/Value，Key 是固定的，修改 Value 值实现自定义 image 路径。
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -126,17 +203,16 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     如果已经在 Annotation 的 `admission.datakit/java-lib.version` 指定了版本，例如 `admission.datakit/java-lib.version:v2.0.1-guance` 或 `admission.datakit/java-lib.version:latest`，会使用这个 `v2.0.1-guance` 版本。
 <!-- markdownlint-enable -->
 
-- `envs` 同样是多个 Key/Value，Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。例如在 `envs` 中添加一个 `FAKE_ENV`：
+#### 应用 envs 配置  {#datakit-operator-config-envs}
+
+`envs` 同样是多个 Key/Value，Datakit Operator 会在目标容器中注入所有 Key/Value 环境变量。
+
+例如在 `envs` 中添加一个 `FAKE_ENV`：
 
 ```json
 {
     "admission_inject": {
         "ddtrace": {
-            "images": {
-                "java_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance",
-                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
-                "js_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
-            },
             "envs": {
                 "DD_AGENT_HOST": "datakit-service.datakit.svc",
                 "DD_TRACE_AGENT_PORT": "9529",
@@ -165,6 +241,10 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 如果该写法无法识别，会将其转换成纯字符串添加到环境变量。例如 `"POD_NAME": "{fieldRef:metadata.PODNAME}"`，这是错误的写法，最终在环境变量是 `POD_NAME={fieldRef:metadata.PODNAME}`。
 
+#### 其他配置 {#datakit-operator-config-other}
+
+- `logfwd.options.reuse_exist_volume` 允许在注入 logfwd 时，复用相同路径的 volume，避免因为存在同样路径的 volume 而注入报错。注意，路径末尾有斜线和无斜线的意义不同，所以这两个不是相同路径，不能复用。
+
 ## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
 
 在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
@@ -182,7 +262,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 Datakit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
 <!-- markdownlint-enable -->
 
-### 注入 `ddtrace` agent 和相关的环境变量 {#datakit-operator-inject-lib}
+### 注入 ddtrace agent 和相关的环境变量 {#datakit-operator-inject-lib}
 
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
@@ -536,8 +616,8 @@ $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
     ```
 <!-- markdownlint-enable -->
 
----
+### FAQ {#datakit-operator-faq}
 
-补充：
+- 怎样指定某个 Pod 不注入？给该 Pod 添加 Annotation `"admission.datakit/enabled": "false"`，将不再为它执行任何操作，此优先级最高。
 
 - Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

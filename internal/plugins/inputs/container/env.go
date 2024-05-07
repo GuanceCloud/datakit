@@ -51,7 +51,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
-		{FieldName: "EnableK8sMetricByProm", Type: doc.Boolean, Default: `false`, Desc: `Enable collection of Kubernetes Prometheus data, including APIServer, Scheduler, Etcd, etc.(Experimental)`, DescZh: `开启对 Kubernetes Prometheus 数据的采集，包括 APIServer、Scheduler、Etcd 等（试验中）`},
+		{FieldName: "EnableK8sSelfMetricByProm", Type: doc.Boolean, Default: `false`, Desc: `Enable collection of Kubernetes Prometheus data, including APIServer, Scheduler, Etcd, etc.(Experimental)`, DescZh: `开启对 Kubernetes Prometheus 数据的采集，包括 APIServer、Scheduler、Etcd 等（试验中）`},
 		{FieldName: "Tags"},
 	}
 
