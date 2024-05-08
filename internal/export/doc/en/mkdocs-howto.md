@@ -175,10 +175,6 @@ For example, the following documents are for displaying Tab-style documents, but
 === "Kubernetes"
 
     Kubernetes supports modifying configuration parameters in the form of environment variables:
-
-    | Environment variable name | Corresponding configuration parameter item | Parameter example |
-    | :--- | --- | --- |
-    | `ENV_INPUT_CPU_PERCPU` | `percpu` | `true/false` |
     ...
 <!-- markdownlint-enable -->
 ```

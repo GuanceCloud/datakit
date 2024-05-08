@@ -310,9 +310,11 @@ In `datakit.conf`, modify the following configuration and the DataKit will read 
 ```
 
 > Note: If a host has collected data for a period of time, after changing the host name, the historical data will no longer be associated with the new host name. Changing the host name is equivalent to adding a brand-new host.
+
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Issue on macOS installation {#mac-failed}
 <!-- markdownlint-enable -->
+
 If it appears during the installation/upgrade process when installing on macOS:
 
 ```shell
@@ -335,6 +337,54 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Are there any high-risk operations on files and data in Datakit? {#danger-ops}
+<!-- markdownlint-enable -->
+
+During its operation, Datakit reads a significant amount of system information based on the collection configuration, such as process lists, hardware and software information (e.g., OS information, CPU, memory, disk, network card, etc.). However, it does not proactively execute deletion or modification of data outside of itself. About file reading and writing, there are two parts: one related to data collection read file/port operations, and one for the necessary file reading and writing operations during Datakit's own runtime.
+
+Host files read/write during data collecting:
+
+- During process information collection and hardware and software information collection, Linux systems will read relevant information from the */proc* directory; Windows systems mainly use WMI and the Golang Windows SDK to obtain these information.
+
+- If log collection is configured, Datakit will scan and read logs that match the configuration (e.g., syslog, user application logs, etc.).
+
+- Port usage: Datakit may open some ports to receive external data for interfacing with other systems. [These ports](datakit-port.md) are opened as needed based on the collector.
+
+- eBPF collection: Due to its particularity, eBPF requires more binary information of the Linux kernel and processes, resulting in the following actions:
+
+    - Analyze the binary files of all (or specified) running programs (dynamic libraries, processes within containers) for symbols and addresses.
+    - Read and write files under the kernel DebugFS mount point or interact with the PMU (Performance Monitoring Unit) to place kprobe/uprobe/tracepoint eBPF probes.
+    - uprobe probes will modify the CPU instructions of user processes to read relevant data.
+
+In addition to collection, Datakit performs the following file reading and writing operations:
+
+- Its own log files
+
+On Linux, these are located in the */var/log/datakit/* directory; on Windows, they are located in the *C:\Program Files\datakit* directory.
+
+Log files will automatically rotate when they reach a specified size (default 32MB), with a maximum number of rotations (default maximum of 5 + 1 segments).
+
+- Disk cache
+
+Some data collection requires the use of disk cache functionality (which must be manually enabled). This cache will involve file creation and deletion during the generation and consumption process. Disk cache also has a maximum capacity setting; when full, it will automatically perform FIFO deletion operations to prevent disk overflow.
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: How does Datakit control its own resource consumption? {#resource-limit}
+<!-- markdownlint-enable -->
+
+Datakit's resource usage can be limited through mechanisms such as cgroup. For more information, see [here](datakit-conf.md#resource-limit). If Datakit is deployed in Kubernetes, see [here](datakit-daemonset-deploy.md#requests-limits).
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: What is Datakit's own observability? {#self-obs}
+<!-- markdownlint-enable -->
+
+During its operation, Datakit exposes many [internal metrics](datakit-metrics.md). By default, Datakit collects these metrics using the [built-in collector](../integrations/dk.md) and reports them to the user's workspace.
+
+In addition, Datakit also comes with a [monitor command-line](datakit-monitor.md) tool that allows users to view the current operational status as well as the collection and reporting status.
+
+<!-- markdownlint-disable MD013 -->
 ## :material-chat-question: More Readings {#more-reading}
+<!-- markdownlint-enable -->
 
 - [Getting started with DataKit](datakit-service-how-to.md)

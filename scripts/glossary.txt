@@ -5,10 +5,10 @@
 ##############################################
 # 专有名词
 ##############################################
+APIServer
 Akka
 Aliyun
 Ansible
-APIServer
 BATIS
 Batis
 Binlog
@@ -63,8 +63,6 @@ Jolokia
 KafkaMQ
 Kodo
 Kubernetes
-labelselector
-labelselectors
 Log4j
 Logback
 Loki
@@ -79,9 +77,9 @@ ODBC
 OpenSSL
 OpenTelemetry
 OpenTracing
-PlOffload
 POSTGRESQL
 Paho
+PlOffload
 PostgreSQL
 PromQL
 Prometheus
@@ -141,8 +139,11 @@ ipfix
 jemalloc
 kafkamq
 keyevent
+kprobe
 kubedns
 kubelet
+labelselector
+labelselectors
 libc
 lineprotocol
 logfiles
@@ -178,7 +179,9 @@ tcmalloc
 tdengine
 tdengine
 tdengine
+tracepoint
 unflushed
+uprobe
 usec
 vgroup
 vgroup

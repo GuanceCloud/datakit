@@ -25,20 +25,19 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 ### 安装步骤 {#datakit-operator-install}
 
 <!-- markdownlint-disable MD046 -->
-
 === "Deployment"
 
-下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
-
-``` shell
-$ kubectl create namespace datakit
-$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-$ kubectl apply -f datakit-operator.yaml
-$ kubectl get pod -n datakit
-
-NAME                               READY   STATUS    RESTARTS   AGE
-datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
-```
+    下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
+    
+    ``` shell
+    $ kubectl create namespace datakit
+    $ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+    $ kubectl apply -f datakit-operator.yaml
+    $ kubectl get pod -n datakit
+    
+    NAME                               READY   STATUS    RESTARTS   AGE
+    datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
+    ```
 
 === "Helm"
 
@@ -147,7 +146,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 <!-- markdownlint-disable MD013 -->
 #### enabled_namespaces 和 enabled_labelselectors 配置 {#datakit-operator-config-ddtrace-enabled}
-<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-enable -->
 
 `enabled_namespaces` 和 `enabled_labelselectors` 是 `ddtrace` 专属，可以对匹配到的 Pod 资源执行注入，不需要再给 Pod 添加 Annotation。它们的写法如下：
 
