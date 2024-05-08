@@ -26,6 +26,7 @@ nav:
       - '阿里云接入': aliyun-access.md
       - '华为云接入': huaweicloud-access.md
       - 'AWS 接入': aws-access.md
+    - '性能展示': datakit-performance.md
 
   - 'DataKit 配置':
     - '主配置': datakit-conf.md

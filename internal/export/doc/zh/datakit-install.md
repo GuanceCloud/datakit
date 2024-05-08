@@ -323,7 +323,9 @@ NAME1="value1" NAME2="value2"
 
 ## FAQ {#faq}
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: 如何应付不友好的主机名 {#bad-hostname}
+<!-- markdownlint-enable -->
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
 
@@ -340,7 +342,9 @@ NAME1="value1" NAME2="value2"
     如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Mac 安装问题 {#mac-failed}
+<!-- markdownlint-enable -->
 
 Mac 上安装时，如果安装/升级过程中出现
 
@@ -363,6 +367,52 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 # 或者
 sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Datakit 是否有文件以及数据的高危操作？ {#danger-ops}
+<!-- markdownlint-enable -->
+
+Datakit 在运行过程中，根据采集配置不同，会读取很多系统信息，比如进程列表、软硬件信息（比如操作系统信息、CPU、内存、磁盘、网卡等）。但它不会主动执行删除、修改其自身之外的其它数据。关于文件读写，分成两个部分，一个是和数据采集有关的读文件/端口操作，一个是 Datakit 自身运行过程中一些必要的文件读写操作。
+
+采集需要读取的主机文件：
+
+- 在进程信息采集、软硬件信息采集的过程中，Linux 下会读取 */proc* 目录下的相关信息；Windows 下主要通过 WMI 以及 Golang Windows SDK 来获取这些信息
+
+- 如果配置了相关的日志采集，根据采集的配置，会扫描并且读取符合配置的日志（比如 syslog，用户应用日志等）
+
+- 端口占用：Datakit 为了对接一些其它系统，会单独开启一些端口服务来接收外部数据。[这些端口](datakit-port.md)根据采集器不同，按需开启
+
+- eBPF 采集：eBPF 由于其特殊性，需要更多 Linux 内核以及进程的二进制信息，会有如下一些动作：
+
+    - 分析所有（或指定的）在运行的程序（动态库、容器内进程）的二进制文件内包含的符号地址
+    - 读写内核 DebugFS 挂在点下的文件或 PMU（Performance Monitoring Unit）以放置 kprobe/uprobe/tracepoint eBPF 探针
+    - uprobe 探针会修改用户进程的 CPU 指令，以读取相关数据
+
+除了采集之外，Datakit 自身会有如下文件读写操作：
+
+- 自身日志文件
+
+Linux 安装时位于 */var/log/datakit/* 目录下；Windows 位于 *C:\Program Files\datakit* 目录下。
+
+日记文件到达指定大小（默认 32MB）后会自动 Rotate，并且有最大 Rotate 个数上限（默认最大 5 + 1 个分片）。
+
+- 磁盘缓存
+
+部分数据采集需要用到磁盘缓存功能（需手动开启），这部分缓存会在生成和消费过程中有文件增删。磁盘缓存也有最大 capacity 设置，数据满了之后，会自动执行 FIFO 删除操作，避免写满磁盘。
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Datakit 如何控制自身资源消耗？ {#resource-limit}
+<!-- markdownlint-enable -->
+
+可以通过 cgroup 等机制来限制 Datakit 自身资源使用，参见[这里](datakit-conf.md#resource-limit)。如果 Datakit 部署在 Kubernetes 中，参见[这里](datakit-daemonset-deploy.md#requests-limits)。
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Datakit 自身可观测性？ {#self-obs}
+<!-- markdownlint-enable -->
+
+Datakit 在运行过程中，暴露了很多[自身的指标](datakit-metrics.md)。默认情况下，Datakit 通过[内置采集器](../integrations/dk.md)会采集这些指标并上报到用户的工作空间。
+
+除此之外，Datakit 自身还带有一个 [monitor 命令行](datakit-monitor.md)工具，通过该工具，能查看当前的运行状态以及采集、上报情况。
 
 ## 扩展阅读 {#more-reading}
 

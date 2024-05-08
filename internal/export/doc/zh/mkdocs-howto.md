@@ -172,10 +172,6 @@
 === "Kubernetes"
 
     Kubernetes 中支持以环境变量的方式修改配置参数：
-
-    | 环境变量名             | 对应的配置参数项 | 参数示例     |
-    | :---                   | ---              | ---          |
-    | `ENV_INPUT_CPU_PERCPU` | `percpu`         | `true/false` |
     ...
 <!-- markdownlint-enable -->
 ```

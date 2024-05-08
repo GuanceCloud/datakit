@@ -25,20 +25,19 @@ Prerequisites:
 ### Installation Steps {#datakit-operator-install}
 
 <!-- markdownlint-disable MD046 -->
-
 === "Deployment"
 
-Download [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}, and follow these steps:
-
-``` shell
-$ kubectl create namespace datakit
-$ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
-$ kubectl apply -f datakit-operator.yaml
-$ kubectl get pod -n datakit
-
-NAME                               READY   STATUS    RESTARTS   AGE
-datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
-```
+    Download [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}, and follow these steps:
+    
+    ``` shell
+    $ kubectl create namespace datakit
+    $ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+    $ kubectl apply -f datakit-operator.yaml
+    $ kubectl get pod -n datakit
+    
+    NAME                               READY   STATUS    RESTARTS   AGE
+    datakit-operator-f948897fb-5w5nm   1/1     Running   0          15s
+    ```
 
 === "Helm"
 
