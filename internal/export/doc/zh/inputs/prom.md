@@ -51,12 +51,11 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
 ### 配置额外的 header {#extra-header}
 
-Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，如下：
+Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，（例如 Basic 认证）：
 
 ```toml
   [inputs.prom.http_headers]
-  Root = "passwd"
-  Michael = "1234"
+    Authorization = “Basic bXl0b21jYXQ="
 ```
 
 ### Tag 重命名 {#tag-rename}
