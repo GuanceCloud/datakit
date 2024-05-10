@@ -748,6 +748,9 @@ func (ipt *Input) InitDiskQueueIO() error {
 				case <-ctx.Done():
 					log.Infof("context canceld...")
 					return nil
+				case <-ipt.semStop.Wait():
+					log.Infof("profiling uploading worker exit now...")
+					return nil
 				default:
 					func() {
 						var reqData []byte

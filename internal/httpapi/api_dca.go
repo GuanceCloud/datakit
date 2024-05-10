@@ -6,19 +6,19 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
@@ -30,6 +30,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -153,24 +154,85 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	if err := dcaAPI.RestartDataKit(); err != nil {
-		l.Error("restartDataKit: %s", err)
-		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
+	if err := dcaAPI.ReloadDataKit(); err != nil {
+		l.Error("reloadDataKit: %s", err)
+		context.fail(dcaError{ErrorCode: "system.reload.error", ErrorMsg: "reload datakit error"})
 		return
 	}
 
 	context.success()
 }
 
-func restartDataKit() error {
-	bin := "datakit"
-	if runtime.GOOS == "windows" {
-		bin += ".exe"
-	}
-	program := filepath.Join(datakit.InstallDir, bin)
-	l.Info("apiRestart", program)
-	cmd := exec.Command(program, "--api-restart") //nolint:gosec
-	return cmd.Start()
+// reload Datakit.
+// TODO: duplicate code with reloadCore() in gitrepo.go, maybe merged later.
+func reloadDataKit() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	round := 0 // 循环次数
+	for {
+		select {
+		case <-ctx.Done():
+			tip := "reload timeout"
+			l.Error(tip)
+			return fmt.Errorf(tip)
+		default:
+			switch round {
+			case 0:
+				l.Info("before ReloadCheckInputCfg")
+
+				_, err := config.ReloadCheckInputCfg()
+				if err != nil {
+					l.Errorf("ReloadCheckInputCfg failed: %v", err)
+					return err
+				}
+
+				l.Info("before ReloadCheckPipelineCfg")
+
+			case 1:
+				l.Info("before StopInputs")
+
+				if err := inputs.StopInputs(); err != nil {
+					l.Errorf("StopInputs failed: %v", err)
+					return err
+				}
+
+			case 2:
+				l.Info("before ReloadInputConfig")
+
+				if err := config.ReloadInputConfig(); err != nil {
+					l.Errorf("ReloadInputConfig failed: %v", err)
+					return err
+				}
+
+			case 3:
+				l.Info("before set pipelines")
+				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
+					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
+						manager.DefaultScriptNS,
+						datakit.PipelineDir, nil)
+				}
+
+			case 4:
+				l.Info("before RunInputs")
+
+				CleanHTTPHandler()
+				if err := inputs.RunInputs(); err != nil {
+					l.Errorf("RunInputs failed: %v", err)
+					return err
+				}
+
+			case 5:
+				l.Info("before ReloadTheNormalServer")
+
+				ReloadTheNormalServer()
+			} // switch round
+		} // select
+
+		round++
+		if round > 6 {
+			return nil // round + 1
+		} // if round
+	} // for
 }
 
 type dcastats struct {
@@ -193,35 +255,6 @@ func dcaStats(c *gin.Context) {
 	context.success(stats)
 }
 
-func dcaStatsByType(c *gin.Context) {
-	/*
-		var stat interface{}
-
-		context := dcaContext{c: c}
-
-		statType := c.Param("type")
-		if statType == "" {
-			statType = StatInfoType
-		}
-
-		if statType == StatInfoType {
-			stat = getStatInfo()
-		} else if statType == StatMetricType {
-			stat = getStatMetric()
-		}
-
-		if stat == nil {
-			context.fail(dcaError{
-				Code:      400,
-				ErrorCode: "param.invalid",
-				ErrorMsg:  fmt.Sprintf("invalid type, which should be '%s' or '%s'", StatInfoType, StatMetricType),
-			})
-			return
-		}
-
-		context.success(stat) */
-}
-
 func dcaDefault(c *gin.Context) {
 	context := dcaContext{c: c}
 	context.c.Status(404)
@@ -237,13 +270,6 @@ type saveConfigParam struct {
 
 // auth middleware.
 func dcaAuthMiddleware(c *gin.Context) {
-	fullPath := c.FullPath()
-	for _, uri := range ignoreAuthURI {
-		if uri == fullPath {
-			c.Next()
-			return
-		}
-	}
 	tokens := c.Request.Header["X-Token"]
 	context := &dcaContext{c: c}
 	if len(tokens) == 0 {

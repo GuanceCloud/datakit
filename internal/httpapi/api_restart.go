@@ -18,7 +18,7 @@ func apiRestart(c *gin.Context) {
 		return
 	}
 
-	if err := restartDataKit(); err != nil {
+	if err := reloadDataKit(); err != nil {
 		uhttp.HttpErr(c, fmt.Errorf("restart datakit failed: %w", err))
 		return
 	}

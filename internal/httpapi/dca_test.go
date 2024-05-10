@@ -77,7 +77,7 @@ func getResponseBody(w *httptest.ResponseRecorder) (*dcaResponse, error) {
 }
 
 func TestCors(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/v1/dca/stats", nil)
+	req, _ := http.NewRequest("GET", "/v1/stats", nil)
 
 	w := getResponse(t, req, nil)
 	assert.Equal(t, 200, w.Code)
@@ -227,7 +227,7 @@ func TestDca(t *testing.T) {
 			SubCases: []TestCase{
 				{
 					Title: "dcaStats",
-					URL:   "/v1/dca/stats",
+					URL:   "/v1/stats",
 				},
 			},
 		},
@@ -239,7 +239,7 @@ func TestDca(t *testing.T) {
 func TestDcaStats(t *testing.T) {
 	t.Skip()
 
-	req, _ := http.NewRequest("GET", "/v1/dca/stats", nil)
+	req, _ := http.NewRequest("GET", "/v1/stats", nil)
 	req.Header.Add("X-Token", TOKEN)
 	hostName := "XXXXX"
 
@@ -261,11 +261,11 @@ func TestDcaStats(t *testing.T) {
 
 func TestDcaReload(t *testing.T) {
 	// reload ok
-	dcaAPI.RestartDataKit = func() error {
+	dcaAPI.ReloadDataKit = func() error {
 		return nil
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/dca/reload", nil)
+	req, _ := http.NewRequest("GET", "/v1/reload", nil)
 	req.Header.Add("X-Token", TOKEN)
 
 	w := getResponse(t, req, nil)
@@ -274,14 +274,14 @@ func TestDcaReload(t *testing.T) {
 	assert.Equal(t, 200, res.Code)
 
 	// reload fail
-	dcaAPI.RestartDataKit = func() error {
+	dcaAPI.ReloadDataKit = func() error {
 		return errors.New("restart error")
 	}
 
 	w = getResponse(t, req, nil)
 	res, _ = getResponseBody(w)
 	assert.Equal(t, 500, res.Code)
-	assert.Equal(t, "system.restart.error", res.ErrorCode)
+	assert.Equal(t, "system.reload.error", res.ErrorCode)
 }
 
 func TestDcaSaveConfig(t *testing.T) {
@@ -300,7 +300,7 @@ func TestDcaSaveConfig(t *testing.T) {
 	bodyTemplate := `{"path": "%s","config":"%s", "isNew":%s, "inputName": "%s"}`
 	config := "[input]"
 	body := strings.NewReader(fmt.Sprintf(bodyTemplate, f.Name(), config, "true", inputName))
-	req, _ := http.NewRequest("POST", "/v1/dca/saveConfig", body)
+	req, _ := http.NewRequest("POST", "/v1/saveConfig", body)
 	req.Header.Add("X-Token", TOKEN)
 
 	w := getResponse(t, req, nil)
@@ -324,7 +324,7 @@ func TestDcaSaveConfig(t *testing.T) {
 
 func TestGetConfig(t *testing.T) {
 	// no path
-	req, _ := http.NewRequest("GET", "/v1/dca/getConfig", nil)
+	req, _ := http.NewRequest("GET", "/v1/getConfig", nil)
 	req.Header.Add("X-Token", TOKEN)
 	w := getResponse(t, req, nil)
 	res, _ := getResponseBody(w)
@@ -332,7 +332,7 @@ func TestGetConfig(t *testing.T) {
 	assert.False(t, res.Success)
 
 	// invalid path
-	req, _ = http.NewRequest("GET", "/v1/dca/getConfig?path=xxxxxxx.conf", nil)
+	req, _ = http.NewRequest("GET", "/v1/getConfig?path=xxxxxxx.conf", nil)
 	req.Header.Add("X-Token", TOKEN)
 	w = getResponse(t, req, nil)
 	res, _ = getResponseBody(w)
@@ -356,7 +356,7 @@ func TestGetConfig(t *testing.T) {
 	err = os.WriteFile(f.Name(), []byte(config), os.ModePerm)
 	assert.NoError(t, err)
 
-	req, _ = http.NewRequest("GET", "/v1/dca/getConfig?path="+f.Name(), nil)
+	req, _ = http.NewRequest("GET", "/v1/getConfig?path="+f.Name(), nil)
 	req.Header.Add("X-Token", TOKEN)
 	w = getResponse(t, req, nil)
 	res, _ = getResponseBody(w)
@@ -375,7 +375,7 @@ func TestDcaGetPipelines(t *testing.T) {
 	f, err := ioutil.TempFile(pipelineDir, "pipeline*.p")
 	assert.NoError(t, err)
 
-	req, _ := http.NewRequest("GET", "/v1/dca/pipelines", nil)
+	req, _ := http.NewRequest("GET", "/v1/pipelines", nil)
 	req.Header.Add("X-Token", TOKEN)
 
 	w := getResponse(t, req, nil)
@@ -437,7 +437,7 @@ func TestDcaGetPipelinesDetail(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Title, func(t *testing.T) {
-			url := "/v1/dca/pipelines/detail"
+			url := "/v1/pipelines/detail"
 			if len(tc.FileName) > 0 {
 				url += "?fileName=" + tc.FileName
 			}
@@ -507,7 +507,7 @@ func TestDcaTestPipelines(t *testing.T) {
 		assert.NoError(t, err)
 
 		body := strings.NewReader(tc.Body)
-		req, _ := http.NewRequest("POST", "/v1/dca/pipelines/test", body)
+		req, _ := http.NewRequest("POST", "/v1/pipelines/test", body)
 		req.Header.Add("X-Token", TOKEN)
 
 		w := getResponse(t, req, nil)
@@ -591,7 +591,7 @@ func TestDcaCreatePipeline(t *testing.T) {
 			bodyTemplate := `{"fileName":"%s", "category": "%s","content": "%s"}`
 			body = strings.NewReader(fmt.Sprintf(bodyTemplate, fileName, tc.Category, pipelineContent))
 		}
-		req, _ := http.NewRequest("POST", "/v1/dca/pipelines", body)
+		req, _ := http.NewRequest("POST", "/v1/pipelines", body)
 		req.Header.Add("X-Token", TOKEN)
 
 		w := getResponse(t, req, nil)

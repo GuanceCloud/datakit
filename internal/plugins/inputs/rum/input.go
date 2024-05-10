@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
@@ -160,6 +161,7 @@ type Input struct {
 	replayUploadAPI        string
 	replayHTTPClient       *http.Client
 	replayDiskQueue        *diskcache.DiskCache
+	semStop                *cliutils.Sem // start stop signal
 }
 
 type CDN struct {
@@ -423,6 +425,10 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
@@ -458,6 +464,7 @@ func defaultInput() *Input {
 			Telemetry,
 		},
 		SessionReplayCfg: defaultSessionReplayCfg(),
+		semStop:          cliutils.NewSem(),
 	}
 }
 
