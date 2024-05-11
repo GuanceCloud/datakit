@@ -39,7 +39,6 @@ github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
 # github.com/DataDog/zstd v1.4.1
 ## explicit
-github.com/DataDog/zstd
 # github.com/GuanceCloud/cliutils v1.1.13
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
@@ -463,7 +462,7 @@ github.com/cortexproject/cortex/pkg/util/services
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/dgraph-io/badger/v2 v2.2007.2
+# github.com/dgraph-io/badger/v2 v2.2007.4
 ## explicit; go 1.12
 github.com/dgraph-io/badger/v2
 github.com/dgraph-io/badger/v2/options
@@ -1403,7 +1402,7 @@ github.com/prometheus/prometheus/util/strutil
 ## explicit; go 1.16
 github.com/pyroscope-io/jfr-parser/parser
 github.com/pyroscope-io/jfr-parser/reader
-# github.com/pyroscope-io/pyroscope v0.36.0 => github.com/GuanceCloud/pyroscope v0.36.1
+# github.com/pyroscope-io/pyroscope v0.36.0 => github.com/GuanceCloud/pyroscope v0.36.3
 ## explicit; go 1.19
 github.com/pyroscope-io/pyroscope/pkg/agent/log
 github.com/pyroscope-io/pyroscope/pkg/agent/spy

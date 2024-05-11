@@ -27,6 +27,7 @@ import (
 	"github.com/GuanceCloud/cliutils/diskcache"
 	filter2 "github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
+	dkhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/golang/protobuf/proto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -49,7 +50,6 @@ const (
 	defaultConsumeWorkersCount = 8
 	defaultHTTPClientTimeout   = time.Second * 75
 	defaultHTTPRetryCount      = 4
-	profileIDHeaderKey         = "X-Datakit-ProfileID"
 	XDataKitVersionHeader      = "X-Datakit-Version"
 	timestampHeaderKey         = "X-Datakit-UnixNano"
 	sampleConfig               = `
@@ -79,6 +79,11 @@ const (
   #   upload_workers = 8
   #   send_timeout = "75s"
   #   send_retry_count = 4
+
+  ## set custom tags for profiling data
+  # [inputs.profile.tags]
+  #   some_tag = "some_value"
+  #   more_tag = "some_other_value"
 
 ## go pprof config
 ## collect profiling data in pull mode
@@ -333,12 +338,13 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	Endpoints       []string         `toml:"endpoints"`
-	BodySizeLimitMB int              `toml:"body_size_limit_mb"`
-	IOConfig        ioConfig         `toml:"io_config"`
-	Go              []*GoProfiler    `toml:"go"`
-	PyroscopeLists  []*pyroscopeOpts `toml:"pyroscope"`
-	Election        bool             `toml:"election"`
+	Endpoints       []string          `toml:"endpoints"`
+	BodySizeLimitMB int               `toml:"body_size_limit_mb"`
+	IOConfig        ioConfig          `toml:"io_config"`
+	Tags            map[string]string `toml:"tags"`
+	Go              []*GoProfiler     `toml:"go"`
+	PyroscopeLists  []*pyroscopeOpts  `toml:"pyroscope"`
+	Election        bool              `toml:"election"`
 
 	pause   bool
 	pauseCh chan bool
@@ -385,13 +391,6 @@ func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
 }
 
-// uploadResponse {"content":{"profileID":"fa9c3d16-1cfc-4e37-950d-129cbebd1cdb"}}.
-type uploadResponse struct {
-	Content *struct {
-		ProfileID string `json:"profileID"`
-	} `json:"content"`
-}
-
 func profilingProxyURL() (*url.URL, *http.Transport, error) {
 	lastErr := fmt.Errorf("no dataway endpoint available now")
 
@@ -418,26 +417,19 @@ func profilingProxyURL() (*url.URL, *http.Transport, error) {
 	return nil, nil, lastErr
 }
 
-func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// not a post request
-	if req.Body == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = io.WriteString(w, "profiling request body is nil")
-		log.Error("Incoming profiling request body is nil")
-		return
+func cacheRequest(w http.ResponseWriter, r *http.Request, bodySizeLimit int64) *dkhttp.HttpError {
+	if r.Body == nil {
+		return dkhttp.NewErr(fmt.Errorf("incoming profiling request body is nil"), http.StatusBadRequest)
 	}
 
-	bodyBytes, err := io.ReadAll(http.MaxBytesReader(w, req.Body, ipt.getBodySizeLimit()))
+	bodyBytes, err := io.ReadAll(http.MaxBytesReader(w, r.Body, bodySizeLimit))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = io.WriteString(w, fmt.Sprintf("Unable to read profile body: %s", err))
-		log.Errorf("Unable to read profile body: %s", err)
-		return
+		return dkhttp.NewErr(fmt.Errorf("unable to read profile body: %w", err), http.StatusBadRequest)
 	}
 
-	headers := make(map[string]string, len(req.Header))
+	headers := make(map[string]string, len(r.Header))
 
-	for k, v := range req.Header {
+	for k, v := range r.Header {
 		if len(v) > 0 {
 			headers[k] = v[0]
 		} else {
@@ -452,42 +444,33 @@ func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	pbBytes, err := proto.Marshal(reqPB)
 	if err != nil {
-		msg := fmt.Sprintf("unable to marshal request using protobuf: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = io.WriteString(w, msg)
-		log.Error(msg)
-		return
+		return dkhttp.NewErr(fmt.Errorf("unable to marshal request using protobuf: %w", err), http.StatusBadRequest)
 	}
 
-	if err := diskQueue.Put(pbBytes); err != nil {
-		msg := fmt.Sprintf("unable to push request to disk queue: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = io.WriteString(w, msg)
-		log.Error(msg)
+	if err = diskQueue.Put(pbBytes); err != nil {
+		return dkhttp.NewErr(fmt.Errorf("unable to push request to disk queue: %w", err), http.StatusInternalServerError)
+	}
+	return nil
+}
+
+func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if err := cacheRequest(w, req, ipt.getBodySizeLimit()); err != nil {
+		log.Errorf("unable to cache profiling request: %v", err)
+		w.WriteHeader(err.HttpCode)
+		_, _ = io.WriteString(w, err.Error())
 		return
 	}
 }
 
-func insertEventFile(req *http.Request, oldBody []byte, metadata *resolvedMetadata) (io.Reader, error) {
-	boundary, err := getBoundary(req.Header.Get("Content-Type"))
+func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *resolvedMetadata) error {
+	f, err := mw.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get boundary: %w", err)
-	}
-
-	buf := &bytes.Buffer{}
-	pm, err := newMultipartPrepend(buf, boundary)
-	if err != nil {
-		return nil, fmt.Errorf("unable add event file to multipart form: %w", err)
-	}
-
-	f, err := pm.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create form file: %w", err)
+		return fmt.Errorf("unable to create form file: %w", err)
 	}
 
 	md := Metadata{}
 
-	for name, fileHeaders := range req.MultipartForm.File {
+	for name, fileHeaders := range form.File {
 		extName := filepath.Ext(name)
 		if extName == "" {
 			// try to fetch binary extname from multipart.FileHeader.Filename
@@ -515,37 +498,32 @@ func insertEventFile(req *http.Request, oldBody []byte, metadata *resolvedMetada
 	if err != nil {
 		log.Warnf("unable to resolve profile start time: %w", err)
 	} else {
-		md.Start = rfc3339Time(startTime)
+		md.Start = newRFC3339Time(startTime)
 	}
 
 	endTime, err := resolveEndTime(metadata.formValue)
 	if err != nil {
 		log.Warnf("unable to resolve profile end time: %w", err)
 	} else {
-		md.End = rfc3339Time(endTime)
+		md.End = newRFC3339Time(endTime)
 	}
 
 	tags := metadata.tags
 	lang := resolveLang(metadata.formValue, tags)
 	md.Language = lang
 
-	md.TagsProfiler = strings.Join(metadata.formValue[profileTagsKey], ",")
+	md.TagsProfiler = joinTags(metadata.tags)
 
 	mdBytes, err := json.Marshal(md)
 	if err != nil {
-		return nil, fmt.Errorf("unable to marshal data for profiling event file: %w", err)
+		return fmt.Errorf("unable to marshal data for profiling event file: %w", err)
 	}
 
-	if _, err := f.Write(mdBytes); err != nil {
-		return nil, fmt.Errorf("unable to write data to multipart file: %w", err)
+	if _, err = f.Write(mdBytes); err != nil {
+		return fmt.Errorf("unable to write data to multipart file: %w", err)
 	}
 
-	if err := pm.Close(); err != nil {
-		return nil, fmt.Errorf("unable to close multipart prepend: %w", err)
-	}
-
-	buf.Write(oldBody)
-	return buf, nil
+	return nil
 }
 
 func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
@@ -555,8 +533,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		return fmt.Errorf("unable to unmarshal profiling request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx,
-		http.MethodPost, ipt.profileSendingAPI.String(), bytes.NewReader(reqPB.Body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ipt.profileSendingAPI.String(), bytes.NewReader(reqPB.Body))
 	if err != nil {
 		return fmt.Errorf("unable to create http request: %w", err)
 	}
@@ -577,17 +554,32 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		return fmt.Errorf("unable to resolve profiling tags: %w", err)
 	}
 
-	bodyReader := io.Reader(bytes.NewReader(reqPB.Body))
+	var subCustomTags map[string]string
+	if len(metadata.formValue[subCustomTagsKey]) > 0 && metadata.formValue[subCustomTagsKey][0] != "" {
+		subCustomTags = newTags(strings.Split(metadata.formValue[subCustomTagsKey][0], ","))
+	}
+
+	customTagsDefined := false
+	for tk, tv := range ipt.Tags {
+		if _, ok := subCustomTags[tk]; ok {
+			// has set tags in sub settings, ignore
+			continue
+		}
+		if old, ok := metadata.tags[tk]; !ok || old != tv {
+			customTagsDefined = true
+			metadata.tags[tk] = tv
+		}
+	}
 
 	// Add event form file to multipartForm if it doesn't exist
 	_, ok1 := req.MultipartForm.File[eventJSONFile]
 	_, ok2 := req.MultipartForm.File[eventJSONFileWithSuffix]
 
-	if !ok1 && !ok2 {
-		if reader, err := insertEventFile(req, reqPB.Body, metadata); err != nil {
+	if (!ok1 && !ok2) || customTagsDefined {
+		if newBody, err := modifyMultipartForm(req, req.MultipartForm, metadata); err != nil {
 			log.Warnf("unable to insert event form file to profiling request: %s", err)
 		} else {
-			bodyReader = reader
+			reqPB.Body = newBody
 		}
 	}
 
@@ -624,8 +616,14 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		}
 
 		sendErr = func(idx int) error {
-			_ = req.Body.Close()
-			req.Body = io.NopCloser(bodyReader)
+			if req.Body != nil {
+				_ = req.Body.Close()
+			}
+			req.Body = io.NopCloser(bytes.NewReader(reqPB.Body))
+			req.GetBody = func() (io.ReadCloser, error) {
+				return io.NopCloser(bytes.NewReader(reqPB.Body)), nil
+			}
+			req.ContentLength = int64(len(reqPB.Body))
 
 			resp, err = ipt.httpClient.Do(req)
 			if err != nil {
@@ -783,19 +781,27 @@ func (ipt *Input) Run() {
 		log.Errorf("unable to start IO process for profiling: %s", err)
 	}
 
-	group := goroutine.NewGroup(goroutine.Option{
-		Name: "profile",
+	groupPull := goroutine.NewGroup(goroutine.Option{
+		Name: PullInputMode,
 		PanicCb: func(b []byte) bool {
-			log.Error(string(b))
+			log.Errorf("goroutine profile-pull-mode panic: %s", string(b))
+			return false
+		},
+	})
+
+	groupPyroscope := goroutine.NewGroup(goroutine.Option{
+		Name: "profile-pyroscope",
+		PanicCb: func(b []byte) bool {
+			log.Errorf("goroutine profile-pyroscope panic: %s", b)
 			return false
 		},
 	})
 
 	for _, g := range ipt.Go {
 		func(g *GoProfiler) {
-			group.Go(func(ctx context.Context) error {
+			groupPull.Go(func(ctx context.Context) error {
 				if err := g.run(ipt); err != nil {
-					log.Errorf("go profile collect error: %s", err.Error())
+					log.Errorf("profile-pull-mode collect error: %s", err.Error())
 				}
 				return nil
 			})
@@ -804,7 +810,7 @@ func (ipt *Input) Run() {
 
 	for _, g := range ipt.PyroscopeLists {
 		func(g *pyroscopeOpts) {
-			group.Go(func(ctx context.Context) error {
+			groupPyroscope.Go(func(ctx context.Context) error {
 				if err := g.run(ipt); err != nil {
 					log.Errorf("pyroscope profile collect error: %s", err.Error())
 				}
@@ -813,8 +819,12 @@ func (ipt *Input) Run() {
 		}(g)
 	}
 
-	if err := group.Wait(); err != nil {
-		log.Errorf("profile collect err: %s", err.Error())
+	if err := groupPull.Wait(); err != nil {
+		log.Errorf("profile-pull-mode collect err: %s", err.Error())
+	}
+
+	if err := groupPyroscope.Wait(); err != nil {
+		log.Errorf("profile-pyroscope collect err: %s", err.Error())
 	}
 }
 
@@ -858,17 +868,7 @@ type pushProfileDataOpt struct {
 	Input           *Input
 }
 
-type eventOpts struct {
-	Family       string   `json:"family"`
-	Format       string   `json:"format"`
-	Profiler     string   `json:"profiler"`
-	Start        string   `json:"start"`
-	End          string   `json:"end"`
-	Attachments  []string `json:"attachments"`
-	TagsProfiler string   `json:"tags_profiler"`
-}
-
-func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
+func pushProfileData(opt *pushProfileDataOpt, event *Metadata, bodySizeLimit int64) error {
 	b := new(bytes.Buffer)
 	mw := multipart.NewWriter(b)
 
@@ -893,54 +893,24 @@ func pushProfileData(opt *pushProfileDataOpt, event *eventOpts) error {
 		return err
 	}
 
-	if _, err := io.Copy(f, bytes.NewReader(eventJSONString)); err != nil {
+	if _, err = io.Copy(f, bytes.NewReader(eventJSONString)); err != nil {
 		return err
 	}
-	if err := mw.Close(); err != nil {
-		return err
-	}
-
-	profileID := randomProfileID()
-
-	URL, transport, err := profilingProxyURL()
-	if err != nil {
+	if err = mw.Close(); err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", URL.String(), b)
+	req, err := http.NewRequest(http.MethodPost, "/", b)
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("Content-Type", mw.FormDataContentType())
-	req.Header.Set(profileIDHeaderKey, profileID)
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 	req.Header.Set(timestampHeaderKey, strconv.FormatInt(opt.startTime.UnixNano(), 10))
 
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   15 * time.Second,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	bo, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode == http.StatusOK {
-		var resp uploadResponse
-
-		if err := json.Unmarshal(bo, &resp); err != nil {
-			return fmt.Errorf("json unmarshal upload profile binary response err: %w", err)
-		}
-
-		if resp.Content == nil || resp.Content.ProfileID == "" {
-			return fmt.Errorf("fetch profile upload response profileID fail")
-		}
-	} else {
-		return fmt.Errorf("push profile data failed, response status: %s", resp.Status)
+	if err := cacheRequest(&httpapi.NopResponseWriter{}, req, bodySizeLimit); err != nil {
+		return fmt.Errorf("unbale to cache profiling request: %w", err)
 	}
 	return nil
 }

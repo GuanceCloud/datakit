@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"expvar"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -225,10 +226,6 @@ func Open(opt Options) (db *DB, err error) {
 		return nil, ErrInvalidLoadingMode
 	}
 
-	// Return error if badger is built without cgo and compression is set to ZSTD.
-	if opt.Compression == options.ZSTD && !y.CgoEnabled {
-		return nil, y.ErrZstdCgo
-	}
 	// Keep L0 in memory if either KeepL0InMemory is set or if InMemory is set.
 	opt.KeepL0InMemory = opt.KeepL0InMemory || opt.InMemory
 
@@ -1785,4 +1782,64 @@ func createDirs(opt Options) error {
 		}
 	}
 	return nil
+}
+
+// Stream the contents of this DB to a new DB with options outOptions that will be
+// created in outDir.
+func (db *DB) StreamDB(outOptions Options) error {
+	outDir := outOptions.Dir
+
+	// Open output DB.
+	outDB, err := OpenManaged(outOptions)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open out DB at %s", outDir)
+	}
+	defer outDB.Close()
+	writer := outDB.NewStreamWriter()
+	if err := writer.Prepare(); err != nil {
+		errors.Wrapf(err, "cannot create stream writer in out DB at %s", outDir)
+	}
+
+	// Stream contents of DB to the output DB.
+	stream := db.NewStreamAt(math.MaxUint64)
+	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s", outDir)
+	stream.Send = func(kvs *pb.KVList) error {
+		return writer.Write(kvs)
+	}
+	if err := stream.Orchestrate(context.Background()); err != nil {
+		return errors.Wrapf(err, "cannot stream DB to out DB at %s", outDir)
+	}
+	if err := writer.Flush(); err != nil {
+		return errors.Wrapf(err, "cannot flush writer")
+	}
+	return nil
+}
+
+// MaxVersion returns the maximum commited version across all keys in the DB. It
+// uses the stream framework to find the maximum version.
+func (db *DB) MaxVersion() (uint64, error) {
+	maxVersion := uint64(0)
+	var mu sync.Mutex
+	var stream *Stream
+	if db.opt.managedTxns {
+		stream = db.NewStreamAt(math.MaxUint64)
+	} else {
+		stream = db.NewStream()
+	}
+
+	stream.ChooseKey = func(item *Item) bool {
+		mu.Lock()
+		if item.Version() > maxVersion {
+			maxVersion = item.Version()
+		}
+		mu.Unlock()
+		return false
+	}
+	stream.KeyToList = nil
+	stream.Send = nil
+	if err := stream.Orchestrate(context.Background()); err != nil {
+		return 0, err
+	}
+	return maxVersion, nil
+
 }
