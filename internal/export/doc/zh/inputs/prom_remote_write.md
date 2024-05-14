@@ -115,6 +115,39 @@ remote_write:
 
 指标集以 Prometheus 发送过来的指标集为准。
 
+## 配置 Prometheus Remote Write 指标过滤 {#remote-write-relabel}
+
+当使用 Prometheus 以 remote write 方式往 Datakit 推送指标时，如果指标太多，可能导致
+存储中的数据暴增。此时我们可以通过 Prometheus 自身的 relabel 功能来选取特定的指标。
+
+在 Prometheus 中，要配置 `remote_write` 到另一个服务，并且只发送指定的指标列表，我们需要在
+Prometheus 的配置文件（通常是 `prometheus.yml`）中设置 `remote_write` 部分，并指定 `match[]`
+参数来定义要发送的指标。
+
+以下是一个配置示例，它展示了如何将特定的指标列表发送到远程写入端点：
+
+```yaml
+remote_write:
+  - url: "http://remote-write-service:9090/api/v1/write"
+    write_relabel_configs:
+      - source_labels: ["__name__"]
+        regex: "my_metric|another_metric|yet_another_metric"
+        action: keep
+```
+
+在这个配置中：
+
+- `url`: 远程写入服务的 URL
+- `write_relabel_configs`: 一个列表，用于重新标记和过滤要发送的指标
+    - `source_labels`: 指定用于匹配和重新标记的源标签
+    - `regex`: 一个正则表达式，用于匹配要保留的指标名称
+    - `action`: 指定匹配正则表达式的指标是被保留（`keep`）还是被丢弃（`drop`）
+
+在上面的示例中，只有名称匹配 `my_metric`、`another_metric` 或 `yet_another_metric` 的指标
+会被发送到远程写入端点。其他所有指标都会被忽略。
+
+最后，重新加载或重启 Prometheus 服务以应用更改。
+
 ## 命令行调试指标集 {#debug}
 
 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，可以实现只采集符合一定名称规则的 Prometheus 指标的目的。
