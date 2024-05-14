@@ -22,7 +22,222 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
-func (c *Config) loadPointPool() {
+func (c *Config) loadConfdEnvs() {
+	// k8s ENV confd
+	if backend := datakit.GetEnv("ENV_CONFD_BACKEND"); backend != "" {
+		authToken := datakit.GetEnv("ENV_CONFD_AUTH_TOKEN")
+		authType := datakit.GetEnv("ENV_CONFD_AUTH_TYPE")
+		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")
+		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS")
+		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")
+		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")
+		clientInsecureBool := datakit.GetEnv("ENV_CONFD_CLIENT_INSECURE")
+		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES")
+		password := datakit.GetEnv("ENV_CONFD_PASSWORD")
+		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")
+		table := datakit.GetEnv("ENV_CONFD_TABLE")
+		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR")
+		username := datakit.GetEnv("ENV_CONFD_USERNAME")
+		appID := datakit.GetEnv("ENV_CONFD_APP_ID")
+		userID := datakit.GetEnv("ENV_CONFD_USER_ID")
+		roleID := datakit.GetEnv("ENV_CONFD_ROLE_ID")
+		secretID := datakit.GetEnv("ENV_CONFD_SECRET_ID")
+		filter := datakit.GetEnv("ENV_CONFD_FILTER")
+		path := datakit.GetEnv("ENV_CONFD_PATH")
+		role := datakit.GetEnv("ENV_CONFD_ROLE")
+		accessKey := datakit.GetEnv("ENV_CONFD_ACCESS_KEY")
+		secretKey := datakit.GetEnv("ENV_CONFD_SECRET_KEY")
+		circleIntervalInt := datakit.GetEnv("ENV_CONFD_CIRCLE_INTERVAL")
+		confdNamespace := datakit.GetEnv("ENV_CONFD_CONFD_NAMESPACE")
+		pipelineNamespace := datakit.GetEnv("ENV_CONFD_PIPELINE_NAMESPACE")
+		region := datakit.GetEnv("ENV_CONFD_REGION")
+
+		// some data types need to be converted
+		var backendNodes []string
+		err := json.Unmarshal([]byte(backendNodesArry), &backendNodes)
+		if err != nil {
+			l.Warnf("parse ENV_CONFD_BACKEND_NODES: %s, ignore", err)
+			backendNodes = make([]string, 0)
+		}
+		basicAuth := false
+		if basicAuthBool == "true" {
+			basicAuth = true
+		}
+		clientInsecure := false
+		if clientInsecureBool == "true" {
+			clientInsecure = true
+		}
+		circleInterval := 60
+		if interval, err := strconv.Atoi(circleIntervalInt); err == nil {
+			circleInterval = interval
+		} else {
+			l.Warnf("parse ENV_CONFD_CIRCLE_INTERVAL: %s, ignore", err)
+		}
+
+		c.Confds = append(c.Confds, &ConfdCfg{
+			Enable:            true,
+			Backend:           backend,
+			AuthToken:         authToken,
+			AuthType:          authType,
+			BasicAuth:         basicAuth,
+			ClientCaKeys:      clientCaKeys,
+			ClientCert:        clientCert,
+			ClientKey:         clientKey,
+			ClientInsecure:    clientInsecure,
+			BackendNodes:      append(backendNodes[0:0], backendNodes...),
+			Password:          password,
+			Scheme:            scheme,
+			Table:             table,
+			Separator:         separator,
+			Username:          username,
+			AppID:             appID,
+			UserID:            userID,
+			RoleID:            roleID,
+			SecretID:          secretID,
+			Filter:            filter,
+			Path:              path,
+			Role:              role,
+			AccessKey:         accessKey,
+			SecretKey:         secretKey,
+			CircleInterval:    circleInterval,
+			ConfdNamespace:    confdNamespace,
+			PipelineNamespace: pipelineNamespace,
+			Region:            region,
+		})
+	}
+
+	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
+		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
+		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
+		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
+		branch := datakit.GetEnv("ENV_GIT_BRANCH")
+
+		c.GitRepos = &GitRepost{
+			PullInterval: interval,
+			Repos: []*GitRepository{
+				{
+					Enable:                true,
+					URL:                   v,
+					SSHPrivateKeyPath:     keyPath,
+					SSHPrivateKeyPassword: keyPasswd,
+					Branch:                branch,
+				},
+			},
+		}
+	}
+}
+
+func (c *Config) loadPprofEnvs() {
+	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
+		c.EnablePProf = true
+	}
+
+	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
+		c.PProfListen = v
+	}
+}
+
+func (c *Config) loadDCAEnvs() {
+	// DCA settings
+	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
+		c.DCAConfig.Enable = true
+		c.DCAConfig.Listen = v
+	}
+
+	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
+		c.DCAConfig.WhiteList = strings.Split(v, ",")
+	}
+}
+
+func (c *Config) loadLogEnvs() {
+	// set logging
+	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
+		c.Logging.Level = v
+	}
+
+	if v := datakit.GetEnv("ENV_LOG"); v != "" {
+		c.Logging.Log = v
+	}
+
+	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
+		c.Logging.GinLog = v
+	}
+
+	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
+		c.Logging.DisableColor = true
+	}
+
+	if v := datakit.GetEnv("ENV_LOG_ROTATE_BACKUP"); v != "" {
+		count, err := strconv.Atoi(v)
+		if err != nil || count <= 0 {
+			l.Warnf("invalid value for ENV_LOG_ROTATE_BACKUP, need positive number but got [%s], use default value instead", v)
+			count = logger.MaxBackups
+		}
+		c.Logging.RotateBackups = count
+	}
+
+	if v := datakit.GetEnv("ENV_LOG_ROTATE_SIZE_MB"); v != "" {
+		size, err := strconv.Atoi(v)
+		if err != nil || size <= 0 {
+			l.Warnf("invalid value for ENV_LOG_ROTATE_SIZE_MB, need positive number but got [%s], use default value instead", v)
+			size = logger.MaxSize
+		}
+		c.Logging.Rotate = size
+	}
+}
+
+func (c *Config) loadPipelineEnvs() {
+	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
+		switch v {
+		case "iploc":
+			c.Pipeline.IPdbType = v
+		default:
+			l.Warnf("unknown IPDB type: %s, ignored", v)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_URL"); v != "" {
+		c.Pipeline.ReferTableURL = v
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_PULL_INTERVAL"); v != "" {
+		c.Pipeline.ReferTablePullInterval = v
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_USE_SQLITE"); v != "" {
+		c.Pipeline.UseSQLite = true
+	}
+
+	if v := datakit.GetEnv("ENV_REFER_TABLE_SQLITE_MEM_MODE"); v != "" {
+		c.Pipeline.SQLiteMemMode = true
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {
+		if c.Pipeline.Offload == nil {
+			c.Pipeline.Offload = &offload.OffloadConfig{
+				Receiver: v,
+			}
+		} else {
+			c.Pipeline.Offload.Receiver = v
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_ADDRESSES"); v != "" {
+		if c.Pipeline.Offload == nil {
+			c.Pipeline.Offload = &offload.OffloadConfig{
+				Receiver:  offload.DKRcv,
+				Addresses: strings.Split(v, ","),
+			}
+		} else {
+			if c.Pipeline.Offload.Receiver == "" {
+				c.Pipeline.Offload.Receiver = offload.DKRcv
+			}
+			c.Pipeline.Offload.Addresses = strings.Split(v, ",")
+		}
+	}
+}
+
+func (c *Config) loadPointPoolEnvs() {
 	if v := datakit.GetEnv("ENV_ENABLE_POINT_POOL"); v != "" {
 		c.PointPool.Enable = true
 
@@ -36,10 +251,16 @@ func (c *Config) loadPointPool() {
 	}
 }
 
-func (c *Config) loadDataway() {
+func (c *Config) loadDatawayEnvs() {
+	if v := datakit.GetEnv("ENV_DATAWAY_TLS_INSECURE"); v != "" {
+		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
+		l.Info("ENV_DATAWAY_TLS_INSECURE set to true")
+		c.Dataway.InsecureSkipVerify = true
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_CONTENT_ENCODING"); v != "" {
 		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
-		l.Info("ENV_DATAWAY_CONTENT_ENCODING set to %q", v)
+		l.Infof("ENV_DATAWAY_CONTENT_ENCODING set to %q", v)
 		c.Dataway.ContentEncoding = v
 	}
 
@@ -326,167 +547,13 @@ func (c *Config) loadIOEnvs() {
 	}
 }
 
-//nolint:funlen
-func (c *Config) LoadEnvs() error {
-	if c.IO == nil {
-		c.IO = &io.IOConf{}
-	}
-
-	// Save inputs .conf form env to disk.
-	if v := datakit.GetEnv("ENV_DATAKIT_INPUTS"); v != "" {
-		p := filepath.Join(datakit.ConfdDir, "ENV_DATAKIT_INPUTS.conf")
-		if err := os.WriteFile(p, []byte(v), datakit.ConfPerm); err != nil {
-			l.Errorf("error creating %s: %s", p, err)
-			return err
-		}
-	}
-
-	// first load protect mode settings, other settings depends on this flag.
-	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
-		c.ProtectMode = false
-	}
-
-	// first load protect mode settings, other settings depends on this flag.
-	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
-		c.ProtectMode = false
-	}
-
-	c.loadIOEnvs()
-
-	c.loadRecorderEnvs()
-
-	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
-		switch v {
-		case "iploc":
-			c.Pipeline.IPdbType = v
-		default:
-			l.Warnf("unknown IPDB type: %s, ignored", v)
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_REFER_TABLE_URL"); v != "" {
-		c.Pipeline.ReferTableURL = v
-	}
-
-	if v := datakit.GetEnv("ENV_REFER_TABLE_PULL_INTERVAL"); v != "" {
-		c.Pipeline.ReferTablePullInterval = v
-	}
-
-	if v := datakit.GetEnv("ENV_REFER_TABLE_USE_SQLITE"); v != "" {
-		c.Pipeline.UseSQLite = true
-	}
-
-	if v := datakit.GetEnv("ENV_REFER_TABLE_SQLITE_MEM_MODE"); v != "" {
-		c.Pipeline.SQLiteMemMode = true
-	}
-
-	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {
-		if c.Pipeline.Offload == nil {
-			c.Pipeline.Offload = &offload.OffloadConfig{
-				Receiver: v,
-			}
-		} else {
-			c.Pipeline.Offload.Receiver = v
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_ADDRESSES"); v != "" {
-		if c.Pipeline.Offload == nil {
-			c.Pipeline.Offload = &offload.OffloadConfig{
-				Receiver:  offload.DKRcv,
-				Addresses: strings.Split(v, ","),
-			}
-		} else {
-			if c.Pipeline.Offload.Receiver == "" {
-				c.Pipeline.Offload.Receiver = offload.DKRcv
-			}
-			c.Pipeline.Offload.Addresses = strings.Split(v, ",")
-		}
-	}
-
+func (c *Config) loadHTTPAPIEnvs() {
 	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
 		if x, err := strconv.ParseFloat(v, 64); err != nil {
 			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
 		} else {
 			c.HTTPAPI.RequestRateLimit = x
 		}
-	}
-
-	for _, x := range []string{
-		"ENV_K8S_NODE_NAME",
-		"NODE_NAME", // Deprecated
-	} {
-		if v := datakit.GetEnv(x); v != "" {
-			c.Hostname = v
-			datakit.DatakitHostName = c.Hostname
-			break
-		}
-	}
-
-	c.loadElectionEnvs()
-
-	for _, x := range []string{
-		"ENV_GLOBAL_HOST_TAGS",
-		"ENV_GLOBAL_TAGS", // Deprecated
-	} {
-		if v := datakit.GetEnv(x); v != "" {
-			for k, v := range ParseGlobalTags(v) {
-				c.GlobalHostTags[k] = v
-			}
-			break
-		}
-	}
-
-	// Don't Add to ElectionTags.
-	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
-		c.GlobalHostTags["cluster_name_k8s"] = v
-	}
-
-	// set logging
-	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
-		c.Logging.Level = v
-	}
-
-	if v := datakit.GetEnv("ENV_LOG"); v != "" {
-		c.Logging.Log = v
-	}
-
-	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
-		c.Logging.GinLog = v
-	}
-
-	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
-		c.Logging.DisableColor = true
-	}
-
-	if v := datakit.GetEnv("ENV_LOG_ROTATE_BACKUP"); v != "" {
-		count, err := strconv.Atoi(v)
-		if err != nil || count <= 0 {
-			l.Warnf("invalid value for ENV_LOG_ROTATE_BACKUP, need positive number but got [%s], use default value instead", v)
-			count = logger.MaxBackups
-		}
-		c.Logging.RotateBackups = count
-	}
-
-	if v := datakit.GetEnv("ENV_LOG_ROTATE_SIZE_MB"); v != "" {
-		size, err := strconv.Atoi(v)
-		if err != nil || size <= 0 {
-			l.Warnf("invalid value for ENV_LOG_ROTATE_SIZE_MB, need positive number but got [%s], use default value instead", v)
-			size = logger.MaxSize
-		}
-		c.Logging.Rotate = size
-	}
-
-	c.loadDataway()
-
-	c.loadPointPool()
-
-	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
-		c.Hostname = v
-	}
-
-	if v := datakit.GetEnv("ENV_NAME"); v != "" {
-		c.Name = v
 	}
 
 	// HTTP server setting
@@ -510,16 +577,6 @@ func (c *Config) LoadEnvs() error {
 		c.HTTPAPI.AllowedCORSOrigins = strings.Split(v, ",")
 	}
 
-	// DCA settings
-	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
-		c.DCAConfig.Enable = true
-		c.DCAConfig.Listen = v
-	}
-
-	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
-		c.DCAConfig.WhiteList = strings.Split(v, ",")
-	}
-
 	// RUM related
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
 		c.HTTPAPI.RUMOriginIPHeader = v
@@ -533,13 +590,86 @@ func (c *Config) LoadEnvs() error {
 		c.HTTPAPI.Disable404Page = true
 	}
 
-	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
-		c.EnablePProf = true
+	if v := datakit.GetEnv("ENV_HTTP_ENABLE_TLS"); v != "" {
+		if v := datakit.GetEnv("ENV_HTTP_TLS_CRT"); v != "" {
+			c.HTTPAPI.TLSConf.Cert = v
+		}
+
+		if v := datakit.GetEnv("ENV_HTTP_TLS_KEY"); v != "" {
+			c.HTTPAPI.TLSConf.PrivKey = v
+		}
+	}
+}
+
+//nolint:funlen
+func (c *Config) LoadEnvs() error {
+	if c.IO == nil {
+		c.IO = &io.IOConf{}
 	}
 
-	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
-		c.PProfListen = v
+	// Save inputs .conf form env to disk.
+	if v := datakit.GetEnv("ENV_DATAKIT_INPUTS"); v != "" {
+		p := filepath.Join(datakit.ConfdDir, "ENV_DATAKIT_INPUTS.conf")
+		if err := os.WriteFile(p, []byte(v), datakit.ConfPerm); err != nil {
+			l.Errorf("error creating %s: %s", p, err)
+			return err
+		}
 	}
+
+	// first load protect mode settings, other settings depends on this flag.
+	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
+		c.ProtectMode = false
+	}
+
+	c.loadIOEnvs()
+	c.loadRecorderEnvs()
+	c.loadPipelineEnvs()
+	c.loadHTTPAPIEnvs()
+	c.loadElectionEnvs()
+
+	for _, x := range []string{
+		"ENV_GLOBAL_HOST_TAGS",
+		"ENV_GLOBAL_TAGS", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			for k, v := range ParseGlobalTags(v) {
+				c.GlobalHostTags[k] = v
+			}
+			break
+		}
+	}
+
+	c.loadLogEnvs()
+	c.loadDatawayEnvs()
+	c.loadPointPoolEnvs()
+
+	for _, x := range []string{
+		"ENV_K8S_NODE_NAME",
+		"NODE_NAME", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			c.Hostname = v
+			datakit.DatakitHostName = c.Hostname
+			break
+		}
+	}
+
+	// Don't Add to ElectionTags.
+	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
+		c.GlobalHostTags["cluster_name_k8s"] = v
+	}
+
+	// misc
+	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
+		c.Hostname = v
+	}
+
+	if v := datakit.GetEnv("ENV_NAME"); v != "" {
+		c.Name = v
+	}
+
+	c.loadDCAEnvs()
+	c.loadPprofEnvs()
 
 	for _, x := range []string{
 		"ENV_DEFAULT_ENABLED_INPUTS",
@@ -555,109 +685,6 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	// k8s ENV confd
-	if backend := datakit.GetEnv("ENV_CONFD_BACKEND"); backend != "" {
-		authToken := datakit.GetEnv("ENV_CONFD_AUTH_TOKEN")
-		authType := datakit.GetEnv("ENV_CONFD_AUTH_TYPE")
-		basicAuthBool := datakit.GetEnv("ENV_CONFD_BASIC_AUTH")
-		clientCaKeys := datakit.GetEnv("ENV_CONFD_CLIENT_CA_KEYS")
-		clientCert := datakit.GetEnv("ENV_CONFD_CLIENT_CERT")
-		clientKey := datakit.GetEnv("ENV_CONFD_CLIENT_KEY")
-		clientInsecureBool := datakit.GetEnv("ENV_CONFD_CLIENT_INSECURE")
-		backendNodesArry := datakit.GetEnv("ENV_CONFD_BACKEND_NODES")
-		password := datakit.GetEnv("ENV_CONFD_PASSWORD")
-		scheme := datakit.GetEnv("ENV_CONFD_SCHEME")
-		table := datakit.GetEnv("ENV_CONFD_TABLE")
-		separator := datakit.GetEnv("ENV_CONFD_SEPARATOR")
-		username := datakit.GetEnv("ENV_CONFD_USERNAME")
-		appID := datakit.GetEnv("ENV_CONFD_APP_ID")
-		userID := datakit.GetEnv("ENV_CONFD_USER_ID")
-		roleID := datakit.GetEnv("ENV_CONFD_ROLE_ID")
-		secretID := datakit.GetEnv("ENV_CONFD_SECRET_ID")
-		filter := datakit.GetEnv("ENV_CONFD_FILTER")
-		path := datakit.GetEnv("ENV_CONFD_PATH")
-		role := datakit.GetEnv("ENV_CONFD_ROLE")
-		accessKey := datakit.GetEnv("ENV_CONFD_ACCESS_KEY")
-		secretKey := datakit.GetEnv("ENV_CONFD_SECRET_KEY")
-		circleIntervalInt := datakit.GetEnv("ENV_CONFD_CIRCLE_INTERVAL")
-		confdNamespace := datakit.GetEnv("ENV_CONFD_CONFD_NAMESPACE")
-		pipelineNamespace := datakit.GetEnv("ENV_CONFD_PIPELINE_NAMESPACE")
-		region := datakit.GetEnv("ENV_CONFD_REGION")
-
-		// some data types need to be converted
-		var backendNodes []string
-		err := json.Unmarshal([]byte(backendNodesArry), &backendNodes)
-		if err != nil {
-			l.Warnf("parse ENV_CONFD_BACKEND_NODES: %s, ignore", err)
-			backendNodes = make([]string, 0)
-		}
-		basicAuth := false
-		if basicAuthBool == "true" {
-			basicAuth = true
-		}
-		clientInsecure := false
-		if clientInsecureBool == "true" {
-			clientInsecure = true
-		}
-		circleInterval := 60
-		if interval, err := strconv.Atoi(circleIntervalInt); err == nil {
-			circleInterval = interval
-		} else {
-			l.Warnf("parse ENV_CONFD_CIRCLE_INTERVAL: %s, ignore", err)
-		}
-
-		c.Confds = append(c.Confds, &ConfdCfg{
-			Enable:            true,
-			Backend:           backend,
-			AuthToken:         authToken,
-			AuthType:          authType,
-			BasicAuth:         basicAuth,
-			ClientCaKeys:      clientCaKeys,
-			ClientCert:        clientCert,
-			ClientKey:         clientKey,
-			ClientInsecure:    clientInsecure,
-			BackendNodes:      append(backendNodes[0:0], backendNodes...),
-			Password:          password,
-			Scheme:            scheme,
-			Table:             table,
-			Separator:         separator,
-			Username:          username,
-			AppID:             appID,
-			UserID:            userID,
-			RoleID:            roleID,
-			SecretID:          secretID,
-			Filter:            filter,
-			Path:              path,
-			Role:              role,
-			AccessKey:         accessKey,
-			SecretKey:         secretKey,
-			CircleInterval:    circleInterval,
-			ConfdNamespace:    confdNamespace,
-			PipelineNamespace: pipelineNamespace,
-			Region:            region,
-		})
-	}
-
-	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
-		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
-		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
-		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
-		branch := datakit.GetEnv("ENV_GIT_BRANCH")
-
-		c.GitRepos = &GitRepost{
-			PullInterval: interval,
-			Repos: []*GitRepository{
-				{
-					Enable:                true,
-					URL:                   v,
-					SSHPrivateKeyPath:     keyPath,
-					SSHPrivateKeyPassword: keyPasswd,
-					Branch:                branch,
-				},
-			},
-		}
-	}
-
 	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
 		u, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -666,6 +693,8 @@ func (c *Config) LoadEnvs() error {
 			c.Ulimit = u
 		}
 	}
+
+	c.loadConfdEnvs()
 
 	return nil
 }

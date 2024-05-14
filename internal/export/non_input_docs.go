@@ -57,16 +57,86 @@ func envCommon() []*inputs.ENVInfo {
 func envDataway() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_DATAWAY", Type: doc.URL, Example: "`https://openway.guance.com?token=xxx`", Required: doc.Yes, Desc: "Set DataWay address", DescZh: "配置 DataWay 地址"},
-		{ENVName: "ENV_DATAWAY_TIMEOUT", Type: doc.TimeDuration, Default: `30s`, Desc: "Set DataWay request timeout", DescZh: "配置 DataWay 请求超时"},
-		{ENVName: "ENV_DATAWAY_ENABLE_HTTPTRACE", Type: doc.Boolean, Desc: "Enable metrics on DataWay HTTP request", DescZh: "开启 DataWay 请求时 HTTP 层面的指标暴露"},
-		{ENVName: "ENV_DATAWAY_HTTP_PROXY", Type: doc.URL, Desc: "Set DataWay HTTP Proxy", DescZh: "设置 DataWay HTTP 代理"},
-		{ENVName: "ENV_DATAWAY_MAX_IDLE_CONNS", Type: doc.Int, Desc: "Set DataWay HTTP connection pool size([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))", DescZh: "设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）"},
-		{ENVName: "ENV_DATAWAY_IDLE_TIMEOUT", Type: doc.TimeDuration, Default: `90s`, Desc: "Set DataWay HTTP Keep-Alive timeout([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))", DescZh: "设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）"},
-		{ENVName: "ENV_DATAWAY_MAX_RETRY_COUNT", Type: doc.Int, Default: `4`, Desc: "Specify at most how many times the data sending operation will be performed when encounter failures([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))", DescZh: "指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0))"},
-		{ENVName: "ENV_DATAWAY_RETRY_DELAY", Type: doc.TimeDuration, Default: `200ms`, Desc: `The interval between two data sending retry, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))`, DescZh: `数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）`},
-		{ENVName: "ENV_DATAWAY_MAX_RAW_BODY_SIZE", Type: doc.Int, Default: `10MB`, Desc: "Set upload package size(before gzip)", DescZh: "数据上传时单包（未压缩）大小"},
-		{ENVName: "ENV_DATAWAY_CONTENT_ENCODING", Type: doc.String, Desc: "Set the encoding of the point data at upload time (optional list: 'v1' is the line protocol, 'v2' is Protobuf)", DescZh: "设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）"},
+		{
+			ENVName:  "ENV_DATAWAY",
+			Type:     doc.URL,
+			Example:  "`https://openway.guance.com?token=xxx`",
+			Required: doc.Yes,
+			Desc:     "Set DataWay address",
+			DescZh:   "配置 DataWay 地址",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: `30s`,
+			Desc:    "Set DataWay request timeout",
+			DescZh:  "配置 DataWay 请求超时",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_ENABLE_HTTPTRACE",
+			Type:    doc.Boolean,
+			Desc:    "Enable metrics on DataWay HTTP request",
+			DescZh:  "开启 DataWay 请求时 HTTP 层面的指标暴露",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_HTTP_PROXY",
+			Type:    doc.URL,
+			Desc:    "Set DataWay HTTP Proxy",
+			DescZh:  "设置 DataWay HTTP 代理",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_MAX_IDLE_CONNS",
+			Type:    doc.Int,
+			Desc:    "Set DataWay HTTP connection pool size([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))",
+			DescZh:  "设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_IDLE_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: `90s`,
+			Desc:    "Set DataWay HTTP Keep-Alive timeout([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))",
+			DescZh:  "设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）",
+		},
+		{
+			ENVName: "ENV_DATAWAY_MAX_RETRY_COUNT",
+			Type:    doc.Int,
+			Default: `4`,
+			Desc:    "Specify at most how many times the data sending operation will be performed when encounter failures([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))",
+			DescZh:  "指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0))",
+		},
+		{
+			ENVName: "ENV_DATAWAY_RETRY_DELAY",
+			Type:    doc.TimeDuration,
+			Default: `200ms`,
+			Desc:    `The interval between two data sending retry, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))`,
+			DescZh:  `数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）`,
+		},
+		{
+			ENVName: "ENV_DATAWAY_MAX_RAW_BODY_SIZE",
+			Type:    doc.Int,
+			Default: `10MB`,
+			Desc:    "Set upload package size(before gzip)",
+			DescZh:  "数据上传时单包（未压缩）大小",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_CONTENT_ENCODING",
+			Type:    doc.String,
+			Desc:    "Set the encoding of the point data at upload time (optional list: 'v1' is the line protocol, 'v2' is Protobuf)",
+			DescZh:  "设置上传时的 point 数据编码（可选列表：`v1` 即行协议，`v2` 即 Protobuf）",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_TLS_INSECURE",
+			Type:    doc.Boolean,
+			Desc:    "Enable self-signed TLS certificate on Dataway[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "允许对应的 Dataway 上的证书是自签证书[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+		},
 	}
 
 	for idx := range infos {
@@ -128,14 +198,90 @@ func envElect() []*inputs.ENVInfo {
 func envHTTPAPI() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_DISABLE_404PAGE", Type: doc.Boolean, Default: "-", Desc: "Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network).", DescZh: "禁用 Datakit 404 页面（公网部署 Datakit RUM 时常用）"},
-		{ENVName: "ENV_HTTP_LISTEN", Type: doc.String, Default: "localhost:9529", Desc: "The address can be modified so that the [DataKit interface](apis) can be called externally.", DescZh: "可修改地址，使得外部可以调用 [Datakit 接口](apis.md)"},
-		{ENVName: "ENV_HTTP_PUBLIC_APIS", Type: doc.List, Desc: "[API list](apis) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.", DescZh: "允许外部访问的 Datakit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 Datakit 部署在公网时，用来禁用部分 API"},
-		{ENVName: "ENV_HTTP_TIMEOUT", Type: doc.TimeDuration, Default: "30s", Desc: "Setting the 9529 HTTP API Server Timeout [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).", DescZh: "设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)"},
-		{ENVName: "ENV_HTTP_CLOSE_IDLE_CONNECTION", Type: doc.Boolean, Default: "-", Desc: "If turned on, the 9529 HTTP server actively closes idle connections (idle time equal to `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).", DescZh: "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)"},
-		{ENVName: "ENV_REQUEST_RATE_LIMIT", Type: doc.Float, Desc: "Limit 9529 [API requests per second](datakit-conf.md#set-http-api-limit).", DescZh: "限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)"},
-		{ENVName: "ENV_RUM_ORIGIN_IP_HEADER", Type: doc.String, Default: "`X-Forwarded-For`", Desc: "RUM dedicated", DescZh: "RUM 专用"},
-		{ENVName: "ENV_RUM_APP_ID_WHITE_LIST", Type: doc.String, Example: "appid-1,appid-2", Desc: "RUM app-id white list, split by `,`.", DescZh: "RUM app-id 白名单列表，以 `,` 分割"},
+		{
+			ENVName: "ENV_DISABLE_404PAGE",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network).",
+			DescZh:  "禁用 Datakit 404 页面（公网部署 Datakit RUM 时常用）。",
+		},
+		{
+			ENVName: "ENV_HTTP_LISTEN",
+			Type:    doc.String,
+			Default: "localhost:9529",
+			Desc:    "The address can be modified so that the [DataKit interface](apis) can be called externally.",
+			DescZh:  "可修改地址，使得外部可以调用 [Datakit 接口](apis.md)。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_PUBLIC_APIS",
+			Type:    doc.List,
+			Desc:    "[API list](apis) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.",
+			DescZh:  "允许外部访问的 Datakit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 Datakit 部署在公网时，用来禁用部分 API。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Setting the 9529 HTTP API Server Timeout [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).",
+			DescZh:  "设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_CLOSE_IDLE_CONNECTION",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "If turned on, the 9529 HTTP server actively closes idle connections (idle time equal to `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).",
+			DescZh:  "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_ENABLE_TLS",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "Enable Datakit 9529 HTTPS[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
+			DescZh:  "开启 Datakit 9529 HTTPS[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_TLS_CRT",
+			Type:    doc.String,
+			Default: "-",
+			Desc:    "Set Datakit HTTP Server's TLS cert path[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
+			DescZh:  "配置 Datakit HTTP Server 上的 TLS cert 路径[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+		},
+
+		{
+			ENVName: "ENV_HTTP_TLS_KEY",
+			Type:    doc.String,
+			Default: "-",
+			Desc:    "Set Datakit HTTP Server's TLS key path[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
+			DescZh:  "配置 Datakit HTTP Server 上的 TLS key 路径[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+		},
+
+		{
+			ENVName: "ENV_REQUEST_RATE_LIMIT",
+			Type:    doc.Float,
+			Desc:    "Limit 9529 [API requests per second](datakit-conf.md#set-http-api-limit).",
+			DescZh:  "限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)。",
+		},
+
+		{
+			ENVName: "ENV_RUM_ORIGIN_IP_HEADER",
+			Type:    doc.String,
+			Default: "`X-Forwarded-For`",
+			Desc:    "Set RUM HTTP request(`/v1/write/rum`) real IP forward header key.",
+			DescZh:  "设置 RUM 请求中真实 IP forward 对应的 HTTP header key。Datakit 将从该 Header 上获取端上用户的真实 IP，否则拿到可能是网关 IP。",
+		},
+
+		{
+			ENVName: "ENV_RUM_APP_ID_WHITE_LIST",
+			Type:    doc.String,
+			Example: "appid-1, appid-2",
+			Desc:    "RUM app-id white list, split by `,`.",
+			DescZh:  "RUM app-id 白名单列表，以 `,` 分割。",
+		},
 	}
 
 	for idx := range infos {
