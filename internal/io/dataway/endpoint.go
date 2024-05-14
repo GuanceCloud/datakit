@@ -473,7 +473,7 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
-		log.Error("datakitPull: %s", err.Error())
+		log.Errorf("datakitPull: %s", err.Error())
 
 		return nil, err
 	}
@@ -501,10 +501,13 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 
 	// Generally, the req.GetBody in DK should not be nil, while we do this to avoid accidents.
 	if ep.maxRetryCount > 1 && req.GetBody == nil && req.Body != nil {
+		log.Debugf("setup GetBody() on %q", req.URL.Path)
+
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read body: %w", err)
 		}
+
 		if len(b) > 0 {
 			req.Body = io.NopCloser(bytes.NewReader(b))
 			req.GetBody = func() (io.ReadCloser, error) {
@@ -529,7 +532,10 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 				if err != nil && req.GetBody != nil {
 					if body, err := req.GetBody(); err == nil {
 						req.Body = body
+						log.Debugf("GetBody() on request %q", req.URL.Path)
 					}
+				} else {
+					log.Warnf("GetBody() not set for request %q", req.URL.Path)
 				}
 			}()
 
@@ -559,11 +565,24 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		retry.Delay(delay),
 
 		retry.OnRetry(func(n uint, err error) {
-			log.Warnf("on %dth retry for %s, error: %s", n, req.URL, err)
+			log.Warnf("on %dth retry for %s, error: %s(%s)", n, req.URL, err, reflect.TypeOf(err))
+
+			switch {
+			// most of the error is Client.Timeout
+			case strings.Contains(err.Error(), "Timeout"):
+				status = "timeout"
+			default: // Pass
+			}
+
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
 		}),
 	); err != nil {
-		return resp, fmt.Errorf("retry request err: %w", err)
+		switch {
+		case strings.Contains(err.Error(), "All attempts fail"):
+			return resp, fmt.Errorf("all-retry-failed")
+		default:
+			return resp, fmt.Errorf("retry request err: %w", err)
+		}
 	}
 
 	return resp, err

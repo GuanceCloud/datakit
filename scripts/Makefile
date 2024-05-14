@@ -13,5 +13,6 @@ dep:
 	kubectl describe services v1-write-service # show service info
 
 clean:
-	kubectl delete deployment v1-write
-	kubectl delete service v1-write-service
+	rm -rf *.out
+	#kubectl delete deployment v1-write
+	#kubectl delete service v1-write-service
