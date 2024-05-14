@@ -19,19 +19,15 @@ import (
 )
 
 type apiList struct {
-	GetStats       func() (*DatakitStats, error)
-	RestartDataKit func() error
-	TestPipeline   func(string, string) (string, error)
+	GetStats      func() (*DatakitStats, error)
+	ReloadDataKit func() error
+	TestPipeline  func(string, string) (string, error)
 }
 
 var dcaAPI = &apiList{
-	GetStats:       GetStats,
-	RestartDataKit: restartDataKit,
-	TestPipeline:   pipelineTest,
-}
-
-var ignoreAuthURI = []string{
-	"/v1/rum/sourcemap",
+	GetStats:      GetStats,
+	ReloadDataKit: reloadDataKit,
+	TestPipeline:  pipelineTest,
 }
 
 func dcaHTTPStart() {
@@ -180,25 +176,26 @@ func setupDcaRouter() *gin.Engine {
 
 	router.NoRoute(dcaDefault)
 
-	router.GET("/v1/dca/stats", dcaStats)
-	router.GET("/v1/dca/reload", dcaReload)
+	v1 := router.Group("/v1")
+
+	v1.GET("/stats", dcaStats)
+	v1.GET("/reload", dcaReload)
 	// conf
-	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
-	router.DELETE("/v1/dca/deleteConfig", dcaDeleteConfig)
-	router.GET("/v1/dca/getConfig", dcaGetConfig)
+	v1.POST("/saveConfig", dcaSaveConfig)
+	v1.DELETE("/deleteConfig", dcaDeleteConfig)
+	v1.GET("/getConfig", dcaGetConfig)
 	// pipelines
-	router.GET("/v1/dca/pipelines", dcaGetPipelines)
-	router.DELETE("/v1/dca/pipelines", dcaDeletePipelines)
-	router.GET("/v1/dca/pipelines/detail", dcaGetPipelinesDetail)
-	router.POST("/v1/dca/pipelines/test", dcaTestPipelines)
-	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
-	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
+	v1.GET("/pipelines", dcaGetPipelines)
+	v1.DELETE("/pipelines", dcaDeletePipelines)
+	v1.GET("/pipelines/detail", dcaGetPipelinesDetail)
+	v1.POST("/pipelines/test", dcaTestPipelines)
+	v1.POST("/pipelines", dcaCreatePipeline)
+	v1.PATCH("/pipelines", dcaUpdatePipeline)
 
-	router.GET("/v1/filter", dcaGetFilter)
-	router.GET("/v1/stats/:type", dcaStatsByType)
+	v1.GET("/filter", dcaGetFilter)
 
-	router.GET("/v1/log/tail", dcaGetLogTail)
-	router.GET("/v1/log/download", dcaDownloadLog)
+	v1.GET("/log/tail", dcaGetLogTail)
+	v1.GET("/log/download", dcaDownloadLog)
 
 	return router
 }

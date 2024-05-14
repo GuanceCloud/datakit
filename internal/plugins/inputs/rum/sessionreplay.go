@@ -207,6 +207,9 @@ func (ipt *Input) initSessionReplayWorkers() error {
 				case <-ctx.Done():
 					log.Infof("context canceld...")
 					return nil
+				case <-ipt.semStop.Wait():
+					log.Info("session relpay terminated")
+					return nil
 				default:
 					func() {
 						var msgData []byte
