@@ -310,11 +310,6 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 		catStr,
 	).Add(float64(bf - len(pts)))
 
-	inputsFilteredPtsVec.WithLabelValues(
-		name,
-		catStr,
-	).Add(float64(bf - len(pts)))
-
 	fo := getFeedOption()
 	fo.pts = pts
 	fo.cat = cat
@@ -373,12 +368,6 @@ func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Po
 
 	// run filters
 	after = filter.FilterPts(opt.cat, after)
-	if filtered := len(opt.pts) - len(after) - offloadCount; filtered > 0 {
-		inputsFilteredPtsVec.WithLabelValues(
-			opt.input,
-			opt.cat.String(), // /v1/write/metric -> metric
-		).Add(float64(filtered))
-	}
 
 	return after, ptCreate, offloadCount, nil
 }
