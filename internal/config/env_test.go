@@ -24,6 +24,46 @@ func TestLoadEnv(t *testing.T) {
 		expect *Config
 	}{
 		{
+			name: "test-recorder-envs",
+			envs: map[string]string{
+				"ENV_ENABLE_RECORDER":     "on",
+				"ENV_RECORDER_PATH":       "/path/to/recorder",
+				"ENV_RECORDER_ENCODING":   "v2",
+				"ENV_RECORDER_DURATION":   "30s",
+				"ENV_RECORDER_INPUTS":     "cpu,mem",
+				"ENV_RECORDER_CATEGORIES": "metric,logging",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Recorder.Enabled = true
+				cfg.Recorder.Path = "/path/to/recorder"
+				cfg.Recorder.Encoding = "v2"
+				cfg.Recorder.Duration = 30 * time.Second
+				cfg.Recorder.Inputs = []string{"cpu", "mem"}
+				cfg.Recorder.Categories = []string{"metric", "logging"}
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-point-pool-envs",
+			envs: map[string]string{
+				"ENV_POINT_POOL_RESERVED_CAPACITY": "1234",
+				"ENV_ENABLE_POINT_POOL":            "on",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.PointPool.Enable = true
+				cfg.PointPool.ReservedCapacity = 1234
+
+				return cfg
+			}(),
+		},
+
+		{
 			name: `bad-sinkers`,
 			envs: map[string]string{
 				"ENV_SINKER": `[ some bad json `,
@@ -56,14 +96,19 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_NAMESPACE":                       "some-default",
 				"ENV_DISABLE_404PAGE":                 "on",
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
+				"ENV_DATAWAY_TLS_INSECURE":            "on",
 				"ENV_REQUEST_RATE_LIMIT":              "1234",
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
 				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
 				"ENV_HTTP_TIMEOUT":                    "10s",
-				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":   "ok",
-				"ENV_PIPELINE_OFFLOAD_RECEIVER":       offload.DKRcv,
-				"ENV_PIPELINE_OFFLOAD_ADDRESSES":      "http://aaa:123,http://1.2.3.4:1234",
+				"ENV_HTTP_ENABLE_TLS":                 "yes",
+				"ENV_HTTP_TLS_CRT":                    "/path/to/datakit/tls.crt",
+				"ENV_HTTP_TLS_KEY":                    "/path/to/datakit/tls.key",
+
+				"ENV_ENABLE_ELECTION_NAMESPACE_TAG": "ok",
+				"ENV_PIPELINE_OFFLOAD_RECEIVER":     offload.DKRcv,
+				"ENV_PIPELINE_OFFLOAD_ADDRESSES":    "http://aaa:123,http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -79,6 +124,7 @@ func TestLoadEnv(t *testing.T) {
 					HTTPTimeout:         30 * time.Second,
 					ContentEncoding:     "v1",
 					MaxRetryCount:       dataway.DefaultRetryCount,
+					InsecureSkipVerify:  true,
 					RetryDelay:          dataway.DefaultRetryDelay,
 					MaxRawBodySize:      dataway.DefaultMaxRawBodySize,
 					GlobalCustomerKeys:  []string{},
@@ -91,6 +137,8 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.RequestRateLimit = 1234.0
 				cfg.HTTPAPI.Timeout = "10s"
 				cfg.HTTPAPI.CloseIdleConnection = true
+				cfg.HTTPAPI.TLSConf.Cert = "/path/to/datakit/tls.crt"
+				cfg.HTTPAPI.TLSConf.PrivKey = "/path/to/datakit/tls.key"
 
 				cfg.Logging.Level = "debug"
 				cfg.Logging.RotateBackups = 10
@@ -380,6 +428,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_RETRY_DELAY":             "5s",
 				"ENV_DATAWAY_MAX_RAW_BODY_SIZE":       strconv.Itoa(1024 * 1024 * 32),
 				"ENV_DATAWAY_ENABLE_SINKER":           "set",
+				"ENV_DATAWAY_TLS_INSECURE":            "on",
 			},
 
 			expect: func() *Config {
@@ -399,6 +448,7 @@ func TestLoadEnv(t *testing.T) {
 					ContentEncoding:     "v2",
 					EnableSinker:        true,
 					GZip:                true,
+					InsecureSkipVerify:  true,
 				}
 
 				return cfg
