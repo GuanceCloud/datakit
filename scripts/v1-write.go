@@ -18,18 +18,18 @@ import (
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/dustin/go-humanize"
 	limits "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 )
 
 var (
-	flagListen  = flag.String("listen", "localhost:54321", "HTTP listen")
-	flagGinLog  = flag.Bool("gin-log", false, "enable or disable gin log")
-	flagMaxBody = flag.Int("max-body", 0, "set max body size(kb)")
-	flagDecode  = flag.Bool("decode", false, "try decode request")
+	flagListen   = flag.String("listen", "localhost:54321", "HTTP listen")
+	flagGinLog   = flag.Bool("gin-log", false, "enable or disable gin log")
+	flagMaxBody  = flag.Int("max-body", 0, "set max body size(kb)")
+	flagDecode   = flag.Bool("decode", false, "try decode request")
+	flag5XXRatio = flag.Int("5xx-ratio", 0, "fail request ratio(minimal is 1/1000)")
 
-	MPts, LPts atomic.Int64
+	MPts, LPts, totalReq, req5xx atomic.Int64
 )
 
 func benchHTTPServer() {
@@ -47,9 +47,25 @@ func benchHTTPServer() {
 		router.Use(limits.RequestSizeLimiter(int64(*flagMaxBody * 1024)))
 	}
 
+	router.GET("/v1/datakit/pull", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/json", []byte(`{}`))
+	})
+
 	router.POST("/v1/write/:category",
 		func(c *gin.Context) {
 			log.Printf("************************************************")
+
+			totalReq.Add(1)
+
+			if *flag5XXRatio > 0 {
+				ns := time.Now().UnixMicro()
+				if r := ns % 1000; r < int64(*flag5XXRatio) {
+					req5xx.Add(1)
+					showInfo()
+					c.Data(http.StatusInternalServerError, "", []byte(fmt.Sprintf("drop ration within %d(%d: %d)", *flag5XXRatio, ns, r)))
+					return
+				}
+			}
 
 			if len(c.Errors) > 0 {
 				log.Printf("context error: %s, skipped", c.Errors[0].Error())
@@ -83,7 +99,9 @@ func benchHTTPServer() {
 				if c.Request.Header.Get("Content-Encoding") == "gzip" {
 					unzipbody, err := uhttp.Unzip(body)
 					if err != nil {
+						//log.Printf("unzip: %s, body: %q", err, body)
 						log.Printf("unzip: %s", err)
+						c.Data(http.StatusBadRequest, "", []byte(err.Error()))
 						return
 					}
 
@@ -129,8 +147,9 @@ func benchHTTPServer() {
 						}
 
 						log.Printf("decode %d points, %d with warnnings", len(pts), nwarns)
-						log.Printf("total M/%s, L/%s", humanize.SI(float64(MPts.Load()), ""), humanize.SI(float64(LPts.Load()), ""))
 					}
+
+					showInfo()
 				}
 
 			end:
@@ -146,6 +165,19 @@ func benchHTTPServer() {
 	if err := srv.ListenAndServe(); err != nil {
 		panic(err)
 	}
+}
+
+func showInfo() {
+	//log.Printf("total M/%s, L/%s, req/%d, 5xx/%d",
+	//humanize.SI(float64(MPts.Load()), ""),
+	//humanize.SI(float64(LPts.Load()), ""),
+	log.Printf("total M/%d, L/%d, req/%d, 5xx/%d, 5xx ratio: %d/1000",
+		MPts.Load(),
+		LPts.Load(),
+		totalReq.Load(),
+		req5xx.Load(),
+		*flag5XXRatio,
+	)
 }
 
 func showENVs() {
