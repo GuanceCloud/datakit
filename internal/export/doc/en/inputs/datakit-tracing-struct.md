@@ -17,50 +17,51 @@ Data conversion steps:
 
 ## Datakit Point Protocol Data Structure {#point-proto}
 
-The Line Protocol data structure is a string composed of Name, Tags, Fields, Timestamp and delimiters (English commas, spaces), which is shaped like:
+- Tags
 
-```txt
-source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
-```
+| Tag                | Description                                                          |
+| ---                | ---                                                                  |
+| `container_host`   | Host name of container                                               |
+| `endpoint`         | End point of resource                                                |
+| `env`              | Environment arguments                                                |
+| `http_host`        | HTTP host                                                            |
+| `http_method`      | HTTP method                                                          |
+| `http_route`       | HTTP route                                                           |
+| `http_status_code` | HTTP status code                                                     |
+| `http_url`         | HTTP URL                                                             |
+| `operation`        | Operation of resource                                                |
+| `pid`              | Process id                                                           |
+| `project`          | Project name                                                         |
+| `service`          | Service name                                                         |
+| `source_type`      | Source types [`app/framework/cache/message_queue/custom/db/web/...`] |
+| `span_type`        | Span types                                                           |
+| `status`           | Span status [`ok/info/warning/error/critical`]                       |
 
-> Hereinafter referred to as `dkproto`
+- Field
 
-| **Section** | **Name**         | **Unit**    | **Description**                                                                                     |
-| ----------- | ---------------- | ----------- | --------------------------------------------------------------------------------------------------- |
-| Tag         | container_host   |             | host name of container                                                                              |
-| Tag         | endpoint         |             | end point of resource                                                                               |
-| Tag         | env              |             | environment arguments                                                                               |
-| Tag         | http_host        |             | HTTP host                                                                                           |
-| Tag         | http_method      |             | HTTP method                                                                                         |
-| Tag         | http_route       |             | HTTP route                                                                                          |
-| Tag         | http_status_code |             | HTTP status code                                                                                    |
-| Tag         | http_url         |             | HTTP URL                                                                                            |
-| Tag         | operation        |             | operation of resource                                                                               |
-| Tag         | pid              |             | process id                                                                                          |
-| Tag         | project          |             | project name                                                                                        |
-| Tag         | service          |             | service name                                                                                        |
-| Tag         | source_type      |             | source types [app, framework, cache, message_queue, custom, db, web]                                |
-| Tag         | status           |             | span status [ok, info, warning, error, critical]                                                    |
-| Tag         | span_type        |             | span types [entry, local, exit, unknown]                                                            |
-| Tag         | version          |             | service version                                                                                     |
-| Field       | duration         | Microsecond | span duration                                                                                       |
-| Field       | message          |             | raw data content                                                                                    |
-| Field       | parent_id        |             | parent ID of span                                                                                   |
-| Field       | priority         |             | priority rules (PRIORITY_USER_REJECT, PRIORITY_AUTO_REJECT, PRIORITY_AUTO_KEEP, PRIORITY_USER_KEEP) |
-| Field       | resource         |             | resource of service                                                                                 |
-| Field       | sample_rate      |             | global sampling ratio (0.1 means roughly 10 percent will send to data center)                       |
-| Field       | span_id          |             | span ID                                                                                             |
-| Field       | start            | Microsecond | span start timestamp                                                                                |
-| Field       | trace_id         |             | trace ID                                                                                            |
+| Metric        | Description                            | Type   | Unit |
+| ---           | ---                                    | ---    | ---  |
+| `create_time` | Guancedb storage create timestamp [^1] | int    | s    |
+| `duration`    | Span duration                          | int    | us   |
+| `message`     | Raw data content                       | string |      |
+| `parent_id`   | Parent ID of span                      | string |      |
+| `priority`    | priority rules                         | string |      |
+| `resource`    | Resource of service                    | string |      |
+| `span_id`     | Span ID                                | string |      |
+| `start`       | Span start timestamp                   | int    | us   |
+| `time`        | Datakit received timestamp             | int    | ns   |
+| `trace_id`    | Trace ID                               | string |      |
 
-Span Type is the relative position of the current span in trace, and its value is described as follows:
+[^1]: This field created by the Guancedb storage, not exist in Datakit side.
 
-- entry: the current api is the first call after the entry of the link into the service
-- local: the current api is the api after the entrance and before the exit
-- exit: the current api is the link's last call on the service
-- unknown: the relative position state of the current api is not clear
+`span_type` is the relative position of the current span in trace, and its value is described as follows:
 
-Priority Rules samples priority rules for clients:
+- `entry`: the current API is the first call after the entry of the link into the service
+- `local`: the current API is the api after the entrance and before the exit
+- `exit`: the current API is the link's last call on the service
+- `unknown`: the relative position state of the current api is not clear
+
+`priority` are samples priority rules for clients:
 
 - `PRIORITY_USER_REJECT = -1` User chooses to reject reporting
 - `PRIORITY_AUTO_REJECT = 0` Client sampler chooses to reject reporting

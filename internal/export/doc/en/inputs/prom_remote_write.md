@@ -113,6 +113,35 @@ In addition, when the renamed tag key is the same as the existing tag key: You c
 
 The standard set is based on the measurements sent by Prometheus.
 
+## Configuring Prometheus Remote Write {#remote-write-relabel}
+
+When using Prometheus to push metrics to Datakit via remote write, an excessive number of metrics may lead to a surge in data on storage. In such cases, we can utilize Prometheus's own relabeling feature to select specific metrics.
+
+To configure `remote_write` to another service and only send a specified list of metrics in Prometheus, we need to set up the `remote_write` section in the Prometheus configuration file (usually `prometheus.yml`) and specify the `match[]` parameter to define the metrics to be sent.
+
+Here is a configuration example showing how to send a specific list of metrics to a remote write endpoint:
+
+```yaml
+remote_write:
+  - url: "http://remote-write-service:9090/api/v1/write"
+    write_relabel_configs:
+      - source_labels: ["__name__"]
+        regex: "my_metric|another_metric|yet_another_metric"
+        action: keep
+```
+
+In this configuration:
+
+- `url`: The URL of the remote write service.
+- `write_relabel_configs`: A list for relabeling and filtering the metrics to be sent.
+    - `source_labels`: Specifies the source labels used for matching and relabeling.
+    - `regex`: A regular expression to match the metric names to be retained.
+    - `action`: Specifies whether to keep (`keep`) or drop (`drop`) the metrics that match the regular expression.
+
+In the example above, only metrics with names matching `my_metric`, `another_metric`, or `yet_another_metric` will be sent to the remote write endpoint. All other metrics will be ignored.
+
+Finally, reload or restart the Prometheus service to apply the changes.
+
 ## Command Line Debug Measurements {#debug}
 
 DataKit provides a simple tool for debugging `prom.conf`. If you constantly adjust the configuration of `prom.conf`, you can achieve the goal of collecting only Prometheus metrics that meet certain name rules.
@@ -186,12 +215,8 @@ Total measurements: 6 (prometheus, promhttp, up, scrape, go, node)
 Output description:
 
 - Line Protocol Points: Generated line protocol points
-
 - Summary: Summary results
-
-  - - Total time series: Number of timelines
-
-  - - Total line protocol points: Line protocol points
-
-  - - Total measurements: The number of measurements and their names.
+    - Total time series: Number of timelines
+    - Total line protocol points: Line protocol points
+    - Total measurements: The number of measurements and their names.
 <!-- markdownlint-enable -->
