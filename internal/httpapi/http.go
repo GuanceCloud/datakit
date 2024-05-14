@@ -213,7 +213,6 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/object/labels", ginLimiter(reqLimiter), apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", ginLimiter(reqLimiter), apiDeleteObjectLabel)
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
-	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 
 	router.GET("/v1/global/host/tags", ginLimiter(reqLimiter), getHostTags)
 	router.POST("/v1/global/host/tags", ginLimiter(reqLimiter), postHostTags)
