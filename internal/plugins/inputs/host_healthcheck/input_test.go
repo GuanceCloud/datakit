@@ -20,8 +20,9 @@ func TestProcess(t *testing.T) {
 	input := defaultInput()
 	input.Interval = "1s"
 	input.Process = []*process{{
-		NamesRegex: []string{"datakit", "sleep"},
-		MinRunTime: "2s",
+		NamesRegex:    []string{"datakit", "sleep"},
+		CmdLinesRegex: []string{"regexp_.*"},
+		MinRunTime:    "2s",
 		processes: map[int32]*processInfo{
 			pid: {
 				pid:  pid,

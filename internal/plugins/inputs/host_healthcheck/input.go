@@ -8,6 +8,7 @@ package healthcheck
 
 import (
 	"encoding/json"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -30,13 +31,16 @@ var (
 )
 
 type process struct {
-	Names      []string `toml:"names" json:"names"`             // process names
-	NamesRegex []string `toml:"names_regex" json:"names_regex"` // process names regex
-	MinRunTime string   `toml:"min_run_time" json:"min_run_time"`
+	Names         []string `toml:"names" json:"names"`             // process names
+	NamesRegex    []string `toml:"names_regex" json:"names_regex"` // process names regex
+	MinRunTime    string   `toml:"min_run_time" json:"min_run_time"`
+	CmdLines      []string `toml:"cmd_lines" json:"cmd_lines"`
+	CmdLinesRegex []string `toml:"cmd_lines_regex" json:"cmd_lines_regex"`
 
-	namesRegex []*regexp.Regexp
-	minRunTime time.Duration
-	processes  map[int32]*processInfo
+	namesRegex    []*regexp.Regexp
+	cmdLinesRegex []*regexp.Regexp
+	minRunTime    time.Duration
+	processes     map[int32]*processInfo
 }
 
 type tcp struct {
@@ -106,6 +110,14 @@ func (ipt *Input) initConfig() {
 			}
 		}
 
+		for _, v := range process.CmdLinesRegex {
+			if r, err := regexp.Compile(v); err != nil {
+				l.Warnf("regexp compile(%s) error: %s, ignored", v, err.Error())
+			} else {
+				process.cmdLinesRegex = append(process.cmdLinesRegex, r)
+			}
+		}
+
 		// parse min run time and set default
 		if process.MinRunTime != "" {
 			if du, err := time.ParseDuration(process.MinRunTime); err != nil {
@@ -118,7 +130,10 @@ func (ipt *Input) initConfig() {
 			process.minRunTime = 10 * time.Minute
 		}
 
-		if len(process.namesRegex) == 0 && len(process.Names) == 0 {
+		if len(process.namesRegex) == 0 &&
+			len(process.Names) == 0 &&
+			len(process.CmdLines) == 0 &&
+			len(process.cmdLinesRegex) == 0 {
 			continue
 		}
 
@@ -159,7 +174,7 @@ func (ipt *Input) initConfig() {
 		}
 
 		// remove empty url
-		http.HTTPURLs = filterEmptyValues(http.HTTPURLs)
+		http.HTTPURLs = filterHTTPEmptyValues(http.HTTPURLs)
 
 		if len(http.HTTPURLs) == 0 {
 			continue
@@ -304,7 +319,21 @@ func filterEmptyValues(list []string) []string {
 	filterList := []string{}
 
 	for _, v := range list {
-		if v == "" {
+		if len(v) == 0 {
+			continue
+		}
+		filterList = append(filterList, v)
+	}
+
+	return filterList
+}
+
+func filterHTTPEmptyValues(list []string) []string {
+	filterList := []string{}
+
+	for _, v := range list {
+		if _, err := url.Parse(v); err != nil {
+			l.Warnf("parse URL failed: %s, ignore this check", err.Error())
 			continue
 		}
 		filterList = append(filterList, v)
