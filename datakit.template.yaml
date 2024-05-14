@@ -135,16 +135,23 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
         - name: ENV_K8S_NODE_IP
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: status.hostIP
+
         - name: ENV_K8S_NODE_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
+
         - name: ENV_DATAWAY
           value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
         - name: ENV_CLUSTER_NAME_K8S

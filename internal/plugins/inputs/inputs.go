@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/usagetrace"
 )
 
 const (
@@ -313,6 +314,9 @@ func RunInputs() error {
 
 	envs := getEnvs()
 
+	usagetrace.ClearInputNames()
+	var utOpts []usagetrace.UsageTraceOption
+
 	for name, arr := range InputsInfo {
 		if len(arr) > 1 {
 			if _, ok := arr[0].input.(Singleton); ok {
@@ -321,6 +325,10 @@ func RunInputs() error {
 		}
 
 		inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
+
+		// For each input, only add once
+		utOpts = append(utOpts, usagetrace.WithInputNames(name))
+
 		for _, ii := range arr {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -350,7 +358,7 @@ func RunInputs() error {
 
 						protectRunningInput(name, ii)
 
-						l.Infof("input %s exited", name)
+						l.Infof("input %s exited, this maybe a input that only register a HTTP handle", name)
 						return nil
 					case <-datakit.Exit.Wait():
 						l.Infof("start input %s interrupted", name)
@@ -360,6 +368,9 @@ func RunInputs() error {
 			}(name, ii)
 		}
 	}
+
+	// Notify datakit usage all the started inputs.
+	usagetrace.UpdateTraceOptions(utOpts...)
 	return nil
 }
 

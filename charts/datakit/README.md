@@ -24,7 +24,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
  ```shell
 $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
  
-$ helm install datakit datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$ helm install datakit datakit/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" --create-namespace 
  ```
 
 ​	The command deploys DataKit on the Kubernetes cluster in the default configuration.
@@ -37,7 +37,7 @@ $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://ope
     ```
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
     
-    $helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" \
+    $helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
     --create-namespace 
     ```
@@ -47,7 +47,7 @@ $ helm install datakit datakit/datakit -n datakit --set dataway_url="https://ope
     ```
     $ helm repo add datakit https://pubrepo.guance.com/chartrepo/datakit
     
-    $ helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<your-token>"  \
+    $ helm install datakit datakit/datakit -n datakit --set git_repos.enable=true  --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>"  \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
     --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
     --create-namespace 
@@ -67,7 +67,7 @@ $ helm uninstall datakit -n datakit
 | `image.repository`                | The DataKit Docker image                                                                                                                                                           | `pubrepo.guance.com/chartrepo/datakit`                                  | `true`               |
 | `image.pullPolicy`                | The Kubernetes [imagePullPolicy][] value                                                                                                                                           | `IfNotPresent`                                                          |                      |
 | `image.tag`                       | The DataKit Docker image tag                                                                                                                                                       | `""`                                                                    |                      |
-| `datakit.dataway_url`             | The DataWay url, contain`TOKEN`                                                                                                                                                    | `https://openway.guance.com?token=<your-token>`                         | `true`               |
+| `datakit.dataway_url`             | The DataWay url, contain`TOKEN`                                                                                                                                                    | `https://openway.guance.com?token=<YOUR-TOKEN>`                         | `true`               |
 | `datakit.global_tags`             | It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)              | `host=__datakit_hostname,host_ip=__datakit_ip`                          |                      |
 | `datakit.default_enabled_inputs`  | The default open collector list, format example: input1, input2, input3                                                                                                            | cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container |                      |
 | `datakit.enabled_election`        | When the election is enabled, it is not enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)    | `enable`                                                                |                      |

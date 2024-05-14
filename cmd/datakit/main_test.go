@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	giturls "github.com/whilp/git-urls"
 )
 
@@ -22,6 +23,78 @@ func TestGitURL(t *testing.T) {
 	}
 	t.Log(u.Scheme)
 	t.Log(u.User.Password())
+}
+
+func TestGetCPUMax(t *testing.T) {
+	getNumCPU = func() int { return 4 }
+
+	testcases := []struct {
+		inQuota, inPeriod string
+		fail              bool
+		value             float64
+	}{
+		{
+			inQuota:  "100000",
+			inPeriod: "100000",
+			value:    1,
+		},
+		{
+			inQuota:  "800000",
+			inPeriod: "100000",
+			value:    4, // max NumCPU
+		},
+		{
+			inQuota:  "800000",
+			inPeriod: "200000",
+			value:    4,
+		},
+		{
+			inQuota:  "max",
+			inPeriod: "100000",
+			value:    4,
+		},
+		{
+			inQuota:  "-1",
+			inPeriod: "100000",
+			value:    4,
+		},
+		{
+			inQuota:  "invalid",
+			inPeriod: "",
+			fail:     true,
+		},
+		{
+			inQuota:  "",
+			inPeriod: "invalid",
+			fail:     true,
+		},
+		{
+			inQuota:  "0",
+			inPeriod: "100000",
+			fail:     true,
+		},
+		{
+			inQuota:  "-100000",
+			inPeriod: "100000",
+			fail:     true,
+		},
+		{
+			inQuota:  "100000",
+			inPeriod: "0",
+			fail:     true,
+		},
+	}
+
+	for _, tc := range testcases {
+		res, err := parseCurrentCPUMax(tc.inQuota, tc.inPeriod)
+		if tc.fail {
+			assert.Error(t, err)
+			continue
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, tc.value, res)
+	}
 }
 
 // Uncomment this if want to test git clone for really

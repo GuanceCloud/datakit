@@ -33,7 +33,7 @@ const (
 
 type ResourceLimitOptions struct {
 	Path   string  `toml:"path"`
-	CPUMax float64 `toml:"cpu_max"`
+	CPUMax float64 `toml:"cpu_max"` // CPU usage percent(max is 100)
 	MemMax int64   `toml:"mem_max_mb"`
 
 	DisableOOM bool `toml:"disable_oom,omitempty"`

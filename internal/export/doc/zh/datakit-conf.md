@@ -268,6 +268,23 @@ $ systemctl status datakit
     Datakit 自 [1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
 <!-- markdownlint-enable -->
 
+#### Datakit 用量计量标准 {#dk-usage-count}
+
+[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)
+
+为了规范 Datakit 用量统计，现对 Datakit 的逻辑计量方法进行如下说明：
+
+- 如果没有开启以下这些采集器，则 Datakit 逻辑计量个数为 1
+- 如果 Datakit 运行时长（中间断档不超过 30 分钟）超过 12 小时，则参与计量，否则不参与计量
+- 对于以下开启的采集器，按照 Datakit [当前配置的 CPU 核心数](datakit-cond.md#resource-limit)进行计量，最小值为 1，最大值为物理 CPU 核数 [^1]，小数点按照四舍五入规则取整：
+    - [RUM 采集器](../integrations/rum.md)
+    - 通过 [TCP/UDP 收取日志数据的采集器](../integrations/logging.md##socket)
+    - 通过 [kafkamq 采集器](../integrations/kafkamq.md)同步日志/指标/RUM 等数据的采集器
+    - 通过 [prom_remote_write 采集器](../integrations/prom_remote_write.md)同步 Prometheus 指标的采集器
+    - 通过 [beats_output](beats_output.md) 同步日志数据的采集器
+
+通过上述规则，可以更加合理地反映 Datakit 的实际使用情况，为用户提供更加透明、公平的计费方式。
+
 ### 选举配置 {#election}
 
 参见[这里](election.md#config)
@@ -313,3 +330,5 @@ CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU �
 - [DataKit 宿主机安装](datakit-install.md)
 - [DataKit DaemonSet 安装](datakit-daemonset-deploy.md)
 - [DataKit 行协议过滤器](datakit-filter.md)
+
+[^1]: 如果没有配置 CPU 限额，则 N 取物理机/Node 的 CPU 核心数
