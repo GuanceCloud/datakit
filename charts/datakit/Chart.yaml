@@ -1,19 +1,32 @@
+apiVersion: v2
+name: datakit
+description: Chart for the DaemonSet Datakit
 annotations:
   catalog.cattle.io/certified: partner # Enables the "partner" badge in the UI for easier identification
   catalog.cattle.io/release-name: datakit # Your chart's name in kebab-case, this is used for deployment
-  catalog.cattle.io/display-name: DataKit # The chart's name you want displayed in the UI
-apiVersion: v2
+  catalog.cattle.io/display-name: Datakit # The chart's name you want displayed in the UI
+type: application
+
 appVersion: 1.4.19
-description: Chart for the DaemonSet DataKit
-home: http://www.guance.com
-icon: https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-icon-white-bg.png
+version: 1.2.10
+
+home: https://www.guance.com
+icon: https://static.guance.com/images/datakit/datakit-icon-white-bg.png
+
 keywords:
-- Observable
+- Observability
+
 maintainers:
 - email: tanbiao@jiagouyun.com
-  name: coanor
-name: datakit
+  name: tanbiao
+
 sources:
 - https://github.com/GuanceCloud/datakit
-type: application
-version: 1.2.10
+
+dependencies:
+- condition: kubeStateMetricsEnabled
+  name: kube-state-metrics
+  repository: file://./charts/kube-state-metrics
+- condition: MetricsServerEnabled
+  name: metrics-server
+  repository: file://./charts/metrics-server

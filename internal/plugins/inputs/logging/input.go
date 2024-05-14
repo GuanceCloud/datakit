@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/usagetrace"
 )
 
 const (
@@ -198,6 +199,9 @@ func (ipt *Input) Run() {
 		} else {
 			l.Infof("new socket logging")
 			ipt.process = append(ipt.process, socker)
+
+			// notify usage tracer the new server started.
+			usagetrace.UpdateTraceOptions(usagetrace.WithServerListens(ipt.Sockets...))
 		}
 	} else {
 		l.Warn("socket len=0")

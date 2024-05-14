@@ -43,7 +43,7 @@ const (
 
 	// TODO: If you add a category, please add the relevant content in the function CategoryList.
 
-	// data category, aka API /v1/write/category.
+	// data category, aka API /v1/write/:category.
 	MetricDeprecated    = "/v1/write/metrics"
 	Metric              = "/v1/write/metric"
 	Network             = "/v1/write/network"
@@ -57,7 +57,6 @@ const (
 	Security            = "/v1/write/security"
 	Profiling           = "/v1/write/profiling"  // write profiling metadata.
 	ProfilingUpload     = "/v1/upload/profiling" // upload profiling binary.
-	TokenCheck          = "/v1/check/token"
 
 	DynamicDatawayCategory = "dynamicDatawayCategory"
 
@@ -86,6 +85,8 @@ const (
 	LogFilter         = "/v2/logfilter/pull" // deprecated
 	DatakitPull       = "/v1/datakit/pull"
 	ListDataWay       = "/v2/list/dataway"
+	TokenCheck        = "/v1/check/token"
+	UsageTrace        = "/v1/datakit/usage_trace"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"

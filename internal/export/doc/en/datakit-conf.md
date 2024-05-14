@@ -268,6 +268,23 @@ $ systemctl status datakit
     Datakit supports cgroup V2 from version [1.5.8](changelog.md#cl-1.5.8). If you are unsure of the cgroup version, you can use this command `mount | grep cgroup` to check.
 <!-- markdownlint-enable -->
 
+#### Datakit Usage Metering Standards {#dk-usage-count}
+
+[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)
+
+To standardize the statistical measurement of Datakit usage, the following clarification is provided for the logical measurement method of Datakit:
+
+- If none of the following collectors are enabled, then the logical measurement count for Datakit is 1.
+- If the runtime of Datakit (with no more than a 30-minute interruption) exceeds 12 hours, it is counted for metering; otherwise, it is not counted.
+- For the following enabled collectors, the measurement is based on the [current configured number of CPU cores](datakit-cond.md#resource-limit) of Datakit, with a minimum value of 1 and a maximum value equal to the number of physical CPU cores [^1], rounding up any fractional part according to the rounding rules:
+    - [RUM Collector](../integrations/rum.md)
+    - Collectors that receive log data via [TCP/UDP](../integrations/logging.md##socket)
+    - Collectors that synchronize logs/metrics/RUM, etc., data via [kafkamq Collector](../integrations/kafkamq.md)
+    - Collectors that synchronize Prometheus metrics via [prom_remote_write Collector](../integrations/prom_remote_write.md)
+    - Collectors that synchronize log data via [beats_output](beats_output.md)
+
+With these rules, it is possible to more accurately reflect the actual usage of Datakit, providing users with a more transparent and fair billing method.
+
 ### Election Configuration {#election}
 
 See [here](election.md#config)
@@ -395,3 +412,5 @@ CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if 
 - [DataKit host installation](datakit-install.md)
 - [DataKit DaemonSet installation](datakit-daemonset-deploy.md)
 - [DataKit line protocol filter](datakit-filter.md)
+
+[^1]: If the resource limit on CPU not set, then N use the machine/node CPU cores

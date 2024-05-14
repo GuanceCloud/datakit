@@ -182,6 +182,8 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 				ep.host,
 				api)
 		}
+
+		log.Infof("endpoint regist dataway API %q ok", api)
 	}
 
 	switch ep.scheme {

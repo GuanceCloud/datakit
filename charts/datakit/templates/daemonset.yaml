@@ -27,6 +27,10 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: HOST_IP
               valueFrom:
                 fieldRef:

@@ -13,7 +13,7 @@ before_script:
 variables:
   PROJECT: "datakit"
   CI_VERSION: "1.28.1"
-  TEST_VERSION: "1.999.0"
+  CI_TESTING_VERSION: "1.29.0-testing"
   DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
 
@@ -44,7 +44,7 @@ ci_lint_and_ut:
   tags:
     - cloudcare-ft
 
-test-datakit-production:
+ut-datakit-production:
   stage: test
   resource_group: production
   only:
@@ -59,7 +59,7 @@ test-datakit-production:
   tags:
     - cloudcare-ft
 
-test-datakit-testing:
+ut-datakit-testing:
   stage: test
   resource_group: production
   only:
@@ -68,7 +68,7 @@ test-datakit-testing:
   script:
     - nvm use v16.14.0
     - make clean
-    - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
     #- make lint AUTO_FIX=off
     #- make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
@@ -77,35 +77,35 @@ test-datakit-testing:
 release-ebpf-amd64-testing:
   stage: deploy_ebpf
   resource_group: production
-  needs: [test-datakit-testing]
+  needs: [ut-datakit-testing]
   image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
   script:
     - make clean
-    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft-docker
 
 release-ebpf-aarch64-testing:
   stage: deploy_ebpf
   resource_group: production
-  needs: [test-datakit-testing]
+  needs: [ut-datakit-testing]
   image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
   only:
     - testing
     - /^testing-.*$/
   script:
     - make clean
-    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
   tags:
     - dk-arm-docker-runner
 
 release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
-  needs: [test-datakit-production]
+  needs: [ut-datakit-production]
   image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
@@ -119,7 +119,7 @@ release-ebpf-amd64-production:
 release-ebpf-aarch64-production:
   stage: deploy_ebpf
   resource_group: production
-  needs: [test-datakit-production]
+  needs: [ut-datakit-production]
   image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
   only:
     - master
@@ -135,7 +135,7 @@ release-testing:
   resource_group: production
   needs:
     [
-      test-datakit-testing,
+      ut-datakit-testing,
       release-ebpf-amd64-testing,
       release-ebpf-aarch64-testing,
     ]
@@ -145,9 +145,9 @@ release-testing:
   script:
     # building && publish testing
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true # do not set VERSION here, use git version
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
     - make check_testing_conf_compatible
-    - make testing_image IGN_EBPF_INSTALL_ERR=1
+    - make testing_image IGN_EBPF_INSTALL_ERR=1 VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft
 
@@ -156,7 +156,7 @@ release-stable:
   resource_group: production
   needs:
     [
-      test-datakit-production,
+      ut-datakit-production,
       release-ebpf-amd64-production,
       release-ebpf-aarch64-production,
     ]
@@ -181,8 +181,8 @@ current-testing:
     - /^xxx-.*$/
   script:
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$TEST_VERSION"
-    - make testing_image VERSION="$TEST_VERSION"
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
+    - make testing_image VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft
 

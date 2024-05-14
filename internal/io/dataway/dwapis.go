@@ -22,6 +22,48 @@ type checkTokenResult struct {
 	Message   string `json:"message"`
 }
 
+func (dw *Dataway) UsageTrace(body []byte) error {
+	if len(dw.eps) == 0 {
+		return fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.UsageTrace]
+	if !ok {
+		return fmt.Errorf("no workspace query URL available")
+	}
+
+	log.Debugf("NewRequest: %s", requrl)
+	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := ep.sendReq(req)
+	if err != nil {
+		return err
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+	switch resp.StatusCode / 100 {
+	case 2:
+		log.Debugf("usage trace refresh ok")
+		return nil
+	default:
+		return fmt.Errorf("usage trace refresh failed(status: %d): %s", resp.StatusCode, string(respBody))
+	}
+}
+
 func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if len(dw.eps) == 0 {
 		return nil, fmt.Errorf("no dataway available")

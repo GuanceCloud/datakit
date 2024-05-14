@@ -8,7 +8,7 @@ datakit:
   ## Datakit will send the indicator data to dataway. Please be sure to change the parameters
   ## @param dataway_url - string - optional - default: 'https://guance.com'
   ## The host of the DataKit intake server to send Agent data to, only set this option
-  dataway_url: https://openway.guance.com?token=<your-token>
+  dataway_url: https://openway.guance.com?token=<YOUR-Token>
   ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
   ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip

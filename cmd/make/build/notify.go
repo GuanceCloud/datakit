@@ -162,6 +162,69 @@ func NotifyBuildDone() {
 	notify(NotifyToken, bytes.NewBufferString(CIPassNotifyMsg))
 }
 
+func buildNotifyContent(ver, cdn, release string, archs []string) string {
+	x := []string{
+		fmt.Sprintf(`{{.Uploader}} 发布了 Datakit %d 个平台测试版({{.Version}})`, len(archs)),
+	}
+
+	for _, arch := range archs {
+		x = append(x, "") // empty line
+		x = append(x, fmt.Sprintf("### %s 安装/升级：", arch))
+
+		p := &export.Params{}
+
+		platform := ""
+		switch arch {
+		case `linux/386`,
+			`linux/amd64`,
+			`linux/arm`,
+			`linux/arm64`,
+			`darwin/amd64`:
+			platform = "unix"
+			x = append(x, "``` shell")
+
+		case "windows/amd64",
+			"windows/386":
+			platform = "windows"
+			x = append(x, "``` powershell")
+
+		default: // other platform not support
+			return ""
+		}
+
+		x = append(x, "# install")
+
+		x = append(x, export.InstallCommand(
+			p.WithPlatform(platform),
+			p.WithSourceURL("https://"+cdn),
+			p.WithJSON(true),
+			p.WithVersion("-"+ver),
+		).String())
+
+		x = append(x, "") // empty line between install and upgrade command
+
+		x = append(x, "# upgrade")
+		x = append(x, export.InstallCommand(
+			p.WithUpgrade(true),
+			p.WithPlatform(platform),
+			p.WithSourceURL("https://"+cdn),
+			p.WithJSON(true),
+			p.WithVersion("-"+ver),
+		).String())
+
+		x = append(x, "```")
+	}
+
+	// under testing release, add k8s daemonset yaml
+	if release == ReleaseTesting {
+		x = append(x, "") // empty line
+		x = append(x, "### Kubernetes DaemonSet 安装")
+		x = append(x, k8sDaemonsetTemplete)
+	}
+
+	return strings.Join(x, "\n")
+}
+
 func NotifyPubDone() {
 	if NotifyToken == "" {
 		return
@@ -178,57 +241,7 @@ func NotifyPubDone() {
 	switch ReleaseType {
 	case ReleaseLocal, ReleaseTesting:
 
-		content := func() []string {
-			x := []string{
-				fmt.Sprintf(`{{.Uploader}} 发布了 Datakit %d 个平台测试版({{.Version}})`, len(curArchs)),
-			}
-			for _, arch := range curArchs {
-				x = append(x, "--------------------------")
-				x = append(x, fmt.Sprintf("%s 安装/升级：", arch))
-
-				p := &export.Params{}
-
-				platform := ""
-				switch arch {
-				case `linux/386`,
-					`linux/amd64`,
-					`linux/arm`,
-					`linux/arm64`,
-					`darwin/amd64`:
-					platform = "unix"
-
-				case "windows/amd64",
-					"windows/386":
-					platform = "windows"
-				}
-
-				x = append(x, export.InstallCommand(
-					p.WithPlatform(platform),
-					p.WithSourceURL("https://"+DownloadCDN),
-					p.WithJSON(true),
-					p.WithVersion("-"+ReleaseVersion),
-				).String())
-
-				x = append(x, "\n")
-
-				x = append(x, export.InstallCommand(
-					p.WithUpgrade(true),
-					p.WithPlatform(platform),
-					p.WithSourceURL("https://"+DownloadCDN),
-					p.WithJSON(true),
-					p.WithVersion("-"+ReleaseVersion),
-				).String())
-			}
-
-			// under testing release, add k8s daemonset yaml
-			if ReleaseType == ReleaseTesting {
-				x = append(x, "--------------------------")
-				x = append(x, "Kubernetes DaemonSet 安装")
-				x = append(x, k8sDaemonsetTemplete)
-			}
-
-			return x
-		}()
+		content := buildNotifyContent(ReleaseVersion, DownloadCDN, ReleaseType, curArchs)
 
 		notifyNewVersion := fmt.Sprintf(`
 {
@@ -236,7 +249,7 @@ func NotifyPubDone() {
 	"text": {
 		"content": "%s"
 	}
-}`, strings.Join(content, "\n"))
+}`, content)
 
 		var buf bytes.Buffer
 		t, err := template.New("").Parse(notifyNewVersion)
@@ -252,7 +265,6 @@ func NotifyPubDone() {
 		notify(NotifyToken, &buf)
 
 	case ReleaseProduction:
-
 		l.Debugf("NotifyPubDone for release...")
 		notify(NotifyToken, bytes.NewBufferString(CIOnlineNewVersion))
 	}

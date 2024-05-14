@@ -383,7 +383,10 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 	tryTLS := apiServer.apiConfig.HTTPSEnabled()
 	for {
 		if tryTLS {
-			l.Infof("try start server with tls at %s cert: %s privkey: %s", srv.Addr, apiServer.apiConfig.TLSConf.Cert, apiServer.apiConfig.TLSConf.PrivKey)
+			l.Infof("try start server with tls at %s cert: %s privkey: %s",
+				srv.Addr,
+				apiServer.apiConfig.TLSConf.Cert,
+				apiServer.apiConfig.TLSConf.PrivKey)
 			if err = srv.ServeTLS(listener, apiServer.apiConfig.TLSConf.Cert, apiServer.apiConfig.TLSConf.PrivKey); err != nil {
 				l.Warn(err.Error())
 			}
