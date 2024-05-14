@@ -7,6 +7,7 @@ package healthcheck
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -22,6 +23,7 @@ type processInfo struct {
 	pid           int32
 	name          string
 	startDuration time.Duration
+	cmdLine       string
 }
 
 func (ipt *Input) collectProcess() error {
@@ -40,6 +42,7 @@ func (ipt *Input) collectProcess() error {
 				var kvs point.KVs
 				kvs = kvs.Add("type", "missing", true, true)
 				kvs = kvs.Add("process", oldInfo.name, true, true)
+				kvs = kvs.Add("cmd_line", oldInfo.cmdLine, true, true)
 				kvs = kvs.Add("start_duration", oldInfo.startDuration.Microseconds(), false, true)
 				kvs = kvs.Add("pid", oldPid, false, true)
 				kvs = kvs.Add("exception", true, false, true)
@@ -60,32 +63,44 @@ func (ipt *Input) collectProcess() error {
 	return nil
 }
 
+// isMatched checks whether the target string is matched with the given string or regex.
+func isMatchedString(target string, str []string, strRegex []*regexp.Regexp) bool {
+	// check str
+	for _, v := range str {
+		if v == target {
+			return true
+		}
+	}
+
+	// check regexp
+	for _, v := range strRegex {
+		if v.MatchString(target) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getMatchedProcess(pses []*pr.Process, p *process) (processMap map[int32]*processInfo) {
 	processMap = make(map[int32]*processInfo)
 
 	for _, ps := range pses {
+		matched := false
+		// check name
 		name, err := ps.Name()
 		if err != nil {
 			l.Warnf("ps.Name: %s", err)
-			continue
-		}
-		matched := false
-
-		// check name
-		for _, v := range p.Names {
-			if v == name {
-				matched = true
-				break
-			}
+		} else {
+			matched = isMatchedString(name, p.Names, p.namesRegex)
 		}
 
-		// check regexp
-		if !matched {
-			for _, v := range p.namesRegex {
-				if v.MatchString(name) {
-					matched = true
-				}
-			}
+		// check cmd line
+		cmdLine, err := ps.Cmdline()
+		if err != nil {
+			l.Warnf("ps.Cmdline for process [%s]: %s", name, err.Error())
+		} else if !matched {
+			matched = isMatchedString(cmdLine, p.CmdLines, p.cmdLinesRegex)
 		}
 
 		if !matched {
@@ -103,6 +118,7 @@ func getMatchedProcess(pses []*pr.Process, p *process) (processMap map[int32]*pr
 				pid:           ps.Pid,
 				name:          name,
 				startDuration: startDuration,
+				cmdLine:       cmdLine,
 			}
 		}
 	}

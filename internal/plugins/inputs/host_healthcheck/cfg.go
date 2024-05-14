@@ -23,8 +23,14 @@ const (
     # Process filtering based on process name
     names = ["nginx", "mysql"]
 
-    ## Process filtering based on regular expression 
+    # Process filtering based on regular expression 
     # names_regex = [ "my_process_.*" ]
+
+    # Process filtering based on cmd line
+    # cmd_lines = ["nginx", "mysql"]
+
+    # Process filtering based on regular expression 
+    # cmd_lines_regex = [ "my_args_.*" ]
 
     ## Process minimal run time
     # Only check the process when the running time of the process is greater than min_run_time
@@ -41,7 +47,7 @@ const (
   ## Check HTTP
   # [[inputs.host_healthcheck.http]]
       ## HTTP urls
-      # http_urls = [ "http://local-ip:port/path/to/api?arg1=x&arg2=y" ]
+      # http_urls = [ "http://127.0.0.1:8000/path/to/api?arg1=x&arg2=y" ]
 
       ## HTTP method
       # method = "GET"
@@ -76,14 +82,15 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 		Name: processMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value"),
+			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
 			"pid":            newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.Int, "The process ID"),
 			"start_duration": newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationUS, "The total time the process has run"),
 		},
 		Tags: map[string]interface{}{
-			"type":    inputs.NewTagInfo("The type of the exception"),
-			"process": inputs.NewTagInfo("The name of the process"),
-			"host":    inputs.NewTagInfo("System hostname"),
+			"type":     inputs.NewTagInfo("The type of the exception"),
+			"process":  inputs.NewTagInfo("The name of the process"),
+			"host":     inputs.NewTagInfo("System hostname"),
+			"cmd_line": inputs.NewTagInfo("The command line of the process"),
 		},
 	}
 }
@@ -96,7 +103,7 @@ func (m *TCPMetric) Info() *inputs.MeasurementInfo {
 		Name: tcpMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value"),
+			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
 		},
 		Tags: map[string]interface{}{
 			"type": inputs.NewTagInfo("The type of the exception"),
@@ -114,7 +121,7 @@ func (m *HTTPMetric) Info() *inputs.MeasurementInfo {
 		Name: httpMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value"),
+			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
 		},
 		Tags: map[string]interface{}{
 			"url":   inputs.NewTagInfo("The URL"),
