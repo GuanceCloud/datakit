@@ -38,7 +38,8 @@ type dialer struct {
 	failCnt              int
 
 	updateCh chan dt.Task
-	done     <-chan interface{}
+	done     <-chan interface{} // input exit signal
+	stopCh   chan interface{}   // dialer stop signal
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
@@ -56,6 +57,12 @@ func (d *dialer) stop() {
 	if err := d.task.Stop(); err != nil {
 		l.Warnf("stop task %s failed: %s", d.task.ID(), err.Error())
 	}
+}
+
+// exit stop the dialer.
+func (d *dialer) exit() {
+	d.stop()
+	close(d.stopCh)
 }
 
 func newDialer(t dt.Task, ipt *Input) *dialer {
@@ -80,6 +87,7 @@ func newDialer(t dt.Task, ipt *Input) *dialer {
 		class:                t.Class(),
 		taskExecTimeInterval: ipt.taskExecTimeInterval,
 		ipt:                  ipt,
+		stopCh:               make(chan interface{}),
 	}
 }
 
@@ -193,6 +201,10 @@ func (d *dialer) run() error {
 
 		case <-d.ticker.C:
 
+		case <-d.stopCh:
+			l.Infof("stop dial testing %s, exit", d.task.ID())
+			return nil
+
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
 
@@ -214,10 +226,15 @@ func (d *dialer) checkInternalNetwork() error {
 	hostName, err := d.task.GetHostName()
 	if err != nil {
 		l.Warnf("get host name error: %s", err.Error())
-	} else if d.ipt.DisableInternalNetworkTask &&
-		httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList) {
-		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
-		return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+		return fmt.Errorf("get host name error: %w", err)
+	} else if d.ipt.DisableInternalNetworkTask {
+		if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
+			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_valid").Inc()
+			return fmt.Errorf("dest host is not valid: %w", err)
+		} else if isInternal {
+			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
+			return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+		}
 	}
 
 	return nil

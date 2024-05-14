@@ -671,7 +671,7 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, err
 	default:
 		l.Warnf("request %s failed(%s): %s", ipt.Server, resp.Status, string(body))
 		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
-			// stop all
+			// s
 			ipt.stopAlltask()
 		}
 		return nil, resp.StatusCode / 100, fmt.Errorf("pull task failed")
@@ -722,7 +722,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 func (ipt *Input) stopAlltask() {
 	ipt.curTasks.Range(func(key, value any) bool {
 		dialer := value.(*dialer)
-		dialer.stop()
+		dialer.exit()
 		ipt.curTasks.Delete(key)
 		return true
 	})

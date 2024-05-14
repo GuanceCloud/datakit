@@ -163,6 +163,20 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "192.168.0.1"),
 		},
 		{
+			name: "test internal host - illegal host",
+			t: &dialtestingDebugRequest{
+				TaskType: "http",
+				Task: &dt.HTTPTask{
+					URL: "http://①0.43.239.255:5000",
+				},
+			},
+			hook: func() {
+				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
+			},
+			errInit:   nil,
+			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", "lookup ip failed: lookup ①0.43.239.255: no such host"),
+		},
+		{
 			name: "test internal host cidrs",
 			t: &dialtestingDebugRequest{
 				TaskType: "ICMP",
@@ -223,11 +237,19 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 
 	for _, tc := range httpCases {
 		t.Run(tc.name, func(t *testing.T) {
-			os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK")
-			os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST")
+			defer func() {
+				os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK")
+				os.Unsetenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST")
+
+				DialtestingDisableInternalNetworkTask = false
+				DialtestingEnableDebugAPI = false
+				DialtestingDisabledInternalNetworkCidrList = []string{}
+			}()
+
 			if tc.hook != nil {
 				tc.hook()
 			}
+			parseDialtestingEnvs()
 			var w http.ResponseWriter
 			errInit = tc.errInit
 			errRun = tc.errRun

@@ -31,6 +31,7 @@ monitor   :
 | :------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------- |
 | `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK`      |  `true`             | 是否开启，默认不开启                |
 | `ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST`      |  `["192.168.0.0/16"]`             | 禁止拨测的网络 CIDR 列表，支持多个。如果为空，则所有私有网段都禁用|
+| `ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API`      |  `false`             | 是否开启拨测调试接口 |
 
 ### 私有拨测节点部署 {#private-deploy}
 

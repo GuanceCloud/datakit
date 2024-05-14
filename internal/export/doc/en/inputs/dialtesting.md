@@ -32,6 +32,7 @@ By default, the dialtesting service can dial up any network, which may pose cert
 | :----------------------------- | ------------------ | ------------ |
 | `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK`      |  `true`             | Enable or disable internal network dialing test. Default is `false`|
 | `ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST`      |  `["192.168.0.0/16"]`             | List of network CIDRs that prohibit testing, which supports multiple entries. If left empty, all private networks will be disabled. |
+| `ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API`      |  `false`             | Enable or disable the debug API. |
 
 ### Private Test Node Deployment {#private-deploy}
 
