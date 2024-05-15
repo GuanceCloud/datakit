@@ -41,16 +41,14 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
           port
           path
           tlsConfig
-              caFile
-              certFile
-              keyFile
+              insecureSkipVerify
       params
     - namespaceSelector:
         any
         matchNames
 ```
 
-Note: The `tlsConfig` only supports configuring certificate paths, not Secret and ConfigMap. Need to mount the certificate to the same path in the Datakit container.
+Note: The `tlsConfig` only supports configuring insecureSkipVerify, it does not support getting certificates from Kubernetes Secret/ConfigMap.
 
 ## Examples {#example}
 

@@ -6,6 +6,7 @@
 package discovery
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -33,11 +34,9 @@ type promConfig struct {
 	MeasurementName        string       `toml:"measurement_name" json:"measurement_name"`
 	Measurements           []iprom.Rule `toml:"measurements" json:"measurements"`
 
-	TLSOpen    bool   `toml:"tls_open" json:"tls_open"`
-	UDSPath    string `toml:"uds_path" json:"uds_path"`
-	CacertFile string `toml:"tls_ca" json:"tls_ca"`
-	CertFile   string `toml:"tls_cert" json:"tls_cert"`
-	KeyFile    string `toml:"tls_key" json:"tls_key"`
+	TLSOpen   bool   `toml:"tls_open" json:"tls_open"`
+	UDSPath   string `toml:"uds_path" json:"uds_path"`
+	tlsConfig *tls.Config
 
 	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
@@ -106,10 +105,10 @@ func withTags(tags map[string]string) promOption {
 	}
 }
 
-func WithTLSOpen(b bool) promOption        { return func(c *promConfig) { c.TLSOpen = b } }
-func WithCacertFile(str string) promOption { return func(c *promConfig) { c.CacertFile = str } }
-func WithCertFile(str string) promOption   { return func(c *promConfig) { c.CertFile = str } }
-func WithKeyFile(str string) promOption    { return func(c *promConfig) { c.KeyFile = str } }
+func WithTLSOpen(b bool) promOption { return func(c *promConfig) { c.TLSOpen = b } }
+func WithTLSConfig(tlsConfig *tls.Config) promOption {
+	return func(c *promConfig) { c.tlsConfig = tlsConfig }
+}
 
 func withLabelAsTags(m map[string]string, keys []string) promOption {
 	return func(c *promConfig) {

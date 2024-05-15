@@ -8,6 +8,7 @@ package prom
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -57,10 +58,7 @@ func (opt *option) GetSource(defaultSource ...string) string {
 	return "prom" //nolint:goconst
 }
 
-const (
-	httpTimeout               = time.Second * 3
-	defaultInsecureSkipVerify = false
-)
+const httpTimeout = time.Second * 3
 
 type Prom struct {
 	opt      *option
@@ -105,25 +103,9 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 	cliopts.DialTimeout = opt.timeout
 	cliopts.DialKeepAlive = opt.keepAlive
 
-	if opt.tlsOpen {
-		caCerts := []string{}
-		insecureSkipVerify := defaultInsecureSkipVerify
-		if len(opt.cacertFile) != 0 {
-			caCerts = append(caCerts, opt.cacertFile)
-		} else {
-			insecureSkipVerify = true
-		}
-		tc := &dnet.TLSClientConfig{
-			CaCerts:            caCerts,
-			Cert:               opt.certFile,
-			CertKey:            opt.keyFile,
-			InsecureSkipVerify: insecureSkipVerify,
-		}
-
-		tlsConfig, err := tc.TLSConfig()
-		if err != nil {
-			return nil, err
-		}
+	if tlsConfig, err := loadTLSConfig(&opt); err != nil {
+		return nil, fmt.Errorf("could not load tlsConfig %w", err)
+	} else if tlsConfig != nil {
 		cliopts.TLSClientConfig = tlsConfig
 	}
 
@@ -281,4 +263,33 @@ type writeCounter struct {
 func (wc *writeCounter) Write(p []byte) (int, error) {
 	wc.total += uint64(len(p))
 	return 0, nil
+}
+
+func loadTLSConfig(opt *option) (*tls.Config, error) {
+	if !opt.tlsOpen {
+		return nil, nil
+	}
+
+	if opt.tlsConfig != nil {
+		return opt.tlsConfig, nil
+	}
+
+	caCerts := []string{}
+	if opt.cacertFile != "" {
+		caCerts = append(caCerts, opt.cacertFile)
+	}
+	insecureSkipVerify := opt.insecureSkipVerify || opt.cacertFile == ""
+
+	tc := &dnet.TLSClientConfig{
+		CaCerts:            caCerts,
+		Cert:               opt.certFile,
+		CertKey:            opt.keyFile,
+		InsecureSkipVerify: insecureSkipVerify,
+	}
+
+	tlsConfig, err := tc.TLSConfig()
+	if err != nil {
+		return nil, err
+	}
+	return tlsConfig, nil
 }

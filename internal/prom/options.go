@@ -6,6 +6,7 @@
 package prom
 
 import (
+	"crypto/tls"
 	"regexp"
 	"time"
 
@@ -28,11 +29,13 @@ type option struct {
 	output                   string
 	maxFileSize              int64
 
-	tlsOpen    bool
-	udsPath    string
-	cacertFile string
-	certFile   string
-	keyFile    string
+	udsPath            string
+	tlsOpen            bool
+	cacertFile         string
+	certFile           string
+	keyFile            string
+	insecureSkipVerify bool
+	tlsConfig          *tls.Config
 
 	tagsIgnore  []string // do not keep these tags in scraped prom data
 	tagsRename  *RenameTags
@@ -115,14 +118,22 @@ func WithMeasurementPrefix(str string) PromOption {
 func WithMeasurementName(str string) PromOption {
 	return func(opt *option) { opt.measurementName = str }
 }
-func WithMeasurements(r []Rule) PromOption    { return func(opt *option) { opt.measurements = r } }
-func WithOutput(str string) PromOption        { return func(opt *option) { opt.output = str } }
-func WithMaxFileSize(i int64) PromOption      { return func(opt *option) { opt.maxFileSize = i } }
-func WithTLSOpen(b bool) PromOption           { return func(opt *option) { opt.tlsOpen = b } }
-func WithUDSPath(str string) PromOption       { return func(opt *option) { opt.udsPath = str } }
-func WithCacertFile(str string) PromOption    { return func(opt *option) { opt.cacertFile = str } }
-func WithCertFile(str string) PromOption      { return func(opt *option) { opt.certFile = str } }
-func WithKeyFile(str string) PromOption       { return func(opt *option) { opt.keyFile = str } }
+func WithMeasurements(r []Rule) PromOption { return func(opt *option) { opt.measurements = r } }
+func WithOutput(str string) PromOption     { return func(opt *option) { opt.output = str } }
+func WithMaxFileSize(i int64) PromOption   { return func(opt *option) { opt.maxFileSize = i } }
+func WithTLSOpen(b bool) PromOption        { return func(opt *option) { opt.tlsOpen = b } }
+func WithUDSPath(str string) PromOption    { return func(opt *option) { opt.udsPath = str } }
+func WithCacertFile(str string) PromOption { return func(opt *option) { opt.cacertFile = str } }
+func WithCertFile(str string) PromOption   { return func(opt *option) { opt.certFile = str } }
+func WithKeyFile(str string) PromOption    { return func(opt *option) { opt.keyFile = str } }
+func WithInsecureSkipVerify(b bool) PromOption {
+	return func(opt *option) { opt.insecureSkipVerify = b }
+}
+
+func WithTLSConfig(config *tls.Config) PromOption {
+	return func(opt *option) { opt.tlsConfig = config }
+}
+
 func WithTagsIgnore(strs []string) PromOption { return func(opt *option) { opt.tagsIgnore = strs } }
 func WithTagsRename(renameTags *RenameTags) PromOption {
 	return func(opt *option) { opt.tagsRename = renameTags }
