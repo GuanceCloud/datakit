@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -28,37 +30,41 @@ var _ inputs.ElectionInput = (*Input)(nil)
 var (
 	inputName   = `nginx`
 	l           = logger.DefaultSLogger(inputName)
-	minInterval = time.Second
+	minInterval = time.Second * 10
 	maxInterval = time.Second * 30
-	sample      = `[[inputs.nginx]]
-# Nginx status URL.
-# (Default) If not use with VTS, the formula is like this: "http://localhost:80/basic_status".
-# If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
-url = "http://localhost:80/basic_status"
+	sample      = `
+[[inputs.nginx]]
+  ## Nginx status URL.
+  ## (Default) If not use with VTS, the formula is like this: "http://localhost:80/basic_status".
+  ## If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
+  url = "http://localhost:80/basic_status"
 
-# ##(optional) collection interval, default is 30s
-# interval = "30s"
-use_vts = false
-## Optional TLS Config
-# tls_ca = "/xxx/ca.pem"
-# tls_cert = "/xxx/cert.cer"
-# tls_key = "/xxx/key.key"
-## Use TLS but skip chain & host verification
-insecure_skip_verify = false
-# HTTP response timeout (default: 5s)
-response_timeout = "20s"
+  ## Optional Can set ports as [<form>,<to>], Datakit will collect all ports.
+  # ports = [80,80]
 
-## Set true to enable election
-election = true
+  ## Optional collection interval, default is 10s
+  # interval = "30s"
+  use_vts = false
+  ## Optional TLS Config
+  # tls_ca = "/xxx/ca.pem"
+  # tls_cert = "/xxx/cert.cer"
+  # tls_key = "/xxx/key.key"
+  ## Use TLS but skip chain & host verification
+  insecure_skip_verify = false
+  ## HTTP response timeout (default: 5s)
+  response_timeout = "20s"
 
-[inputs.nginx.log]
-#files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
-## grok pipeline script path
-#pipeline = "nginx.p"
-[inputs.nginx.tags]
-# some_tag = "some_value"
-# more_tag = "some_other_value"
-# ...`
+  ## Set true to enable election
+  election = true
+
+# [inputs.nginx.log]
+  # files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
+  ## grok pipeline script path
+  # pipeline = "nginx.p"
+# [inputs.nginx.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
 	//nolint:lll
 	pipelineCfg = `
@@ -169,20 +175,19 @@ func (ipt *Input) RunPipeline() {
 }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Info("nginx start")
+	if err := ipt.setup(); err != nil {
+		return
+	}
 
-	tick := time.NewTicker(ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			points, err := ipt.Collect()
-			if err != nil {
-				l.Errorf("Collect failed: %v", err)
-			} else if len(points) > 0 {
+			ipt.collect()
+			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
@@ -195,6 +200,8 @@ func (ipt *Input) Run() {
 				} else {
 					ipt.collectCache = ipt.collectCache[:0]
 				}
+			} else {
+				l.Warn("collect nil points")
 			}
 		}
 
@@ -228,10 +235,12 @@ func (ipt *Input) Terminate() {
 
 func (ipt *Input) getMetric() {
 	ipt.start = time.Now()
-	if ipt.UseVts {
-		ipt.getVTSMetric()
-	} else {
-		ipt.getStubStatusModuleMetric()
+	for i := ipt.Ports[0]; i <= ipt.Ports[1]; i++ {
+		if ipt.UseVts {
+			ipt.getVTSMetric(i)
+		} else {
+			ipt.getStubStatusModuleMetric(i)
+		}
 	}
 }
 
@@ -241,15 +250,15 @@ func (ipt *Input) createHTTPClient() (*http.Client, error) {
 		return nil, err
 	}
 
-	if ipt.ResponseTimeout.Duration < time.Second {
-		ipt.ResponseTimeout.Duration = time.Second * 5
+	if ipt.ResponseTimeout < time.Second {
+		ipt.ResponseTimeout = time.Second * 5
 	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsCfg,
 		},
-		Timeout: ipt.ResponseTimeout.Duration,
+		Timeout: ipt.ResponseTimeout,
 	}
 
 	return client, nil
@@ -291,39 +300,65 @@ func (ipt *Input) Resume() error {
 }
 
 func (ipt *Input) setup() error {
-	if ipt.Interval.Duration == 0 {
-		ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	l = logger.SLogger(inputName)
+	l.Info("nginx start")
+
+	if err := ipt.checkPortsAndURL(); err != nil {
+		l.Errorf("checkPortsAndURL : %v", err)
+		return err
 	}
 
-	if ipt.client == nil {
-		client, err := ipt.createHTTPClient()
-		if err != nil {
-			fmt.Printf("[error] nginx init client err:%s\n", err.Error())
-			return err
-		}
-		ipt.client = client
+	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
+
+	client, err := ipt.createHTTPClient()
+	if err != nil {
+		l.Errorf("[error] nginx init client err:%s\n", err.Error())
+		return err
 	}
+	ipt.client = client
 
 	return nil
 }
 
-func (ipt *Input) Collect() ([]*point.Point, error) {
-	if err := ipt.setup(); err != nil {
-		return nil, err
+func (ipt *Input) checkPortsAndURL() error {
+	u, err := url.ParseRequestURI(ipt.URL)
+	if err != nil {
+		return err
+	}
+	scheme := u.Scheme
+	hostname := u.Hostname()
+	port := u.Port()
+	if port == "" {
+		port = "80"
 	}
 
+	if ipt.Ports[0] == 0 && ipt.Ports[1] == 0 {
+		p, err := strconv.Atoi(port)
+		if err != nil {
+			return err
+		}
+		ipt.Ports = [2]int{p, p}
+	}
+	if ipt.Ports[0] < 1 || ipt.Ports[0] > 65535 || ipt.Ports[1] < 1 || ipt.Ports[1] > 65535 {
+		return fmt.Errorf("ports error, now is: %v", ipt.Ports)
+	}
+	if ipt.Ports[0] > ipt.Ports[1] {
+		return fmt.Errorf("ports error, now is: %v", ipt.Ports)
+	}
+
+	ipt.host = scheme + "://" + hostname
+	ipt.path = u.Path
+
+	return nil
+}
+
+func (ipt *Input) collect() {
 	ipt.getMetric()
-
-	if len(ipt.collectCache) == 0 {
-		return nil, fmt.Errorf("no points")
-	}
-
-	return ipt.collectCache, nil
 }
 
 func defaultInput() *Input {
 	return &Input{
-		Interval: datakit.Duration{Duration: time.Second * 10},
+		Interval: time.Second * 10,
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),

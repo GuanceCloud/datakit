@@ -32,9 +32,12 @@ type ngxlog struct {
 type Input struct {
 	URLsDeprecated []string `toml:"urls,omitempty"`
 
-	URL             string            `toml:"url"`
-	Interval        datakit.Duration  `toml:"interval"`
-	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
+	URL             string `toml:"url"`
+	Ports           [2]int `toml:"ports"`
+	host            string
+	path            string
+	Interval        time.Duration     `toml:"interval"`
+	ResponseTimeout time.Duration     `toml:"response_timeout"`
 	UseVts          bool              `toml:"use_vts"`
 	Log             *ngxlog           `toml:"log"`
 	Tags            map[string]string `toml:"tags"`

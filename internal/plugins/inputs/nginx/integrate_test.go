@@ -126,14 +126,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+						election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -142,11 +140,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+							election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -158,8 +156,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+					use_vts = true
+					election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -168,16 +166,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.23.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+				use_vts = true
+				election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -193,14 +189,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+				election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -209,11 +203,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -225,8 +219,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+			use_vts = true
+			election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -235,16 +229,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.22.1-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+			use_vts = true
+			election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -260,14 +252,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+				election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -276,11 +266,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -292,8 +282,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+			use_vts = true
+			election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -302,16 +292,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.21.6-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+			use_vts = true
+			election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -327,14 +315,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+				election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -343,11 +329,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 		},
 		////////////////////////////////////////////////////////////////////////
@@ -356,8 +342,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+			use_vts = true
+			election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -366,16 +352,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.18.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+			use_vts = true
+			election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -391,14 +375,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+				election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -407,11 +389,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -423,8 +405,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+			use_vts = true
+			election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -433,16 +415,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.14.2-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+			use_vts = true
+			election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -458,14 +438,12 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = true`, // set conf URL later.
+				election = true`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithOptionalTags("nginx_version", "host"),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -474,11 +452,11 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____http-stub-status-module",
 			conf: `url = ""
-			election = false`, // set conf URL later.
+				election = false`, // set conf URL later.
 			exposedPorts: []string{"80/tcp"},
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields("load_timestamp"),
-				inputs.WithOptionalTags("nginx_version"),
+				inputs.WithOptionalTags("nginx_version", "host"),
 			},
 			mPathCount: map[string]int{
 				"/": 10,
@@ -490,8 +468,8 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = true`, // set conf URL later.
+			use_vts = true
+			election = true`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{
@@ -500,16 +478,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				"/3": 10,
 			},
 			opts: []inputs.PointCheckOption{
-				inputs.WithExtraTags(map[string]string{
-					"election": "1",
-				}),
+				inputs.WithExtraTags(map[string]string{}),
 			},
 		},
 		{
 			name: "pubrepo.guance.com/image-repo-for-testing/nginx:vts-1.8.0-alpine____using-vts",
 			conf: `url = ""
-		use_vts = true
-		election = false`, // set conf URL later.
+			use_vts = true
+			election = false`, // set conf URL later.
 
 			exposedPorts: []string{"80/tcp"},
 			mPathCount: map[string]int{

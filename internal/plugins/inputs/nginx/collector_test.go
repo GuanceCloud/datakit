@@ -64,17 +64,11 @@ func TestGetMetric(t *testing.T) {
 	count := 0
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, err := tc.i.createHTTPClient()
-			if err != nil {
-				l.Errorf("[error] nginx init client err:%s", err.Error())
-				return
-			}
-			tc.i.client = client
+			tc.i.setup()
 
-			points, err := tc.i.Collect()
-			if err != nil {
-				t.Errorf("Collect failed: %v", err)
-			} else if len(points) > 0 {
+			tc.i.collect()
+			points := tc.i.collectCache
+			if len(points) > 0 {
 				for _, v := range points {
 					// t.Logf("count = %d, v = %s", count, v.LPPoint().String())
 
