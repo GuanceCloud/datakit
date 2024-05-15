@@ -4,7 +4,10 @@
   "dashboardMapping": [],
   "dashboardOwnerType": "inner",
   "dashboardType": "CUSTOM",
-  "iconSet": {},
+  "iconSet": {
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes/icon.svg",
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/kubernetes/kubernetes.png"
+  },
   "main": {
     "charts": [
       {
@@ -4773,5 +4776,5 @@
   "summary": "",
   "tagInfo": [],
   "thumbnail": "",
-  "title": "k8s-overview（调试中...）"
+  "title": "Kubernetes Overview"
 }
