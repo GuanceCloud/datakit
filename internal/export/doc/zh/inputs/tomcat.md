@@ -20,9 +20,9 @@ monitor   :
 
 ---
 
-可以使用 [dd-trace](ddtrace.md) 可以采集 Tomcat 指标。采集数据流向如下：Tomcat -> dd-trace -> DataKit(statsd)。
+可以使用 [DDTrace](ddtrace.md) 可以采集 Tomcat 指标。采集数据流向如下：Tomcat -> DDTrace -> DataKit(StatsD)。
 
-可以看到 DataKit 已经集成了 [statsd](https://github.com/statsd/statsd){:target="_blank"} 的服务端，dd-trace 采集 Tomcat 的数据后使用 statsd 的协议报告给了 Datakit。
+可以看到 DataKit 已经集成了 [StatsD](https://github.com/statsd/statsd){:target="_blank"} 的服务端，DDTrace 采集 Tomcat 的数据后使用 StatsD 的协议报告给了 Datakit。
 
 ## 配置 {#config}
 
@@ -39,7 +39,7 @@ monitor   :
 
 - 下载 `dd-java-agent.jar` 包，参见 [这里](ddtrace.md){:target="_blank"};
 
-- Datakit 侧：参见 [statsd](statsd.md){:target="_blank"} 的配置。
+- Datakit 侧：参见 [StatsD](statsd.md){:target="_blank"} 的配置。
 
 - Tomcat 侧：
 
@@ -56,10 +56,10 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 参数说明如下：
 
 - `javaagent`: 这个填写 `dd-java-agent.jar` 的完整路径；
-- `Ddd.jmxfetch.enabled`: 填 `true`, 表示开启 dd-trace 的采集功能；
+- `Ddd.jmxfetch.enabled`: 填 `true`, 表示开启 DDTrace 的采集功能；
 - `Ddd.jmxfetch.statsd.host`: 填写 Datakit 监听的网络地址。不含端口号；
 - `Ddd.jmxfetch.statsd.port`: 填写 Datakit 监听的端口号。一般为 `8125`，由 Datakit 侧的配置决定；
-- `Ddd.jmxfetch.tomcat.enabled`: 填 `true`, 表示开启 dd-trace 的 Tomcat 采集功能。开启后会多出名为 `tomcat` 的指标集；
+- `Ddd.jmxfetch.tomcat.enabled`: 填 `true`, 表示开启 DDTrace 的 Tomcat 采集功能。开启后会多出名为 `tomcat` 的指标集；
 
 重启 Tomcat 使配置生效。
 
