@@ -32,35 +32,30 @@ func (k *Kube) gather(category string, feed func([]*point.Point) error, paused b
 	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-" + category})
 
 	for typee, constructor := range resources {
-		if k.cfg.DisableCollectJob && typee.name == "job" {
+		if !k.shouldGather(typee.name, typee.nodeLocal, paused) {
 			continue
 		}
-		if paused && k.cfg.NodeLocal && !typee.nodeLocal {
-			continue
-		}
-
-		fieldSelector := ""
-		if k.cfg.NodeLocal && typee.nodeLocal {
-			fieldSelector = getFieldSelector(k.nodeName)
-		}
+		fieldSelectors := k.getFieldSelector(typee.name, typee.nodeLocal, paused)
 
 		func(typ resourceType, newResource resourceConstructor) {
 			g.Go(func(_ context.Context) error {
-				startCollect := time.Now()
+				for _, fieldSelector := range fieldSelectors {
+					startCollect := time.Now()
 
-				namespaces := namespaces
-				if !typ.namespaced {
-					namespaces = []string{""}
+					namespaces := namespaces
+					if !typ.namespaced {
+						namespaces = []string{""}
+					}
+
+					r := newResource(k.client)
+					k.gatherResource(r, typ.name, fieldSelector, namespaces, processor)
+
+					mu.Lock()
+					countPts = append(countPts, r.count()...)
+					mu.Unlock()
+
+					collectResourceCostVec.WithLabelValues(category, typ.name, fieldSelector).Observe(time.Since(startCollect).Seconds())
 				}
-
-				r := newResource(k.client)
-				k.gatherResource(r, typ.name, fieldSelector, namespaces, processor)
-
-				mu.Lock()
-				countPts = append(countPts, r.count()...)
-				mu.Unlock()
-
-				collectResourceCostVec.WithLabelValues(category, typ.name, fieldSelector).Observe(time.Since(startCollect).Seconds())
 				return nil
 			})
 		}(typee, constructor)
@@ -143,6 +138,30 @@ func (k *Kube) composeProcessor(category string, feed func([]*point.Point) error
 	return fn
 }
 
+func (k *Kube) shouldGather(name string, nodeLocal bool, paused bool) bool {
+	if k.cfg.DisableCollectJob && name == "job" {
+		return false
+	}
+	if k.cfg.NodeLocal && !nodeLocal && paused {
+		return false
+	}
+	return true
+}
+
+func (k *Kube) getFieldSelector(name string, nodeLocal bool, paused bool) []string {
+	var res []string
+	if k.cfg.NodeLocal && nodeLocal {
+		res = append(res, "spec.nodeName="+k.nodeName)
+	}
+	if k.cfg.NodeLocal && name == "pod" && !paused {
+		res = append(res, "status.phase==Pending")
+	}
+	if len(res) == 0 {
+		res = append(res, "")
+	}
+	return res
+}
+
 func gatherAndProcessResource(r resource, resourceName, ns, fieldSelector string, processor func(metadata) error) {
 	for {
 		data, err := r.getMetadata(context.Background(), ns, fieldSelector)
@@ -183,10 +202,6 @@ func transToPoint(pts pointKVs, opts []point.Option) []*point.Point {
 	}
 
 	return res
-}
-
-func getFieldSelector(nodeName string) string {
-	return "spec.nodeName=" + nodeName
 }
 
 func buildCountPoints(name string, counter map[string]int) []pointV2 {
