@@ -74,7 +74,7 @@ func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mo
 
 func WithSource(s string) Option {
 	return func(opt *option) {
-		if s != "" {
+		if s == "" {
 			return
 		}
 		opt.source = s
