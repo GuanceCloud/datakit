@@ -151,7 +151,7 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 
 			p, err := queryPodMetrics(context.Background(), m.metricsCollect, &m.list.Items[idx], nodeInfo, "metric")
 			if err != nil {
-				klog.Warnf("pod %s metric-pt fail, err: %s, skip", item.Name, err)
+				klog.Debugf("pod %s metric-pt fail, err: %s, skip", item.Name, err)
 			} else {
 				met.SetTags(p.Tags())
 				met.SetFields(p.Fields())
