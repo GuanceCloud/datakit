@@ -3,9 +3,6 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !windows && !arm && !386
-// +build !windows,!arm,!386
-
 package profile
 
 import (
@@ -39,8 +36,8 @@ import (
 	"github.com/pyroscope-io/pyroscope/pkg/util/attime"
 	"github.com/pyroscope-io/pyroscope/pkg/util/cumulativepprof"
 	"github.com/sirupsen/logrus"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -54,50 +51,54 @@ const (
 )
 
 // init check config and set config.
-func (pyrs *pyroscopeOpts) init() error {
+func (p *pyroscopeOpts) init() error {
 	// tags set
-	pyrs.tags = map[string]string{
-		"service": pyrs.Service,
-		"version": pyrs.Version,
-		"env":     pyrs.Env,
+	p.tags = map[string]string{
+		"service": p.Service,
+		"version": p.Version,
+		"env":     p.Env,
 	}
-	for k, v := range pyrs.Tags {
-		pyrs.tags[k] = v
+	for k, v := range p.Tags {
+		p.tags[k] = v
 	}
 
 	return nil
 }
 
 // run pyroscope profiling.
-func (pyrs *pyroscopeOpts) run(i *Input) error {
-	if i == nil {
+func (p *pyroscopeOpts) run(input *Input) error {
+	defer func() {
+		log.Warnf("profile-pyroscope handler stopped")
+	}()
+
+	if input == nil {
 		return fmt.Errorf("input expected not to be nil")
 	}
 
-	if i.pause {
+	if input.pause {
 		log.Debugf("not leader, skipped")
 		return nil
 	}
 
-	pyrs.input = i
-	if err := pyrs.init(); err != nil {
+	p.input = input
+	if err := p.init(); err != nil {
 		return fmt.Errorf("init pyroscope profiler error: %w", err)
 	}
 
 	router := gin.New()
-	router.Use(APIMiddleware(pyrs))
+	router.Use(APIMiddleware(p))
 	router.POST("/ingest", ingestHandle)
 
-	log.Debugf("HTTP bind addr:%s", pyrs.URL)
+	log.Debugf("HTTP bind addr:%s", p.URL)
 
 	srv := &http.Server{
-		Addr:    pyrs.URL,
+		Addr:    p.URL,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
 		// service connections.
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Errorf("ListenAndServe failed: %v\n", err)
 			return err
 		}
@@ -121,7 +122,7 @@ func (pyrs *pyroscopeOpts) run(i *Input) error {
 			log.Info("pyroscope profiling exit")
 			stopFunc()
 			return nil
-		case <-i.semStop.Wait():
+		case <-input.semStop.Wait():
 			log.Info("pyroscope profiling stop")
 			stopFunc()
 			return nil
@@ -188,18 +189,18 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newTags := internal.CopyMapString(h.pyrs.tags)
-	originAddTagsSafe(newTags, "app_name", input.Metadata.Key.AppName())
-	originAddTagsSafe(newTags, "input_format", string(input.Format))
-	originAddTagsSafe(newTags, "spy_name", input.Metadata.SpyName)
+	iTags := maps.Clone(h.pyrs.tags)
+	originAddTagsSafe(iTags, "app_name", input.Metadata.Key.AppName())
+	originAddTagsSafe(iTags, "input_format", string(input.Format))
+	originAddTagsSafe(iTags, "spy_name", input.Metadata.SpyName)
 	labels := getPyroscopeTagFromLabels(input.Metadata.Key.Labels())
 	for k, v := range labels {
-		originAddTagsSafe(newTags, k, v)
+		originAddTagsSafe(iTags, k, v)
 	}
 
 	h.report.SetVar(&pyroscopeDatakitReport{
 		endPoint:  h.pyrs.URL,
-		inputTags: newTags,
+		inputTags: iTags,
 		pyrs:      h.pyrs,
 	})
 
@@ -487,8 +488,9 @@ Put implements storage.Putter interface
 	}.
 */
 func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage.PutInput) error {
-	var profiledatas []*profileData
-	var reportFamily, reportFormat string
+	var profileDataSet []*profileData
+	var reportFamily Language
+	var reportFormat Format
 	var startTime, endTime time.Time
 
 	spyName := putInput.SpyName
@@ -525,8 +527,8 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 
 		// Having cpu, inuse_objects, and inuse_space. Data is ready, start send.
 
-		reportFamily = "nodejs"
-		reportFormat = "pprof"
+		reportFamily = NodeJS
+		reportFormat = PPROF
 
 		// cpu
 		cpuData, err := getBytesBufferByPut(detail.CPU)
@@ -544,7 +546,7 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 			return err
 		}
 
-		profiledatas = []*profileData{
+		profileDataSet = []*profileData{
 			{
 				fileName: "cpu.pprof",
 				buf:      cpuData,
@@ -568,8 +570,8 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		report.Delete(name)
 
 	case eBPFSpyName:
-		reportFamily = "ebpf"
-		reportFormat = "rawflamegraph"
+		reportFamily = CPP
+		reportFormat = Collapsed
 
 		report.inputTags["sample_rate"] = fmt.Sprintf("%d", putInput.SampleRate)
 		report.inputTags["units"] = putInput.Units.String()
@@ -579,7 +581,7 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		var b bytes.Buffer
 		b.WriteString(collapsed) // Write strings to the Buffer.
 
-		profiledatas = []*profileData{
+		profileDataSet = []*profileData{
 			{
 				fileName: pyroscopeFilename,
 				buf:      &b,
@@ -593,29 +595,31 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		return fmt.Errorf("not supported format")
 	}
 
-	event := &eventOpts{
-		Family:   reportFamily,
+	event := &Metadata{
+		Language: reportFamily,
 		Format:   reportFormat,
-		Profiler: "pyroscope",
-		Start:    startTime.Format(time.RFC3339Nano),
-		End:      endTime.Format(time.RFC3339Nano),
+		Profiler: Pyroscope,
+		Start:    newRFC3339Time(startTime),
+		End:      newRFC3339Time(endTime),
 		Attachments: []string{
 			withExtName(pyroscopeFilename, ".pprof"),
 		},
-		TagsProfiler: joinMap(report.inputTags),
+		TagsProfiler:  joinTags(report.inputTags),
+		SubCustomTags: joinTags(report.pyrs.Tags),
 	}
 
 	if err := pushProfileData(
 		&pushProfileDataOpt{
 			startTime:       startTime,
 			endTime:         endTime,
-			profiledatas:    profiledatas,
+			profiledatas:    profileDataSet,
 			endPoint:        report.endPoint,
 			inputTags:       report.inputTags,
 			inputNameSuffix: "/pyroscope/" + spyName,
 			Input:           report.pyrs.input,
 		},
 		event,
+		report.pyrs.input.getBodySizeLimit(),
 	); err != nil {
 		log.Errorf("unable to push pyroscope profile data: %s", err)
 		return err

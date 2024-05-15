@@ -141,7 +141,6 @@ github.com/DataDog/gostackparse v0.5.0/go.mod h1:lTfqcJKqS9KnXQGnyQMCugq3u1FP6UZ
 github.com/DataDog/sketches-go v1.0.0/go.mod h1:O+XkJHWk9w4hDwY2ZUDU31ZC9sNYlYo8DiFsxjYeo1k=
 github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8CwZNAY=
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
-github.com/DataDog/zstd v1.4.1 h1:3oxKN3wbHibqx897utPC2LTQU4J+IHWWJO+glkAkpFM=
 github.com/DataDog/zstd v1.4.1/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
@@ -163,8 +162,10 @@ github.com/GuanceCloud/platypus v0.2.9 h1:ZQNlg/r2HKFBUn5Yrzb0fmB15zhLBkiuQbe+yX
 github.com/GuanceCloud/platypus v0.2.9/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616/go.mod h1:zuawsU7vK4z3rZC2qaOYnhJO2rHD0CIUAgbyJxpjIf0=
-github.com/GuanceCloud/pyroscope v0.36.1 h1:u9hR7N+5ASIddXSVJAXYQG/EaXuUzKG2GkRRuUvfMjE=
-github.com/GuanceCloud/pyroscope v0.36.1/go.mod h1:VhUxChLTPH19q9V+5/4Yan4vY0XvtXQSySVf2luMx+w=
+github.com/GuanceCloud/pyroscope v0.36.2 h1:sGotOKeuE14txRHt4v/2wvc/0uRloV+gQ1+luc1pAo4=
+github.com/GuanceCloud/pyroscope v0.36.2/go.mod h1:jy3PTkLqODnkZMqlPfXcGPYoxqGGUKVKWPL+HFVhWzo=
+github.com/GuanceCloud/pyroscope v0.36.3 h1:3ni9asu1zsxzT/Y8WdoqcTN3LiAuFbCqAUk4foz2EvM=
+github.com/GuanceCloud/pyroscope v0.36.3/go.mod h1:jy3PTkLqODnkZMqlPfXcGPYoxqGGUKVKWPL+HFVhWzo=
 github.com/GuanceCloud/service v1.2.4 h1:5sQSj0S8IRidG+DFOMyMcEQeF1v/jyUez/YOfAZssWs=
 github.com/GuanceCloud/service v1.2.4/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
 github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747 h1:YqwjFsmNo7txn4caeD74aJTD8b7mk3EzEVnJDZUfDPM=
@@ -654,8 +655,8 @@ github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd/go.mod h1:xb
 github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc/go.mod h1:xbL0rPBG9cCiLr28tMa8zpbdarY27NDyej4t/EjAShU=
 github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba/go.mod h1:dV8lFg6daOBZbT6/BDGIz6Y3WFGn8juu6G+CQ6LHtl0=
 github.com/devigned/tab v0.1.1/go.mod h1:XG9mPq0dFghrYvoBF3xdRrJzSTX1b7IQrvaL9mzjeJY=
-github.com/dgraph-io/badger/v2 v2.2007.2 h1:EjjK0KqwaFMlPin1ajhP943VPENHJdEz1KLIegjaI3k=
-github.com/dgraph-io/badger/v2 v2.2007.2/go.mod h1:26P/7fbL4kUZVEVKLAKXkBXKOydDmM2p1e+NhhnBCAE=
+github.com/dgraph-io/badger/v2 v2.2007.4 h1:TRWBQg8UrlUhaFdco01nO2uXwzKS7zd+HVdwV/GHc4o=
+github.com/dgraph-io/badger/v2 v2.2007.4/go.mod h1:vSw/ax2qojzbN6eXHIx6KPKtCSHJN/Uz0X0VPruTIhk=
 github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de/go.mod h1:KPxhHT9ZxKefz+PCeOGsrHpl1qZ7i70dGTu2u+Ahh6E=
 github.com/dgraph-io/ristretto v0.1.0 h1:Jv3CGQHp9OjuMBSne1485aDpUkTKEcUqF+jm/LuerPI=
 github.com/dgraph-io/ristretto v0.1.0/go.mod h1:fux0lOrBhrVCJd3lcTHsIJhq1T2rokOu6v9Vcb3Q9ug=
@@ -1570,6 +1571,7 @@ github.com/klauspost/compress v1.11.2/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYs
 github.com/klauspost/compress v1.11.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.11.13/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.12.2/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
+github.com/klauspost/compress v1.12.3/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
 github.com/klauspost/compress v1.13.4/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
 github.com/klauspost/compress v1.13.6/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/compress v1.16.7 h1:2mk3MPGNzKyxErAw8YaohYh69+pa4sIQSC0fPGCFR9I=

@@ -12,12 +12,68 @@ import (
 	"mime/multipart"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMetadata(t *testing.T) {
+	md := &Metadata{
+		Format:        Collapsed,
+		Profiler:      Pyroscope,
+		Attachments:   []string{"main.jfr", "metrics.json"},
+		Language:      Golang,
+		TagsProfiler:  "process_id:31145,service:zy-profiling-test,profiler_version:0.102.0~b67f6e3380,host:zydeMacBook-Air.local,runtime-id:06dddda1-957b-4619-97cb-1a78fc7e3f07,language:jvm,env:test,version:v1.2",
+		SubCustomTags: "foobar:hello-world",
+		Start:         newRFC3339Time(time.Now()),
+		End:           newRFC3339Time(time.Now().Add(time.Minute)),
+	}
+
+	out, err := json.MarshalIndent(md, "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(string(out))
+
+	var md2 Metadata
+
+	if err = json.Unmarshal(out, &md2); err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println("start: ", time.Time(*md2.Start))
+	fmt.Println("end: ", time.Time(*md2.End))
+
+	var m map[string]any
+
+	if err = json.Unmarshal(out, &m); err != nil {
+		t.Fatal(err)
+	}
+
+	headers := json2StringMap(m)
+
+	for k, v := range headers {
+		fmt.Println(k, ":", v)
+	}
+}
+
 func TestJson2StringMap(t *testing.T) {
-	jsonStr := `{"attachments":["main.jfr"],"tags_profiler":"process_id:31145,service:zy-profiling-test,profiler_version:0.102.0~b67f6e3380,host:zydeMacBook-Air.local,runtime-id:06dddda1-957b-4619-97cb-1a78fc7e3f07,language:jvm,env:test,version:v1.2","start":"2022-06-17T09:20:07.002305Z","end":"2022-06-17T09:21:08.261768Z","family":"java","version":"4"}`
+	jsonStr := `
+{
+    "attachments": [
+        "main.jfr",
+        "metrics.json"
+    ],
+    "tags_profiler": "process_id:31145,service:zy-profiling-test,profiler_version:0.102.0~b67f6e3380,host:zydeMacBook-Air.local,runtime-id:06dddda1-957b-4619-97cb-1a78fc7e3f07,language:jvm,env:test,version:v1.2",
+    "start": "2022-06-17T09:20:07.002305Z",
+    "end": "2022-06-17T09:21:08.261768Z",
+    "family": "java",
+    "version": "4",
+	"numbers": [1, 3, 5],
+	"stable": false
+}
+`
 
 	var v map[string]interface{}
 
@@ -80,4 +136,6 @@ func TestParseMetadata(t *testing.T) {
 
 	assert.Equal(t, "bar", metadata.tags["foo"])
 	assert.Equal(t, "hello-world", metadata.tags["foobar"])
+
+	fmt.Println(joinTags(metadata.tags))
 }

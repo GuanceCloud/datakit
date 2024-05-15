@@ -47,7 +47,7 @@ import (
 
 // maxVlogFileSize is the maximum size of the vlog file which can be created. Vlog Offset is of
 // uint32, so limiting at max uint32.
-var maxVlogFileSize = math.MaxUint32
+var maxVlogFileSize uint32 = math.MaxUint32
 
 // Values have their first byte being byteData or byteDelete. This helps us distinguish between
 // a key that has never been seen and a key that has been explicitly deleted.
@@ -1440,7 +1440,14 @@ func (vlog *valueLog) write(reqs []*request) error {
 
 	vlog.filesLock.RLock()
 	maxFid := vlog.maxFid
-	curlf := vlog.filesMap[maxFid]
+	curlf, ok := vlog.filesMap[maxFid]
+	if !ok {
+		var fids []uint32
+		for fid := range vlog.filesMap {
+			fids = append(fids, fid)
+		}
+		return errors.Errorf("Cannot find MaxFid: %d in filesMap: %+v", maxFid, fids)
+	}
 	vlog.filesLock.RUnlock()
 
 	var buf bytes.Buffer

@@ -67,9 +67,9 @@ type NopResponseWriter struct {
 
 func (nop *NopResponseWriter) Header() http.Header { return make(http.Header) }
 
-func (nop *NopResponseWriter) Write([]byte) (int, error) { return 0, nil }
+func (nop *NopResponseWriter) Write(b []byte) (int, error) { return len(b), nil }
 
-func (nop *NopResponseWriter) WriteHeader(statusCode int) {}
+func (nop *NopResponseWriter) WriteHeader(_ int) {}
 
 type HTTPStatusResponse func(resp http.ResponseWriter, req *http.Request, err error)
 

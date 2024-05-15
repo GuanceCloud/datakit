@@ -17,16 +17,14 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	pprofile "github.com/google/pprof/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-const (
-	goReportFamily = "golang"
-	goReportFormat = "pprof"
-)
+const PullInputMode = "profile-pull"
 
 // GoProfiler pull go pprof data.
 type GoProfiler struct {
@@ -64,14 +62,14 @@ type valueType struct {
 	Unit string
 }
 
-type ProfileItem struct {
+type Item struct {
 	path        string
 	params      url.Values
 	fileName    string
 	deltaValues []valueType
 }
 
-var profileConfigMap = map[string]ProfileItem{
+var profileConfigMap = map[string]Item{
 	"cpu": {
 		path: "/debug/pprof/profile",
 		params: url.Values{
@@ -111,9 +109,15 @@ var profileConfigMap = map[string]ProfileItem{
 
 // init check config and set config.
 func (g *GoProfiler) init() error {
-	duration, err := time.ParseDuration(g.Interval)
-	if err != nil {
-		return err
+	var (
+		duration time.Duration
+		err      error
+	)
+	if g.Interval != "" {
+		duration, err = time.ParseDuration(g.Interval)
+		if err != nil {
+			return err
+		}
 	}
 	// duration should be larger than 10s
 	if duration < 10*time.Second {
@@ -150,6 +154,10 @@ func (g *GoProfiler) init() error {
 
 // run pull profile.
 func (g *GoProfiler) run(i *Input) error {
+	defer func() {
+		log.Warnf("%s handler stopped", PullInputMode)
+	}()
+
 	if i == nil {
 		return fmt.Errorf("input expected not to be nil")
 	}
@@ -162,10 +170,15 @@ func (g *GoProfiler) run(i *Input) error {
 	tick := time.NewTicker(g.interval)
 	defer tick.Stop()
 
+	once := new(sync.Once)
+
 	for {
 		if i.pause {
 			log.Debugf("not leader, skipped")
 		} else {
+			once.Do(func() {
+				log.Infof("profiling pull mode start....")
+			})
 			g.pullProfile()
 		}
 
@@ -189,26 +202,20 @@ func withExtName(f, ext string) string {
 	return f
 }
 
-func joinMap(m map[string]string) string {
+func joinTags(m map[string]string) string {
 	if len(m) == 0 {
 		return ""
 	}
 
-	var (
-		sb    strings.Builder
-		split byte
-	)
+	var sb strings.Builder
 
 	for k, v := range m {
-		if split > 0 {
-			sb.WriteByte(split)
-		}
 		sb.WriteString(k)
 		sb.WriteByte(':')
 		sb.WriteString(v)
-		split = ','
+		sb.WriteByte(',')
 	}
-	return sb.String()
+	return strings.TrimSuffix(sb.String(), ",")
 }
 
 func (g *GoProfiler) pullProfile() {
@@ -234,15 +241,17 @@ func (g *GoProfiler) pullProfile() {
 						inputNameSuffix: "/go",
 						Input:           g.input,
 					},
-					&eventOpts{
-						Family:       goReportFamily,
-						Format:       goReportFormat,
-						Profiler:     "golang",
-						Start:        pData.startTime.Format(time.RFC3339Nano),
-						End:          pData.endTime.Format(time.RFC3339Nano),
-						Attachments:  []string{withExtName(pData.fileName, ".pprof")},
-						TagsProfiler: joinMap(g.tags),
+					&Metadata{
+						Language:      Golang,
+						Format:        PPROF,
+						Profiler:      GoPProf,
+						Start:         newRFC3339Time(pData.startTime),
+						End:           newRFC3339Time(pData.endTime),
+						Attachments:   []string{withExtName(pData.fileName, ".pprof")},
+						TagsProfiler:  joinTags(g.tags),
+						SubCustomTags: joinTags(g.Tags),
 					},
+					g.input.getBodySizeLimit(),
 				); err != nil {
 					log.Warnf("push profile data error: %s", err.Error())
 				}
@@ -265,22 +274,24 @@ func (g *GoProfiler) pullProfile() {
 				inputNameSuffix: "/go",
 				Input:           g.input,
 			},
-			&eventOpts{
-				Family:       goReportFamily,
-				Format:       goReportFormat,
-				Profiler:     "golang",
-				Start:        pData.startTime.Format(time.RFC3339Nano),
-				End:          pData.endTime.Format(time.RFC3339Nano),
-				Attachments:  deltaFileNames,
-				TagsProfiler: joinMap(g.tags),
+			&Metadata{
+				Language:      Golang,
+				Format:        PPROF,
+				Profiler:      GoPProf,
+				Start:         newRFC3339Time(pData.startTime),
+				End:           newRFC3339Time(pData.endTime),
+				Attachments:   deltaFileNames,
+				TagsProfiler:  joinTags(g.tags),
+				SubCustomTags: joinTags(g.Tags),
 			},
+			g.input.getBodySizeLimit(),
 		); err != nil {
 			log.Warnf("push delta profile data error: %s", err.Error())
 		}
 	}
 }
 
-func (g *GoProfiler) pullProfileItem(profileType string, item ProfileItem) (*profileData, error) {
+func (g *GoProfiler) pullProfileItem(profileType string, item Item) (*profileData, error) {
 	startTime := time.Now()
 	buf, err := g.pullProfileData(item.path, item.params)
 	if err != nil {
@@ -341,7 +352,7 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 		u.RawQuery = params.Encode()
 	}
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}

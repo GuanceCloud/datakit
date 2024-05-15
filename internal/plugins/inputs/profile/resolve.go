@@ -6,24 +6,22 @@
 package profile
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const (
 	eventJSONFile           = "event"
 	eventJSONFileWithSuffix = "event.json"
 	profileTagsKey          = "tags[]"
+	eventFileTagsKey        = "tags_profiler"
+	subCustomTagsKey        = "sub_custom_tags"
 )
 
 const (
@@ -40,6 +38,9 @@ const (
 	AsyncProfiler Profiler = "async-profiler"
 	PySpy         Profiler = "py-spy"
 	Pyroscope     Profiler = "pyroscope"
+
+	// GoPProf golang builtin pprof.
+	GoPProf Profiler = "pprof"
 )
 
 type Profiler string
@@ -54,6 +55,7 @@ const (
 	NodeJS  Language = "nodejs"
 	PHP     Language = "php"
 	DotNet  Language = "dotnet"
+	CPP     Language = "cpp"
 	UnKnown Language = "unknown"
 )
 
@@ -111,18 +113,42 @@ type Tags map[string]string
 
 type rfc3339Time time.Time
 
-func (r rfc3339Time) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + time.Time(r).Format(time.RFC3339Nano) + `"`), nil
+func newRFC3339Time(t time.Time) *rfc3339Time {
+	return (*rfc3339Time)(&t)
+}
+
+var (
+	_ json.Marshaler   = (*rfc3339Time)(nil)
+	_ json.Unmarshaler = (*rfc3339Time)(nil)
+)
+
+func (r *rfc3339Time) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + time.Time(*r).Format(time.RFC3339Nano) + `"`), nil
+}
+
+func (r *rfc3339Time) UnmarshalJSON(bytes []byte) error {
+	s := string(bytes[1 : len(bytes)-1])
+
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		*r = rfc3339Time(t)
+		return nil
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		*r = rfc3339Time(t)
+		return nil
+	}
+	return fmt.Errorf("unresolvable time format: [%s]", s)
 }
 
 type Metadata struct {
-	Format       Format      `json:"format"`
-	Profiler     Profiler    `json:"profiler"`
-	Attachments  []string    `json:"attachments"`
-	Language     Language    `json:"language"`
-	TagsProfiler string      `json:"tags_profiler"`
-	Start        rfc3339Time `json:"start"`
-	End          rfc3339Time `json:"end"`
+	Format        Format       `json:"format"`
+	Profiler      Profiler     `json:"profiler"`
+	Attachments   []string     `json:"attachments"`
+	Language      Language     `json:"language,omitempty"`
+	TagsProfiler  string       `json:"tags_profiler"`
+	SubCustomTags string       `json:"sub_custom_tags,omitempty"`
+	Start         *rfc3339Time `json:"start"`
+	End           *rfc3339Time `json:"end"`
 }
 
 func newTags(originTags []string) Tags {
@@ -140,8 +166,8 @@ func newTags(originTags []string) Tags {
 	return pt
 }
 
-func (pt Tags) Get(name string, defVal ...string) string {
-	if tag, ok := pt[name]; ok {
+func (t Tags) Get(name string, defVal ...string) string {
+	if tag, ok := t[name]; ok {
 		return tag
 	}
 	if len(defVal) > 0 {
@@ -160,42 +186,6 @@ func ResolveLanguage(runtimes []string) Language {
 		}
 	}
 	return UnKnown
-}
-
-func randomProfileID() string {
-	var (
-		id  uuid.UUID
-		err error
-	)
-	// generate google uuid
-	for i := 0; i < 3; i++ {
-		if id, err = uuid.NewRandom(); err == nil {
-			return id.String()
-		}
-	}
-	log.Error("call uuid.NewRandom() fail, use our uuid instead: ", err)
-	return OurUUID()
-}
-
-func OurUUID() string {
-	var buf [12]byte
-	rand.Read(buf[:]) //nolint:gosec,errcheck
-	random := hex.EncodeToString(buf[:8])
-
-	nanos := strconv.FormatInt(time.Now().UnixNano(), 16)
-	if len(nanos) > 14 {
-		nanos = nanos[len(nanos)-14:]
-	}
-	host, err := os.Hostname()
-	if err == nil && len(host) > 0 {
-		host = hex.EncodeToString([]byte(host))
-		if len(host) > 8 {
-			host = host[len(host)-8:]
-		}
-	} else {
-		host = hex.EncodeToString(buf[8:])
-	}
-	return fmt.Sprintf("%s-%s-%s-%s-%s", random[:8], random[8:12], random[12:], host, nanos)
 }
 
 func resolveStartTime(formValue map[string][]string) (time.Time, error) {
@@ -271,24 +261,17 @@ func interface2String(i interface{}) (string, error) {
 	switch baseV := i.(type) {
 	case string:
 		return baseV, nil
-	case float64:
-		return strconv.FormatFloat(baseV, 'g', -1, 64), nil
-	case float32:
-		return strconv.FormatFloat(float64(baseV), 'g', -1, 64), nil
-	case int64:
-		return strconv.FormatInt(baseV, 10), nil
-	case uint64:
-		return strconv.FormatUint(baseV, 10), nil
-	case int:
-		return strconv.Itoa(baseV), nil
-	case uint:
-		return strconv.FormatUint(uint64(baseV), 10), nil
+	case float32, float64:
+		return strconv.FormatFloat(reflect.ValueOf(i).Float(), 'g', -1, 64), nil
+	case int, int8, int16, int32, int64:
+		return strconv.FormatInt(reflect.ValueOf(i).Int(), 10), nil
+	case uint, uint8, uint16, uint32, uint64, uintptr:
+		return strconv.FormatUint(reflect.ValueOf(i).Uint(), 10), nil
 	case bool:
 		if baseV {
 			return "true", nil
-		} else {
-			return "false", nil
 		}
+		return "false", nil
 	}
 	return "", fmt.Errorf("not suppoerted interface type: %T", i)
 }
@@ -354,17 +337,14 @@ func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 		if err := decoder.Decode(&events); err != nil {
 			return nil, filesize, fmt.Errorf("resolve the event file fail: %w", err)
 		}
-		metadata := json2StringMap(events)
-		if len(metadata["tags_profiler"]) == 1 {
-			metadata[profileTagsKey] = strings.Split(metadata["tags_profiler"][0], ",")
-			delete(metadata, "tags_profiler")
+		eventFormValues := json2StringMap(events)
+		if len(eventFormValues[eventFileTagsKey]) > 0 && eventFormValues[eventFileTagsKey][0] != "" {
+			eventFormValues[profileTagsKey] = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
 		}
-		if _, ok := metadata[profileTagsKey]; !ok {
-			return nil, filesize, fmt.Errorf("the profiling data format not supported, tags[] field missing")
-		}
+
 		return &resolvedMetadata{
-			formValue: metadata,
-			tags:      newTags(metadata[profileTagsKey]),
+			formValue: eventFormValues,
+			tags:      newTags(eventFormValues[profileTagsKey]),
 		}, filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
