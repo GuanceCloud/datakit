@@ -93,7 +93,8 @@ type Input struct {
 	start      time.Time
 	collectors []func() ([]*point.Point, error)
 
-	client *redis.Client
+	client        *redis.Client
+	isInitialized bool
 
 	Election        bool `toml:"election"`
 	pause           bool
@@ -157,22 +158,58 @@ func (ipt *Input) initCfg() error {
 		ipt.SlowlogMaxLen = 128
 	}
 
-	ipt.client = client
-
 	// ping (todo)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
 	_, err = client.Ping(ctx).Result()
-
 	if err != nil {
+		_ = client.Close()
 		return err
 	}
+
+	ipt.client = client
 
 	ipt.mergedTags["server"] = ipt.Addr
 	ipt.mergedTags["service_name"] = ipt.Service
 
 	return nil
+}
+
+func (ipt *Input) tryInit() {
+	if ipt.isInitialized {
+		return
+	}
+
+	if err := ipt.initCfg(); err != nil {
+		l.Errorf("initCfg error: %v", err)
+		ipt.feeder.FeedLastError(err.Error(),
+			dkio.WithLastErrorInput(inputName),
+		)
+
+		return
+	}
+
+	ipt.isInitialized = true
+
+	ipt.hashMap = make([][16]byte, ipt.SlowlogMaxLen)
+
+	ipt.collectors = []func() ([]*point.Point, error){
+		ipt.collectInfoMeasurement,
+		ipt.collectClientMeasurement,
+		ipt.collectCommandMeasurement,
+		ipt.collectDBMeasurement,
+		ipt.collectReplicaMeasurement,
+	}
+
+	// check if cluster
+	ctx := context.Background()
+	list1 := ipt.client.Do(ctx, "info", "cluster").String()
+	part := strings.Split(list1, ":")
+	if len(part) >= 3 {
+		if strings.Compare(part[2], "1") == 1 {
+			ipt.collectors = append(ipt.collectors, ipt.CollectClusterMeasurement)
+		}
+	}
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -202,6 +239,10 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 }
 
 func (ipt *Input) Collect() error {
+	if !ipt.isInitialized {
+		return fmt.Errorf("un initialized")
+	}
+
 	for idx, f := range ipt.collectors {
 		pts, err := f()
 		if err != nil {
@@ -325,44 +366,6 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
-	// Try init until ok.
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			return
-		case <-ipt.semStop.Wait():
-			return
-		case <-tick.C:
-		}
-
-		if err := ipt.initCfg(); err != nil {
-			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-			)
-		} else {
-			break
-		}
-	}
-	ipt.hashMap = make([][16]byte, ipt.SlowlogMaxLen)
-
-	ipt.collectors = []func() ([]*point.Point, error){
-		ipt.collectInfoMeasurement,
-		ipt.collectClientMeasurement,
-		ipt.collectCommandMeasurement,
-		ipt.collectDBMeasurement,
-		ipt.collectReplicaMeasurement,
-	}
-
-	// check if cluster
-	ctx := context.Background()
-	list1 := ipt.client.Do(ctx, "info", "cluster").String()
-	part := strings.Split(list1, ":")
-	if len(part) >= 3 {
-		if strings.Compare(part[2], "1") == 1 {
-			ipt.collectors = append(ipt.collectors, ipt.CollectClusterMeasurement)
-		}
-	}
-
 	ctxKey, cancelKey := context.WithCancel(context.Background())
 	defer cancelKey() // To kill all in goroutineHotkey & goroutineBigKey
 	if ipt.Hotkey {
@@ -374,6 +377,8 @@ func (ipt *Input) Run() {
 
 	for {
 		if !ipt.pause {
+			ipt.tryInit()
+
 			l.Debugf("redis input gathering...")
 			ipt.start = time.Now()
 			if err := ipt.Collect(); err != nil {

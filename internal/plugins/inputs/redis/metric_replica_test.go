@@ -110,7 +110,7 @@ func TestInput_parseReplicData(t *testing.T) {
 			}
 			sort.Strings(gotStr)
 
-			assert.Equal(t, gotStr, tt.want)
+			assert.Equal(t, tt.want, gotStr)
 		})
 	}
 }
