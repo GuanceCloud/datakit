@@ -131,16 +131,16 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:     inputName,
-		Service:    inputName,
-		Pipeline:   ipt.Pipeline,
-		GlobalTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:       ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.Pipeline),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.LogFiles, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.LogFiles, opts...)
 	if err != nil {
 		l.Errorf("new tailer error: %v", err)
 		return
@@ -163,15 +163,11 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				return ipt.Pipeline
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	return []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.Pipeline),
 	}
 }
 

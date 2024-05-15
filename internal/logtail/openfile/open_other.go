@@ -6,13 +6,14 @@
 //go:build !windows
 // +build !windows
 
-package tailer
+// Package openfile wrap process file state on systems
+package openfile
 
 import (
 	"os"
 )
 
-func openFile(path string) (*os.File, error) {
+func OpenFile(path string) (*os.File, error) {
 	flag := os.O_RDONLY
 	perm := os.FileMode(0)
 	return os.OpenFile(path, flag, perm) //nolint:gosec

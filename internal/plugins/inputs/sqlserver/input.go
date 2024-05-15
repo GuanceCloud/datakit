@@ -133,19 +133,15 @@ func (ipt *Input) getCustomQueryMetrics() {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) initDB() error {
@@ -181,19 +177,19 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:            inputName,
-		Service:           inputName,
-		Pipeline:          ipt.Log.Pipeline,
-		IgnoreStatus:      ipt.Log.IgnoreStatus,
-		CharacterEncoding: ipt.Log.CharacterEncoding,
-		MultilinePatterns: []string{`^\d{4}-\d{2}-\d{2}`},
-		GlobalTags:        inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ""),
-		Done:              ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.Log.Pipeline),
+		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
+		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),

@@ -126,19 +126,15 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) RunPipeline() {
@@ -146,16 +142,16 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:     inputName,
-		Service:    inputName,
-		Pipeline:   ipt.Log.Pipeline,
-		GlobalTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:       ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.Log.Pipeline),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
 		l.Error(err)
 		return

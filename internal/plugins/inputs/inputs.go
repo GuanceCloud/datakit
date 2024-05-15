@@ -102,7 +102,7 @@ type Singleton interface {
 type PipelineInput interface {
 	PipelineConfig() map[string]string
 	RunPipeline()
-	GetPipeline() []*tailer.Option
+	GetPipeline() []tailer.Option
 }
 
 type OptionalInput interface {

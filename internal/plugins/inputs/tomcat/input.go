@@ -74,19 +74,15 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) RunPipeline() {

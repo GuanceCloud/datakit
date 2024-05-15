@@ -29,7 +29,11 @@ const (
 	maxReadBufferLen = 1024 * 1024 * 32
 )
 
-var g = datakit.G("tailer")
+var (
+	socketGoroutine = datakit.G("socketLog")
+
+	l = logger.DefaultSLogger("socketLog")
+)
 
 type server struct {
 	addr string       // udpConns's or tcpListeners's  key
@@ -42,38 +46,37 @@ type socketLogger struct {
 	tcpListeners    map[string]net.Listener
 	udpConns        map[string]net.Conn
 	socketBufferLen int // read buffer lens
-	ignorePatterns  []string
 	tags            map[string]string
 	// 配置
-	opt  *Option
+	opt  *option
 	stop chan struct{}
 
 	servers []*server
 	feeder  dkio.Feeder
 	ptCache chan *point.Point
+
+	log *logger.Logger
 }
 
-func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err error) {
+func NewWithOpt(opts ...Option) (sl *socketLogger, err error) {
+	l = logger.SLogger("socketLog")
+
+	c := defaultOption()
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	sl = &socketLogger{
 		tcpListeners:    make(map[string]net.Listener),
 		udpConns:        make(map[string]net.Conn),
 		socketBufferLen: maxReadSize,
-		ignorePatterns: func() []string {
-			if len(ignorePatterns) > 0 {
-				return ignorePatterns[0]
-			}
-			return nil
-		}(),
-		opt:     opt,
-		stop:    make(chan struct{}, 1),
-		ptCache: make(chan *point.Point, 100),
+		opt:             c,
+		stop:            make(chan struct{}, 1),
+		ptCache:         make(chan *point.Point, 100),
+		tags:            buildTags(c.globalTags),
+		log:             logger.SLogger("socketLog/" + c.source),
 	}
-	if err := sl.opt.Init(); err != nil {
-		return nil, err
-	}
-	sl.tags = buildTags(opt.GlobalTags)
 
-	l = logger.SLogger("socketLog")
 	return sl, nil
 }
 
@@ -89,8 +92,8 @@ func buildTags(globalTags map[string]string) map[string]string {
 }
 
 func (sl *socketLogger) Start() {
-	if len(sl.opt.Sockets) == 0 {
-		sl.opt.log.Warnf("logging sockets is empty")
+	if len(sl.opt.sockets) == 0 {
+		sl.log.Warnf("logging sockets is empty")
 		return
 	}
 
@@ -98,7 +101,7 @@ func (sl *socketLogger) Start() {
 		sl.feeder = dkio.DefaultFeeder()
 	}
 
-	for _, socket := range sl.opt.Sockets {
+	for _, socket := range sl.opt.sockets {
 		s, err := mkServer(socket)
 		if err != nil {
 			l.Error(err)
@@ -160,7 +163,7 @@ func (sl *socketLogger) toReceive() {
 			l.Infof("TCP port:%s start to accept", s.addr)
 
 			func(lis net.Listener) {
-				g.Go(func(ctx context.Context) error {
+				socketGoroutine.Go(func(ctx context.Context) error {
 					sl.accept(lis)
 					return nil
 				})
@@ -171,7 +174,7 @@ func (sl *socketLogger) toReceive() {
 			l.Infof("UDP port:%s start to accept", s.addr)
 
 			func(conn net.Conn) {
-				g.Go(func(ctx context.Context) error {
+				socketGoroutine.Go(func(ctx context.Context) error {
 					sl.doSocketUDP(conn)
 					return nil
 				})
@@ -188,11 +191,11 @@ func (sl *socketLogger) accept(listener net.Listener) {
 				l.Infof("tcp conn is close")
 				return
 			}
-			sl.opt.log.Warnf("Error accepting:%s", err.Error())
+			sl.log.Warnf("Error accepting:%s", err.Error())
 			continue
 		}
 		socketLogConnect.WithLabelValues("tcp", "ok").Add(1)
-		g.Go(func(ctx context.Context) error {
+		socketGoroutine.Go(func(ctx context.Context) error {
 			sl.doSocketV2(conn)
 			return nil
 		})
@@ -251,10 +254,10 @@ func (sl *socketLogger) doSocketV2(conn net.Conn) {
 }
 
 func (sl *socketLogger) makeAndFeedPoint(network string, line []byte) {
-	fieles := map[string]interface{}{pipeline.FieldMessage: string(line), pipeline.FieldStatus: pipeline.DefaultStatus}
+	fields := map[string]interface{}{pipeline.FieldMessage: string(line), pipeline.FieldStatus: pipeline.DefaultStatus}
 
-	pt := point.NewPointV2(sl.opt.Source,
-		append(point.NewTags(sl.tags), point.NewKVs(fieles)...),
+	pt := point.NewPointV2(sl.opt.source,
+		append(point.NewTags(sl.tags), point.NewKVs(fields)...),
 		point.WithTime(time.Now()))
 	socketLogCount.WithLabelValues(network).Add(1)
 	socketLogLength.WithLabelValues(network).Observe(float64(len(line)))
@@ -263,13 +266,13 @@ func (sl *socketLogger) makeAndFeedPoint(network string, line []byte) {
 
 func (sl *socketLogger) feedV2() {
 	opts := []dkio.FeedOption{
-		dkio.WithInputName("socklogging/" + sl.opt.InputName),
+		dkio.WithInputName("socklogging/" + sl.opt.source),
 	}
-	if sl.opt.Pipeline != "" {
+	if sl.opt.pipeline != "" {
 		opts = append(opts, dkio.WithPipelineOption(&plmanager.Option{
-			DisableAddStatusField: sl.opt.DisableAddStatusField,
-			IgnoreStatus:          sl.ignorePatterns,
-			ScriptMap:             map[string]string{sl.opt.Source: sl.opt.Pipeline},
+			DisableAddStatusField: sl.opt.disableAddStatusField,
+			IgnoreStatus:          sl.opt.ignoreStatus,
+			ScriptMap:             map[string]string{sl.opt.source: sl.opt.pipeline},
 		}))
 	}
 	ticker := time.NewTicker(time.Second * 5)
@@ -304,10 +307,10 @@ func (sl *socketLogger) Close() {
 	sl.stop <- struct{}{}
 	for _, listener := range sl.tcpListeners {
 		err := listener.Close()
-		sl.opt.log.Infof("close tcp port err=%v", err)
+		sl.log.Infof("close tcp port err=%v", err)
 	}
 	for _, listener := range sl.udpConns {
 		err := listener.Close()
-		sl.opt.log.Infof("close udp port err=%v", err)
+		sl.log.Infof("close udp port err=%v", err)
 	}
 }

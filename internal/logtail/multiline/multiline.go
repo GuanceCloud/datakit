@@ -3,12 +3,11 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package multiline wrap regexp/match functions
+// Package multiline wraps text multiline match functions
 package multiline
 
 import (
 	"bytes"
-	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -19,53 +18,63 @@ const (
 	defaultMaxLifeDuration = time.Second * 5
 )
 
-type Option struct {
+type option struct {
 	// 限制一段多行数据的最大长度，避免出现超级长的多行数据，超出限制会执行 flush
-	MaxLength int
+	maxLength int
 
 	// 限制一段多行数据的最大存在时长，即从第一条匹配成功开始到现在，超出限制会执行 flush
 	// 避免出现一条匹配成功，N 条匹配失败然后追加写入到 buff，导致数据全部堆积的情况
-	MaxLifeDuration time.Duration
+	maxLifeDuration time.Duration
 }
 
-func initOption(opt *Option) *Option {
-	if opt == nil {
-		return &Option{
-			MaxLength:       defaultMaxLength,
-			MaxLifeDuration: defaultMaxLifeDuration,
+type Option func(*option)
+
+func WithMaxLength(max int) Option {
+	return func(opt *option) {
+		if max > 0 {
+			opt.maxLength = max
 		}
 	}
+}
 
-	if opt.MaxLength <= 0 {
-		opt.MaxLength = defaultMaxLength
+func WithMaxLifeDuration(dur time.Duration) Option {
+	return func(opt *option) {
+		if dur > 0 {
+			opt.maxLifeDuration = dur
+		}
 	}
-	if opt.MaxLifeDuration <= 0 {
-		opt.MaxLifeDuration = defaultMaxLifeDuration
-	}
+}
 
-	return opt
+func defaultOption() *option {
+	return &option{
+		maxLength:       defaultMaxLength,
+		maxLifeDuration: defaultMaxLifeDuration,
+	}
 }
 
 type Multiline struct {
 	*Matcher
 	buff bytes.Buffer
-	opt  *Option
+	opt  *option
 
 	// 记录最后一次匹配成功并写入到 buff 的时间
 	lastWriteTime time.Time
 }
 
-func New(patterns []string, opt *Option) (*Multiline, error) {
+func New(patterns []string, opts ...Option) (*Multiline, error) {
+	c := defaultOption()
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	match, err := NewMatcher(patterns)
 	if err != nil {
 		return nil, err
 	}
 
-	opt = initOption(opt)
-
 	return &Multiline{
 		Matcher: match,
-		opt:     opt,
+		opt:     c,
 	}, err
 }
 
@@ -86,10 +95,10 @@ func (m *Multiline) ProcessLineString(text string) (string, State) {
 	m.buff.Write(newLine)
 	m.buff.WriteString(text)
 
-	if time.Since(m.lastWriteTime) > m.opt.MaxLifeDuration {
+	if time.Since(m.lastWriteTime) > m.opt.maxLifeDuration {
 		return m.FlushString(), OverTime
 	}
-	if m.buff.Len() > m.opt.MaxLength {
+	if m.buff.Len() > m.opt.maxLength {
 		return m.FlushString(), OverLength
 	}
 
@@ -120,11 +129,11 @@ func (m *Multiline) ProcessLine(text []byte) ([]byte, State) {
 	m.buff.Write(text)
 
 	// flush 规则一：单次多行采集时长超出限制
-	if time.Since(m.lastWriteTime) > m.opt.MaxLifeDuration {
+	if time.Since(m.lastWriteTime) > m.opt.maxLifeDuration {
 		return m.Flush(), OverTime
 	}
 	// flush 规则二：buff 长度超过限制
-	if m.buff.Len() > m.opt.MaxLength {
+	if m.buff.Len() > m.opt.maxLength {
 		return m.Flush(), OverLength
 	}
 
@@ -159,12 +168,12 @@ func (m *Multiline) FlushString() string {
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
 
-func TrimRightSpace(s string) string {
+func TrimRightSpace(s []byte) []byte {
 	end := len(s)
 	for ; end > 0; end-- {
 		c := s[end-1]
 		if c >= utf8.RuneSelf {
-			return strings.TrimFunc(s[:end], unicode.IsSpace)
+			return bytes.TrimFunc(s[:end], unicode.IsSpace)
 		}
 		if asciiSpace[c] == 0 {
 			break

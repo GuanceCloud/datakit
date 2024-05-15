@@ -47,19 +47,15 @@ func (*Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) RunPipeline() {
@@ -67,18 +63,19 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:            "rabbitmq",
-		Service:           "rabbitmq",
-		Pipeline:          ipt.Log.Pipeline,
-		CharacterEncoding: ipt.Log.CharacterEncoding,
-		MultilinePatterns: []string{ipt.Log.MultilineMatch},
-		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:              ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource("rabbitmq"),
+		tailer.WithService("rabbitmq"),
+		tailer.WithPipeline(ipt.Log.Pipeline),
+		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
+		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt, ipt.Log.IgnoreStatus)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),

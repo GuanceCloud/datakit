@@ -128,7 +128,10 @@ func startLog(cfg *config, stop <-chan struct{}) {
 			g.Go(func(ctx context.Context) error {
 				wscli := newWsclient(&u)
 				wscli.tryConnectWebsocketSrv()
-				go wscli.start()
+				g.Go(func(ctx context.Context) error {
+					wscli.start()
+					return nil
+				})
 
 				defer func() {
 					if err := wscli.close(); err != nil {
@@ -136,7 +139,16 @@ func startLog(cfg *config, stop <-chan struct{}) {
 					}
 				}()
 
-				startTailing(lg, forwardFunc(lg, wscli.writeMessage), stop)
+				tail, err := buildTailer(lg, forwardFunc(lg, wscli.writeMessage))
+				if err != nil {
+					l.Error(err)
+				}
+				g.Go(func(ctx context.Context) error {
+					tail.Start()
+					return nil
+				})
+				<-stop
+				tail.Close()
 				return nil
 			})
 		}(c)
@@ -176,28 +188,19 @@ func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 	}
 }
 
-func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
-	opt := &tailer.Option{
-		Source:                lg.Source,
-		Pipeline:              lg.Pipeline,
-		CharacterEncoding:     lg.CharacterEncoding,
-		MultilinePatterns:     []string{lg.MultilineMatch},
-		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
-		ForwardFunc:           fn,
-		FromBeginning:         false,
-		IgnoreDeadLog:         time.Hour * 12,
+func buildTailer(lg *logging, fn tailer.ForwardFunc) (*tailer.Tailer, error) {
+	opts := []tailer.Option{
+		tailer.WithIgnorePatterns(lg.Ignore),
+		tailer.WithSource(lg.Source),
+		tailer.WithPipeline(lg.Pipeline),
+		tailer.WithCharacterEncoding(lg.CharacterEncoding),
+		tailer.WithMultilinePatterns([]string{lg.MultilineMatch}),
+		tailer.WithRemoveAnsiEscapeCodes(lg.RemoveAnsiEscapeCodes),
+		tailer.WithForwardFunc(fn),
+		tailer.WithFromBeginning(false /*no fromBeginning*/),
+		tailer.WithIgnoreDeadLog(time.Hour * 12),
 	}
-
-	tailer, err := tailer.NewTailer(lg.LogFiles, opt, lg.Ignore)
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
-	go tailer.Start()
-
-	<-stop
-	tailer.Close()
+	return tailer.NewTailer(lg.LogFiles, opts...)
 }
 
 type config struct {
