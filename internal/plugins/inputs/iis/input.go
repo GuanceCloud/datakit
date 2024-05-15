@@ -76,16 +76,16 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:     "iis",
-		Service:    "iis",
-		Pipeline:   ipt.Log.Pipeline,
-		GlobalTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:       ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource("iis"),
+		tailer.WithService("iis"),
+		tailer.WithPipeline(ipt.Log.Pipeline),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	if ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt); err != nil {
+	if ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...); err != nil {
 		l.Error(err)
 		dkio.FeedLastError(inputName, err.Error())
 		return
@@ -105,19 +105,15 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineConfig
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) AvailableArchs() []string {
