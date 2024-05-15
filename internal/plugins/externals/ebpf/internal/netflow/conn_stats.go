@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"unsafe"
 )
 
 // #include "../c/netflow/conn_stats.h"
@@ -33,6 +34,20 @@ type ConnectionInfo struct {
 	NATDport uint32
 
 	ProcessName string
+}
+
+func ReadConnInfo(conn *ConnectionInfoC, dnatAddr [4]uint32, dnatPort uint32) ConnectionInfo {
+	return ConnectionInfo{
+		Saddr:    (*(*[4]uint32)(unsafe.Pointer(&conn.saddr))), //nolint:gosec
+		Daddr:    (*(*[4]uint32)(unsafe.Pointer(&conn.daddr))), //nolint:gosec
+		Sport:    uint32(conn.sport),
+		Dport:    uint32(conn.dport),
+		Pid:      uint32(conn.pid),
+		Netns:    uint32(conn.netns),
+		Meta:     uint32(conn.meta),
+		NATDaddr: dnatAddr, //nolint:gosec
+		NATDport: dnatPort,
+	}
 }
 
 func (conn ConnectionInfo) String() string {

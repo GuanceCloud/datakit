@@ -21,8 +21,8 @@ type HTTP2LogElem struct {
 
 	ChunkRange [2]int64 `json:"pkt_chunk_range"`
 
-	ReqSeq  uint32 `json:"req_1st_seq"`
-	RespSeq uint32 `json:"resp_1st_seq"`
+	reqSeq  uint32
+	respSeq uint32
 
 	grpcStatus  int
 	grpcMessage string
@@ -39,8 +39,8 @@ type HTTP2LogElem struct {
 	rxLastByteTS int64
 
 	// tcp packets
-	txPkts int64
-	rxPkts int64
+	// txPkts int64
+	// rxPkts int64
 
 	txBytes int64
 	rxBytes int64
@@ -113,7 +113,7 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 	}
 
 	if !h2log.isHTTP2 {
-		if v := hasHTTP2Magic(cnt); v > 0 {
+		if v := HasHTTP2Magic(cnt); v > 0 {
 			cnt = cnt[v:]
 			h2log.isHTTP2 = true
 		} else {
@@ -132,7 +132,7 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 	}
 
 	seqOffset := ln.Seq
-	for _, fr := range frames.fr {
+	for _, fr := range frames.Fr {
 		frHdr := fr.Header()
 		frLen := frHdr.Length + 9
 
@@ -157,11 +157,11 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 
 		switch fr := fr.(type) {
 		case *H2HeaderFrame:
-			for _, hdr := range fr.headers {
+			for _, hdr := range fr.Headers {
 				switch hdr.Name {
 				case H2HdrMethod:
 					elem.Method = hdr.Value
-					elem.ReqSeq = curSeqOffset
+					elem.reqSeq = curSeqOffset
 					elem.hState = 1
 
 					switch txrx {
@@ -184,7 +184,7 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 				case H2HdrStatus:
 					v, _ := strconv.ParseInt(hdr.Value, 10, 32)
 					elem.StatusCode = int(v)
-					elem.RespSeq = curSeqOffset
+					elem.respSeq = curSeqOffset
 					elem.hState = 2
 					switch txrx {
 					case directionRX:
@@ -247,13 +247,13 @@ type HTTP2Decoder struct {
 	hpackTxDec *hpack.Decoder
 	hpackRxDec *hpack.Decoder
 
-	reader bytes.Reader
+	Reader bytes.Reader
 }
 
 func NewH2Dec() *HTTP2Decoder {
 	h2dec := HTTP2Decoder{}
 
-	h2dec.h2Framer = http2.NewFramer(nil, &h2dec.reader)
+	h2dec.h2Framer = http2.NewFramer(nil, &h2dec.Reader)
 	h2dec.hpackTxDec = hpack.NewDecoder(4096, nil)
 	h2dec.hpackRxDec = hpack.NewDecoder(4096, nil)
 	return &h2dec
@@ -263,8 +263,8 @@ type Frame interface {
 	Header() http2.FrameHeader
 }
 
-type h2Frames struct {
-	fr []Frame
+type H2Frames struct {
+	Fr []Frame
 }
 
 var (
@@ -277,7 +277,7 @@ var (
 type H2HeaderFrame struct {
 	http2.FrameHeader
 
-	headers []hpack.HeaderField
+	Headers []hpack.HeaderField
 }
 
 type H2OtherFrame struct {
@@ -326,7 +326,7 @@ var _http2Magic = []byte("\x50\x52\x49\x20\x2a\x20\x48\x54\x54\x50\x2f\x32\x2e\x
 const H2MagicStr = "\x50\x52\x49\x20\x2a\x20\x48\x54\x54\x50\x2f\x32\x2e\x30\x0d\x0a" +
 	"\x0d\x0a\x53\x4d\x0d\x0a\x0d\x0a"
 
-func hasHTTP2Magic(buf []byte) int {
+func HasHTTP2Magic(buf []byte) int {
 	lenM := len(_http2Magic)
 	if len(buf) < lenM {
 		return 0
@@ -339,10 +339,10 @@ func hasHTTP2Magic(buf []byte) int {
 	return 0
 }
 
-func (h2dec *HTTP2Decoder) Decode(tx bool, buf []byte) (*h2Frames, error) {
-	h2dec.reader.Reset(buf)
+func (h2dec *HTTP2Decoder) Decode(tx bool, buf []byte) (*H2Frames, error) {
+	h2dec.Reader.Reset(buf)
 
-	h2Rslt := h2Frames{}
+	h2Rslt := H2Frames{}
 
 	for {
 		fr, err := h2dec.h2Framer.ReadFrame()
@@ -375,8 +375,8 @@ func (h2dec *HTTP2Decoder) Decode(tx bool, buf []byte) (*h2Frames, error) {
 
 			h2hdr := &H2HeaderFrame{}
 			h2hdr.FrameHeader = fr.FrameHeader
-			h2hdr.headers = headers
-			h2Rslt.fr = append(h2Rslt.fr, h2hdr)
+			h2hdr.Headers = headers
+			h2Rslt.Fr = append(h2Rslt.Fr, h2hdr)
 
 		case *http2.DataFrame:
 			h2body := &H2DataFrame{
@@ -389,16 +389,16 @@ func (h2dec *HTTP2Decoder) Decode(tx bool, buf []byte) (*h2Frames, error) {
 			}
 
 			fr.StreamEnded()
-			h2Rslt.fr = append(h2Rslt.fr, h2body)
+			h2Rslt.Fr = append(h2Rslt.Fr, h2body)
 
 		case *http2.RSTStreamFrame:
 			h2rst := &H2RSTStreamFrame{
 				FrameHeader: fr.FrameHeader,
 				ERRCode:     fr.ErrCode,
 			}
-			h2Rslt.fr = append(h2Rslt.fr, h2rst)
+			h2Rslt.Fr = append(h2Rslt.Fr, h2rst)
 		default:
-			h2Rslt.fr = append(h2Rslt.fr, &H2OtherFrame{
+			h2Rslt.Fr = append(h2Rslt.Fr, &H2OtherFrame{
 				FrameHeader: fr.Header(),
 			})
 		}

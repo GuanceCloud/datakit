@@ -10,7 +10,7 @@ const (
 	SampleW3CReject = "0"
 )
 
-func sampledW3C(v string) bool {
+func SampledW3C(v string) bool {
 	switch v {
 	case SampleW3CKeep:
 		return true
@@ -20,7 +20,7 @@ func sampledW3C(v string) bool {
 	return true
 }
 
-func sampledDataDog(v string) bool {
+func SampledDataDog(v string) bool {
 	switch v {
 	case SampleDataDogAutoKeep, SampleDataDogUserKeep:
 		return true

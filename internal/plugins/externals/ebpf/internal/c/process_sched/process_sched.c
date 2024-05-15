@@ -48,8 +48,12 @@ int tracepoint__sched_process_exec(struct tp_sched_process_exec_args *ctx)
     bpf_perf_event_output(ctx, &process_sched_event, cpu,
                           &rec, sizeof(rec_process_sched_status_t));
 
-    // bpf_printk("exec comm %s, pid %d tid %d\n",
-    //    rec->filename, rec->sched_status.prv_pid, rec->sched_status.nxt_pid);
+    // __u64 pid = pid_tgid >> 32;
+    // if (pid == 157374 || pid == 191010)
+    // {
+    //     bpf_printk("exec comm %s, pid %d tid %d\n", rec.comm, rec.prv_pid, rec.nxt_pid);
+    // };
+
     return 0;
 }
 
@@ -58,15 +62,9 @@ int tracepoint__sched_process_exit(struct tp_sched_process_exit_args *ctx)
 {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    __u64 *pidgoid = bpf_map_lookup_elem(&bmap_tid2goid, &pid_tgid);
     bpf_map_delete_elem(&bmap_tid2goid, &pid_tgid);
-    if (pidgoid != NULL)
-    {
-        __u64 pidgid = *pidgoid;
-        bpf_map_delete_elem(&bmap_goid2tid, &pidgid);
-    }
 
-    if ((pid_tgid >> 32) == (__u32)pid_tgid) // process exit
+    if ((pid_tgid >> 32) == (__u32)pid_tgid) // process(all threads) exit
     {
         rec_process_sched_status_t rec = {0};
         rec.status = REC_SCHED_EXIT;
@@ -81,7 +79,12 @@ int tracepoint__sched_process_exit(struct tp_sched_process_exit_args *ctx)
                               &rec, sizeof(rec_process_sched_status_t));
     }
 
-    // bpf_printk("exit comm %s, pid %d tid %d\n", ctx->comm, rec.prv_pid, rec.nxt_pid);
+    // __u64 pid = pid_tgid >> 32;
+    // if (pid == 157374 || pid == 191010)
+    // {
+    //     bpf_printk("exit comm %s, pid %d tid %d\n", ctx->comm, pid_tgid >> 32, (__u32)pid_tgid);
+    // };
+
     return 0;
 }
 
@@ -117,22 +120,17 @@ int uprobe__go_runtime_execute(struct pt_regs *ctx)
     }
 
     // pid|goid
-    __u64 pid_goid = 0;
-    bpf_probe_read(&pid_goid, sizeof(pid_goid), g + pr->offset_go_runtime_g_goid);
+    __u64 goid = 0;
+    bpf_probe_read(&goid, sizeof(goid), g + pr->offset_go_runtime_g_goid);
 
     // bpf_printk("goid %d", pid_goid);
 
-    pid_goid = (pid_tgid >> 32) << 32 | pid_goid;
+    bpf_map_update_elem(&bmap_tid2goid, &pid_tgid, &goid, BPF_ANY);
 
-    __u64 *pidtid = bpf_map_lookup_elem(&bmap_goid2tid, &pid_goid);
-    if (pidtid != NULL)
-    {
-        __u64 pidtid_tmp = *pidtid;
-        bpf_map_delete_elem(&bmap_tid2goid, &pidtid_tmp);
-    }
-
-    bpf_map_update_elem(&bmap_tid2goid, &pid_tgid, &pid_goid, BPF_ANY);
-    bpf_map_update_elem(&bmap_goid2tid, &pid_goid, &pid_tgid, BPF_ANY);
+    // if (pid == 157374 || pid == 191010)
+    // {
+    //     bpf_printk("go exec pid %d tid %d goid %d\n", pid_tgid >> 32, (__u32)pid_tgid, goid);
+    // };
 
     return 0;
 }

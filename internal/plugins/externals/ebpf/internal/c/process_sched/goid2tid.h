@@ -3,10 +3,7 @@
 
 #include "bpf_helpers.h"
 
-// pid_goid -> pid_tid
-BPF_HASH_MAP(bmap_goid2tid, u64, u64, 12800);
-
-// pid_tgid -> pid_goid
+// pid_tgid -> goid
 BPF_HASH_MAP(bmap_tid2goid, u64, u64, 12800);
 
 #endif

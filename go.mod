@@ -363,6 +363,7 @@ require (
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
+	github.com/petermattis/goid v0.0.0-20240327183114-c42a807a84ba
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000

@@ -353,6 +353,8 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			log.Info("process name set: ", processSet)
 		}
 
+		log.Info(envAssignAllowed, envSet, processSet, traceAll, !enableTraceFilter)
+
 		procFilter := tracing.NewProcessFilter(
 			envAssignAllowed, envSet, processSet, traceAll, !enableTraceFilter,
 		)
@@ -476,21 +478,15 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			}
 			constEditor = append(constEditor, httpConst...)
 
+			// TODO: append conntrack bpf map
 			bmaps, _ := schedTracer.GetGOSchedMap()
-			if ctMap != nil {
-				if bmaps == nil {
-					bmaps = make(map[string]*ebpf.Map)
-				}
-				bmaps["bpfmap_conntrack_tuple"] = ctMap
-			}
 			var traceSvc string
 			if exporter.DataKitTraceServer != "" {
 				traceSvc = fmt.Sprintf("http://%s%s", exporter.DataKitTraceServer, "/v1/bpftracing")
 			}
-			tracer := l7flow.NewHTTPFlowTracer(gTags, fmt.Sprintf("http://%s%s?input=",
+			tracer := l7flow.NewHTTPFlowTracer(ctx, gTags, fmt.Sprintf("http://%s%s?input=",
 				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetHTTP),
-				traceSvc, conv2ddID, enableTrace, procFilter,
-			)
+				traceSvc, conv2ddID, enableTrace, procFilter)
 
 			if err := tracer.Run(ctx, constEditor, bmaps, enableHTTPFlowTLS, interval); err != nil {
 				log.Error(err)
@@ -568,7 +564,7 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 	l4log.SetLogger(l)
 
 	dnsflow.SetLogger(l)
-	l7flow.SetLogger(l)
+	l7flow.Init(l)
 
 	bashhistory.SetLogger(l)
 
