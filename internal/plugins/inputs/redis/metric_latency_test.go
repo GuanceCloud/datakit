@@ -117,7 +117,7 @@ func TestInput_parseLatencyData(t *testing.T) {
 			}
 			sort.Strings(gotStr)
 
-			assert.Equal(t, gotStr, tt.want)
+			assert.Equal(t, tt.want, gotStr)
 		})
 	}
 }
