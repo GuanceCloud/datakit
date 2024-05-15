@@ -281,7 +281,7 @@ To standardize the statistical measurement of Datakit usage, the following clari
     - Collectors that receive log data via [TCP/UDP](../integrations/logging.md##socket)
     - Collectors that synchronize logs/metrics/RUM, etc., data via [kafkamq Collector](../integrations/kafkamq.md)
     - Collectors that synchronize Prometheus metrics via [prom_remote_write Collector](../integrations/prom_remote_write.md)
-    - Collectors that synchronize log data via [beats_output](beats_output.md)
+    - Collectors that synchronize log data via [beats_output](../integrations/beats_output.md)
 
 With these rules, it is possible to more accurately reflect the actual usage of Datakit, providing users with a more transparent and fair billing method.
 
