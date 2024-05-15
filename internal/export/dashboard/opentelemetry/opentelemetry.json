@@ -109,7 +109,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -128,7 +128,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`jvm.buffer.count`) AS `{{.Dashboard.buffer_count}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.count`) AS `{{.Dashboard.buffer_count}}`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -152,7 +152,7 @@
                 {
                   "id": "231891b0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -173,7 +173,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`jvm.buffer.memory.used`) AS `{{.Dashboard.buffer_memory_used}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.memory.used`) AS `{{.Dashboard.buffer_memory_used}}`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -197,7 +197,7 @@
                 {
                   "id": "2630ce30-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -218,7 +218,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`jvm.buffer.total.capacity`) AS `{{.Dashboard.buffer_total_capacity}}`) { `service.name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel-service`:(AVG(`jvm.buffer.total.capacity`) AS `{{.Dashboard.buffer_total_capacity}}`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -308,7 +308,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -351,7 +351,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -488,7 +488,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -531,7 +531,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -574,7 +574,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -702,7 +702,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -745,7 +745,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -854,7 +854,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -897,7 +897,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -940,7 +940,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1059,7 +1059,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1102,7 +1102,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1145,7 +1145,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1253,7 +1253,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1296,7 +1296,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1403,7 +1403,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1446,7 +1446,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1489,7 +1489,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1532,7 +1532,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1575,7 +1575,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1618,7 +1618,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1745,7 +1745,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1788,7 +1788,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1916,7 +1916,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -1961,7 +1961,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2006,7 +2006,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2143,7 +2143,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2188,7 +2188,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2233,7 +2233,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2320,7 +2320,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2432,7 +2432,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2448,12 +2448,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(MAX(`process.runtime.jvm.threads.count`) AS `{{.Dashboard.threads_count}}`) BY `service.name`",
+              "q": "M::`otel-service`:(MAX(`process.runtime.jvm.threads.count`) AS `{{.Dashboard.threads_count}}`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2541,7 +2541,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2557,12 +2557,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.current_loaded`) AS `current_load`) BY `service.name`",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.current_loaded`) AS `current_load`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2586,7 +2586,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2602,12 +2602,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.loaded`) AS `load`) BY `service.name`",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.loaded`) AS `load`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2631,7 +2631,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2647,12 +2647,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.unloaded`) AS `unload`) BY `service.name`",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.unloaded`) AS `unload`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2752,7 +2752,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2768,12 +2768,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.system.cpu.load_1m`) AS `{{.Dashboard.cpu_load_1m}}`) BY `service.name`",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.system.cpu.load_1m`) AS `{{.Dashboard.cpu_load_1m}}`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2797,7 +2797,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -2813,12 +2813,12 @@
               ],
               "funcList": [],
               "groupBy": [
-                "service.name"
+                "service_name"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.cpu.utilization`) AS `{{.Dashboard.cpu_utilization}}`) BY `service.name`",
+              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.cpu.utilization`) AS `{{.Dashboard.cpu_utilization}}`) BY `service_name`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2908,7 +2908,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3007,7 +3007,7 @@
                 {
                   "id": "e8cc19a0-35ca-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3026,7 +3026,7 @@
               "groupByTime": "",
               "labelOp": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(LAST(`process.uptime`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel-service`:(LAST(`process.uptime`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -3135,7 +3135,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3178,7 +3178,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3297,7 +3297,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3407,7 +3407,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3450,7 +3450,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3493,7 +3493,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3536,7 +3536,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3643,7 +3643,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3686,7 +3686,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3729,7 +3729,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3825,7 +3825,7 @@
                 {
                   "id": "b30bb960-35ca-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3844,7 +3844,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(LAST(`application.ready.time`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel-service`:(LAST(`application.ready.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -3921,7 +3921,7 @@
                 {
                   "id": "fb3e8af0-35ca-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -3940,7 +3940,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`otel-service`:(LAST(`process.start.time`)) { `service.name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel-service`:(LAST(`process.start.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -4039,7 +4039,7 @@
                 {
                   "id": "1cc686f0-35cb-11ee-aa40-c544b4bc047d",
                   "logic": "and",
-                  "name": "service.name",
+                  "name": "service_name",
                   "op": "=",
                   "type": "",
                   "value": "#{service_name}"
@@ -4090,7 +4090,7 @@
           "field": "",
           "metric": "otel-service",
           "object": "",
-          "tag": "service.name",
+          "tag": "service_name",
           "value": ""
         },
         "hide": 0,
@@ -4132,7 +4132,7 @@
           "field": "",
           "metric": "otel-service",
           "object": "",
-          "tag": "telemetry.auto.version",
+          "tag": "telemetry_auto_version",
           "value": ""
         },
         "hide": 0,
