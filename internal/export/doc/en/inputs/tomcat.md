@@ -20,11 +20,10 @@ monitor   :
 
 ---
 
-Tomcat metrics can be collected by using [dd-trace](ddtrace.md).
+Tomcat metrics can be collected by using [DDTrace](ddtrace.md).
+The flow of the collected data is as follows: Tomcat -> DDTrace -> DataKit(StatsD).
 
-The flow of the collected data is as follows: Tomcat -> dd-trace -> DataKit(statsd).
-
-You can see that Datakit has already integrated the [statsd](https://github.com/statsd/statsd){:target="_blank"} server, and dd-trace collects Tomcat metric data and reports it to Datakit using statsd protocol.
+You can see that Datakit has already integrated the [StatsD](https://github.com/statsd/statsd){:target="_blank"} server, and DDTrace collects Tomcat metric data and reports it to Datakit using StatsD protocol.
 
 ## Configuration {#config}
 
@@ -42,7 +41,7 @@ You can see that Datakit has already integrated the [statsd](https://github.com/
 
 - Datakit configuration:
 
-See the configuration of [statsd](statsd.md){:target="_blank"}.
+See the configuration of [StatsD](statsd.md){:target="_blank"}.
 
 Restart Datakit to make configuration take effect.
 
@@ -61,10 +60,10 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 The parameters are described below:
 
 - `javaagent`: Fill in the full path to `dd-java-agent.jar`;
-- `Ddd.jmxfetch.enabled`: Fill in `true`, which means the dd-trace collection function is enabled;
+- `Ddd.jmxfetch.enabled`: Fill in `true`, which means the DDTrace collection function is enabled;
 - `Ddd.jmxfetch.statsd.host`: Fill in the network address that Datakit listens to. No port number is included;
 - `Ddd.jmxfetch.statsd.port`: Fill in the port number that Datakit listens to. Usually `8125`, as determined by the Datakit side configuration;
-- `Ddd.jmxfetch.tomcat.enabled`: Fill in `true`, which means the Tomcat collect function of dd-trace is enabled. When enabled, the metrics set named `tomcat` will showing up;
+- `Ddd.jmxfetch.tomcat.enabled`: Fill in `true`, which means the Tomcat collect function of DDTrace is enabled. When enabled, the metrics set named `tomcat` will showing up;
 
 Restart Datakit to make configuration take effect.
 
