@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package register
+package recorder
 
 import (
 	"os"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRegister(t *testing.T) {
+func TestNewRecorder(t *testing.T) {
 	t.Run("parse err", func(t *testing.T) {
 		file, err := os.CreateTemp("", "")
 		assert.NoError(t, err)
@@ -23,7 +23,7 @@ func TestNewRegister(t *testing.T) {
 		_, err = file.WriteString("NO JSON")
 		assert.NoError(t, err)
 
-		_, err = newRegister(file.Name())
+		_, err = newRecorder(file.Name())
 		assert.NoError(t, err)
 	})
 
@@ -36,14 +36,14 @@ func TestNewRegister(t *testing.T) {
 		_, err = file.WriteString(content)
 		assert.NoError(t, err)
 
-		_, err = newRegister(file.Name())
+		_, err = newRecorder(file.Name())
 		assert.NoError(t, err)
 	})
 }
 
 func TestSetAndGet(t *testing.T) {
-	// reset globalRegister
-	globalRegister = nil
+	// reset globalRecorder
+	globalRecorder = nil
 
 	t.Run("set err", func(t *testing.T) {
 		inKey := "key"
@@ -59,7 +59,7 @@ func TestSetAndGet(t *testing.T) {
 		assert.Nil(t, value)
 	})
 
-	globalRegister = &register{
+	globalRecorder = &recorder{
 		Data: map[string]*MetaData{},
 	}
 	defaultFlushFactor = 2
@@ -91,8 +91,8 @@ func TestFlush(t *testing.T) {
 	_, err = file.WriteString(content)
 	assert.NoError(t, err)
 
-	// new register
-	r, err := newRegister(file.Name())
+	// new recorder
+	r, err := newRecorder(file.Name())
 	assert.NoError(t, err)
 
 	err = r.Set("key", &MetaData{Source: "source", Offset: 100})
@@ -116,7 +116,7 @@ func TestFlush(t *testing.T) {
 func TestParse(t *testing.T) {
 	cases := []struct {
 		in   string
-		out  *register
+		out  *recorder
 		fail bool
 	}{
 		{
@@ -132,7 +132,7 @@ func TestParse(t *testing.T) {
 				        }
 				}
 			}`,
-			out: &register{
+			out: &recorder{
 				Data: map[string]*MetaData{
 					"key1": {
 						Source: "source01",
@@ -147,7 +147,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			in:  ``,
-			out: &register{},
+			out: &recorder{},
 		},
 		{
 			in:   `NO JSON`,

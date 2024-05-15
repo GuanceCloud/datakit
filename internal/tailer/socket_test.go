@@ -78,24 +78,23 @@ func Test_socketLogger_Start(t *testing.T) {
 	udpPort := testutils.RandPort("tcp")
 	t.Logf("udp port = %d", udpPort)
 	// 启动socket: tcp,udp 端口
-	opt := &Option{
-		Source:   "logging",
-		Service:  "test_service",
-		Pipeline: "",
-		Sockets: []string{
+	opts := []Option{
+		WithSource("logging"),
+		WithService("test_service"),
+		WithPipeline(""),
+		WithSockets([]string{
 			fmt.Sprintf("tcp://127.0.0.1:%d", tcpPort),
 			fmt.Sprintf("udp://127.0.0.1:%d", udpPort),
-		},
-		IgnoreStatus:          []string{"debug"},
-		CharacterEncoding:     "utf-8",
-		RemoveAnsiEscapeCodes: false,
-		IgnoreDeadLog:         time.Minute,
-		GlobalTags:            map[string]string{},
-		BlockingMode:          true,
-		Done:                  nil,
+		}),
+		WithIgnoreStatus([]string{"debug"}),
+		WithCharacterEncoding("utf-8"),
+		WithRemoveAnsiEscapeCodes(false),
+		WithIgnoreDeadLog(time.Minute),
+		WithGlobalTags(map[string]string{}),
+		WithDone(nil),
 	}
 
-	sl, err := NewWithOpt(opt)
+	sl, err := NewWithOpt(opts...)
 	if err != nil {
 		t.Errorf("new sockerLoger err=%v", err)
 		return
@@ -152,9 +151,8 @@ func Test_socketLogger_doSocketV2(t *testing.T) {
 		tcpListeners:    nil,
 		udpConns:        nil,
 		socketBufferLen: 1024 * 2,
-		ignorePatterns:  nil,
 		tags:            map[string]string{"host": "testHost"},
-		opt:             &Option{Source: "default_source", InputName: "socket"},
+		opt:             &option{source: "default_source"},
 		stop:            nil,
 		servers:         nil,
 		feeder:          mockFeeder,

@@ -192,19 +192,15 @@ func (*Input) PipelineConfig() map[string]string {
 	return map[string]string{inputName: pipelineConfig}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.MgoDBLog != nil {
-					return ipt.MgoDBLog.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.MgoDBLog != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.MgoDBLog.Pipeline))
+	}
+	return opts
 }
 
 func (ipt *Input) RunPipeline() {
@@ -212,19 +208,19 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:            inputName,
-		Service:           inputName,
-		Pipeline:          ipt.MgoDBLog.Pipeline,
-		IgnoreStatus:      ipt.MgoDBLog.IgnoreStatus,
-		CharacterEncoding: ipt.MgoDBLog.CharacterEncoding,
-		MultilinePatterns: []string{ipt.MgoDBLog.MultilineMatch},
-		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:              ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.MgoDBLog.Pipeline),
+		tailer.WithIgnoreStatus(ipt.MgoDBLog.IgnoreStatus),
+		tailer.WithCharacterEncoding(ipt.MgoDBLog.CharacterEncoding),
+		tailer.WithMultilinePatterns([]string{ipt.MgoDBLog.MultilineMatch}),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.MgoDBLog.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.MgoDBLog.Files, opts...)
 	if err != nil {
 		log.Errorf("NewTailer: %s", err)
 

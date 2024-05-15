@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package diskcache wrap cache/storage functions
+// Package diskcache wraps logging cache functions
 package diskcache
 
 import (
@@ -22,14 +22,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type Cache interface {
+	RegisterConsumer(uint8, storage.ConsumerFunc)
+	RunConsumeWorker() error
+	Put(uint8, []byte) error
+	Close() error
+}
+
 var (
 	// globalCache is the shared cache instance.
 	globalCache Cache
 
 	// globalPBChan.
 	globalPBChan chan *PBData
-
-	initOnce sync.Once
+	initOnce     sync.Once
 
 	l = logger.DefaultSLogger("logging-cache")
 )

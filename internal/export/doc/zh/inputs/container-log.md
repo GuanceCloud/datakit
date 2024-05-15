@@ -38,6 +38,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     "source"  : "<your-source>",
     "service" : "<your-service>",
     "pipeline": "<your-pipeline.p>",
+    "remove_ansi_escape_codes": false,
     "tags" : {
       "<some-key>" : "<some_other_value>"
     }
@@ -47,17 +48,18 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 字段说明：
 
-| 字段名               | 取值             | 说明                                                                                                                                                                |
-| -----                | ----             | ----                                                                                                                                                                |
-| `disable`            | true/false       | 是否禁用该容器的日志采集，默认是 `false`                                                                                                                            |
-| `type`               | `file`/不填      | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                                                                 |
-| `path`               | 字符串           | 配置文件路径。如果是采集容器内文件，必须填写 volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填                      |
-| `source`             | 字符串           | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
-| `service`            | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
-| `pipeline`           | 字符串           | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
-| `multiline_match`    | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
-| `character_encoding` | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                |
-| `tags`               | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ）                                                     |
+| 字段名                     | 取值             | 说明                                                                                                                                                                |
+| -----                      | ----             | ----                                                                                                                                                                |
+| `disable`                  | true/false       | 是否禁用该容器的日志采集，默认是 `false`                                                                                                                            |
+| `type`                     | `file`/不填      | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                                                                 |
+| `path`                     | 字符串           | 配置文件路径。如果是采集容器内文件，必须填写 volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填                      |
+| `source`                   | 字符串           | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
+| `service`                  | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
+| `pipeline`                 | 字符串           | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
+| `remove_ansi_escape_codes` | true/false       | 是否删除日志数据的颜色字符                                                                                                                                          |
+| `multiline_match`          | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
+| `character_encoding`       | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                |
+| `tags`                     | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ）                                          |
 
 完整示例如下：
 

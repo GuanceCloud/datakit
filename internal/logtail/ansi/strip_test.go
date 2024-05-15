@@ -13,8 +13,7 @@ import (
 
 func TestStrip(t *testing.T) {
 	cases := []struct {
-		in  string
-		out string
+		in, out string
 	}{
 		{
 			in:  "\033[34mhello,world!\033[0m", // foreground-green
@@ -31,13 +30,16 @@ func TestStrip(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		res := Strip(tc.in)
-		assert.Equal(t, tc.out, res)
+		in := []byte(tc.in)
+		out := []byte(tc.out)
+
+		res := Strip(in)
+		assert.Equal(t, out, res)
 	}
 }
 
 func BenchmarkStrip(b *testing.B) {
-	in := "\033[0;31m2024/01/01 12:00:00 INFO 这是一条长句子，包含中文字符和英文字符！Hello, world! Hello, world! Hello, world!\033[0m"
+	in := []byte("\033[0;31m2024/01/01 12:00:00 INFO 这是一条长句子，包含中文字符和英文字符！Hello, world! Hello, world! Hello, world!\033[0m")
 
 	for i := 0; i < b.N; i++ {
 		res := Strip(in)

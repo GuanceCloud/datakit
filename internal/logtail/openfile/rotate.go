@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package tailer
+package openfile
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 )
 
 func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
-	f, err := openFile(file.Name())
+	f, err := OpenFile(file.Name())
 	if err != nil {
 		return false, err
 	}
@@ -34,8 +34,8 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 	return recreated || truncated, nil
 }
 
-func FileIsActive(fn string, timeout time.Duration) bool {
-	info, err := os.Stat(fn)
+func FileIsActive(filename string, timeout time.Duration) bool {
+	info, err := os.Stat(filename)
 	if err != nil {
 		return false
 	}

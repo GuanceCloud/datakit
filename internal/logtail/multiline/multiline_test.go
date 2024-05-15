@@ -14,7 +14,7 @@ import (
 
 func BenchmarkMultilineMatch(b *testing.B) {
 	in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
-	m, _ := New(nil, nil)
+	m, _ := New(nil)
 
 	for i := 0; i < b.N; i++ {
 		_, _ = m.ProcessLineString(in[0])
@@ -37,7 +37,7 @@ func TestMultilineMatch(t *testing.T) {
 		}
 		out := "# Time: 2021-05-31T11:15:26.043419Z\n# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228\n# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288\nSET timestamp=1622459726;\nSELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb\n                FROM     information_schema.tables\n                GROUP BY table_schema;"
 
-		m, err := New([]string{pattern}, nil)
+		m, err := New([]string{pattern})
 		assert.NoError(t, err)
 
 		for idx := range in {
@@ -58,7 +58,7 @@ func TestMultilineMatch(t *testing.T) {
 		in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
 		out := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
 
-		m, err := New(patterns, nil)
+		m, err := New(patterns)
 		assert.NoError(t, err)
 
 		_, state := m.ProcessLineString(in[0])
@@ -75,7 +75,7 @@ func TestMultilineMatch(t *testing.T) {
 func TestMultilineMatchLimit(t *testing.T) {
 	t.Run("buff-is-zero", func(t *testing.T) {
 		patterns := []string{}
-		m, err := New(patterns, nil)
+		m, err := New(patterns)
 		assert.NoError(t, err)
 
 		assert.Equal(t, 0, m.BuffLength())
@@ -88,11 +88,7 @@ func TestMultilineMatchLimit(t *testing.T) {
 
 	t.Run("flush-duration", func(t *testing.T) {
 		patterns := []string{"^\\S"}
-		opt := &Option{
-			MaxLifeDuration: time.Millisecond * 100,
-		}
-
-		m, err := New(patterns, opt)
+		m, err := New(patterns, WithMaxLifeDuration(time.Millisecond*100))
 		assert.NoError(t, err)
 
 		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
@@ -107,11 +103,7 @@ func TestMultilineMatchLimit(t *testing.T) {
 
 	t.Run("max-length-50", func(t *testing.T) {
 		patterns := []string{"^\\S"}
-		opt := &Option{
-			MaxLength: 50,
-		}
-
-		m, err := New(patterns, opt)
+		m, err := New(patterns, WithMaxLength(50))
 		assert.NoError(t, err)
 
 		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
@@ -125,22 +117,17 @@ func TestMultilineMatchLimit(t *testing.T) {
 
 func TestNewMultiline(t *testing.T) {
 	t.Run("ok-1", func(t *testing.T) {
-		_, err := New(nil, nil)
+		_, err := New(nil)
 		assert.NoError(t, err)
 	})
 
 	t.Run("ok-2", func(t *testing.T) {
-		_, err := New([]string{"^\\S"}, nil)
-		assert.NoError(t, err)
-	})
-
-	t.Run("ok-3", func(t *testing.T) {
-		_, err := New([]string{"^\\S"}, &Option{MaxLength: 100})
+		_, err := New([]string{"^\\S"})
 		assert.NoError(t, err)
 	})
 
 	t.Run("error", func(t *testing.T) {
-		_, err := New([]string{"(?!"}, nil)
+		_, err := New([]string{"(?!"})
 		assert.Error(t, err)
 	})
 }
@@ -189,7 +176,9 @@ func TestTrimRightSpace(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {
-			assert.Equal(t, TrimRightSpace(tc.in), tc.out)
+			in := []byte(tc.in)
+			out := []byte(tc.out)
+			assert.Equal(t, TrimRightSpace(in), out)
 		})
 	}
 }

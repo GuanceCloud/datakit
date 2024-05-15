@@ -6,18 +6,18 @@
 //go:build linux
 // +build linux
 
-package tailer
+package openfile
 
 import (
 	"strconv"
 	"syscall"
 )
 
-func getFileKey(file string) string {
-	return file + "::" + getInode(file)
+func FileKey(file string) string {
+	return file + "::" + FileInode(file)
 }
 
-func getInode(file string) string {
+func FileInode(file string) string {
 	inodeStr := "inode"
 	var stat syscall.Stat_t
 	if err := syscall.Stat(file, &stat); err == nil {

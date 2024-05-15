@@ -3,15 +3,18 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package ansi wrap process ANSI functions
+// Package ansi wraps process ANSI functions
 package ansi
 
 import "regexp"
 
 const stripRegex = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
-var re = regexp.MustCompile(stripRegex)
+var (
+	re   = regexp.MustCompile(stripRegex)
+	repl = []byte("")
+)
 
-func Strip(str string) string {
-	return re.ReplaceAllString(str, "")
+func Strip(b []byte) []byte {
+	return re.ReplaceAll(b, repl)
 }

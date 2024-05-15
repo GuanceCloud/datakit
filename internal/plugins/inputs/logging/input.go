@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/usagetrace"
 )
 
 const (
@@ -100,13 +99,13 @@ type Input struct {
 	AutoMultilineExtraPatterns []string          `toml:"auto_multiline_extra_patterns"`
 	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
 	Tags                       map[string]string `toml:"tags"`
-	BlockingMode               bool              `toml:"blocking_mode"`
 	FromBeginning              bool              `toml:"from_beginning,omitempty"`
 	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
 	MinFlushInterval           time.Duration     `toml:"-"`
 	MaxMultilineLifeDuration   time.Duration     `toml:"-"`
 	Mode                       string            `toml:"mode,omitempty"`
 
+	DeprecatedBlockingMode    bool   `toml:"blocking_mode"`
 	DeprecatedEnableDiskCache bool   `toml:"enable_diskcache,omitempty"`
 	DeprecatedPipeline        string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch  string `toml:"match"`
@@ -145,68 +144,67 @@ func (ipt *Input) Run() {
 		ignoreDuration = dur
 	}
 
-	opt := &tailer.Option{
-		Source:                ipt.Source,
-		Service:               ipt.Service,
-		Pipeline:              ipt.Pipeline,
-		Sockets:               ipt.Sockets,
-		IgnoreStatus:          ipt.IgnoreStatus,
-		FromBeginning:         ipt.FromBeginning,
-		CharacterEncoding:     ipt.CharacterEncoding,
-		IgnoreDeadLog:         ignoreDuration,
-		GlobalTags:            inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
-		BlockingMode:          ipt.BlockingMode,
-		Done:                  ipt.semStop.Wait(),
+	opts := []tailer.Option{
+		tailer.WithIgnorePatterns(ipt.Ignore),
+		tailer.WithSource(ipt.Source),
+		tailer.WithService(ipt.Service),
+		tailer.WithPipeline(ipt.Pipeline),
+		tailer.WithSockets(ipt.Sockets),
+		tailer.WithIgnoreStatus(ipt.IgnoreStatus),
+		tailer.WithFromBeginning(ipt.FromBeginning),
+		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
+		tailer.WithIgnoreDeadLog(ignoreDuration),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
+		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	switch ipt.Mode {
 	case "docker":
-		opt.Mode = tailer.DockerMode
+		opts = append(opts, tailer.WithTextParserMode(tailer.DockerJSONLogMode))
 	case "cri":
-		opt.Mode = tailer.ContainerdMode
+		opts = append(opts, tailer.WithTextParserMode(tailer.CriLogdMode))
 	default:
-		opt.Mode = tailer.FileMode
+		opts = append(opts, tailer.WithTextParserMode(tailer.FileMode))
 	}
 
+	var multilinePatterns []string
 	if ipt.MultilineMatch != "" {
-		opt.MultilinePatterns = []string{ipt.MultilineMatch}
+		multilinePatterns = []string{ipt.MultilineMatch}
 	} else if ipt.AutoMultilineDetection {
 		if len(ipt.AutoMultilineExtraPatterns) != 0 {
-			opt.MultilinePatterns = ipt.AutoMultilineExtraPatterns
+			multilinePatterns = ipt.AutoMultilineExtraPatterns
 			l.Infof("source %s automatic-multiline on, patterns %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
 		} else {
-			opt.MultilinePatterns = multiline.GlobalPatterns
+			multilinePatterns = multiline.GlobalPatterns
 			l.Infof("source %s automatic-multiline on, use default patterns", ipt.Source)
 		}
 	}
+	opts = append(opts, tailer.WithMultilinePatterns(multilinePatterns))
 
-	ipt.process = make([]LogProcessor, 0)
 	if len(ipt.LogFiles) != 0 {
-		tailerL, err := tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
+		tailerL, err := tailer.NewTailer(ipt.LogFiles, opts...)
 		if err != nil {
 			l.Error(err)
 		} else {
 			ipt.process = append(ipt.process, tailerL)
 		}
-	}
-
-	// 互斥：只有当logFile为空，socket不为空才开启socket采集日志
-	if len(ipt.LogFiles) == 0 && len(ipt.Sockets) != 0 {
-		socker, err := tailer.NewWithOpt(opt, ipt.Ignore)
-		if err != nil {
-			l.Error(err)
-		} else {
-			l.Infof("new socket logging")
-			ipt.process = append(ipt.process, socker)
-
-			// notify usage tracer the new server started.
-			usagetrace.UpdateTraceOptions(usagetrace.WithServerListens(ipt.Sockets...))
-		}
 	} else {
-		l.Warn("socket len=0")
+		// 互斥：只有当logFile为空，socket不为空才开启socket采集日志
+		if len(ipt.Sockets) != 0 {
+			socker, err := tailer.NewWithOpt(opts...)
+			if err != nil {
+				l.Error(err)
+			} else {
+				l.Infof("new socket logging")
+				ipt.process = append(ipt.process, socker)
+			}
+		} else {
+			l.Warn("socket len=0")
+		}
 	}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logging"})
+
 	if ipt.process != nil && len(ipt.process) > 0 {
 		// start all process
 		for _, proce := range ipt.process {

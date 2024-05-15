@@ -6,7 +6,7 @@
 //go:build windows
 // +build windows
 
-package tailer
+package openfile
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"syscall"
 )
 
-func openFile(path string) (*os.File, error) {
+func OpenFile(path string) (*os.File, error) {
 	if len(path) == 0 {
 		return nil, fmt.Errorf("File '%s' not found. Error: %v", path, syscall.ERROR_FILE_NOT_FOUND)
 	}

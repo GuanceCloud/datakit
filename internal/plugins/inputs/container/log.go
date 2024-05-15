@@ -19,17 +19,18 @@ import (
 const logConfigAnnotationKeyFormat = "datakit/%slogs"
 
 type logConfig struct {
-	Disable           bool              `json:"disable"`
-	Type              string            `json:"type"`
-	Path              string            `json:"path"`
-	HostFilePath      string            `json:"-"`
-	Source            string            `json:"source"`
-	Service           string            `json:"service"`
-	CharacterEncoding string            `json:"character_encoding"`
-	Pipeline          string            `json:"pipeline"`
-	Multiline         string            `json:"multiline_match"`
-	MultilinePatterns []string          `json:"-"`
-	Tags              map[string]string `json:"tags"`
+	Disable               bool              `json:"disable"`
+	Type                  string            `json:"type"`
+	Path                  string            `json:"path"`
+	HostFilePath          string            `json:"-"`
+	Source                string            `json:"source"`
+	Service               string            `json:"service"`
+	CharacterEncoding     string            `json:"character_encoding"`
+	Pipeline              string            `json:"pipeline"`
+	Multiline             string            `json:"multiline_match"`
+	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
+	MultilinePatterns     []string          `json:"-"`
+	Tags                  map[string]string `json:"tags"`
 }
 
 type logConfigs []*logConfig

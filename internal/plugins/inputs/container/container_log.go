@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -41,35 +42,32 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
 
-		opt := &tailer.Option{
-			Source:                         cfg.Source,
-			Service:                        cfg.Service,
-			Pipeline:                       cfg.Pipeline,
-			CharacterEncoding:              cfg.CharacterEncoding,
-			MultilinePatterns:              cfg.MultilinePatterns,
-			GlobalTags:                     mergedTags,
-			BlockingMode:                   c.ipt.LoggingBlockingMode,
-			MaxMultilineLifeDuration:       c.ipt.LoggingMaxMultilineLifeDuration,
-			RemoveAnsiEscapeCodes:          c.ipt.LoggingRemoveAnsiEscapeCodes,
-			MaxForceFlushLimit:             c.ipt.LoggingForceFlushLimit,
-			FileFromBeginningThresholdSize: int64(c.ipt.LoggingFileFromBeginningThresholdSize),
-			Done:                           done,
+		opts := []tailer.Option{
+			tailer.WithSource(cfg.Source),
+			tailer.WithService(cfg.Service),
+			tailer.WithPipeline(cfg.Pipeline),
+			tailer.WithCharacterEncoding(cfg.CharacterEncoding),
+			tailer.WithMultilinePatterns(cfg.MultilinePatterns),
+			tailer.WithGlobalTags(mergedTags),
+			tailer.WithMaxMultilineLifeDuration(c.ipt.LoggingMaxMultilineLifeDuration),
+			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
+			tailer.WithMaxForceFlushLimit(c.ipt.LoggingForceFlushLimit),
+			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
+			tailer.WithDone(done),
 		}
 
 		switch cfg.Type {
 		case "file":
-			opt.Mode = tailer.FileMode
+			opts = append(opts, tailer.WithTextParserMode(tailer.FileMode))
 		case runtime.DockerRuntime:
-			opt.Mode = tailer.DockerMode
+			opts = append(opts, tailer.WithTextParserMode(tailer.DockerJSONLogMode))
 		default:
-			opt.Mode = tailer.ContainerdMode
+			opts = append(opts, tailer.WithTextParserMode(tailer.CriLogdMode))
 		}
-
-		_ = opt.Init()
 
 		path = logsJoinRootfs(path)
 
-		filelist, err := tailer.NewProvider().SearchFiles([]string{path}).Result()
+		filelist, err := fileprovider.NewProvider().SearchFiles([]string{path}).Result()
 		if err != nil {
 			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
 			continue
@@ -85,9 +83,9 @@ func (c *container) tailingLogs(ins *logInstance) {
 				continue
 			}
 
-			l.Infof("add container log collection with path %s from source %s", file, opt.Source)
+			l.Infof("add container log collection with path %s from source %s", file, cfg.Source)
 
-			tail, err := tailer.NewTailerSingle(file, opt)
+			tail, err := tailer.NewTailerSingle(file, opts...)
 			if err != nil {
 				l.Errorf("failed to create container-log collection %s for %s, err: %s", file, ins.containerName, err)
 				continue
@@ -99,7 +97,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 				g.Go(func(ctx context.Context) error {
 					defer func() {
 						c.logTable.removePathFromTable(ins.id, file)
-						l.Infof("remove container log collection from source %s", opt.Source)
+						l.Infof("remove container log collection from source %s", cfg.Source)
 					}()
 					tail.Run()
 					return nil

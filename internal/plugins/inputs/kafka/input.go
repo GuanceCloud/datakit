@@ -61,19 +61,19 @@ func (ipt *Input) RunPipeline() {
 		return
 	}
 
-	opt := &tailer.Option{
-		Source:            inputName,
-		Service:           inputName,
-		Pipeline:          ipt.Log.Pipeline,
-		IgnoreStatus:      ipt.Log.IgnoreStatus,
-		CharacterEncoding: ipt.Log.CharacterEncoding,
-		MultilinePatterns: []string{ipt.Log.MultilineMatch},
-		GlobalTags:        inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
-		Done:              ipt.SemStop.Wait(), // nolint:typecheck
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
+		tailer.WithPipeline(ipt.Log.Pipeline),
+		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
+		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithDone(ipt.SemStop.Wait()), // nolint:typecheck
 	}
 
 	var err error
-	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
@@ -103,19 +103,15 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-func (ipt *Input) GetPipeline() []*tailer.Option {
-	return []*tailer.Option{
-		{
-			Source:  inputName,
-			Service: inputName,
-			Pipeline: func() string {
-				if ipt.Log != nil {
-					return ipt.Log.Pipeline
-				}
-				return ""
-			}(),
-		},
+func (ipt *Input) GetPipeline() []tailer.Option {
+	opts := []tailer.Option{
+		tailer.WithSource(inputName),
+		tailer.WithService(inputName),
 	}
+	if ipt.Log != nil {
+		opts = append(opts, tailer.WithPipeline(ipt.Log.Pipeline))
+	}
+	return opts
 }
 
 func (*Input) Catalog() string      { return "db" }
