@@ -6,28 +6,10 @@
 package nginx
 
 import (
-	"time"
-
-	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type NginxMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *NginxMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+type NginxMeasurement struct{}
 
 //nolint:lll
 func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {

@@ -12,22 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type ServerZoneMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *ServerZoneMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+type ServerZoneMeasurement struct{}
 
 //nolint:lll
 func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
@@ -95,22 +80,7 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type CacheZoneMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *CacheZoneMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+type CacheZoneMeasurement struct{}
 
 //nolint:lll
 func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
