@@ -8,7 +8,9 @@ package hostobject
 import (
 	"testing"
 
+	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -43,4 +45,62 @@ func TestCollect(t *testing.T) {
 	}
 
 	t.Log("TestCollect succeeded!")
+}
+
+func TestInput_setup(t *testing.T) {
+	tests := []struct {
+		name         string
+		conf         string
+		wantElection bool
+		wantHost     bool
+	}{
+		{
+			name:         "nil is true",
+			conf:         ``,
+			wantElection: true,
+			wantHost:     true,
+		},
+		{
+			name: "real = false and deprecated = nil",
+			conf: `
+			enable_cloud_host_tags_as_global_election = false
+            enable_cloud_host_tags_as_global_host = false
+			`,
+			wantElection: false,
+			wantHost:     false,
+		},
+		{
+			name: "real = nil and deprecated = false",
+			conf: `
+			enable_cloud_host_tags_global_election = false
+            enable_cloud_host_tags_global_host = false
+			`,
+			wantElection: false,
+			wantHost:     false,
+		},
+		{
+			name: "real = false and deprecated = false",
+			conf: `
+			enable_cloud_host_tags_as_global_election = false
+            enable_cloud_host_tags_as_global_host = false
+			enable_cloud_host_tags_global_election = false
+            enable_cloud_host_tags_global_host = false
+			`,
+			wantElection: false,
+			wantHost:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := defaultInput()
+
+			_, err := toml.Decode(tt.conf, ipt)
+			assert.NoError(t, err)
+
+			ipt.setup()
+
+			assert.Equal(t, tt.wantElection, ipt.EnableCloudHostTagsGlobalElection)
+			assert.Equal(t, tt.wantHost, ipt.EnableCloudHostTagsGlobalHost)
+		})
+	}
 }

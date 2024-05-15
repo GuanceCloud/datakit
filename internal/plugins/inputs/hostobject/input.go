@@ -57,9 +57,11 @@ type Input struct {
 
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
-	Tags                              map[string]string `toml:"tags,omitempty"`
-	EnableCloudHostTagsGlobalElection bool              `toml:"enable_cloud_host_tags_global_election"`
-	EnableCloudHostTagsGlobalHost     bool              `toml:"enable_cloud_host_tags_global_host"`
+	Tags                                        map[string]string `toml:"tags,omitempty"`
+	EnableCloudHostTagsGlobalElection           bool              `toml:"enable_cloud_host_tags_as_global_election"`
+	EnableCloudHostTagsGlobalElectionDeprecated bool              `toml:"enable_cloud_host_tags_global_election"` // deprecated
+	EnableCloudHostTagsGlobalHost               bool              `toml:"enable_cloud_host_tags_as_global_host"`
+	EnableCloudHostTagsGlobalHostDeprecated     bool              `toml:"enable_cloud_host_tags_global_host"` // deprecated
 
 	Interval                 time.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore time.Duration `toml:"ignore_inputs_errors_before,omitempty"`
@@ -130,7 +132,8 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) setup() {
-	l = logger.SLogger(inputName)
+	ipt.EnableCloudHostTagsGlobalElection = ipt.EnableCloudHostTagsGlobalElection && ipt.EnableCloudHostTagsGlobalElectionDeprecated
+	ipt.EnableCloudHostTagsGlobalHost = ipt.EnableCloudHostTagsGlobalHost && ipt.EnableCloudHostTagsGlobalHostDeprecated
 
 	l.Infof("%s input started", inputName)
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
@@ -346,13 +349,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 func defaultInput() *Input {
 	return &Input{
-		Interval:                          5 * time.Minute,
-		IgnoreInputsErrorsBefore:          30 * time.Second,
-		IgnoreZeroBytesDisk:               true,
-		EnableCloudHostTagsGlobalElection: true,
-		EnableCloudHostTagsGlobalHost:     true,
-		diskIOCounters:                    diskutil.IOCounters,
-		netIOCounters:                     netutil.IOCounters,
+		Interval:                                    5 * time.Minute,
+		IgnoreInputsErrorsBefore:                    30 * time.Second,
+		IgnoreZeroBytesDisk:                         true,
+		EnableCloudHostTagsGlobalElection:           true,
+		EnableCloudHostTagsGlobalElectionDeprecated: true,
+		EnableCloudHostTagsGlobalHost:               true,
+		EnableCloudHostTagsGlobalHostDeprecated:     true,
+		diskIOCounters:                              diskutil.IOCounters,
+		netIOCounters:                               netutil.IOCounters,
 
 		semStop:       cliutils.NewSem(),
 		feeder:        dkio.DefaultFeeder(),
