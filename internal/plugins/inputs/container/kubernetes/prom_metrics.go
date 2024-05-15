@@ -391,6 +391,7 @@ func newPromRunner(c *promConfig, feeder dkio.Feeder) (*promRunner, error) {
 
 	host, err := parseURLHost(c.URL)
 	if err != nil {
+		klog.Warnf("failed to parse url %s", err)
 		return nil, fmt.Errorf("parse url error: %w", err)
 	}
 	p.currentURL = host
@@ -433,6 +434,7 @@ func newPromRunner(c *promConfig, feeder dkio.Feeder) (*promRunner, error) {
 
 	pm, err := iprom.NewProm(opts...)
 	if err != nil {
+		klog.Warnf("failed to create prom %s", err)
 		return nil, fmt.Errorf("failed to create prom: %w", err)
 	}
 

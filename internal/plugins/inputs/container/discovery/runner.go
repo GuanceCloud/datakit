@@ -7,11 +7,14 @@ package discovery
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strconv"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	kubev1guancebeta1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/typed/guance/v1beta1"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -243,7 +246,8 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					measurementName = meas
 				}
 
-				config := newPromConfig(withSource(fmt.Sprintf("k8s/pod-monitor(%s)/pod(%s)", item.Name, pod.Name)),
+				opts := []promOption{
+					withSource(fmt.Sprintf("k8s/pod-monitor(%s)/pod(%s)", item.Name, pod.Name)),
 					withMeasurementName(measurementName),
 					withURLs([]string{urlstr}),
 					withTag("namespace", pod.Namespace),
@@ -252,8 +256,19 @@ func (d *Discovery) newPromForPodMonitors() []*promRunner {
 					withTags(d.cfg.ExtraTags),
 					withTags(getTargetLabels(pod.Labels, item.Spec.PodTargetLabels)),
 					withLabelAsTags(pod.Labels, d.cfg.LabelAsTags),
-					withInterval(metricsEndpoints.Interval))
+					withInterval(metricsEndpoints.Interval),
+				}
 
+				if metricsEndpoints.TLSConfig != nil {
+					tlsConfig, err := d.loadTLSConfigForPrometheusMonitor(metricsEndpoints.TLSConfig.SafeTLSConfig)
+					if err != nil {
+						klog.Warnf("failed to new PromRunner of podMonitor %s , could not load tlsConfig %s", item.Name, err)
+					} else {
+						opts = append(opts, WithTLSOpen(true), WithTLSConfig(tlsConfig))
+					}
+				}
+
+				config := newPromConfig(opts...)
 				runner, err := newPromRunnerWithConfig(d, config)
 				if err != nil {
 					klog.Warnf("failed to new prom runner of PodMonitor %s pod %s, err: %s, skip", item.Name, pod.Name, err)
@@ -344,11 +359,13 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 						withInterval(endpoint.Interval),
 					}
 
-					if endpoint.TLSConfig != nil && endpoint.TLSConfig.CAFile != "" {
-						opts = append(opts, WithTLSOpen(true),
-							WithCacertFile(endpoint.TLSConfig.CAFile),
-							WithCertFile(endpoint.TLSConfig.CertFile),
-							WithKeyFile(endpoint.TLSConfig.KeyFile))
+					if endpoint.TLSConfig != nil {
+						tlsConfig, err := d.loadTLSConfigForPrometheusMonitor(endpoint.TLSConfig.SafeTLSConfig)
+						if err != nil {
+							klog.Warnf("failed to new PromRunner of serviceMonitor %s service %s, could not load tlsConfig %s", item.Name, svc.Name, err)
+						} else {
+							opts = append(opts, WithTLSOpen(true), WithTLSConfig(tlsConfig))
+						}
 					}
 
 					config := newPromConfig(opts...)
@@ -474,6 +491,10 @@ func (d *Discovery) getDeploymentLabelSelector(namespace, deployment string) (*m
 		return nil, fmt.Errorf("invalid Deployment LabelSelector")
 	}
 	return deploymentObj.Spec.Selector, nil
+}
+
+func (d *Discovery) loadTLSConfigForPrometheusMonitor(config monitoringv1.SafeTLSConfig) (*tls.Config, error) {
+	return net.DefaultTLSConfigWithInsecureSkipVerify(config.InsecureSkipVerify), nil
 }
 
 func newPromRunnersForPod(discovery *Discovery, pod *apicorev1.Pod, inputConfig string) ([]*promRunner, error) {
