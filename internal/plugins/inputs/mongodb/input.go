@@ -241,7 +241,11 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
-func (ipt *Input) initServers() {
+func (ipt *Input) tryInitServers() {
+	if len(ipt.mgoSvrs) > 0 {
+		return
+	}
+
 	if len(ipt.Servers) == 0 && len(ipt.HostPort) != 0 {
 		server := ""
 		if len(ipt.ConnectionFormat) == 0 {
@@ -298,43 +302,24 @@ func (ipt *Input) initServers() {
 }
 
 func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
-
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
-	ipt.semStop = cliutils.NewSem()
-	defTags = ipt.Tags
+	ipt.setup()
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	for {
-		ipt.initServers()
-
-		if len(ipt.mgoSvrs) != 0 {
-			break
-		}
-
-		select {
-		case <-datakit.Exit.Wait():
-			if ipt.tail != nil {
-				ipt.tail.Close()
-			}
-			log.Info("mongo exit")
-			return
-		case <-ipt.semStop.Wait():
-			return
-		case <-tick.C:
-		}
-	}
-
 	log.Infof("%s input started", inputName)
 
 	for {
-		if ipt.pause {
+		if !ipt.pause {
+			ipt.tryInitServers()
+
+			log.Debugf("mongodb input gathering...")
+			if err := ipt.gather(); err != nil {
+				log.Error(err.Error())
+				ipt.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+			}
+		} else {
 			log.Debugf("not leader, skipped")
-		} else if err := ipt.gather(); err != nil {
-			log.Error(err.Error())
-			ipt.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
 		}
 
 		select {
@@ -354,6 +339,14 @@ func (ipt *Input) Run() {
 	}
 }
 
+func (ipt *Input) setup() {
+	log = logger.SLogger(inputName)
+
+	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.semStop = cliutils.NewSem()
+	defTags = ipt.Tags
+}
+
 func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 	cliOpts := options.Client()
 	cliOpts.ApplyURI(url)
@@ -367,6 +360,7 @@ func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 	if tlsConfig != nil {
 		if tlscfg, err := tlsConfig.TLSConfig(); err != nil {
 			log.Errorf("connect to mongodb with TLS failed: %s backe to INSECURE connection", err.Error())
+			return nil, err
 		} else {
 			cliOpts.SetTLSConfig(tlscfg)
 		}
@@ -374,9 +368,11 @@ func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 	cliOpts.SetConnectTimeout(time.Second * 10)
 	mgocli, err := mongo.Connect(context.TODO(), cliOpts)
 	if err != nil {
+		_ = mgocli.Disconnect(context.TODO())
 		return nil, err
 	}
 	if err = mgocli.Ping(context.TODO(), readpref.Primary()); err != nil {
+		_ = mgocli.Disconnect(context.TODO())
 		return nil, err
 	}
 
@@ -386,6 +382,10 @@ func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 // Reads stats from all configured servers.
 // Returns one of the errors encountered while gather stats (if any).
 func (ipt *Input) gather() error {
+	if len(ipt.mgoSvrs) == 0 {
+		return fmt.Errorf("no mongodb server")
+	}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_mongodb"})
 	for _, svr := range ipt.mgoSvrs {
 		func(svr *MongodbServer) {
