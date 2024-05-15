@@ -56,7 +56,7 @@ type PktTCPHdr struct {
 	Seq    uint32 `json:"seq"`     // seq
 	AckSeq uint32 `json:"ack_seq"` // ack
 
-	TCPPayloadSize uint32 `json:"tcp_payload_size"`
+	TCPPayloadSize int `json:"tcp_payload_size"`
 
 	SrcMAC string `json:"src_mac"`
 	DstMAC string `json:"dst_mac"`
@@ -551,17 +551,17 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 			k.DstIP = decoder.ipv4.DstIP.String()
 
 			if ci.Length > 64 {
-				ln.TCPPayloadSize = uint32(int(decoder.ipv4.Length) -
+				ln.TCPPayloadSize = int(decoder.ipv4.Length) -
 					len(decoder.ipv4.BaseLayer.Contents) -
-					len(decoder.tcp.BaseLayer.Contents))
+					len(decoder.tcp.BaseLayer.Contents)
 			}
 		} else { // ipv6
 			isipv6 = true
 			k.SrcIP = decoder.ipv6.SrcIP.String()
 			k.DstIP = decoder.ipv6.DstIP.String()
 
-			ln.TCPPayloadSize = uint32(int(decoder.ipv6.Length) -
-				len(decoder.tcp.BaseLayer.Contents))
+			ln.TCPPayloadSize = int(decoder.ipv6.Length) -
+				len(decoder.tcp.BaseLayer.Contents)
 		}
 
 		var txRx int8

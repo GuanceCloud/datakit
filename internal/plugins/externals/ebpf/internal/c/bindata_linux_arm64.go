@@ -11,8 +11,8 @@ import (
 //go:embed elf/linux_arm64
 var binData embed.FS
 
-func HTTPFlowBin() ([]byte, error) {
-	return binData.ReadFile("elf/linux_arm64/httpflow.o")
+func APIFlowBin() ([]byte, error) {
+	return binData.ReadFile("elf/linux_arm64/apiflow.o")
 }
 
 func NetFlowBin() ([]byte, error) {

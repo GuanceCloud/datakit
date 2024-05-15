@@ -102,7 +102,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 				chunkElemLen := len(chunk.TCPSreries)
 				if chunkElemLen > 0 {
 					lastTS := chunk.TCPSreries[chunkElemLen-1].TS
-					dur0NotTimeout := (tsnow - lastTS) < chunkTimeoutDuration
+					dur0NotTimeout := (tsnow - (lastTS + chunk.TimePos)) < chunkTimeoutDuration
 					dur1NotTimeout := true
 					if chunkElemLen >= 2 {
 						dur1NotTimeout = (lastTS - chunk.TCPSreries[0].TS) < chunkTimeoutDuration
@@ -263,8 +263,12 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	kvs = kvs.Add("http_path", elem.Path, true, true)
 	kvs = kvs.Add("http_status_code", elem.StatusCode, false, true)
 	kvs = kvs.Add("http_method", elem.Method, true, true)
+	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
+		elem.reqSeq), 10), true, true)
+	kvs = kvs.Add("resp_seq", strconv.FormatInt(int64(
+		elem.respSeq), 10), true, true)
 	kvs = kvs.Add("l7_traceid", fmt.Sprintf("%d_%d",
-		elem.ReqSeq1st, elem.RespSeq1st), true, true)
+		elem.reqSeq, elem.respSeq), true, true)
 
 	var reqDlDur, respDlDur float64
 	var reqTS int64
@@ -322,16 +326,12 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 		"l7_proto": "http",
 		"http":     elem,
 		"tcp": map[string]any{
-			"tx_bytes":         elem.txBytes,
-			"rx_bytes":         elem.rxBytes,
-			"tx_packets":       elem.txPkts,
-			"rx_packets":       elem.rxPkts,
-			"tx_first_byte_ts": elem.txFirstByteTS,
-			"tx_last_byte_ts":  elem.txLastByteTS,
-			"rx_first_byte_ts": elem.rxFirstByteTS,
-			"rx_last_byte_ts":  elem.rxLastByteTS,
-			"tx_retrans":       elem.txRetransmits,
-			"rx_retrans":       elem.rxRetransmits,
+			"tx_bytes":   elem.txBytes,
+			"rx_bytes":   elem.rxBytes,
+			"tx_packets": elem.txPkts,
+			"rx_packets": elem.rxPkts,
+			"tx_retrans": elem.txRetransmits,
+			"rx_retrans": elem.rxRetransmits,
 		},
 	}
 
@@ -394,7 +394,7 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 	chunk.TCPColName = nil
 
 	if len(chunk.TCPSreries) > 0 {
-		return kvs, chunk.TCPSreries[0].TS, true, nil
+		return kvs, chunk.TCPSreries[0].TS + chunk.TimePos, true, nil
 	} else {
 		return kvs, tsnow, true, nil
 	}
@@ -410,8 +410,12 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	kvs = kvs.Add("parent_id", elem.ParentID, true, true)
 	kvs = kvs.Add("direction", elem.Direction, true, true)
 	kvs = kvs.Add("l7_proto", "http2", true, true)
+	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
+		elem.reqSeq), 10), true, true)
+	kvs = kvs.Add("resp_seq", strconv.FormatInt(int64(
+		elem.respSeq), 10), true, true)
 	kvs = kvs.Add("l7_traceid", fmt.Sprintf("%d_%d",
-		elem.ReqSeq, elem.RespSeq), true, true)
+		elem.reqSeq, elem.respSeq), true, true)
 
 	// fields
 	kvs = kvs.Add("http_method", elem.Method, false, true)
@@ -463,30 +467,10 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	// conv to millsecond
 	kvs = kvs.Add("cost_resp_wait", float64(waitRespDur)/float64(time.Millisecond), false, true)
 
-	// same as tcp
-	kvs = kvs.Add("tx_packets", elem.txPkts, false, true)
-	kvs = kvs.Add("rx_packets", elem.rxPkts, false, true)
-	kvs = kvs.Add("tx_bytes", elem.txBytes, false, true)
-	kvs = kvs.Add("rx_bytes", elem.rxBytes, false, true)
-	kvs = kvs.Add("tx_retrans", elem.txRetransmits, false, true)
-	kvs = kvs.Add("rx_retrans", elem.rxRetransmits, false, true)
-
 	msg := map[string]any{
 		"l4_proto": "tcp",
 		"l7_proto": "http2",
 		"http2":    elem,
-		"tcp": map[string]any{
-			"tx_bytes":         elem.txBytes,
-			"rx_bytes":         elem.rxBytes,
-			"tx_packets":       elem.txPkts,
-			"rx_packets":       elem.rxPkts,
-			"tx_first_byte_ts": elem.txFirstByteTS,
-			"tx_last_byte_ts":  elem.txLastByteTS,
-			"rx_first_byte_ts": elem.rxFirstByteTS,
-			"rx_last_byte_ts":  elem.rxLastByteTS,
-			"tx_retrans":       elem.txRetransmits,
-			"rx_retrans":       elem.rxRetransmits,
-		},
 	}
 
 	buf, err := json.Marshal(msg)

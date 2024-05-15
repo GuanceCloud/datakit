@@ -13,58 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 )
 
-const (
-	OpProbeUnknown     = "ebpf.unknown"
-	OpSyscallRead      = "syscall.read"
-	OpSyscallWrite     = "syscall.write"
-	OpSycallSendto     = "syscall.sendto"
-	OpSyscallRecvfrom  = "syscall.recvfrom"
-	OpSyscallWritev    = "syscall.writev"
-	OpSyscallReadv     = "syscall.readv"
-	OpSyscallSendfile  = "syscall.sendfile"
-	OpSyscallClose     = "syscall.close"
-	OpUserFuncSSLRead  = "user.ssl_read"
-	OpUserFuncSSLWrite = "user.ssl_write"
-
-	SvcSyscall = "syscall"
-)
-
-const (
-	PUnknown = iota
-	PSyscallWrite
-	PSyscallRead
-	PSyscallSendto
-	PSyscallRecvfrom
-	PSyscallWritev
-	PSyscallReadv
-	PSyscallSendfile
-
-	PSyacallClose
-
-	PUsrSSLRead
-	PUsrSSLWrite
-)
-
-var SysOP = func() func(uint16) string {
-	mapping := map[uint16]string{
-		PUnknown:         OpProbeUnknown,
-		PSyscallWrite:    OpSyscallWrite,
-		PSyscallRead:     OpSyscallRead,
-		PSyscallSendto:   OpSycallSendto,
-		PSyscallRecvfrom: OpSyscallRecvfrom,
-		PSyscallWritev:   OpSyscallWritev,
-		PSyscallReadv:    OpSyscallReadv,
-		PUsrSSLRead:      OpUserFuncSSLRead,
-		PUsrSSLWrite:     OpUserFuncSSLWrite,
-		PSyscallSendfile: OpSyscallSendfile,
-		PSyacallClose:    OpSyscallClose,
-	}
-
-	return func(id uint16) string {
-		return mapping[id]
-	}
-}()
-
 type TraceInfo struct {
 	Host string
 
@@ -100,66 +48,49 @@ type TraceInfo struct {
 	TS int64
 }
 
-func ParseHTTP1xHeader(payload []byte, ts int64, conv2dd bool) (*TraceInfo, bool) {
+func GetHTTPHeader(payload []byte) map[string]string {
 	if payload[0] == '0' {
-		return nil, false
+		return nil
 	}
 
 	idx := bytes.LastIndex(payload, []byte("\r\n\r\n"))
 	if idx > 0 {
 		payload = payload[:idx]
 	} else if idx == 0 {
-		return nil, false
+		return nil
 	}
 
 	// line 1
 	idx = bytes.Index(payload, []byte("\r\n"))
 	if idx < 0 {
-		return nil, false
+		return nil
 	}
-
 	ln := payload[0:idx]
 
 	req := strings.Split(string(ln), " ")
 	if len(req) != 3 {
-		return nil, false
+		return nil
 	}
 	uriAndParam := strings.Split(req[1], "?")
 
 	uri := uriAndParam[0]
-
 	switch {
 	case len(uri) > 8 && (uri[:8] == "https://"):
 		off := strings.Index(uri[8:], "/")
 		if off == -1 {
-			return nil, false
-		} else {
-			uri = uri[off+8:]
+			return nil
 		}
 	case len(uri) > 7 && (uri[:7] == "http://"):
 		off := strings.Index(uri[7:], "/")
 		if off == -1 {
-			return nil, false
+			return nil
 		}
-		uri = uri[off+7:]
 	case (len(uri) > 0) && (uri[:1] == "/"):
 	default:
-		return nil, false
+		return nil
 	}
 
-	tInfo := &TraceInfo{
-		Method:       req[0],
-		Path:         uri,
-		Version:      req[2],
-		TS:           ts,
-		ASpanSampled: true,
-		Headers:      map[string]string{},
-	}
-
-	if len(uriAndParam) == 2 {
-		tInfo.Param = uriAndParam[1]
-	}
-
+	headers := map[string]string{}
 	payload = payload[idx+2:]
 	hdr := strings.Split(string(payload), "\r\n")
 	for _, v := range hdr {
@@ -167,40 +98,37 @@ func ParseHTTP1xHeader(payload []byte, ts int64, conv2dd bool) (*TraceInfo, bool
 		if len(kv) != 2 {
 			break
 		}
-		if _, ok := tInfo.Headers[kv[0]]; !ok {
-			tInfo.Headers[kv[0]] = strings.TrimSpace(kv[1])
+		if _, ok := headers[kv[0]]; !ok {
+			headers[kv[0]] = strings.TrimSpace(kv[1])
 		}
 	}
 
-	if v, ok := tInfo.Headers["traceparent"]; ok {
+	return headers
+}
+
+func GetTraceInfo(headers map[string]string) (sampled bool, hexEnc bool,
+	traceID spanid.ID128, parentID spanid.ID64,
+) {
+	if tid, ok := headers["x-datadog-trace-id"]; ok {
+		traceID.Low = uint64(DecTraceOrSpanid2ID64(tid))
+		if psid, ok := headers["x-datadog-parent-id"]; ok {
+			parentID = DecTraceOrSpanid2ID64(psid)
+		}
+		if v, ok := headers["x-datadog-sampling-priority"]; ok {
+			sampled = SampledDataDog(v)
+		}
+		hexEnc = false
+	} else if v, ok := headers["traceparent"]; ok {
 		traceParent := strings.Split(v, "-")
 		if len(traceParent) == 4 {
-			tInfo.ASpanSampled = sampledW3C(traceParent[3])
-			trcidStr := traceParent[1]
-			tInfo.TraceID = HexTraceid2ID128(trcidStr)
-			tInfo.HaveTracID = true
-			if conv2dd {
-				tInfo.TraceID.High = 0
-				tInfo.HexEncode = false
-			} else {
-				tInfo.HexEncode = true
-			}
-			prtidstr := traceParent[2]
-			tInfo.ParentSpanID = HexSpanid2ID64(prtidstr)
+			sampled = SampledW3C(traceParent[3])
+			traceID = HexTraceid2ID128(traceParent[1])
+			parentID = HexSpanid2ID64(traceParent[2])
+			hexEnc = true
 		}
-	} else if tid, ok := tInfo.Headers["x-datadog-trace-id"]; ok {
-		tInfo.TraceID.Low = uint64(DecTraceOrSpanid2ID64(tid))
-		if psid, ok := tInfo.Headers["x-datadog-parent-id"]; ok {
-			tInfo.ParentSpanID = DecTraceOrSpanid2ID64(psid)
-		}
-		if v, ok := tInfo.Headers["x-datadog-sampling-priority"]; ok {
-			tInfo.ASpanSampled = sampledDataDog(v)
-		}
-		tInfo.HexEncode = false
-		tInfo.HaveTracID = true
 	}
 
-	return tInfo, true
+	return
 }
 
 func FormatSpanID(i uint64, base16 bool) string {

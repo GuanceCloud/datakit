@@ -36,7 +36,7 @@ func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
 		// HTTP 长连接处理逻辑
 		// 如果是重传报文，不切换到新的请求
 		// 注意：在finish 函数执行后，且当前是 req，则将切换到新的请求
-		if elem.ReqSeq1st != ln.Seq && elem.finished(reqResp == 1) {
+		if elem.reqSeq != ln.Seq && elem.finished(reqResp == 1) {
 			// 尝试更新上一个请求的时间信息
 			// such as `psh(resp)` -> `ack-psh(new req)`
 			elem.recReqRespTS(txrx, 0, ln)
@@ -69,8 +69,8 @@ type HTTPLogElem struct {
 
 	ChunkRange [2]int64 `json:"pkt_chunk_range"`
 
-	ReqSeq1st  uint32 `json:"req_1st_seq"`
-	RespSeq1st uint32 `json:"resp_1st_seq"`
+	reqSeq  uint32
+	respSeq uint32
 
 	// fist packet arrive time
 	// ReqTS  int64 `json:"req_first_arrive_ts"`
@@ -216,7 +216,7 @@ func (h *HTTPLogElem) handle(v any, txrx int8, cnt []byte, cntSize int64,
 				h.txBytes += cntSize
 			}
 
-			h.ReqSeq1st = ln.Seq
+			h.reqSeq = ln.Seq
 
 			h.hState = 1
 			// h.ReqTS = ln.TS
@@ -259,7 +259,7 @@ func (h *HTTPLogElem) handle(v any, txrx int8, cnt []byte, cntSize int64,
 				h.txBytes += cntSize
 			}
 
-			h.RespSeq1st = ln.Seq
+			h.respSeq = ln.Seq
 
 			h.hState = 2
 			// h.RespTS = ln.TS

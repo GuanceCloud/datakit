@@ -6,12 +6,13 @@
 
 enum
 {
-#define L7_BUFFER_LEFT_SHIFT 11
+#define L7_BUFFER_LEFT_SHIFT 12
     L7_BUFFER_SIZE = (1 << L7_BUFFER_LEFT_SHIFT), // 2^10
 #define L7_BUFFER_SIZE L7_BUFFER_SIZE
-    L7_BUFFER_SIZE_MASK = (L7_BUFFER_SIZE - 1), // need to be larger than buffer size
-#define L7_BUFFER_SIZE_MASK L7_BUFFER_SIZE_MASK
+#define IOVEC_LEFT_SHIFT 11
 
+    BUF_IOVEC_LEN = (1 << IOVEC_LEFT_SHIFT),
+#define BUF_IOVEC_LEN BUF_IOVEC_LEN
 };
 
 typedef enum
@@ -35,63 +36,14 @@ typedef enum
 
     P_SYSCALL_CLOSE,
 
-    P_USR_SSL_READ,
-    P_USR_SSL_WRITE
+    P_USR_SSL_WRITE,
+    P_USR_SSL_READ
 
-} k_u_func_t;
+} tp_syscalls_fn_t;
 
 #define P_GROUP_UNKNOWN 0
 #define P_GROUP_READ 1
 #define P_GROUP_WRITE 2
-
-// Need to associate payload and conn info.
-struct payload_id
-{
-    __u64 ktime;
-    __u64 pid_tid;
-    __u16 cpuid;
-    __u16 prandomhalf;
-    __u32 prandom;
-};
-
-#define PROTO_HTTP 1
-
-// typedef struct proto_data
-// {
-//     __u8 proto;
-//     __u8 req_resp;
-
-//     __u16 _pad0;
-//     __u32 fd;
-
-//     proto_buffer_t *buf;
-
-// } proto_data_t;
-
-typedef struct l7_buffer
-{
-    struct payload_id thr_trace_id;
-    struct payload_id id;
-
-    __s64 isentry;
-
-    __s32 len;
-    __u8 payload[L7_BUFFER_SIZE];
-    __u64 req_ts;
-    __u8 cmd[KERNEL_TASK_COMM_LEN];
-} proto_buffer_t;
-
-// struct http_stats
-// {
-//     // struct connection_info conn_info;
-
-//     __u8 payload[HTTP_PAYLOAD_SIZE];
-//     __u8 method;
-//     __u16 status_code;
-//     __u32 http_version;
-//     __u64 req_ts;
-//     __u64 resp_ts;
-// };
 
 typedef struct pidfd
 {
@@ -105,61 +57,43 @@ typedef struct pidtid
     __u32 pid;
 } pidtid_t;
 
-struct layer7_http
+// 由于数据乱序上传，我们需要使用一个唯一值标示连接
+typedef struct conn_uni_id
 {
-    struct payload_id req_payload_id;
-    __u32 direction;
-    __u32 method;
+    __u64 sk;
+    __u32 ktime;
+    __u32 prandom;
+} conn_uni_id_t;
 
-    __u64 req_ts;
+typedef struct netdata_meta
+{
+    __u64 ts;
+    __u64 ts_tail;
+    __u64 tid_utid;
+    __u8 comm[KERNEL_TASK_COMM_LEN];
 
-    __u32 http_version;
-    __u32 status_code;
+    conn_uni_id_t uni_id;
 
-    __u64 resp_ts;
+    struct connection_info conn;
+    __u32 tcp_seq;
 
-    __be32 nat_daddr[4]; // dst ip address
-    __u16 nat_dport;     // dst port
     __u16 _pad0;
+    __u16 func_id;
 
-    // __u64 pid_tid;
+    __s32 fd;
+    __s32 buf_len;
+    __s32 act_size;
+    __u32 index;
+} netdata_meta_t;
 
-    __u32 req_seq;
-    __u32 resp_seq;
-
-    __u32 req_func;
-    __u32 resp_func;
-
-    __s32 sent_bytes;
-    __s32 recv_bytes;
-
-    // __u8 cmd[64];
-};
-
-struct span_info
+// TODO: 考虑暂存此对象减少上报次数
+typedef struct netwrk_data
 {
-    struct payload_id req_payload_id;
+    netdata_meta_t meta;
+    __u8 payload[L7_BUFFER_SIZE];
+} netwrk_data_t;
 
-    __u32 pid;
-    __u32 tid;
-
-    __u32 k_u_fn;
-    __s32 bytes;
-
-    __u64 start;
-    __u64 end;
-
-    __u64 parent_span;
-    __u64 span;
-};
-
-struct http_req_finished
-{
-    struct connection_info conn_info;
-    struct layer7_http http;
-};
-
-struct ssl_read_args
+typedef struct ssl_read_args
 {
     void *ctx;
     void *buf;
@@ -172,35 +106,30 @@ struct ssl_read_args
     void *skt;
 
     __u64 ts;
-};
+} ssl_read_args_t;
 
-struct syscall_read_write_arg
+typedef struct syscall_rw_arg
 {
     __u64 fd;
     void *buf;
     struct socket *skt;
-    __u32 w_size;
-    __u32 _pad;
     __u64 ts;
+    __u32 _pad0;
+    __u32 tcp_seq;
+} syscall_rw_arg_t;
 
-    __u32 copied_seq;
-    __u32 write_seq;
-};
-
-struct syscall_readv_writev_arg
+typedef struct syscall_rw_v_arg
 {
     __u64 fd;
     struct iovec *vec;
     __u64 vlen;
-
     struct socket *skt;
     __u64 ts;
+    __u32 _pad0;
+    __u32 tcp_seq;
+} syscall_rw_v_arg_t;
 
-    __u32 copied_seq;
-    __u32 write_seq;
-};
-
-struct syscall_sendfile_arg
+typedef struct syscall_sendfile_arg
 {
     __u64 fd;
     struct socket *skt;
@@ -208,6 +137,13 @@ struct syscall_sendfile_arg
 
     __u32 copied_seq;
     __u32 write_seq;
-};
+} syscall_sendfile_arg_t;
+
+typedef struct pid_skptr
+{
+    __u32 pid;
+    __u32 _pad0;
+    __u64 sk_ptr;
+} pid_skptr_t;
 
 #endif // !__HTTP_STATS_H

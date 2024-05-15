@@ -249,7 +249,7 @@ func NewSchedManger(handler perfHandler) (*manager.Manager, error) {
 
 	buf, err := dkebpf.ProcessSchedBin()
 	if err != nil {
-		return nil, fmt.Errorf("conntrack.o: %w", err)
+		return nil, fmt.Errorf("process_sched.o: %w", err)
 	}
 
 	if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {

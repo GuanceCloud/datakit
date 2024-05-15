@@ -4,6 +4,8 @@
 package l4log
 
 import (
+	"strconv"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
@@ -259,20 +261,21 @@ type PktChunk struct {
 	txSeq [2]uint32
 	rxSeq [2]uint32
 
-	TCPColName []string     `json:"tcp_series_col_name"`
-	TCPSreries []*PktTCPHdr `json:"tcp_series"`
+	setFlag  [2]bool
+	TxSeqPos uint32 `json:"tx_seq_pos"`
+	RxSeqPos uint32 `json:"rx_seq_pos"`
+	TimePos  int64  `json:"time_pos"`
+
+	macIdx     atomic.Int32
+	MACMap     map[string]string `json:"mac_map"`
+	TCPColName []string          `json:"tcp_series_col_name"`
+	TCPSreries []PktTCPHdr       `json:"tcp_series"`
 
 	RxBytes int `json:"rx_bytes"`
 	TxBytes int `json:"tx_bytes"`
 
 	RXPacket int64 `json:"rx_packets"`
 	TXPacket int64 `json:"tx_packets"`
-
-	TxFirstByteTS int64 `json:"tx_first_byte_ts"`
-	RxFirstByteTS int64 `json:"rx_first_byte_ts"`
-
-	TxLastByteTS int64 `json:"tx_last_byte_ts"`
-	RxLastByteTS int64 `json:"rx_last_byte_ts"`
 
 	// SPacket, DPacket int
 	RetransmitsTx int `json:"tx_retrans"`
@@ -282,6 +285,19 @@ type PktChunk struct {
 	RSTRx int `json:"rx_rst"`
 
 	RetransmitsSYN int `json:"tcp_syn_retrans"`
+}
+
+func (chunk *PktChunk) GetMacID(mac string) string {
+	if v, ok := chunk.MACMap[mac]; ok {
+		return v
+	} else {
+		if chunk.MACMap == nil {
+			chunk.MACMap = make(map[string]string)
+		}
+		v = strconv.FormatInt(int64(chunk.macIdx.Add(1)), 10)
+		chunk.MACMap[mac] = v
+		return v
+	}
 }
 
 func (chunk *PktChunk) recSeqRange(seq, ack uint32, tx bool, tcpflag TCPFlag) {
@@ -399,10 +415,60 @@ func (tcpl *TCPLog) GetPktChunk(nxt bool) *PktChunk {
 	return c
 }
 
+func calSeqOffset(seq, ack, seqPos, ackPos uint32, seqPosFlag, ackPosFlag bool, tcpFlag TCPFlag) (
+	uint32, uint32, uint32, uint32, bool, bool,
+) {
+	// 注意，RST 包上可能带有 ack seq，不能根据 ACK flag 更新 ack seq offset
+	// 我们认为对于未 ack 对等端发来的数据包所造成当前 RST 包含有 ack seq 时
+	// 而发生（溢出）回绕问题，不进行特殊处理可以减少逻辑复杂性
+	//
+	// 避开 SYN 包对 ack 的更新
+	if !ackPosFlag && tcpFlag != TCPSYN {
+		ackPosFlag = true
+		ackPos = ack - 1
+	}
+
+	if !seqPosFlag {
+		seqPosFlag = true
+		seqPos = seq - 1
+	}
+
+	seq -= seqPos
+	if ackPosFlag {
+		ack -= ackPos
+	}
+
+	return seq, ack, seqPos, ackPos, seqPosFlag, ackPosFlag
+}
+
 func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k *PMeta, scale int) (pktState int8) {
 	chunk := tcpl.GetPktChunk(true)
 	if enableNetlog {
-		chunk.TCPSreries = append(chunk.TCPSreries, ln)
+		lnCpy := *ln
+		switch txRx {
+		case directionRX:
+			lnCpy.DstMAC = chunk.GetMacID(lnCpy.DstMAC)
+			lnCpy.SrcMAC = chunk.GetMacID(lnCpy.SrcMAC)
+
+			lnCpy.Seq, lnCpy.AckSeq, chunk.RxSeqPos, chunk.TxSeqPos,
+				chunk.setFlag[1], chunk.setFlag[0] = calSeqOffset(
+				lnCpy.Seq, lnCpy.AckSeq, chunk.RxSeqPos, chunk.TxSeqPos,
+				chunk.setFlag[1], chunk.setFlag[0], lnCpy.Flags)
+		case directionTX:
+			lnCpy.SrcMAC = chunk.GetMacID(lnCpy.SrcMAC)
+			lnCpy.DstMAC = chunk.GetMacID(lnCpy.DstMAC)
+
+			lnCpy.Seq, lnCpy.AckSeq, chunk.TxSeqPos, chunk.RxSeqPos,
+				chunk.setFlag[0], chunk.setFlag[1] = calSeqOffset(
+				lnCpy.Seq, lnCpy.AckSeq, chunk.TxSeqPos, chunk.RxSeqPos,
+				chunk.setFlag[0], chunk.setFlag[1], lnCpy.Flags)
+		}
+		if chunk.TimePos == 0 {
+			// chunk.TimePos = lnCpy.TS - 1
+			chunk.TimePos = lnCpy.TS
+		}
+		lnCpy.TS -= chunk.TimePos
+		chunk.TCPSreries = append(chunk.TCPSreries, lnCpy)
 	}
 
 	elem := &tcpSortElem{
@@ -451,10 +517,6 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 		chunk.TXPacket++
 		if cntLen > 0 {
 			chunk.TxBytes += int(cntLen)
-			if chunk.TxFirstByteTS == 0 {
-				chunk.TxFirstByteTS = ln.TS
-			}
-			chunk.TxLastByteTS = ln.TS
 		}
 	case directionRX:
 		if tcpl.tcpRTT == 0 && ln.AckSeq != 0 && ln.AckSeq == tcpl.rttTxseqAck[1] {
@@ -465,10 +527,6 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 		chunk.RXPacket++
 		if cntLen > 0 {
 			chunk.RxBytes += int(cntLen)
-			if chunk.RxFirstByteTS == 0 {
-				chunk.RxFirstByteTS = ln.TS
-			}
-			chunk.RxLastByteTS = ln.TS
 		}
 	}
 
