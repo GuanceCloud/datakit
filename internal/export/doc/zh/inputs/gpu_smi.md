@@ -92,59 +92,57 @@ DCGM 指标包括 GPU 卡温度、时钟、GPU 占用率、内存占用率等。
 
 #### DCGM 指标前置条件 {#dcgm-precondition}
 
-安装 `dcgm-exporter`，参考[这里](https://github.com/NVIDIA/dcgm-exporter){:target="_blank"}
+安装 `dcgm-exporter`，参考[NVIDIA 官网](https://github.com/NVIDIA/dcgm-exporter){:target="_blank"}
 
 #### DCGM 采集配置 {#dcgm-input-config}
 
 进入 DataKit 安装目录下的 `conf.d/prom` 目录，复制 `prom.conf.sample` 并命名为 `prom.conf`。示例如下：
 
 ```toml
-# {"version": "1.4.11-13-gd70f1f8ff7", "desc": "do NOT edit this line"}
-
 [[inputs.prom]]
-  # Exporter URLs
+  ## Exporter URLs
   urls = ["http://127.0.0.1:9400/metrics"]
 
-  # 忽略对 URL 的请求错误
+  ## 忽略对 URL 的请求错误
   ignore_req_err = false
 
-  # 采集器别名
-  source = "prom"
+  ## 采集器别名
+  source = "dcgm"
 
-  # 采集数据输出源
-  # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
-  # 之后可以直接用 datakit debug --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
-  # 如果已经将 URL 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
+  ## 采集数据输出源
+  ## 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
+  ## 之后可以直接用 datakit debug --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
+  ## 如果已经将 URL 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
   # output = "/abs/path/to/file"
 
-  # 采集数据大小上限，单位为字节
-  # 将数据输出到本地文件时，可以设置采集数据大小上限
-  # 如果采集数据的大小超过了此上限，则采集的数据将被丢弃
-  # 采集数据大小上限默认设置为 32MB
+  ## 采集数据大小上限，单位为字节
+  ## 将数据输出到本地文件时，可以设置采集数据大小上限
+  ## 如果采集数据的大小超过了此上限，则采集的数据将被丢弃
+  ## 采集数据大小上限默认设置为 32MB
   # max_file_size = 0
 
-  # 指标类型过滤，可选值为 counter/gauge/histogram/summary/untyped
-  # 默认只采集 counter 和 gauge 类型的指标
-  # 如果为空，则不进行过滤
-  metric_types = ["counter", "gauge"]
+  ## 指标类型过滤，可选值为 counter/gauge/histogram/summary/untyped
+  ## 默认只采集 counter 和 gauge 类型的指标
+  ## 如果为空，则不进行过滤
+  # metric_types = ["counter", "gauge"]
 
-  # 指标名称筛选：符合条件的指标将被保留下来
-  # 支持正则，可以配置多个，即满足其中之一即可
-  # 如果为空，则不进行筛选，所有指标均保留
+  ## 指标名称筛选：符合条件的指标将被保留下来
+  ## 支持正则，可以配置多个，即满足其中之一即可
+  ## 如果为空，则不进行筛选，所有指标均保留
   # metric_name_filter = ["cpu"]
 
-  # 指标集名称前缀
-  # 配置此项，可以给指标集名称添加前缀
+  ## 指标集名称前缀
+  ## 配置此项，可以给指标集名称添加前缀
   measurement_prefix = "gpu_"
 
-  # 指标集名称
-  # 默认会将指标名称以下划线 "_" 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
-  # 如果配置 measurement_name, 则不进行指标名称的切割
-  # 最终的指标集名称会添加上 measurement_prefix 前缀
+  ## 指标集名称
+  ## 默认会将指标名称以下划线 "_" 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
+  ## 如果配置 measurement_name, 则不进行指标名称的切割
+  ## 最终的指标集名称会添加上 measurement_prefix 前缀
   measurement_name = "dcgm"
 
-  # TLS 配置
-  tls_open = false
+  ## TLS 配置
+  # tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
@@ -152,75 +150,133 @@ DCGM 指标包括 GPU 卡温度、时钟、GPU 占用率、内存占用率等。
   ## 设置为 true 以开启选举功能
   election = true
 
-  # 过滤 tags, 可配置多个 tag
-  # 匹配的 tag 将被忽略，但对应的数据仍然会上报上来
+  ## 过滤 tags, 可配置多个 tag
+  ## 匹配的 tag 将被忽略，但对应的数据仍然会上报上来
   # tags_ignore = ["xxxx"]
-  #tags_ignore = ["host"]
 
-  # 自定义认证方式，目前仅支持 Bearer Token
-  # token 和 token_file: 仅需配置其中一项即可
+  ## 自定义认证方式，目前仅支持 Bearer Token
+  ## token 和 token_file: 仅需配置其中一项即可
   # [inputs.prom.auth]
-  # type = "bearer_token"
-  # token = "xxxxxxxx"
-  # token_file = "/tmp/token"
-  # 自定义指标集名称
-  # 可以将包含前缀 prefix 的指标归为一类指标集
-  # 自定义指标集名称配置优先 measurement_name 配置项
-  #[[inputs.prom.measurements]]
-  #  prefix = "cpu_"
-  #  name = "cpu"
+    # type = "bearer_token"
+    # token = "xxxxxxxx"
+    # token_file = "/tmp/token"
+
+  ## 自定义指标集名称
+  ## 可以将包含前缀 prefix 的指标归为一类指标集
+  ## 自定义指标集名称配置优先 measurement_name 配置项
+  # [[inputs.prom.measurements]]
+    # prefix = "cpu_"
+    # name = "cpu"
 
   # [[inputs.prom.measurements]]
-  # prefix = "mem_"
-  # name = "mem"
+    # prefix = "mem_"
+    # name = "mem"
 
-  # 对于匹配如下 tag 相关的数据，丢弃这些数据不予采集
-  [inputs.prom.ignore_tag_kv_match]
-  # key1 = [ "val1.*", "val2.*"]
-  # key2 = [ "val1.*", "val2.*"]
+  ## 对于匹配如下 tag 相关的数据，丢弃这些数据不予采集
+  # [inputs.prom.ignore_tag_kv_match]
+    # key1 = [ "val1.*", "val2.*"]
+    # key2 = [ "val1.*", "val2.*"]
 
-  # 在数据拉取的 HTTP 请求中添加额外的请求头
-  [inputs.prom.http_headers]
-  # Root = "passwd"
-  # Michael = "1234"
+  ## 在数据拉取的 HTTP 请求中添加额外的请求头（例如 Basic 认证）
+  # [inputs.prom.http_headers]
+    # Authorization = “Basic bXl0b21jYXQ="
 
-  # 重命名 prom 数据中的 tag key
+  ## 重命名 prom 数据中的 tag key
   [inputs.prom.tags_rename]
     overwrite_exist_tags = false
     [inputs.prom.tags_rename.mapping]
     Hostname = "host"
     # tag1 = "new-name-1"
     # tag2 = "new-name-2"
-    # tag3 = "new-name-3"
 
-  # 将采集到的指标作为日志打到中心
-  # service 字段留空时，会把 service tag 设为指标集名称
+  ## 将采集到的指标作为日志打到中心
+  ## service 字段留空时，会把 service tag 设为指标集名称
   [inputs.prom.as_logging]
     enable = false
     service = "service_name"
 
-  # 自定义 Tags
-  [inputs.prom.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
+  ## 自定义 Tags
+  # [inputs.prom.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 ```
 
 配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
-### DCGM 指标字段 {#dcgm-metric}
+## DCGM 指标 {#dcgm-metric}
 
-| 指标                               | 描述                                                              | 数据类型 |
-| ---                                | ---                                                               | ---      |
-| DCGM_FI_DEV_DEC_UTIL               | gauge, Decoder utilization (in %).                                | int      |
-| DCGM_FI_DEV_ENC_UTIL               | gauge, Encoder utilization (in %).                                | int      |
-| DCGM_FI_DEV_FB_FREE                | gauge, Frame buffer memory free (in MiB).                         | int      |
-| DCGM_FI_DEV_FB_USED                | gauge, Frame buffer memory used (in MiB).                         | int      |
-| DCGM_FI_DEV_GPU_TEMP               | gauge, GPU temperature (in C).                                    | int      |
-| DCGM_FI_DEV_GPU_UTIL               | gauge, GPU utilization (in %).                                    | int      |
-| DCGM_FI_DEV_MEM_CLOCK              | gauge, Memory clock frequency (in MHz).                           | int      |
-| DCGM_FI_DEV_MEM_COPY_UTIL          | gauge, Memory utilization (in %).                                 | int      |
-| DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL | counter, Total number of NVLink bandwidth counters for all lanes. | int      |
-| DCGM_FI_DEV_PCIE_REPLAY_COUNTER    | counter, Total number of PCIe retries.                            | int      |
-| DCGM_FI_DEV_SM_CLOCK               | gauge, SM clock frequency (in MHz).                               | int      |
-| DCGM_FI_DEV_VGPU_LICENSE_STATUS    | gauge, vGPU License status                                        | int      |
-| DCGM_FI_DEV_XID_ERRORS             | gauge, Value of the last XID error encountered.                   | int      |
+### `gpu_dcgm`
+
+- 标签
+
+| Tag                           | Description                                |
+| ----                          | --------                                   |
+| gpu                           | GPU id.                                    |
+| device                        | device.                                    |
+| modelName                     | GPU model.                                 |
+| Hostname                      | host name.                                 |
+| host                          | Instance endpoint.                         |
+| UUID                          | UUID.                                      |
+| DCGM_FI_NVML_VERSION          | `NVML` Version.                            |
+| DCGM_FI_DEV_BRAND             | Device Brand.                              |
+| DCGM_FI_DEV_SERIAL            | Device Serial Number.                      |
+| DCGM_FI_DEV_OEM_INFOROM_VER   | OEM `inforom` version.                     |
+| DCGM_FI_DEV_ECC_INFOROM_VER   | ECC `inforom` version.                     |
+| DCGM_FI_DEV_POWER_INFOROM_VER | Power management object `inforom` version. |
+| DCGM_FI_DEV_INFOROM_IMAGE_VER | `Inforom` image version.                   |
+| DCGM_FI_DEV_VBIOS_VERSION     | `VBIOS` version of the device.             |
+
+- 指标列表
+
+| Metric                                        | Unit    | Description |
+| ---                                           | ---     | ---         |
+| DCGM_FI_DEV_SM_CLOCK                          | gauge   | SM clock frequency (in MHz). |
+| DCGM_FI_DEV_MEM_CLOCK                         | gauge   | Memory clock frequency (in MHz). |
+| DCGM_FI_DEV_MEMORY_TEMP                       | gauge   | Memory temperature (in C). |
+| DCGM_FI_DEV_GPU_TEMP                          | gauge   | GPU temperature (in C). |
+| DCGM_FI_DEV_POWER_USAGE                       | gauge   | Power draw (in W). |
+| DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION          | counter | Total energy consumption since boot (in mJ). |
+| DCGM_FI_DEV_PCIE_TX_THROUGHPUT                | counter | Total number of bytes transmitted through PCIe TX (in KB) via `NVML`. |
+| DCGM_FI_DEV_PCIE_RX_THROUGHPUT                | counter | Total number of bytes received through PCIe RX (in KB) via `NVML`. |
+| DCGM_FI_DEV_PCIE_REPLAY_COUNTER               | counter | Total number of PCIe retries. |
+| DCGM_FI_DEV_GPU_UTIL                          | gauge   | GPU utilization (in %). |
+| DCGM_FI_DEV_MEM_COPY_UTIL                     | gauge   | Memory utilization (in %). |
+| DCGM_FI_DEV_ENC_UTIL                          | gauge   | Encoder utilization (in %). |
+| DCGM_FI_DEV_DEC_UTIL                          | gauge   | Decoder utilization (in %). |
+| DCGM_FI_DEV_XID_ERRORS                        | gauge   | Value of the last XID error encountered. |
+| DCGM_FI_DEV_POWER_VIOLATION                   | counter | Throttling duration due to power constraints (in us). |
+| DCGM_FI_DEV_THERMAL_VIOLATION                 | counter | Throttling duration due to thermal constraints (in us). |
+| DCGM_FI_DEV_SYNC_BOOST_VIOLATION              | counter | Throttling duration due to sync-boost constraints (in us). |
+| DCGM_FI_DEV_BOARD_LIMIT_VIOLATION             | counter | Throttling duration due to board limit constraints (in us). |
+| DCGM_FI_DEV_LOW_UTIL_VIOLATION                | counter | Throttling duration due to low utilization (in us). |
+| DCGM_FI_DEV_RELIABILITY_VIOLATION             | counter | Throttling duration due to reliability constraints (in us). |
+| DCGM_FI_DEV_FB_FREE                           | gauge   | `Framebuffer` memory free (in MiB). |
+| DCGM_FI_DEV_FB_USED                           | gauge   | `Framebuffer` memory used (in MiB). |
+| DCGM_FI_DEV_ECC_SBE_VOL_TOTAL                 | counter | Total number of single-bit volatile ECC errors. |
+| DCGM_FI_DEV_ECC_DBE_VOL_TOTAL                 | counter | Total number of double-bit volatile ECC errors. |
+| DCGM_FI_DEV_ECC_SBE_AGG_TOTAL                 | counter | Total number of single-bit persistent ECC errors. |
+| DCGM_FI_DEV_ECC_DBE_AGG_TOTAL                 | counter | Total number of double-bit persistent ECC errors. |
+| DCGM_FI_DEV_RETIRED_SBE                       | counter | Total number of retired pages due to single-bit errors. |
+| DCGM_FI_DEV_RETIRED_DBE                       | counter | Total number of retired pages due to double-bit errors. |
+| DCGM_FI_DEV_RETIRED_PENDING                   | counter | Total number of pages pending retirement. |
+| DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL | counter | Total number of NVLink flow-control CRC errors. |
+| DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL | counter | Total number of NVLink data CRC errors. |
+| DCGM_FI_DEV_NVLINK_REPLAY_ERROR_COUNT_TOTAL   | counter | Total number of NVLink retries. |
+| DCGM_FI_DEV_NVLINK_RECOVERY_ERROR_COUNT_TOTAL | counter | Total number of NVLink recovery errors. |
+| DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL            | counter | Total number of NVLink bandwidth counters for all lanes. |
+| DCGM_FI_DEV_NVLINK_BANDWIDTH_L0               | counter | The number of bytes of active NVLink rx or tx data including both header and payload. |
+| DCGM_FI_DEV_VGPU_LICENSE_STATUS               | gauge   | vGPU License status. |
+| DCGM_FI_DEV_UNCORRECTABLE_REMAPPED_ROWS       | counter | Number of remapped rows for uncorrectable errors. |
+| DCGM_FI_DEV_CORRECTABLE_REMAPPED_ROWS         | counter | Number of remapped rows for correctable errors. |
+| DCGM_FI_DEV_ROW_REMAP_FAILURE                 | gauge   | Whether remapping of rows has failed. |
+| DCGM_FI_PROF_GR_ENGINE_ACTIVE                 | gauge   | Ratio of time the graphics engine is active (in %). |
+| DCGM_FI_PROF_SM_ACTIVE                        | gauge   | The ratio of cycles an SM has at least 1 warp assigned (in %). |
+| DCGM_FI_PROF_SM_OCCUPANCY                     | gauge   | The ratio of number of warps resident on an SM (in %). |
+| DCGM_FI_PROF_PIPE_TENSOR_ACTIVE               | gauge   | Ratio of cycles the tensor (`HMMA`) pipe is active (in %). |
+| DCGM_FI_PROF_DRAM_ACTIVE                      | gauge   | Ratio of cycles the device memory interface is active sending or receiving data (in %). |
+| DCGM_FI_PROF_PIPE_FP64_ACTIVE                 | gauge   | Ratio of cycles the fp64 pipes are active (in %). |
+| DCGM_FI_PROF_PIPE_FP32_ACTIVE                 | gauge   | Ratio of cycles the fp32 pipes are active (in %). |
+| DCGM_FI_PROF_PIPE_FP16_ACTIVE                 | gauge   | Ratio of cycles the fp16 pipes are active (in %). |
+| DCGM_FI_PROF_PCIE_TX_BYTES                    | gauge   | The rate of data transmitted over the PCIe bus - including both protocol headers and data payloads - in bytes per .second. |
+| DCGM_FI_PROF_PCIE_RX_BYTES                    | gauge   | The rate of data received over the PCIe bus - including both protocol headers and data payloads - in bytes per .second. |
+| DCGM_FI_DRIVER_VERSION                        | label   | Driver Version. |

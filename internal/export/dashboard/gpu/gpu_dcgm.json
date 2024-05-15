@@ -1,0 +1,774 @@
+{
+  "title": "gpu_dcgm",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "HOST",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "instance",
+        "type": "TAG",
+        "definition": {
+          "tag": "instance",
+          "field": "",
+          "value": "",
+          "metric": "gpu_dcgm",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0
+      },
+      {
+        "name": "GPU",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "gpu",
+        "type": "TAG",
+        "definition": {
+          "tag": "gpu",
+          "field": "",
+          "value": "",
+          "metric": "gpu_dcgm",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "temperature",
+              "C"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Temperature",
+        "pos": {
+          "h": 14,
+          "w": 18,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_GPU_TEMP`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_GPU_TEMP",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "max": 100,
+            "min": 0,
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [
+              {
+                "value": [
+                  83
+                ],
+                "lineColor": "#41CEC7",
+                "operation": "<="
+              },
+              {
+                "value": [
+                  87
+                ],
+                "lineColor": "#C8DD4F",
+                "operation": "<="
+              },
+              {
+                "value": [
+                  200
+                ],
+                "lineColor": "#EE0707",
+                "operation": "<="
+              }
+            ],
+            "unitType": "global",
+            "fixedTime": "",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "temperature",
+              "C"
+            ],
+            "isSampling": true,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "showFieldMapping": false
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Avg. Temp",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "gauge",
+        "queries": [
+          {
+            "name": "",
+            "type": "gauge",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_GPU_TEMP`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_GPU_TEMP",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "custom",
+              "watt"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Power Usage",
+        "pos": {
+          "h": 14,
+          "w": 18,
+          "x": 0,
+          "y": 14
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_POWER_USAGE`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_POWER_USAGE",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "max": 2400,
+            "min": 0,
+            "alias": [],
+            "units": [
+              {
+                "key": "",
+                "name": "",
+                "unit": "watt",
+                "units": [
+                  "custom",
+                  "watt"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [
+              {
+                "value": [
+                  1800
+                ],
+                "lineColor": "#41CEC7",
+                "operation": "<="
+              },
+              {
+                "value": [
+                  2200
+                ],
+                "lineColor": "#C8DD4F",
+                "operation": "<="
+              },
+              {
+                "value": [
+                  200000
+                ],
+                "lineColor": "#EE0707",
+                "operation": "<="
+              }
+            ],
+            "unitType": "global",
+            "fixedTime": "",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "custom",
+              "watt"
+            ],
+            "isSampling": true,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "gauge",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Power Total",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 18,
+          "y": 14
+        },
+        "type": "gauge",
+        "queries": [
+          {
+            "name": "",
+            "type": "gauge",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(sum(`DCGM_FI_DEV_POWER_USAGE`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_POWER_USAGE",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "frequency",
+              "MHz"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU SM Clocks",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_SM_CLOCK`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_SM_CLOCK",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Utilization %",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 28
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_GPU_UTIL`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_GPU_UTIL",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Tensor Core Utilization %",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 41
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_PROF_PIPE_TENSOR_ACTIVE`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_PROF_PIPE_TENSOR_ACTIVE",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "Mb"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "GPU Framebuffer Mem Used",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 41
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`gpu_dcgm`:(avg(`DCGM_FI_DEV_FB_USED`)) BY `instance`, `gpu`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DCGM_FI_DEV_FB_USED",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gpu"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "gpu_dcgm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "type": "template"
+  }
+}
