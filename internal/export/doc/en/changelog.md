@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.29.0 (May 15, 2024) {#cl-1.29.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.29.0-new}
+
+- Container log collection now supports configuring color character filtering `remove_ansi_escape_codes` in Annotation (#2208).
+- The [Health Check Collector](../integrations/host_healthcheck.md) now supports command-line argument filtering (#2197).
+- Added new [Collector Cassandra](../integrations/cassandra.md) (#1812).
+- Added [Usage Statistics](datakit-conf.md#dk-usage-count) (#2177).
+- eBPF Tracing add support for HTTP2/gRPC (#2017).
+
+### Bug Fixes {#cl-1.29.0-fix}
+
+- Fixed an issue where Kubernetes was not collecting Pending Pods (#2214).
+- Resolved a startup crash of logfwd (#2216).
+- Fixed bug where logging collection did not perform color character filtering under special circumstances (#2209).
+- Fixed issue where profiling collection could not add customer tags (#2205).
+- Resolved a potential Goroutine leak issue with the Redis/MongoDB collectors (#2199/#2215).
+
+### Feature Enhancements {#cl-1.29.0-opt}
+
+- Support for the `insecureSkipVerify` configuration option in Prometheus PodMonitor/ServiceMonitor TLSConfig (#2211).
+- Enhanced security for the dial-testing debugging API (#2203).
+- Nginx collector now supports specifying a range of ports for collection (#2206).
+- Improved ENV configuration under Kubernetes related to TLS certificate (#2198).
+- Various other documentation and optimization updates (#2210/#2213/#2218/#2223/#2224/#2141/#2080).
+
+### Compatibility Adjustments {#cl-1.29.0-brk}
+
+- Removed the support for specifying certificate file paths in Prometheus PodMonitor/ServiceMonitor TLSConfig (#2211).
+- Optimizations to DCA routing parameters and reload logic (#2220).
+
+---
+
 ## 1.28.1 (April 22, 2024) {#cl-1.28.1}
 
 This release is a hotfix that addresses the following issue:

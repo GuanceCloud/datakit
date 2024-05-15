@@ -1,5 +1,40 @@
 # 更新日志
 
+## 1.29.0(2024/05/15) {#cl-1.29.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.29.0-new}
+
+- 容器日志采集支持在 Annotation 上配置颜色字符过滤 `remove_ansi_escape_codes`（#2208）
+- [Health Check 采集器](../integrations/host_healthcheck.md)支持命令行参数过滤（#2197）
+- 增加 [Cassandra 采集器](../integrations/cassandra.md)（#1812）
+- 新增[用量统计](datakit-conf.md#dk-usage-count)功能（#2177）
+- eBPF Tracing 新增 HTTP2/gRPC 支持（#2017）
+
+### 问题修复 {#cl-1.29.0-fix}
+
+- 修复 Kubernetes 不采集 Pending Pods 的问题（#2214）
+- 修复 logfwd 存在启动失败的问题（#2216）
+- 修复日志采集在特殊情况下没有执行颜色字符过滤的问题（#2209）
+- 修复 Profile 采集不能追加 Tag 的问题（#2205）
+- 修复 Redis/MongoDB 采集器可能导致的 Goroutine 泄漏问题（#2199/#2215）
+
+### 功能优化 {#cl-1.29.0-opt}
+
+- 支持 Prometheus PodMonitor/ServiceMonitor TLSConfig 的 insecureSkipVerify 配置项（#2211）
+- 拨测调试接口安全加固（#2203）
+- Nginx 采集器支持采集端口范围指定（#2206）
+- 完善 TLS 证书相关的 ENV 设置（#2198）
+- 其它文档等优化（#2210/#2213/#2218/#2223/#2224/#2141/#2080）
+
+### 兼容调整 {#cl-1.29.0-brk}
+
+- 移除 Prometheus PodMonitor/ServiceMonitor TLSConfig 证书文件路径的方式（#2211）
+- DCA 路由参数优化和 reload 逻辑优化（#2220）
+
+---
+
 ## 1.28.1(2024/04/22) {#cl-1.28.1}
 
 本次发布属于 Hotfix 发布，修复如下问题：
