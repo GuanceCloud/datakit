@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.29.1 (May 20, 2024) {#cl-1.29.1}
+
+This release is a hotfix that addresses the following issue:
+
+- Fixed MongoDB crash bug (#2229).
+
+---
+
 ## 1.29.0 (May 15, 2024) {#cl-1.29.0}
 
 This release is an iterative update with the following main changes:
