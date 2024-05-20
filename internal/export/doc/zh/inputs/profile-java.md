@@ -319,9 +319,9 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
             printf "generate profiling file successfully for %s, pid %d\n" $process_name $process_id
         fi
     
-        jfr_zip_file=$jfr_file.zip
+        jfr_zip_file=$jfr_file.gz
     
-        zip -q $jfr_zip_file $jfr_file
+        gzip -qc $jfr_file > $jfr_zip_file
     
         zip_file_size=`ls -la $jfr_zip_file | awk '{print $5}'`
     
@@ -332,9 +332,13 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
         if [ $zip_file_size -gt $MAX_JFR_FILE_SIZE ]; then
             printf "Warning: the size of the jfr file generated is bigger than $MAX_JFR_FILE_SIZE bytes, now is $zip_file_size bytes\n"
         else
+            tags="library_version:$LIBRARY_VERSION,library_type:async_profiler,process_id:$process_id,process_name:$process_name,service:$service_name,host:$host_name,env:$app_env,version:$app_version"
+            if [ -n "$PROFILING_TAGS" ]; then
+              tags="$tags,$PROFILING_TAGS"
+            fi
             cat >$event_json_file <<END
     {
-            "tags_profiler": "library_version:$LIBRARY_VERSION,library_type:async_profiler,process_id:$process_id,process_name:$process_name,service:$service_name,host:$host_name,env:$app_env,version:$app_version",
+            "tags_profiler": "$tags",
             "start": "$start_time",
             "end": "$end_time",
             "family": "java",
@@ -342,12 +346,12 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
     }
     END
     
-            res=$(curl $datakit_profiling_url \
+            res=$(curl -i $datakit_profiling_url \
                 -F "main=@$jfr_zip_file;filename=main.jfr" \
-                -F "event=@$event_json_file;filename=event.json;type=application/json"  )
+                -F "event=@$event_json_file;filename=event.json;type=application/json" | head -n 1 )
     
-            if [[ $res != *ProfileID* ]]; then
-                printf "Warning: send profile file to datakit failed\n"
+            if [[ ! $res =~ 2[0-9][0-9] ]]; then
+                printf "Warning: send profile file to datakit failed, %s\n" "$res"
                 printf "$res"
             else
                 printf "Info: send profile file to datakit successfully\n"
@@ -401,10 +405,11 @@ bash collect.sh
 - `SERVICE_NAME`       ：服务名称
 - `PROFILING_DURATION` ：采样持续时间，单位为秒
 - `PROFILING_EVENT`    ：采集的事件，如 `cpu/alloc/lock` 等
+- `PROFILING_TAGS`     ：设置其他的自定义 Tag，英文逗号分隔的键值对，如 `key1:value1,key2:value2`
 - `PROCESS_ID`         ：采集的 Java 进程 ID, 多个 ID 以逗号分割，如 `98789,33432`
 
 ```shell
-DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=20 PROCESS_ID=98789,33432 bash collect.sh
+DATAKIT_URL=http://localhost:9529 APP_ENV=test APP_VERSION=1.0.0 HOST_NAME=datakit PROFILING_EVENT=cpu,alloc PROFILING_DURATION=60 PROFILING_TAGS="tag1:val1,tag2:val2" PROCESS_ID=98789,33432 bash collect.sh
 ```
 
 #### 手动操作 {#manual}
