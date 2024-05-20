@@ -199,6 +199,10 @@ For all the following data collections, a global tag named `host` is appended by
 
 ### `{{$m.Name}}`
 
+- explain
+
+{{$m.Desc}}
+
 - tag
 
 {{$m.TagsMarkdownTable}}

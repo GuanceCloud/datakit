@@ -1096,7 +1096,9 @@ func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSe
 		if newStat.Metrics.Repl != nil {
 			if newStat.Metrics.Repl.Apply != nil {
 				returnVal.ReplApplyBatchesNum = newStat.Metrics.Repl.Apply.Batches.Num
-				returnVal.ReplApplyBatchesTotalMillis = newStat.Metrics.Repl.Apply.Batches.TotalMillis
+				if newStat.Metrics.Repl.Apply.Batches != nil {
+					returnVal.ReplApplyBatchesTotalMillis = newStat.Metrics.Repl.Apply.Batches.TotalMillis
+				}
 				returnVal.ReplApplyOps = newStat.Metrics.Repl.Apply.Ops
 			}
 			if newStat.Metrics.Repl.Buffer != nil {
@@ -1104,15 +1106,21 @@ func NewStatLine(oldMongo, newMongo *MongoStatus, key string, all bool, sampleSe
 				returnVal.ReplBufferSizeBytes = newStat.Metrics.Repl.Buffer.SizeBytes
 			}
 			if newStat.Metrics.Repl.Executor != nil {
-				returnVal.ReplExecutorPoolInProgressCount = newStat.Metrics.Repl.Executor.Pool["inProgressCount"]
-				returnVal.ReplExecutorQueuesNetworkInProgress = newStat.Metrics.Repl.Executor.Queues["networkInProgress"]
-				returnVal.ReplExecutorQueuesSleepers = newStat.Metrics.Repl.Executor.Queues["sleepers"]
+				if newStat.Metrics.Repl.Executor.Pool != nil {
+					returnVal.ReplExecutorPoolInProgressCount = newStat.Metrics.Repl.Executor.Pool["inProgressCount"]
+				}
+				if newStat.Metrics.Repl.Executor.Queues != nil {
+					returnVal.ReplExecutorQueuesNetworkInProgress = newStat.Metrics.Repl.Executor.Queues["networkInProgress"]
+					returnVal.ReplExecutorQueuesSleepers = newStat.Metrics.Repl.Executor.Queues["sleepers"]
+				}
 				returnVal.ReplExecutorUnsignaledEvents = newStat.Metrics.Repl.Executor.UnsignaledEvents
 			}
 			if newStat.Metrics.Repl.Network != nil {
 				returnVal.ReplNetworkBytes = newStat.Metrics.Repl.Network.Bytes
-				returnVal.ReplNetworkGetmoresNum = newStat.Metrics.Repl.Network.GetMores.Num
-				returnVal.ReplNetworkGetmoresTotalMillis = newStat.Metrics.Repl.Network.GetMores.TotalMillis
+				if newStat.Metrics.Repl.Network.GetMores != nil {
+					returnVal.ReplNetworkGetmoresNum = newStat.Metrics.Repl.Network.GetMores.Num
+					returnVal.ReplNetworkGetmoresTotalMillis = newStat.Metrics.Repl.Network.GetMores.TotalMillis
+				}
 				returnVal.ReplNetworkOps = newStat.Metrics.Repl.Network.Ops
 			}
 		}
