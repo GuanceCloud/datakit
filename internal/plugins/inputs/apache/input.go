@@ -301,6 +301,7 @@ func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 					gracefullyFinishing:  0,
 					idleCleanup:          0,
 					openSlot:             0,
+					disabled:             0,
 				}
 				for _, c := range part {
 					switch c {
@@ -326,11 +327,14 @@ func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 						scoreboard[idleCleanup]++
 					case '.':
 						scoreboard[openSlot]++
+					case ' ':
+						scoreboard[disabled]++
 					}
 				}
 				for k, v := range scoreboard {
 					metric.fields[k] = v
 				}
+				metric.fields[filedMap["MaxWorkers"]] = len(part)
 			default:
 				value, err := strconv.ParseInt(part, 10, 64)
 				if err != nil {

@@ -38,6 +38,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"idle_workers":           newCountFieldInfo("The number of idle workers"),
 			"busy_workers":           newCountFieldInfo("The number of workers serving requests."),
+			"max_workers":            newCountFieldInfo("The maximum number of workers apache can start."),
 			"cpu_load":               newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "The percent of CPU used,windows not support. Optional."),
 			"uptime":                 newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationSecond, "The amount of time the server has been running"),
 			"net_bytes":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "The total number of bytes served."),
@@ -57,6 +58,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			gracefullyFinishing:      newCountFieldInfo("The number of workers finishing their request"),
 			idleCleanup:              newCountFieldInfo("These workers were idle and their process is being stopped"),
 			openSlot:                 newCountFieldInfo("The amount of workers that Apache can still start before hitting the maximum number of workers"),
+			disabled:                 newCountFieldInfo("These slots will never be able to handle any requests, indicates a misconfiguration."),
 		},
 		Tags: map[string]interface{}{
 			"url":            inputs.NewTagInfo("Apache server status url."),

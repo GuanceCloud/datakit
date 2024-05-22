@@ -64,6 +64,7 @@ var (
 	filedMap = map[string]string{
 		"IdleWorkers":         "idle_workers",
 		"BusyWorkers":         "busy_workers",
+		"MaxWorkers":          "max_workers",
 		"CPULoad":             "cpu_load",
 		"Uptime":              "uptime",
 		"TotalkBytes":         "net_bytes",
@@ -93,4 +94,5 @@ const (
 	gracefullyFinishing  = "gracefully_finishing"
 	idleCleanup          = "idle_cleanup"
 	openSlot             = "open_slot"
+	disabled             = "disabled"
 )
