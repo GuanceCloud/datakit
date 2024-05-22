@@ -11,13 +11,12 @@ import (
 	"strconv"
 	"time"
 
-	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
-
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/GuanceCloud/cliutils/point"
+	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 )
 
 var traceOpts = []point.Option{}
@@ -28,9 +27,13 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	for _, spans := range resspans {
 		log.Debugf("otel span: %s", spans.String())
 		serviceName := "unknown_service"
+		runtimeID := ""
+		runtimeIDInitialized := false
 		for _, v := range spans.Resource.Attributes {
 			if v.Key == otelResourceServiceKey {
 				serviceName = v.Value.GetStringValue()
+			} else if v.Key == ext.RuntimeID {
+				runtimeID = v.Value.GetStringValue()
 			}
 		}
 
@@ -52,6 +55,17 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs))
 				for k, v := range tags { // span.attribute 优先级大于全局tag。
 					spanKV = spanKV.MustAddTag(k, v)
+				}
+
+				if runtimeID == "" && !runtimeIDInitialized {
+					if attrRuntimeID, ok := getAttribute(ext.RuntimeID, span.Attributes); ok {
+						runtimeID = attrRuntimeID.Value.GetStringValue()
+					}
+					runtimeIDInitialized = true
+				}
+				if runtimeID != "" {
+					spanKV = spanKV.AddV2(ext.RuntimeID, runtimeID, true).
+						AddV2(itrace.FieldRuntimeID, runtimeID, true)
 				}
 
 				for i := range span.Events {
