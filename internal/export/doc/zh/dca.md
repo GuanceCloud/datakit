@@ -162,21 +162,17 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
           affinity: {}
           containers:
             - env:
-                - name: DCA_INNER_HOST
-                  # 杭州 https://auth-api.guance.com
-                  # 宁夏 https://aws-auth-api.guance.com
-                  # 广州 https://cn4-auth-api.guance.com
-                  # 俄勒冈 https://us1-auth-api.guance.com
-                  value: https://auth-api.guance.com
-                - name: DCA_FRONT_HOST
+                - name: DCA_CONSOLE_API_URL 
                   # 杭州 https://console-api.guance.com
-                  # 宁夏 https://aws-console-api.guance.com/
+                  # 宁夏 https://aws-console-api.guance.com
                   # 广州 https://cn4-console-api.guance.com
                   # 俄勒冈 https://us1-console-api.guance.com
                   value: https://console-api.guance.com
+                - name: DCA_CONSOLE_WEB_URL 
+                  value: https://console.guance.com
                 - name: DCA_LOG_ENABLE_STDOUT
                   value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.8
+              image: pubrepo.guance.com/tools/dca:0.0.9
               imagePullPolicy: Always
               name: dca
               ports:
@@ -255,8 +251,8 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
 
 | 环境变量名称            | 类型   | 默认值                           | 说明                                                                                            |
 | ---------:              | ----:  | ---:                             | ------                                                                                          |
-| `DCA_INNER_HOST`        | string | `https://auth-api.guance.com`    | 观测云的 auth API 地址                                                                          |
-| `DCA_FRONT_HOST`        | string | `https://console-api.guance.com` | 观测云 console API 地址                                                                         |
+| `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | 观测云 console API 地址                                                                         |
+| `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | 观测云平台地址                                                                         |
 | `DCA_CONSOLE_PROXY`     | string | 无                               | 观测云 API 代理，不代理 DataKit 接口                                                            |
 | `DCA_LOG_LEVEL`         | string | INFO                             | 日志等级，取值为 NONE/DEBUG/INFO/WARN/ERROR，如果不需要记录日志，可设置为 NONE                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                            | 日志会输出至文件中，位于 `/usr/src/dca/logs` 下。如果需要将日志写到 `stdout`，可以设置为 `true` |
@@ -269,31 +265,37 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEV
 
 ### 登录 DCA {#login}
 
-DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打开 DCA  Web 端，登录账号，即可开始使用。若无账号，可先注册 [观测云账号](https://auth.guance.com/register?channel=帮助文档){:target="_blank"}。
+DCA 开启和安装以后，您可在浏览器输入地址 `localhost:8000` 进行访问。首次访问时，页面将导向一个登录跳转中转页面。点击页面下方「立即前往」按钮后，您将被引导至观测云平台。接下来，按照页面上的说明指引，配置 DCA 的地址。一旦配置完成，您便能够直接通过观测云平台实现无需登录即可访问 DCA 平台的功能。
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-login.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-login-redirect.png){ width="800" }
 </figure>
+
+### 查看 DataKit 列表 {#datakit-list}
 
 登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
 
 通过 DCA 远程管理的主机分成三种状态：
 
 - online：说明数据上报正常，可通过 DCA 查看 DataKit 的运行情况和配置采集器；
-- unknown：说明远程管理配置未开启，或者不在一个局域网内；
-- offline：说明主机已经超过 10 分钟未上报数据，或者主机名称被修改后，原主机名称会显示成 offline 的状态。未正常上报数据的主机，若超过 24 小时仍未有数据上报，该主机记录将会从列表中移除。
+- unknown：说明远程管理配置未开启；
+- offline：说明主机已经超过 10 分钟未上报数据。
 
-默认情况下，只能查看当前工作空间里的 DataKit 相关信息，如果需要对 DataKit 进行管理，如 DataKit 重启、采集器、Pipeline 的 新建、删除、修改等，则需要赋予当前帐号**DCA 配置管理**权限，具体设置可参考[角色管理](../management/role-management.md)。
-
-#### 查看 DataKit 运行情况 {#view-runtime}
-
-登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重启操作。
+默认情况下，只能查看当前工作空间里的 DataKit 相关信息，如果需要对 DataKit 进行管理，如 DataKit 升级、采集器、Pipeline 的 新建、删除、修改等，则需要赋予当前帐号**DCA 配置管理**权限，具体设置可参考[角色管理](../management/role-management.md)。
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-run-info.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-list.png){ width="800" }
 </figure>
 
-#### 采集器配置管理 {#view-inputs-conf}
+### 查看 DataKit 运行情况 {#view-runtime}
+
+登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重新加载操作。
+
+<figure markdown>
+  ![](https://static.guance.com/images/datakit/dca/dca-run-info-1.png){ width="800" }
+</figure>
+
+### 采集器配置管理 {#view-inputs-conf}
 
 远程连接到 DataKit 以后，点击「采集器配置」，即可查看已经配置的采集器列表和 Sample 列表（当前 DataKit 支持配置的所有 Sample 文件）。
 
@@ -302,41 +304,31 @@ DCA 开启和安装以后，即可在浏览器输入地址 `localhost:8000` 打�
 - 帮助：可查看对应的采集器帮助文档
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-input-conf.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-input-conf-1.png){ width="800" }
 </figure>
 
-#### Pipelines 管理 {#view-pipeline}
+### Pipelines 管理 {#view-pipeline}
 
 远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 Pipeline 文件。关于 Pipeline 可参考文档 [文本数据处理](../developers/pipeline/index.md) 。
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-pipeline.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-pipeline-1.png){ width="800" }
 </figure>
 
-#### 查看黑名单 {#view-filters}
+### 查看黑名单 {#view-filters}
 
 远程连接到 DataKit 以后，点击「黑名单」，即可查看在观测云工作配置的黑名单，如下图所示 `source = default and (status in [unknown])` 即为配置的黑名单条件。
 
 注意：通过观测云创建的黑名单文件统一保存在路径：`/usr/local/datakit/data/.pull` 。
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-filter.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-filter-1.png){ width="800" }
 </figure>
 
-#### 查看日志 {#view-log}
+### 查看日志 {#view-log}
 
 远程连接到 DataKit 以后，点击「日志」，即可实时查看 DataKit 的日志，并且可以导出相应的日志到本地。
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-log.png){ width="800" }
-</figure>
-
-#### 查看采集器帮助 {#view-input-helper}
-
-远程连接到 DataKit 以后，点击「帮助」，即可查看采集器文档列表。点击需要查看的采集器名称，直接跳转显示该采集器的帮助文档。
-
-关于如何查看更多采集器的帮助文档，可参考文档 [采集器](../integrations/hostobject.md) 。
-
-<figure markdown>
-  ![](https://static.guance.com/images/datakit/dca-help.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-log-1.png){ width="800" }
 </figure>
