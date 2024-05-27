@@ -7,6 +7,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -133,6 +134,12 @@ func (m *nodeMetadata) newObject(conf *Config) pointKVs {
 		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
 		obj.SetField("kubelet_version", item.Status.NodeInfo.KubeletVersion)
 
+		if len(item.Spec.Taints) != 0 {
+			if taints, err := json.Marshal(item.Spec.Taints); err == nil {
+				obj.SetField("taints", string(taints))
+			}
+		}
+
 		if y, err := yaml.Marshal(item); err == nil {
 			obj.SetField("yaml", string(y))
 		}
@@ -211,11 +218,12 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)."},
 			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Kubelet Version reported by the node."},
-			"node_ready":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "NodeReady means kubelet is healthy and ready to accept pods (true/false/unknown)"},
+			"node_ready":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "NodeReady means kubelet is healthy and ready to accept pods (true/false/unknown)."},
+			"taints":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Node's taints."},
 			"unschedulable":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Unschedulable controls node schedulability of new pods (yes/no)."},
-			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details."},
 		},
 	}
 }
