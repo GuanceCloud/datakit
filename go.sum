@@ -141,7 +141,6 @@ github.com/DataDog/gostackparse v0.5.0/go.mod h1:lTfqcJKqS9KnXQGnyQMCugq3u1FP6UZ
 github.com/DataDog/sketches-go v1.0.0/go.mod h1:O+XkJHWk9w4hDwY2ZUDU31ZC9sNYlYo8DiFsxjYeo1k=
 github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8CwZNAY=
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
-github.com/DataDog/zstd v1.4.1/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
 github.com/GuanceCloud/cliutils v1.1.13 h1:qgpJdsIB41ABdPvhv3GcIDIl226aIQ7/Nv+QUKMU594=
@@ -162,8 +161,6 @@ github.com/GuanceCloud/platypus v0.2.9 h1:ZQNlg/r2HKFBUn5Yrzb0fmB15zhLBkiuQbe+yX
 github.com/GuanceCloud/platypus v0.2.9/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616/go.mod h1:zuawsU7vK4z3rZC2qaOYnhJO2rHD0CIUAgbyJxpjIf0=
-github.com/GuanceCloud/pyroscope v0.36.2 h1:sGotOKeuE14txRHt4v/2wvc/0uRloV+gQ1+luc1pAo4=
-github.com/GuanceCloud/pyroscope v0.36.2/go.mod h1:jy3PTkLqODnkZMqlPfXcGPYoxqGGUKVKWPL+HFVhWzo=
 github.com/GuanceCloud/pyroscope v0.36.3 h1:3ni9asu1zsxzT/Y8WdoqcTN3LiAuFbCqAUk4foz2EvM=
 github.com/GuanceCloud/pyroscope v0.36.3/go.mod h1:jy3PTkLqODnkZMqlPfXcGPYoxqGGUKVKWPL+HFVhWzo=
 github.com/GuanceCloud/service v1.2.4 h1:5sQSj0S8IRidG+DFOMyMcEQeF1v/jyUez/YOfAZssWs=
