@@ -24,13 +24,14 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	giturls "github.com/whilp/git-urls"
+	ssh2 "golang.org/x/crypto/ssh"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	ssh2 "golang.org/x/crypto/ssh"
 )
 
 var (
@@ -385,8 +386,11 @@ func getUserNamePasswordFromGitURL(gitURL string) (*authOpt, error) {
 		return nil, err
 	}
 
-	var auth int
-	var gitUserName, gitPassword string
+	var (
+		auth int
+		gitUserName,
+		gitPassword string
+	)
 
 	if bIsUseAuthUserNamePassword {
 		gitUserName = uGitURL.User.Username()

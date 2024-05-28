@@ -107,10 +107,10 @@ This is actually a Toml array structure, the structure is suitable for multiple 
 Some collectors only allow a single instance to run, and even if multiple copies are configured, only a single instance will run. These single instance collectors are listed as follows:
 
 | Collector Name                        | Description                                                                                                                                 |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`cpu`](cpu.md)                         | Collect the CPU usage of the host                                                                                                           |
-| [`disk`](disk.md)                       | Collect disk occupancy                                                                                                                      |
-| [`diskio`](diskio.md)                   | Collect the disk IO status of the host                                                                                                      |
+| ---                                   | ---                                                                                                                                         |
+| [`cpu`](cpu.md)                       | Collect the CPU usage of the host                                                                                                           |
+| [`disk`](disk.md)                     | Collect disk occupancy                                                                                                                      |
+| [`diskio`](diskio.md)                 | Collect the disk IO status of the host                                                                                                      |
 | [`ebpf`](ebpf.md)                     | Collect TCP and UDP connection information of host network, Bash execution log, etc.                                                        |
 | [`mem`](mem.md)                       | Collect the memory usage of the host                                                                                                        |
 | [`swap`](swap.md)                     | Collect Swap memory usage                                                                                                                   |
@@ -184,8 +184,8 @@ In addition, since Toml is used in the configuration of DataKit, it is recommend
 
 After DataKit is installed, a batch of collectors will be turned on by default without manual opening. These collectors are generally related to the host, and the list is as follows:
 
-| Collector Name                      | Description                                                                                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Collector Name                        | Description                                                                                                                                 |
+| ---                                   | ---                                                                                                                                         |
 | [`cpu`](cpu.md)                       | Collect the CPU usage of the host                                                                                                           |
 | [`disk`](disk.md)                     | Collect disk occupancy                                                                                                                      |
 | [`diskio`](diskio.md)                 | Collect the disk IO status of the host                                                                                                      |
@@ -196,6 +196,43 @@ After DataKit is installed, a batch of collectors will be turned on by default w
 | [`host_processes`](host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
 | [`hostobject`](hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
 | [`container`](container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
+
+## Password Encoding {#password-encode}
+
+In configuring connection strings, special characters in passwords, such as `@#*`, need to be encoded to ensure the link string is correctly interpreted. Below is a list of encodings for these special characters:
+
+> Note: Not all special characters (like `~_-.`) require encoding, but they are listed here for reference.
+
+| Character | URL Encoding | Character | URL Encoding |
+| --------- | ------------ | --------- | ------------ |
+| `` ` ``   | `%60`        | `~`       | `~`          |
+| `!`       | `%21`        | `@`       | `%40`        |
+| `#`       | `%23`        | `$`       | `%24`        |
+| `%`       | `%25`        | `^`       | `%5E`        |
+| `&`       | `%26`        | `*`       | `%2A`        |
+| `(`       | `%28`        | `)`       | `%29`        |
+| `_`       | `_`          | `-`       | `-`          |
+| `+`       | `%2B`        | `=`       | `%3D`        |
+| `{`       | `%7B`        | `}`       | `%7D`        |
+| `[`       | `%5B`        | `]`       | `%5D`        |
+| `\`       | `%5C`        | `:`       | `%3A`        |
+| `|`       | `%7C`        | `"`       | `%22`        |
+| `'`       | `%27`        | `;`       | `%3B`        |
+| `,`       | `%2C`        | `.`       | `.`          |
+| `<`       | `%3C`        | `>`       | `%3E`        |
+| `/`       | `%2F`        | `?`       | `%3F`        |
+
+Assuming we have the following Git connection string:
+
+``` text
+http://username:pa55w#rd@github.com/path/to/repository.git 
+```
+
+We need to convert the `#` in the password to its URL-encoded form `%23`:
+
+``` text
+http://username:pa55w%23rd@github.com/path/to/repository.git 
+```
 
 ## For More Readings {#more}
 

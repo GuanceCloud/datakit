@@ -82,6 +82,8 @@ git push origin --all
     # ssh_private_key_password = "<YOUR-PASSSWORD>"
 ```
 
+如果密码中带有特殊字符串，参见[此处](datakit-input-conf.md#password-encode)。
+
 ### 重启 DataKit {#restart}
 
 配置完成后，[重启 Datakit](datakit-service-how-to.md#manage-service) 即可。稍等片刻后，通过 [Datakit Monitor](datakit-monitor.md) 即可查看采集器的开启和运行情况。
