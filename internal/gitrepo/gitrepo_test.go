@@ -7,15 +7,18 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
-	"testing"
+	T "testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/stretchr/testify/assert"
+
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -28,7 +31,7 @@ func checkDevHost() bool {
 	return true
 }
 
-func TestGetGitClonePathFromGitURL(t *testing.T) {
+func TestGetGitClonePathFromGitURL(t *T.T) {
 	originInstallDir := datakit.InstallDir
 	originGitReposDir := datakit.GitReposDir
 
@@ -71,7 +74,7 @@ func TestGetGitClonePathFromGitURL(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			repoName, err := getGitClonePathFromGitURL(tc.gitURL)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
@@ -84,7 +87,7 @@ func TestGetGitClonePathFromGitURL(t *testing.T) {
 	datakit.GitReposDir = originGitReposDir
 }
 
-func TestIsUserNamePasswordAuth(t *testing.T) {
+func TestIsUserNamePasswordAuth(t *T.T) {
 	cases := []struct {
 		name          string
 		gitURL        string
@@ -121,7 +124,7 @@ func TestIsUserNamePasswordAuth(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			isPassword, err := isUserNamePasswordAuth(tc.gitURL)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
@@ -131,7 +134,7 @@ func TestIsUserNamePasswordAuth(t *testing.T) {
 	}
 }
 
-func TestGetUserNamePasswordFromGitURL(t *testing.T) {
+func TestGetUserNamePasswordFromGitURL(t *T.T) {
 	originInstallDir := datakit.InstallDir
 	originGitReposDir := datakit.GitReposDir
 
@@ -194,14 +197,28 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			expectAuth:    authUseHTTP,
 			shouldBeError: true,
 		},
+
+		{
+			name: "special-password",
+			gitURL: fmt.Sprintf("http://username:%s@github.com/path/to/repository.git",
+				url.QueryEscape(`abc!@#$%^&*()_-+={}\|"':;,.<>/?`)),
+			expect: map[string]string{
+				"username": `abc!@#$%^&*()_-+={}\|"':;,.<>/?`,
+			},
+			expectAuth:    authUseHTTP,
+			shouldBeError: false,
+		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			as, err := getUserNamePasswordFromGitURL(tc.gitURL)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}
+
+			t.Logf("authOpt: %+#v, gitURL: %s", as, tc.gitURL)
+
 			mVal := map[string]string{
 				as.GitUserName: as.GitPassword,
 			}
@@ -214,7 +231,21 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 	datakit.GitReposDir = originGitReposDir
 }
 
-func TestReloadCore(t *testing.T) {
+func TestURLEncode(t *T.T) {
+	for _, s := range []string{
+		"`", "~", "!", "@", "#",
+		"$", "%", "^", "&", "*",
+		"(", ")", "_", "-", "+",
+		"=", "{", "}", "[", "]",
+		`\`, ":", "|", `"`, "'",
+		";", ",", ".", "<", ">",
+		"/", "?",
+	} {
+		t.Logf("%s:%s", s, url.QueryEscape(s))
+	}
+}
+
+func TestReloadCore(t *T.T) {
 	if !checkDevHost() {
 		return
 	}
@@ -250,7 +281,7 @@ func TestReloadCore(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			ctxNew, cancel := context.WithTimeout(context.Background(), tc.timeout)
 			defer cancel()
 			round, err := reloadCore(ctxNew)
@@ -272,7 +303,7 @@ func TestReloadCore(t *testing.T) {
 	datakit.GitReposDir = originGitReposDir
 }
 
-func TestGetAuthMethod(t *testing.T) {
+func TestGetAuthMethod(t *T.T) {
 	cases := []struct {
 		name          string
 		as            *authOpt
@@ -319,7 +350,7 @@ func TestGetAuthMethod(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			authM, err := getAuthMethod(tc.as, tc.c)
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
@@ -329,7 +360,7 @@ func TestGetAuthMethod(t *testing.T) {
 	}
 }
 
-func TestGitPull(t *testing.T) {
+func TestGitPull(t *T.T) {
 	if !checkDevHost() {
 		return
 	}

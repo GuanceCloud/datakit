@@ -1,156 +1,171 @@
-# Managing Configuration with Git
+# Managing DataKit Configuration with Git
 ---
 
-## How Git Works {#intro}
+This article explains how to use Git to manage DataKit configurations, including collection configurations and Pipeline scripts. By maintaining a local or remote Git repository, you can manage changes to DataKit's configurations while leveraging Git's version control features to track historical changes.
 
-Git is a technology for version control, the same as SVN. For more information, see [here](https://www.runoob.com/git/git-tutorial.html){:target="_blank"}.
+## Operating Mechanism {#mechanism}
 
-Git components are divided into Git Server and Git Client. Running on the remote server is the Git Server, the remote repository. In the local (or Kubernetes container). The following words "local" all mean this. ) is running the Git Client, the local copy.
+DataKit integrates Git client functionality, regularly (by default every 1 minute) pulling the latest configuration data from the Git repository. By loading these up-to-date configurations, DataKit achieves configuration updates.
 
-The content managed by Git is divided into local copy and remote warehouse. Changes are submitted locally as a copy during commit operations and to the remote repository only when push operations are performed.
+## Usage Example {#example}
 
-## Create A Git Repository {#new-repo}
+The complete steps for the usage example are as follows:
 
-You can generally create a Git repository using `New Project` in Github/GitLab.
+1. Create a Git repository
+2. Plan the repository's configuration according to established directory rules
+3. Push the configuration to the Git repository
+4. Add the Git repository to the main DataKit configuration
+5. Restart DataKit
 
-After creating the Git repository, you can get an address like `http://github.com/path/to/repository.git`, through which the Git Client pushes or pulls the content.
+<!-- markdownlint-disable MD046 -->
+???+ note
 
-## Git Operation Flow {#steps}
+    The Git repository does not have to be created in this order. For example, you can first create a remote repository address and then clone it to make changes. The following example creates a local Git repository first, then pushes it to a remote repository.
+<!-- markdownlint-enable -->
 
-Generally Git operation flow is roughly as follows:
+### Create a Git Repository {#new-repo}
 
-Step 1: Add the change file. Such as:
-
-```shell
-git add ClickHouse.conf
-```
-
-Step 2: Explain this change and submit it to the local copy (commit operation). Such as:
-
-```shell
-git commit -m "Modified the IP address of Exporter"
-```
-
-Step 3: Commit the changes to the remote repository (push operation). Such as:
+First, create a local Git repository:
 
 ```shell
-git push origin master
+mkdir datakit-repo
+git init
 ```
 
-## Directory Requirements for Git Repositories {#dir-naming}
+### Directory Planning {#dir-naming}
 
-- `gitrepos/repo-name/conf.d` is used to place collector configuration files with unrestricted subdirectories (`datakit.conf` is not managed by `gitrepos`)
-- `gitrepos/repo-name/pipeline` is used to put pipeline scripts, and only `.p` in the first tier of this directory will take effect, and none of its subdirectories will take effect
-- `gitrepos/repo-name/python.d` for python scripts
-
-## Submit A conf File and Directory {#commit-conf}
-
-The following is an example of the [ClickHouse](ClickHousev1.md) collector.
-
-Step 1: Switch to the `/root` directory and use the `git clone http://github.com/path/to/repository.git` command to pull the remote repository locally.
-
-Select the collector you want to open, here is ClickHouse. Copy `[Datakit 安装目录]/conf.d/db/ClickHousev1.conf.sample` to the `/root/repository` directory above.
-
-Note: All collector configuration file samples are in the `[Datakit 安装目录]/conf.d` directory.
-
-The file name is removed from `.sample`, and the file structure is as follows:
+Create various [basic directories](git-config-how-to.md#repo-dirs):
 
 ```shell
-.
-└── repository
-    └── conf.d
-        └── ClickHousev1.conf
+mkdir -p conf.d   && touch conf.d/.gitkeep
+mkdir -p pipeline && touch pipeline/.gitkeep
+mkdir -p python.d && touch python.d/.gitkeep
 ```
 
-According to their actual situation, modify the `ClickHousev1.conf` configuration, save.
+### Push Configuration {#repo-push}
 
-Step 2: Commit changes to the remote repository.
+Use common Git commands to push configuration changes to the repository:
 
 ```shell
-git add ClickHousev1.conf              # Add change file
-git commit -m "new ClickHousev1.conf"  # Add change description
-git push origin master                 # Commit changes to remote repository
+# cd your/path/to/repo
+git add conf.d pipeline python.d
+
+# Add any conf or pipeline to path conf.d/pipeline/python.d...
+
+git commit -m "init datakit repo"
+
+# Push the repo to YOUR GitHub (ssh or https)
+git remote add origin ssh://git@github.com/PATH/TO/datakit-confs.git
+git push origin --all
 ```
 
-At this point, the edited `ClickHousev1.conf` file has been successfully pushed to the remote repository.
+### Configure the Repository in DataKit {#config-git-repo}
 
-## Configure the Repository on the DataKit {#config-git-repo}
-
-The demonstration here adopts the host mode, which is not suitable for Kubernetes environment. Operations in the Kubernetes environment are described separately below.
-
-The Git authentication method demonstrated here is user name and password.
-
-Step 1: You need to turn on the `gitrepos` functionality in `datakit.conf`.
-
-Find `git_repos` in `datakit.conf` to configure as follows:
+Enable the *git_repos* feature in the *datakit.conf* configuration file, locate `git_repos`, as shown below:
 
 ```toml
-[git_repos]
-  pull_interval = "1m"  # Pull updates every minute
+[[git_repos.repo]]
+    enable = true # Enable the repo
 
-  [[git_repos.repo]]
-    enable = true                                                       # Open to pull this Git branch.
-    url = "http://username:password@github.com/path/to/repository.git"  # User name/password authentication is used.
-    branch = "master"                                                   # The name of the branch to pull. Usually master.
+    ###########################################
+    # Git support http/git/ssh authentication
+    ###########################################
+    url = "http://username:password@github.com/PATH/TO/datakit-confs.git" 
+
+    branch = "master" # Specify which branch to pull
+
+    # git/ssh authentication requires key-path key-password configuration
+    # url = "git@github.com:PATH/TO/datakit-confs.git"
+    # url = "ssh://git@github.com/PATH/TO/datakit-confs.git"
+    # ssh_private_key_path = "/Users/username/.ssh/id_rsa"
+    # ssh_private_key_password = "<YOUR-PASSWORD>"
 ```
 
-Step 2: After configuration, restart DataKit.
+If the password contains special characters, refer to [here](datakit-input-conf.md#password-encode).
 
-```shell
-sudo datakit service -R
-```
+### Restart DataKit {#restart}
 
-Step 3: Observe whether Git has pulled updates and loaded the configuration.
+After the configuration is complete, [restart Datakit](datakit-service-how-to.md#manage-service). After a short wait, you can check the status of the collectors through [Datakit Monitor](datakit-monitor.md).
 
-You can observe whether the newly added/modified collector is effective:
+## Git Usage in Kubernetes {#k8s}
 
-```shell
-sudo datakit monitor -V
-```
-
-## Update and Pull Warehouse {#git-pull}
-
-We have a local copy in `/root/repository` above. There we made some modifications to the `ClickHousev1.conf` file.
-
-Submit after modification is completed:
-
-```shell
-git add ClickHousev1.conf                 # Add change file
-git commit -m "modify ClickHousev1.conf"  # Add change description
-git push origin master                    # Commit changes to remote repository
-```
-
-After the submission is completed. DataKit pulls according to the interval set by `pull_interval` in the configuration, and when the interval expires, it automatically pulls the latest `ClickHousev1.conf` and makes it effective.
-
-## Git Uses in Kubernetes {#k8s}
-
-Because of the particularity of Kubernetes environment, the installation/configuration mode with environment variable passing is the simplest.
-
-The git authentication method is user name and password.
-
-When installing in Kubernetes, you need to set the following environment variables to bring Git configuration information into it:
-
-| Environment Variable Name       | Environment Variable Value                                                   |
-| ----             | ----                                                         |
-| ENV_GIT_URL      | `http://username:password@github.com/path/to/repository.git` |
-| ENV_GIT_BRANCH   | `master`                                                     |
-| ENV_GIT_INTERVAL | `1m`                                                         |
-
-For more information on the configuration under Datakit's Kubernetes environment, see [this document](k8s-config-how-to.md#via-env-config).
+Refer to [here](datakit-daemonset-deploy.md#env-git).
 
 ## FAQ {#faq}
+
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Error: Authentication Required {#auth-required}
+### :material-chat-question: Error: authentication required {#auth-required}
 <!-- markdownlint-enable -->
-This error may be reported in the following situations.
 
-If SSH is used:
+This error may occur in the following situations.
 
-1. The key provided is wrong;
+If using SSH, it is generally because the provided key is incorrect. If using HTTP, it may be due to:
 
-If you are using HTTP:
+1. Incorrect username and password provided
+2. The protocol for the git address is filled in incorrectly
 
-1. The user name and password provided are wrong;
-2. The protocol of git address is incorrect;
+For example, the original address is
 
-For example, if the original address is `https://username:password@github.com/path/to/repository.git`, and then it is written as `http://username:password@github.com/path/to/repository.git`, that is, if `https` is changed to `http`, this error will also be reported.
+```not-set
+https://username:password@github.com/path/to/repository.git 
+```
+
+And it was written as
+
+```not-set
+http://username:password@github.com/path/to/repository.git 
+```
+
+That is, `https` was changed to `http`, which will also result in this error. Change `http` to `https` here to resolve it.
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Repository Directory Constraints {#repo-dirs}
+<!-- markdownlint-enable -->
+
+The Git repository must be stored with the following directory structure for various configurations:
+
+```shell
++── conf.d    # 
+├── pipeline  # Dedicated to storing pipeline scripts
+└── python.d  # Store python scripts
+```
+
+Among them:
+
+- *conf.d* is dedicated to storing collector configurations, and its subdirectories can be planned arbitrarily (subdirectories are allowed), any collector configuration file just needs to end with `.conf`
+- *pipeline* is used to store Pipeline scripts, and it is recommended to plan Pipeline scripts according to [data type](../developers/pipeline/pipeline-category.md#store-and-index)
+- *python.d* is used to store Python scripts
+
+Here is an example of DataKit's directory structure after Git synchronization is enabled:
+
+```shell
+DataKit root directory
+├── conf.d   # Default main configuration directory
+├── pipeline # Top-level Pipeline scripts
+├── python.d # Top-level python scripts
+└── gitrepos
+    ├── repo-1        # Repository 1
+    │   ├── conf.d    # Dedicated to storing collector configurations
+    │   ├── pipeline  # Dedicated to storing pipeline scripts
+    │   └── python.d  # Store python scripts
+    └── repo-2        # Repository 2
+        ├── ...
+```
+
+<!-- markdownlint-disable MD013 -->
+### :material-chat-question: Git Configuration Loading Mechanism {#repo-apply-rules}
+<!-- markdownlint-enable -->
+
+After Git synchronization is enabled, the configuration (*.conf/pipeline*) priority is defined as follows:
+
+1. All collector configurations are loaded from the *gitrepos* directory
+1. The order of Git repository loading is based on the order in which they appear in *datakit.conf*
+1. For Pipeline, the first found Pipeline file is used. As shown in the example, when looking for *nginx.p*, if found in `repo-1`, it will **not** look in `repo-2`. If neither of these repositories has *nginx.p*, then look in the top-level Pipeline directory. The search mechanism for Python is the same.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    After enabling the remote Pipeline feature, the first loaded Pipeline is the one synchronized from the center.
+
+    After enabling Git synchronization, the original collector configurations in the *conf.d* directory will no longer be effective. In addition, the main configuration *datakit.conf* **cannot** be managed through Git.
+<!-- markdownlint-enable -->
