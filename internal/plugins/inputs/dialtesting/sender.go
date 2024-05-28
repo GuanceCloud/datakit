@@ -15,7 +15,9 @@ import (
 	"time"
 
 	pt "github.com/GuanceCloud/cliutils/point"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
@@ -33,7 +35,8 @@ func (s *emptySender) checkToken(token, scheme, host string) (bool, error) {
 }
 
 func (s *emptySender) send(url string, pt *pt.Point) error {
-	l.Warnf("Sender is not set correctly. This is empty sender. dataway url: %s", getMaskURL(url))
+	cp.Output("%s\n", pt.LineProto())
+	cp.Infof("# Got 1 point for dataway(%s) | Ctrl+c to exit.\n", url)
 	return nil
 }
 
@@ -155,7 +158,11 @@ func (w *worker) runConsumer() {
 						w.updateFailInfo(job.url, true)
 						l.Warnf("send data failed: %s", err.Error())
 						workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "failed").Add(1)
+						dkio.ErrCountVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
 					} else {
+						dkio.InputsFeedVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
+						dkio.InputsFeedPtsVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
+						dkio.InputsLastFeedVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Set(float64(time.Now().Unix()))
 						w.updateFailInfo(job.url, false)
 						workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "ok").Add(1)
 					}

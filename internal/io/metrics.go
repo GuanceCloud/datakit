@@ -49,6 +49,10 @@ func InputsCollectLatencyVec() *prometheus.SummaryVec {
 	return inputsCollectLatencyVec
 }
 
+func ErrCountVec() *prometheus.CounterVec {
+	return errCountVec
+}
+
 func metricsSetup() {
 	feedCost = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{

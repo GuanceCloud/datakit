@@ -32,6 +32,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -89,8 +90,9 @@ type Input struct {
 
 	regionName string
 
-	curTasks sync.Map
-	pos      int64 // current largest-task-update-time
+	curTasks    sync.Map
+	pos         int64 // current largest-task-update-time
+	isDebugMode bool
 }
 
 const sample = `
@@ -169,15 +171,19 @@ func (ipt *Input) setupWorker() {
 	once.Do(func() {
 		if dialWorker == nil {
 			var s sender
-			dialSender := &dataway.DialtestingSender{}
+			if !ipt.isDebugMode {
+				dialSender := &dataway.DialtestingSender{}
 
-			if err := dialSender.Init(&dataway.DialtestingSenderOpt{
-				HTTPTimeout: ipt.cli.Timeout,
-			}); err != nil {
-				l.Warnf("setup dialSender failed: %s", err.Error())
+				if err := dialSender.Init(&dataway.DialtestingSenderOpt{
+					HTTPTimeout: ipt.cli.Timeout,
+				}); err != nil {
+					l.Warnf("setup dialSender failed: %s", err.Error())
+				}
+
+				s = &dwSender{dw: dialSender}
+			} else {
+				s = &emptySender{}
 			}
-
-			s = &dwSender{dw: dialSender}
 			dialWorker = &worker{
 				sender:           s,
 				maxJobNumber:     ipt.MaxJobNumber,
@@ -186,6 +192,35 @@ func (ipt *Input) setupWorker() {
 			dialWorker.init()
 		}
 	})
+}
+
+func (ipt *Input) DebugRun() {
+	ipt.isDebugMode = true
+	go ipt.Run()
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-ticker.C:
+			id := 0
+			cp.Infof("\nTask list: \n")
+			ipt.curTasks.Range(func(key, value any) bool {
+				d := value.(*dialer)
+				if jsonBuf, err := json.Marshal(d.task); err != nil {
+					cp.Errorf("task %d: json marsha error: %s\n", id, err.Error())
+				} else {
+					cp.Infof("task %d: %s\n", id, jsonBuf)
+				}
+				id++
+				cp.Infof("\n")
+				return true
+			})
+
+			cp.Infof("# total %d tasks | Ctrl+c to exit.\n", id)
+		}
+	}
 }
 
 func (ipt *Input) Run() {
@@ -266,6 +301,21 @@ func (ipt *Input) doServerTask() {
 		defer tick.Stop()
 
 		for {
+			l.Debug("try pull tasks...")
+			startPullTime := time.Now()
+			j, err := ipt.pullTask()
+			if err != nil {
+				l.Warnf(`pullTask: %s, ignore`, err.Error())
+			} else {
+				l.Debug("try dispatch tasks...")
+				endPullTime := time.Now()
+				if err := ipt.dispatchTasks(j); err != nil {
+					l.Warnf("dispatchTasks: %s, ignored", err.Error())
+				} else {
+					taskPullCostSummary.WithLabelValues(ipt.regionName, "0").
+						Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
+				}
+			}
 			select {
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
@@ -276,25 +326,6 @@ func (ipt *Input) doServerTask() {
 				return
 
 			case <-tick.C:
-				l.Debug("try pull tasks...")
-				startPullTime := time.Now()
-				isFirstPull := "0"
-				if ipt.pos == 0 {
-					isFirstPull = "1"
-				}
-				j, err := ipt.pullTask()
-				if err != nil {
-					l.Warnf(`pullTask: %s, ignore`, err.Error())
-				} else {
-					l.Debug("try dispatch tasks...")
-					endPullTime := time.Now()
-					if err := ipt.dispatchTasks(j); err != nil {
-						l.Warnf("dispatchTasks: %s, ignored", err.Error())
-					} else {
-						taskPullCostSummary.WithLabelValues(ipt.regionName, isFirstPull).
-							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
-					}
-				}
 			}
 		}
 	}
