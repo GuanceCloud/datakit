@@ -104,7 +104,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.1 // indirect
 	github.com/DataDog/sketches-go v1.4.1 // indirect
-	github.com/DataDog/zstd v1.4.1 // indirect
 	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 	github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
 	github.com/GuanceCloud/toml v1.2.5
@@ -268,7 +267,7 @@ require (
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2
 	github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289 // indirect
 	github.com/pyroscope-io/jfr-parser v0.5.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
@@ -350,7 +349,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.13
+	github.com/GuanceCloud/cliutils v1.1.14
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0
