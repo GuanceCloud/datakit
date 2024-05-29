@@ -194,6 +194,9 @@ var (
 
 	//go:embed md/cache_set.en.md
 	docCacheSetEN string
+
+	//go:embed md/gjson.en.md
+	docGJSONEN string
 )
 
 const (
@@ -595,6 +598,13 @@ var (
 
 	CacheSetMarkdownEN = PLDoc{
 		Doc: docCacheSetEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	gjsonMarkdownEN = PLDoc{
+		Doc: docGJSONEN,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eOther},
 		},

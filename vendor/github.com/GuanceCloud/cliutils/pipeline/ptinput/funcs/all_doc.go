@@ -80,6 +80,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"http_request()":           &HTTPRequestMarkdown,
 	"cache_get()":              &CacheGetMarkdown,
 	"cache_set()":              &CacheSetMarkdown,
+	"gjson()":                  &gjsonMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -144,6 +145,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"http_request()":           &HTTPRequestMarkdownEN,
 	"cache_get()":              &CacheGetMarkdownEN,
 	"cache_set()":              &CacheSetMarkdownEN,
+	"gjson()":                  &gjsonMarkdownEN,
 }
 
 // embed docs.
@@ -331,6 +333,9 @@ var (
 
 	//go:embed md/cache_set.md
 	docCacheSet string
+
+	//go:embed md/gjson.md
+	docGJSON string
 )
 
 const (
@@ -729,6 +734,13 @@ var (
 
 	CacheSetMarkdown = PLDoc{
 		Doc: docCacheSet,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+
+	gjsonMarkdown = PLDoc{
+		Doc: docGJSON,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
 		},
