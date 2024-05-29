@@ -111,7 +111,11 @@ The Resource in the redis link will only display redis.command information, and 
 
 Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the observation cloud link: `redis.command.args=key val`.
 
-Supported version: `redis1.4.0` and above.
+Supported version:
+
+- [x] `Jedis1.4.0` and above
+- [x] Lettuce
+- [x] Redisson
 
 ## log pattern {#log-pattern}
 By modifying the default log pattern, application logs and links are correlated, thereby reducing deployment costs. The logging framework `log4j2` is currently supported, but `logback` is not currently supported.
