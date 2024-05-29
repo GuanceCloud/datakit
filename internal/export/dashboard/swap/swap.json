@@ -39,7 +39,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -133,7 +133,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -227,7 +227,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -321,7 +321,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -415,7 +415,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -509,7 +509,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "15分钟负载",
+            "tableSortMetricName": "{{.Dashboard.fifteen_min_load}}",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -589,7 +589,7 @@
           "value": "show_tag_value(from=['swap'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"
@@ -605,5 +605,5 @@
   ],
   "tags": [],
   "thumbnail": "",
-  "title": "Swap New"
+  "title": "{{.Dashboard.title}}"
 }
