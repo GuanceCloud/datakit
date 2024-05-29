@@ -28,15 +28,15 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "每秒使用ttl索引从集合中删除的文档总数",
+            "tableSortMetricName": "{{.Dashboard.document_removed_number}}",
             "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "TTL索引",
+        "name": "{{.Dashboard.ttl_index}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -50,7 +50,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "每秒使用ttl索引从集合中删除的文档总数",
+              "alias": "{{.Dashboard.document_removed_number}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "ttl_deletes_per_sec",
@@ -71,7 +71,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`ttl_deletes_per_sec`) AS `每秒使用ttl索引从集合中删除的文档总数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`ttl_deletes_per_sec`) AS `{{.Dashboard.document_removed_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -84,7 +84,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "每秒后台进程使用ttl索引从集合中删除文档的次数",
+              "alias": "{{.Dashboard.process_document_removed_number}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "ttl_passes_per_sec",
@@ -105,7 +105,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`ttl_passes_per_sec`) AS `每秒后台进程使用ttl索引从集合中删除文档的次数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`ttl_passes_per_sec`) AS `{{.Dashboard.process_document_removed_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -137,11 +137,11 @@
             "showLine": false,
             "showLineAxis": false,
             "stackType": "time",
-            "tableSortMetricName": "内存中的脏页占比",
+            "tableSortMetricName": "{{.Dashboard.dirty_page_per}}",
             "units": [
               {
-                "key": "内存中的脏页占比",
-                "name": "内存中的脏页占比",
+                "key": "{{.Dashboard.dirty_page_per}}",
+                "name": "{{.Dashboard.dirty_page_per}}",
                 "unit": "",
                 "units": [
                   "percent",
@@ -149,8 +149,8 @@
                 ]
               },
               {
-                "key": "已使用缓存占比",
-                "name": "已使用缓存占比",
+                "key": "{{.Dashboard.used_cache_per}}",
+                "name": "{{.Dashboard.used_cache_per}}",
                 "unit": "",
                 "units": [
                   "percent",
@@ -162,9 +162,9 @@
           }
         },
         "group": {
-          "name": "资源概览"
+          "name": "{{.Dashboard.resource_overview}}"
         },
-        "name": "缓存",
+        "name": "{{.Dashboard.cache}}",
         "pos": {
           "h": 8,
           "w": 10,
@@ -178,7 +178,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "内存中的脏页占比",
+              "alias": "{{.Dashboard.dirty_page_per}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "percent_cache_dirty",
@@ -199,7 +199,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`percent_cache_dirty`) AS `内存中的脏页占比`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`percent_cache_dirty`) AS `{{.Dashboard.dirty_page_per}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -212,7 +212,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "已使用缓存占比",
+              "alias": "{{.Dashboard.used_cache_per}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "percent_cache_used",
@@ -233,7 +233,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`percent_cache_used`) AS `已使用缓存占比`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`percent_cache_used`) AS `{{.Dashboard.used_cache_per}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -261,11 +261,11 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "入流量",
+            "tableSortMetricName": "{{.Dashboard.inflow}}",
             "units": [
               {
-                "key": "入流量",
-                "name": "入流量",
+                "key": "{{.Dashboard.inflow}}",
+                "name": "{{.Dashboard.inflow}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -273,8 +273,8 @@
                 ]
               },
               {
-                "key": "出流量",
-                "name": "出流量",
+                "key": "{{.Dashboard.outflow}}",
+                "name": "{{.Dashboard.outflow}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -286,9 +286,9 @@
           }
         },
         "group": {
-          "name": "资源概览"
+          "name": "{{.Dashboard.resource_overview}}"
         },
-        "name": "网络流量",
+        "name": "{{.Dashboard.network_traffic}}",
         "pos": {
           "h": 8,
           "w": 10,
@@ -302,7 +302,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "出流量",
+              "alias": "{{.Dashboard.outflow}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "net_out_bytes",
@@ -322,7 +322,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`net_out_bytes`) AS `出流量`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`net_out_bytes`) AS `{{.Dashboard.outflow}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -335,7 +335,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "入流量",
+              "alias": "{{.Dashboard.inflow}}",
               "code": "C",
               "dataSource": "mongodb",
               "field": "net_in_bytes",
@@ -356,7 +356,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`net_in_bytes`) AS `入流量`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`net_in_bytes`) AS `{{.Dashboard.inflow}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -373,8 +373,8 @@
             "colors": [
               {
                 "color": "#F97575",
-                "key": "每秒执行删除次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
-                "name": "每秒执行删除次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "key": "{{.Dashboard.delete_execution_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "{{.Dashboard.delete_execution_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
                 "tags": {
                   "host": "iZbp14ak3swm562py0tx05Z",
                   "hostname": "127.0.0.1:27017"
@@ -382,8 +382,8 @@
               },
               {
                 "color": "#41CEC7",
-                "key": "每秒执行刷新次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
-                "name": "每秒执行刷新次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "key": "{{.Dashboard.refresh_time_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "{{.Dashboard.refresh_time_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
                 "tags": {
                   "host": "iZbp14ak3swm562py0tx05Z",
                   "hostname": "127.0.0.1:27017"
@@ -391,8 +391,8 @@
               },
               {
                 "color": "#FFBD5F",
-                "key": "每秒执行查询次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
-                "name": "每秒执行查询次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "key": "{{.Dashboard.query_executed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "{{.Dashboard.query_executed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
                 "tags": {
                   "host": "iZbp14ak3swm562py0tx05Z",
                   "hostname": "127.0.0.1:27017"
@@ -400,8 +400,8 @@
               },
               {
                 "color": "#737AE2",
-                "key": "每秒执行命令次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
-                "name": "每秒执行命令次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "key": "{{.Dashboard.command_executed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "{{.Dashboard.command_executed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
                 "tags": {
                   "host": "iZbp14ak3swm562py0tx05Z",
                   "hostname": "127.0.0.1:27017"
@@ -409,8 +409,8 @@
               },
               {
                 "color": "rgba(255,255,255,1)",
-                "key": "每秒执行插入次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
-                "name": "每秒执行插入次数{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "key": "{{.Dashboard.insertion_performed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
+                "name": "{{.Dashboard.insertion_performed_per_sec}}{\"host\": \"iZbp14ak3swm562py0tx05Z\", \"hostname\": \"127.0.0.1:27017\"}",
                 "tags": {
                   "host": "iZbp14ak3swm562py0tx05Z",
                   "hostname": "127.0.0.1:27017"
@@ -436,9 +436,9 @@
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "每秒操作数",
+        "name": "{{.Dashboard.operation_per_sec}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -637,33 +637,33 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "可用连接数",
+            "tableSortMetricName": "{{.Dashboard.available_connection}}",
             "units": [
               {
-                "key": "可用连接数",
-                "name": "可用连接数",
-                "unit": "个",
+                "key": "{{.Dashboard.available_connection}}",
+                "name": "{{.Dashboard.available_connection}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               },
               {
-                "key": "当前连接数",
-                "name": "当前连接数",
-                "unit": "个",
+                "key": "{{.Dashboard.current_connection}}",
+                "name": "{{.Dashboard.current_connection}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               },
               {
-                "key": "每秒创建连接数",
-                "name": "每秒创建连接数",
-                "unit": "个",
+                "key": "{{.Dashboard.connection_created_per_sec}}",
+                "name": "{{.Dashboard.connection_created_per_sec}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               }
             ],
@@ -671,9 +671,9 @@
           }
         },
         "group": {
-          "name": "资源概览"
+          "name": "{{.Dashboard.resource_overview}}"
         },
-        "name": "连接数",
+        "name": "{{.Dashboard.connection}}",
         "pos": {
           "h": 8,
           "w": 10,
@@ -687,7 +687,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "可用连接数",
+              "alias": "{{.Dashboard.available_connection}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "connections_available",
@@ -708,7 +708,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`connections_available`) AS `可用连接数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`connections_available`) AS `{{.Dashboard.available_connection}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -721,7 +721,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "每秒创建连接数",
+              "alias": "{{.Dashboard.connection_created_per_sec}}",
               "code": "C",
               "dataSource": "mongodb",
               "field": "connections_total_created",
@@ -742,7 +742,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`connections_total_created`) AS `每秒创建连接数`) { `host` = '#{host}' }\")",
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`mongodb`:(AVG(`connections_total_created`) AS `{{.Dashboard.connection_created_per_sec}}`) { `host` = '#{host}' }\")",
               "queryFuncs": [
                 {
                   "args": [],
@@ -760,7 +760,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前连接数",
+              "alias": "{{.Dashboard.current_connection}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "connections_current",
@@ -781,7 +781,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`connections_current`) AS `当前连接数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`connections_current`) AS `{{.Dashboard.current_connection}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -809,42 +809,42 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "删除的文档总数",
+            "tableSortMetricName": "{{.Dashboard.document_deleted_number}}",
             "units": [
               {
-                "key": "删除的文档总数",
-                "name": "删除的文档总数",
-                "unit": "个",
+                "key": "{{.Dashboard.document_deleted_number}}",
+                "name": "{{.Dashboard.document_deleted_number}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               },
               {
-                "key": "插入的文档总数",
-                "name": "插入的文档总数",
-                "unit": "个",
+                "key": "{{.Dashboard.document_inserted_number}}",
+                "name": "{{.Dashboard.document_inserted_number}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               },
               {
-                "key": "更新的文档总数",
-                "name": "更新的文档总数",
-                "unit": "个",
+                "key": "{{.Dashboard.document_updated_number}}",
+                "name": "{{.Dashboard.document_updated_number}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               },
               {
-                "key": "返回的文档总数",
-                "name": "返回的文档总数",
-                "unit": "个",
+                "key": "{{.Dashboard.document_returned_number}}",
+                "name": "{{.Dashboard.document_returned_number}}",
+                "unit": "{{.Dashboard.pcs}}",
                 "units": [
                   "custom",
-                  "个"
+                  "{{.Dashboard.pcs}}"
                 ]
               }
             ],
@@ -852,9 +852,9 @@
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "每秒文档操作",
+        "name": "{{.Dashboard.document_operation_per_sec}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1039,15 +1039,15 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "扫描的key总数",
+            "tableSortMetricName": "{{.Dashboard.key_scanned_number}}",
             "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "文档扫描",
+        "name": "{{.Dashboard.document_scan}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1061,7 +1061,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "扫描的key总数",
+              "alias": "{{.Dashboard.key_scanned_number}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "total_keys_scanned",
@@ -1082,7 +1082,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`total_keys_scanned`) AS `扫描的key总数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`total_keys_scanned`) AS `{{.Dashboard.key_scanned_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1095,7 +1095,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "扫描的文档总数",
+              "alias": "{{.Dashboard.document_scanned_number}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "total_docs_scanned",
@@ -1116,7 +1116,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`total_docs_scanned`) AS `扫描的文档总数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`total_docs_scanned`) AS `{{.Dashboard.document_scanned_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1144,15 +1144,15 @@
             "showFieldMapping": false,
             "showLine": false,
             "stackType": "time",
-            "tableSortMetricName": "固定游标数",
+            "tableSortMetricName": "{{.Dashboard.cursor_pinned_number}}",
             "units": [],
             "xAxisShowType": "time"
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "游标",
+        "name": "{{.Dashboard.cursor}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -1166,7 +1166,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "固定游标数",
+              "alias": "{{.Dashboard.cursor_pinned_number}}",
               "code": "C",
               "dataSource": "mongodb",
               "field": "cursor_pinned",
@@ -1187,7 +1187,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`cursor_pinned`) AS `固定游标数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`cursor_pinned`) AS `{{.Dashboard.cursor_pinned_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1200,7 +1200,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "游标超时数",
+              "alias": "{{.Dashboard.cursor_timeout_number}}",
               "code": "D",
               "dataSource": "mongodb",
               "field": "cursor_timed_out",
@@ -1221,7 +1221,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`cursor_timed_out`) AS `游标超时数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`cursor_timed_out`) AS `{{.Dashboard.cursor_timeout_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1234,7 +1234,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "游标总数",
+              "alias": "{{.Dashboard.cursor_number}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "cursor_total",
@@ -1255,7 +1255,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`cursor_total`) AS `游标总数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`cursor_total`) AS `{{.Dashboard.cursor_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1268,7 +1268,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "游标未超时数",
+              "alias": "{{.Dashboard.cursor_not_timed_out_number}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "cursor_no_timeout",
@@ -1289,7 +1289,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`cursor_no_timeout`) AS `游标未超时数`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`cursor_no_timeout`) AS `{{.Dashboard.cursor_not_timed_out_number}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1321,11 +1321,11 @@
             "showLine": false,
             "showLineAxis": false,
             "stackType": "time",
-            "tableSortMetricName": "已占用内存",
+            "tableSortMetricName": "{{.Dashboard.occupied_memory}}",
             "units": [
               {
-                "key": "常驻内存",
-                "name": "常驻内存",
+                "key": "{{.Dashboard.resident_memory}}",
+                "name": "{{.Dashboard.resident_memory}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1333,8 +1333,8 @@
                 ]
               },
               {
-                "key": "虚拟内存",
-                "name": "虚拟内存",
+                "key": "{{.Dashboard.virtual_memory}}",
+                "name": "{{.Dashboard.virtual_memory}}",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1346,9 +1346,9 @@
           }
         },
         "group": {
-          "name": "资源概览"
+          "name": "{{.Dashboard.resource_overview}}"
         },
-        "name": "内存",
+        "name": "{{.Dashboard.memory}}",
         "pos": {
           "h": 8,
           "w": 10,
@@ -1362,7 +1362,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "虚拟内存",
+              "alias": "{{.Dashboard.virtual_memory}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "vsize_megabytes",
@@ -1383,7 +1383,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`vsize_megabytes`) AS `虚拟内存`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`vsize_megabytes`) AS `{{.Dashboard.virtual_memory}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1396,7 +1396,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "常驻内存",
+              "alias": "{{.Dashboard.resident_memory}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "resident_megabytes",
@@ -1417,7 +1417,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`resident_megabytes`) AS `常驻内存`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`resident_megabytes`) AS `{{.Dashboard.resident_memory}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1481,9 +1481,9 @@
           }
         },
         "group": {
-          "name": "资源概览"
+          "name": "{{.Dashboard.resource_overview}}"
         },
-        "name": "运行时间",
+        "name": "{{.Dashboard.running_time}}",
         "pos": {
           "h": 16,
           "w": 4,
@@ -1559,9 +1559,9 @@
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "锁队列",
+        "name": "{{.Dashboard.lock_queue}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1575,7 +1575,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前等读锁队列长度",
+              "alias": "{{.Dashboard.waiting_read_lock_queue_length}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "queued_reads",
@@ -1596,7 +1596,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`queued_reads`) AS `当前等读锁队列长度`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`queued_reads`) AS `{{.Dashboard.waiting_read_lock_queue_length}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1609,7 +1609,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前等写锁队列长度",
+              "alias": "{{.Dashboard.waiting_write_lock_queue_length}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "queued_writes",
@@ -1630,7 +1630,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`queued_writes`) AS `当前等写锁队列长度`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`queued_writes`) AS `{{.Dashboard.waiting_write_lock_queue_length}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1658,9 +1658,9 @@
           }
         },
         "group": {
-          "name": "性能"
+          "name": "{{.Dashboard.performance}}"
         },
-        "name": "锁请求",
+        "name": "{{.Dashboard.lock_request}}",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1674,7 +1674,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前请求读锁的活动客户端",
+              "alias": "{{.Dashboard.client_requesting_read_lock}}",
               "code": "A",
               "dataSource": "mongodb",
               "field": "active_reads",
@@ -1695,7 +1695,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`active_reads`) AS `当前请求读锁的活动客户端`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`active_reads`) AS `{{.Dashboard.client_requesting_read_lock}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1708,7 +1708,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "当前请求写锁的活动客户端",
+              "alias": "{{.Dashboard.client_requesting_write_lock}}",
               "code": "B",
               "dataSource": "mongodb",
               "field": "active_writes",
@@ -1729,7 +1729,7 @@
               "groupBy": [],
               "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`mongodb`:(AVG(`active_writes`) AS `当前请求写锁的活动客户端`) { `host` = '#{host}' }",
+              "q": "M::`mongodb`:(AVG(`active_writes`) AS `{{.Dashboard.client_requesting_write_lock}}`) { `host` = '#{host}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1741,8 +1741,8 @@
       }
     ],
     "groups": [
-      "资源概览",
-      "性能"
+      "{{.Dashboard.resource_overview}}",
+      "{{.Dashboard.performance}}"
     ],
     "type": "template",
     "vars": [
@@ -1758,7 +1758,7 @@
         },
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "name": "主机名",
+        "name": "{{.Dashboard.host_name}}",
         "seq": 0,
         "type": "QUERY",
         "valueSort": ""
@@ -1769,5 +1769,5 @@
   "tagInfo": [],
   "tags": [],
   "thumbnail": "",
-  "title": "Mongodb 监控视图-童光辉"
+  "title": "{{.Dashboard.title}}"
 }
