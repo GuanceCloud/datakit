@@ -62,8 +62,7 @@ DDTrace 最低版本支持： [v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guanc
 
 特定函数主要是指业务指定的函数，来获取对应的入参情况。特定函数需要通过特定的参数进行定义声明，目前 DDTrace 提供了两种方式对特定的函数进行 trace 声明：
 
-1. 通过启动参数标记 `-Ddd.trace.methods`，参考 [类或方法注入 Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
-1. 通过引入 SDK 的方式，使用 `@Trace` 进行标记，参考 [函数级别埋点](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
+1. 通过启动参数标记 `-Ddd.trace.methods`，或者通过引入 SDK 的方式，使用 `@Trace` 进行标记，参考 [类或方法注入 Trace](https://docs.guance.com/best-practices/insight/ddtrace-skill-param/#trace){:target="_blank"}
 
 通过上述方式进行声明后，会将对应的方法标记为 trace，同时生成对应的 Span 信息并包含函数（方法）的入参信息（入参名称、类型、值）。
 
@@ -100,6 +99,8 @@ DD_REDIS_COMMAND_ARGS=TRUE
 支持版本：
 
 - [x] Jedis 1.4.0 以上
+- [x] Lettuce
+- [x] Redisson
 
 DDTrace 最低版本支持：  [v1.3.2](ddtrace-ext-changelog.md#cl-1.3.2)
 
