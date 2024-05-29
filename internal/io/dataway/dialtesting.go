@@ -77,8 +77,12 @@ func (d *DialtestingSender) CheckToken(token, scheme, host string) (bool, error)
 
 	result := checkTokenResult{}
 
+	if resp.StatusCode == 200 {
+		return true, nil
+	}
+
 	if err := json.Unmarshal(body, &result); err != nil {
-		return false, fmt.Errorf("invalid JSON body content")
+		return false, fmt.Errorf("invalid JSON body content(%s): %w", body, err)
 	}
 
 	if result.Code == 200 || len(result.ErrorCode) == 0 {

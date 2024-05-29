@@ -85,6 +85,10 @@ type HTTPInput interface {
 	RegHTTPHandler()
 }
 
+type DebugInput interface {
+	DebugRun()
+}
+
 // Dashboard used to export inputs dashboard JSON.
 type Dashboard interface {
 	Dashboard(lang I18n) map[string]string

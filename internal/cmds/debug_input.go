@@ -53,7 +53,11 @@ func debugInput(conf string) error {
 					x.RegHTTPHandler()
 				}
 
-				i.Run()
+				if x, ok := i.(inputs.DebugInput); ok {
+					x.DebugRun()
+				} else {
+					i.Run()
+				}
 			}(arr[idx], name)
 		}
 	}
