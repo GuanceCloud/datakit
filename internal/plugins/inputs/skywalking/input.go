@@ -281,7 +281,7 @@ func (ipt *Input) Run() {
 			ignoreTags = append(ignoreTags, rexp)
 		}
 	}
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
+	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	metricOpts = append(point.DefaultMetricOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	tags = ipt.Tags
 	delMessage = ipt.DelMessage
