@@ -325,7 +325,7 @@ func (ipt *Input) Run() {
 		AddCustomTags(ipt.CustomerTags)
 	}
 
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
+	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	delMessage = ipt.DelMessage
 	tags = ipt.Tags
 	convertToDD = ipt.CompatibleDDTrace

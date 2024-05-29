@@ -124,6 +124,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 				),
 				inputs.WithIgnoreTags(
 					testutils.SERVICE_NAME,
+					"source",
 				),
 				inputs.WithIgnoreUnexpectedTags(true),
 			},

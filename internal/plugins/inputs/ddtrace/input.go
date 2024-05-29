@@ -295,7 +295,7 @@ func (ipt *Input) Run() {
 		setCustomTags(ipt.CustomerTags)
 	}
 	delMessage = ipt.DelMessage
-	traceOpts = append(point.DefaultLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
+	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	log.Debugf("### %s agent is running...", inputName)
 
 	select {
