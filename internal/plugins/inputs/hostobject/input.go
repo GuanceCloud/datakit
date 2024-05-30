@@ -132,6 +132,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) setup() {
+	SetLog()
 	ipt.EnableCloudHostTagsGlobalElection = ipt.EnableCloudHostTagsGlobalElection && ipt.EnableCloudHostTagsGlobalElectionDeprecated
 	ipt.EnableCloudHostTagsGlobalHost = ipt.EnableCloudHostTagsGlobalHost && ipt.EnableCloudHostTagsGlobalHostDeprecated
 
