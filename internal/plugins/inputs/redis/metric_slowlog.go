@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/montanaflynn/stats"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -59,6 +60,30 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationUS,
 				Desc:     "Slow command",
 			},
+			"slowlog_avg": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "Slow average duration",
+			},
+			"slowlog_max": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "Slow maximum duration",
+			},
+			"slowlog_median": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "Slow median duration",
+			},
+			"slowlog_95percentile": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "Slow 95th percentile duration",
+			},
 		},
 	}
 }
@@ -96,6 +121,7 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(time.Now()))
 
+	var durationList []float64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		var kvs point.KVs
 
@@ -129,6 +155,7 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 		var duration int64
 		if x, ok := entry[2].(int64); ok {
 			duration = x
+			durationList = append(durationList, float64(x))
 		} else {
 			return nil, fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
 		}
@@ -163,11 +190,24 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 		kvs = kvs.Add("message", command+" cost time "+strconv.FormatInt(duration, 10)+"us", false, false)
 		kvs = kvs.Add("status", "WARNING", false, false)
 
+		// calculate avg, max, median, P95, count
+		maxDur, _ := stats.Max(durationList)
+		avgDur, _ := stats.Mean(durationList)
+		midDur, _ := stats.Median(durationList)
+		p95Dur, err := stats.Percentile(durationList, 0.95)
+		if err != nil {
+			p95Dur = maxDur
+		}
+
+		kvs = kvs.Add("slowlog_avg", avgDur, false, false)
+		kvs = kvs.Add("slowlog_max", int64(maxDur), false, false)
+		kvs = kvs.Add("slowlog_median", int64(midDur), false, false)
+		kvs = kvs.Add("slowlog_95percentile", p95Dur, false, false)
+
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 		collectCache = append(collectCache, point.NewPointV2(redisSlowlog, kvs, opts...))
 	}
-
 	return collectCache, nil
 }
