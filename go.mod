@@ -349,7 +349,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.14
+	github.com/GuanceCloud/cliutils v1.1.15
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0
@@ -384,10 +384,9 @@ require (
 )
 
 replace (
-	github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
-	github.com/influxdata/influxdb1-client => /Users/tanbiao/go/src/github.com/GuanceCloud/influxdb1-client
+	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4
