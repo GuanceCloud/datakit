@@ -34,7 +34,11 @@ func Conv(val interface{}, datatype string) (interface{}, error) {
 	case inputs.Float:
 		res, err = cast.ToFloat64E(val)
 	case inputs.Int:
-		res, err = cast.ToInt64E(val)
+		if res, err := cast.ToInt64E(val); err == nil {
+			return res, nil
+		} else if res, err := cast.ToUint64E(val); err == nil {
+			return res, nil
+		}
 	case inputs.Bool:
 		res, err = cast.ToBoolE(val)
 	case inputs.String:

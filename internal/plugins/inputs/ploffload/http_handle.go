@@ -101,11 +101,11 @@ func getRequestData(req *http.Request) (*ptsData, error) {
 
 	q := req.URL.Query()
 
-	if x := q.Get(httpapi.ArgInput); x != "" {
+	if x := q.Get("input"); x != "" {
 		input = x
 	}
 
-	if x := q.Get(httpapi.ArgPrecision); x != "" {
+	if x := q.Get("precision"); x != "" {
 		opts = append(opts, point.WithPrecision(point.PrecStr(x)))
 	}
 
@@ -145,8 +145,8 @@ func getRequestData(req *http.Request) (*ptsData, error) {
 	// add extra tags
 	ignoreGlobalTags := false
 	for _, arg := range []string{
-		httpapi.ArgIgnoreGlobalHostTags,
-		httpapi.ArgIgnoreGlobalTags, // deprecated
+		"ignore_global_host_tags",
+		"ignore_global_tags", // deprecated
 	} {
 		if x := q.Get(arg); x != "" {
 			ignoreGlobalTags = true
@@ -157,7 +157,7 @@ func getRequestData(req *http.Request) (*ptsData, error) {
 		appendTags(pts, datakit.GlobalHostTags())
 	}
 
-	if x := q.Get(httpapi.ArgGlobalElectionTags); x != "" {
+	if x := q.Get("global_election_tags"); x != "" {
 		appendTags(pts, datakit.GlobalElectionTags())
 	}
 
@@ -166,14 +166,14 @@ func getRequestData(req *http.Request) (*ptsData, error) {
 
 	// under strict mode, any point warning are errors
 	strict := false
-	if q.Get(httpapi.ArgStrict) != "" {
+	if q.Get("strict") != "" {
 		strict = true
 	}
 	if strict {
 		for _, pt := range pts {
 			if arr := pt.Warns(); len(arr) > 0 {
 				switch cntTyp {
-				case point.JSON:
+				case point.JSON, point.PBJSON:
 					return nil, uhttp.Errorf(httpapi.ErrInvalidJSONPoint, "%s: %s", arr[0].Type, arr[0].Msg)
 				case point.LineProtocol:
 					return nil, uhttp.Errorf(httpapi.ErrInvalidLinePoint, "%s: %s", arr[0].Type, arr[0].Msg)

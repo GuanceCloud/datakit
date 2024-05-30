@@ -1,4 +1,4 @@
-package models // import "github.com/influxdata/influxdb1-client/models"
+package models
 
 import (
 	"reflect"
@@ -8,37 +8,37 @@ import (
 
 // parseIntBytes is a zero-alloc wrapper around strconv.ParseInt.
 func parseIntBytes(b []byte, base int, bitSize int) (i int64, err error) {
-	s := unsafeBytesToString(b)
-	return strconv.ParseInt(s, base, bitSize)
+	return strconv.ParseInt(toUnsafeString(b), base, bitSize)
 }
 
 // parseUintBytes is a zero-alloc wrapper around strconv.ParseUint.
 func parseUintBytes(b []byte, base int, bitSize int) (i uint64, err error) {
-	s := unsafeBytesToString(b)
-	return strconv.ParseUint(s, base, bitSize)
+	return strconv.ParseUint(toUnsafeString(b), base, bitSize)
 }
 
 // parseFloatBytes is a zero-alloc wrapper around strconv.ParseFloat.
 func parseFloatBytes(b []byte, bitSize int) (float64, error) {
-	s := unsafeBytesToString(b)
-	return strconv.ParseFloat(s, bitSize)
+	return strconv.ParseFloat(toUnsafeString(b), bitSize)
 }
 
 // parseBoolBytes is a zero-alloc wrapper around strconv.ParseBool.
 func parseBoolBytes(b []byte) (bool, error) {
-	return strconv.ParseBool(unsafeBytesToString(b))
+	return strconv.ParseBool(toUnsafeString(b))
 }
 
-// unsafeBytesToString converts a []byte to a string without a heap allocation.
-//
-// It is unsafe, and is intended to prepare input to short-lived functions
-// that require strings.
-func unsafeBytesToString(in []byte) string {
-	src := *(*reflect.SliceHeader)(unsafe.Pointer(&in))
-	dst := reflect.StringHeader{
-		Data: src.Data,
-		Len:  src.Len,
-	}
-	s := *(*string)(unsafe.Pointer(&dst))
-	return s
+// toUnsafeString converts b to string without memory allocations.
+// The returned string is valid only until b is reachable and unmodified.
+func toUnsafeString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// toUnsafeBytes converts s to a byte slice without memory allocations.
+// The returned byte slice is valid only until s is reachable and unmodified.
+func toUnsafeBytes(s string) (b []byte) {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	slh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	slh.Data = sh.Data
+	slh.Len = sh.Len
+	slh.Cap = sh.Len
+	return b
 }

@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -179,42 +178,6 @@ func TestInsecureSkipVerify(t *testing.T) {
 	}
 }
 
-func httpGinServer(t *testing.T, host string) *http.Server {
-	t.Helper()
-	router := gin.New()
-
-	for u, m := range reqs {
-		if m == "GET" {
-			router.GET(u, func(c *gin.Context) {})
-		} else {
-			router.POST(u, func(c *gin.Context) {})
-		}
-	}
-
-	srv := &http.Server{
-		Addr:    host,
-		Handler: router,
-	}
-
-	retryCnt := 0
-	go func() {
-		for {
-			if err := srv.ListenAndServe(); err != nil {
-				if !errors.Is(err, http.ErrServerClosed) {
-					t.Errorf("start server at %s failed: %s, retrying(%d)...",
-						srv.Addr, err.Error(), retryCnt)
-					retryCnt++
-				} else {
-					t.Logf("server(%s) stopped on: %s", srv.Addr, err.Error())
-					break
-				}
-			}
-			time.Sleep(time.Second)
-		}
-	}()
-	return srv
-}
-
 func runTestClientConnections(t *testing.T, host string, tc *testClientConnectionsCase) {
 	t.Helper()
 
@@ -271,7 +234,7 @@ type testClientConnectionsCase struct {
 
 func TestClientConnections(t *testing.T) {
 	if runtime.GOOS != "linux" {
-		return
+		t.Skip("only test under linux")
 	}
 
 	cases := []testClientConnectionsCase{
@@ -290,25 +253,40 @@ func TestClientConnections(t *testing.T) {
 		{4, true, false, false},
 	}
 
+	// raw HTTP server
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(time.Millisecond)
 			fmt.Fprintf(w, "{}")
 		}))
-
 	ts.Start()
-	ginHost := "0.0.0.0:12345"
-	ginserver := httpGinServer(t, ginHost)
 
-	time.Sleep(time.Second) // wait HTTP server...
+	// gin HTTP server wrapped by httptest
+	ginserver := func() *httptest.Server {
+		router := gin.New()
+
+		for u, m := range reqs {
+			if m == "GET" {
+				router.GET(u, func(c *gin.Context) {})
+			} else {
+				router.POST(u, func(c *gin.Context) {})
+			}
+		}
+
+		return httptest.NewServer(router)
+	}()
+
+	ginHost := ginserver.URL
+
+	time.Sleep(time.Second) // wait HTTP servers ok
 
 	for _, tc := range cases {
 		var cw ConnWatcher
 
 		host := ts.URL
 		if tc.ginServer {
-			host = "http://" + ginHost
-			ginserver.ConnState = cw.OnStateChange
+			host = ginHost
+			ginserver.Config.ConnState = cw.OnStateChange
 		} else {
 			ts.Config.ConnState = cw.OnStateChange
 		}

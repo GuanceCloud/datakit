@@ -9,16 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin/binding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
@@ -83,98 +80,35 @@ func (ipt *Input) parseCallback(p *point.Point) (*point.Point, error) {
 	return p, nil
 }
 
-func (ipt *Input) handleRUM(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### RUM request from %s", req.URL.String())
+func (ipt *Input) handleRUM(w http.ResponseWriter, req *http.Request) {
+	wr := httpapi.GetAPIWriteResult()
+	defer httpapi.PutAPIWriteResult(wr)
 
-	opts := []point.Option{
-		point.WithPrecision(point.PrecNS),
-		point.WithTime(time.Now()),
+	// setup point-parse callback and GeoIP handler
+	wr.PointCallback = ipt.parseCallback
+	wr.IPQuerier = plval.NewIPQuerier(config.Cfg.HTTPAPI.RUMOriginIPHeader)
+
+	if err := wr.APIV1Write(req); err != nil {
+		log.Errorf("APIV1Write: %s", err.Error())
+		httpErr(w, err)
 	}
 
-	var (
-		query                   = req.URL.Query()
-		version, pipelineSource string
-	)
-	if x := query.Get(httpapi.ArgVersion); x != "" {
-		version = x
-	}
-	if x := query.Get(httpapi.ArgPipelineSource); x != "" {
-		pipelineSource = x
-	}
-	if x := query.Get(httpapi.ArgPrecision); x != "" {
-		opts = append(opts, point.WithPrecision(point.PrecStr(x)))
-	}
-
-	body, err := uhttp.ReadBody(req)
-	if err != nil {
-		log.Error(err.Error())
-		httpErr(resp, err)
-
-		return
-	}
-
-	if len(body) == 0 {
-		log.Debug(httpapi.ErrEmptyBody.Err.Error())
-		httpErr(resp, httpapi.ErrEmptyBody)
-
-		return
-	}
-
-	var (
-		pts       []*point.Point
-		apiConfig = config.Cfg.HTTPAPI
-		ct        = httpapi.GetPointEncoding(req.Header)
-	)
-
-	ipStatus := &ipLocationStatus{}
 	defer func() {
-		ClientRealIPCounter.WithLabelValues(ipStatus.appid, ipStatus.ipStatus, ipStatus.locateStatus).Inc()
+		ClientRealIPCounter.WithLabelValues(wr.APPID, wr.IPStatus, wr.LocateStatus).Inc()
 	}()
 
-	opts = append(opts, point.WithExtraTags(geoTags(getSrcIP(apiConfig, req, ipStatus), ipStatus)), point.WithCallback(ipt.parseCallback))
-
-	if pts, err = httpapi.HandleWriteBody(body, ct, opts...); err != nil {
-		log.Errorf("httpapi.HandleWriteBody: %s", err.Error())
-		httpErr(resp, err)
+	if len(wr.RespBody) > 0 {
+		httpOK(w, wr.RespBody)
 		return
 	}
 
-	if len(pts) == 0 {
-		log.Debug(httpapi.ErrNoPoints.Err.Error())
-		httpErr(resp, httpapi.ErrNoPoints)
-
+	if err := ipt.feeder.FeedV2(point.RUM, wr.Points, wr.FeedOptions...); err != nil {
+		log.Warnf("FeedV2: %s, ignored", err.Error())
+		httpErr(w, err)
 		return
 	}
 
-	ipStatus.appid, _ = pts[0].Get("app_id").(string)
-
-	log.Debugf("### received %d(%s) points from %s, pipeline source: %v",
-		len(pts), req.URL.Path, inputName, pipelineSource)
-
-	feedOpt := &dkio.Option{Version: version}
-	if pipelineSource != "" {
-		feedOpt.PlOption = &plmanager.Option{
-			ScriptMap: map[string]string{pipelineSource: pipelineSource + ".p"},
-		}
-	}
-	if err := ipt.feeder.FeedV2(point.RUM, pts,
-		dkio.WithInputName(inputName),
-	); err != nil {
-		log.Error(err.Error())
-		httpErr(resp, err)
-		return
-	}
-
-	if query.Get(httpapi.ArgEchoLineProto) != "" {
-		var arr []string
-		for _, x := range pts {
-			arr = append(arr, x.LineProto())
-		}
-		httpOK(resp, strings.Join(arr, "\n"))
-		return
-	}
-
-	httpOK(resp, nil)
+	httpOK(w, nil)
 }
 
 func httpOK(w http.ResponseWriter, body interface{}) {

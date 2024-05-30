@@ -81,6 +81,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"cache_get()":              &CacheGetMarkdown,
 	"cache_set()":              &CacheSetMarkdown,
 	"gjson()":                  &gjsonMarkdown,
+	"point_window()":           &pointWinodoeMarkdown,
+	"window_hit()":             &winHitMarkdown,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -146,6 +148,8 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"cache_get()":              &CacheGetMarkdownEN,
 	"cache_set()":              &CacheSetMarkdownEN,
 	"gjson()":                  &gjsonMarkdownEN,
+	"point_window()":           &pointWinodoeMarkdownEN,
+	"window_hit()":             &winHitMarkdownEN,
 }
 
 // embed docs.
@@ -336,6 +340,12 @@ var (
 
 	//go:embed md/gjson.md
 	docGJSON string
+
+	//go:embed md/point_window.md
+	docPointWindow string
+
+	//go:embed md/window_hit.md
+	docWindowHit string
 )
 
 const (
@@ -743,6 +753,20 @@ var (
 		Doc: docGJSON,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
+		},
+	}
+
+	pointWinodoeMarkdown = PLDoc{
+		Doc: docPointWindow,
+		FnCategory: map[string][]string{
+			langTagZhCN: {eOther},
+		},
+	}
+
+	winHitMarkdown = PLDoc{
+		Doc: docWindowHit,
+		FnCategory: map[string][]string{
+			langTagZhCN: {eOther},
 		},
 	}
 )

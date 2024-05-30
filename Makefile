@@ -65,7 +65,8 @@ IGN_EBPF_INSTALL_ERR        ?= 0
 RACE_DETECTION              ?= "off"
 PKGEBPF                     ?= false
 AUTO_FIX                    ?= on
-UT_EXCLUDE                  ?= "not-set"
+UT_EXCLUDE                  ?= "-"
+UT_ONLY                     ?= "-"
 DOCKER_REMOTE_HOST          ?= "0.0.0.0" # default use localhost as docker server
 MERGE_REQUEST_TARGET_BRANCH ?= ""
 
@@ -342,7 +343,7 @@ vet:
 ut: deps
 	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
 						 REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
-						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) \
+						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) \
 						 -dataway-url $(DATAWAY_URL); \
 		if [ $$? != 0 ]; then \
 			exit 1; \

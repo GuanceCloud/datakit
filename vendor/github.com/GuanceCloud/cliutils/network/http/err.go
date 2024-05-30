@@ -111,6 +111,8 @@ func (he *HttpError) WriteBody(c *gin.Context, obj interface{}) {
 	c.Data(he.HttpCode, contentType, bodyBytes)
 }
 
+type RawJSONBody []byte
+
 // HttpBody Deprecated, use WriteBody.
 func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 	if body == nil {
@@ -124,6 +126,9 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 
 	switch x := body.(type) {
 	case []byte:
+		bodyBytes = x
+	case RawJSONBody:
+		contentType = `application/json`
 		bodyBytes = x
 	default:
 		resp := &BodyResp{

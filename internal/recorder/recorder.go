@@ -68,7 +68,7 @@ func SetupRecorder(r *Recorder) (*Recorder, error) {
 	}
 
 	switch point.EncodingStr(r.Encoding) {
-	case point.LineProtocol, point.Protobuf, point.JSON:
+	case point.LineProtocol, point.Protobuf, point.JSON, point.PBJSON:
 	default:
 		return nil, fmt.Errorf("invalid record encoding %q", r.Encoding)
 	}
@@ -145,7 +145,7 @@ func (r *Recorder) Record(pts []*point.Point, cat point.Category, input string) 
 			}
 		}
 
-	case point.Protobuf: // encode in pb-json
+	case point.Protobuf, point.PBJSON: // encode in pb-json
 
 		ext = ExtPBJson
 

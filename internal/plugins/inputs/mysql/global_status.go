@@ -7,7 +7,6 @@ package mysql
 
 import (
 	"database/sql"
-	"math"
 	"strconv"
 )
 
@@ -31,13 +30,11 @@ func globalStatusMetrics(r rows) map[string]interface{} {
 
 		raw := string(val)
 		if v, err := strconv.ParseUint(raw, 10, 64); err == nil {
-			if v > uint64(math.MaxInt64) {
-				l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, int64(math.MaxInt64))
-				continue
-			}
-			res[key] = int64(v)
+			res[key] = v
+			l.Debugf("get status %s:%v", key, v)
 		} else {
 			res[key] = raw
+			l.Debugf("get status %s:%v", key, v)
 		}
 	}
 

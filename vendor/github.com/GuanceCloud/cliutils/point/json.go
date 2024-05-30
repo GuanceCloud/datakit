@@ -69,12 +69,12 @@ func (p *Point) UnmarshalJSON(j []byte) error {
 	if err := m.Unmarshal(buf, &x); err == nil {
 		pt = FromPB(&x)
 	} else {
-		log.Printf("pb json unmarshal failed: %s", err)
-
 		// try JSONPoint unmarshal
 		var y JSONPoint
 		if err := json.Unmarshal(j, &y); err == nil {
-			pt = FromJSONPoint(&y)
+			pt = fromJSONPoint(&y)
+
+			log.Printf("pt: %s", pt.Pretty())
 		} else {
 			return err
 		}
@@ -83,4 +83,14 @@ func (p *Point) UnmarshalJSON(j []byte) error {
 	*p = *pt
 
 	return nil
+}
+
+func fromJSONPoint(j *JSONPoint) *Point {
+	kvs := NewKVs(j.Fields)
+
+	for k, v := range j.Tags {
+		kvs = kvs.MustAddTag(k, v)
+	}
+
+	return NewPointV2(j.Measurement, kvs, WithTimestamp(j.Time))
 }

@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,10 +63,10 @@ func TestGetCleanSchemaData(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -128,17 +127,17 @@ func TestGetCleanInnodb(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int))
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				case bool:
-					tu.Equals(t, x, res[k].(bool))
+					assert.Equal(t, x, res[k].(bool))
 				case nil:
-					tu.Equals(t, x, res[k])
+					assert.Equal(t, x, res[k])
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -195,10 +194,10 @@ func TestGetCleanTableSchema(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -245,14 +244,14 @@ func TestGetCleanUserStatusName(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				case bool:
-					tu.Equals(t, x, res[k].(bool))
+					assert.Equal(t, x, res[k].(bool))
 				case nil:
-					tu.Equals(t, x, res[k])
+					assert.Equal(t, x, res[k])
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -294,17 +293,17 @@ func TestGetCleanUserStatusVariable(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int))
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equalf(t, x, res[k].(int64), "res[%q]: %q", k, res[k])
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				case bool:
-					tu.Equals(t, x, res[k].(bool))
+					assert.Equal(t, x, res[k].(bool))
 				case nil:
-					tu.Equals(t, x, res[k])
+					assert.Equal(t, x, res[k])
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -343,17 +342,17 @@ func TestGetCleanUserStatusConnection(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case int:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int))
 				case int64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					assert.True(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(int64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				case bool:
-					tu.Equals(t, x, res[k].(bool))
+					assert.Equal(t, x, res[k].(bool))
 				case nil:
-					tu.Equals(t, x, res[k])
+					assert.Equal(t, x, res[k])
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -419,7 +418,7 @@ func TestGetCleanSummaryRows(t *testing.T) {
 			for k, v := range tc.expect {
 				switch reflect.TypeOf(v).Name() {
 				case "string", "uint64":
-					tu.Equals(t, v, res[k])
+					assert.Equal(t, v, res[k])
 				default:
 					t.Logf("%d is type %s", k, reflect.TypeOf(v))
 				}
@@ -517,9 +516,9 @@ func TestGetCleanMysqlVersion(t *testing.T) {
 
 			assert.NotNil(t, res)
 
-			tu.Equals(t, res.version, tc.expect.version)
-			tu.Equals(t, res.flavor, tc.expect.flavor)
-			tu.Equals(t, res.build, tc.expect.build)
+			assert.Equal(t, res.version, tc.expect.version)
+			assert.Equal(t, res.flavor, tc.expect.flavor)
+			assert.Equal(t, res.build, tc.expect.build)
 		})
 	}
 }
@@ -572,10 +571,10 @@ func TestGetCleanMysqlCustomQueries(t *testing.T) {
 	// 		for k, v := range tc.expect {
 	// 			switch x := v.(type) {
 	// 			case int64:
-	// 				tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-	// 				tu.Equals(t, x, res[k].(int64))
+	// 				assert.True(t, res[k] != nil, "key %s should not be nil", k)
+	// 				assert.Equals(t, x, res[k].(int64))
 	// 			case string:
-	// 				tu.Equals(t, x, res[k].(string))
+	// 				assert.Equal(t, x, res[k].(string))
 	// 			default:
 	// 				t.Logf("%s is type %s", k, reflect.TypeOf(v))
 	// 			}

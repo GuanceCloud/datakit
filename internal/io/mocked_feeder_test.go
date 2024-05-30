@@ -6,6 +6,7 @@
 package io
 
 import (
+	"sync"
 	T "testing"
 	"time"
 
@@ -19,7 +20,12 @@ func TestNPoints(t *T.T) {
 	n := 10
 
 	t.Run("wait-forever", func(t *T.T) {
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
 		go func() {
+			defer wg.Done()
+
 			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
@@ -36,10 +42,16 @@ func TestNPoints(t *T.T) {
 		for _, pt := range pts {
 			t.Logf("%s", pt.LineProto())
 		}
+
+		wg.Wait()
 	})
 
 	t.Run("wait-10ms-and-timeout", func(t *T.T) {
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
 		go func() {
+			defer wg.Done()
 			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
@@ -52,10 +64,16 @@ func TestNPoints(t *T.T) {
 		_, err := f.NPoints(n, time.Millisecond*10)
 		assert.Error(t, err)
 		t.Logf("got expected error: %s", err.Error())
+
+		wg.Wait()
 	})
 
 	t.Run("wait-1s", func(t *T.T) {
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
 		go func() {
+			defer wg.Done()
 			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
 			pts := []*point.Point{pt}
 
@@ -72,6 +90,8 @@ func TestNPoints(t *T.T) {
 		for _, pt := range pts {
 			t.Logf("%s", pt.LineProto())
 		}
+
+		wg.Wait()
 	})
 
 	t.Run("feed-busy", func(t *T.T) {
@@ -95,5 +115,11 @@ func TestNPoints(t *T.T) {
 		err := f.Feed(t.Name(), point.Metric, pts)
 		assert.Error(t, err)
 		t.Logf("got expect error: %s", err)
+	})
+}
+
+func TestFeedOptions(t *T.T) {
+	t.Run("basic", func(t *T.T) {
+		t.Skip("TODO")
 	})
 }

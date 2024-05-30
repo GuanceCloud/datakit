@@ -402,15 +402,21 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 			measurement: &baseMeasurement{},
 			optionalFields: []string{
 				"Binlog_space_usage_bytes",
-				"Qcache_not_cached",
-				"Qcache_lowmem_prunes",
+				"Key_buffer_bytes_unflushed",
+				"Key_buffer_bytes_used",
+				"Key_cache_utilization",
+				"Mysqlx_ssl_ctx_verify_depth",
 				"Qcache_free_blocks",
-				"Qcache_hits",
-				"Qcache_queries_in_cache",
-				"Qcache_inserts",
-				"Qcache_total_blocks",
-				"query_cache_size",
 				"Qcache_free_memory",
+				"Qcache_hits",
+				"Qcache_inserts",
+				"Qcache_lowmem_prunes",
+				"Qcache_not_cached",
+				"Qcache_queries_in_cache",
+				"Qcache_total_blocks",
+				"connection_memory_limit",
+				"global_connection_memory_limit",
+				"query_cache_size",
 			},
 		},
 		"mysql_schema": {
@@ -421,20 +427,20 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 			measurement: &innodbMeasurement{},
 			optionalFields: []string{
 				"log_padded",
-				"mem_recovery_system",
-				"mem_dictionary",
+				"mem_adaptive_hash",
 				"mem_additional_pool",
-				"pending_log_writes",
+				"mem_dictionary",
+				"mem_file_system",
 				"mem_lock_system",
 				"mem_page_hash",
-				"mem_adaptive_hash",
-				"mem_file_system",
-				"pending_checkpoint_writes",
+				"mem_recovery_system",
 				"mem_thread_hash",
 				"mem_total",
-				"pending_aio_sync_ios",
 				"pending_aio_log_ios",
+				"pending_aio_sync_ios",
+				"pending_checkpoint_writes",
 				"pending_ibuf_aio_reads",
+				"pending_log_writes",
 			},
 		},
 		"mysql_table_schema": {
@@ -486,6 +492,7 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 			for k, v := range m.extraTags {
 				extraTags[k] = v
 			}
+
 			msgs := inputs.CheckPoint(pt,
 				inputs.WithDoc(m.measurement),
 				inputs.WithOptionalFields(m.optionalFields...),
@@ -493,8 +500,9 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 				inputs.WithOptionalTags(m.optionalTags...),
 				inputs.WithExtraTags(extraTags),
 			)
+
 			for _, msg := range msgs {
-				cs.t.Logf("[%s] check measurement %s failed: %+#v", cs.t.Name(), name, msg)
+				cs.t.Logf("[%s] check measurement %s failed: %+#v, point: %s", cs.t.Name(), name, msg, pt.Pretty())
 			}
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: collected points are not as expected ", name)

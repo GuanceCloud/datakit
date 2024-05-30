@@ -6,19 +6,17 @@
 package gitrepo
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	T "testing"
-	"time"
 
+	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/stretchr/testify/assert"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -224,78 +222,6 @@ func TestGetUserNamePasswordFromGitURL(t *T.T) {
 			}
 			tu.Equals(t, tc.expect, mVal)
 			tu.Equals(t, tc.expectAuth, as.Auth)
-		})
-	}
-
-	datakit.InstallDir = originInstallDir
-	datakit.GitReposDir = originGitReposDir
-}
-
-func TestURLEncode(t *T.T) {
-	for _, s := range []string{
-		"`", "~", "!", "@", "#",
-		"$", "%", "^", "&", "*",
-		"(", ")", "_", "-", "+",
-		"=", "{", "}", "[", "]",
-		`\`, ":", "|", `"`, "'",
-		";", ",", ".", "<", ">",
-		"/", "?",
-	} {
-		t.Logf("%s:%s", s, url.QueryEscape(s))
-	}
-}
-
-func TestReloadCore(t *T.T) {
-	if !checkDevHost() {
-		return
-	}
-
-	originInstallDir := datakit.InstallDir
-	originGitReposDir := datakit.GitReposDir
-
-	datakit.InstallDir = "/usr/local/datakit"
-	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
-
-	const successRound = 6
-
-	cases := []struct {
-		name          string
-		timeout       time.Duration
-		shouldBeError bool
-		expect        map[string]int
-	}{
-		{
-			name:          "pass",
-			timeout:       60 * time.Second,
-			shouldBeError: false,
-			expect: map[string]int{
-				"round": successRound + 1,
-			},
-		},
-
-		{
-			name:          "timeout",
-			timeout:       time.Nanosecond,
-			shouldBeError: true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *T.T) {
-			ctxNew, cancel := context.WithTimeout(context.Background(), tc.timeout)
-			defer cancel()
-			round, err := reloadCore(ctxNew)
-			if err != nil && !tc.shouldBeError {
-				t.Error(err)
-			}
-			mVal := map[string]int{
-				"round": round,
-			}
-			if tc.name == "timeout" {
-				assert.Less(t, round, successRound)
-			} else {
-				tu.Equals(t, tc.expect, mVal)
-			}
 		})
 	}
 

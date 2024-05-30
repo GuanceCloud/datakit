@@ -60,8 +60,6 @@ type Input struct {
 	Overwrite              bool              `toml:"overwrite"`
 	Output                 string            `toml:"output"`
 
-	Election bool // forever false
-
 	semStop      *cliutils.Sem // start stop signal
 	feeder       dkio.Feeder
 	mergedTags   map[string]string
@@ -245,7 +243,7 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	if len(pts) > 0 {
 		if err := ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
-			dkio.WithElection(ipt.Election),
+			dkio.DisableGlobalTags(true),
 			dkio.WithInputName(inputName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),

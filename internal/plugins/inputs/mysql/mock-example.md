@@ -161,9 +161,7 @@ func TestBinlogMetrics(t *testing.T) {
 				data: [][]interface{}{
 					[]interface{}{"mysql-bin.000001", "-1"},   // ignored
 					[]interface{}{"mysql-bin.000002", "3.14"}, // ignored
-					[]interface{}{"mysql-bin.000003",
-						fmt.Sprintf("%d", uint64(math.MaxInt64)+1)}, // ignored
-				},
+					[]interface{}{"mysql-bin.000003", "abc-invalid-bin-log-size" },
 			},
 			expect: int64(0),
 			err:    nil,

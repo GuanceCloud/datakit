@@ -151,30 +151,35 @@ func (d *dcaContext) fail(errors ...dcaError) {
 	d.send(response)
 }
 
+var errDCAReloadError = dcaError{
+	ErrorCode: "system.reload.error",
+	ErrorMsg:  "reload datakit error",
+}
+
 // dca reload.
 func dcaReload(c *gin.Context) {
-	context := getContext(c)
-	if err := dcaAPI.ReloadDataKit(); err != nil {
+	dcaCtx := getContext(c)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	if err := dcaAPI.ReloadDataKit(ctx); err != nil {
 		l.Error("reloadDataKit: %s", err)
-		context.fail(dcaError{ErrorCode: "system.reload.error", ErrorMsg: "reload datakit error"})
+		dcaCtx.fail(errDCAReloadError)
 		return
 	}
 
-	context.success()
+	dcaCtx.success()
 }
 
-// reload Datakit.
-// TODO: duplicate code with reloadCore() in gitrepo.go, maybe merged later.
-func reloadDataKit() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
+// ReloadDataKit will reload datakit modules wihout restart datakit process.
+func ReloadDataKit(ctx context.Context) error {
 	round := 0 // 循环次数
 	for {
 		select {
 		case <-ctx.Done():
-			tip := "reload timeout"
-			l.Error(tip)
-			return fmt.Errorf(tip)
+			return fmt.Errorf("reload timeout")
+
 		default:
 			switch round {
 			case 0:
@@ -208,8 +213,8 @@ func reloadDataKit() error {
 				l.Info("before set pipelines")
 				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
 					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
-						manager.DefaultScriptNS,
-						datakit.PipelineDir, nil)
+						manager.GitRepoScriptNS,
+						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
 				}
 
 			case 4:
@@ -224,15 +229,24 @@ func reloadDataKit() error {
 			case 5:
 				l.Info("before ReloadTheNormalServer")
 
-				ReloadTheNormalServer()
-			} // switch round
-		} // select
+				ReloadTheNormalServer(
+					WithAPIConfig(config.Cfg.HTTPAPI),
+					WithDCAConfig(config.Cfg.DCAConfig),
+					WithGinLog(config.Cfg.Logging.GinLog),
+					WithGinRotateMB(config.Cfg.Logging.Rotate),
+					WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
+					WithDataway(config.Cfg.Dataway),
+					WithPProf(config.Cfg.EnablePProf),
+					WithPProfListen(config.Cfg.PProfListen),
+				)
+			}
+		}
 
 		round++
 		if round > 6 {
-			return nil // round + 1
-		} // if round
-	} // for
+			return nil
+		}
+	}
 }
 
 type dcastats struct {
@@ -269,23 +283,35 @@ type saveConfigParam struct {
 }
 
 // auth middleware.
-func dcaAuthMiddleware(c *gin.Context) {
-	tokens := c.Request.Header["X-Token"]
-	context := &dcaContext{c: c}
-	if len(tokens) == 0 {
-		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
-		c.Abort()
-		return
-	}
+func dcaAuthMiddleware(tkns []string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fullPath := c.FullPath()
+		for _, uri := range ignoreAuthURI {
+			if uri == fullPath {
+				c.Next()
+				return
+			}
+		}
 
-	token := tokens[0]
-	localTokens := apiServer.dw.GetTokens()
-	if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
-		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
-		c.Abort()
-		return
+		tokens := c.Request.Header["X-Token"]
+
+		l.Debugf("request tokens: %+#v, local tokens: %+#v", tokens, tkns)
+
+		context := &dcaContext{c: c}
+		if len(tokens) == 0 {
+			context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
+			c.Abort()
+			return
+		}
+
+		token := tokens[0]
+		if len(token) == 0 || len(tkns) == 0 || (token != tkns[0]) {
+			context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
-	c.Next()
 }
 
 func dcaGetConfig(c *gin.Context) {

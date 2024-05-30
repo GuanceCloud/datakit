@@ -11,13 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -30,7 +28,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -175,7 +172,7 @@ func doRun(c *config.GitRepository) error {
 
 		ctxNew, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-		if _, err = reloadCore(ctxNew); err != nil {
+		if err = httpapi.ReloadDataKit(ctxNew); err != nil {
 			return err
 		}
 	}
@@ -272,74 +269,6 @@ func gitPlainClone(clonePath, gitURL, branch string, authMethod transport.AuthMe
 		return err
 	}
 	return nil
-}
-
-func reloadCore(ctx context.Context) (int, error) {
-	round := 0 // 循环次数
-	for {
-		select {
-		case <-ctx.Done():
-			tip := "reload timeout"
-			l.Error(tip)
-			return round, fmt.Errorf(tip)
-		default:
-			switch round {
-			case 0:
-				l.Info("before ReloadCheckInputCfg")
-
-				_, err := config.ReloadCheckInputCfg()
-				if err != nil {
-					l.Errorf("ReloadCheckInputCfg failed: %v", err)
-					return round, err
-				}
-
-				l.Info("before ReloadCheckPipelineCfg")
-
-			case 1:
-				l.Info("before StopInputs")
-
-				if err := inputs.StopInputs(); err != nil {
-					l.Errorf("StopInputs failed: %v", err)
-					return round, err
-				}
-
-			case 2:
-				l.Info("before ReloadInputConfig")
-
-				if err := config.ReloadInputConfig(); err != nil {
-					l.Errorf("ReloadInputConfig failed: %v", err)
-					return round, err
-				}
-
-			case 3:
-				l.Info("before set pipelines")
-				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
-					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
-						manager.GitRepoScriptNS,
-						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
-				}
-
-			case 4:
-				l.Info("before RunInputs")
-
-				httpapi.CleanHTTPHandler()
-				if err := inputs.RunInputs(); err != nil {
-					l.Errorf("RunInputs failed: %v", err)
-					return round, err
-				}
-
-			case 5:
-				l.Info("before ReloadTheNormalServer")
-
-				httpapi.ReloadTheNormalServer()
-			} // switch round
-		} // select
-
-		round++
-		if round > 6 {
-			return round, nil // round + 1
-		} // if round
-	} // for
 }
 
 func getGitClonePathFromGitURL(gitURL string) (string, error) {

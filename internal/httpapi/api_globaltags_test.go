@@ -515,9 +515,7 @@ func Test_getQueryString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getQueryString(tt.q); got != tt.want {
-				t.Errorf("name = %s ,getQueryString() = %v, want %v", tt.name, got, tt.want)
-			}
+			assert.Equal(t, tt.want, getQueryString(tt.q))
 		})
 	}
 }

@@ -71,6 +71,8 @@ func setVal(v isField_Val, raw any) isField_Val {
 			arr, err = NewIntArray(x...)
 		case []int64:
 			arr, err = NewIntArray(x...)
+		case []int:
+			arr, err = NewIntArray(x...)
 
 		case []uint16:
 			arr, err = NewUintArray(x...)
@@ -243,6 +245,14 @@ func newVal(v any) isField_Val {
 	case []byte:
 		return &Field_D{x}
 
+	case [][]byte:
+		bytesArr, err := NewBytesArray(x...)
+		if err != nil {
+			return nil
+		} else {
+			return &Field_A{bytesArr}
+		}
+
 	case bool:
 		return &Field_B{x}
 
@@ -252,6 +262,14 @@ func newVal(v any) isField_Val {
 			return nil
 		} else {
 			return &Field_A{barr}
+		}
+
+	case []any:
+		arr, err := NewAnyArray(x...)
+		if err != nil {
+			return nil
+		} else {
+			return &Field_A{arr}
 		}
 
 	case *types.Any:

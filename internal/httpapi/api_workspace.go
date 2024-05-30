@@ -10,59 +10,69 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/gin-gonic/gin"
 )
 
-type Workspace struct {
+type workspace struct {
 	Token []string `json:"token"`
 }
 
-func apiWorkspace(c *gin.Context) {
-	var w Workspace
-	if apiServer.dw == nil {
-		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
-		return
+type IAPIWorkspace interface {
+	GetTokens() []string
+	WorkspaceQuery([]byte) (*http.Response, error)
+}
+
+func apiWorkspace(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("dataway not set")
 	}
-	tkns := apiServer.dw.GetTokens()
+
+	dw, ok := args[0].(IAPIWorkspace)
+	if !ok {
+		return nil, fmt.Errorf("invalid dataway, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	if dw == nil {
+		return nil, fmt.Errorf("dataway not set")
+	}
+
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
-		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-		return
+		return nil, fmt.Errorf("dataway token missing")
 	}
-	w.Token = tkns
+
+	w := workspace{
+		Token: tkns,
+	}
+
 	j, err := json.Marshal(w)
 	if err != nil {
 		l.Errorf("json.Marshal: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
 	l.Debugf("query: %s", string(j))
 
-	resp, err := apiServer.dw.WorkspaceQuery(j)
+	resp, err := dw.WorkspaceQuery(j)
 	if err != nil {
-		l.Errorf("DQLQuery: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	j, err = io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+		return nil, err
 	}
-	l.Debugf("read response body %s", string(respBody))
+
+	l.Debugf("read response body %s", string(j))
 	defer resp.Body.Close() //nolint:errcheck
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("workspace ok: %s", resp.Status)
+		return uhttp.RawJSONBody(j), nil
 	default:
-		l.Errorf("workspace fail: %s", resp.Status)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, fmt.Sprintf("%s%d%s", "http_request_", resp.StatusCode, "_err")))
-		return
+		return nil, fmt.Errorf("%s%d%s", "http_request_", resp.StatusCode, "_err")
 	}
-	c.Data(http.StatusOK, "application/json", respBody)
 }

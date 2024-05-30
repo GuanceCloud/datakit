@@ -41,6 +41,7 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&ut, "ut", false, "test all DataKit code")
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
+	flag.StringVar(&build.UTOnly, "ut-only", "", "select packages for testing")
 
 	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
 	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")

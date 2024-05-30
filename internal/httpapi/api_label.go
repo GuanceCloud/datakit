@@ -8,87 +8,105 @@ package httpapi
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"reflect"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/gin-gonic/gin"
 )
 
+type IAPICreateOrUpdateObjectLabel interface {
+	GetTokens() []string
+	UpsertObjectLabels(tkn string, bpdy []byte) (http.Response, error)
+}
+
 // create or update object labels.
-func apiCreateOrUpdateObjectLabel(c *gin.Context) {
-	// 1) get request body
-	// 2) reroute to dataway
-	body, err := uhttp.GinRead(c)
+func apiCreateOrUpdateObjectLabel(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, ErrInvalidAPIHandler
+	}
+
+	if IsNil(args[0]) {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "nil dataway")
+	}
+
+	dw, ok := args[0].(IAPICreateOrUpdateObjectLabel)
+	if !ok {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "invalid dataway, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("GinRead: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
+	defer req.Body.Close() // nolint:errcheck
 
-	if apiServer.dw == nil {
-		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
-		return
-	}
-
-	tkns := apiServer.dw.GetTokens()
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
-		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-		return
+		return nil, fmt.Errorf("dataway token missing")
 	}
 
-	resp, err := apiServer.dw.UpsertObjectLabels(tkns[0], body)
+	resp, err := dw.UpsertObjectLabels(tkns[0], body)
 	if err != nil {
 		l.Errorf("create or update object labels: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	j, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+		return nil, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	c.Data(resp.StatusCode, "application/json", respBody)
+	return uhttp.RawJSONBody(j), nil
+}
+
+type IAPIDeleteObjectLabel interface {
+	GetTokens() []string
+	DeleteObjectLabels(tkn string, body []byte) (*http.Response, error)
 }
 
 // delete object label.
-func apiDeleteObjectLabel(c *gin.Context) {
-	// 1) get request body
-	// 2) reroute to dataway
-	body, err := uhttp.GinRead(c)
+func apiDeleteObjectLabel(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, ErrInvalidAPIHandler
+	}
+
+	if IsNil(args[0]) {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "nil dataway")
+	}
+
+	dw, ok := args[0].(IAPIDeleteObjectLabel)
+	if !ok {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "invalid dataway, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("GinRead: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
+	defer req.Body.Close() // nolint:errcheck
 
-	if apiServer.dw == nil {
-		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
-		return
-	}
-
-	tkns := apiServer.dw.GetTokens()
+	tkns := dw.GetTokens()
 	if len(tkns) == 0 {
-		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-		return
+		return nil, fmt.Errorf("dataway token missing")
 	}
 
-	resp, err := apiServer.dw.DeleteObjectLabels(tkns[0], body)
+	resp, err := dw.DeleteObjectLabels(tkns[0], body)
 	if err != nil {
 		l.Errorf("create or update object labels: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	j, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("read response body %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+		return nil, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	c.Data(resp.StatusCode, "application/json", respBody)
+	return uhttp.RawJSONBody(j), nil
 }

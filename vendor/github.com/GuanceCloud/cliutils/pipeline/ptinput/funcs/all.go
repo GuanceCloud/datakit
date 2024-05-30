@@ -82,6 +82,9 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"cache_get":              CacheGet,
 	"cache_set":              CacheSet,
 	"gjson":                  GJSON,
+	"point_window":           PtWindow,
+	"window_hit":             PtWindowHit,
+
 	// disable
 	"json_all": JSONAll,
 }
@@ -151,6 +154,8 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"cache_get":              CacheGetChecking,
 	"cache_set":              CacheSetChecking,
 	"gjson":                  GJSONChecking,
+	"point_window":           PtWindowChecking,
+	"window_hit":             PtWindowHitChecking,
 	// disable
 	"json_all": JSONAllChecking,
 }

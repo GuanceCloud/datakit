@@ -52,6 +52,7 @@ func putFeedOption(fo *feedOption) {
 	fo.collectCost = 0
 	fo.input = "unknown"
 	fo.version = ""
+	fo.noGlobalTags = false
 	fo.cat = point.UnknownCategory
 	fo.postTimeout = 0
 	fo.blocking = false
@@ -86,45 +87,44 @@ type Option struct {
 type feedOption struct {
 	collectCost,
 	postTimeout time.Duration
+
 	input,
 	version string
+
 	cat      point.Category
 	plOption *plscript.Option
-	blocking bool
+
+	noGlobalTags,
+	blocking,
 	election bool
-	pts      []*point.Point
+
+	pts []*point.Point
 }
 
 // FeedOption used to define various feed options.
 type FeedOption func(*feedOption)
 
-func WithCollectCost(du time.Duration) FeedOption {
-	return func(fo *feedOption) { fo.collectCost = du }
+// DisableGlobalTags used to enable/disable adding global host/election tags.
+func DisableGlobalTags(on bool) FeedOption {
+	return func(fo *feedOption) { fo.noGlobalTags = on }
 }
 
-func WithInputVersion(v string) FeedOption {
-	return func(fo *feedOption) { fo.version = v }
+func WithCollectCost(du time.Duration) FeedOption {
+	return func(fo *feedOption) { fo.collectCost = du }
 }
 
 func WithPostTimeout(du time.Duration) FeedOption {
 	return func(fo *feedOption) { fo.postTimeout = du }
 }
 
-func WithBlocking(on bool) FeedOption {
-	return func(fo *feedOption) { fo.blocking = on }
-}
-
 func WithPipelineOption(po *plscript.Option) FeedOption {
 	return func(fo *feedOption) { fo.plOption = po }
 }
 
-func WithElection(on bool) FeedOption {
-	return func(fo *feedOption) { fo.election = on }
-}
-
-func WithInputName(name string) FeedOption {
-	return func(fo *feedOption) { fo.input = name }
-}
+func WithInputVersion(v string) FeedOption { return func(fo *feedOption) { fo.version = v } }
+func WithBlocking(on bool) FeedOption      { return func(fo *feedOption) { fo.blocking = on } }
+func WithElection(on bool) FeedOption      { return func(fo *feedOption) { fo.election = on } }
+func WithInputName(name string) FeedOption { return func(fo *feedOption) { fo.input = name } }
 
 type LastErrorOption func(*LastError)
 
@@ -168,17 +168,12 @@ func WithLastErrorCategory(cats ...point.Category) LastErrorOption {
 
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
-
 	FeedV2(category point.Category, pts []*point.Point, opts ...FeedOption) error
-
 	FeedLastError(err string, opts ...LastErrorOption)
 }
 
 // default IO feed implements.
-type ioFeeder struct {
-	// global host tags and global election tags
-	// ght, get map[string]string
-}
+type ioFeeder struct{}
 
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
@@ -222,23 +217,30 @@ func refreshGlobalTags() {
 
 	globalHostTags = globalTagger.HostTags()
 	globalElectionTags = globalTagger.ElectionTags()
+
 	globalHostKVs = globalHostKVs[:0]
 	globalElectionKVs = globalElectionKVs[:0]
+
 	for k, v := range globalHostTags {
 		globalHostKVs = globalHostKVs.AddTag(k, v)
 	}
+
 	for k, v := range globalElectionTags {
 		globalElectionKVs = globalElectionKVs.AddTag(k, v)
 	}
 }
 
-func attachTags(pts []*point.Point, elec bool) {
+func (f *ioFeeder) attachTags(pts []*point.Point, fo *feedOption) {
+	if fo.noGlobalTags {
+		return
+	}
+
 	rw.RLock()
 	defer rw.RUnlock()
 
 	var kvs point.KVs
 
-	if elec {
+	if fo.election {
 		kvs = globalElectionKVs
 	} else {
 		kvs = globalHostKVs
@@ -266,12 +268,12 @@ func (f *ioFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...FeedOp
 		refreshGlobalTags()
 	}
 
-	attachTags(pts, fo.election)
+	f.attachTags(pts, fo)
 
 	fo.cat = cat
 	fo.pts = pts
 
-	if len(opts) > 0 {
+	if fo.collectCost > 0 {
 		inputsCollectLatencyVec.WithLabelValues(fo.input, cat.String()).Observe(float64(fo.collectCost) / float64(time.Second))
 	}
 

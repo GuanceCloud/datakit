@@ -23,13 +23,6 @@ const (
 )
 
 const (
-	IPStatusRemoteAddr = "remote-addr"
-	IPStatusIllegal    = "illegal"
-	IPStatusPrivate    = "private"
-	IPStatusPublic     = "public"
-)
-
-const (
 	LocateStatusGEOSuccess = "success"
 	LocateStatusGEOFailure = "failure"
 	LocateStatusGEONil     = "nil"
@@ -127,12 +120,6 @@ type sourceMapStatus struct {
 	status  string
 	remark  string
 	reason  string
-}
-
-type ipLocationStatus struct {
-	appid        string
-	ipStatus     string
-	locateStatus string
 }
 
 func utf8SubStr(s string, cnt int) string {

@@ -6,7 +6,6 @@
 package disk
 
 import (
-	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -123,13 +122,6 @@ func (opts MountOptions) exists(opt string) bool {
 		}
 	}
 	return false
-}
-
-func wrapUint64(x uint64) int64 {
-	if x > uint64(math.MaxInt64) {
-		return -1
-	}
-	return int64(x)
 }
 
 func unique(strSlice []string) []string {

@@ -24,9 +24,7 @@ import (
 
 	"github.com/go-sourcemap/sourcemap"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
 const iosDSYMFilePath = "Contents/Resources/DWARF"
@@ -188,57 +186,6 @@ func (e *execCmdTokenBuckets) sendBackToken(token struct{}) {
 	e.buckets <- token
 }
 
-func geoTags(srcip string, status *ipLocationStatus) (tags map[string]string) {
-	// default set to be unknown
-	tags = map[string]string{
-		"city":     "unknown",
-		"province": "unknown",
-		"country":  "unknown",
-		"isp":      "unknown",
-		"ip":       srcip,
-	}
-
-	if srcip == "" {
-		return
-	}
-
-	ipInfo, err := plval.Geo(srcip)
-
-	log.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
-
-	if err != nil {
-		status.locateStatus = LocateStatusGEOFailure
-		log.Warnf("geo failed: %s, ignored", err)
-		return
-	}
-
-	// avoid nil pointer error
-	if ipInfo == nil {
-		status.locateStatus = LocateStatusGEONil
-		return tags
-	}
-
-	if len(ipInfo.City) > 0 {
-		tags["city"] = ipInfo.City
-	}
-	if len(ipInfo.Region) > 0 {
-		tags["province"] = ipInfo.Region
-	}
-	if len(ipInfo.Country) > 0 {
-		tags["country"] = ipInfo.Country
-	}
-	if len(srcip) > 0 {
-		tags["ip"] = srcip
-	}
-
-	if isp := plval.SearchISP(srcip); len(isp) > 0 {
-		tags["isp"] = isp
-	}
-
-	status.locateStatus = LocateStatusGEOSuccess
-	return tags
-}
-
 func contains(str string, list []string) bool {
 	if len(list) == 0 {
 		return true
@@ -268,62 +215,6 @@ func isPrivateIP(ip net.IP) bool {
 	}
 
 	return false
-}
-
-func getSrcIP(ac *config.APIConfig, req *http.Request, status *ipLocationStatus) (ip string) {
-	if ac != nil {
-		ip = req.Header.Get(ac.RUMOriginIPHeader)
-		log.Debugf("get ip from %s: %s", ac.RUMOriginIPHeader, ip)
-		if ip == "" {
-			for k, v := range req.Header {
-				log.Debugf("%s: %s", k, strings.Join(v, ","))
-			}
-		}
-	} else {
-		log.Info("apiConfig not set")
-	}
-
-	if ip == "" {
-		for _, header := range ClientRealIPHeaders {
-			if !strings.EqualFold(header, ac.RUMOriginIPHeader) {
-				if val := strings.TrimSpace(req.Header.Get(header)); val != "" {
-					ip = val
-					break
-				}
-			}
-		}
-	}
-
-	if ip != "" {
-		log.Debugf("header remote addr: %s", ip)
-		parts := strings.Split(ip, ",")
-		if len(parts) > 0 {
-			ip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
-			netIP := net.ParseIP(ip)
-			if netIP == nil {
-				status.ipStatus = IPStatusIllegal
-			} else {
-				if isPrivateIP(netIP) {
-					status.ipStatus = IPStatusPrivate
-				} else {
-					status.ipStatus = IPStatusPublic
-				}
-			}
-			return
-		}
-	} else { // 默认取 http 框架带进来的 IP
-		log.Debugf("gin remote addr: %s", req.RemoteAddr)
-		status.ipStatus = IPStatusRemoteAddr
-		host, _, err := net.SplitHostPort(req.RemoteAddr)
-		if err == nil {
-			ip = host
-			return
-		} else {
-			log.Warnf("net.SplitHostPort(%s): %s, ignored", req.RemoteAddr, err)
-		}
-	}
-
-	return ip
 }
 
 type iosCrashAddress struct {
