@@ -1022,12 +1022,12 @@ func TestAPIV1Write(t *T.T) {
 
 	// test precision=xxx
 	precSpecs := map[string]int64{
-		"u":       123000,
-		"ms":      123000000,
-		"s":       123000000000,
-		"m":       123 * 60 * 1000000000,
-		"h":       123 * 60 * 60 * 1000000000,
-		"invalid": 123, // default as second
+		"u":       123 * int64(time.Microsecond),
+		"ms":      123 * int64(time.Millisecond),
+		"s":       123 * int64(time.Second),
+		"m":       123 * 60 * int64(time.Second),
+		"h":       123 * 60 * 60 * int64(time.Second),
+		"invalid": 123, // default as dynamic
 	}
 
 	for k, v := range precSpecs {

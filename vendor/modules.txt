@@ -37,15 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-<<<<<<< HEAD
-<<<<<<< HEAD
-# github.com/GuanceCloud/cliutils v1.1.13 => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
-=======
-# github.com/GuanceCloud/cliutils v1.1.14
->>>>>>> b50992f403 (add gjson func to cliutils)
-=======
-# github.com/GuanceCloud/cliutils v1.1.14
->>>>>>> dev
+# github.com/GuanceCloud/cliutils v1.1.15
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -1000,7 +992,7 @@ github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 ## explicit
 github.com/inconshreveable/mousetrap
-# github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c => /Users/tanbiao/go/src/github.com/GuanceCloud/influxdb1-client
+# github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c => github.com/GuanceCloud/influxdb1-client v0.1.8
 ## explicit; go 1.19
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
@@ -2360,10 +2352,9 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
-# github.com/influxdata/influxdb1-client => /Users/tanbiao/go/src/github.com/GuanceCloud/influxdb1-client
+# github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 # github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4
 # github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
