@@ -22,6 +22,7 @@ type Config struct {
 	EnablePrometheusServiceAnnotations bool
 	EnablePrometheusPodMonitors        bool
 	EnablePrometheusServiceMonitors    bool
+	KeepExistPrometheusMetricName      bool
 	StreamSize                         int
 	ExtraTags                          map[string]string
 	LabelAsTags                        []string

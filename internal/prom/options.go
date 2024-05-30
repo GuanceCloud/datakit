@@ -26,6 +26,7 @@ type option struct {
 	measurementPrefix        string
 	measurementName          string
 	measurements             []Rule
+	keepExistMetricName      bool
 	output                   string
 	maxFileSize              int64
 
@@ -117,6 +118,10 @@ func WithMeasurementPrefix(str string) PromOption {
 
 func WithMeasurementName(str string) PromOption {
 	return func(opt *option) { opt.measurementName = str }
+}
+
+func KeepExistMetricName(b bool) PromOption {
+	return func(opt *option) { opt.keepExistMetricName = b }
 }
 func WithMeasurements(r []Rule) PromOption { return func(opt *option) { opt.measurements = r } }
 func WithOutput(str string) PromOption     { return func(opt *option) { opt.output = str } }

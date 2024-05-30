@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"regexp"
 	"strings"
 	"time"
 
@@ -87,6 +86,7 @@ func (p *Prom) validMetricName(name string) bool {
 // 1. Check if any measurement rule is matched.
 // 2. Check if measurement name is configured.
 // 3. Check if measurement/field name can be split by the first '_' met.
+// 3.1 If the useExistMetricName is true, keep the raw value for field names.
 // 4. If no term above matches, set both measurement name and field name to name.
 func (p *Prom) getNames(name string) (measurementName string, fieldName string) {
 	measurementName, fieldName = p.doGetNames(name)
@@ -101,17 +101,11 @@ func (p *Prom) doGetNames(name string) (measurementName string, fieldName string
 	if mName, fName, matchAny := p.getNamesByRules(name); matchAny {
 		return mName, fName
 	}
-
 	// Check if measurement name is set.
 	if len(p.opt.measurementName) > 0 {
 		return p.opt.measurementName, name
 	}
-
-	if mName, fName, matchAny := p.getNamesByDefault(name); matchAny {
-		return mName, fName
-	}
-
-	return name, name
+	return p.getNamesByDefault(name)
 }
 
 func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName string, matchAny bool) {
@@ -129,17 +123,32 @@ func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName s
 	return
 }
 
-func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName string, matchAny bool) {
-	// By default, measurement name and metric name are split according to the first '_' met.
-	pattern := "(^[^_]+)_(.*)$"
-	reg := regexp.MustCompile(pattern)
-	if reg != nil {
-		result := reg.FindAllStringSubmatch(name, -1)
-		if len(result) == 1 {
-			return result[0][1], result[0][2], true
-		}
+func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName string) {
+	startPosition := strings.IndexFunc(name, func(r rune) bool {
+		return r != '_'
+	})
+	if startPosition == -1 || startPosition == len(name)-1 {
+		return "unknown", "unknown"
 	}
-	return
+
+	name = name[startPosition:]
+	// By default, measurement name and metric name are split according to the first '_' met.
+	index := strings.Index(name, "_")
+
+	switch index {
+	case -1:
+		return name, name
+	case 0:
+		return name[index:], name[index:]
+	case len(name) - 1:
+		return name[:index], name[:index]
+	}
+
+	// If the keepExistMetricName is true, keep the raw value for field names.
+	if p.opt.keepExistMetricName {
+		return name[:index], name
+	}
+	return name[:index], name[index+1:]
 }
 
 func (p *Prom) filterIgnoreTagKV(tags map[string]string) map[string]string {

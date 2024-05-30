@@ -29,12 +29,13 @@ type Input struct {
 	DeprecatedDockerEndpoint    string   `toml:"docker_endpoint"`
 	DeprecatedContainerdAddress string   `toml:"containerd_address"`
 
-	EnableContainerMetric                 bool `toml:"enable_container_metric"`
-	EnableK8sMetric                       bool `toml:"enable_k8s_metric"`
-	EnablePodMetric                       bool `toml:"enable_pod_metric"`
-	EnableK8sEvent                        bool `toml:"enable_k8s_event"`
-	EnableK8sNodeLocal                    bool `toml:"enable_k8s_node_local"`
-	EnableK8sSelfMetricByProm             bool
+	EnableContainerMetric                 bool     `toml:"enable_container_metric"`
+	EnableK8sMetric                       bool     `toml:"enable_k8s_metric"`
+	EnablePodMetric                       bool     `toml:"enable_pod_metric"`
+	EnableK8sEvent                        bool     `toml:"enable_k8s_event"`
+	EnableK8sNodeLocal                    bool     `toml:"enable_k8s_node_local"`
+	EnableK8sSelfMetricByProm             bool     `toml:"enable_k8s_self_metric_by_prom"`
+	KeepExistPrometheusMetricName         bool     `toml:"keep_exist_prometheus_metric_name"`
 	DeprecatedEnableExtractK8sLabelAsTags bool     `toml:"extract_k8s_label_as_tags"`
 	ExtractK8sLabelAsTagsV2               []string `toml:"extract_k8s_label_as_tags_v2"`
 	ExtractK8sLabelAsTagsV2ForMetric      []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`

@@ -193,7 +193,7 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
 
 1. Manual configuration of metric sets
 
-   In Pod/Service Annotations, configure `prometheus.io/param_measurement`, with its value being the specified metric set name. For example:
+   - In Pod/Service Annotations, configure `prometheus.io/param_measurement`, with its value being the specified metric set name. For example:
 
    ```yaml
    apiVersion: v1
@@ -210,7 +210,7 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
 
    Its Prometheus data metric set would be `pod-measurement`.
 
-   For Prometheus's PodMonitor/ServiceMonitor CRDs, you can use `params` to specify `measurement`, for instance:
+   - For Prometheus's PodMonitor/ServiceMonitor CRDs, you can use `params` to specify `measurement`, for instance:
 
    ```yaml
    # URL parameter of the scrape request
@@ -219,31 +219,9 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
        - new-measurement
    ```
 
-2. Datakit parsing of Pod OwnerReferences
+2. Obtained through data segmentation
 
-   Most Pods have OwnerReferences. Parsing the first Owner of a Pod yields the metric set name. Consider the following Pod details as an example:
-
-   ```yaml
-   apiVersion: v1
-   kind: Pod
-   metadata:
-     creationTimestamp: "2023-08-15T06:32:41Z"
-     generateName: prom-server-
-     labels:
-       app.kubernetes.io/name: proxy
-       pod-template-generation: "1"
-     name: prom-server-lsk4g
-     ownerReferences:
-     - apiVersion: apps/v1
-       kind: DaemonSet
-       name: prom-server
-   ```
-
-   Its Prometheus data metric set would be `prom-server`.
-
-3. Obtained through data segmentation
-
-   If the Pod does not have OwnerReferences, the metric name will default to being segmented using an underscore `_`. The first segmented field becomes the metric set name, and the remaining fields become the current metric name.
+   - If the Pod does not have OwnerReferences, the metric name will default to being segmented using an underscore `_`. The first segmented field becomes the metric set name, and the remaining fields become the current metric name.
 
    For example, consider the following Prometheus raw data:
 
@@ -254,10 +232,18 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
 
    Using the first underscore as a delimiter, the left side `promhttp` becomes the metric set name, and the right side `metric_handler_errors_total` becomes the field name.
 
-   Datakit will add additional tags to locate this resource in the Kubernetes cluster:
+   - In order to ensure consistency between field names and the original Prom data, the container collector supports the "keep the raw value for prom field names" feature, which can be enabled as follows:
 
-   - For `Service`, it will add three tags: `namespace`, `service_name`, and `pod_name`.
-   - For `Pod`, it will add two tags: `namespace` and `pod_name`.
+       - In the configuration file: `keep_exist_prometheus_metric_name = true`
+       - In the environment variable: `ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME = "true"`
+
+    Using the `promhttp_metric_handler_errors_total` data as an example, when this feature is enabled, the metric set will be `promhttp`, but the field name will no longer be segmented, and instead will use the raw value `promhttp_metric_handler_errors_total`.
+
+
+Datakit will add additional tags to locate this resource in the Kubernetes cluster:
+
+- For `Service`, it will add three tags: `namespace`, `service_name`, and `pod_name`.
+- For `Pod`, it will add two tags: `namespace` and `pod_name`.
 
 ## Extended Reading {#more-readings}
 
