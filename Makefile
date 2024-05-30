@@ -64,6 +64,7 @@ DATAKIT_EBPF_ARCHS          ?= linux/arm64,linux/amd64
 IGN_EBPF_INSTALL_ERR        ?= 0
 RACE_DETECTION              ?= "off"
 PKGEBPF                     ?= false
+DLEBPF                      ?= false
 AUTO_FIX                    ?= on
 UT_EXCLUDE                  ?= "not-set"
 DOCKER_REMOTE_HOST          ?= "0.0.0.0" # default use localhost as docker server
@@ -71,6 +72,10 @@ MERGE_REQUEST_TARGET_BRANCH ?= ""
 
 ifneq ($(PKGEBPF), false)
 	PKGEBPF_FLAG = -pkg-ebpf
+endif
+
+ifneq ($(DLEBPF), false)
+	DLEBPF_FLAG = -dl-ebpf
 endif
 
 # Generate 'internal/git' package
@@ -136,7 +141,8 @@ define build_bin
 		-name $(NAME)             \
 		-build-dir $(BUILD_DIR)   \
 		-pub-dir $(PUB_DIR)       \
-		-race $(RACE_DETECTION)
+		-race $(RACE_DETECTION)   \
+		$(PKGEBPF_FLAG)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
@@ -152,7 +158,7 @@ define publish
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \
 		-archs $(4)              \
-		$(PKGEBPF_FLAG)
+		$(DLEBPF_FLAG)
 endef
 
 define pub_ebpf
@@ -186,6 +192,16 @@ define build_docker_image
 			-t $(2)/dataflux/logfwd:$(VERSION) \
 			-t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
 	fi
+endef
+
+define build_uos_image
+  echo 'publishing to $(2)...'; \
+	sudo docker buildx build --platform linux/amd64 \
+	-t $(2)/uos-dataflux/datakit:$(VERSION) \
+	-f Dockerfile.uos . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
+	sudo docker buildx build --platform linux/amd64 \
+	-t $(2)/uos-dataflux/logfwd:$(VERSION) \
+	-f Dockerfile_logfwd.uos . --push;
 endef
 
 define build_k8s_charts
@@ -275,6 +291,16 @@ production: deps # stable release
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
 	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
+
+uos_image_testing: deps
+	$(call build_bin, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
+	$(call build_uos_image, "linux/amd64", 'registry.jiagouyun.com')
+	# we also publishing testing image to public image repo
+	$(call build_uos_image, "linux/amd64", 'pubrepo.guance.com')
+
+uos_image_production: deps
+	$(call build_bin, production, $(DEFAULT_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
+	$(call build_uos_image, "linux/amd64", 'pubrepo.guance.com')
 
 production_mac: deps
 	$(call build_bin, production, $(MAC_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
