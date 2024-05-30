@@ -1,3 +1,7 @@
+# DataKit API
+
+---
+
 This document primarily describes the HTTP API interfaces provided by DataKit.
 
 ## API Overview {#intro}
@@ -361,7 +365,7 @@ $ curl -s http://datakit-ip:9529/v1/write/logging --data-binary "@path/to/some/f
 <!-- markdownlint-disable MD046 -->
 ???+ tips
 
-    To better display the JSON in the request result, you can use the tool [jq](https://jqlang.github.io/jq/download/){:target=&#34;_blank&#34;}, for example, the complex `message` field above can be directly extracted into pure text through jq:
+    To better display the JSON in the request result, you can use the tool [jq](https://jqlang.github.io/jq/download/){:target="_blank"}, for example, the complex `message` field above can be directly extracted into pure text through jq:
 
     ```shell
     $ curl -s http://datakit-ip:9529/v1/write/logging --data-binary "@path/to/some/file.data" | jq -r .message
@@ -666,7 +670,7 @@ status_code: 500
 
 ## `/v1/pipeline/debug` | `POST` {#api-debug-pl}
 
-Provides the functionality of remote debugging of the pipeline.
+Provides the functionality of remote debugging of the Pipeline.
 
 Error information `PlError` structure:
 
@@ -853,47 +857,6 @@ Request parameter description.
 | `env`          | The deployment environment of the application, such as `prod` | `string` |
 | `version`      | The version of the application, such as `1.0.0` | `string` |
 | `platform`     | The type of application, optional values `web/miniapp/android/ios`, default `web` | `string` |
-
-Request example:
-
-``` shell
-curl -X PUT "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web"  \
--F "file=@./sourcemap.zip" \
--H "Content-Type: multipart/form-data"
-```
-
-Success return example:
-
-``` json
-{
-  "content": "uploaded to [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
-  "errorMsg": "",
-  "success": true
-}
-```
-
-Failure return example:
-
-``` json
-{
-  "content": null,
-  "errorMsg": "app_id not found",
-  "success": false
-}
-```
-
-## `/v1/sourcemap` | `DELETE` {#api-sourcemap-delete}
-Upload sourcemap files; this endpoint requires the [RUM collector](../integrations/rum.md) to be enabled.
-
-Request parameter description:
-
-| Parameter | Description | Type    |
-| ---: | --- | --- |
-| `token` | The token included in the `dataway` address in `datakit.conf` configuration | `string` |
-| `app_id` | The unique ID identifier for user access to the application, such as `test-sourcemap` | `string` |
-| `env` | The deployment environment of the application, such as `prod` | `string` |
-| `version` | The version of the application, such as `1.0.0` | `string` |
-| `platform` | The type of application, with optional values `web/miniapp/android/ios`, defaulting to `web` | `string` |
 
 Request example:
 
