@@ -86,6 +86,9 @@ const (
     # tls_key = "/etc/mysql/key.pem"
     ## Use TLS but skip chain & host verification
     insecure_skip_verify = true
+    ## by default, support TLS 1.2 and above.
+    ## set to true if server side uses TLS 1.0 or TLS 1.1
+    allow_tls10 = false
 
   [inputs.mysql.tags]
     # some_tag = "some_value"

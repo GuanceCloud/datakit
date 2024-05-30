@@ -49,6 +49,7 @@ type TLS struct {
 	TLSCert            string `toml:"tls_cert"`
 	TLSCA              string `toml:"tls_ca"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
+	AllowTLS10         bool   `toml:"allow_tls10,omitempty"`
 }
 
 type customQuery struct {
@@ -201,6 +202,10 @@ func (ipt *Input) getDsnString() (string, error) {
 		}
 
 		tlsConfig.InsecureSkipVerify = ipt.TLS.InsecureSkipVerify
+		if ipt.TLS.AllowTLS10 {
+			tlsConfig.MinVersion = tls.VersionTLS10
+		}
+
 		if err := mysql.RegisterTLSConfig("custom", tlsConfig); err != nil {
 			return "", fmt.Errorf("register tls config failed: %w", err)
 		} else {
