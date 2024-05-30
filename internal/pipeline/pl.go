@@ -101,6 +101,10 @@ func RunPl(category point.Category, pts []*point.Point,
 			}
 		}
 
+		if ctxPts := inputData.CallbackPtWinMove(); len(ctxPts) > 0 {
+			subPt[category] = append(subPt[category], ctxPts...)
+		}
+
 		// oldPt will next be replaced or dropped
 		// put the old point back into the pool
 		datakit.PutbackPoints(pt)
