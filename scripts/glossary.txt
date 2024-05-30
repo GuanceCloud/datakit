@@ -12,6 +12,7 @@ Ansible
 BATIS
 Batis
 Binlog
+cAdvisor
 CORB
 CUBRID
 Chrony

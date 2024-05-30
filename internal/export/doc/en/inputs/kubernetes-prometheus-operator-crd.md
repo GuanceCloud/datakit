@@ -34,6 +34,7 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
         any
         matchNames
 - ServiceMonitor:
+    - bearerTokenFile
     - targetLabels
     - podTargetLabels
     - endpoints:
