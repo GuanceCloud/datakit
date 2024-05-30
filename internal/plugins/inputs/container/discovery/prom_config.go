@@ -6,7 +6,6 @@
 package discovery
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -34,9 +33,10 @@ type promConfig struct {
 	MeasurementName        string       `toml:"measurement_name" json:"measurement_name"`
 	Measurements           []iprom.Rule `toml:"measurements" json:"measurements"`
 
-	TLSOpen   bool   `toml:"tls_open" json:"tls_open"`
-	UDSPath   string `toml:"uds_path" json:"uds_path"`
-	tlsConfig *tls.Config
+	TLSOpen            bool   `toml:"tls_open" json:"tls_open"`
+	InsecureSkipVerify bool   `toml:"insecure_skip_verify" json:"insecure_skip_verify"`
+	BearerTokenFile    string `toml:"bearer_token_file" json:"bearer_token_file"`
+	UDSPath            string `toml:"uds_path" json:"uds_path"`
 
 	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
@@ -105,9 +105,13 @@ func withTags(tags map[string]string) promOption {
 	}
 }
 
-func WithTLSOpen(b bool) promOption { return func(c *promConfig) { c.TLSOpen = b } }
-func WithTLSConfig(tlsConfig *tls.Config) promOption {
-	return func(c *promConfig) { c.tlsConfig = tlsConfig }
+func withTLSOpen(b bool) promOption { return func(c *promConfig) { c.TLSOpen = b } }
+func withInsecureSkipVerify(b bool) promOption {
+	return func(c *promConfig) { c.InsecureSkipVerify = b }
+}
+
+func withBearerTokenFile(name string) promOption {
+	return func(c *promConfig) { c.BearerTokenFile = name }
 }
 
 func withLabelAsTags(m map[string]string, keys []string) promOption {

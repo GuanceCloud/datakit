@@ -193,44 +193,44 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
     - 在 Pod/Service Annotations 配置 `prometheus.io/param_measurement`，其值为指定的指标集名称，例如：
 
-    ```yaml
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: testing-prom
-      labels:
-        app.kubernetes.io/name: MyApp
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/param_measurement: "pod-measurement"
-    ```
+      ```yaml
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: testing-prom
+        labels:
+          app.kubernetes.io/name: MyApp
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "8080"
+          prometheus.io/param_measurement: "pod-measurement"
+      ```
 
-    它的 Prometheus 数据指标集为 `pod-measurement`。
+      它的 Prometheus 数据指标集为 `pod-measurement`。
 
     - 如果是 Prometheus 的 PodMonitor/ServiceMonitor CRDs，可以使用 `params` 指定 `measurement`，例如：
 
-    ```yaml
-    # URL parameter of the scrape request
-    params:
-        measurement:
-        - new-measurement
-    ```
+      ```yaml
+      # URL parameter of the scrape request
+      params:
+          measurement:
+          - new-measurement
+      ```
 
-    它的 Prometheus 数据指标集为 `new-measurement`。
+      它的 Prometheus 数据指标集为 `new-measurement`。
 
-2. 由数据切割所得
+1. 由数据切割所得
 
     - 默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
 
-    例如以下的 Prometheus 原数据：
+      例如以下的 Prometheus 原数据：
 
-    ```not-set
-    # TYPE promhttp_metric_handler_errors_total counter
-    promhttp_metric_handler_errors_total{cause="encoding"} 0
-    ```
+      ```not-set
+      # TYPE promhttp_metric_handler_errors_total counter
+      promhttp_metric_handler_errors_total{cause="encoding"} 0
+      ```
 
-    以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
+      以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
 
     - 为了保证字段名和原始 Prom 数据一致，container 采集器支持 “保留 prom 原始字段名”，开启方式如下：
 
@@ -239,11 +239,88 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
       以上面的 `promhttp_metric_handler_errors_total` 数据为例，开启此功能后，指标集是 `promhttp`，但是字段名不再切割，会使用原始值 `promhttp_metric_handler_errors_total`。
 
-
 Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
 
 - 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
 - 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
+
+### 采集当前 Kubernetes Prometheus 数据 {#kube-self-metrtic}
+
+此功能属于试验性质，后续可能会修改。
+
+Datakit 支持以简单的配置方式，使用环境变量 `ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM="true"` 开启采集 Kubernetes 集群的 Prometheus 数据。
+
+数据源包括 APIServer、Controller 等，采集方式参考以下：
+
+<!-- markdownlint-disable -->
+| resource   | from                   | election | measurement      | method                                        |
+| ---        | --                     | --       | --               | --                                            |
+| APIServer  | Kubernetes             | true     | `kube-apiserver`   | `https://kubernetes.default.com:443/metrics`    |
+| Controller | Kubernetes Static Pods | false    | `kube-controller`  | `https://127.0.0.1:10257/metrics`               |
+| Scheduler  | Kubernetes Static Pods | false    | `kube-scheduler`   | `https://127.0.0.1:10259/metrics`               |
+| Etcd       | Kubernetes Static Pods | false    | `kube-etcd`        | `https://127.0.0.1:2379/metrics` （需配置证书） |
+| CoreDNS    | Kubernetes Pods        | true     | `kube-coredns`     | `http://Endpoint-IP:Port/metrics`               |
+| Proxy      | Kubernetes Proxy       | false    | `kube-proxy`       | `http://127.0.0.1:10249/metrics`                |
+| cAdvisor   | Kubelet cAdvisor       | false    | `kubelet-cadvisor` | `https://127.0.0.1:10250/metrics/cadvisor`      |
+| Resource   | Kubelet Resource       | false    | `kubelet-resource` | `https://127.0.0.1:10250/metrics/resource`      |
+<!-- markdownlint-enable -->
+
+- Kubernetes 相关的服务（APIServer、Controller、Scheduler）使用 BearerToken 进行验证。
+
+- 对于 Static Pods，Datakit 会先确认当前 Node 上是否存在此类 Pod，例如 `kubectl get pod -n kube-system -l tier=control-plane,component=kube-scheduler --field-selector spec.nodeName=Node-01` 查看当前 Node-01 是否存在 Scheduler 服务。如果存在，根据默认 url 去采集。
+
+采集 Etcd 需要配置证书，操作步骤如下：
+
+1. 询问 Kubernetes 管理员，Etcd 的证书存放路径。例如以下：
+
+```shell
+$ ls /etc/kubernetes/pki/etcd
+ca.crt  ca.key  healthcheck-client.crt  healthcheck-client.key  peer.crt  peer.key  server.crt  server.key
+```
+
+1. 使用 Etcd 证书创建 Secret，命令如下：
+
+```shell
+$ kubectl create secret generic datakit-etcd-ssl --from-file=/etc/kubernetes/pki/etcd/ca.crt --from-file=/etc/kubernetes/pki/etcd/peer.crt --from-file=/etc/kubernetes/pki/etcd/peer.key -n datakit
+secret/datakit-etcd-ssl created
+```
+
+1. 在 Datakit 的 yaml 添加以下配置：
+
+```yaml
+    spec:
+      containers:
+      - name: datakit
+        env:
+        - name: ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM    # 开启对 Kubernetes Prometheus 数据采集
+          value: "true"
+        - name: ENV_INPUT_CONTAINER_K8S_SELF_METRIC_CONFIG    # 指定配置和证书路径
+          value: '{"etcd":{"ca_file":"/tmp/etcd/ca.crt","cert_file":"/tmp/etcd/peer.crt","key_file":"/tmp/etcd/peer.key"}}' 
+        volumeMounts:
+        - name: etcd-ssl    # 添加 volumeMount
+          mountPath: /tmp/etcd   
+          
+      # ..other..
+
+      volumes:
+      - name: etcd-ssl    # 使用 Secret 创建 volume
+        secret:
+          secretName: datakit-etcd-ssl
+```
+
+环境变量 `ENV_INPUT_CONTAINER_K8S_SELF_METRIC_CONFIG` 是一个 JSON 配置，格式如下：
+
+```json
+{
+    "etcd": {
+        "ca_file":   "/tmp/etcd/ca.crt",
+        "cert_file": "/tmp/etcd/peer.crt",
+        "key_file":  "/tmp/etcd/peer.key"
+    }
+}
+```
+
+**注意，如果 Datakit 部署在云平台，不再支持采集 Kubernetes 系统服务和 Etcd 组件，因为云平台通常会隐藏这部分资源，无法再查询到。**
 
 ## 延伸阅读 {#more-readings}
 

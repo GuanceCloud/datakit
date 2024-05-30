@@ -21,14 +21,10 @@ import (
 
 type KubeletClient interface {
 	GetStatsSummary() (*statsv1alpha1.Summary, error)
-	GetMetrics() (io.ReadCloser, error)
-	GetMetricsCadvisor() (io.ReadCloser, error)
-	GetMetricsResource() (io.ReadCloser, error)
 }
 
-func NewDefaultKubeletClient(config *rest.Config) (KubeletClient, error) {
+func DefaultKubeletHostInCluster() string {
 	var (
-		scheme  = "https"
 		address = "127.0.0.1"
 		port    = "10250"
 	)
@@ -40,37 +36,61 @@ func NewDefaultKubeletClient(config *rest.Config) (KubeletClient, error) {
 	if s := os.Getenv("HOST_IP"); s != "" {
 		address = s
 	}
-
-	return NewKubeletClient(config, scheme, address, port)
+	return net.JoinHostPort(address, port)
 }
 
-func NewKubeletClient(config *rest.Config, scheme, address, port string) (KubeletClient, error) {
-	base, err := NewBaseClient(config)
+func NewDefaultKubeletClient(config *rest.Config) (KubeletClient, error) {
+	host := DefaultKubeletHostInCluster()
+	return NewKubeletClient(config, "https", host)
+}
+
+func NewKubeletClient(config *rest.Config, scheme, host string) (KubeletClient, error) {
+	transport, err := rest.TransportFor(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to construct transport: %w", err)
+	}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   config.Timeout,
 	}
 	return &kubeletClient{
-		client: base,
+		client: client,
 		scheme: scheme,
-		host:   net.JoinHostPort(address, port),
+		host:   host,
 	}, nil
 }
 
 type kubeletClient struct {
-	client *BaseClient
+	client *http.Client
 	scheme string
 	host   string
 }
 
 func (kc *kubeletClient) GetStatsSummary() (*statsv1alpha1.Summary, error) {
-	req, err := kc.newRequest("/stats/summary")
+	u := url.URL{
+		Scheme: kc.scheme,
+		Host:   kc.host,
+		Path:   "/stats/summary",
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := kc.client.DoRaw(req)
+	resp, err := kc.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	//nolint:errcheck
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed, status: %q", resp.Status)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body - %w", err)
 	}
 
 	var ms statsv1alpha1.Summary
@@ -79,36 +99,4 @@ func (kc *kubeletClient) GetStatsSummary() (*statsv1alpha1.Summary, error) {
 	}
 
 	return &ms, nil
-}
-
-func (kc *kubeletClient) GetMetrics() (io.ReadCloser, error) {
-	path := "/metrics"
-	return kc.do(path)
-}
-
-func (kc *kubeletClient) GetMetricsCadvisor() (io.ReadCloser, error) {
-	path := "/metrics/cadvisor"
-	return kc.do(path)
-}
-
-func (kc *kubeletClient) GetMetricsResource() (io.ReadCloser, error) {
-	path := "/metrics/resource"
-	return kc.do(path)
-}
-
-func (kc *kubeletClient) newRequest(path string) (*http.Request, error) {
-	u := url.URL{
-		Scheme: kc.scheme,
-		Host:   kc.host,
-		Path:   path,
-	}
-	return http.NewRequest("GET", u.String(), nil)
-}
-
-func (kc *kubeletClient) do(path string) (io.ReadCloser, error) {
-	req, err := kc.newRequest(path)
-	if err != nil {
-		return nil, err
-	}
-	return kc.client.Stream(req)
 }

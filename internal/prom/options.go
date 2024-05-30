@@ -6,7 +6,6 @@
 package prom
 
 import (
-	"crypto/tls"
 	"regexp"
 	"time"
 
@@ -36,7 +35,6 @@ type option struct {
 	certFile           string
 	keyFile            string
 	insecureSkipVerify bool
-	tlsConfig          *tls.Config
 
 	tagsIgnore  []string // do not keep these tags in scraped prom data
 	tagsRename  *RenameTags
@@ -135,8 +133,13 @@ func WithInsecureSkipVerify(b bool) PromOption {
 	return func(opt *option) { opt.insecureSkipVerify = b }
 }
 
-func WithTLSConfig(config *tls.Config) PromOption {
-	return func(opt *option) { opt.tlsConfig = config }
+func WithBearerToken(str string) PromOption {
+	return func(opt *option) {
+		if opt.httpHeaders == nil {
+			opt.httpHeaders = make(map[string]string)
+		}
+		opt.httpHeaders["Authorization"] = "Bearer " + str
+	}
 }
 
 func WithTagsIgnore(strs []string) PromOption { return func(opt *option) { opt.tagsIgnore = strs } }

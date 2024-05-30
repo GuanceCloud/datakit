@@ -7,6 +7,7 @@ package discovery
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -115,7 +116,7 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 		iprom.KeepExistMetricName(discovery.cfg.KeepExistPrometheusMetricName),
 		iprom.WithUDSPath(c.UDSPath),
 		iprom.WithTLSOpen(c.TLSOpen),
-		iprom.WithTLSConfig(c.tlsConfig),
+		iprom.WithInsecureSkipVerify(c.InsecureSkipVerify),
 		iprom.WithTagsIgnore(c.TagsIgnore),
 		iprom.WithTagsRename(c.TagsRename),
 		iprom.WithAsLogging(c.AsLogging),
@@ -125,6 +126,14 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 		iprom.WithDisableInfoTag(c.DisableInfoTag),
 		iprom.WithAuth(c.Auth),
 		iprom.WithMaxBatchCallback(streamSize, callbackFunc),
+	}
+
+	if c.BearerTokenFile != "" {
+		token, err := os.ReadFile(c.BearerTokenFile)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, iprom.WithBearerToken(string(token)))
 	}
 
 	pm, err := iprom.NewProm(opts...)

@@ -34,6 +34,7 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
         any
         matchNames
 - ServiceMonitor:
+    - bearerTokenFile
     - targetLabels
     - podTargetLabels
     - endpoints:

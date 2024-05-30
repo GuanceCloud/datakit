@@ -7,10 +7,12 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -83,14 +85,15 @@ func newKubeCorednsCollection(client k8sClient, feeder dkio.Feeder) (kubeMetrics
 
 		for _, address := range subset.Addresses {
 			config := promConfig{
+				URL:             fmt.Sprintf("http://%s/metrics", net.JoinHostPort(address.IP, strconv.Itoa(targetPort))),
 				Source:          "kube-coredns",
 				MeasurementName: "kube-coredns",
-				URL:             fmt.Sprintf("http://%s/metrics", net.JoinHostPort(address.IP, strconv.Itoa(targetPort))),
 				Election:        true,
 			}
 			if address.NodeName != nil {
 				config.Tags = map[string]string{"node_name": *address.NodeName}
 			}
+
 			pm, err := newPromRunner(&config, feeder)
 			if err != nil {
 				return nil, err
@@ -112,21 +115,24 @@ func (k *kubeCorednsCollection) Collect() error {
 }
 
 type kubeletCadvisorCollection struct {
-	pm     *promRunner
-	client k8sClient
+	pm *promRunner
 }
 
 func newKubeletCadvisorCollection(client k8sClient, feeder dkio.Feeder, nodeName string) (kubeMetricsWithProm, error) {
 	config := promConfig{
+		URL:             fmt.Sprintf("https://%s/metrics/cadvisor", k8sclient.DefaultKubeletHostInCluster()),
 		Source:          "kubelet-cadvisor",
 		MeasurementName: "kubelet-cadvisor",
+		TLSOpen:         true,
+		BearerTokenFile: k8sclient.TokenFile,
 		Tags:            map[string]string{"node_name": nodeName},
 	}
+
 	pm, err := newPromRunner(&config, feeder)
 	if err != nil {
 		return nil, err
 	}
-	return &kubeletCadvisorCollection{pm, client}, nil
+	return &kubeletCadvisorCollection{pm}, nil
 }
 func (k *kubeletCadvisorCollection) Election() bool { return false }
 func (k *kubeletCadvisorCollection) Collect() error {
@@ -134,33 +140,29 @@ func (k *kubeletCadvisorCollection) Collect() error {
 		return fmt.Errorf("unexpected")
 	}
 	k.pm.lastTime = time.Now()
-
-	body, err := k.client.GetMetricsCadvisor()
-	if err != nil {
-		return err
-	}
-	// nolint:errcheck
-	defer body.Close()
-	k.pm.parseReader(body)
+	k.pm.collectOnce()
 	return nil
 }
 
 type kubeletMetricsResourceCollection struct {
-	pm     *promRunner
-	client k8sClient
+	pm *promRunner
 }
 
 func newKubeletMetricsResourceCollection(client k8sClient, feeder dkio.Feeder, nodeName string) (kubeMetricsWithProm, error) {
 	config := promConfig{
+		URL:             fmt.Sprintf("https://%s/metrics/resource", k8sclient.DefaultKubeletHostInCluster()),
 		Source:          "kubelet-resource",
 		MeasurementName: "kubelet-resource",
 		Tags:            map[string]string{"node_name": nodeName},
+		TLSOpen:         true,
+		BearerTokenFile: k8sclient.TokenFile,
 	}
+
 	pm, err := newPromRunner(&config, feeder)
 	if err != nil {
 		return nil, err
 	}
-	return &kubeletMetricsResourceCollection{pm, client}, nil
+	return &kubeletMetricsResourceCollection{pm}, nil
 }
 func (k *kubeletMetricsResourceCollection) Election() bool { return false }
 func (k *kubeletMetricsResourceCollection) Collect() error {
@@ -168,14 +170,7 @@ func (k *kubeletMetricsResourceCollection) Collect() error {
 		return fmt.Errorf("unexpected")
 	}
 	k.pm.lastTime = time.Now()
-
-	body, err := k.client.GetMetricsResource()
-	if err != nil {
-		return err
-	}
-	// nolint:errcheck
-	defer body.Close()
-	k.pm.parseReader(body)
+	k.pm.collectOnce()
 	return nil
 }
 
@@ -185,11 +180,12 @@ type kubeletProxyCollection struct {
 
 func newKubeletProxyCollection(feeder dkio.Feeder, nodeName string) (kubeMetricsWithProm, error) {
 	config := promConfig{
+		URL:             "http://127.0.0.1:10249/metrics",
 		Source:          "kube-proxy",
 		MeasurementName: "kube-proxy",
 		Tags:            map[string]string{"node_name": nodeName},
-		URL:             "http://127.0.0.1:10249/metrics",
 	}
+
 	pm, err := newPromRunner(&config, feeder)
 	if err != nil {
 		return nil, err
@@ -207,8 +203,7 @@ func (k *kubeletProxyCollection) Collect() error {
 }
 
 type kubeControllerManagerCollection struct {
-	pm         *promRunner
-	httpclient *k8sclient.BaseClient
+	pm *promRunner
 }
 
 func newKubeControllerManagerCollection(client k8sClient, feeder dkio.Feeder, nodeName string) (kubeMetricsWithProm, error) {
@@ -221,20 +216,18 @@ func newKubeControllerManagerCollection(client k8sClient, feeder dkio.Feeder, no
 		return nil, err
 	}
 
-	httpclient, err := k8sclient.NewBaseClient(client.RestConfig())
-	if err != nil {
-		return nil, err
-	}
-	collection := kubeControllerManagerCollection{
-		httpclient: httpclient,
-	}
+	collection := kubeControllerManagerCollection{}
 
 	for _, pod := range list.Items {
 		config := promConfig{
+			URL:             "https://127.0.0.1:10257/metrics",
 			Source:          "kube-controller-manager",
 			MeasurementName: "kube-controller-manager",
 			Tags:            map[string]string{"node_name": pod.Spec.NodeName},
+			TLSOpen:         true,
+			BearerTokenFile: k8sclient.TokenFile,
 		}
+
 		pm, err := newPromRunner(&config, feeder)
 		if err != nil {
 			return nil, err
@@ -252,20 +245,12 @@ func (k *kubeControllerManagerCollection) Collect() error {
 		return fmt.Errorf("unexpected")
 	}
 	k.pm.lastTime = time.Now()
-
-	resp, err := k.httpclient.Get("https://127.0.0.1:10257/metrics")
-	if err != nil {
-		return err
-	}
-	// nolint:errcheck
-	defer resp.Body.Close()
-	k.pm.parseReader(resp.Body)
+	k.pm.collectOnce()
 	return nil
 }
 
 type kubeSchedulerCollection struct {
-	pm         *promRunner
-	httpclient *k8sclient.BaseClient
+	pm *promRunner
 }
 
 func newKubeSchedulerCollection(client k8sClient, feeder dkio.Feeder, nodeName string) (kubeMetricsWithProm, error) {
@@ -273,25 +258,24 @@ func newKubeSchedulerCollection(client k8sClient, feeder dkio.Feeder, nodeName s
 		LabelSelector: "tier=control-plane,component=kube-scheduler",
 		FieldSelector: "spec.nodeName=" + nodeName,
 	}
+
 	list, err := client.GetPods("kube-system").List(context.Background(), listopts)
 	if err != nil {
 		return nil, err
 	}
 
-	httpclient, err := k8sclient.NewBaseClient(client.RestConfig())
-	if err != nil {
-		return nil, err
-	}
-	collection := kubeSchedulerCollection{
-		httpclient: httpclient,
-	}
+	collection := kubeSchedulerCollection{}
 
 	for _, pod := range list.Items {
 		config := promConfig{
+			URL:             "https://127.0.0.1:10259/metrics",
 			Source:          "kube-scheduler",
 			MeasurementName: "kube-scheduler",
 			Tags:            map[string]string{"node_name": pod.Spec.NodeName},
+			TLSOpen:         true,
+			BearerTokenFile: k8sclient.TokenFile,
 		}
+
 		pm, err := newPromRunner(&config, feeder)
 		if err != nil {
 			return nil, err
@@ -309,14 +293,7 @@ func (k *kubeSchedulerCollection) Collect() error {
 		return fmt.Errorf("unexpected")
 	}
 	k.pm.lastTime = time.Now()
-
-	resp, err := k.httpclient.Get("https://127.0.0.1:10259/metrics")
-	if err != nil {
-		return err
-	}
-	// nolint:errcheck
-	defer resp.Body.Close()
-	k.pm.parseReader(resp.Body)
+	k.pm.collectOnce()
 	return nil
 }
 
@@ -334,15 +311,21 @@ func newKubeEtcdCollection(client k8sClient, feeder dkio.Feeder, nodeName string
 		return nil, err
 	}
 
+	cfg := getSelfMetricConfig()
 	collection := kubeEtcdCollection{}
 
 	for _, pod := range list.Items {
 		config := promConfig{
+			URL:             "https://127.0.0.1:2379/metrics",
 			Source:          "kube-etcd",
 			MeasurementName: "kube-etcd",
-			URL:             "http://127.0.0.1:2381/metrics",
 			Tags:            map[string]string{"node_name": pod.Spec.NodeName},
+			TLSOpen:         true,
+			CaFile:          cfg.Etcd.CaFile,
+			CertFile:        cfg.Etcd.CertFile,
+			KeyFile:         cfg.Etcd.KeyFile,
 		}
+
 		pm, err := newPromRunner(&config, feeder)
 		if err != nil {
 			return nil, err
@@ -365,13 +348,14 @@ func (k *kubeEtcdCollection) Collect() error {
 }
 
 type promConfig struct {
-	Source          string
-	URL             string
-	MeasurementName string
-	BearerToken     string
-	CaFile          string
-	Election        bool
-	Tags            map[string]string
+	Source                    string
+	URL                       string
+	MeasurementName           string
+	TLSOpen                   bool
+	CaFile, CertFile, KeyFile string
+	BearerTokenFile           string
+	Election                  bool
+	Tags                      map[string]string
 }
 
 type promRunner struct {
@@ -426,10 +410,28 @@ func newPromRunner(c *promConfig, feeder dkio.Feeder) (*promRunner, error) {
 		iprom.WithLogger(klog), // WithLogger must in the first
 		iprom.WithSource(c.Source),
 		iprom.WithMeasurementName(c.MeasurementName),
+		iprom.WithTLSOpen(c.TLSOpen),
 		iprom.WithKeepAlive(defaultPrometheusioConnectKeepAlive),
 		iprom.WithTags(c.Tags),
 		iprom.WithMetricNameFilterIgnore([]string{".*bucket$"}),
 		iprom.WithMaxBatchCallback(1 /*streamSize*/, callbackFunc),
+	}
+
+	if c.CaFile != "" && c.CertFile != "" {
+		opts = append(opts,
+			iprom.WithCacertFile(c.CaFile),
+			iprom.WithCertFile(c.CertFile),
+			iprom.WithKeyFile(c.KeyFile),
+		)
+		klog.Warn("ETCD with tls")
+	}
+
+	if c.BearerTokenFile != "" {
+		token, err := os.ReadFile(c.BearerTokenFile)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, iprom.WithBearerToken(string(token)))
 	}
 
 	pm, err := iprom.NewProm(opts...)
@@ -463,4 +465,23 @@ func parseURLHost(urlstr string) (string, error) {
 		return "", fmt.Errorf("invalid url %s, err: %w", urlstr, err)
 	}
 	return u.Host, nil
+}
+
+type selfMetricConfig struct {
+	Etcd struct {
+		CaFile   string `json:"ca_file"`
+		CertFile string `json:"cert_file"`
+		KeyFile  string `json:"key_file"`
+	} `json:"etcd"`
+}
+
+func getSelfMetricConfig() *selfMetricConfig {
+	s := os.Getenv("ENV_INPUT_CONTAINER_K8S_SELF_METRIC_CONFIG")
+
+	var cfg selfMetricConfig
+	if err := json.Unmarshal([]byte(s), &cfg); err != nil {
+		klog.Warnf("failed to parse config: %s", err)
+	}
+
+	return &cfg
 }

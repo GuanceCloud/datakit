@@ -270,10 +270,6 @@ func loadTLSConfig(opt *option) (*tls.Config, error) {
 		return nil, nil
 	}
 
-	if opt.tlsConfig != nil {
-		return opt.tlsConfig, nil
-	}
-
 	caCerts := []string{}
 	if opt.cacertFile != "" {
 		caCerts = append(caCerts, opt.cacertFile)

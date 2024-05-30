@@ -8,8 +8,6 @@ package client
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net"
 	"os"
 
@@ -30,8 +28,6 @@ import (
 )
 
 type Client interface {
-	RestConfig() *rest.Config
-
 	GetNamespaces() corev1.NamespaceInterface
 	GetNodes() corev1.NodeInterface
 	GetAbsPath(path string) *rest.Request
@@ -68,17 +64,18 @@ const (
 
 	LimiteQPS  = float32(1000)
 	LimitBurst = 1000
+
+	//nolint:gosec
+	TokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 func DefaultConfigInCluster() (*rest.Config, error) {
-	// nolint:gosec
-	const tokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-
 	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
 	if len(host) == 0 || len(port) == 0 {
 		return nil, fmt.Errorf("unable to load in-cluster configuration")
 	}
-	token, err := ioutil.ReadFile(tokenFile)
+
+	token, err := os.ReadFile(TokenFile)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +84,7 @@ func DefaultConfigInCluster() (*rest.Config, error) {
 		Host:            "https://" + net.JoinHostPort(host, port),
 		TLSClientConfig: rest.TLSClientConfig{Insecure: true},
 		BearerToken:     string(token),
-		BearerTokenFile: tokenFile,
+		BearerTokenFile: TokenFile,
 		RateLimiter:     flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
 	}
 	return &config, nil
@@ -102,7 +99,6 @@ func NewKubernetesClientInCluster() (Client, error) {
 }
 
 type client struct {
-	restConfig           *rest.Config
 	clientset            *kubernetes.Clientset
 	kubeletClient        KubeletClient
 	metricsClient        *metricsv1beta1.MetricsV1beta1Client
@@ -140,17 +136,12 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 	}
 
 	return &client{
-		restConfig:           restConfig,
 		clientset:            clientset,
 		kubeletClient:        kubeletClient,
 		metricsClient:        metricsClient,
 		guanceClient:         guanceClient,
 		prometheusMonitoring: prometheusClient,
 	}, nil
-}
-
-func (c *client) RestConfig() *rest.Config {
-	return c.restConfig
 }
 
 func (c *client) GetNamespaces() corev1.NamespaceInterface {
@@ -245,16 +236,4 @@ func (c *client) GetNodeMetricses(ns string) metricsv1beta1.NodeMetricsInterface
 
 func (c *client) GetStatsSummary() (*statsv1alpha1.Summary, error) {
 	return c.kubeletClient.GetStatsSummary()
-}
-
-func (c *client) GetMetrics() (io.ReadCloser, error) {
-	return c.kubeletClient.GetMetrics()
-}
-
-func (c *client) GetMetricsCadvisor() (io.ReadCloser, error) {
-	return c.kubeletClient.GetMetricsCadvisor()
-}
-
-func (c *client) GetMetricsResource() (io.ReadCloser, error) {
-	return c.kubeletClient.GetMetricsResource()
 }
