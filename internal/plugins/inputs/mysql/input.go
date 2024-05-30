@@ -125,6 +125,10 @@ type Input struct {
 	globalVariables map[string]interface{}
 	binlog          map[string]interface{}
 
+	// collected metrics - mysql_replication
+	mReplication      map[string]interface{}
+	mGroupReplication map[string]interface{}
+
 	// collected metrics - mysql_schema
 	mSchemaSize          map[string]interface{}
 	mSchemaQueryExecTime map[string]interface{}
@@ -378,6 +382,19 @@ func (ipt *Input) metricCollectMysql() ([]*gcPoint.Point, error) {
 	return pts, nil
 }
 
+// mysql_replication.
+func (ipt *Input) metricCollectMysqlReplication() ([]*gcPoint.Point, error) {
+	if err := ipt.collectMysqlReplication(); err != nil {
+		return []*gcPoint.Point{}, err
+	}
+
+	pts, err := ipt.buildMysqlReplication()
+	if err != nil {
+		return []*gcPoint.Point{}, err
+	}
+	return pts, nil
+}
+
 // mysql_schema.
 func (ipt *Input) metricCollectMysqlSchema() ([]*gcPoint.Point, error) {
 	if err := ipt.collectMysqlSchema(); err != nil {
@@ -489,6 +506,7 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 	if len(ipt.collectors) == 0 {
 		ipt.collectors = []func() ([]*gcPoint.Point, error){
 			ipt.metricCollectMysql,              // mysql
+			ipt.metricCollectMysqlReplication,   // mysql_replication
 			ipt.metricCollectMysqlSchema,        // mysql_schema
 			ipt.metricCollectMysqlTableSschema,  // mysql_table_schema
 			ipt.metricCollectMysqlUserStatus,    // mysql_user_status
@@ -735,6 +753,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&baseMeasurement{},
+		&replicationMeasurement{},
 		&schemaMeasurement{},
 		&innodbMeasurement{},
 		&tbMeasurement{},

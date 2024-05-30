@@ -218,6 +218,24 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'eve
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
 ```
 
+### 主从复制指标采集 {#replication_metrics}
+
+采集主从复制 `mysql_replication` 指标的前提是开启主从复制，`mysql_replication` 指标都是由从数据库采集的，确认主从复制环境是否正常可以在从数据库输入：
+
+```sql
+SHOW SLAVE STATUS;;
+```
+
+可以看到 `Replica_IO_Running`、`Replica_SQL_Running` 的值均为 Yes，说明主从复制环境状态正常。
+
+若要采集组复制指标如 `count_transactions_in_queue`，需要将组复制插件添加到服务器在启动时加载的插件列表（group_replication 从 MySQL 版本 5.7.17 开始支持）。在从数据库的配置文件 `/etc/my.cnf` 中，添加一行
+
+```toml
+plugin_load_add ='group_replication.so'
+```
+
+可以通过 `show plugins;` 确认组复制插件已安装。
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

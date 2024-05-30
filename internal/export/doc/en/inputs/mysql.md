@@ -217,6 +217,24 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'eve
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
 ```
 
+### Replication Metrics Collection {#replication_metrics}
+
+To collect replication metrics `mysql_replication`, you need to start MySQL replication. `mysql_replication` metrics are collected from the replication database, so you can confirm that the MySQL replication environment is working properly by entering them in the slave database:
+
+```sql
+SHOW SLAVE STATUS;
+```
+
+If the `Slave_IO_Running` and `Slave_SQL_Running` fields are `Yes`, the replication environment is working properly.
+
+To capture group replication metrics such as `count_transactions_in_queue`, you need to add the group_replication plugin to the list of plugins loaded by the server at startup (group_replication has been supported since MySQL version 5.7.17). In the configuration file `/etc/my.cnf` for the replication database, add the line:
+
+```toml
+plugin_load_add ='group_replication.so'
+```
+
+You can confirm that the group replication plugin is installed by `showing plugins;`.
+
 ## Metric {#metric}
 
 All the following data collection will add a global tag named `host` by default (the tag value is the host name of DataKit). You can also specify other tags through `[inputs.{{.InputName}}.tags]` in the configuration:

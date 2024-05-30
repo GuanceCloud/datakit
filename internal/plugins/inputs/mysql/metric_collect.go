@@ -97,6 +97,53 @@ func (ipt *Input) collectMysql() error {
 	return err
 }
 
+func (ipt *Input) collectMysqlReplication() error {
+	var err error
+
+	ipt.mReplication = map[string]interface{}{}
+	ipt.mGroupReplication = map[string]interface{}{}
+
+	const sqlSelect = "SELECT VERSION();"
+	version := getCleanMysqlVersion(ipt.q(sqlSelect))
+	if version == nil {
+		err = errors.New("version_nil")
+		return err
+	}
+	var queryReplicationSQL string
+	if version.versionCompatible([]int{10, 5, 1}) || (version.flavor != strMariaDB && version.versionCompatible([]int{8, 0, 22})) {
+		queryReplicationSQL = "SHOW REPLICA STATUS;"
+	} else {
+		queryReplicationSQL = "SHOW SLAVE STATUS;"
+	}
+	if res := replicationMetrics(ipt.q(queryReplicationSQL)); res != nil {
+		ipt.mReplication = res
+	} else {
+		l.Warn("collect_replica_status_failed")
+	}
+	queryWorkerThreadsSQL := `SELECT THREAD_ID, NAME FROM performance_schema.threads WHERE NAME LIKE '%worker';`
+	if res, err := ipt.getQueryRows(queryWorkerThreadsSQL); err != nil {
+		return err
+	} else {
+		ipt.mReplication["Replicas_connected"] = len(res.rows)
+	}
+
+	queryGroupReplicationSQL := `
+		SELECT channel_name,count_transactions_in_queue,count_transactions_checked,count_conflicts_detected,
+		count_transactions_rows_validating,count_transactions_remote_in_applier_queue,count_transactions_remote_applied,
+		count_transactions_local_proposed,count_transactions_local_rollback
+		FROM performance_schema.replication_group_member_stats
+		WHERE channel_name IN ('group_replication_applier', 'group_replication_recovery');
+	`
+
+	if res := replicationMetrics(ipt.q(queryGroupReplicationSQL)); res != nil {
+		ipt.mGroupReplication = res
+	} else {
+		l.Warn("collect_group_replica_status_failed")
+	}
+
+	return nil
+}
+
 func (ipt *Input) collectMysqlSchema() error {
 	ipt.mSchemaSize = map[string]interface{}{}
 	ipt.mSchemaQueryExecTime = map[string]interface{}{}

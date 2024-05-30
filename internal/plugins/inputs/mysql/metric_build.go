@@ -87,6 +87,44 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
+func (ipt *Input) buildMysqlReplication() ([]*gcPoint.Point, error) {
+	ms := []inputs.MeasurementV2{}
+
+	m := &replicationMeasurement{
+		tags:     map[string]string{},
+		resData:  make(map[string]interface{}),
+		fields:   make(map[string]interface{}),
+		election: ipt.Election,
+	}
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
+
+	m.name = "mysql_replication"
+
+	for key, value := range ipt.Tags {
+		m.tags[key] = value
+	}
+
+	// Replication
+	m.fields = getMetricFields(ipt.mReplication, m.Info())
+
+	// Group Replication
+	m.resData = getMetricFields(ipt.mGroupReplication, m.Info())
+
+	for k, v := range m.resData {
+		m.fields[k] = v
+	}
+
+	if len(m.fields) > 0 {
+		ms = append(ms, m)
+	}
+
+	if len(ms) > 0 {
+		pts := getPointsFromMeasurement(ms)
+		return pts, nil
+	}
+	return []*gcPoint.Point{}, nil
+}
+
 func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
