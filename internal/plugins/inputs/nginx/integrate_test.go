@@ -576,9 +576,12 @@ type caseSpec struct {
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {
+	// only for NGINX Plus
+	optionalFields := []string{"processing", "responses", "discarded", "code_200", "code_301", "code_404", "code_503", "backup", "weight", "state", "active", "fails", "unavail", "connection_dropped", "pid", "ppid"}
+
 	for _, pt := range pts {
 		var opts []inputs.PointCheckOption
-		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
+		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags), inputs.WithOptionalFields(optionalFields...))
 		opts = append(opts, cs.opts...)
 
 		measurement := pt.Name()

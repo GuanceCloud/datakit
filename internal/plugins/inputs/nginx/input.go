@@ -38,6 +38,9 @@ var (
   ## (Default) If not use with VTS, the formula is like this: "http://localhost:80/basic_status".
   ## If using with VTS, the formula is like this: "http://localhost:80/status/format/json".
   url = "http://localhost:80/basic_status"
+  # If using Nginx Plus, this formula is like this: "http://localhost:8080/api/<api_version>".
+  # Note: Nginx Plus not support VTS and should be used with http_stub_status_module (Default)
+  # plus_api_url = "http://localhost:8080/api/9"
 
   ## Optional Can set ports as [<form>,<to>], Datakit will collect all ports.
   # ports = [80,80]
@@ -45,6 +48,7 @@ var (
   ## Optional collection interval, default is 10s
   # interval = "30s"
   use_vts = false
+  use_plus_api = false
   ## Optional TLS Config
   # tls_ca = "/xxx/ca.pem"
   # tls_cert = "/xxx/cert.cer"
@@ -232,7 +236,10 @@ func (ipt *Input) Terminate() {
 func (ipt *Input) getMetric() {
 	ipt.start = time.Now()
 	for i := ipt.Ports[0]; i <= ipt.Ports[1]; i++ {
-		if ipt.UseVts {
+		if ipt.UsePlusAPI { //nolint
+			ipt.getPlusMetric()
+			ipt.getStubStatusModuleMetric(i)
+		} else if ipt.UseVts {
 			ipt.getVTSMetric(i)
 		} else {
 			ipt.getStubStatusModuleMetric(i)
@@ -270,6 +277,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&ServerZoneMeasurement{},
 		&UpstreamZoneMeasurement{},
 		&CacheZoneMeasurement{},
+		&LocationZoneMeasurement{},
 	}
 }
 

@@ -6,9 +6,6 @@
 package nginx
 
 import (
-	"time"
-
-	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -27,6 +24,14 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"response_3xx": newCountFieldInfo("The number of responses with status codes 3xx"),
 			"response_4xx": newCountFieldInfo("The number of responses with status codes 4xx"),
 			"response_5xx": newCountFieldInfo("The number of responses with status codes 5xx"),
+			// nginx plus
+			"processing": newCountFieldInfo("The number of requests being processed (only for Nginx plus)"),
+			"responses":  newCountFieldInfo("The total number of responses (only for Nginx plus)"),
+			"discarded":  newCountFieldInfo("The number of requests being discarded (only for Nginx plus)"),
+			"code_200":   newCountFieldInfo("The number of responses with status code 200 (only for Nginx plus)"),
+			"code_301":   newCountFieldInfo("The number of responses with status code 301 (only for Nginx plus)"),
+			"code_404":   newCountFieldInfo("The number of responses with status code 404 (only for Nginx plus)"),
+			"code_503":   newCountFieldInfo("The number of responses with status code 503 (only for Nginx plus)"),
 		},
 		Tags: map[string]interface{}{
 			"nginx_server":  inputs.NewTagInfo("nginx server host"),
@@ -38,22 +43,7 @@ func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type UpstreamZoneMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *UpstreamZoneMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+type UpstreamZoneMeasurement struct{}
 
 //nolint:lll
 func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
@@ -68,6 +58,13 @@ func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 			"response_3xx":  newCountFieldInfo("The number of responses with status codes 3xx"),
 			"response_4xx":  newCountFieldInfo("The number of responses with status codes 4xx"),
 			"response_5xx":  newCountFieldInfo("The number of responses with status codes 5xx"),
+			// nginx plus
+			"backup":  newCountFieldInfo("Whether it is configured as a backup server (only for Nginx plus)"),
+			"weight":  newCountFieldInfo("Weights used when load balancing (only for Nginx plus)"),
+			"state":   newCountFieldInfo("The current state of the server (only for Nginx plus)"),
+			"active":  newCountFieldInfo("The number of active connections (only for Nginx plus)"),
+			"fails":   newCountFieldInfo("The number of failed requests (only for Nginx plus)"),
+			"unavail": newCountFieldInfo("The number of unavailable server (only for Nginx plus)"),
 		},
 		Tags: map[string]interface{}{
 			"nginx_server":    inputs.NewTagInfo("nginx server host"),

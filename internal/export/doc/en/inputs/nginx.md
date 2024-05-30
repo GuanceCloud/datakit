@@ -66,6 +66,30 @@ NGINX collector can take many metrics from NGINX instances, such as the total nu
 
 - After the VTS function has been turned on, it is no longer necessary to collect the data of the `http_stub_status_module` module, because the data of the VTS module will include the data of the `http_stub_status_module` module.
 
+- NGINX Plus users can still use the `http_stub_status_module` to collect basic data. Additionally, `http_api_module` should be enabled in the NGINX configuration file ([Reference](https://nginx.org/en/docs/http/ngx_http_api_module.html){:target="_blank"}) and set status_zone in the server blocks you want to monitor. The configuration example is as follows:
+
+``` nginx
+# enable http_api_module
+server {
+  listen 8080;
+  location /api {
+     api write=on;
+  }
+}
+# monitor more detailed metrics
+server {
+  listen 80;
+  status_zone <ZONE_NAME>;
+  ...
+}
+```
+
+- To enable NGINX Plus collection, you need to set the option `use_plus_api` to true in the `{{.InputName}}.conf` file and uncomment the `plus_api_url` option. (Note: VTS does not support NGINX Plus).
+
+- NGINX Plus can generate the following measurements:
+
+    - `nginx_location_zone`
+
 ### Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->

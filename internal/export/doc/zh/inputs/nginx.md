@@ -65,6 +65,30 @@ http {
 
 - 已经开启了 VTS 功能以后，不必再去采集 `http_stub_status_module` 模块的数据，因为 VTS 模块的数据会包括 `http_stub_status_module` 模块的数据
 
+- NGINX Plus 用户仍可以使用 `http_stub_status_module` 采集基础数据，同时需要在 NGINX 配置文件中开启 `http_api_module` 模块 ([参考](https://nginx.org/en/docs/http/ngx_http_api_module.html){:target="_blank"})，并在想要监控的 `server` 中设置 `status_zone`，配置示例如下：
+
+``` nginx
+# 开启 http_api_module
+server {
+  listen 8080;
+  location /api {
+     api write=on;
+  }
+}
+# 监控更多指标
+server {
+  listen 80;
+  status_zone <ZONE_NAME>;
+  ...
+}
+```
+
+- 开启 NGINX Plus 采集需要在 `{{.InputName}}.conf` 中将选项 `use_plus_api` 设置为 `true`，并将 `plus_api_url` 的注释去除。（注意， VTS 功能暂不支持 NGINX Plus）
+
+- NGINX Plus 额外产生如下指标集：
+
+    - `nginx_location_zone`
+
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
