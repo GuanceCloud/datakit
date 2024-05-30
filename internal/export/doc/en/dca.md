@@ -148,21 +148,17 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
           affinity: {}
           containers:
             - env:
-                - name: DCA_INNER_HOST
-                  # Hangzhou https://auth-api.guance.com
-                  # Ningxia https://aws-auth-api.guance.com
-                  # Guangzhou https://cn4-auth-api.guance.com
-                  # Oregon https://us1-auth-api.guance.com
-                  value: https://auth-api.guance.com
-                - name: DCA_FRONT_HOST
-                  # Hangzhou  https://console-api.guance.com
-                  # Ningxia https://aws-console-api.guance.com/
-                  # Guangzhou https://cn4-console-api.guance.com
-                  # Oregon https://us1-console-api.guance.com
+                - name: DCA_CONSOLE_API_URL 
+                  # 杭州 https://console-api.guance.com
+                  # 宁夏 https://aws-console-api.guance.com
+                  # 广州 https://cn4-console-api.guance.com
+                  # 俄勒冈 https://us1-console-api.guance.com
                   value: https://console-api.guance.com
+                - name: DCA_CONSOLE_WEB_URL 
+                  value: https://console.guance.com
                 - name: DCA_LOG_ENABLE_STDOUT
                   value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.8
+              image: pubrepo.guance.com/tools/dca:0.0.9
               imagePullPolicy: Always
               name: dca
               ports:
@@ -240,8 +236,8 @@ By default, DCA will adopt the default configuration of the system. If you need 
 
 | Environment Variable Name            | Type   | Default Value                         | Description                                                                                            |
 | :---------              | ----:  | :---                           | ------                                                                                          |
-| `DCA_INNER_HOST`        | string | <https://auth-api.guance.com>    | auth API address of Guance Cloud                                                                          |
-| `DCA_FRONT_HOST`        | string | <https://console-api.guance.com> | Guance Cloud console API address                                                                         |
+| `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | Guance Cloud console API address                                                                         |
+| `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | Guance Cloud page address                                                                         |
 | `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, but does not proxy the DataKit API |
 | `DCA_LOG_LEVEL`         | string |                                | Log level, the value is NONE/DEBUG/INFO/WARN/ERROR. If logging is not required, it can be set to NONE.                  |
 | `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | The log is output to a file under `/usr/src/dca/logs`. If you need to write the log to `stdout`, you can set it to `true` |
@@ -254,31 +250,37 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEV
 
 ### Log in to DCA {#login}
 
-After DCA is opened and installed, you can enter the address `localhost:8000` in the browser to open DCA Web, log in to your account, and start using it. If you don't have an account, you can register [Guance Cloud Account](https://auth.guance.com/register?channel=帮助文档){:target="_blank"}.
+After the DCA is enabled and installed, you can access it by entering the address `localhost:8000` in your browser. When you visit it for the first time, the page will redirect you to a login transition page. After clicking the "Go Now" button at the bottom of the page, you will be guided to the GuanceCloud platform. Then, follow the instructions on the page to configure the DCA address. Once the configuration is completed, you will be able to directly access the DCA platform through the observation cloud platform without logging in.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_2.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-login-redirect.png){ width="800" }
 </figure>
+
+### View Datakit list {#datakit-list}
 
 After logging in to DCA, you can select the workspace in the upper left corner to manage its corresponding DataKit and collector, which supports quick filtering of host names to be viewed and managed by searching keywords.
 
 Hosts remotely managed through DCA are divided into three states:
 
 - online: indicating that the data report is normal, you can view the operation of DataKit and configure the collector through DCA;
-- unknown: indicates that the remote management configuration is not turned on or is not in a local area network;
-- offline: It means that the host has not reported data for more than 10 minutes, or after the host name is modified, the original host name will be displayed as offline. Hosts that do not report data normally will be removed from the list if they do not report data for more than 24 hours.
+- unknown: indicates that the remote management configuration is not turned on;
+- offline: It means that the host has not reported data for more than 10 minutes.
 
-By default, you can only view information of the DataKit in the current workspace. If you need to manage DataKit, such as restarting it, creating, deleting, or modifying DataKit collector config file, pipelines, you need to grant current user DCA configuration management permission. Please refer to [role management](../management/role-management.md) for specific settings.
+By default, you can only view information of the DataKit in the current workspace. If you need to manage DataKit, such as upgrading it, creating, deleting, or modifying DataKit collector config file, pipelines, you need to grant current user DCA configuration management permission. Please refer to [role management](../management/role-management.md) for specific settings.
 
-#### View How DataKit is Running {#view-runtime}
+<figure markdown>
+  ![](https://static.guance.com/images/datakit/dca/dca-list.png){ width="800" }
+</figure>
+
+### View How DataKit is Running {#view-runtime}
 
 After logging in to DCA, select a workspace to view the hostname and IP information of all DataKits installed in that workspace. Click on the DataKit host to connect to the DataKit remotely, and view the running status of the DataKit on the host, including version, running time, publishing data and collector running status.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_3.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-run-info-1.png){ width="800" }
 </figure>
 
-#### View Collector Configuration {#view-inputs-conf}
+### View Collector Configuration {#view-inputs-conf}
 
 After connecting to the DataKit remotely, click "Collector Configuration" to view the list of collectors and Sample that have been configured (all Sample files that are currently supported by DataKit).
 
@@ -289,33 +291,31 @@ After connecting to the DataKit remotely, click "Collector Configuration" to vie
 Note: DCA does not support configuration of collector at present, so it is necessary to log in to the host remotely for configuration operation.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_4.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-input-conf-1.png){ width="800" }
 </figure>
 
-#### View Log Pipeline {#view-pipeline}
+### View Log Pipeline {#view-pipeline}
 
 After connecting to the DataKit remotely, click「Pipelines」to view the Pipeline file that comes with the DataKit by default. Refer to the document [text data processing](pipeline.md) for Pipeline.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_5.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-pipeline-1.png){ width="800" }
 </figure>
 
-#### View the Blacklist {#view-filters}
+### View the Blacklist {#view-filters}
 
 After connecting to DataKit remotely, click "Blacklist" to view the blacklist configured in the observation cloud. As shown in the following figure, `source = default and (status in [unknown])` is the configured blacklist condition.
 
 Note: The blacklist files created through Guance Cloud are stored in the path: `/usr/local/datakit/data/.pull`.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_8.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-filter-1.png){ width="800" }
 </figure>
 
-#### View Collector Help {#view-input-helper}
+### View DataKit log {#view-log}
 
-After connecting to DataKit remotely, click Help to view the list of collector documents. Click the name of the collector you need to view, and jump directly to display the help document of the collector.
-
-For help on how to view more collectors, refer to the document [Collectors](hostobject.md).
+After connecting to DataKit remotely, click "Log" to view the logs of DataKit and also the logs can be exported.
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dca_2_6.png){ width="800" }
+  ![](https://static.guance.com/images/datakit/dca/dca-log-1.png){ width="800" }
 </figure>
