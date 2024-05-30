@@ -41,7 +41,7 @@ type AggPool interface {
 	Cleanup()
 }
 
-type protoDectFn func([]byte) (L7Protocol, ProtoDecPipe, bool)
+type protoDectFn func([]byte, int) (L7Protocol, ProtoDecPipe, bool)
 
 type ProtoSet struct {
 	protoDect []protoDectFn
@@ -130,9 +130,9 @@ type ProtoDecPipe interface {
 	ConnClose()
 }
 
-func ProtoDetector(data []byte) (L7Protocol, ProtoDecPipe, bool) {
+func ProtoDetector(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
 	for _, fn := range _protoSet.protoDect {
-		proto, pipe, ok := fn(data)
+		proto, pipe, ok := fn(data, actSize)
 		if ok {
 			return proto, pipe, ok
 		}
@@ -153,6 +153,8 @@ func Init() {
 	_protoSet.RegisterDetector(HTTPProtoDetect)
 	// HTTP2 and gRPC
 	_protoSet.RegisterDetector(H2ProtoDetect)
+
+	_protoSet.RegisterDetector(MysqlProtoDetect)
 
 	_protoSet.RegisterAggregator(ProtoHTTP, newHTTPAggP)
 }

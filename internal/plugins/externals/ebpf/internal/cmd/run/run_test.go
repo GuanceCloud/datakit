@@ -26,7 +26,7 @@ func TestDKE(t *testing.T) {
 
 		EBPFTrace: FlagTrace{
 			TraceServer:  "0.0.0.0:9529",
-			TraceAllProc: false,
+			TraceAllProc: true,
 			TraceEnvList: []string{"DKE_SERVICE", "DK_BPFTRACE_SERVICE", "DD_SERVICE", "OTEL_SERVICE_NAME"},
 		},
 	})

@@ -74,7 +74,7 @@ func (netTrace *ProcNetworkTrace) Handle(data *comm.NetwrkData,
 		}
 
 		if pipe.Decoder == nil {
-			if proto, dec, ok := protodec.ProtoDetector(d.Payload); ok {
+			if proto, dec, ok := protodec.ProtoDetector(d.Payload, d.ActSize); ok {
 				pipe.Decoder = dec
 				pipe.Proto = proto
 				if proto == protodec.ProtoHTTP2 {
@@ -178,7 +178,6 @@ func (p *PidMap) start(ctx context.Context) {
 					netdata.Conn.ServiceName = v.Service
 				}
 			}
-
 			nettracer.Handle(netdata, p.aggPool)
 
 		case <-tickerClean.C:

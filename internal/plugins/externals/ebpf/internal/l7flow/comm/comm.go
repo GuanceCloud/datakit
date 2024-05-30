@@ -61,6 +61,9 @@ const (
 	FieldGRPCStatusCode = "grpc_status_code"
 	FieldGRPCMessage    = "grpc_message"
 
+	FieldMysqlStatusCode = "mysql_status_code"
+	FieldMysqlErrMsg     = "mysql_err_msg"
+
 	FieldStatus    = "status"
 	FieldOperation = "operation"
 	FieldResource  = "resource"

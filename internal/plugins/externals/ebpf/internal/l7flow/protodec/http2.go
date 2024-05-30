@@ -46,7 +46,7 @@ type h2DecPipe struct {
 	connClosed bool
 }
 
-func H2ProtoDetect(data []byte) (L7Protocol, ProtoDecPipe, bool) {
+func H2ProtoDetect(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
 	if v := l4log.HasHTTP2Magic(data); v > 0 {
 		return ProtoHTTP2, newH2DecPipe(ProtoHTTP2), true
 	}
