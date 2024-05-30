@@ -587,6 +587,7 @@ static __always_inline void read_rw_data(tp_syscall_exit_args_t *ctx, void *bpf_
     }
 
     read_net_meta(rw_args, pid_tgid, dst);
+
     read_netwrk_data(dst, rw_args->buf, ctx->ret);
 
     __u64 cpu = bpf_get_smp_processor_id();

@@ -106,4 +106,4 @@ y.output
 datakit*.tar
 internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf
 internal/plugins/externals/ebpf/demo/
-internal/plugins/inputs/ebpftrace/spans/span_storage_test/
+internal/plugins/externals/ebpf/internal/testuitls/mysqlins/mysqlins

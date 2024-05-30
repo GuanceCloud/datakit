@@ -123,7 +123,7 @@ func FindHTTPURI(payload []byte) string {
 	return string(uri[startOffset:])
 }
 
-func HTTPProtoDetect(data []byte) (L7Protocol, ProtoDecPipe, bool) {
+func HTTPProtoDetect(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
 	if RequestPrefixHTTP.Match(data) {
 		return ProtoHTTP, newHTTPDecPipe(ProtoHTTP), true
 	} else if ResponsePrefixHTTP.Match(data) {
