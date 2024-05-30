@@ -9,11 +9,11 @@
 package httpapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -24,33 +24,16 @@ import (
 	T "testing"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/influxdb1-client/models"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func TestMetricsAPI(t *T.T) {
-	t.Run("/metric", func(t *T.T) {
-		r := setupRouter()
-		ts := httptest.NewServer(r)
-
-		defer ts.Close()
-
-		vec := prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "abc_total",
-				Help: "not-set",
-			},
-			[]string{
-				"category",
-			},
-		)
-		metrics.MustRegister(vec)
-	})
 }
 
 func TestParsePoint(t *T.T) {
@@ -104,8 +87,9 @@ func TestRestartAPI(t *T.T) {
 		"http://4.3.2.1?token=tkn_abc456",
 	}
 
-	apiServer.dw = &dataway.Dataway{URLs: urls}
-	assert.NoError(t, apiServer.dw.Init())
+	hs := defaultHTTPServerConf()
+	hs.dw = &dataway.Dataway{URLs: urls}
+	assert.NoError(t, hs.dw.Init())
 
 	cases := []struct {
 		token string
@@ -126,7 +110,7 @@ func TestRestartAPI(t *T.T) {
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := checkToken(r); err != nil {
+		if err := checkTokens(hs.dw, r); err != nil {
 			w.WriteHeader(ErrInvalidToken.HttpCode)
 			if err := json.NewEncoder(w).Encode(err); err != nil {
 				t.Error(err)
@@ -164,108 +148,15 @@ func TestRestartAPI(t *T.T) {
 	}
 }
 
-func TestApiGetDatakitLastError(t *T.T) {
-	const uri string = "/v1/lasterror"
-
-	cases := []struct {
-		body []byte
-		fail bool
-	}{
-		{
-			[]byte(`{"input":"fakeCPU","err_content":"cpu has broken down"}`),
-			false,
-		},
-		{
-			[]byte(`{"input":"fakeCPU","err_content":""}`),
-			true,
-		},
-		{
-			[]byte(`{"input":"","err_content":"cpu has broken down"}`),
-			true,
-		},
-		{
-			[]byte(`{"input":"","err_content":""}`),
-			true,
-		},
-		{
-			[]byte(`{"":"fakeCPU","err_content":"cpu has broken down"}`),
-			true,
-		},
-		{
-			[]byte(`{"input":"fakeCPU","":"cpu has broken down"}`),
-			true,
-		},
-		{
-			[]byte(`{"":"fakeCPU","":"cpu has broken down"}`),
-			true,
-		},
-		{
-			[]byte(``),
-			true,
-		},
-	}
-
-	for _, fakeError := range cases {
-		fakeEM := errMessage{}
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest("POST", uri, bytes.NewReader(fakeError.body))
-		if err != nil {
-			t.Errorf("create newrequest failed:%s", err)
-		}
-		em, err := doAPIGetDatakitLastError(req, rr)
-		if err != nil {
-			if fakeError.fail {
-				t.Logf("expect error: %s", err)
-				continue
-			}
-			t.Errorf("api test failed:%s", err)
-		}
-		err = json.Unmarshal(fakeError.body, &fakeEM)
-		if err != nil {
-			t.Errorf("json.Unmarshal: %s", err)
-		}
-		assert.Equal(t, fakeEM.ErrContent, em.ErrContent)
-		assert.Equal(t, fakeEM.Input, em.Input)
-	}
-}
-
 func TestCORS(t *T.T) {
-	apiServer.apiConfig.AllowedCORSOrigins = []string{}
-	router := setupRouter()
-
-	router.POST("/timeout", func(c *gin.Context) {})
-
-	ts := httptest.NewServer(router)
-	defer ts.Close()
-
-	time.Sleep(time.Second)
-
-	req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	origin := "http://foobar.com"
-	req.Header.Set("Origin", origin)
-
-	c := &http.Client{}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		t.Error(err)
-	}
-	defer resp.Body.Close()
-
-	// See: https://stackoverflow.com/a/12179364/342348
-	got := resp.Header.Get("Access-Control-Allow-Origin")
-	assert.Equal(t, origin, got, "expect %s, got '%s'", origin, got)
 }
 
 func TestTimeout(t *T.T) {
-	apiServer.timeout = 100 * time.Millisecond
+	hs := defaultHTTPServerConf()
+	hs.timeout = 100 * time.Millisecond
 
 	router := gin.New()
-	router.Use(dkHTTPTimeout())
+	router.Use(dkHTTPTimeout(hs.timeout))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()
@@ -586,5 +477,105 @@ func TestHTTPListers(t *T.T) {
 		require.Equal(t, 2, resp.StatusCode/100)
 
 		t.Logf("request %s ok", ts.URL)
+	})
+}
+
+func TestIsNil(t *T.T) {
+	t.Run("nil", func(t *T.T) {
+		var arr []int
+		assert.False(t, IsNil(arr))
+
+		var dict map[int]int
+		assert.False(t, IsNil(dict))
+
+		assert.True(t, IsNil(nil))
+
+		var x any
+		assert.True(t, IsNil(x))
+
+		type obj struct{}
+		var ptr *obj
+		assert.True(t, IsNil(ptr))
+
+		type callback func()
+		var fn callback
+		assert.False(t, IsNil(fn))
+	})
+}
+
+func TestSetuptRouter(t *T.T) {
+	t.Run("api-white-list", func(t *T.T) {
+		hs := defaultHTTPServerConf()
+		hs.apiConfig = &config.APIConfig{
+			PublicAPIs: []string{"xxx"}, // disable all API
+		}
+
+		r := setupRouter(hs)
+		r.POST("/disabled_api", func(c *gin.Context) {})
+
+		ts := httptest.NewServer(r)
+		time.Sleep(time.Second)
+
+		// use non-loopback IP to request
+		ip, err := datakit.GetFirstGlobalUnicastIP()
+		assert.NoError(t, err)
+		tcpAddr := &net.TCPAddr{
+			IP: net.ParseIP(ip),
+		}
+
+		transport := &http.Transport{
+			Dial: (&net.Dialer{LocalAddr: tcpAddr}).Dial,
+		}
+
+		cli := &http.Client{
+			Transport: transport,
+		}
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+		assert.NoError(t, err)
+		resp, err := cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
+
+		t.Logf("resp body: %s", string(respBody))
+	})
+
+	t.Run("CORS", func(t *T.T) {
+		hs := defaultHTTPServerConf()
+		hs.apiConfig.AllowedCORSOrigins = []string{}
+		router := setupRouter(defaultHTTPServerConf())
+
+		router.POST("/timeout", func(c *gin.Context) {})
+
+		ts := httptest.NewServer(router)
+		defer ts.Close()
+
+		time.Sleep(time.Second)
+
+		req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)
+		if err != nil {
+			t.Error(err)
+		}
+
+		origin := "http://foobar.com"
+		req.Header.Set("Origin", origin)
+
+		c := &http.Client{}
+
+		resp, err := c.Do(req)
+		if err != nil {
+			t.Error(err)
+		}
+		defer resp.Body.Close()
+
+		// See: https://stackoverflow.com/a/12179364/342348
+		got := resp.Header.Get("Access-Control-Allow-Origin")
+		assert.Equal(t, origin, got, "expect %s, got '%s'", origin, got)
 	})
 }

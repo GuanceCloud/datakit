@@ -78,8 +78,6 @@ message Field {
 			bool   b   = 5 [json_name = "b"]; // bool
 			bytes  d   = 6 [json_name = "d"]; // bytes, for binary data
 			string s   = 11 [json_name = "s"];// string, for string data
-
-			// XXX: not used
 			google.protobuf.Any a = 7 [json_name = "a"]; // any data
 	}
 

@@ -144,9 +144,9 @@ func (ipt *Input) collect() error {
 			kvs = kvs.Add("inodes_free_mb", du.InodesFree/1_000_000, false, true)
 			kvs = kvs.Add("inodes_used_mb", du.InodesUsed/1_000_000, false, true)
 			kvs = kvs.Add("inodes_used_percent", du.InodesUsedPercent, false, true) // float64
-			kvs = kvs.Add("inodes_total", wrapUint64(du.InodesTotal), false, true)  // Deprecated
-			kvs = kvs.Add("inodes_free", wrapUint64(du.InodesFree), false, true)    // Deprecated
-			kvs = kvs.Add("inodes_used", wrapUint64(du.InodesUsed), false, true)    // Deprecated
+			kvs = kvs.Add("inodes_total", du.InodesTotal, false, true)              // Deprecated
+			kvs = kvs.Add("inodes_free", du.InodesFree, false, true)                // Deprecated
+			kvs = kvs.Add("inodes_used", du.InodesUsed, false, true)                // Deprecated
 			kvs = kvs.Add("mount_point", partitions[index].Mountpoint, true, true)
 		}
 

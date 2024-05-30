@@ -10,11 +10,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
-type option func(s *httpServer)
+type option func(s *httpServerConf)
 
 // WithGinLog used to set gin HTTP access log file.
 func WithGinLog(f string) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		if f != "" {
 			s.ginLog = f
 		}
@@ -22,32 +22,32 @@ func WithGinLog(f string) option {
 }
 
 func WithGinReleaseMode(on bool) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		s.ginReleaseMode = on
 	}
 }
 
 func WithGinRotateMB(mb int) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		s.ginRotate = mb
 	}
 }
 
 func WithPProf(on bool) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		s.pprof = on
 	}
 }
 
 func WithPProfListen(listen string) option {
 	// TODO: check if ip:port format
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		s.pprofListen = listen
 	}
 }
 
 func WithAPIConfig(c *config.APIConfig) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		if c != nil {
 			s.apiConfig = c
 		}
@@ -55,7 +55,7 @@ func WithAPIConfig(c *config.APIConfig) option {
 }
 
 func WithDataway(dataway *dataway.Dataway) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		if dataway != nil {
 			s.dw = dataway
 		}
@@ -63,7 +63,7 @@ func WithDataway(dataway *dataway.Dataway) option {
 }
 
 func WithDCAConfig(c *config.DCAConfig) option {
-	return func(s *httpServer) {
+	return func(s *httpServerConf) {
 		if c != nil {
 			s.dcaConfig = c
 		}

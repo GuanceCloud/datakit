@@ -20,34 +20,40 @@ import (
 
 type apiList struct {
 	GetStats      func() (*DatakitStats, error)
-	ReloadDataKit func() error
+	ReloadDataKit func(context.Context) error
 	TestPipeline  func(string, string) (string, error)
 }
 
-var dcaAPI = &apiList{
-	GetStats:      GetStats,
-	ReloadDataKit: reloadDataKit,
-	TestPipeline:  pipelineTest,
-}
+var (
+	dcaAPI = &apiList{
+		GetStats:      GetStats,
+		ReloadDataKit: ReloadDataKit,
+		TestPipeline:  pipelineTest,
+	}
 
-func dcaHTTPStart() {
+	ignoreAuthURI = []string{
+		"/v1/rum/sourcemap",
+	}
+)
+
+func dcaHTTPStart(hs *httpServerConf) {
 	gin.DisableConsoleColor()
 
-	if apiServer.ginReleaseMode {
+	if hs.ginReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("DCA HTTP bind addr:%s", apiServer.dcaConfig.Listen)
+	l.Debugf("DCA HTTP bind addr:%s", hs.dcaConfig.Listen)
 
-	router := setupDcaRouter()
+	router := setupDcaRouter(hs)
 
 	srv := &http.Server{
-		Addr:    apiServer.dcaConfig.Listen,
+		Addr:    hs.dcaConfig.Listen,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv, false, nil, nil)
+		tryStartServer(hs, srv, false, nil, nil)
 		l.Info("DCA server exit")
 		return nil
 	})
@@ -63,70 +69,70 @@ func dcaHTTPStart() {
 	}
 }
 
-func whiteListCheck(c *gin.Context) {
-	var isValid bool
-	context := dcaContext{c: c}
-	clientIP := net.ParseIP(c.ClientIP())
-	whiteList := apiServer.dcaConfig.WhiteList
+func whiteListCheck(whiteList []string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var isValid bool
+		context := dcaContext{c: c}
+		clientIP := net.ParseIP(c.ClientIP())
 
-	// ignore loopback
-	if clientIP.IsLoopback() {
-		l.Debugf("loopback ip: %s, ignore check whitelist", clientIP)
-		c.Next()
-		return
-	}
+		// ignore loopback
+		if clientIP.IsLoopback() {
+			l.Debugf("loopback ip: %s, ignore check whitelist", clientIP)
+			c.Next()
+			return
+		}
 
-	if len(whiteList) == 0 {
-		l.Warn("DCA service is enabled, but the white list is empty!!")
-		c.Next()
-		return
-	}
+		if len(whiteList) == 0 {
+			c.Next()
+			return
+		}
 
-	isValid = false
-	for _, v := range whiteList {
-		l.Debugf("check cidr %s, client ip: %s", v, clientIP)
-		_, ipNet, err := net.ParseCIDR(v)
-		if err != nil {
-			ip := net.ParseIP(v)
-			if ip == nil {
-				l.Warnf("parse ip error, %s, ignore", v)
-				continue
-			}
+		isValid = false
+		for _, v := range whiteList {
+			l.Debugf("check cidr %s, client ip: %s", v, clientIP)
+			_, ipNet, err := net.ParseCIDR(v)
+			if err != nil {
+				ip := net.ParseIP(v)
+				if ip == nil {
+					l.Warnf("parse ip error, %s, ignore", v)
+					continue
+				}
 
-			if string(ip) == string(clientIP) {
+				if string(ip) == string(clientIP) {
+					isValid = true
+					break
+				}
+			} else if ipNet.Contains(clientIP) {
 				isValid = true
 				break
 			}
-		} else if ipNet.Contains(clientIP) {
-			isValid = true
-			break
 		}
-	}
 
-	if isValid {
-		c.Next()
-	} else {
-		context.fail(dcaError{
-			Code:      401,
-			ErrorCode: "whiteList.check.error",
-			ErrorMsg:  "your cient is not in the white list",
-		})
-		c.Abort()
+		if isValid {
+			c.Next()
+		} else {
+			context.fail(dcaError{
+				Code:      401,
+				ErrorCode: "whiteList.check.error",
+				ErrorMsg:  "your cient is not in the white list",
+			})
+			c.Abort()
+		}
 	}
 }
 
-func setupDcaRouter() *gin.Engine {
+func setupDcaRouter(hs *httpServerConf) *gin.Engine {
 	// set gin logger
 	var ginlogger io.Writer
 
-	l.Infof("set DCA server log to %s", apiServer.ginLog)
+	l.Infof("set DCA server log to %s", hs.ginLog)
 
-	if apiServer.ginLog == "stdout" {
+	if hs.ginLog == "stdout" {
 		ginlogger = os.Stdout
 	} else {
 		ginlogger = &lumberjack.Logger{
-			Filename:   apiServer.ginLog,
-			MaxSize:    apiServer.ginRotate, // MB
+			Filename:   hs.ginLog,
+			MaxSize:    hs.ginRotate, // MB
 			MaxBackups: 5,
 			MaxAge:     30, // day
 		}
@@ -169,10 +175,14 @@ func setupDcaRouter() *gin.Engine {
 	})
 
 	// white list check
-	router.Use(whiteListCheck)
+	if len(hs.dcaConfig.WhiteList) > 0 {
+		router.Use(whiteListCheck(hs.dcaConfig.WhiteList))
+	} else {
+		l.Warn("DCA service is enabled, but the white list is empty!!")
+	}
 
 	// auth check
-	router.Use(dcaAuthMiddleware)
+	router.Use(dcaAuthMiddleware(hs.dw.GetTokens()))
 
 	router.NoRoute(dcaDefault)
 

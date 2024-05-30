@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/netip"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	// nolint:gosec
@@ -33,15 +34,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 var (
 	l = logger.DefaultSLogger("http")
-
-	apiServer = &httpServer{
-		apiConfig: &config.APIConfig{},
-	}
 
 	pprofServer *http.Server
 
@@ -51,7 +49,7 @@ var (
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
-type httpServer struct {
+type httpServerConf struct {
 	ginLog         string
 	ginRotate      int
 	ginReleaseMode bool
@@ -66,50 +64,58 @@ type httpServer struct {
 	pprofListen string
 }
 
+func defaultHTTPServerConf() *httpServerConf {
+	return &httpServerConf{
+		apiConfig: &config.APIConfig{},
+	}
+}
+
 func Start(opts ...option) {
 	l = logger.SLogger("http")
 
 	// register golang runtime metrics
 	metrics.MustAddGolangMetrics()
 
+	hs := defaultHTTPServerConf()
+
 	for _, opt := range opts {
 		if opt != nil {
-			opt(apiServer)
+			opt(hs)
 		}
 	}
 
-	if apiServer.apiConfig.RequestRateLimit > 0.0 {
-		l.Infof("set request limit to %f", apiServer.apiConfig.RequestRateLimit)
-		reqLimiter = setupLimiter(apiServer.apiConfig.RequestRateLimit)
+	if hs.apiConfig.RequestRateLimit > 0.0 {
+		l.Infof("set request limit to %f", hs.apiConfig.RequestRateLimit)
+		reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit)
 	} else {
-		l.Infof("set request limit not set: %f", apiServer.apiConfig.RequestRateLimit)
+		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
 	}
 
-	apiServer.timeout = 30 * time.Second
-	switch apiServer.apiConfig.Timeout {
+	hs.timeout = 30 * time.Second
+	switch hs.apiConfig.Timeout {
 	case "":
 	default:
-		du, err := time.ParseDuration(apiServer.apiConfig.Timeout)
+		du, err := time.ParseDuration(hs.apiConfig.Timeout)
 		if err == nil {
-			apiServer.timeout = du
+			hs.timeout = du
 		}
 	}
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
-		HTTPStart()
+		HTTPStart(hs)
 		l.Info("http goroutine exit")
 		return nil
 	})
 
 	// DCA server require dataway
-	if apiServer.dcaConfig != nil {
-		if apiServer.dcaConfig.Enable {
-			if apiServer.dw == nil {
+	if hs.dcaConfig != nil {
+		if hs.dcaConfig.Enable {
+			if hs.dw == nil {
 				l.Warn("Ignore to start DCA server because dataway is not set!")
 			} else {
 				g.Go(func(ctx context.Context) error {
-					dcaHTTPStart()
+					dcaHTTPStart(hs)
 					l.Info("DCA http goroutine exit")
 					return nil
 				})
@@ -118,29 +124,29 @@ func Start(opts ...option) {
 	}
 
 	// start pprof if enabled
-	if apiServer.pprof {
+	if hs.pprof {
 		pprofServer = &http.Server{
-			Addr: apiServer.pprofListen,
+			Addr: hs.pprofListen,
 		}
 
-		l.Infof("start pprof on %s", apiServer.pprofListen)
+		l.Infof("start pprof on %s", hs.pprofListen)
 		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofServer, true, semReload, semReloadCompleted)
+			tryStartServer(hs, pprofServer, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
 			return nil
 		})
 	}
 }
 
-func setupGinLogger() (gl io.Writer) {
+func setupGinLogger(hs *httpServerConf) (gl io.Writer) {
 	// set gin logger
-	l.Infof("set gin log to %s", apiServer.ginLog)
-	if apiServer.ginLog == "stdout" {
+	l.Infof("set gin log to %s", hs.ginLog)
+	if hs.ginLog == "stdout" {
 		gl = os.Stdout
 	} else {
 		gl = &lumberjack.Logger{
-			Filename:   apiServer.ginLog,
-			MaxSize:    apiServer.ginRotate, // MB
+			Filename:   hs.ginLog,
+			MaxSize:    hs.ginRotate, // MB
 			MaxBackups: 5,
 			MaxAge:     30, // day
 		}
@@ -153,22 +159,22 @@ func setDKInfo(c *gin.Context) {
 	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DatakitHostName))
 }
 
-func timeoutResponse(c *gin.Context) {
-	c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", apiServer.timeout))
-}
-
-func dkHTTPTimeout() gin.HandlerFunc {
+func dkHTTPTimeout(du time.Duration) gin.HandlerFunc {
 	return timeout.New(
-		timeout.WithTimeout(apiServer.timeout),
+		timeout.WithTimeout(du),
+
 		timeout.WithHandler(func(c *gin.Context) {
 			c.Next()
 		}),
-		timeout.WithResponse(timeoutResponse),
+
+		timeout.WithResponse(func(c *gin.Context) {
+			c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", du))
+		}),
 	)
 }
 
-func setupRouter() *gin.Engine {
-	if apiServer.ginReleaseMode {
+func setupRouter(hs *httpServerConf) *gin.Engine {
+	if hs.ginReleaseMode {
 		l.Info("set gin in release mode")
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -176,24 +182,24 @@ func setupRouter() *gin.Engine {
 	router := gin.New()
 
 	// use whitelist config
-	if len(apiServer.apiConfig.PublicAPIs) != 0 {
-		router.Use(getAPIWhiteListMiddleware())
+	if len(hs.apiConfig.PublicAPIs) != 0 {
+		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
 	}
 
 	router.Use(setDKInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormatter,
-		Output:    setupGinLogger(),
+		Output:    setupGinLogger(hs),
 	}))
 
 	router.Use(gin.Recovery())
 
-	router.Use(uhttp.CORSMiddlewareV2(apiServer.apiConfig.AllowedCORSOrigins))
+	router.Use(uhttp.CORSMiddlewareV2(hs.apiConfig.AllowedCORSOrigins))
 
-	router.Use(dkHTTPTimeout())
+	router.Use(dkHTTPTimeout(hs.timeout))
 
-	if !apiServer.apiConfig.Disable404Page {
+	if !hs.apiConfig.Disable404Page {
 		router.NoRoute(page404)
 	}
 
@@ -201,18 +207,23 @@ func setupRouter() *gin.Engine {
 
 	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats)) // Deprecated, use /metrics
 
-	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
-
 	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
-	router.GET("/restart", apiRestart)
-	router.GET("/v1/workspace", ginLimiter(reqLimiter), apiWorkspace)
 	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
-	router.POST("/v1/lasterror", ginLimiter(reqLimiter), apiGetDatakitLastError)
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
-	router.POST("/v1/query/raw", ginLimiter(reqLimiter), apiQueryRaw)
-	router.POST("/v1/object/labels", ginLimiter(reqLimiter), apiCreateOrUpdateObjectLabel)
-	router.DELETE("/v1/object/labels", ginLimiter(reqLimiter), apiDeleteObjectLabel)
+
+	router.POST("/v1/query/raw", rawHTTPWraper(reqLimiter, apiQueryRaw, hs.dw))
+
+	router.POST("/v1/object/labels", rawHTTPWraper(reqLimiter, apiCreateOrUpdateObjectLabel, hs.dw))
+	router.DELETE("/v1/object/labels", rawHTTPWraper(reqLimiter, apiDeleteObjectLabel, hs.dw))
+
 	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
+
+	router.GET("/v1/workspace", rawHTTPWraper(reqLimiter, apiWorkspace, hs.dw))
+
+	router.POST("/v1/lasterror", rawHTTPWraper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
+	router.GET("/restart", rawHTTPWraper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
+
+	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
 
 	router.GET("/v1/global/host/tags", ginLimiter(reqLimiter), getHostTags)
 	router.POST("/v1/global/host/tags", ginLimiter(reqLimiter), postHostTags)
@@ -224,15 +235,17 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-func getAPIWhiteListMiddleware() gin.HandlerFunc {
-	publicAPITable := make(map[string]struct{}, len(apiServer.apiConfig.PublicAPIs))
-	for _, apiPath := range apiServer.apiConfig.PublicAPIs {
+func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
+	publicAPITable := make(map[string]struct{}, len(apis))
+	for _, apiPath := range apis {
 		apiPath = strings.TrimSpace(apiPath)
 		if len(apiPath) > 0 && apiPath[0] != '/' {
 			apiPath = "/" + apiPath
 		}
 		publicAPITable[apiPath] = struct{}{}
 	}
+
+	l.Debugf("public API list: %+#v", publicAPITable)
 
 	return func(c *gin.Context) {
 		cliIP := net.ParseIP(c.ClientIP())
@@ -247,21 +260,21 @@ func getAPIWhiteListMiddleware() gin.HandlerFunc {
 	}
 }
 
-func HTTPStart() {
+func HTTPStart(hs *httpServerConf) {
 	refreshRebootSem()
-	l.Debugf("HTTP bind addr:%s", apiServer.apiConfig.Listen)
+	l.Debugf("HTTP bind addr:%s", hs.apiConfig.Listen)
 
 	srv := &http.Server{
-		Addr:    apiServer.apiConfig.Listen,
-		Handler: setupRouter(),
+		Addr:    hs.apiConfig.Listen,
+		Handler: setupRouter(hs),
 	}
 
-	if apiServer.apiConfig.CloseIdleConnection {
-		srv.ReadTimeout = apiServer.timeout
+	if hs.apiConfig.CloseIdleConnection {
+		srv.ReadTimeout = hs.timeout
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv, true, semReload, semReloadCompleted)
+		tryStartServer(hs, srv, true, semReload, semReloadCompleted)
 		l.Info("http server exit")
 		return nil
 	})
@@ -275,7 +288,7 @@ func HTTPStart() {
 			l.Info("http server shutdown ok")
 		}
 
-		if apiServer.pprof {
+		if hs.pprof {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			if err := pprofServer.Shutdown(ctx); err != nil {
@@ -308,8 +321,18 @@ func refreshRebootSem() {
 	semReloadCompleted = cliutils.NewSem()
 }
 
-func ReloadTheNormalServer() {
+func ReloadTheNormalServer(opts ...option) {
 	if semReload != nil {
+		hs := &httpServerConf{
+			apiConfig: &config.APIConfig{},
+		}
+
+		for _, opt := range opts {
+			if opt != nil {
+				opt(hs)
+			}
+		}
+
 		semReload.Close()
 
 		// wait stop completed
@@ -321,7 +344,7 @@ func ReloadTheNormalServer() {
 
 			// start HTTP server
 			g.Go(func(ctx context.Context) error {
-				HTTPStart()
+				HTTPStart(hs)
 				l.Info("http goroutine exit")
 				return nil
 			})
@@ -331,9 +354,13 @@ func ReloadTheNormalServer() {
 	}
 }
 
-func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadCompleted *cliutils.Sem) {
+func tryStartServer(hs *httpServerConf,
+	srv *http.Server,
+	canReload bool,
+	semReload,
+	semReloadCompleted *cliutils.Sem,
+) {
 	retryCnt := 0
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -379,14 +406,17 @@ func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadComple
 
 	defer closeListener()
 
-	tryTLS := apiServer.apiConfig.HTTPSEnabled()
+	tryTLS := hs.apiConfig.HTTPSEnabled()
 	for {
 		if tryTLS {
 			l.Infof("try start server with tls at %s cert: %s privkey: %s",
 				srv.Addr,
-				apiServer.apiConfig.TLSConf.Cert,
-				apiServer.apiConfig.TLSConf.PrivKey)
-			if err = srv.ServeTLS(listener, apiServer.apiConfig.TLSConf.Cert, apiServer.apiConfig.TLSConf.PrivKey); err != nil {
+				hs.apiConfig.TLSConf.Cert,
+				hs.apiConfig.TLSConf.PrivKey)
+
+			if err = srv.ServeTLS(listener,
+				hs.apiConfig.TLSConf.Cert,
+				hs.apiConfig.TLSConf.PrivKey); err != nil {
 				l.Warn(err.Error())
 			}
 		}
@@ -415,24 +445,6 @@ func portInUse(addr string) bool {
 	}
 	defer conn.Close() //nolint:errcheck
 	return true
-}
-
-func checkToken(r *http.Request) error {
-	if apiServer.dw == nil {
-		return ErrInvalidToken
-	}
-	localTokens := apiServer.dw.GetTokens()
-	if len(localTokens) == 0 {
-		return ErrInvalidToken
-	}
-
-	tkn := r.URL.Query().Get("token")
-
-	if tkn == "" || tkn != localTokens[0] {
-		return ErrInvalidToken
-	}
-
-	return nil
 }
 
 func initListener(lsn string) (net.Listener, error) {
@@ -477,4 +489,27 @@ func initListener(lsn string) (net.Listener, error) {
 	}
 
 	return listener, nil
+}
+
+func checkTokens(dw *dataway.Dataway, req *http.Request) error {
+	if dw == nil {
+		return ErrInvalidToken
+	}
+
+	localTokens := dw.GetTokens()
+	if len(localTokens) == 0 {
+		return ErrInvalidToken
+	}
+
+	tkn := req.URL.Query().Get("token")
+	if tkn == "" || tkn != localTokens[0] {
+		return ErrInvalidToken
+	}
+
+	return nil
+}
+
+// IsNil test if x is a nil pointer or nil interface.
+func IsNil(x any) bool {
+	return x == nil || (reflect.ValueOf(x).Kind() == reflect.Ptr && reflect.ValueOf(x).IsNil())
 }

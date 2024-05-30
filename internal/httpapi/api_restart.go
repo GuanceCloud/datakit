@@ -6,22 +6,54 @@
 package httpapi
 
 import (
+	"context"
 	"fmt"
-
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/gin-gonic/gin"
+	"net/http"
+	"reflect"
+	"time"
 )
 
-func apiRestart(c *gin.Context) {
-	if err := checkToken(c.Request); err != nil {
-		uhttp.HttpErr(c, err)
-		return
+type IAPIRestart interface {
+	checkToken(*http.Request) error
+	restartDatakit() error
+}
+
+type apiRestartImpl struct {
+	conf *httpServerConf
+}
+
+func (x *apiRestartImpl) checkToken(req *http.Request) error {
+	if x.conf.dw == nil {
+		return ErrInvalidToken
 	}
 
-	if err := reloadDataKit(); err != nil {
-		uhttp.HttpErr(c, fmt.Errorf("restart datakit failed: %w", err))
-		return
+	return checkTokens(x.conf.dw, req)
+}
+
+func (x *apiRestartImpl) restartDatakit() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	return ReloadDataKit(ctx)
+}
+
+func apiRestart(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("invalid API handle")
 	}
 
-	OK.HttpBody(c, nil)
+	r, ok := args[0].(IAPIRestart)
+	if !ok {
+		return nil, fmt.Errorf("invalid API restarter, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	if err := r.checkToken(req); err != nil {
+		return nil, err
+	}
+
+	if err := r.restartDatakit(); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

@@ -10,7 +10,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -782,9 +781,9 @@ func TestGlobalVariablesMetrics(t *testing.T) {
 
 			for k, v := range tc.expect {
 				switch x := v.(type) {
-				case int64:
+				case uint64:
 					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					tu.Equals(t, x, res[k].(uint64))
 				case string:
 					tu.Equals(t, x, res[k].(string))
 				default:
@@ -1210,9 +1209,9 @@ ki4UgeoEPi/fhqe/34QrAq5sS/fksHTzGgQLqYclWn1a
 
 			for k, v := range tc.expect {
 				switch x := v.(type) {
-				case int64:
+				case uint64:
 					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(int64))
+					tu.Equals(t, x, res[k].(uint64))
 				case string:
 					tu.Equals(t, x, res[k].(string))
 				default:
@@ -1228,7 +1227,7 @@ func TestBinlogMetrics(t *testing.T) {
 	cases := []struct {
 		name   string
 		rows   *mockRows
-		expect int64
+		expect uint64
 	}{
 		// mysql 5
 		{
@@ -1241,7 +1240,7 @@ func TestBinlogMetrics(t *testing.T) {
 					{"mysql-bin.000003", "789"},
 				},
 			},
-			expect: int64(123 + 456 + 789),
+			expect: uint64(123 + 456 + 789),
 		},
 
 		{
@@ -1254,7 +1253,7 @@ func TestBinlogMetrics(t *testing.T) {
 					{"mysql-bin.000003", "abc123"}, // ignored
 				},
 			},
-			expect: int64(123 + 456),
+			expect: uint64(123 + 456),
 		},
 
 		{
@@ -1263,22 +1262,19 @@ func TestBinlogMetrics(t *testing.T) {
 				t:    t,
 				data: [][]interface{}{},
 			},
-			expect: int64(0),
+			expect: uint64(0),
 		},
 		{
 			name: "mysql_5_invalid-bin-log-size",
 			rows: &mockRows{
 				t: t,
 				data: [][]interface{}{
-					{"mysql-bin.000001", "-1"},   // ignored
-					{"mysql-bin.000002", "3.14"}, // ignored
-					{
-						"mysql-bin.000003",
-						fmt.Sprintf("%d", uint64(math.MaxInt64)+1),
-					}, // ignored
+					{"mysql-bin.000001", "-1"},              // ignored
+					{"mysql-bin.000002", "3.14"},            // ignored
+					{"mysql-bin.000003", "invalid-abc-123"}, // ignored
 				},
 			},
-			expect: int64(0),
+			expect: uint64(0),
 		},
 
 		// mysql 8
@@ -1295,7 +1291,7 @@ func TestBinlogMetrics(t *testing.T) {
 					{"mysql-bin.000003", "789", "no"},
 				},
 			},
-			expect: int64(123 + 456 + 789),
+			expect: uint64(123 + 456 + 789),
 		},
 
 		{
@@ -1311,7 +1307,7 @@ func TestBinlogMetrics(t *testing.T) {
 					{"mysql-bin.000003", "abc123", "no"}, // ignored
 				},
 			},
-			expect: int64(123 + 456),
+			expect: uint64(123 + 456),
 		},
 
 		{
@@ -1323,7 +1319,7 @@ func TestBinlogMetrics(t *testing.T) {
 				},
 				data: [][]interface{}{},
 			},
-			expect: int64(0),
+			expect: uint64(0),
 		},
 		{
 			name: "mysql_8_invalid-bin-log-size",
@@ -1333,16 +1329,12 @@ func TestBinlogMetrics(t *testing.T) {
 					"Log_name", "File_size", "Encrypted",
 				},
 				data: [][]interface{}{
-					{"mysql-bin.000001", "-1", "no"},   // ignored
-					{"mysql-bin.000002", "3.14", "no"}, // ignored
-					{
-						"mysql-bin.000003",
-						fmt.Sprintf("%d", uint64(math.MaxInt64)+1),
-						"no",
-					}, // ignored
+					{"mysql-bin.000001", "-1", "no"},           // ignored
+					{"mysql-bin.000002", "3.14", "no"},         // ignored
+					{"mysql-bin.000003", "some-invalid", "no"}, // ignored
 				},
 			},
-			expect: int64(0),
+			expect: uint64(0),
 		},
 	}
 
@@ -1350,7 +1342,7 @@ func TestBinlogMetrics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			res := binlogMetrics(tc.rows)
 
-			tu.Equals(t, tc.expect, res["Binlog_space_usage_bytes"].(int64))
+			tu.Equals(t, tc.expect, res["Binlog_space_usage_bytes"].(uint64))
 		})
 	}
 }

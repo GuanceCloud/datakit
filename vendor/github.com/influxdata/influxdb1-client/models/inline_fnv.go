@@ -1,6 +1,6 @@
-package models // import "github.com/influxdata/influxdb1-client/models"
+package models
 
-// from stdlib hash/fnv/fnv.go
+// from stdlib hash/fnv/fnv.go.
 const (
 	prime64  = 1099511628211
 	offset64 = 14695981039346656037

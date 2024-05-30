@@ -17,3 +17,6 @@ copyright_check:
 
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
+
+test:
+		LOGGER_PATH=nul CGO_CFLAGS=-Wno-undef-prefix go test -test.v -timeout 99999m -cover ./...

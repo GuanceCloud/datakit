@@ -7,12 +7,11 @@ package httpapi
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/gin-gonic/gin"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
@@ -22,39 +21,41 @@ type errMessage struct {
 	ErrContent string `json:"err_content"`
 }
 
-// apiGetDatakitLastError 获取外部采集器错误，并 feederror 处理.
-func apiGetDatakitLastError(c *gin.Context) {
-	em, err := doAPIGetDatakitLastError(c.Request, c.Writer)
-	if err != nil {
-		l.Errorf("doAPIGetDatakitLastError: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
-	}
-
-	dkio.DefaultFeeder().FeedLastError(em.ErrContent,
-		dkio.WithLastErrorInput(em.Input),
-		dkio.WithLastErrorSource(em.Source),
-	)
+type IAPIPutLastError interface {
+	FeedLastError(err string, opts ...dkio.LastErrorOption)
 }
 
-func doAPIGetDatakitLastError(r *http.Request, w http.ResponseWriter) (*errMessage, error) {
-	var em errMessage
+// apiPutLastError 获取外部采集器错误，并 feederror 处理.
+func apiPutLastError(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("invalid API handle")
+	}
 
-	body, err := io.ReadAll(r.Body)
+	f, ok := args[0].(IAPIPutLastError)
+	if !ok {
+		return nil, fmt.Errorf("invalid feeder, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	j, err := io.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("Read body error: %s", err.Error())
 		return nil, err
 	}
-	defer r.Body.Close() //nolint:errcheck
+	defer req.Body.Close() //nolint:errcheck
 
-	if err = json.Unmarshal(body, &em); err != nil {
+	var em errMessage
+	if err = json.Unmarshal(j, &em); err != nil {
 		l.Errorf("json.Unmarshal: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("invalid JSON body: %w", err)
 	}
-	if em.Input != "" && em.ErrContent != "" {
-		l.Debugf("error_name: %s,error_content:%s", em.Input, em.ErrContent)
-		w.WriteHeader(200)
-		return &em, err
+
+	if em.Input == "" || em.ErrContent == "" {
+		return nil, fmt.Errorf("input or errcontent can not be nil")
 	}
-	return nil, errors.New("input or errcontent can not be nil")
+
+	l.Debugf("error_name: %s, error_content:%s", em.Input, em.ErrContent)
+
+	f.FeedLastError(em.ErrContent, dkio.WithLastErrorInput(em.Input), dkio.WithLastErrorSource(em.Source))
+
+	return nil, nil
 }

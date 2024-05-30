@@ -11,10 +11,6 @@ import (
 )
 
 const (
-	LineProtocol Encoding = iota
-	Protobuf
-	JSON
-
 	// Limit tag/field key/value length.
 	defaultMaxFieldValLen int = 32 * 1024 * 1024 // if field value is string,limit to 32M
 	defaultKeyLen             = 256

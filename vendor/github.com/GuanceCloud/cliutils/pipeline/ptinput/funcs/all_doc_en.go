@@ -197,6 +197,12 @@ var (
 
 	//go:embed md/gjson.en.md
 	docGJSONEN string
+
+	//go:embed md/point_window.en.md
+	docPointWindowEN string
+
+	//go:embed md/window_hit.en.md
+	docWindowHitEN string
 )
 
 const (
@@ -605,6 +611,20 @@ var (
 
 	gjsonMarkdownEN = PLDoc{
 		Doc: docGJSONEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	pointWinodoeMarkdownEN = PLDoc{
+		Doc: docPointWindowEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eOther},
+		},
+	}
+
+	winHitMarkdownEN = PLDoc{
+		Doc: docWindowHitEN,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eOther},
 		},

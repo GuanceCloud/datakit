@@ -26,13 +26,12 @@ This API is used to report various `category` of data to DataKit, and the parame
 | `echo_line_proto`         | string | N               | no            | Giving any value (such as `true`) returns line protocol format point data. default not echoed.                                                                                            |
 | `echo_json`               | string | N               | -             | Giving any value (such as `true`) returns JSON format point data. default not echoed. If both echo enabled, preferred line protocol                                                       |
 | `global_election_tags`    | string | N               | -             | Giving any value (such as `true`) to append global-election tags（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                              |
-| `ignore_global_host_tags` | string | false           | no            | Giving any value (such as `true`) is considered to ignore the global tag on DataKit（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` would be abandoned. |
+| `ignore_global_host_tags` | bool | false           | no            | Giving any value (such as `true`) is considered to ignore the global tag on DataKit（[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）。`ignore_global_tags` would be abandoned. |
 | `input`                   | string | N               | `datakit`     | Data source name                                                                                                                                                                          |
 | `loose`                   | bool   | N               | true          | Loose mode, for some invalid POST(JSON or lineprotocol), DataKit would try to auto-fix them ([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)).                                   |
 | `strict`                  | bool   | N               | false         | Strict mode, for some invalid POST(JSON or lineprotocol), DataKit would reject them and showing why([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)).                            |
 | `precision`               | string | N               | `n`           | Data accuracy (supporting `n/u/ms/s/m/h`)                                                                                                                                                 |
 | `source`                  | string | N               | no            | Specify this field only for logging support (that is, `category` is `logging`). If you do not specify `source`, the uploaded log data would not be cut by Pipeline.                       |
-| `version`                 | string | N               | no            | The version number of the current collector                                                                                                                                               |
 
 HTTP body supports both line protocol and JSON. See [here](apis.md#lineproto-limitation) for constraints on data structures, whether in line protocol or JSON form.
 
@@ -59,12 +58,12 @@ In DataKit, the main data types are as follows (listed in alphabetical order acc
 
 To facilitate line protocol processing, all data upload APIs support body in JSON form.  JSON body parameter descriptions are as follows.
 
-| Parameter        | Type                        | Required or not | Default Value | Description                                                                          |
-| ------------- | --------------------------- | -------- | ------ | ----------------------------------------------------------------------------- |
-| `measurement` | `string`                    | Yes       | None     | Measurement name                                                            |
-| `tags`        | `map[string]string`         | No       | None     | Tag list                                                                      |
-| `fields`      | `map[string]any-basic-type` | Yes       | None     | Line protocol can not be without a field, it can only be a base type, not a compound type (such as array, dictionary, etc.). |
-| `time`        | `int64`                     | No       | None     | If it is not provided, the receiving time of DataKit shall prevail.                                      |
+| Parameter     | Type                        | Required or not | Default Value | Description                                                                                                                  |
+| ---           | ---                         | ---             | ---           | ---                                                                                                                          |
+| `measurement` | `string`                    | Yes             | None          | Measurement name                                                                                                             |
+| `tags`        | `map[string]string`         | No              | None          | Tag list                                                                                                                     |
+| `fields`      | `map[string]any-basic-type` | Yes             | None          | Line protocol can not be without a field, it can only be a base type, not a compound type (such as array, dictionary, etc.). |
+| `time`        | `int64`                     | No              | None          | If it is not provided, the receiving time of DataKit shall prevail.                                                          |
 
 ```json
 [
@@ -120,7 +119,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/http       4.499s
 ### Logging Example {#api-logging-example}
 
 ```http
-POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
+POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_host_tags=true HTTP/1.1
 
 nginx,tag1=a,tag2=b,filename=a.log f1=1i,f2=1.2,f3="abc",message="real-log-data",status="debug" 1620723870000000000
 mysql,tag1=a,tag2=b,filename=b.log f1=1i,f2=1.2,f3="abc",message="other-log-data",status="info" 1620723870000000000
@@ -133,7 +132,7 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 ### Metric Data Example {#api-metric-example}
 
 ``` http
-POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
+POST /v1/write/metric?precision=n&input=my-sample-logger&ignore_global_host_tags=true HTTP/1.1
 
 cpu,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 mem,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
@@ -143,7 +142,7 @@ net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ### Object Data Example {#api-object-example}
 
 ``` http
-POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
+POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=true HTTP/1.1
 
 redis,name=xxx,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000

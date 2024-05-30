@@ -9,9 +9,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"reflect"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/gin-gonic/gin"
 )
 
 type SingleQuery struct {
@@ -48,63 +50,62 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 	return json.Marshal(q)
 }
 
-func apiQueryRaw(c *gin.Context) {
-	body, err := uhttp.GinRead(c)
+type IAPIQueryRaw interface {
+	GetTokens() []string
+	DQLQuery([]byte) (*http.Response, error)
+}
+
+func apiQueryRaw(_ http.ResponseWriter, req *http.Request, args ...any) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, ErrInvalidAPIHandler
+	}
+
+	if IsNil(args[0]) {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "nil dataway")
+	}
+
+	dw, ok := args[0].(IAPIQueryRaw)
+	if !ok {
+		return nil, uhttp.Errorf(ErrInvalidAPIHandler, "invalid API setup, got type %s", reflect.TypeOf(args[0]))
+	}
+
+	tkns := dw.GetTokens()
+	if len(tkns) == 0 {
+		return nil, fmt.Errorf("dataway token missing")
+	}
+
+	cliBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		l.Errorf("GinRead: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
+	defer req.Body.Close() // nolint:errcheck
 
 	var q QueryRaw
-	if err := json.Unmarshal(body, &q); err != nil {
+	if err := json.Unmarshal(cliBody, &q); err != nil {
 		l.Errorf("json.Unmarshal: %s", err)
-		uhttp.HttpErr(c, err)
-		return
-	}
-
-	if apiServer.dw == nil {
-		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
-		return
+		return nil, uhttp.Errorf(ErrInvalidJSON, "json.Unmarshal: %s", err.Error())
 	}
 
 	if q.Token == "" {
-		tkns := apiServer.dw.GetTokens()
-		if len(tkns) == 0 {
-			uhttp.HttpErr(c, fmt.Errorf("dataway token not found"))
-			return
-		}
-
 		q.Token = tkns[0]
 	}
 
-	j, err := json.Marshal(q)
+	j, err := json.Marshal(q) // update token within client query
 	if err != nil {
-		l.Errorf("json.Marshal: %s", err.Error())
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
-	l.Debugf("query: %s", string(j))
-
-	resp, err := apiServer.dw.DQLQuery(j)
+	resp, err := dw.DQLQuery(j)
 	if err != nil {
-		l.Errorf("DQLQuery: %s", err)
-		uhttp.HttpErr(c, err)
-		return
+		return nil, err
 	}
 
-	for k, v := range resp.Header {
-		l.Debugf("%s: %v", k, v)
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
+	j, err = io.ReadAll(resp.Body)
 	if err != nil {
-		l.Errorf("read response body %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
+		return nil, err
 	}
-	defer resp.Body.Close() //nolint:errcheck
+	defer resp.Body.Close() // nolint:errcheck
 
-	c.Data(resp.StatusCode, "application/json", respBody)
+	return uhttp.RawJSONBody(j), nil
 }

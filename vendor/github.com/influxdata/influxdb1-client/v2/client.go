@@ -1,5 +1,5 @@
 // Package client (v2) is the current official Go client for InfluxDB.
-package client // import "github.com/influxdata/influxdb1-client/v2"
+package client
 
 import (
 	"bytes"
@@ -179,7 +179,7 @@ func (c *client) Ping(timeout time.Duration) (time.Duration, string, error) {
 	}
 
 	if resp.StatusCode != http.StatusNoContent {
-		var err = errors.New(string(body))
+		err := errors.New(string(body))
 		return 0, "", err
 	}
 
@@ -447,7 +447,7 @@ func (c *client) Write(bp BatchPoints) error {
 	}
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		var err = errors.New(string(body))
+		err := errors.New(string(body))
 		return err
 	}
 
@@ -697,7 +697,6 @@ func (c *client) createDefaultRequest(q Query) (*http.Request, error) {
 	req.URL.RawQuery = params.Encode()
 
 	return req, nil
-
 }
 
 // duplexReader reads responses and writes it to another writer while

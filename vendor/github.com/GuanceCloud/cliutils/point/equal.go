@@ -12,18 +12,74 @@ import (
 	"sort"
 )
 
+type EqualOption func(*eqopt)
+
+type eqopt struct {
+	withMeasurement bool
+	excludeKeys     []string
+}
+
+func (o *eqopt) keyExlcuded(key string) bool {
+	for _, k := range o.excludeKeys {
+		if k == key {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (o *eqopt) kvsEq(l, r KVs) (bool, string) {
+	if len(o.excludeKeys) == 0 && len(l) != len(r) {
+		return false, fmt.Sprintf("count not equal(%d <> %d)", len(l), len(r))
+	}
+
+	for _, f := range l {
+		if o.keyExlcuded(f.Key) {
+			continue
+		}
+
+		if !r.Has(f.Key) { // key not exists
+			return false, fmt.Sprintf("%s not exists", f.Key)
+		}
+
+		v := r.Get(f.Key)
+		if f.String() != v.String() { // compare proto-string format value
+			return false, fmt.Sprintf("%q value not deep equal(%s <> %s)", f.Key, f, v)
+		}
+	}
+	return true, ""
+}
+
+// EqualWithMeasurement set compare on points with/without measurement.
+func EqualWithMeasurement(on bool) EqualOption {
+	return func(o *eqopt) { o.withMeasurement = on }
+}
+
+// EqualWithoutKeys set compare on points without specific keys.
+func EqualWithoutKeys(keys ...string) EqualOption {
+	return func(o *eqopt) { o.excludeKeys = append(o.excludeKeys, keys...) }
+}
+
 // Equal test if two point are the same.
 // Equality test NOT check on warns and debugs.
 // If two points equal, they have the same ID(MD5/Sha256),
 // but same ID do not means they are equal.
-func (p *Point) Equal(x *Point) bool {
-	eq, _ := p.EqualWithReason(x)
+func (p *Point) Equal(x *Point, opts ...EqualOption) bool {
+	eq, _ := p.EqualWithReason(x, opts...)
 	return eq
 }
 
-func (p *Point) EqualWithReason(x *Point) (bool, string) {
+func (p *Point) EqualWithReason(x *Point, opts ...EqualOption) (bool, string) {
 	if x == nil {
 		return false, "empty point"
+	}
+
+	eopt := &eqopt{withMeasurement: true}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(eopt)
+		}
 	}
 
 	pname := p.Name() //nolint:ifshort
@@ -33,51 +89,30 @@ func (p *Point) EqualWithReason(x *Point) (bool, string) {
 	xtags := x.Tags()
 	xfields := x.Fields()
 
-	if xtime, ptime := x.Time().UnixNano(), p.Time().UnixNano(); xtime != ptime {
-		return false, fmt.Sprintf("timestamp not equal(%d <> %d)", ptime, xtime)
+	if !eopt.keyExlcuded("time") {
+		if xtime, ptime := x.Time().UnixNano(), p.Time().UnixNano(); xtime != ptime {
+			return false, fmt.Sprintf("timestamp not equal(%d <> %d)", ptime, xtime)
+		}
 	}
 
-	if xname := x.Name(); xname != pname {
-		return false, fmt.Sprintf("measurement not equla(%s <> %s)", pname, xname)
+	if eopt.withMeasurement {
+		if xname := x.Name(); eopt.withMeasurement && xname != pname {
+			return false, fmt.Sprintf("measurement not equla(%s <> %s)", pname, xname)
+		}
 	}
 
-	if eq, reason := kvsEq(pfields, xfields); !eq {
-		return eq, reason
-	}
-
-	if len(xtags) != len(ptags) {
+	if len(eopt.excludeKeys) == 0 && len(xtags) != len(ptags) {
 		return false, fmt.Sprintf("tag count not equal(%d <> %d)", len(ptags), len(xtags))
 	}
 
-	for _, t := range ptags {
-		if !xtags.Has(t.Key) {
-			return false, fmt.Sprintf("tag %s not exists", t.Key)
-		}
-
-		kv := xtags.Get(t.Key)
-		if t.GetS() != kv.GetS() {
-			return false, fmt.Sprintf("tag %q value not equal(%s <> %s)", t.Key, t, kv)
-		}
+	if eq, reason := eopt.kvsEq(pfields, xfields); !eq {
+		return eq, fmt.Sprintf("field: %s", reason)
 	}
 
-	return true, ""
-}
-
-func kvsEq(l, r KVs) (bool, string) {
-	if len(l) != len(r) {
-		return false, fmt.Sprintf("field count not equal(%d <> %d)", len(l), len(r))
+	if eq, reason := eopt.kvsEq(ptags, xtags); !eq {
+		return eq, fmt.Sprintf("tag: %s", reason)
 	}
 
-	for _, f := range l {
-		if !r.Has(f.Key) { // key not exists
-			return false, fmt.Sprintf("field %s not exists", f.Key)
-		}
-
-		v := r.Get(f.Key)
-		if f.String() != v.String() {
-			return false, fmt.Sprintf("field %q value not deep equal(%s <> %s)", f.Key, f, v)
-		}
-	}
 	return true, ""
 }
 

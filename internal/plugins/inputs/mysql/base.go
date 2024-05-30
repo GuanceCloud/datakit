@@ -39,6 +39,77 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 		Name: "mysql",
 		Type: "metric",
 		Fields: map[string]interface{}{
+			// huge max-values
+			"parser_max_mem_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "",
+			},
+
+			"myisam_mmap_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "",
+			},
+
+			"global_connection_memory_limit": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "",
+			},
+
+			"max_seeks_for_key": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "",
+			},
+
+			"max_join_size": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "",
+			},
+
+			"connection_memory_limit": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "",
+			},
+
+			"Ssl_ctx_verify_depth": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "",
+			},
+
+			"Mysqlx_ssl_ctx_verify_depth": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "",
+			},
+
+			"max_write_lock_count": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "",
+			},
+
+			"sql_select_limit": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "",
+			},
+
 			// status
 			"Slow_queries": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -130,6 +201,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 				Unit:     inputs.NCount,
 				Desc:     "The number of times of replace-select statement has been executed.",
 			},
+
 			// Connection Metrics
 			"Connections": &inputs.FieldInfo{
 				DataType: inputs.Int,

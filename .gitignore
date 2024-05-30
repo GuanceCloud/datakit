@@ -28,6 +28,7 @@ scripts/v1.data
 *.yaml
 *.zip
 test.*/
+*.test
 ddtrace.test
 # to ignore all test generated files
 ag.sh

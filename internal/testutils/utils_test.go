@@ -37,12 +37,3 @@ func TestRandTime(t *testing.T) {
 		t.Log(RandTime().String())
 	}
 }
-
-func TestRandPoint(t *testing.T) {
-	pnt := RandPoint("test_utils", 30, 90)
-	t.Log(pnt.String())
-	pnts := RandPoints(100, 10, 30)
-	for i := range pnts {
-		t.Log(pnts[i].String())
-	}
-}

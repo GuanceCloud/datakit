@@ -151,117 +151,116 @@ func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName
 	return name[:index], name[index+1:]
 }
 
-func (p *Prom) filterIgnoreTagKV(tags map[string]string) map[string]string {
+func (p *Prom) filterIgnoreTagKV(tags point.KVs) point.KVs {
 	if p.opt.ignoreTagKV == nil {
 		return tags
 	}
 
-	newTags := map[string]string{}
-
-	for k, v := range tags {
-		newTags[k] = v
-		if res, ok := p.opt.ignoreTagKV[k]; ok {
-			for _, re := range res {
-				if re.MatchString(v) {
-					delete(newTags, k)
+	for key, arr := range p.opt.ignoreTagKV {
+		if f := tags.Get(key); f != nil {
+			for _, re := range arr {
+				if re.MatchString(f.GetS()) { // drop the tag
+					tags = tags.Del(key)
 					break
 				}
 			}
 		}
 	}
 
-	return newTags
+	return tags
 }
 
-func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) map[string]string {
-	tags := map[string]string{}
+func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string) point.KVs {
+	var kvs point.KVs
 
 	if !p.opt.disableInfoTag {
 		for k, v := range p.InfoTags {
-			tags[k] = v
+			kvs = kvs.AddTag(k, v)
 		}
 	}
 
 	// Add custom tags.
 	for k, v := range p.opt.tags {
-		tags[k] = v
+		kvs = kvs.AddTag(k, v)
 	}
 
 	// Add prometheus labels as tags.
 	for _, l := range labels {
-		tags[l.GetName()] = l.GetValue()
+		kvs = kvs.AddTag(l.GetName(), l.GetValue())
 	}
 
-	p.removeIgnoredTags(tags)
-	p.renameTags(tags)
+	kvs = p.removeIgnoredTags(kvs)
+	kvs = p.renameTags(kvs)
 
 	// Configure service tag if metrics are fed as logging.
 	if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 		if p.opt.asLogging.Service != "" {
-			tags["service"] = p.opt.asLogging.Service
+			kvs = kvs.AddTag("service", p.opt.asLogging.Service)
 		} else {
-			tags["service"] = measurementName
+			kvs = kvs.AddTag("service", measurementName)
 		}
 	}
 
-	return tags
+	return kvs
 }
 
-func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) map[string]string {
-	tags := map[string]string{}
+func (p *Prom) getTagsWithLE(labels []*dto.LabelPair, measurementName string, b *dto.Bucket) point.KVs {
+	var kvs point.KVs
 
 	// Add custom tags.
 	for k, v := range p.opt.tags {
-		tags[k] = v
+		kvs = kvs.AddTag(k, v)
 	}
 
 	// Add prometheus labels as tags.
 	for _, lab := range labels {
-		tags[lab.GetName()] = lab.GetValue()
+		kvs = kvs.AddTag(lab.GetName(), lab.GetValue())
 	}
 
-	tags["le"] = fmt.Sprint(b.GetUpperBound())
-
-	p.removeIgnoredTags(tags)
-	p.renameTags(tags)
+	kvs = kvs.AddTag("le", fmt.Sprint(b.GetUpperBound()))
+	kvs = p.removeIgnoredTags(kvs)
+	kvs = p.renameTags(kvs)
 
 	// Configure service tag if metrics are fed as logging.
 	if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 		if p.opt.asLogging.Service != "" {
-			tags["service"] = p.opt.asLogging.Service
+			kvs = kvs.AddTag("service", p.opt.asLogging.Service)
 		} else {
-			tags["service"] = measurementName
+			kvs = kvs.AddTag("service", measurementName)
+		}
+	}
+
+	return kvs
+}
+
+func (p *Prom) removeIgnoredTags(tags point.KVs) point.KVs {
+	for _, key := range p.opt.tagsIgnore {
+		if f := tags.Get(key); f != nil && f.IsTag {
+			tags = tags.Del(key)
 		}
 	}
 
 	return tags
 }
 
-func (p *Prom) removeIgnoredTags(tags map[string]string) {
-	for t := range tags {
-		for _, ignoredTag := range p.opt.tagsIgnore {
-			if t == ignoredTag {
-				delete(tags, t)
-			}
-		}
-	}
-}
-
-func (p *Prom) renameTags(tags map[string]string) {
-	if tags == nil || p.opt.tagsRename == nil {
-		return
+func (p *Prom) renameTags(tags point.KVs) point.KVs {
+	if len(tags) == 0 || p.opt.tagsRename == nil {
+		return tags
 	}
 
 	for oldKey, newKey := range p.opt.tagsRename.Mapping {
-		if v, ok := tags[oldKey]; ok { // rename the tag
-			if _, exists := tags[newKey]; exists && !p.opt.tagsRename.OverwriteExistTags {
+		if x := tags.Get(oldKey); x != nil { // rename the tag
+			if tags.Get(newKey) != nil && !p.opt.tagsRename.OverwriteExistTags {
 				continue
 			}
 
-			delete(tags, oldKey)
-			tags[newKey] = v
+			tags = tags.Del(oldKey)
+			x.Key = newKey // update key name
+			tags = tags.MustAddKV(x)
 		}
 	}
+
+	return tags
 }
 
 func (p *Prom) swapTypeInfoToFront(nf []nameAndFamily) {
@@ -317,7 +316,6 @@ func (p *Prom) text2MetricsNoBatch(in io.Reader, u string) (pts []*point.Point, 
 func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily, u string) (pts []*point.Point, lastErr error) {
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 	p.swapTypeInfoToFront(filteredMetricFamilies)
-	var err error
 
 	opts := point.DefaultMetricOptions()
 	for _, nf := range filteredMetricFamilies {
@@ -326,50 +324,38 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 
 		switch value.GetType() {
 		case dto.MetricType_GAUGE, dto.MetricType_UNTYPED, dto.MetricType_COUNTER:
+
 			for _, m := range value.GetMetric() {
 				v := getValue(m, value.GetType())
 				if math.IsInf(v, 0) || math.IsNaN(v) {
 					continue
 				}
 
-				fields := map[string]interface{}{
-					fieldName: v,
-				}
+				kvs := p.getTags(m.GetLabel(), measurementName, u)
+
+				kvs = p.filterIgnoreTagKV(kvs)
+				kvs = kvs.Add(fieldName, v, false, false)
+
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					opts = point.DefaultLoggingOptions()
-					fields["status"] = statusInfo
+					kvs = kvs.Add("status", statusInfo, false, false)
 				}
 
-				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2(measurementName,
-					append(point.NewTags(tags), point.NewKVs(fields)...),
-					opts...)
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
-				}
+				pt := point.NewPointV2(measurementName, kvs, opts...)
+
+				pts = append(pts, pt)
 			}
 
 		case dto.MetricType_SUMMARY:
 			for _, m := range value.GetMetric() {
-				fields := map[string]interface{}{
-					fieldName + "_count": float64(m.GetSummary().GetSampleCount()),
-					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
-				}
+				kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+				kvs = kvs.Add(fieldName+"_count", float64(m.GetSummary().GetSampleCount()), false, false)
+				kvs = kvs.Add(fieldName+"_sum", m.GetSummary().GetSampleSum(), false, false)
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-					fields["status"] = statusInfo
+					kvs = kvs.Add("status", statusInfo, false, false)
 				}
 
-				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2(measurementName,
-					append(point.NewTags(tags), point.NewKVs(fields)...),
-					opts...)
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
-				}
+				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 
 				for _, q := range m.GetSummary().Quantile {
 					v := q.GetValue()
@@ -377,64 +363,37 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 						continue
 					}
 
-					fields := map[string]interface{}{
-						fieldName: v,
-					}
-
+					kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+					kvs = kvs.AddTag("quantile", fmt.Sprint(q.GetQuantile()))
 					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-						fields["status"] = statusInfo
+						kvs = kvs.Add("status", statusInfo, false, false)
 					}
 
-					tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-					tags["quantile"] = fmt.Sprint(q.GetQuantile())
-					pt := point.NewPointV2(measurementName,
-						append(point.NewTags(tags), point.NewKVs(fields)...),
-						opts...)
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
-					}
+					kvs = kvs.Add(fieldName, v, false, false)
+					pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 				}
 			}
 
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range value.GetMetric() {
-				fields := map[string]interface{}{
-					fieldName + "_count": float64(m.GetHistogram().GetSampleCount()),
-					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
-				}
+				kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
+				kvs = kvs.Add(fieldName+"_count", float64(m.GetHistogram().GetSampleCount()), false, false)
+				kvs = kvs.Add(fieldName+"_sum", m.GetHistogram().GetSampleSum(), false, false)
+
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-					fields["status"] = statusInfo
+					kvs = kvs.Add("status", statusInfo, false, false)
 				}
 
-				tags := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				pt := point.NewPointV2(measurementName,
-					append(point.NewTags(tags), point.NewKVs(fields)...),
-					opts...)
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
-				}
+				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 
 				for _, b := range m.GetHistogram().GetBucket() {
-					fields := map[string]interface{}{
-						fieldName + "_bucket": b.GetCumulativeCount(),
-					}
+					kvs := p.filterIgnoreTagKV(p.getTagsWithLE(m.GetLabel(), measurementName, b))
+					kvs = kvs.Add(fieldName+"_bucket", float64(b.GetCumulativeCount()), false, false)
 					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-						fields["status"] = statusInfo
+						kvs = kvs.Add("status", statusInfo, false, false)
 					}
 
-					tags := p.filterIgnoreTagKV(p.getTagsWithLE(m.GetLabel(), measurementName, b))
-					pt := point.NewPointV2(measurementName,
-						append(point.NewTags(tags), point.NewKVs(fields)...),
-						opts...)
-					if err != nil {
-						lastErr = err
-					} else {
-						pts = append(pts, pt)
-					}
+					pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 				}
 			}
 		case dto.MetricType_GAUGE_HISTOGRAM:

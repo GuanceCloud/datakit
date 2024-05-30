@@ -314,7 +314,16 @@ func doConfdData() {
 	if !isFirst {
 		// First need not Reload.
 		l.Debug("before ReloadTheNormalServer")
-		httpapi.ReloadTheNormalServer()
+		httpapi.ReloadTheNormalServer(
+			httpapi.WithAPIConfig(config.Cfg.HTTPAPI),
+			httpapi.WithDCAConfig(config.Cfg.DCAConfig),
+			httpapi.WithGinLog(config.Cfg.Logging.GinLog),
+			httpapi.WithGinRotateMB(config.Cfg.Logging.Rotate),
+			httpapi.WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
+			httpapi.WithDataway(config.Cfg.Dataway),
+			httpapi.WithPProf(config.Cfg.EnablePProf),
+			httpapi.WithPProfListen(config.Cfg.PProfListen),
+		)
 	} else {
 		isFirst = false
 	}

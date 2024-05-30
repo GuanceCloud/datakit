@@ -17,14 +17,15 @@ import (
 type Precision int
 
 const (
-	PrecNS Precision = iota // nano-second
-	PrecUS                  // micro-second
-	PrecMS                  // milli-second
-	PrecS                   // second
-	PrecM                   // minute
-	PrecH                   // hour
-	PrecD                   // day
-	PrecW                   // week
+	PrecNS  Precision = iota // nano-second
+	PrecUS                   // micro-second
+	PrecMS                   // milli-second
+	PrecS                    // second
+	PrecM                    // minute
+	PrecH                    // hour
+	PrecD                    // day
+	PrecW                    // week
+	PrecDyn                  // dynamic precision
 )
 
 func (p Precision) String() string {
@@ -99,9 +100,12 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 		ptTime = time.Now()
 	}
 
-	lppts, err := models.ParsePointsWithPrecision(data, ptTime, c.precision.String())
+	// NOTE: always parse point with precision ns, the caller should
+	// adjust the time according to specific precision setting.
+	lppts, err := models.ParsePointsWithPrecision(data, ptTime, "ns")
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidLineProtocol, err)
+		return nil, fmt.Errorf("%w: %s. Origin data: %q",
+			ErrInvalidLineProtocol, err, data)
 	}
 
 	res := []*Point{}
@@ -129,17 +133,6 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 			kvs := KVs(pt.pt.Fields)
 			sort.Sort(kvs)
 			pt.pt.Fields = kvs
-		}
-
-		if c.callback != nil {
-			newPoint, err := c.callback(pt)
-			if err != nil {
-				return nil, err
-			}
-
-			if newPoint == nil {
-				return nil, fmt.Errorf("no point")
-			}
 		}
 
 		pt = chk.check(pt)

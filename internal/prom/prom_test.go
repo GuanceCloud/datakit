@@ -8,6 +8,7 @@ package prom
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -176,14 +178,14 @@ func TestCollect(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				`promhttp metric_handler_requests_in_flight=1`,
@@ -210,15 +212,15 @@ func TestCollect(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET request_duration_seconds_bucket=1i",
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET request_duration_seconds_bucket=1",
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET request_duration_seconds_count=0,request_duration_seconds_sum=0",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -551,13 +553,13 @@ func TestProm(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 			},
 		},
@@ -572,13 +574,13 @@ func TestProm(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -600,13 +602,13 @@ func TestProm(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -624,13 +626,13 @@ func TestProm(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -663,13 +665,13 @@ func TestProm(t *testing.T) {
 				"prefix_go,quantile=0 gc_duration_seconds=0",
 				"prefix_go,quantile=0.25 gc_duration_seconds=0",
 				"prefix_go,quantile=0.5 gc_duration_seconds=0",
-				"prefix_http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"prefix_http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"prefix_promhttp metric_handler_requests_in_flight=1",
 				"prefix_promhttp,cause=encoding metric_handler_errors_total=0",
@@ -695,13 +697,13 @@ func TestProm(t *testing.T) {
 				"measurement_name,code=200 promhttp_metric_handler_requests_total=15143",
 				"measurement_name,code=500 promhttp_metric_handler_requests_total=0",
 				"measurement_name,code=503 promhttp_metric_handler_requests_total=0",
-				"measurement_name,le=+Inf,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.003,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.03,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.1,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.3,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=1.5,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=10,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=+Inf,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.003,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.03,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.1,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.3,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=1.5,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=10,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
 				"measurement_name,method=GET,status_code=404 http_request_duration_seconds_count=1,http_request_duration_seconds_sum=0.002451013",
 				"measurement_name,quantile=0 go_gc_duration_seconds=0",
 				"measurement_name,quantile=0.25 go_gc_duration_seconds=0",
@@ -720,13 +722,13 @@ func TestProm(t *testing.T) {
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
 				"http request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
-				"http,le=+Inf request_duration_seconds_bucket=1i",
-				"http,le=0.003 request_duration_seconds_bucket=1i",
-				"http,le=0.03 request_duration_seconds_bucket=1i",
-				"http,le=0.1 request_duration_seconds_bucket=1i",
-				"http,le=0.3 request_duration_seconds_bucket=1i",
-				"http,le=1.5 request_duration_seconds_bucket=1i",
-				"http,le=10 request_duration_seconds_bucket=1i",
+				"http,le=+Inf request_duration_seconds_bucket=1",
+				"http,le=0.003 request_duration_seconds_bucket=1",
+				"http,le=0.03 request_duration_seconds_bucket=1",
+				"http,le=0.1 request_duration_seconds_bucket=1",
+				"http,le=0.3 request_duration_seconds_bucket=1",
+				"http,le=1.5 request_duration_seconds_bucket=1",
+				"http,le=10 request_duration_seconds_bucket=1",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
 				"promhttp,cause=gathering metric_handler_errors_total=0",
@@ -754,13 +756,13 @@ func TestProm(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -786,13 +788,13 @@ func TestProm(t *testing.T) {
 				"go,more_tag=some_other_value,quantile=0.25,some_tag=some_value gc_duration_seconds=0",
 				"go,more_tag=some_other_value,quantile=0.5,some_tag=some_value gc_duration_seconds=0",
 				"go,more_tag=some_other_value,some_tag=some_value gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
-				"http,le=+Inf,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp,cause=encoding,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
 				"promhttp,cause=gathering,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
@@ -1215,8 +1217,8 @@ func TestDuplicateComment(t *testing.T) {
 				"go,quantile=0.25 gc_duration_seconds=1",
 				"go,quantile=0.5 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=1",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=2i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=2",
 				"http,method=GET,status_code=404 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp metric_handler_requests_in_flight=2",
@@ -1318,14 +1320,14 @@ func TestInfoType(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				`promhttp metric_handler_requests_in_flight=1`,
@@ -1349,14 +1351,14 @@ func TestInfoType(t *testing.T) {
 				`go,entity=replica,name=prettier\ name,version=8.1.9 gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
 				`http,entity=replica,method=GET,name=prettier\ name,status_code=403,version=8.1.9 request_duration_seconds_count=0,request_duration_seconds_sum=0`,
 				`http,entity=replica,method=GET,name=prettier\ name,status_code=404,version=8.1.9 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
-				`http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i`,
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1`,
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`promhttp,cause=encoding,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
 				`promhttp,cause=gathering,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
 				`promhttp,code=200,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_total=15143`,
@@ -1469,7 +1471,7 @@ func TestHistogramType(t *testing.T) {
 			},
 			expect: []string{
 				`etcd debugging_auth_revision=1`,
-				`etcd,cluster_version=3.4 cluster_version=1`,
+				`etcd,cluster_version=3.4 untyped_metric=1`,
 			},
 		},
 
@@ -1480,28 +1482,28 @@ func TestHistogramType(t *testing.T) {
 			expect: []string{
 				`etcd debugging_auth_revision=1`,
 				`etcd debugging_disk_backend_commit_rebalance_duration_seconds_count=24920,debugging_disk_backend_commit_rebalance_duration_seconds_sum=0.0007340149999999998`,
-				`etcd,cluster_version=3.4 cluster_version=1`,
-				`etcd,le=+Inf debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.001 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.002 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.004 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.008 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.016 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.032 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.064 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.128 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.256 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.512 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=1.024 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=2.048 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=4.096 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=8.192 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,cluster_version=3.4 untyped_metric=1`,
+				`etcd,le=+Inf debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.001 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.002 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.004 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.008 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.016 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.032 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.064 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.128 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.256 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.512 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=1.024 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=2.048 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=4.096 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=8.192 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
 			},
 		},
 	}
 
 	mockBody := `
-etcd_cluster_version{cluster_version="3.4"} 1
+etcd_untyped_metric{cluster_version="3.4"} 1
 # HELP etcd_debugging_auth_revision The current revision of auth store.
 # TYPE etcd_debugging_auth_revision gauge
 etcd_debugging_auth_revision 1
@@ -1635,14 +1637,14 @@ func TestMetricNameFilterIgnore(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 			},
@@ -1776,14 +1778,14 @@ func TestCollectBatch(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				`promhttp metric_handler_requests_in_flight=1`,
@@ -1811,15 +1813,15 @@ func TestCollectBatch(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET request_duration_seconds_bucket=1i",
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET request_duration_seconds_bucket=1",
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET request_duration_seconds_count=0,request_duration_seconds_sum=0",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2026,6 +2028,8 @@ func TestIgnoreReqErrBatch(t *testing.T) {
 }
 
 func TestPromBatch(t *testing.T) {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
 	testCases := []struct {
 		name     string
 		in       *optionMock
@@ -2059,13 +2063,13 @@ func TestPromBatch(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 			},
 		},
@@ -2083,13 +2087,13 @@ func TestPromBatch(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2114,13 +2118,13 @@ func TestPromBatch(t *testing.T) {
 				"go,quantile=0 gc_duration_seconds=0",
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2141,13 +2145,13 @@ func TestPromBatch(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2186,13 +2190,13 @@ func TestPromBatch(t *testing.T) {
 				"prefix_go,quantile=0 gc_duration_seconds=0",
 				"prefix_go,quantile=0.25 gc_duration_seconds=0",
 				"prefix_go,quantile=0.5 gc_duration_seconds=0",
-				"prefix_http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"prefix_http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"prefix_http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"prefix_http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"prefix_http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"prefix_promhttp metric_handler_requests_in_flight=1",
 				"prefix_promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2221,13 +2225,13 @@ func TestPromBatch(t *testing.T) {
 				"measurement_name,code=200 promhttp_metric_handler_requests_total=15143",
 				"measurement_name,code=500 promhttp_metric_handler_requests_total=0",
 				"measurement_name,code=503 promhttp_metric_handler_requests_total=0",
-				"measurement_name,le=+Inf,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.003,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.03,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.1,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=0.3,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=1.5,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
-				"measurement_name,le=10,method=GET,status_code=404 http_request_duration_seconds_bucket=1i",
+				"measurement_name,le=+Inf,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.003,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.03,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.1,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=0.3,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=1.5,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
+				"measurement_name,le=10,method=GET,status_code=404 http_request_duration_seconds_bucket=1",
 				"measurement_name,method=GET,status_code=404 http_request_duration_seconds_count=1,http_request_duration_seconds_sum=0.002451013",
 				"measurement_name,quantile=0 go_gc_duration_seconds=0",
 				"measurement_name,quantile=0.25 go_gc_duration_seconds=0",
@@ -2249,13 +2253,13 @@ func TestPromBatch(t *testing.T) {
 				"go,quantile=0.25 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=0",
 				"http request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
-				"http,le=+Inf request_duration_seconds_bucket=1i",
-				"http,le=0.003 request_duration_seconds_bucket=1i",
-				"http,le=0.03 request_duration_seconds_bucket=1i",
-				"http,le=0.1 request_duration_seconds_bucket=1i",
-				"http,le=0.3 request_duration_seconds_bucket=1i",
-				"http,le=1.5 request_duration_seconds_bucket=1i",
-				"http,le=10 request_duration_seconds_bucket=1i",
+				"http,le=+Inf request_duration_seconds_bucket=1",
+				"http,le=0.003 request_duration_seconds_bucket=1",
+				"http,le=0.03 request_duration_seconds_bucket=1",
+				"http,le=0.1 request_duration_seconds_bucket=1",
+				"http,le=0.3 request_duration_seconds_bucket=1",
+				"http,le=1.5 request_duration_seconds_bucket=1",
+				"http,le=10 request_duration_seconds_bucket=1",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
 				"promhttp,cause=gathering metric_handler_errors_total=0",
@@ -2284,13 +2288,13 @@ func TestPromBatch(t *testing.T) {
 			u:    promURL,
 			fail: false,
 			expected: []string{
-				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp metric_handler_requests_in_flight=1",
 				"promhttp,cause=encoding metric_handler_errors_total=0",
@@ -2319,13 +2323,13 @@ func TestPromBatch(t *testing.T) {
 				"go,more_tag=some_other_value,quantile=0.25,some_tag=some_value gc_duration_seconds=0",
 				"go,more_tag=some_other_value,quantile=0.5,some_tag=some_value gc_duration_seconds=0",
 				"go,more_tag=some_other_value,some_tag=some_value gc_duration_seconds_count=0,gc_duration_seconds_sum=0",
-				"http,le=+Inf,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.03,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.1,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.3,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=1.5,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=10,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1i",
+				"http,le=+Inf,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.03,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.1,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.3,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=1.5,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=10,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_bucket=1",
 				"http,method=GET,more_tag=some_other_value,some_tag=some_value,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013",
 				"promhttp,cause=encoding,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
 				"promhttp,cause=gathering,more_tag=some_other_value,some_tag=some_value metric_handler_errors_total=0",
@@ -2848,8 +2852,8 @@ func TestDuplicateCommentBatch(t *testing.T) {
 				"go,quantile=0.25 gc_duration_seconds=1",
 				"go,quantile=0.5 gc_duration_seconds=0",
 				"go,quantile=0.5 gc_duration_seconds=1",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=2i",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=2",
 				"http,method=GET,status_code=404 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				"http,method=GET,status_code=404 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				"promhttp metric_handler_requests_in_flight=1",
@@ -2989,14 +2993,14 @@ func TestInfoTypeBatch(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 				`promhttp metric_handler_requests_in_flight=1`,
@@ -3020,14 +3024,14 @@ func TestInfoTypeBatch(t *testing.T) {
 				`go,entity=replica,name=prettier\ name,version=8.1.9 gc_duration_seconds_count=0,gc_duration_seconds_sum=0`,
 				`http,entity=replica,method=GET,name=prettier\ name,status_code=403,version=8.1.9 request_duration_seconds_count=0,request_duration_seconds_sum=0`,
 				`http,entity=replica,method=GET,name=prettier\ name,status_code=404,version=8.1.9 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
-				`http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i`,
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				`http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1`,
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`promhttp,cause=encoding,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
 				`promhttp,cause=gathering,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_errors_total=0`,
 				`promhttp,code=200,entity=replica,name=prettier\ name,version=8.1.9 metric_handler_requests_total=15143`,
@@ -3399,7 +3403,7 @@ func TestHistogramTypeBatch(t *testing.T) {
 			},
 			expect: []string{
 				`etcd debugging_auth_revision=1`,
-				`etcd,cluster_version=3.4 cluster_version=1`,
+				`etcd,cluster_version=3.4 untyped_metric=1`,
 			},
 		},
 
@@ -3410,28 +3414,28 @@ func TestHistogramTypeBatch(t *testing.T) {
 			expect: []string{
 				`etcd debugging_auth_revision=1`,
 				`etcd debugging_disk_backend_commit_rebalance_duration_seconds_count=24920,debugging_disk_backend_commit_rebalance_duration_seconds_sum=0.0007340149999999998`,
-				`etcd,cluster_version=3.4 cluster_version=1`,
-				`etcd,le=+Inf debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.001 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.002 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.004 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.008 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.016 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.032 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.064 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.128 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.256 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=0.512 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=1.024 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=2.048 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=4.096 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
-				`etcd,le=8.192 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920i`,
+				`etcd,cluster_version=3.4 untyped_metric=1`,
+				`etcd,le=+Inf debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.001 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.002 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.004 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.008 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.016 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.032 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.064 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.128 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.256 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=0.512 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=1.024 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=2.048 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=4.096 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
+				`etcd,le=8.192 debugging_disk_backend_commit_rebalance_duration_seconds_bucket=24920`,
 			},
 		},
 	}
 
 	mockBody := `
-etcd_cluster_version{cluster_version="3.4"} 1
+etcd_untyped_metric{cluster_version="3.4"} 1
 # HELP etcd_debugging_auth_revision The current revision of auth store.
 # TYPE etcd_debugging_auth_revision gauge
 etcd_debugging_auth_revision 1
@@ -3456,6 +3460,7 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_sum 0.000734014999
 etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 `
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := createOpts(tc.in)
@@ -3482,9 +3487,10 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 				ptCh <- pts
 				return nil
 			}
+
 			p.opt.batchCallback = f2
 
-			var f1 expfmt.BatchCallback = func(mf map[string]*dto.MetricFamily) error {
+			f1 := func(mf map[string]*dto.MetricFamily) error {
 				pts, err := p.MetricFamilies2points(mf, "")
 				if err != nil {
 					return err
@@ -3494,22 +3500,20 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 
 				return p.opt.batchCallback(pts)
 			}
-			p.parser = *expfmt.NewTextParser(expfmt.WithBatchCallback(1, f1))
 
+			p.parser = *expfmt.NewTextParser(expfmt.WithBatchCallback(1, f1))
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
 			_, err = p.CollectFromHTTPV2(tc.u)
 			close(ptCh)
-			if tc.fail && assert.Error(t, err) {
-				return
+			if tc.fail {
+				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
 
 			wg.Wait()
-			if len(points) == 0 {
-				t.Errorf("got nil pts error.")
-			}
+			assert.NotEmpty(t, points)
 
 			var arr []string
 			for _, pt := range points {
@@ -3519,11 +3523,10 @@ etcd_debugging_disk_backend_commit_rebalance_duration_seconds_count 24920
 			sort.Strings(arr)
 			sort.Strings(tc.expect)
 
-			if len(tc.expect) != len(arr) {
-				t.Errorf("the length of want != got.")
-			}
+			assert.Equal(t, len(tc.expect), len(arr))
+
 			for i := range arr {
-				assert.Equal(t, strings.HasPrefix(arr[i], tc.expect[i]), true, "exp: %s\ngot: %s", tc.expect[i], arr[i])
+				require.Contains(t, arr[i], tc.expect[i])
 			}
 		})
 	}
@@ -3599,14 +3602,14 @@ func TestMetricNameFilterIgnoreBatch(t *testing.T) {
 				`go,quantile=0 gc_duration_seconds=0`,
 				`go,quantile=0.25 gc_duration_seconds=0`,
 				`go,quantile=0.5 gc_duration_seconds=0`,
-				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1i",
-				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1i",
-				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
-				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1i`,
+				"http,le=1.2,method=GET,status_code=404 request_duration_seconds_bucket=1",
+				"http,le=+Inf,method=GET,status_code=403 request_duration_seconds_bucket=1",
+				`http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.03,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.1,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=0.3,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=1.5,method=GET,status_code=404 request_duration_seconds_bucket=1`,
+				`http,le=10,method=GET,status_code=404 request_duration_seconds_bucket=1`,
 				`http,method=GET,status_code=404 request_duration_seconds_count=1,request_duration_seconds_sum=0.002451013`,
 				"http,method=GET,status_code=403 request_duration_seconds_count=0,request_duration_seconds_sum=0",
 			},
@@ -3719,4 +3722,54 @@ up 1
 			}
 		})
 	}
+}
+
+func BenchmarkPromPoint(b *testing.B) {
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+	b.Run("basic", func(b *testing.B) {
+		opts := createOpts(&optionMock{
+			measurementName: "basic",
+		})
+
+		p, err := NewProm(opts...)
+		assert.NoError(b, err)
+
+		for i := 0; i < b.N; i++ {
+			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+			p.CollectFromHTTPV2(promURL)
+		}
+	})
 }

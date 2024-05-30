@@ -29,7 +29,7 @@ ci_lint_and_ut:
   rules:
     # No pipeline when there is a MR whose title starts with Draft
     # Disable merge request to master/main branch
-    - if: $CI_MERGE_REQUEST_TITLE =~ $DISABLED_MR_TITLE
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
       when: never
 
     # Trigger a pipeline in case of MR event, which means the MR is ready, since we did not go through the first case
@@ -40,7 +40,7 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY"
   tags:
     - cloudcare-ft
 

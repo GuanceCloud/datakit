@@ -6,6 +6,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,18 +30,13 @@ import (
 
 const TOKEN string = "tkn_xxxxxxxxxxxxxxxxxxxxxxx"
 
-func getResponse(t *testing.T, req *http.Request, conf *config.DCAConfig) *httptest.ResponseRecorder {
+func getResponse(t *testing.T,
+	req *http.Request,
+	hs *httpServerConf,
+) *httptest.ResponseRecorder {
 	t.Helper()
 
-	apiServer.dcaConfig = &config.DCAConfig{}
-	if conf != nil {
-		apiServer.dcaConfig = conf
-	}
-
-	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
-	assert.NoError(t, apiServer.dw.Init())
-
-	router := setupDcaRouter()
+	router := setupDcaRouter(hs)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -79,7 +75,12 @@ func getResponseBody(w *httptest.ResponseRecorder) (*dcaResponse, error) {
 func TestCors(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/stats", nil)
 
-	w := getResponse(t, req, nil)
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
+	w := getResponse(t, req, hs)
 	assert.Equal(t, 200, w.Code)
 	assert.NotEmpty(t, w.Header().Values("Access-Control-Allow-Headers"))
 	assert.NotEmpty(t, w.Header().Values("Access-Control-Allow-Origin"))
@@ -103,11 +104,18 @@ type TestCase struct {
 
 func runTestCases(t *testing.T, cases []TestCase) {
 	t.Helper()
+
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	for _, tc := range cases {
 		title := "test"
 		if len(tc.Title) > 0 {
 			title = tc.Title
 		}
+
 		t.Run(title, func(t *testing.T) {
 			if len(tc.SubCases) > 0 {
 				runTestCases(t, tc.SubCases)
@@ -141,12 +149,11 @@ func runTestCases(t *testing.T, cases []TestCase) {
 				req.RemoteAddr = "127.0.0.1:10000"
 			}
 
-			dcaConfig := &config.DCAConfig{}
 			if tc.DcaConfg != nil {
-				dcaConfig = tc.DcaConfg
+				hs.dcaConfig = tc.DcaConfg
 			}
 
-			w := getResponse(t, req, dcaConfig)
+			w := getResponse(t, req, hs)
 
 			res, _ := getResponseBody(w)
 
@@ -261,26 +268,31 @@ func TestDcaStats(t *testing.T) {
 
 func TestDcaReload(t *testing.T) {
 	// reload ok
-	dcaAPI.ReloadDataKit = func() error {
+	dcaAPI.ReloadDataKit = func(ctx context.Context) error {
 		return nil
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/reload", nil)
 	req.Header.Add("X-Token", TOKEN)
 
-	w := getResponse(t, req, nil)
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
+	w := getResponse(t, req, hs)
 	res, _ := getResponseBody(w)
 
 	assert.Equal(t, 200, res.Code)
 
 	// reload fail
-	dcaAPI.ReloadDataKit = func() error {
+	dcaAPI.ReloadDataKit = func(ctx context.Context) error {
 		return errors.New("restart error")
 	}
 
-	w = getResponse(t, req, nil)
+	w = getResponse(t, req, hs)
 	res, _ = getResponseBody(w)
-	assert.Equal(t, 500, res.Code)
+	assert.Equalf(t, 500, res.Code, "with response %+#v", res)
 	assert.Equal(t, "system.reload.error", res.ErrorCode)
 }
 
@@ -298,12 +310,17 @@ func TestDcaSaveConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	bodyTemplate := `{"path": "%s","config":"%s", "isNew":%s, "inputName": "%s"}`
-	config := "[input]"
-	body := strings.NewReader(fmt.Sprintf(bodyTemplate, f.Name(), config, "true", inputName))
+	conf := "[input]"
+	body := strings.NewReader(fmt.Sprintf(bodyTemplate, f.Name(), conf, "true", inputName))
 	req, _ := http.NewRequest("POST", "/v1/saveConfig", body)
 	req.Header.Add("X-Token", TOKEN)
 
-	w := getResponse(t, req, nil)
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
+	w := getResponse(t, req, hs)
 
 	res, _ := getResponseBody(w)
 
@@ -315,7 +332,7 @@ func TestDcaSaveConfig(t *testing.T) {
 
 	confContent, err := os.ReadFile(f.Name())
 	assert.NoError(t, err)
-	assert.Equal(t, config, string(confContent))
+	assert.Equal(t, conf, string(confContent))
 
 	configPaths := inputs.ConfigInfo[inputName].ConfigPaths
 	assert.Equal(t, 1, len(configPaths))
@@ -323,10 +340,15 @@ func TestDcaSaveConfig(t *testing.T) {
 }
 
 func TestGetConfig(t *testing.T) {
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	// no path
 	req, _ := http.NewRequest("GET", "/v1/getConfig", nil)
 	req.Header.Add("X-Token", TOKEN)
-	w := getResponse(t, req, nil)
+	w := getResponse(t, req, hs)
 	res, _ := getResponseBody(w)
 
 	assert.False(t, res.Success)
@@ -334,7 +356,7 @@ func TestGetConfig(t *testing.T) {
 	// invalid path
 	req, _ = http.NewRequest("GET", "/v1/getConfig?path=xxxxxxx.conf", nil)
 	req.Header.Add("X-Token", TOKEN)
-	w = getResponse(t, req, nil)
+	w = getResponse(t, req, hs)
 	res, _ = getResponseBody(w)
 
 	assert.False(t, res.Success)
@@ -351,18 +373,19 @@ func TestGetConfig(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(f.Name()) //nolint: errcheck
 
-	config := "[input]"
+	conf := "[input]"
 
-	err = os.WriteFile(f.Name(), []byte(config), os.ModePerm)
+	err = os.WriteFile(f.Name(), []byte(conf), os.ModePerm)
 	assert.NoError(t, err)
 
 	req, _ = http.NewRequest("GET", "/v1/getConfig?path="+f.Name(), nil)
 	req.Header.Add("X-Token", TOKEN)
-	w = getResponse(t, req, nil)
+
+	w = getResponse(t, req, hs)
 	res, _ = getResponseBody(w)
 
 	assert.True(t, res.Success)
-	assert.Equal(t, config, res.Content)
+	assert.Equal(t, conf, res.Content)
 }
 
 func TestDcaGetPipelines(t *testing.T) {
@@ -378,7 +401,12 @@ func TestDcaGetPipelines(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/pipelines", nil)
 	req.Header.Add("X-Token", TOKEN)
 
-	w := getResponse(t, req, nil)
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
+	w := getResponse(t, req, hs)
 	res, _ := getResponseBody(w)
 
 	content, ok := res.Content.([]interface{})
@@ -435,6 +463,11 @@ func TestDcaGetPipelinesDetail(t *testing.T) {
 		},
 	}
 
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	for _, tc := range testCases {
 		t.Run(tc.Title, func(t *testing.T) {
 			url := "/v1/pipelines/detail"
@@ -444,7 +477,7 @@ func TestDcaGetPipelinesDetail(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			req.Header.Add("X-Token", TOKEN)
 
-			w := getResponse(t, req, nil)
+			w := getResponse(t, req, hs)
 			res, _ := getResponseBody(w)
 
 			assert.Equal(t, tc.IsOk, res.Success)
@@ -482,6 +515,12 @@ func TestDcaTestPipelines(t *testing.T) {
 			Body:  "xxxxxxx",
 		},
 	}
+
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	for _, tc := range testCases {
 		t.Logf("test: %s", tc.Title)
 		parsedPipeline := "parse text"
@@ -510,7 +549,7 @@ func TestDcaTestPipelines(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/pipelines/test", body)
 		req.Header.Add("X-Token", TOKEN)
 
-		w := getResponse(t, req, nil)
+		w := getResponse(t, req, hs)
 		res, _ := getResponseBody(w)
 
 		if tc.IsOk {
@@ -561,6 +600,11 @@ func TestDcaCreatePipeline(t *testing.T) {
 		},
 	}
 
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	for _, tc := range testCases {
 		t.Logf("testing: %s", tc.Title)
 		pipelineDir, err := ioutil.TempDir("./", "pipeline")
@@ -594,7 +638,7 @@ func TestDcaCreatePipeline(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/v1/pipelines", body)
 		req.Header.Add("X-Token", TOKEN)
 
-		w := getResponse(t, req, nil)
+		w := getResponse(t, req, hs)
 		res, _ := getResponseBody(w)
 
 		if tc.IsOk {
@@ -642,6 +686,11 @@ func TestDcaGetFilter(t *testing.T) {
 		},
 	}
 
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	for index, tc := range cases {
 		t.Logf("Test #%d: %+v", index, tc)
 		datakit.DataDir = tc.dataDir
@@ -649,7 +698,7 @@ func TestDcaGetFilter(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/filter", nil)
 		req.Header.Add("X-Token", TOKEN)
 
-		w := getResponse(t, req, nil)
+		w := getResponse(t, req, hs)
 		res, _ := getResponseBody(w)
 
 		assert.True(t, res.Success, res)
@@ -680,12 +729,13 @@ func TestDcaGetLogTail(t *testing.T) {
 	req.Header.Add("X-Token", TOKEN)
 
 	// set up dca
-	apiServer.dcaConfig = &config.DCAConfig{}
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
 
-	apiServer.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
-	assert.NoError(t, apiServer.dw.Init())
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
 
-	router := setupDcaRouter()
+	router := setupDcaRouter(hs)
 	w := CreateTestResponseRecorder()
 	go router.ServeHTTP(w, req)
 
@@ -711,6 +761,11 @@ func TestDcaGetLogTail(t *testing.T) {
 }
 
 func TestDcaDownloadLog(t *testing.T) {
+	hs := defaultHTTPServerConf()
+	hs.dcaConfig = &config.DCAConfig{}
+	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	assert.NoError(t, hs.dw.Init())
+
 	tmpDir, err := ioutil.TempDir("./", "__tmp")
 	if err != nil {
 		t.Fatal(err)
@@ -729,7 +784,7 @@ func TestDcaDownloadLog(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/log/download?type=log", nil)
 	req.Header.Add("X-Token", TOKEN)
 
-	w := getResponse(t, req, nil)
+	w := getResponse(t, req, hs)
 
 	assert.Equal(t, logStr, w.Body.String())
 }

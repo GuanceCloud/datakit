@@ -40,7 +40,9 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 		m.resData["Binlog_space_usage_bytes"] = ipt.binlog["Binlog_space_usage_bytes"]
 	}
 
-	if hasKey(m.resData, "Key_blocks_unused") && hasKey(m.resData, "key_cache_block_size") && hasKey(m.resData, "key_buffer_size") {
+	if hasKey(m.resData, "Key_blocks_unused") &&
+		hasKey(m.resData, "key_cache_block_size") &&
+		hasKey(m.resData, "key_buffer_size") {
 		m.resData["Key_buffer_size"] = m.resData["key_buffer_size"]
 		if keyBufferSize, ok := m.resData["key_buffer_size"].(int64); ok {
 			if keyBufferSize != 0 {
@@ -76,6 +78,8 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 			} else {
 				m.fields[key] = val
 			}
+		} else {
+			l.Warnf("field %q:%v not in list", key, value)
 		}
 	}
 

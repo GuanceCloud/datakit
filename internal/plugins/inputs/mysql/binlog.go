@@ -7,7 +7,6 @@ package mysql
 
 import (
 	"database/sql"
-	"math"
 	"strconv"
 )
 
@@ -19,7 +18,7 @@ func binlogMetrics(r rows) map[string]interface{} {
 	res := map[string]interface{}{}
 	defer closeRows(r)
 
-	var usage int64
+	var usage uint64
 
 	for r.Next() {
 		var key string
@@ -47,12 +46,7 @@ func binlogMetrics(r rows) map[string]interface{} {
 		raw := string(val)
 
 		if v, err := strconv.ParseUint(raw, 10, 64); err == nil {
-			if v > uint64(math.MaxInt64) {
-				l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, int64(math.MaxInt64))
-				continue
-			}
-
-			usage += int64(v)
+			usage += v
 		} else {
 			l.Warnf("invalid binlog usage: (%s: %s), ignored", key, raw)
 		}

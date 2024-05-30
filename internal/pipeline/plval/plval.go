@@ -43,9 +43,6 @@ var (
 
 	// offload.
 	_offloadWkr *offload.OffloadWorker
-
-	// ipdb.
-	_ipdb ipdb.IPdb
 )
 
 func SetManager(m *plmanager.Manager) {
@@ -85,33 +82,12 @@ func GetOffload() (*offload.OffloadWorker, bool) {
 	return _offloadWkr, true
 }
 
-func GetIPDB() (ipdb.IPdb, bool) {
-	if _ipdb == nil {
-		return nil, false
-	}
-	return _ipdb, true
-}
-
-func SearchISP(ip string) string {
-	if _ipdb != nil {
-		return _ipdb.SearchIsp(ip)
-	}
-	return "unknown"
-}
-
-func Geo(ip string) (*ipdb.IPdbRecord, error) {
-	if _ipdb != nil {
-		return _ipdb.Geo(ip)
-	}
-	return nil, fmt.Errorf("ipdb not ready")
-}
-
 const maxCustomer = 16
 
 func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
-	l = logger.SLogger("pipeline")
+	l = logger.SLogger("plval")
 
 	offload.InitOffload()
 	pipeline.InitLog()

@@ -122,9 +122,15 @@ func (c *checker) checkKV(f *Field, kvs KVs) (*Field, bool) {
 }
 
 func (c *checker) keyConflict(key string, kvs KVs) bool {
-	if kvs.Get(key) != nil { // key exist
-		c.addWarn(WarnKeyNameConflict,
-			fmt.Sprintf("same key after rename(%q), kv dropped", key))
+	i := 0
+	for _, kv := range kvs {
+		if kv.Key == key {
+			i++
+		}
+	}
+
+	if i > 1 { // key exist more than once.
+		c.addWarn(WarnKeyNameConflict, fmt.Sprintf("same key (%q)", key))
 		return true
 	}
 
@@ -139,60 +145,66 @@ func (c *checker) checkTag(f *Field, kvs KVs) (*Field, bool) {
 			fmt.Sprintf("exceed max tag key length(%d), got %d, key truncated",
 				c.cfg.maxTagKeyLen, len(f.Key)))
 
-		newKey := f.Key[:c.cfg.maxTagKeyLen]
-		if c.keyConflict(newKey, kvs) {
+		if newKey := f.Key[:c.cfg.maxTagKeyLen]; kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf(`tag key %q exist after truncate`, newKey))
 			return f, false
 		} else {
 			f.Key = newKey
 		}
 	}
 
+	// check tag key '\', '\n'
+	if newKey := adjustKV(f.Key); newKey != f.Key {
+		c.addWarn(WarnInvalidTagKey, fmt.Sprintf(`invalid tag key %q, replace \ or \n with ''`, f.Key))
+
+		if kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf(`tag key %q exist after adjust`, newKey))
+			return f, false
+		} else {
+			f.Key = newKey
+		}
+	}
+
+	// replace `.' with `_' in tag keys
+	if !c.cfg.enableDotInKey && strings.Contains(f.Key, ".") {
+		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s': found `.'", f.Key))
+
+		newKey := strings.ReplaceAll(f.Key, ".", "_")
+
+		if kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf(`tag key %q exist after adjust`, newKey))
+			return f, false
+		} else {
+			f.Key = newKey
+		}
+	}
+
+	// check if key ok after all checking.
+	if c.keyDisabled(f.Key) {
+		return f, false
+	}
+
+	if c.keyConflict(f.Key, kvs) {
+		return f, false
+	}
+
 	x := f.Val.(*Field_S)
+	// check tag value: '\', '\n'
+	if str := f.GetS(); str != "" {
+		if s := adjustKV(str); str != s {
+			c.addWarn(WarnNROrTailEscape, fmt.Sprintf(`invalid tag value %q, found \n or tail \`, str))
+			x.S = s
+			f.Val = x
+		}
+	}
 
 	if c.cfg.maxTagValLen > 0 && len(x.S) > c.cfg.maxTagValLen {
 		c.addWarn(WarnMaxTagValueLen,
 			fmt.Sprintf("exceed max tag value length(%d), got %d, value truncated",
 				c.cfg.maxTagValLen, len(x.S)))
 
-		x.S = x.S[:c.cfg.maxTagValLen]
+		x.S = x.S[:c.cfg.maxTagValLen] // trim value length
 		f.Val = x
-	}
-
-	// check tag key '\', '\n'
-	if strings.HasSuffix(f.Key, `\`) || strings.Contains(f.Key, "\n") {
-		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s'", f.Key))
-
-		newKey := adjustKV(f.Key)
-		if c.keyConflict(newKey, kvs) {
-			return f, false
-		} else {
-			f.Key = newKey
-		}
-	}
-
-	// check tag value: '\', '\n'
-	if strings.HasSuffix(f.GetS(), `\`) || strings.Contains(f.GetS(), "\n") {
-		c.addWarn(WarnInvalidTagValue, fmt.Sprintf("invalid tag value %q", f.GetS()))
-
-		x.S = adjustKV(x.S)
-		f.Val = x
-	}
-
-	// replace `.' with `_' in tag keys
-	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
-		c.addWarn(WarnInvalidTagKey, fmt.Sprintf("invalid tag key `%s': found `.'", f.Key))
-
-		newKey := strings.ReplaceAll(f.Key, ".", "_")
-		if c.keyConflict(newKey, kvs) {
-			return f, false
-		} else {
-			f.Key = newKey
-		}
-	}
-
-	if c.keyDisabled(f.Key) {
-		c.addWarn(WarnTagDisabled, fmt.Sprintf("tag key `%s' disabled", f.Key))
-		return f, false
 	}
 
 	return f, true
@@ -204,12 +216,10 @@ func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
 	// trim key
 	if c.cfg.maxFieldKeyLen > 0 && len(f.Key) > c.cfg.maxFieldKeyLen {
 		c.addWarn(WarnMaxFieldKeyLen,
-			fmt.Sprintf("exceed max field key length(%d), got %d, key truncated to %s",
-				c.cfg.maxFieldKeyLen, len(f.Key), f.Key))
+			fmt.Sprintf("exceed max field key length(%d), got length %d, key truncated", c.cfg.maxFieldKeyLen, len(f.Key)))
 
-		newKey := f.Key[:c.cfg.maxFieldKeyLen]
-
-		if c.keyConflict(newKey, kvs) {
+		if newKey := f.Key[:c.cfg.maxFieldKeyLen]; kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf(`field key %q exist after truncate`, newKey))
 			return f, false
 		} else {
 			f.Key = newKey
@@ -217,21 +227,34 @@ func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
 	}
 
 	if strings.Contains(f.Key, ".") && !c.cfg.enableDotInKey {
-		c.addWarn(WarnDotInkey,
-			fmt.Sprintf("invalid field key `%s': found `.'", f.Key))
+		c.addWarn(WarnDotInkey, fmt.Sprintf("invalid field key `%s': found `.'", f.Key))
 
-		newKey := strings.ReplaceAll(f.Key, ".", "_")
-		if c.keyConflict(newKey, kvs) {
+		if newKey := strings.ReplaceAll(f.Key, ".", "_"); kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf("field key %q exist after adjust", newKey))
 			return f, false
 		} else {
 			f.Key = newKey
 		}
 	}
 
+	if newKey := adjustKV(f.Key); newKey != f.Key {
+		c.addWarn(WarnNROrTailEscape, fmt.Sprintf(`invalid field key %q: found \n, replaced with ' '`, f.Key))
+
+		if kvs.Get(newKey) != nil {
+			c.addWarn(WarnInvalidTagKey, fmt.Sprintf("field key %q exist after adjust", newKey))
+			return f, false
+		} else {
+			f.Key = newKey
+		}
+	}
+
+	// check if key ok after all checking.
 	if c.keyDisabled(f.Key) {
-		c.addWarn(WarnFieldDisabled,
-			fmt.Sprintf("field key `%s' disabled, value: %v", f.Key, f.Raw()))
-		return nil, false
+		return f, false
+	}
+
+	if c.keyConflict(f.Key, kvs) {
+		return f, false
 	}
 
 	switch x := f.Val.(type) {
@@ -255,7 +278,18 @@ func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
 			}
 		}
 
-	case *Field_F, *Field_B, *Field_I, *Field_A:
+	case *Field_F:
+		if math.IsInf(x.F, 1) {
+			c.addWarn(WarnInfConvertToMaxValue,
+				fmt.Sprintf("+inf value from %q convert to max-uint64", f.Key))
+			x.F = math.MaxUint64
+		} else if math.IsInf(x.F, -1) {
+			c.addWarn(WarnInfConvertToMinValue,
+				fmt.Sprintf("+inf value from %q convert to min-int64", f.Key))
+			x.F = math.MinInt64
+		}
+
+	case *Field_B, *Field_I, *Field_A:
 		// pass: they are ok
 
 	case nil:
@@ -319,15 +353,13 @@ func trimSuffixAll(s, sfx string) string {
 
 func (c *checker) keyDisabled(k string) bool {
 	if k == "" {
+		c.addWarn(WarnTagDisabled, "empty tag key disabled")
 		return true
-	}
-
-	if c.cfg.disabledKeys == nil {
-		return false
 	}
 
 	for _, item := range c.cfg.disabledKeys {
 		if k == item.key {
+			c.addWarn(WarnTagDisabled, fmt.Sprintf("tag key %q disabled", k))
 			return true
 		}
 	}

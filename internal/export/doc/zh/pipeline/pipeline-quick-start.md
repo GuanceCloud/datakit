@@ -165,7 +165,7 @@ datakit pipeline -P test.p -T "$(<multi-line.log)"
 
 ### Pipeline 字段命名注意事项 {#naming}
 
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](../../datakit/apis.md#lineproto-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](../../datakit/apis.md#point-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
 - Datakit 中的[全局 Tag](../../datakit/datakit-conf.md#set-global-tag)
 - 日志采集器中[自定义的 Tag](../../integrations/logging.md#measurements)
