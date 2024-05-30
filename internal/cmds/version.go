@@ -48,7 +48,10 @@ func showVersion(curverStr string) {
 	buildTag := "full"
 	if Lite {
 		buildTag = "lite"
+	} else if ELinker {
+		buildTag = "elinker"
 	}
+
 	fmt.Printf(`
        Version: %s
         Commit: %s

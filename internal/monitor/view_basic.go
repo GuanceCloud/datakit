@@ -15,6 +15,48 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 )
 
+type baseInfRender struct {
+	inf [7][2]string
+}
+
+func (r *baseInfRender) set(k, v string) {
+	switch k {
+	case "version":
+		r.inf[0] = [2]string{"Version", v}
+	case "build_at":
+		r.inf[1] = [2]string{"Build", v}
+	case "branch":
+		r.inf[2] = [2]string{"Branch", v}
+	case "lite", "elinker":
+		r.inf[3][0] = "Build Tag"
+		if v == "true" {
+			r.inf[3][1] = k
+		}
+		if r.inf[3][1] == "" {
+			r.inf[3][1] = "full"
+		}
+	case "os_arch":
+		r.inf[4] = [2]string{"OS/Arch", v}
+	case "hostname":
+		r.inf[5] = [2]string{"Hostname", v}
+	case "resource_limit":
+		r.inf[6] = [2]string{"Resource Limit", v}
+	default:
+		// ignored
+	}
+}
+
+func (r *baseInfRender) render(table *tview.Table, tableWidth, row int) int {
+	for _, v := range r.inf {
+		if v[0] != "" {
+			table.SetCell(row, 0, tview.NewTableCell(v[0]).SetMaxWidth(tableWidth).SetAlign(tview.AlignRight))
+			table.SetCell(row, 1, tview.NewTableCell(v[1]).SetMaxWidth(tableWidth).SetAlign(tview.AlignLeft))
+			row++
+		}
+	}
+	return row
+}
+
 func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 	table := app.basicInfoTable
 	row := 0
@@ -42,45 +84,12 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 		SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 	row++
 
+	baseinfoRender := baseInfRender{}
 	for _, lp := range metrics[0].GetLabel() {
-		val := lp.GetValue()
-		switch lp.GetName() {
-		case "version":
-			table.SetCell(row, 0, tview.NewTableCell("Version").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "build_at":
-			table.SetCell(row, 0, tview.NewTableCell("Build").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "branch":
-			table.SetCell(row, 0, tview.NewTableCell("Branch").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "lite":
-			buildTag := "full"
-			if val == "true" {
-				buildTag = "lite"
-			}
-			table.SetCell(row, 0, tview.NewTableCell("Build Tag").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(buildTag).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "os_arch":
-			table.SetCell(row, 0, tview.NewTableCell("OS/Arch").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "hostname":
-			table.SetCell(row, 0, tview.NewTableCell("Hostname").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		case "resource_limit":
-			table.SetCell(row, 0, tview.NewTableCell("Resource Limit").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			table.SetCell(row, 1, tview.NewTableCell(val).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-			row++
-		default:
-			// ignored
-		}
+		baseinfoRender.set(lp.GetName(), lp.GetValue())
 	}
+
+	row = baseinfoRender.render(table, app.maxTableWidth, row)
 
 	// show election info
 	mf = mfs["datakit_election_status"]

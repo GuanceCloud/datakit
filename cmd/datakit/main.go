@@ -45,6 +45,7 @@ var (
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
 	Lite              = "false"
+	ELinker           = "false"
 
 	runtimeID string
 )
@@ -60,10 +61,14 @@ func main() {
 	if v, err := strconv.ParseBool(Lite); err == nil {
 		datakit.Lite = v
 	}
+	if v, err := strconv.ParseBool(ELinker); err == nil {
+		datakit.ELinker = v
+	}
 
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
 	cmds.Lite = datakit.Lite
+	cmds.ELinker = datakit.ELinker
 
 	var workdir string
 	// Debugging running, not start as service

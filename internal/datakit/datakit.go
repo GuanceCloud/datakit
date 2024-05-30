@@ -131,6 +131,7 @@ var (
 	Version    = git.Version
 	Commit     = git.Commit
 	Lite       = false
+	ELinker    = false
 	AutoUpdate = false
 	IsTestMode bool
 

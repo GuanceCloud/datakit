@@ -3,24 +3,21 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !(windows && 386)
-// +build !windows !386
-
 package spans
 
 import (
-	"context"
+	"runtime"
 	"testing"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/espan"
 )
 
 func TestSample(t *testing.T) {
 	var countSample int
 	count := 1000
 	for i := 0; i < count; i++ {
-		ulidVal, err := NewULID()
+		ulidVal, err := espan.NewRandID()
 		if err != nil {
 			t.Error(err)
 		}
@@ -36,53 +33,56 @@ func TestSample(t *testing.T) {
 	t.Log(float64(countSample) / float64(count))
 }
 
-func TestDB2(t *testing.T) {
-	db := NewSpanDB2(time.Millisecond*100, ":memory:")
+// func TestDB2(t *testing.T) {
+// 	db := NewSpanDB2(time.Millisecond*100, ":memory:")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go db.Manager(ctx)
+// 	ctx, cancel := context.WithCancel(context.Background())
+// 	go db.Manager(ctx)
 
-	time.Sleep(time.Millisecond * 300)
+// 	time.Sleep(time.Millisecond * 300)
 
-	cancel()
+// 	cancel()
 
-	if _, ok := db.GetDBReadyChunk(); !ok {
-		t.Error("db is not ready")
-	}
+// 	if _, ok := db.GetDBReadyChunk(); !ok {
+// 		t.Error("db is not ready")
+// 	}
 
-	if v := db.QueneLength(); v < 1 {
-		t.Fatal(v)
-	}
-}
+// 	if v := db.QueneLength(); v < 1 {
+// 		t.Fatal(v)
+// 	}
+// }
 
 var traceCountForTest = 1
 
 func TestDB(t *testing.T) {
-	// dbPath := "./span_data.sqlite"
-	db2 := NewSpanDB2(time.Microsecond*10, "./")
-
-	db2.replaceHeader()
+	db2, _ := NewSpanDB2(time.Microsecond*10, "./span_storage_test")
 
 	window := time.Second * 30
 	tn := time.Now()
 
 	tnRec := time.Now()
 
-	pts0 := MockTraceData(traceCountForTest, 20, 5, tn.Add(-window*4), true, true)
-	pts1 := MockTraceData(traceCountForTest, 21, 5, tn.Add(-window*3), true, true)
-	pts2 := MockTraceData(traceCountForTest, 17, 6, tn.Add(-window*2), true, true)
-	pts3 := MockTraceData(traceCountForTest, 17, 6, tn.Add(-window*2), true, true)
+	pts0 := MockTraceData(traceCountForTest, 20, 5, tn.Add(-window*4), true)
+	pts1 := MockTraceData(traceCountForTest, 21, 5, tn.Add(-window*3), true)
+	pts2 := MockTraceData(traceCountForTest, 17, 6, tn.Add(-window*2), true)
+	pts3 := MockTraceData(traceCountForTest, 17, 6, tn.Add(-window*2), true)
 
 	t.Log(time.Since(tnRec))
 	tnRec = time.Now()
 
-	db2.curDB.insert(pts0)
-
+	_, err := db2.curDB.insert(pts0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("in1", time.Since(tnRec))
 	tnRec = time.Now()
 
 	db2.replaceHeader()
-	db2.curDB.insert(pts1)
+	_, err = db2.curDB.insert(pts1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Log("in2", time.Since(tnRec))
 	tnRec = time.Now()
 
@@ -114,97 +114,101 @@ func TestDB(t *testing.T) {
 	if !ok {
 		t.Fatal("db is not ready")
 	}
-	defer spdb0.DropDB()
-	defer spdb1.DropDB()
-	defer spdb2.DropDB()
-	defer spdb3.DropDB()
+	defer spdb0.Drop()
+	defer spdb1.Drop()
+	defer spdb2.Drop()
+	defer spdb3.Drop()
 
 	// mrr := MRRunner{}
 
-	if len(spdb0.eSpans) != len(pts0) {
-		t.Errorf("not eq %d, %d", len(spdb0.eSpans), len(pts0))
+	spdb0.GetAllSpanMeta()
+	if len(spdb0.Metas) != len(pts0) {
+		t.Errorf("not eq %d, %d", len(spdb0.Metas), len(pts0))
 	}
 
 	t.Log("g1", time.Since(tnRec))
 	tnRec = time.Now()
 
-	if len(spdb1.eSpans) != len(pts1) {
-		t.Errorf("not eq %d, %d", len(spdb1.eSpans), len(pts1))
+	spdb1.GetAllSpanMeta()
+	if len(spdb1.Metas) != len(pts1) {
+		t.Errorf("not eq %d, %d", len(spdb1.Metas), len(pts1))
 	}
 	t.Log("g2", time.Since(tnRec))
 	tnRec = time.Now()
 
-	if len(spdb2.eSpans) != len(pts2) {
-		t.Errorf("not eq %d, %d", len(spdb2.eSpans), len(pts2))
+	spdb2.GetAllSpanMeta()
+	if len(spdb2.Metas) != len(pts2) {
+		t.Errorf("not eq %d, %d", len(spdb2.Metas), len(pts2))
 	}
 
 	t.Log("g3", time.Since(tnRec))
 	tnRec = time.Now()
 
-	if len(spdb3.eSpans) != len(pts3) {
+	if len(spdb3.Metas) != len(pts3) {
 	} else {
-		t.Errorf("eq %d, %d", len(spdb3.eSpans), len(pts3))
+		t.Errorf("eq %d, %d", len(spdb3.Metas), len(pts3))
 	}
 
-	sps, err := spdb3.getSpanMeta()
+	sps, err := spdb3.GetAllSpanMeta()
 	if err != nil {
 		t.Error(err)
 	}
 
 	if len(sps) != len(pts3) {
-		t.Errorf("not eq %d, %d", len(spdb3.eSpans), len(pts3))
+		t.Errorf("not eq %d, %d", len(spdb3.Metas), len(pts3))
 	}
 
 	t.Log("g4", time.Since(tnRec))
 }
 
-// func TestMem(t *testing.T) {
+func TestMem(t *testing.T) {
+	db2, _ := NewSpanDB2(time.Microsecond*10, "./span_storage_test")
 
-// 	db2 := NewSpanDB2(time.Microsecond*10, "./")
+	window := time.Second * 30
+	tn := time.Now()
 
-// 	db2.replaceHeader()
+	tnRec := time.Now()
 
-// 	window := time.Second * 30
-// 	tn := time.Now()
+	for i := 0; i < 100; i++ {
+		pts0 := MockTraceData(100, 20, 5, tn.Add(-window*4), true)
+		db2.curDB.insert(pts0)
+	}
+	t.Log(time.Since(tnRec))
+	db2.replaceHeader()
+	for i := 0; i < 100; i++ {
+		pts0 := MockTraceData(100, 20, 5, tn.Add(-window*4), true)
+		db2.curDB.insert(pts0)
+	}
+	t.Log(time.Since(tnRec))
+	db2.cleanWriteHeader()
 
-// 	tnRec := time.Now()
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
 
-// 	for i := 0; i < 100; i++ {
-// 		pts0 := MockTraceData(100, 20, 5, tn.Add(-window*4), true, true)
-// 		db2.curDB.insert(pts0)
-// 	}
-// 	t.Log(time.Since(tnRec))
-// 	db2.replaceHeader()
-// 	for i := 0; i < 100; i++ {
-// 		pts0 := MockTraceData(100, 20, 5, tn.Add(-window*4), true, true)
-// 		db2.curDB.insert(pts0)
-// 	}
-// 	t.Log(time.Since(tnRec))
-// 	db2.cleanWriteHeader()
+	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
+	t.Log(time.Since(tnRec))
 
-// 	m := runtime.MemStats{}
-// 	runtime.ReadMemStats(&m)
+	spdb0, ok := db2.GetDBReadyChunk()
+	if !ok {
+		t.Fatal("db is not ready")
+	}
 
-// 	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
+	spdb0.GetAllSpanMeta()
+	t.Logf("cout %d", len(spdb0.Metas))
+	runtime.ReadMemStats(&m)
+	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
+	t.Log(time.Since(tnRec))
 
-// 	spdb0, ok := db2.GetDBReadyChunk()
-// 	if !ok {
-// 		t.Fatal("db is not ready")
-// 	}
+	spdb0.Drop()
 
-// 	runtime.ReadMemStats(&m)
-// 	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
-// 	spdb0.DropDB()
-
-// 	spdb0, ok = db2.GetDBReadyChunk()
-// 	if !ok {
-// 		t.Fatal("db is not ready")
-// 	}
-
-// 	runtime.ReadMemStats(&m)
-// 	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
-// 	spdb0.DropDB()
-
-// 	//
-// 	t.Error(len(spdb0.eSpans))
-// }
+	spdb0, ok = db2.GetDBReadyChunk()
+	if !ok {
+		t.Fatal("db is not ready")
+	}
+	spdb0.GetAllSpanMeta()
+	t.Logf("cout %d", len(spdb0.Metas))
+	runtime.ReadMemStats(&m)
+	t.Logf("heap in use: %f MB", float64(m.HeapInuse)/1024/1024)
+	spdb0.Drop()
+	t.Log(time.Since(tnRec))
+}

@@ -1,0 +1,1 @@
+protoc --gogofaster_out=. espanmeta.proto

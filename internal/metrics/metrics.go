@@ -132,6 +132,7 @@ var (
 			"docker",
 			"hostname",
 			"lite",
+			"elinker",
 			"resource_limit",
 		},
 
@@ -204,6 +205,7 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 		fmt.Sprintf("%v", datakit.Docker),
 		datakit.DatakitHostName,
 		fmt.Sprintf("%v", datakit.Lite),
+		fmt.Sprintf("%v", datakit.ELinker),
 		resourcelimit.Info(),
 	)
 

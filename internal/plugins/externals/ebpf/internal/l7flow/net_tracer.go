@@ -494,8 +494,8 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		v.KVs = v.KVs.Add("dst_port", strconv.Itoa(int(conn.Dport)), false, true)
 
 		// span info
-		v.KVs = v.KVs.Add("start", v.Time/1000, false, true) // conv ns to us
-		v.KVs = v.KVs.Add("duration", v.Duration, false, true)
+		v.KVs = v.KVs.Add("start", v.Time/1000, false, true)        // conv ns to us
+		v.KVs = v.KVs.Add("duration", v.Duration/1000, false, true) // conv ns to us
 		v.KVs = v.KVs.Add("cost", v.Cost, false, true)
 		v.KVs = v.KVs.Add("span_type", spanType, false, true)
 

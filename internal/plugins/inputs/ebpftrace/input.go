@@ -20,7 +20,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/espan"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/spans"
 )
 
@@ -30,7 +33,7 @@ const (
 
 	configSample = `
 [[inputs.ebpftrace]]
-  sqlite_path = "%s"
+  db_path = "%s"
   use_app_trace_id = true
   window = "20s"
   sampling_rate = 0.1
@@ -38,12 +41,13 @@ const (
 )
 
 var (
-	l             = logger.DefaultSLogger(inputName)
+	log           = logger.DefaultSLogger(inputName)
 	defaultWindow = time.Second * 20
 )
 
 type Input struct {
-	SQLitePath    string        `toml:"sqlite_path"`
+	DBPath        string        `toml:"db_path"`
+	SQLitePath    string        `toml:"sqlite_path"` // Deprecated
 	UseAppTraceID bool          `toml:"use_app_trace_id"`
 	Window        time.Duration `toml:"window"`
 	SamplingRate  float64       `toml:"sampling_rate"`
@@ -76,7 +80,7 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 
-	ulid, _ := spans.NewULID()
+	ulid, _ := espan.NewRandID()
 
 	httpapi.RegHTTPRoute("POST", "/v1/bpftracing",
 		apiBPFTracing(ulid, ipt.mrrunner))
@@ -90,8 +94,13 @@ func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelK8s}
 }
 
+var defaultExporter = func(pts []*point.Point) error {
+	return dkio.DefaultFeeder().FeedV2(point.Tracing, pts,
+		dkio.WithInputName("ebpf-tracing"))
+}
+
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
+	log = logger.SLogger(inputName)
 	spans.Init()
 
 	if ipt.mrrunner == nil {
@@ -99,24 +108,24 @@ func (ipt *Input) Run() {
 			return
 		}
 	}
-	ipt.mrrunner.Run()
+	ipt.mrrunner.Run(defaultExporter)
 	select {
 	case <-datakit.Exit.Wait():
-		l.Info("ebpftrace input exit")
+		log.Info("ebpftrace input exit")
 		return
 	case <-ipt.semStop.Wait():
-		l.Info("ebpftrace input exit")
+		log.Info("ebpftrace input exit")
 		return
 	}
 }
 
 func initMRRunner(ipt *Input) bool {
-	if ipt.SQLitePath == "" {
-		ipt.SQLitePath = filepath.Join(datakit.InstallDir, "ebpf_spandb/")
+	if ipt.DBPath == "" {
+		ipt.DBPath = filepath.Join(datakit.InstallDir, "ebpf_spandb/")
 	}
 
-	if err := os.MkdirAll(ipt.SQLitePath, os.ModePerm); err != nil {
-		l.Error(err)
+	if err := os.MkdirAll(ipt.DBPath, os.ModePerm); err != nil {
+		log.Error(err)
 		return false
 	}
 
@@ -127,7 +136,7 @@ func initMRRunner(ipt *Input) bool {
 	return true
 }
 
-// SQLitePath    string        `toml:"sqlite_path"`
+// DBPath    string        `toml:"db_path"`
 // UseAppTraceID bool          `toml:"use_app_trace_id"`
 // Window        time.Duration `toml:"window"`
 // SamplingRate  float64       `toml:"sampling_rate"`
@@ -135,7 +144,7 @@ func initMRRunner(ipt *Input) bool {
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{FieldName: "SQLitePath", ENVName: "SQLITE_PATH", Type: doc.String, Example: "`/usr/local/datakit/ebpf_spandb/`", Desc: "SQLite database file storage path", DescZh: "SQLite 数据库文件存放路径"},
+		{FieldName: "DBPath", ENVName: "DB_PATH", Type: doc.String, Example: "`/usr/local/datakit/ebpf_spandb/`", Desc: "SQLite database file storage path", DescZh: "数据库文件存放路径"},
 		{FieldName: "UseAppTraceID", Type: doc.Boolean, Default: `false`, Desc: "Use application-side trace id instead of eBPF trace id", DescZh: "使用应用侧 trace id 替代 eBPF trace id"},
 		{FieldName: "Window", Type: doc.TimeDuration, Default: `20s`, Desc: "Span's link time window", DescZh: "链路 span 的链接时间窗口"},
 		{FieldName: "SamplingRate", Type: doc.Float, Example: `0.1`, Desc: "Link sampling rate", DescZh: "链路采样率"},
@@ -170,8 +179,8 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		ipt.SamplingRate, _ = strconv.ParseFloat(v, 64)
 	}
 
-	if v, ok := envs["ENV_INPUT_EBPFTRACE_SQLITE_PATH"]; ok {
-		ipt.SQLitePath = v
+	if v, ok := envs["ENV_INPUT_EBPFTRACE_DB_PATH"]; ok {
+		ipt.DBPath = v
 	}
 }
 
@@ -185,5 +194,6 @@ func init() { //nolint:gochecknoinits
 
 type MRRunnerInterface interface {
 	InsertSpans(pts []*point.Point)
-	Run()
+	Run(fn spans.Exporter)
+	Stop()
 }

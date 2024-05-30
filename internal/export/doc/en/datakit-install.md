@@ -75,6 +75,38 @@ DataKit lite only contains collectors as below:
 | [Prom (prom)](../integrations/prom.md)                         | Collect data exposed by Prometheus Exporters                                                                  |
 | [logging](../integrations/logging.md)                          | Collect file log data                                                                                         |
 
+<!-- markdownlint-enable -->
+### Install DataKit eBPF Span Linker Version {#elinker-install}
+
+You can specify the environment variable `DK_ELINKER` to install DataKit ELinker ([:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)):
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
+
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "DK_ELINKER" "1" ) }}
+    ```
+
+=== "Windows"
+
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_ELINKER" "1" ) }}
+    ```
+<!-- markdownlint-enable -->
+DataKit ELinker only contains collectors as below:
+
+| Collector Name                                                 | Description                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [`cpu`](cpu.md)                                                | Collect the CPU usage of the host                                                                             |
+| [`disk`](disk.md)                                              | Collect disk occupancy                                                                                        |
+| [`diskio`](diskio.md)                                          | Collect the disk IO status of the host                                                                        |
+| [`ebpftrace`](ebpftrace.md)                                    | Receive eBPF trace span and link these spans to generate trace id                                             |
+| [`mem`](mem.md)                                                | Collect the memory usage of the host                                                                          |
+| [`swap`](swap.md)                                              | Collect Swap memory usage                                                                                     |
+| [`system`](system.md)                                          | Collect the load of host operating system                                                                     |
+| [`net`](net.md)                                                | Collect host network traffic                                                                                  |
+| [`hostobject`](hostobject.md)                                  | Collect basic information of host computer (such as operating system information, hardware information, etc.) |
+| [`DataKit(dk)`](../integrations/dk.md)                         | Collect Datakit running metrics                                                                               |
+
 ### Install Specific Version {#version-install}
 
 We can install specific DataKit version, for example 1.2.3:

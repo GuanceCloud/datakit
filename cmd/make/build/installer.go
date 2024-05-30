@@ -28,9 +28,10 @@ func generateInstallScript() error {
 		ReleaseVersion, DownloadCDN)
 
 	for k, v := range map[string]string{
-		"install.template.sh":   "install.sh",
-		"install.template.ps1":  "install.ps1",
-		"datakit.template.yaml": "datakit.yaml",
+		"install.template.sh":           "install.sh",
+		"install.template.ps1":          "install.ps1",
+		"datakit.template.yaml":         "datakit.yaml",
+		"datakit-elinker.template.yaml": "datakit-elinker.yaml",
 	} {
 		txt, err := os.ReadFile(filepath.Clean(k))
 		if err != nil {

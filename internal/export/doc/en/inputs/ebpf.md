@@ -21,25 +21,25 @@ monitor   :
 
 eBPF collector, collecting host network TCP, UDP connection information, Bash execution log, etc. This collector mainly includes `ebpf-net`, `ebpf-conntrack` and `ebpf-bash` three plugins:
 
-* `ebpf-net`:
-    * Data category: Network
-    * It is composed of netflow, httpflow and dnsflow, which are used to collect host TCP/UDP connection statistics and host DNS resolution information respectively;
+- `ebpf-net`:
+    - Data category: Network
+    - It is composed of netflow, httpflow and dnsflow, which are used to collect host TCP/UDP connection statistics and host DNS resolution information respectively;
 
-* `ebpf-bash`:
+- `ebpf-bash`:
 
-    * Data category: Logging
-    * Collect Bash execution log, including Bash process number, user name, executed command and time, etc.;
+    - Data category: Logging
+    - Collect Bash execution log, including Bash process number, user name, executed command and time, etc.;
 
-* `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](../datakit/changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
-    * Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
+- `ebpf-conntrack`: [:octicons-tag-24: Version-1.8.0](../datakit/changelog.md#cl-1.8.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+    - Add two tags `dst_nat_ip` and `dst_nat_port` to the network flow data.
 
 
-* `ebpf-trace`:
-    * Application call relationship tracking.
+- `ebpf-trace`:
+    - Application call relationship tracking.
 
-* `bpf-netlog`:
-    * Data category: `Logging`, `Network`
-    * This plugin implements `ebpf-net`’s `netflow/httpflow`
+- `bpf-netlog`:
+    - Data category: `Logging`, `Network`
+    - This plugin implements `ebpf-net`’s `netflow/httpflow`
 
 ## Configuration {#config}
 
@@ -47,14 +47,14 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 
 For DataKit before v1.5.6, you need to execute the installation command to install:
 
-* v1.2.13 ~ v1.2.18
-    * Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
-    * After the DataKit is installed, manually install the eBPF collector: `datakit install --datakit-ebpf`
-* v1.2.19+
-    * [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
-    * After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
-* v1.5.6+
-    * No manual installation required
+- v1.2.13 ~ v1.2.18
+    - Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+    - After the DataKit is installed, manually install the eBPF collector: `datakit install --datakit-ebpf`
+- v1.2.19+
+    - [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
+    - After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
+- v1.5.6+
+    - No manual installation required
 
 When deploying in Kubernetes environment, you must mount the host's' `/sys/kernel/debug` directory into pod, refer to the latest `datakit.yaml`;
 
@@ -83,101 +83,134 @@ For SELinux-enabled systems, you need to shut them down (pending subsequent opti
 setenforce 0
 ```
 
-### HTTPS Support {#https}
+### `eBPF Tracing` using {#ebpf-trace}
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ·
-[:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+`ebpf-trace` uses eBPF technology to obtain network data, and traces the kernel-level threads/user-level threads of the process (such as golang goroutine) to generate link eBPF Span.
 
-If eBPF-net is required to start https request data collection support for processes in the container, you need to mount the overlay directory to the container.
+If the eBPF collector with link data collection enabled is deployed on multiple nodes, all eBPF link data needs to be sent to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled.
 
-`datakit.yaml` reference changes:
-
-<!-- markdownlint-disable MD046 -->
-=== "Docker"
-
-    ```yaml
-    ...
-            volumeMounts:
-            - mountPath: /var/lib/docker/overlay2/
-              name: vol-docker-overlay
-              readOnly: true
-    ...
-          volumes:
-          - hostPath:
-              path: /var/lib/docker/overlay2/
-              type: ""
-            name: vol-docker-overlay
-    ```
-
-=== "Containerd"
-
-    ```yaml
-            volumeMounts:
-            - mountPath: /run/containerd/io.containerd.runtime.v2.task/
-              name: vol-containerd-overlay
-              readOnly: true
-    ...
-          volumes:
-          - hostPath:
-              path: /run/containerd/io.containerd.runtime.v2.task/
-              type: ""
-            name: vol-containerd-overlay
-    ```
-<!-- markdownlint-enable -->
-You can view the overlay mount point through `cat /proc/mounts`
-
+For more details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
 
 ### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. The example is as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    The default configuration does not turn on eBPF-bash. If you need to turn on, add `eBPF-bash` in the `enabled_plugins` configuration item;
-    
     After configuration, restart DataKit.
 
 === "Kubernetes"
 
-    In Kubernetes, collection can be started by ConfigMap or directly enabling eBPF collector by default:
-    
-    1. Refer to the generic [Installation Sample](../datakit/datakit-daemonset-deploy.md#configmap-setting) for the ConfigMap mode.
-    2. Append `eBPF` to the environment variable `ENV_ENABLE_INPUTS` in `datakit.yaml`, using the default configuration, which only turns on eBPF-net network data collection.
+    In Kubernetes, you can enable collection through ConfigMap or directly enable the eBPF collector by default:
+
+    1. For the ConfigMap method, refer to the general [Installation Example](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    2. Add `ebpf` to the environment variable `ENV_ENABLE_INPUTS` in *datakit.yaml*. In this case, the default configuration is used, that is, only `ebpf-net` network data collection is enabled.
     
     ```yaml
     - name: ENV_ENABLE_INPUTS
-           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,eBPF
+           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
     ```
 
-### Environment variables configuration {#input-cfg-field-env}
+### Environment variables and configuration items {#input-cfg-field-env}
 
-    The eBPF collection configuration in Kubernetes can be adjusted by the following environment variables:
-    
-    | Environment variable name             | Corresponding configuration parameter item | Parameter example                                  | Description                                                                                                                                                     |
-    | :------------------------------------ | ------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-    | `ENV_INPUT_EBPF_ENABLED_PLUGINS`      | `enabled_plugins`                          | `ebpf-net,ebpf-trace`                              | Used to configure the built-in plug-in of the collector                                                                                                         |
-    | `ENV_INPUT_EBPF_L7NET_ENABLED`        | `l7net_enabled`                            | `httpflow`                                         | Enable http protocol data collection                                                                                                                            |
-    | `ENV_INPUT_EBPF_IPV6_DISABLED`        | `ipv6_disabled`                            | `false`                                            | Whether the system does not support IPv6                                                                                                                        |
-    | `ENV_INPUT_EBPF_EPHEMERAL_PORT`       | `ephemeral_port`                           | `32768`                                            | The starting position of the ephemeral port                                                                                                                     |
-    | `ENV_INPUT_EBPF_INTERVAL`             | `interval`                                 | `60s`                                              | Data aggregation period                                                                                                                                         |
-    | `ENV_INPUT_EBPF_TRACE_SERVER`         | `trace_server`                             | `<datakit ip>:<datakit port>`                      | The address of DataKit, you need to enable DataKit `ebpftrace` collector to receive eBPF link data                                                              |
-    | `ENV_INPUT_EBPF_TRACE_ALL_PROCESS`    | `trace_all_process`                        | `false`                                            | Trace all processes in the system                                                                                                                               |
-    | `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST` | `trace_name_blacklist`                     | `datakit,datakit-ebpf`                             | The process with the specified process name will be prohibited from collecting link data. The process in the example has been hard-coded to prohibit collection |
-    | `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`  | `trace_env_blacklist`                      | `datakit,datakit-ebpf`                             | Processes containing any specified environment variable name will be prohibited from collecting link data                                                       |
-    | `ENV_INPUT_EBPF_TRACE_ENV_LIST`       | `trace_env_list`                           | `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME` | The link data of the process containing any specified environment variables will be tracked and reported                                                        |
-    | `ENV_INPUT_EBPF_TRACE_NAME_LIST`      | `trace_name_list`                          | `chrome,firefox`                                   | Processes with process names in the specified set will be tracked and reported                                                                                  |
-    | `ENV_INPUT_EBPF_CONV_TO_DDTRACE`      | `conv_to_ddtrace`                          | `false`                                            | Convert all application `trace_id` to decimal strings                                                                                                           |
-    | `ENV_INPUT_EBPF_NETLOG_BLACKLIST`     | `netlog_blacklist`                         | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | Used to filter packets after packet capture                                                                                                                     |
-    | `ENV_INPUT_EBPF_NETLOG_METRIC`        | `netlog_metric`                            | `true`                                             | collect network metrics                                                                                                                                         |
-    | `ENV_INPUT_EBPF_NETLOG_LOG`           | `netlog_log`                               | `flase`                                            | collect network logs                                                                                                                                            |
-    | `ENV_INPUT_EBPF_CPU_LIMIT`            | `cpu_limit`                                | `"2.0"`                                            | Maximum number of CPU cores used per unit time limit                                                                                                            |
-    | `ENV_INPUT_EBPF_MEM_LIMIT`            | `mem_limit`                                | `"4GiB"`                                           | Memory size usage limit                                                                                                                                         |
-    | `ENV_INPUT_EBPF_NET_LIMIT`            | `net_limit`                                | `"100MiB/s"`                                       | Network bandwidth (any network card) limit                                                                                                                      |
+The following environment variables can be used to adjust the eBPF collection configuration in Kubernetes:
+
+Configuration items:
+
+- `enabled_plugins`:
+    - Description: Used to configure the built-in plugins for the collector
+    - Environment variable: `ENV_INPUT_EBPF_ENABLED_PLUGINS`
+    - Example: `ebpf-net,ebpf-trace`
+
+- `l7net_enabled`
+    - Description: Enable http protocol data collection
+    - Environment variable: `ENV_INPUT_EBPF_L7NET_ENABLED`
+    - Example: `httpflow`
+
+- `ipv6_disabled`
+    - Description: Whether the system does not support IPv6
+    - Environment variable: `ENV_INPUT_EBPF_IPV6_DISABLED`
+    - Example: `false`
+
+- `ephemeral_port`
+    - Description: Ephemeral port start location
+    - Environment variable: `ENV_INPUT_EBPF_EPHEMERAL_PORT`
+    - Example: `32768`
+
+<!-- - `interval`
+    - Description: Data aggregation period
+    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
+    - Example: `60s` -->
+
+- `trace_server`
+    - Description: The address of DataKit ELinker/Datakit to enable the `ebpftrace` collector
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_SERVER`
+    - Example: `<ip>:<port>`
+
+- `trace_all_process`
+    - Description: Trace all processes in the system
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_ALL_PROCESS`
+    - Example: `false`
+
+- `trace_name_blacklist`
+    - Description: The process with the specified process name will be **disabled** from collecting trace data
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
+    - Example:
+
+- `trace_env_blacklist`
+    - Description: Any process containing any of the specified environment variable names will be **disabled** from collecting trace data
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
+    - Example: `DKE_DISABLE_ETRACE`
+
+- `trace_env_list`
+    - Description: Link data for processes with any specified environment variables will be traced and reported
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_LIST`
+    - Example: `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME`
+
+- `trace_name_list`
+    - Description: Processes whose names are in the specified set will be traced and reported
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_LIST`
+    - Example: `chrome,firefox`
+
+- `conv_to_ddtrace`
+    - Description: Convert all application side link IDs to decimal strings for compatibility purposes, not used unless necessary
+    - Environment variable: `ENV_INPUT_EBPF_CONV_TO_DDTRACE`
+    - Example: `false`
+
+- `netlog_blacklist`
+    - Description: Used to filter packets after packet capture
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_BLACKLIST`
+    - Example: `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'`
+
+- `netlog_metric`
+    - Description: Collect network metrics from network packet analysis
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_METRIC`
+    - Example: `true`
+
+- `netlog_log`
+    - Description: Collect network logs from network packet analysis
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_LOG`
+    - Example: `false`
+
+- `cpu_limit`
+    - Description: The maximum number of CPU cores used per unit time. When the upper limit is reached, the collector exits.
+    - Environment variable: `ENV_INPUT_EBPF_CPU_LIMIT`
+    - Example: "2.0"`
+
+- `mem_limit`
+    - Description: Memory size usage limit
+    - Environment variable: `ENV_INPUT_EBPF_MEM_LIMIT`
+    - Example: `"4GiB"`
+
+- `net_limit`
+    - Description: Network bandwidth (any network card) limit
+    - Environment variable: `ENV_INPUT_EBPF_NET_LIMIT`
+    - Example: `"100MiB/s"`
 
 <!-- markdownlint-enable -->
 
@@ -287,11 +320,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
-* tag
+- tag
 
 {{$m.TagsMarkdownTable}}
 
-* metric list
+- metric list
 
 {{$m.FieldsMarkdownTable}}
 

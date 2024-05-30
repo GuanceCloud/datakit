@@ -201,10 +201,16 @@ func Compile() error {
 			return err
 		}
 
-		// build lite datakit
+		// build lite and elinker datakit
 		if isExtraLite() {
 			dir := fmt.Sprintf("%s/%s_lite-%s-%s", BuildDir, AppName, goos, goarch)
 			if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "datakit_lite && with_inputs"); err != nil {
+				return err
+			}
+		}
+		if isExtraELinker() {
+			dir := fmt.Sprintf("%s/%s_elinker-%s-%s", BuildDir, AppName, goos, goarch)
+			if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "datakit_elinker && with_inputs"); err != nil {
 				return err
 			}
 		}
@@ -246,8 +252,11 @@ func Compile() error {
 
 func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	isLite := false
+	isELinker := false
 	if strings.Contains(tags, "datakit_lite") {
 		isLite = true
+	} else if strings.Contains(tags, "datakit_elinker") {
+		isELinker = true
 	}
 
 	output := filepath.Join(dir, bin)
@@ -284,7 +293,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	cmdArgs = append(cmdArgs, []string{
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.Lite=%v -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", isLite, InputsReleaseType, ReleaseVersion),
+		fmt.Sprintf("-w -s -X main.Lite=%v -X main.ELinker=%v -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s",
+			isLite, isELinker, InputsReleaseType, ReleaseVersion),
 		mainEntranceFile,
 	}...)
 
@@ -328,4 +338,19 @@ func isExtraLite() bool {
 	}
 
 	return extraLite
+}
+
+// is_extra_elinker check whether to build elinker datakit.
+func isExtraELinker() bool {
+	extraELinker := true
+	elinkerDisable := os.Getenv("ELINKER_DISABLE")
+	if len(elinkerDisable) > 0 {
+		if v, err := strconv.ParseBool(elinkerDisable); err != nil {
+			l.Warnf("parse ELINKER_DISABLE error: %s, ignore", err.Error())
+		} else {
+			extraELinker = !v
+		}
+	}
+
+	return extraELinker
 }

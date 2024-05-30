@@ -37,6 +37,7 @@ type installCmd struct {
 	upgrade,
 	inJSON,
 	lite,
+	elinker,
 	proxy,
 	oneline bool
 	indent int
@@ -62,6 +63,8 @@ func (x *installCmd) String() (out string) {
 		x.envs["DK_UPGRADE"] = "1"
 		if x.lite {
 			x.envs["DK_LITE"] = "1"
+		} else if x.elinker {
+			x.envs["DK_ELINKER"] = "1"
 		}
 
 		switch x.platform {

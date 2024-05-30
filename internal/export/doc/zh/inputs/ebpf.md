@@ -27,7 +27,6 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
     - 由 `netflow/httpflow/dnsflow` 构成，分别用于采集主机 TCP/UDP 连接统计信息，HTTP 请求信息和主机 DNS 解析信息；
 
 - `ebpf-bash`:
-
     - 数据类别： `Logging`
     - 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等；
 
@@ -85,41 +84,11 @@ setenforce 0
 
 ### `eBPF Tracing` 使用 {#ebpf-trace}
 
-`ebpf-trace` 使用 eBPF 技术获取并解析网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine 实现）进行跟踪，并生成链路 eBPF span；
+`ebpf-trace` 使用 eBPF 技术获取网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span。
 
-如果在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF 的链路数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md) 采集器插件的 DataKit。
+如果在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF 的链路数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。
 
-开启该采集器需要在配置文件中进行以下设置（以下配置项不包括如何进行跟踪）：
-
-```toml
-[[inputs.ebpf]]
-  enabled_plugins = [
-    "ebpf-net",
-    "ebpf-trace",
-    # "ebpf-conntrack"
-  ]
-
-  l7net_enabled = [
-    "httpflow",
-    # "httpflow-tls"
-  ]
-
-  trace_server = "x.x.x.x:9529"
-```
-
-有以下几种方法对其他进程进行链路跟踪：
-
-- 设置 `trace_all_process` 为 `true`，可以配合 `trace_name_blacklist` 或者 `trace_env_blacklist` 排除部分不希望采集的进程
-- 设置 `trace_env_list` 对包含任意一个指定**环境变量**的进程进行跟踪。
-- 设置 `trace_name_list` 对包含任意一个指定**进程名**的进程进行跟踪。
-
-可通过为被采集进程注入以下任意一个环境变，来设置 span 的 service name：
-
-- `DK_BPFTRACE_SERVICE`
-- `DD_SERVICE`
-- `OTEL_SERVICE_NAME`
-
-更多配置项细节见[环境变量和配置项](./ebpf.md#input-cfg-field-env)。
+更多细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
 
 ### 采集器配置 {#input-config}
 
@@ -150,26 +119,97 @@ setenforce 0
 
 通过以下环境变量可以调整 Kubernetes 中 eBPF 采集配置：
 
-| 环境变量名                            | 对应的配置参数项       | 参数示例                                           | 描述                                                                      |
-| :------------------------------------ | ---------------------- | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| `ENV_INPUT_EBPF_ENABLED_PLUGINS`      | `enabled_plugins`      | `ebpf-net,ebpf-trace`                              | 用于配置采集器的内置插件                                                  |
-| `ENV_INPUT_EBPF_L7NET_ENABLED`        | `l7net_enabled`        | `httpflow`                                         | 开启 http 协议数据采集                                                    |
-| `ENV_INPUT_EBPF_IPV6_DISABLED`        | `ipv6_disabled`        | `false`                                            | 系统是否不支持 IPv6                                                       |
-| `ENV_INPUT_EBPF_EPHEMERAL_PORT`       | `ephemeral_port`       | `32768`                                            | 临时端口开始位置                                                          |
-| `ENV_INPUT_EBPF_INTERVAL`             | `interval`             | `60s`                                              | 数据聚合周期                                                              |
-| `ENV_INPUT_EBPF_TRACE_SERVER`         | `trace_server`         | `<datakit ip>:<datakit port>`                      | DataKit 的地址，需要开启 DataKit `ebpftrace` 采集器用于接收 eBPF 链路数据 |
-| `ENV_INPUT_EBPF_TRACE_ALL_PROCESS`    | `trace_all_process`    | `false`                                            | 对系统内的所有进程进行跟踪                                                |
-| `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST` | `trace_name_blacklist` | `datakit,datakit-ebpf`                             | 指定进程名的进程将被**禁止采集**链路数据，示例中的进程已被硬编码禁止采集  |
-| `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`  | `trace_env_blacklist`  | `datakit,datakit-ebpf`                             | 包含任意一个指定环境变量名的进程将被**禁止采集**链路数据                  |
-| `ENV_INPUT_EBPF_TRACE_ENV_LIST`       | `trace_env_list`       | `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME` | 含有任意指定环境变量的进程的链路数据将被跟踪和上报                        |
-| `ENV_INPUT_EBPF_TRACE_NAME_LIST`      | `trace_name_list`      | `chrome,firefox`                                   | 进程名在指定集合内的的进程将被跟踪和上报                                  |
-| `ENV_INPUT_EBPF_CONV_TO_DDTRACE`      | `conv_to_ddtrace`      | `false`                                            | 将所有的应用侧链路 id 转换为 10 进制表示的字符串，兼容用途，非必要不使用  |
-| `ENV_INPUT_EBPF_NETLOG_BLACKLIST`     | `netlog_blacklist`     | `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'` | 用于实现在抓包之后的数据包的过滤                                          |
-| `ENV_INPUT_EBPF_NETLOG_METRIC`        | `netlog_metric`        | `true`                                             | 从网络数据包分析采集网络指标                                              |
-| `ENV_INPUT_EBPF_NETLOG_LOG`           | `netlog_log`           | `false`                                            | 从网络数据包分析采集网络日志                                              |
-| `ENV_INPUT_EBPF_CPU_LIMIT`            | `cpu_limit`            | `"2.0"`                                            | 单位时间内 CPU 最大核心数使用限制                                         |
-| `ENV_INPUT_EBPF_MEM_LIMIT`            | `mem_limit`            | `"4GiB"`                                           | 内存大小使用限制                                                          |
-| `ENV_INPUT_EBPF_NET_LIMIT`            | `net_limit`            | `"100MiB/s"`                                       | 网络带宽（任意网卡）限制                                                  |
+配置项：
+
+- `enabled_plugins`:
+    - 描述：用于配置开启采集器的内置插件
+    - 环境变量：`ENV_INPUT_EBPF_ENABLED_PLUGINS`
+    - 示例：`ebpf-net,ebpf-trace`
+
+- `l7net_enabled`
+    - 描述：开启 http 协议数据采集
+    - 环境变量：`ENV_INPUT_EBPF_L7NET_ENABLED`
+    - 示例：`httpflow`
+
+- `ipv6_disabled`
+    - 描述：系统是否不支持 IPv6
+    - 环境变量：`ENV_INPUT_EBPF_IPV6_DISABLED`
+    - 示例：`false`
+
+- `ephemeral_port`
+    - 描述：临时端口开始位置
+    - 环境变量：`ENV_INPUT_EBPF_EPHEMERAL_PORT`
+    - 示例：`32768`
+
+<!-- - `interval`
+    - 描述：数据聚合周期
+    - 环境变量：`ENV_INPUT_EBPF_INTERVAL`
+    - 示例：`60s` -->
+
+- `trace_server`
+    - 描述：开启 `ebpftrace` 采集器的 DataKit ELinker/ Datakit 的地址
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_SERVER`
+    - 示例：`<ip>:<port>`
+
+- `trace_all_process`
+    - 描述：对系统内的所有进程进行跟踪
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_ALL_PROCESS`
+    - 示例：`false`
+
+- `trace_name_blacklist`
+    - 描述：指定进程名的进程将被**禁止采集**链路数据
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
+    - 示例：
+
+- `trace_env_blacklist`
+    - 描述：包含任意一个指定环境变量名的进程将被**禁止采集**链路数据
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
+    - 示例：`DKE_DISABLE_ETRACE`
+
+- `trace_env_list`
+    - 描述：含有任意指定环境变量的进程的链路数据将被跟踪和上报
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_ENV_LIST`
+    - 示例：`DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME`
+
+- `trace_name_list`
+    - 描述：进程名在指定集合内的的进程将被跟踪和上报
+    - 环境变量：`ENV_INPUT_EBPF_TRACE_NAME_LIST`
+    - 示例：`chrome,firefox`
+
+- `conv_to_ddtrace`
+    - 描述：将所有的应用侧链路 id 转换为 10 进制表示的字符串，兼容用途，非必要不使用
+    - 环境变量：`ENV_INPUT_EBPF_CONV_TO_DDTRACE`
+    - 示例：`false`
+
+- `netlog_blacklist`
+    - 描述：用于实现在抓包之后的数据包的过滤
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_BLACKLIST`
+    - 示例：`ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'`
+
+- `netlog_metric`
+    - 描述：从网络数据包分析采集网络指标
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_METRIC`
+    - 示例：`true`
+
+- `netlog_log`
+    - 描述：从网络数据包分析采集网络日志
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_LOG`
+    - 示例：`false`
+
+- `cpu_limit`
+    - 描述：单位时间内 CPU 最大核心数使用限制，到达上限，采集器退出
+    - 环境变量：`ENV_INPUT_EBPF_CPU_LIMIT`
+    - 示例："2.0"`
+
+- `mem_limit`
+    - 描述：内存大小使用限制
+    - 环境变量：`ENV_INPUT_EBPF_MEM_LIMIT`
+    - 示例：`"4GiB"`
+
+- `net_limit`
+    - 描述：网络带宽（任意网卡）限制
+    - 环境变量：`ENV_INPUT_EBPF_NET_LIMIT`
+    - 示例：`"100MiB/s"`
 
 <!-- markdownlint-enable -->
 

@@ -13,10 +13,10 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hash"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/spans"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ebpftrace/espan"
 )
 
-func apiBPFTracing(ulid *spans.ULID, mrr MRRunnerInterface) httpapi.APIHandler {
+func apiBPFTracing(ulid *espan.RandID, mrr MRRunnerInterface) httpapi.APIHandler {
 	return func(w http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
 		if ulid == nil || mrr == nil {
 			return nil, nil
@@ -47,7 +47,7 @@ func apiBPFTracing(ulid *spans.ULID, mrr MRRunnerInterface) httpapi.APIHandler {
 
 		for _, pt := range pts {
 			id, _ := ulid.ID()
-			pt.Add(spans.SpanID, int64(hash.Fnv1aU8Hash(id.Byte())))
+			pt.Add(espan.SpanID, int64(hash.Fnv1aU8Hash(id.Byte())))
 		}
 
 		if mrr != nil {

@@ -279,6 +279,13 @@ if ($x -ne $null) {
 	Write-COutput green "* Set lite => ON"
 }
 
+$elinker=
+$x = [Environment]::GetEnvironmentVariable("DK_ELINKER")
+if ($x -ne $null) {
+	$elinker = $x
+	Write-COutput green "* Set elinker => ON"
+}
+
 $confd_backend=""
 $confd_basic_auth=""
 $confd_client_ca_keys=""
@@ -517,6 +524,7 @@ if ($upgrade -ne $null) { # upgrade
 			"--install-log='${install_log}'",
 			"--proxy='${proxy}'",
 			"--lite='${lite}'",
+			"--elinker='${elinker}'",
 			"--installer_base_url='${installer_base_url}'"
 			)
 } else { # install new datakit
@@ -531,6 +539,7 @@ if ($upgrade -ne $null) { # upgrade
 			"--port=${http_port}",
 			"--proxy='${proxy}'",
 			"--lite='${lite}'",
+			"--elinker='${elinker}'",
 			"--namespace='${namespace}'",
 			"--env_hostname='${env_hostname}'",
 			"--cloud-provider='${cloud_provider}'",

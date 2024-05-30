@@ -26,6 +26,7 @@ scripts/v1.data
 *.tar.gz
 !k8s-profilers/async-profiler/*
 *.yaml
+!datakit-elinker.template.yaml
 *.zip
 test.*/
 *.test
@@ -105,3 +106,4 @@ y.output
 datakit*.tar
 internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf
 internal/plugins/externals/ebpf/demo/
+internal/plugins/inputs/ebpftrace/spans/span_storage_test/
