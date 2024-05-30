@@ -150,6 +150,12 @@ if [ -n "$DK_LITE" ]; then
 	printf "* Set lite => ON\n"
 fi
 
+elinker=
+if [ -n "$DK_ELINKER" ]; then
+	elinker=$DK_ELINKER
+	printf "* Set elinker => $DK_ELINKER\n"
+fi
+
 global_customer_keys=
 if [ -n "$DK_SINKER_GLOBAL_CUSTOMER_KEYS" ]; then
 	global_customer_keys=$DK_SINKER_GLOBAL_CUSTOMER_KEYS
@@ -524,7 +530,7 @@ if [ "$upgrade" ]; then
 	printf "\n* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log="$install_log" \
-		--upgrade --lite="${lite}" --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --lite="${lite}" --elinker="${elinker}" --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
 else
 printf "\n* Installing DataKit...\n"
 $sudo_cmd $installer \
@@ -544,6 +550,7 @@ $sudo_cmd $installer \
 		--port="${http_port}" \
 		--proxy="${proxy}" \
 		--lite="${lite}" \
+		--elinker="${elinker}" \
 		--env_hostname="${env_hostname}" \
 		--dca-enable="${dca_enable}" \
 		--dca-listen="${dca_listen}" \

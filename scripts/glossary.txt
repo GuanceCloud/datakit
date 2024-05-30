@@ -36,6 +36,7 @@ Distro
 Dubbo
 Dubbox
 ElasticSearch
+ELinker
 Fastjson
 Filebeat
 FireLens

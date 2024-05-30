@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: datakit-elinker
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: datakit-elinker-service
+  namespace: datakit-elinker
+spec:
+  selector:
+    app: deployment-datakit-elinker
+  ports:
+    - protocol: TCP
+      port: 9529
+      targetPort: 9529
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deployment-datakit-elinker
+  name: datakit-elinker
+  namespace: datakit-elinker
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: deployment-datakit-elinker
+  template:
+    metadata:
+      labels:
+        app: deployment-datakit-elinker
+    spec:
+      containers:
+      - name: datakit-elinker 
+        image: pubrepo.guance.com/datakit/datakit-elinker:{{.Version}}
+        imagePullPolicy: Always
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ENV_K8S_NODE_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.hostIP
+          - name: ENV_K8S_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          - name: ENV_DATAWAY
+            value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+          - name: ENV_CLUSTER_NAME_K8S
+            value: default
+          - name: ENV_GLOBAL_HOST_TAGS
+            value: host=__datakit_hostname,host_ip=__datakit_ip
+          - name: ENV_DEFAULT_ENABLED_INPUTS
+            value: ebpftrace #,dk,cpu,disk,diskio,mem,swap,system,net
+          - name: ENV_INPUT_EBPFTRACE_WINDOW
+            value: 20s # ebpf trace span link window
+          - name: ENV_INPUT_EBPFTRACE_SAMPLING_RATE
+            value: '0.1' # 0.0 - 1.0 (1.0 means no sampling)
+          - name: ENV_INPUT_EBPFTRACE_USE_APP_TRACE_ID
+            value: 'true' # true means use app trace id (from otel, datadog ...) as ebpf trace id in ebpftrace
+          - name: ENV_INPUT_EBPFTRACE_DB_PATH
+            value: /usr/local/datakit/ebpf_spandb/
+          - name: ENV_HTTP_LISTEN
+            value: 0.0.0.0:9529
+          - name: ENV_ENABLE_PPROF
+            value: 'true'
+          - name: ENV_PPROF_LISTEN
+            value: 0.0.0.0:6060
+        ports:
+          - containerPort: 9529
+            name: port
+            protocol: TCP
+          - containerPort: 6060
+            name: 6060tcp
+            protocol: TCP
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        workingDir: /usr/local/datakit
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate

@@ -3,28 +3,34 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !(windows && 386)
-// +build !windows !386
+package espan
 
-package spans
-
-import "testing"
+import (
+	"testing"
+)
 
 func BenchmarkULID(b *testing.B) {
+	ulid, err := NewRandID()
+	if err != nil {
+		b.Fatal(err)
+	}
 	b.Run("ulid_exp_rand_lock", func(b *testing.B) {
-		ulid, err := NewULID()
-		if err != nil {
-			b.Fatal(err)
-		}
 		for i := 0; i < b.N; i++ {
 			_, _ = ulid.ID()
+		}
+	})
+
+	b.Run("meta", func(b *testing.B) {
+		m := SpanMeta{}
+		for i := 0; i < b.N; i++ {
+			m.Reset()
 		}
 	})
 }
 
 func TestULID(t *testing.T) {
 	{
-		ulid, err := NewULID()
+		ulid, err := NewRandID()
 		if err != nil {
 			t.Error(err)
 		}

@@ -139,10 +139,11 @@ func PubDatakit() error {
 	}
 
 	basics := map[string]string{
-		"version":      path.Join(PubDir, ReleaseType, "version"),
-		"datakit.yaml": "datakit.yaml",
-		"install.sh":   "install.sh",
-		"install.ps1":  "install.ps1",
+		"version":              path.Join(PubDir, ReleaseType, "version"),
+		"datakit.yaml":         "datakit.yaml",
+		"datakit-elinker.yaml": "datakit-elinker.yaml",
+		"install.sh":           "install.sh",
+		"install.ps1":          "install.ps1",
 
 		"measurements-meta.json": filepath.Join(PubDir,
 			"datakit",
@@ -165,9 +166,10 @@ func PubDatakit() error {
 			inputs.I18nZh.String(),
 			"internal-pipelines.json"),
 
-		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
-		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",
-		fmt.Sprintf("install-%s.ps1", ReleaseVersion):  "install.ps1",
+		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion):         "datakit.yaml",
+		fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion): "datakit-elinker.yaml",
+		fmt.Sprintf("install-%s.sh", ReleaseVersion):           "install.sh",
+		fmt.Sprintf("install-%s.ps1", ReleaseVersion):          "install.ps1",
 	}
 
 	// tar files and collect OSS upload/backup info
@@ -182,6 +184,10 @@ func PubDatakit() error {
 
 		if isExtraLite() {
 			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_lite", parts[0], parts[1], TarWithRlsVer)
+			basics[gzName] = gzPath
+		}
+		if isExtraELinker() {
+			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_elinker", parts[0], parts[1], TarWithRlsVer)
 			basics[gzName] = gzPath
 		}
 

@@ -339,7 +339,7 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.25.0
+	modernc.org/sqlite v1.25.0 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
@@ -363,6 +363,7 @@ require (
 	github.com/netsampler/goflow2 v1.3.5
 	github.com/oklog/ulid v1.3.1
 	github.com/petermattis/goid v0.0.0-20240327183114-c42a807a84ba
+	github.com/rosedblabs/wal v1.3.6
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000
@@ -373,6 +374,7 @@ require (
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect

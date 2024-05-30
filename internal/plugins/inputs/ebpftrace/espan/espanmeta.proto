@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+option go_package = ".;espan";
+
+package espan;
+
+message SpanMetaList { repeated SpanMeta SpanMetas = 1; }
+
+message SpanMeta {
+  uint64 SpanID = 1;
+
+  uint64 ThreadTraceID = 2;
+  uint64 NetTraceIDLow = 3;
+  uint64 NetTraceIDHigh = 4;
+
+  uint64 EParentID = 5;
+  uint64 ETraceIDLow = 6;
+  uint64 ETraceIDHigh = 7;
+
+  // additional fields for application tracing
+  uint64 AppParentID = 8;
+  uint64 AppTraceIDLow = 9;
+  uint64 AppTraceIDHigh = 10;
+  AppSampled AppSampled = 11;
+
+  Encode Encode = 12;
+
+  Direction Direction = 13;
+
+  Kind Kind = 14;
+}
+
+enum Kind {
+  Client = 0;
+  Server = 1;
+  Internal = 2;
+  Producer = 3;
+  Consumer = 4;
+}
+
+enum Direction {
+  DOUT = 0;
+  DIN = 1;
+}
+
+enum AppSampled {
+  SampleAuto = 0;
+  SampleRejected = 1;
+  SampleKept = 2;
+}
+
+enum Encode {
+  EncDec = 0;
+  EncHex = 1;
+}

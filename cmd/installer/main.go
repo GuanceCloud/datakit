@@ -60,11 +60,19 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
+	datakitELinkerURL = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("datakit_elinker-%s-%s-%s.tar.gz",
+			runtime.GOOS,
+			runtime.GOARCH,
+			DataKitVersion))
 	InstallerBaseURL = ""
 	l                = logger.DefaultSLogger("installer")
 
 	isLite  = false
 	liteReg = regexp.MustCompile(`Build Tag:\s*lite`)
+
+	isELinker  = false
+	eLinkerReg = regexp.MustCompile(`Build Tag:\s*elinker`)
 )
 
 // Installer flags.
@@ -78,6 +86,7 @@ var (
 	flagUserName,
 	flagInstallLog,
 	flagLite,
+	flagELinker,
 	flagSrc string
 
 	flagUpgradeManagerService,
@@ -98,6 +107,7 @@ func init() {
 	flag.StringVar(&InstallerBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
 	flag.StringVar(&flagUserName, "user-name", "root", "install log") // user & group.
 	flag.StringVar(&flagLite, "lite", "", "install datakit lite")
+	flag.StringVar(&flagELinker, "elinker", "", "install datakit eBPF span linker")
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -179,21 +189,29 @@ func init() {
 	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 4096, "memory limit")
 }
 
-func setDatakitLite() {
-	if len(flagLite) > 0 {
+func setDatakitLiteAndELinker() {
+	switch {
+	case len(flagLite) > 0:
 		v, err := strconv.ParseBool(flagLite)
 		if err != nil {
 			l.Warnf("parse flag 'lite' error: %s", err.Error())
 		} else {
 			isLite = v
 		}
-	} else if flagDKUpgrade { // only for upgrading datakit
+	case len(flagELinker) > 0:
+		if v, err := strconv.ParseBool(flagELinker); err != nil {
+			l.Warnf("parse flag 'elinker' error: %s", err.Error())
+		} else {
+			isELinker = v
+		}
+	case flagDKUpgrade: // only for upgrading datakit
 		cmd := exec.Command(datakit.DatakitBinaryPath(), "version") //nolint:gosec
 		res, err := cmd.CombinedOutput()
 		if err != nil {
 			l.Warnf("check version failed: %s", err.Error())
 		} else {
 			isLite = liteReg.Match(res)
+			isELinker = eLinkerReg.Match(res)
 		}
 	}
 }
@@ -220,6 +238,8 @@ func downloadFiles(to string) error {
 	dkURL := datakitURL
 	if isLite {
 		dkURL = datakitLiteURL
+	} else if isELinker {
+		dkURL = datakitELinkerURL
 	}
 
 	if err := dl.Download(cli, dkURL, to, true, flagDownloadOnly); err != nil {
@@ -426,7 +446,7 @@ Data           : %s
 	}
 
 	applyFlags()
-	setDatakitLite()
+	setDatakitLiteAndELinker()
 
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)

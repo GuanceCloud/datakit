@@ -22,8 +22,9 @@ import (
 
 //nolint:lll
 var (
-	k8sDaemonsetTemplete = "wget https://{{.DownloadCDN}}/datakit.yaml"
-	NotifyOnly           = false
+	k8sDaemonsetTemplete         = "wget https://{{.DownloadCDN}}/datakit.yaml"
+	k8sDeploymentELinkerTemplete = "wget https://{{.DownloadCDN}}/datakit-elinker.yaml"
+	NotifyOnly                   = false
 )
 
 var (
@@ -220,6 +221,10 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 		x = append(x, "") // empty line
 		x = append(x, "### Kubernetes DaemonSet 安装")
 		x = append(x, k8sDaemonsetTemplete)
+
+		x = append(x, "") // empty line
+		x = append(x, "### Kubernetes Datakit ELinker Deployment 安装")
+		x = append(x, k8sDeploymentELinkerTemplete)
 	}
 
 	return strings.Join(x, "\n")

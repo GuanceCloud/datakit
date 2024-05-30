@@ -174,6 +174,8 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
 		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push ; \
+		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
 	else \
 		echo 'publishing to $(2)...'; \
