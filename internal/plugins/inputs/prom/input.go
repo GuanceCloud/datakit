@@ -53,6 +53,7 @@ type Input struct {
 	MeasurementPrefix      string       `toml:"measurement_prefix"`
 	MeasurementName        string       `toml:"measurement_name"`
 	Measurements           []iprom.Rule `toml:"measurements"`
+	KeepExistMetricName    bool         `toml:"keep_exist_metric_name"`
 	Output                 string       `toml:"output"`
 	MaxFileSize            int64        `toml:"max_file_size"`
 
@@ -436,6 +437,7 @@ func (i *Input) Init() error {
 		iprom.WithMeasurementPrefix(i.MeasurementPrefix),
 		iprom.WithMeasurementName(i.MeasurementName),
 		iprom.WithMeasurements(i.Measurements),
+		iprom.KeepExistMetricName(i.KeepExistMetricName),
 		iprom.WithOutput(i.Output),
 		iprom.WithMaxFileSize(i.MaxFileSize),
 		iprom.WithTLSOpen(i.TLSOpen),

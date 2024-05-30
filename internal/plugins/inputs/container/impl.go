@@ -351,6 +351,7 @@ func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
 		EnablePrometheusServiceAnnotations: ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations,
 		EnablePrometheusPodMonitors:        ipt.EnableAutoDiscoveryOfPrometheusPodMonitors,
 		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
+		KeepExistPrometheusMetricName:      ipt.KeepExistPrometheusMetricName,
 		StreamSize:                         ipt.autoDiscoveryOfPromStreamSize,
 		ExtraTags:                          tags,
 		LabelAsTags:                        opt.keys,

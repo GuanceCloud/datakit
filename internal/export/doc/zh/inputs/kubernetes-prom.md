@@ -179,6 +179,7 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
+
     Datakit 并不是去采集 Service 本身，而且采集 Service 配对的 Pod。
 <!-- markdownlint-enable -->
 
@@ -186,7 +187,7 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
 ### 指标集和 tags {#measurement-and-tags}
 
-自动发现 Pod/Service Prometheus，指标集命名有 3 种情况，按照优先级依次是：
+自动发现 Pod/Service Prometheus，指标集命名有 4 种情况，按照优先级分别是：
 
 1. 手动配置指标集
 
@@ -218,31 +219,9 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
     它的 Prometheus 数据指标集为 `new-measurement`。
 
-2. Datakit 解析 Pod OwnerReferences 所得
+2. 由数据切割所得
 
-    大部分 Pod 都有 OwnerReferences，解析它的第一个 Owner 得到指标集名称，以下面这个 Pod 详情为例：
-
-    ```yaml
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      creationTimestamp: "2023-08-15T06:32:41Z"
-      generateName: prom-server-
-      labels:
-        app.kubernetes.io/name: proxy
-        pod-template-generation: "1"
-      name: prom-server-lsk4g
-      ownerReferences:
-      - apiVersion: apps/v1
-        kind: DaemonSet
-        name: prom-server
-    ```
-
-    它的 Prometheus 数据指标集为 `prom-server`。
-
-3. 由数据切割所得
-
-    如果该 Pod 没有 OwnerReferences，会默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
+    - 默认会将指标名称以下划线 `_` 进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称。
 
     例如以下的 Prometheus 原数据：
 
@@ -253,10 +232,18 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
     以第一根下划线做区分，左边 `promhttp` 是指标集名称，右边 `metric_handler_errors_total` 是字段名。
 
-    Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
+    - 为了保证字段名和原始 Prom 数据一致，container 采集器支持 “保留 prom 原始字段名”，开启方式如下：
 
-    - 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
-    - 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
+        - 配置文件是 `keep_exist_prometheus_metric_name = true`
+        - 环境变量是 `ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME = "true"`
+
+      以上面的 `promhttp_metric_handler_errors_total` 数据为例，开启此功能后，指标集是 `promhttp`，但是字段名不再切割，会使用原始值 `promhttp_metric_handler_errors_total`。
+
+
+Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
+
+- 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
+- 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
 
 ## 延伸阅读 {#more-readings}
 

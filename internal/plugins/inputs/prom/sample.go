@@ -62,6 +62,10 @@ const sampleCfg = `
   ## Always add 'measurement_prefix' prefix at last.
   # measurement_name = "prom"
 
+  ## Keep Exist Metric Name
+  ## If the keep_exist_metric_name is true, keep the raw value for field names.
+  keep_exist_metric_name = false
+
   ## TLS configuration.
   tls_open = false
   # tls_ca = "/tmp/ca.crt"

@@ -35,6 +35,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceAnnotations", Type: doc.Boolean, Default: "false", Desc: `Whether to turn on Prometheus Service Annotations and collect metrics automatically`, DescZh: `是否开启自动发现 Prometheus 服务 Annotations 并采集指标`},
 		{FieldName: "EnableAutoDiscoveryOfPrometheusPodMonitors", Type: doc.Boolean, Default: "false", Desc: `Whether to turn on automatic discovery of Prometheus PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus Pod Monitor CRD 并采集指标，详见[Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
 		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceMonitors", Type: doc.Boolean, Default: "false", Desc: `Whether to turn on automatic discovery of Prometheus ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus ServiceMonitor CRD 并采集指标，详见[Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
+		{FieldName: "KeepExistPrometheusMetricName", Type: doc.Boolean, Default: "false", Desc: `Whether to keep the raw field names for Prometheus, see [Kubernetes Prometheus doc](kubernetes-prom#measurement-and-tags`, DescZh: `是否保留原始的 Prometheus 字段名，详见 [Kubernetes Prometheus doc](kubernetes-prom#measurement-and-tags`},
 		{FieldName: "ContainerIncludeLog", Type: doc.List, Example: `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`, Desc: `Include condition of container log, filtering with image`, DescZh: `容器日志白名单，使用 image 过滤`},
 		{FieldName: "ContainerExcludeLog", Type: doc.List, Example: `"image:pubrepo.jiagouyun.com/datakit/logfwd*"`, Desc: `Exclude condition of container log, filtering with image`, DescZh: `容器日志黑名单，使用 image 过滤`},
 		{FieldName: "K8sURL", ENVName: "KUBERNETES_URL", Type: doc.String, Example: `https://kubernetes.default:443`, Desc: `k8s api-server access address`, DescZh: `k8s API 服务访问地址`},
@@ -76,6 +77,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS        booler
 // ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS    booler
+// ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME                       booler
 // ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE : int e.g. "10"
 // ENV_INPUT_CONTAINER_CONTAINER_MAX_CONCURRENT : int
 // ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG : []string
@@ -94,6 +96,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 // ENV_INPUT_CONTAINER_TAGS : "a=b,c=d".
 // ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB : booler.
+
+//nolint:funlen
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	///
 	/// base configs
@@ -225,6 +229,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS to bool: %s, ignore", err)
 		} else {
 			ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME to bool: %s, ignore", err)
+		} else {
+			ipt.KeepExistPrometheusMetricName = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE"]; ok {
