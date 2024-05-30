@@ -289,6 +289,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		case "makefile", "Makefile":
 			args := []string{
 				"make",
+				"-j8",
 				"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
 				"SRCPATH=" + "internal/plugins/externals/" + ex.name,
 				"OUTPATH=" + filepath.Join(outdir, out),

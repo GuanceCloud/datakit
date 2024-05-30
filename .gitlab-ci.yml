@@ -148,6 +148,7 @@ release-testing:
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image IGN_EBPF_INSTALL_ERR=1 VERSION="$CI_TESTING_VERSION"
+    - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true
   tags:
     - cloudcare-ft
 
@@ -170,6 +171,7 @@ release-stable:
     - make check_production_conf_compatible
     - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+    - make uos_image_production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true
   tags:
     - cloudcare-ft
 
