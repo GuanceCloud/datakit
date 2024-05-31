@@ -84,6 +84,9 @@ type Input struct {
 	DbmSample   dbmSample   `toml:"dbm_sample"`
 	DbmActivity dbmActivity `toml:"dbm_activity"`
 
+	Replica      bool `toml:"replication"`
+	GroupReplica bool `toml:"group_replication"`
+
 	Charset string `toml:"charset"`
 
 	Timeout         string `toml:"connect_timeout"`

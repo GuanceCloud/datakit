@@ -115,16 +115,18 @@ func (ipt *Input) collectMysqlReplication() error {
 	} else {
 		queryReplicationSQL = "SHOW SLAVE STATUS;"
 	}
-	if res := replicationMetrics(ipt.q(queryReplicationSQL)); res != nil {
-		ipt.mReplication = res
-	} else {
-		l.Warn("collect_replica_status_failed")
-	}
-	queryWorkerThreadsSQL := `SELECT THREAD_ID, NAME FROM performance_schema.threads WHERE NAME LIKE '%worker';`
-	if res, err := ipt.getQueryRows(queryWorkerThreadsSQL); err != nil {
-		return err
-	} else {
-		ipt.mReplication["Replicas_connected"] = len(res.rows)
+	if ipt.Replica {
+		if res := replicationMetrics(ipt.q(queryReplicationSQL)); res != nil {
+			ipt.mReplication = res
+		} else {
+			l.Warn("collect_replica_status_failed")
+		}
+		queryWorkerThreadsSQL := `SELECT THREAD_ID, NAME FROM performance_schema.threads WHERE NAME LIKE '%worker';`
+		if res, err := ipt.getQueryRows(queryWorkerThreadsSQL); err != nil {
+			return err
+		} else {
+			ipt.mReplication["Replicas_connected"] = len(res.rows)
+		}
 	}
 
 	queryGroupReplicationSQL := `
@@ -135,10 +137,12 @@ func (ipt *Input) collectMysqlReplication() error {
 		WHERE channel_name IN ('group_replication_applier', 'group_replication_recovery');
 	`
 
-	if res := replicationMetrics(ipt.q(queryGroupReplicationSQL)); res != nil {
-		ipt.mGroupReplication = res
-	} else {
-		l.Warn("collect_group_replica_status_failed")
+	if ipt.GroupReplica {
+		if res := replicationMetrics(ipt.q(queryGroupReplicationSQL)); res != nil {
+			ipt.mGroupReplication = res
+		} else {
+			l.Warn("collect_group_replica_status_failed")
+		}
 	}
 
 	return nil
