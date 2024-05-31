@@ -236,6 +236,21 @@ plugin_load_add ='group_replication.so'
 
 可以通过 `show plugins;` 确认组复制插件已安装。
 
+如需开启，需要执行以下步骤。
+
+- 修改配置文件，开启监控采集
+
+```toml
+[[inputs.mysql]]
+
+## Set replication to true to collect replication metrics
+replication = true
+## Set group_replication to true to collect group replication metrics
+group_replication = true  
+...
+
+```
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

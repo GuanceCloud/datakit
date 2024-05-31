@@ -32,6 +32,11 @@ const (
   ## user
   users = []
 
+  ## Set replication to true to collect replication metrics
+  # replication = false
+  ## Set group_replication to true to collect group replication metrics
+  # group_replication = false
+
   ## Set dbm to true to collect database activity 
   # dbm = false
 

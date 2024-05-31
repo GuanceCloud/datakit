@@ -235,6 +235,21 @@ plugin_load_add ='group_replication.so'
 
 You can confirm that the group replication plugin is installed by `showing plugins;`.
 
+To turn it on, you need to perform the following steps.
+
+- Modify the configuration file and start monitoring and collection
+
+```toml
+[[inputs.mysql]]
+
+## Set replication to true to collect replication metrics
+replication = true
+## Set group_replication to true to collect group replication metrics
+group_replication = true  
+...
+
+```
+
 ## Metric {#metric}
 
 All the following data collection will add a global tag named `host` by default (the tag value is the host name of DataKit). You can also specify other tags through `[inputs.{{.InputName}}.tags]` in the configuration:
