@@ -135,8 +135,15 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 		}
 	}
 
+	nowNano := time.Now().UnixNano()
 	// adjust timestamp precision.
 	for _, pt := range pts {
+		// use current time
+		if pt.pt.Time == 0 {
+			pt.pt.Time = nowNano
+			continue
+		}
+
 		switch cfg.precision {
 		case PrecDyn:
 			pt.pt.Time = detectTimestampPrecision(pt.pt.Time)

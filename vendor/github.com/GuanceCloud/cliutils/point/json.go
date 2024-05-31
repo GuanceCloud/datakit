@@ -8,7 +8,6 @@ package point
 import (
 	bytes "bytes"
 	"encoding/json"
-	"log"
 	"time"
 
 	protojson "github.com/gogo/protobuf/jsonpb"
@@ -73,8 +72,6 @@ func (p *Point) UnmarshalJSON(j []byte) error {
 		var y JSONPoint
 		if err := json.Unmarshal(j, &y); err == nil {
 			pt = fromJSONPoint(&y)
-
-			log.Printf("pt: %s", pt.Pretty())
 		} else {
 			return err
 		}

@@ -147,7 +147,7 @@ func TestBuildBody(t *T.T) {
 						point.NewKVs(map[string]any{
 							"f1": 1,
 							"f2": 2,
-						})))
+						}), point.WithTimestamp(1)))
 				}
 				return pts
 			}(),
