@@ -99,17 +99,17 @@
 <!-- markdownlint-enable -->
 DataKit ELinker 只包含以下采集器：
 
-| 采集器名称                                                | 说明                                                        |
-| --------------------------------------------------------- | ----------------------------------------------------------- |
-| [CPU（`cpu`）](../integrations/cpu.md)                    | 采集主机的 CPU 使用情况                                     |
-| [Disk（`disk`）](../integrations/disk.md)                 | 采集磁盘占用情况                                            |
-| [磁盘 IO（`diskio`）](../integrations/diskio.md)          | 采集主机的磁盘 IO 情况                                      |
-| [eBPF Trace Linker（`ebpftrace`）](ebpftrace.md)                               | 接收 eBPF 链路 span 并连接这些 spans 来生成 trace id 等信息 |
-| [Swap（`swap`）](../integrations/swap.md)                 | 采集 Swap 内存使用情况                                      |
-| [System（`system`）](../integrations/system.md)           | 采集主机操作系统负载                                        |
-| [Net（`net`）](../integrations/net.md)                    | 采集主机网络流量情况                                        |
-| [主机对象（`hostobject`）](../integrations/hostobject.md) | 采集主机基础信息（如操作系统信息、硬件信息等）              |
-| [DataKit（`dk`）](../integrations/dk.md)                  | 采集 DataKit 自身运行指标收集                               |
+| 采集器名称                                                       | 说明                                                        |
+| ---------------------------------------------------------        | ----------------------------------------------------------- |
+| [CPU（`cpu`）](../integrations/cpu.md)                           | 采集主机的 CPU 使用情况                                     |
+| [Disk（`disk`）](../integrations/disk.md)                        | 采集磁盘占用情况                                            |
+| [磁盘 IO（`diskio`）](../integrations/diskio.md)                 | 采集主机的磁盘 IO 情况                                      |
+| [eBPF Trace Linker（`ebpftrace`）](../integrations/ebpftrace.md) | 接收 eBPF 链路 span 并连接这些 spans 来生成 trace id 等信息 |
+| [Swap（`swap`）](../integrations/swap.md)                        | 采集 Swap 内存使用情况                                      |
+| [System（`system`）](../integrations/system.md)                  | 采集主机操作系统负载                                        |
+| [Net（`net`）](../integrations/net.md)                           | 采集主机网络流量情况                                        |
+| [主机对象（`hostobject`）](../integrations/hostobject.md)        | 采集主机基础信息（如操作系统信息、硬件信息等）              |
+| [DataKit（`dk`）](../integrations/dk.md)                         | 采集 DataKit 自身运行指标收集                               |
 
 ### 安装指定版本的 DataKit {#version-install}
 
