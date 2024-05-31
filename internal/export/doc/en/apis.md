@@ -43,6 +43,9 @@ This API is used to report various types of data (`category`) to DataKit. The UR
     - Although multiple parameters are of boolean type, if you do not need to enable the corresponding option, do not pass a `false` value. The API will only check for the presence of a value on the parameter and will not consider its content.
 
     - Automatic recognition of time precision (`precision`) refers to guessing the likely time granularity based on the input timestamp value. While it cannot be mathematically guaranteed to be correct, it is sufficient for everyday use. For example, for a timestamp like 1716544492, it is interpreted as seconds, whereas 1716544492000 would be interpreted as milliseconds, and so on.
+
+    - If the data point does not include a timestamp, the timestamp of the machine where Datakit is located will be used.
+    - Although the current protocol supports both binary format and any format types, Kodo **has not yet** supported the upload of these two types of data.
 <!-- markdownlint-enable -->
 
 ### Body Description {#api-v1-write-body}

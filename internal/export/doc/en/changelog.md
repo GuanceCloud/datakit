@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.30.0 (May 30, 2024) {#cl-1.30.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.30.0-new}
+
+- Pipeline
+    - Added `gjson()` function to provide ordered JSON field extraction (#2167)
+    - Added context caching feature (#2157)
+
+### Bug Fixes {#cl-1.30.0-fix}
+
+- Fixed the issue with appending global-tags in Prometheus Remote Write[^2244] (#2244)
+
+[^2244]: This issue was introduced in version 1.25.0. If the Prometheus Remote Write collector is enabled, it is recommended to upgrade.
+
+### Feature Enhancements {#cl-1.30.0-opt}
+
+- Optimized Datakit [`/v1/write/:category` API](apis.md#api-v1-write) with the following adjustments and features (#2130)
+    - Added more API parameters (`echo`/`dry`) for easier debugging
+    - Support for more types of data formats
+    - Support for fuzzy recognition of timestamp precision in data points (#2120)
+- Optimization of MySQL/Nginx/Redis/SQLServer metrics collection (#2196)
+    - Added master-slave replication related metrics for MySQL
+    - Added duration metrics for Redis slow logs
+    - Added more Nginx Plus related metrics for Nginx
+    - Optimized the structure of Performance-related metrics for SQLServer
+- Added support for low version TLS in MySQL collector (#2245)
+- Optimized TLS certificate configuration for Kubernetes self-etcd metrics collection (#2032)
+- Prometheus Exporter metrics collection supports configuration to preserve original metric names (#2231)
+- Added taint-related information to Kubernetes Node objects (#2239)
+- eBPF-Tracing added MySQL protocol recognition (#1768)
+- Optimized the performance of the ebpftrace collector (#2226)
+- The operational status of the dialing collector is supported to be displayed on the `datakit monitor` command panel (#2243)
+- Other view and documentation optimizations (#1976/#1977/#2194/#2195/#2221/#2235)
+
+### Compatibility Adjustments {#cl-1.30.0-brk}
+
+In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
+
+- Upgrade the center base to [1.86.166](../deployment/changelog.md/#1861662024-05-29)
+- Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
+
+---
+
 ## 1.29.1 (May 20, 2024) {#cl-1.29.1}
 
 This release is a hotfix that addresses the following issue:

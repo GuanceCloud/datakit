@@ -1,5 +1,49 @@
 # 更新日志
 
+## 1.30.0(2024/05/30) {#cl-1.30.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.30.0-new}
+
+- Pipeline
+    - 新增 `gjson()` 函数，提供有序的 JSON 字段提取（#2167）
+    - 新增上下文缓存功能（#2157）
+
+### 问题修复 {#cl-1.30.0-fix}
+
+- 修复 Prometheus Remote Write global-tag 追加问题[^2244]（#2244）
+
+[^2244]: 该问题自 1.25.0 版本引入，如果开启了 Prometheus Remote Write 采集器，建议升级一下。
+
+### 功能优化 {#cl-1.30.0-opt}
+
+- 优化 Datakit [`/v1/write/:category` API](apis.md#api-v1-write)，做了如下调整和功能（#2130）
+    - 增加更多 API 参数（[`echo`](apis.md#preview-post-point)/`dry`），便于调试
+    - 支持更多类型的数据格式
+    - 支持模糊识别数据点中的时间戳精度（#2120）
+- 优化 MySQL/Nginx/Redis/SQLServer 指标采集（#2196）
+    - MySQL 增加主从复制相关指标
+    - Redis 慢日志增加耗时指标
+    - Nginx 增加更多 Nginx Plus 相关指标
+    - SQLServer 优化了 Performance 相关的指标结构
+- MySQL 采集器增加低版本 TLS 支持（#2245）
+- 优化 Kubernetes 自身 etcd 指标采集的 TLS 证书配置（#2032）
+- Prometheus Exporter 指标采集支持配置「保留原始指标名」（#2231）
+- Kubernetes Node 对象增加污点相关信息（#2239）
+- eBPF-Tracing 增加 MySQL 协议识别（#1768）
+- 优化 ebpftrace 采集器性能（#2226）
+- 拨测采集器的运行状态支持在 `datakit monitor` 命令面板上展示（#2243）
+- 其它视图和文档优化（#1976/#1977/#2194/#2195/#2221/#2235）
+
+### 兼容调整 {#cl-1.30.0-brk}
+
+本次版本，扩展了数据协议，老版本的 Datakit 升级上来之后，如果中心底座是私有部署的，可以做如下措施，保持数据兼容：
+
+- 升级中心底座至 [1.86.166](../deployment/changelog.md/#1861662024-05-29)
+- 修改 *datakit.conf* 中[上传协议配置 `content_encoding`](datakit-conf.md#dataway-settings)，将其改为 `v2`
+
+---
+
 ## 1.29.1(2024/05/20) {#cl-1.29.1}
 
 本次发布属于 Hotfix 发布，修复如下问题：
@@ -759,10 +803,10 @@
 ### 问题修复 {#cl-1.12.0-fix}
 
 - 修复拨测采集器缺失 `owner` 字段问题（#1789）
-- 修复 DDTrace 采集器缺失 `host` 问题，同时各类 Trace 的 tag 采集改为黑名单机制[^trace-black-list]（#1776）
+- 修复 DDTrace 采集器缺失 `host` 问题，同时各类 Trace 的 tag 采集改为黑名单机制[^1776]（#1776）
 - 修复 RUM API 跨域问题（#1785）
 
-[^trace-black-list]: 各类 Trace 会在其数据上带上各种业务字段（称之为 Tag、Annotation 或 Attribute 等），Datakit 为了收集更多数据，默认这些字段都予以接收。
+[^1776]: 各类 Trace 会在其数据上带上各种业务字段（称之为 Tag、Annotation 或 Attribute 等），Datakit 为了收集更多数据，默认这些字段都予以接收。
 
 ### 功能优化 {#cl-1.12.0-opt}
 
@@ -2392,8 +2436,8 @@ volumes:
 
 ```
 [
-	{"abc": 123},
-	{"def": true}
+    {"abc": 123},
+    {"def": true}
 ]
 ```
 
@@ -2564,12 +2608,6 @@ volumes:
     - [Redis](redis)
     - [Solr](solr)
 
-<!--
-- [DCA](dca) 相关功能完善
-	- 独立端口分离(#341)
-	- 远程重启功能调整(#345)
-	- 白名单功能(#244) -->
-
 ---
 
 ## 1.1.8-rc3(2021/09/10)
@@ -2694,15 +2732,15 @@ volumes:
   output_file                  = ""    # 输出 io 数据到本地文件，原主配置中 output_file
 
 [http_api]
-	listen          = "localhost:9529" # 原 http_listen
-	disable_404page = false            # 原 disable_404page
+    listen          = "localhost:9529" # 原 http_listen
+    disable_404page = false            # 原 disable_404page
 
 [logging]
-	log           = "/var/log/datakit/log"     # 原 log
-	gin_log       = "/var/log/datakit/gin.log" # 原 gin.log
-	level         = "info"                     # 原 log_level
-	rotate        = 32                         # 原 log_rotate
-	disable_color = false                      # 新增配置
+    log           = "/var/log/datakit/log"     # 原 log
+    gin_log       = "/var/log/datakit/gin.log" # 原 gin.log
+    level         = "info"                     # 原 log_level
+    rotate        = 32                         # 原 log_rotate
+    disable_color = false                      # 新增配置
 ```
 
 ---
@@ -3049,13 +3087,13 @@ volumes:
 - 支持在 http://localhost:9529/man 页面浏览 DataKit 文档（只有此次新改的采集器文档集成过来了，其它采集器文档需在原来的帮助中心查看）。默认情况下不支持远程查看 DataKit 文档，可在终端查看（仅 Mac/Linux 支持）：
 
 ```shell
-	# 进入采集器安装目录，输入采集器名字（通过 `Tab` 键选择自动补全）即可查看文档
-	$ ./datakit -cmd -man
-	man > nginx
-	(显示 Nginx 采集文档)
-	man > mysql
-	(显示 MySQL 采集文档)
-	man > Q               # 输入 Q 或 exit 退出
+# 进入采集器安装目录，输入采集器名字（通过 `Tab` 键选择自动补全）即可查看文档
+$ ./datakit -cmd -man
+man > nginx
+(显示 Nginx 采集文档)
+man > mysql
+(显示 MySQL 采集文档)
+man > Q               # 输入 Q 或 exit 退出
 ```
 
 ---
@@ -3213,25 +3251,3 @@ volumes:
 - `tailf` 采集器新日志匹配改成正向匹配
 - 其它一些细节问题修复
 - 支持 Mac 平台的 CPU 数据采集
-
-<!--
-[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)
-[:fontawesome-solid-flag-checkered:](index.md#legends "支持选举")
-
-    ```toml
-    {{ CodeBlock .InputSample 4 }}
-    ```
-
-# 外链的添加方式
-[some text](http://external-host.com){:target="_blank"}
-
-## x.x.x(YY/MM/DD) {#cl-x.x.x}
-
-本次发布属于迭代发布，主要有如下更新：
-
-### 新加功能 {#cl-x.x.x-new}
-### 问题修复 {#cl-x.x.x-fix}
-### 功能优化 {#cl-x.x.x-opt}
-### 兼容调整 {#cl-x.x.x-brk}
--->
-<!-- markdown-link-check-enable -->

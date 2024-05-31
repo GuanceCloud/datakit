@@ -276,6 +276,20 @@ http://username:pa55w#rd@github.com/path/to/repository.git
 http://username:pa55w%23rd@github.com/path/to/repository.git
 ```
 
+### TOML 中复杂字符串配置 {#toml-raw-string}
+
+在 Datakit 的 TOML 配置中，涉及很多字符串的配置，但字符串中涉及复杂的转义时，可以用 TOML 的特殊方式来避免转义。比如，如果字符串值中有英文双引号：
+
+```toml
+some_config = "this-string-contains-\"-and-others"
+```
+
+此处可以改为：
+
+```toml
+some_config = '''this-string-contains-"-and-others'''
+```
+
 ## 更多阅读 {#more}
 
 - [DataKit K8s 安装以及配置](datakit-daemonset-deploy.md)

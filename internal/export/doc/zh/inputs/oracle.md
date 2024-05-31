@@ -182,7 +182,7 @@ apt-get install -y libaio-dev libaio1
     ] 
     ```
 
-    该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。
+    该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。如果密码中有特殊字符，可以参见[这里](../datakit/datakit-input-conf.md#toml-raw-string)的做法来处理。
 
 <!-- markdownlint-enable -->
 
