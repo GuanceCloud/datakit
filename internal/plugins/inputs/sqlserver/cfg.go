@@ -89,7 +89,6 @@ default_time(time, "+0")
 	minInterval = time.Second * 5
 	maxInterval = time.Second * 30
 	query       = []string{
-		sqlServerPerformanceCounters,
 		sqlServerWaitStatsCategorized,
 		sqlServerDatabaseIO,
 		sqlServerProperties,
@@ -201,11 +200,29 @@ func newKByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
+func newIntKByteFieldInfo(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeKB,
+		Desc:     desc,
+	}
+}
+
 func newBoolFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Bool,
 		Type:     inputs.Gauge,
 		Unit:     inputs.UnknownUnit,
+		Desc:     desc,
+	}
+}
+
+func newPercentFieldInfo(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.Float,
+		Type:     inputs.Gauge,
+		Unit:     inputs.Percent,
 		Desc:     desc,
 	}
 }
@@ -257,4 +274,51 @@ func transformData(measurement string, tags map[string]string, fields map[string
 		}
 	default:
 	}
+}
+
+var counterNameMap = map[string]string{
+	"Processes blocked":                "processes_blocked",
+	"Page Splits/sec":                  "page_splits",
+	"Full Scans/sec":                   "full_scans",
+	"Memory Grants Pending":            "memory_grants_pending",
+	"Total Server Memory (KB)":         "total_server_memory",
+	"SQL Cache Memory (KB)":            "sql_cache_memory",
+	"Memory Grants Outstanding":        "memory_grants_outstanding",
+	"Database Cache Memory (KB)":       "database_cache_memory",
+	"Connection Memory (KB)":           "connection_memory",
+	"Optimizer Memory (KB)":            "optimizer_memory",
+	"Granted Workspace Memory (KB)":    "granted_workspace_memory",
+	"Lock Memory (KB)":                 "lock_memory",
+	"Stolen Server Memory (KB)":        "stolen_server_memory",
+	"Log Pool Memory (KB)":             "log_pool_memory",
+	"Buffer cache hit ratio":           "buffer_cache_hit_ratio",
+	"Page life expectancy":             "page_life_expectancy",
+	"Page reads/sec":                   "page_reads",
+	"Page writes/sec":                  "page_writes",
+	"Checkpoint pages/sec":             "checkpoint_pages",
+	"Auto-Param Attempts/sec":          "auto_param_attempts",
+	"Failed Auto-Params/sec":           "failed_auto_params",
+	"Safe Auto-Params/sec":             "safe_auto_params",
+	"Batch Requests/sec":               "batch_requests",
+	"SQL Compilations/sec":             "sql_compilations",
+	"SQL Re-Compilations/sec":          "sql_re_compilations",
+	"Lock Waits/sec":                   "lock_waits",
+	"Latch Waits/sec":                  "latch_waits",
+	"Number of Deadlocks/sec":          "deadlocks",
+	"Cache Object Counts":              "cache_object_counts",
+	"Cache Pages":                      "cache_pages",
+	"Transaction Delay":                "transaction_delay",
+	"Flow Control/sec":                 "flow_control",
+	"Version Store Size (KB)":          "version_store_size",
+	"Version Cleanup rate (KB/s)":      "version_cleanup_rate",
+	"Version Generation rate (KB/s)":   "version_generation_rate",
+	"Longest Transaction Running Time": "longest_transaction_running_time",
+	"Backup/Restore Throughput/sec":    "backup_restore_throughput",
+	"Log Bytes Flushed/sec":            "log_bytes_flushed",
+	"Log Flushes/sec":                  "log_flushes",
+	"Log Flush Wait Time":              "log_flush_wait_time",
+	"Transactions/sec":                 "transactions",
+	"Write Transactions/sec":           "write_transactions",
+	"Active Transactions":              "active_transactions",
+	"User Connections":                 "user_connections",
 }
