@@ -182,6 +182,7 @@ tcmalloc
 tdengine
 tdengine
 tdengine
+tempdb
 tracepoint
 unflushed
 uprobe

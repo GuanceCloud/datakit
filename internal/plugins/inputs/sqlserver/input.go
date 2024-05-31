@@ -11,7 +11,9 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"math"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,6 +133,150 @@ func (ipt *Input) getCustomQueryMetrics() {
 			collectCache = append(collectCache, m.Point())
 		}
 	}
+}
+
+func (ipt *Input) getPerformanceCounters() {
+	rows, err := ipt.db.Query(sqlServerPerformanceCounters)
+	if err != nil {
+		l.Error(err.Error())
+		ipt.lastErr = err
+		return
+	}
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
+	}()
+
+	// measurement, sqlserver_host, object_name, counter_name, instance_name, cntr_value
+	columns, err := rows.Columns()
+	if err != nil {
+		l.Error(err.Error())
+		ipt.lastErr = err
+		return
+	}
+
+	rawBytesColumns := make([]sql.RawBytes, len(columns))
+	scanArgs := make([]interface{}, len(columns))
+
+	for i := range rawBytesColumns {
+		scanArgs[i] = &rawBytesColumns[i]
+	}
+
+	tags := make(map[string]string)
+	setHostTagIfNotLoopback(tags, ipt.Host)
+	for k, v := range ipt.Tags {
+		tags[k] = v
+	}
+
+	var measurement string
+	var counterName string
+
+	// metric collect
+	for rows.Next() {
+		fields := make(map[string]interface{})
+		// scan for every column
+		if err := rows.Scan(scanArgs...); err != nil {
+			l.Warnf("Scan: %s, ignored", err)
+			continue
+		}
+
+		found, index := findInSlice(columns, "measurement")
+		if found {
+			measurement = string(rawBytesColumns[index])
+		} else {
+			measurement = "sqlserver_performance"
+			l.Warnf("measurement not found, use default: sqlserver_performance")
+		}
+
+		found, index = findInSlice(columns, "counter_name")
+		if found {
+			counterName = string(rawBytesColumns[index])
+			if mappedName, ok := counterNameMap[counterName]; ok {
+				counterName = mappedName
+			}
+		} else {
+			counterName = "cntr_value"
+			l.Warnf("counter_name not found")
+		}
+
+		for i, key := range columns {
+			if key == "measurement" {
+				continue
+			}
+
+			raw := string(rawBytesColumns[i])
+
+			if key == "cntr_value" {
+				// the raw value is a number and the key is cntr_value, store in fields
+				if v, err := strconv.ParseUint(raw, 10, 64); err == nil {
+					if v > uint64(math.MaxInt64) {
+						l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, int64(math.MaxInt64))
+						continue
+					}
+					// store the counter_name and cntr_value as fields
+					if counterName == "buffer_cache_hit_ratio" {
+						fields[counterName] = float64(v)
+					} else {
+						fields[counterName] = int64(v)
+					}
+
+					// remain the original format for "cntr_value": cntr_value
+					fields[key] = int64(v)
+				}
+			} else {
+				str := strings.TrimSuffix(raw, "\\")
+				tags[key] = str
+			}
+		}
+		if len(fields) == 0 {
+			continue
+		}
+
+		var opts []point.Option
+
+		opts = point.DefaultMetricOptions()
+
+		if ipt.Election {
+			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+		}
+
+		// metric build
+		m := Performance{}
+		fields = getMetricFields(fields, m.Info())
+
+		point := point.NewPointV2(measurement,
+			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
+
+		if len(fields) > 0 {
+			collectCache = append(collectCache, point)
+		}
+	}
+}
+
+func findInSlice(slice []string, key string) (bool, int) {
+	for index, value := range slice {
+		if value == key {
+			return true, index
+		}
+	}
+	return false, -1
+}
+
+func getMetricFields(fields map[string]interface{}, info *inputs.MeasurementInfo) map[string]interface{} {
+	if info == nil {
+		return fields
+	}
+	newFields := map[string]interface{}{}
+
+	for k, v := range fields {
+		if _, ok := info.Fields[k]; ok {
+			newFields[k] = v
+		}
+	}
+
+	return newFields
 }
 
 func (ipt *Input) GetPipeline() []tailer.Option {
@@ -352,6 +498,9 @@ func (ipt *Input) getMetric() {
 
 	// custom query from the config
 	ipt.getCustomQueryMetrics()
+
+	// get performance counters metrics
+	ipt.getPerformanceCounters()
 }
 
 func (ipt *Input) handRow(query string, ts time.Time, isLogging bool) {
