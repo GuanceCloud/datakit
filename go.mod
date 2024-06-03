@@ -267,7 +267,7 @@ require (
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2
 	github.com/prometheus/node_exporter v1.0.0-rc.0.0.20200428091818-01054558c289 // indirect
 	github.com/pyroscope-io/jfr-parser v0.5.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
@@ -386,6 +386,7 @@ require (
 )
 
 replace (
+	github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8

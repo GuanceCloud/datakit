@@ -18,6 +18,7 @@ var (
 	poolGetDesc    = p8s.NewDesc("pointpool_pool_get_total", "Get count from reserved channel", nil, nil)
 	poolPutDesc    = p8s.NewDesc("pointpool_pool_put_total", "Put count to reserved channel", nil, nil)
 	poolMallocDesc = p8s.NewDesc("pointpool_malloc_total", "New object malloc from pool", nil, nil)
+	poolEscaped    = p8s.NewDesc("pointpool_escaped", "Points that not comes from pool", nil, nil)
 )
 
 type PointPool interface {
@@ -82,8 +83,7 @@ func isEmptyPoint(pt *Point) bool {
 type reservedCapPool struct {
 	pool sync.Pool
 
-	newFn func() any
-	ch    chan any
+	ch chan any
 
 	poolGet, poolPut,
 	chanGet, chanPut atomic.Int64
@@ -124,7 +124,7 @@ func (p *reservedCapPool) put(x any) {
 type ReservedCapPointPool struct {
 	capacity int64
 
-	malloc atomic.Int64
+	malloc, escaped atomic.Int64
 
 	ptpool, // pool for *Point
 	// other pools for various *Fields
@@ -190,6 +190,11 @@ func (cpp *ReservedCapPointPool) Get() *Point {
 }
 
 func (cpp *ReservedCapPointPool) Put(p *Point) {
+	if !p.HasFlag(Ppooled) {
+		cpp.escaped.Add(1)
+		return
+	}
+
 	for _, f := range p.KVs() {
 		cpp.PutKV(f)
 	}
@@ -244,10 +249,10 @@ func (cpp *ReservedCapPointPool) GetKV(k string, v any) *Field {
 		kv.Val.(*Field_F).F = float64(x)
 	case string:
 		kv = cpp.spool.get().(*Field)
-		kv.Val.(*Field_S).S = x
+		kv.Val.(*Field_S).S = x // XXX: should we make a clone of x?
 	case []byte:
 		kv = cpp.dpool.get().(*Field)
-		kv.Val.(*Field_D).D = append(kv.Val.(*Field_D).D, x...)
+		kv.Val.(*Field_D).D = append(kv.Val.(*Field_D).D, x...) // deep copied
 	case bool:
 		kv = cpp.bpool.get().(*Field)
 		kv.Val.(*Field_B).B = x
@@ -401,4 +406,5 @@ func (cpp *ReservedCapPointPool) Collect(ch chan<- p8s.Metric) {
 
 	ch <- p8s.MustNewConstMetric(reservedCapacityDesc, p8s.CounterValue, float64(cpp.capacity))
 	ch <- p8s.MustNewConstMetric(poolMallocDesc, p8s.CounterValue, float64(cpp.malloc.Load()))
+	ch <- p8s.MustNewConstMetric(poolEscaped, p8s.CounterValue, float64(cpp.escaped.Load()))
 }

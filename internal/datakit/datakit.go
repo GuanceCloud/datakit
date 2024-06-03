@@ -340,8 +340,6 @@ func SetLog() {
 func G(name string) *goroutine.Group {
 	panicCb := func(b []byte) bool {
 		l.Errorf("recover panic: %s", string(b))
-		goroutine.GoroutineCrashedVec.WithLabelValues(name).Inc()
-
 		select {
 		case <-Exit.Wait(): // don't continue when exit
 			return false
@@ -453,9 +451,7 @@ func SetupPointPool(reservedCap int64) {
 func PutbackPoints(pts ...*point.Point) {
 	if pointPool != nil {
 		for _, pt := range pts {
-			if pt.HasFlag(point.Ppooled) {
-				pointPool.Put(pt)
-			}
+			pointPool.Put(pt)
 		}
 	}
 }

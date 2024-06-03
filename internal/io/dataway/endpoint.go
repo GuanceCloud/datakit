@@ -529,13 +529,19 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 	if err := retry.Do(
 		func() error {
 			defer func() {
-				if err != nil && req.GetBody != nil {
-					if body, err := req.GetBody(); err == nil {
-						req.Body = body
-						log.Debugf("GetBody() on request %q", req.URL.Path)
-					}
+				if err == nil {
+					return
+				}
+
+				if req.GetBody == nil {
+					log.Debugf("GetBody() not set for request %q, ignored", req.URL.Path)
+					return
+				}
+
+				if body, ierr := req.GetBody(); ierr == nil {
+					req.Body = body // reset body reader, then we can send the request again.
 				} else {
-					log.Warnf("GetBody() not set for request %q", req.URL.Path)
+					log.Errorf("GetBody() on %q failed: %s", req.URL.Path, ierr)
 				}
 			}()
 

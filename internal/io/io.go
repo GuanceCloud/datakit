@@ -23,7 +23,6 @@ import (
 
 var (
 	log = logger.DefaultSLogger("io")
-	g   = datakit.G("io")
 
 	// default dkIO singleton.
 	defIO = getIO()
@@ -59,8 +58,6 @@ type dkIO struct {
 	fcs map[string]failcache.Cache
 
 	lock sync.RWMutex
-
-	droppedTotal int64
 }
 
 func Start(opts ...IOOption) {
@@ -98,6 +95,7 @@ func getIO() *dkIO {
 
 func (x *dkIO) start() {
 	if x.withFilter {
+		g := datakit.G("io/filter")
 		g.Go(func(_ context.Context) error {
 			if defIO.filters != nil {
 				log.Infof("use local filters")
@@ -114,6 +112,7 @@ func (x *dkIO) start() {
 	if x.withConsumer {
 		fn := func(cat point.Category, n int) {
 			log.Infof("start %d workers on %q", n, cat)
+			g := datakit.G("io/consumer/" + cat.Alias())
 			for i := 0; i < n; i++ {
 				g.Go(func(_ context.Context) error {
 					x.runConsumer(cat)
@@ -146,9 +145,4 @@ func (x *dkIO) start() {
 			}
 		}
 	}
-}
-
-func (x *dkIO) DroppedTotal() int64 {
-	// NOTE: not thread-safe
-	return x.droppedTotal
 }

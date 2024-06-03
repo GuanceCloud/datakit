@@ -15,7 +15,8 @@ var (
 	goroutineCostVec *p8s.SummaryVec
 
 	goroutineStoppedVec,
-	GoroutineCrashedVec *p8s.CounterVec
+	goroutineRecoverVec,
+	goroutineCrashedVec *p8s.CounterVec
 
 	goroutineCounterVec *p8s.GaugeVec
 )
@@ -27,6 +28,18 @@ func metricsSetup() {
 			Subsystem: "goroutine",
 			Name:      "alive",
 			Help:      "Alive Goroutine count",
+		},
+		[]string{
+			"name",
+		},
+	)
+
+	goroutineRecoverVec = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "goroutine",
+			Name:      "recover_total",
+			Help:      "Recovered Goroutine count",
 		},
 		[]string{
 			"name",
@@ -45,7 +58,7 @@ func metricsSetup() {
 		},
 	)
 
-	GoroutineCrashedVec = p8s.NewCounterVec(
+	goroutineCrashedVec = p8s.NewCounterVec(
 		p8s.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "goroutine",
@@ -89,7 +102,8 @@ func metricsSetup() {
 		goroutineCostVec,
 		goroutineCounterVec,
 		goroutineStoppedVec,
-		GoroutineCrashedVec,
+		goroutineRecoverVec,
+		goroutineCrashedVec,
 	)
 }
 
