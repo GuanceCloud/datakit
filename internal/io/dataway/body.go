@@ -7,6 +7,8 @@ package dataway
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -58,6 +60,15 @@ func (w *writer) zip(data []byte) ([]byte, error) {
 
 type bodyCallback func(w *writer, b *body) error
 
+func dumpPoints(pts []*point.Point) string {
+	var arr []string
+
+	for _, pt := range pts {
+		arr = append(arr, pt.Pretty())
+	}
+	return strings.Join(arr, "\n")
+}
+
 func (w *writer) buildPointsBody(cb bodyCallback) error {
 	var (
 		start   = time.Now()
@@ -94,11 +105,31 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 		w.sendBuffer = make([]byte, w.batchBytesSize)
 	}
 
+	// for panic logging, when panics, we know:
+	// - what these points are
+	// - how points encoded and sent
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok { // we got some panic
+				buf := make([]byte, 1<<12)
+				runtime.Stack(buf, false)
+
+				log.Errorf("panic: %s\n%s", err.Error(), string(buf))
+
+				log.Errorf("encode: %s, total points: %d, current part: %d, body cap: %d",
+					err.Error(), len(w.points), w.parts, cap(w.sendBuffer))
+
+				panic(fmt.Errorf("dump points: %s", dumpPoints(w.points)))
+			}
+		}
+	}()
+
 	for {
 		encodeBytes, ok := enc.Next(w.sendBuffer)
 		if !ok {
 			if err := enc.LastErr(); err != nil {
-				log.Errorf("encode: %s", err.Error())
+				log.Errorf("encode: %s, total points: %d, current part: %d, body cap: %d",
+					err.Error(), len(w.points), w.parts, cap(w.sendBuffer))
 				return err
 			}
 			break

@@ -72,7 +72,7 @@ func NewGroup(option Option) *Group {
 	if g.panicCb == nil {
 		g.panicCb = func(crashStack []byte) bool {
 			log.Errorf("recover panic: %s", string(crashStack))
-			GoroutineCrashedVec.WithLabelValues(name).Inc()
+			goroutineCrashedVec.WithLabelValues(name).Inc()
 			return true
 		}
 	}
@@ -120,6 +120,8 @@ func (g *Group) do(f func(ctx context.Context) error) {
 	run = func() {
 		defer func() {
 			if r := recover(); r != nil {
+				goroutineCrashedVec.WithLabelValues(g.name).Inc()
+
 				isPanicRetry := true
 				buf := make([]byte, 4096) //nolint:gomnd
 				buf = buf[:runtime.Stack(buf, false)]
@@ -139,9 +141,15 @@ func (g *Group) do(f func(ctx context.Context) error) {
 						time.Sleep(g.panicTimeout)
 					}
 
+					goroutineRecoverVec.WithLabelValues(g.name).Inc()
+
 					run()
 
 					return
+				} else {
+					goroutineCounterVec.WithLabelValues(g.name).Dec()
+					goroutineCostVec.WithLabelValues(g.name).Observe(float64(time.Since(start)) / float64(time.Second))
+					goroutineStoppedVec.WithLabelValues(g.name).Inc()
 				}
 
 				err = fmt.Errorf("goroutine: panic recovered: %s", r)

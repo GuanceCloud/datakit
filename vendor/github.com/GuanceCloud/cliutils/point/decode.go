@@ -85,15 +85,11 @@ func detectTimestampPrecision(ts int64) int64 {
 	}
 }
 
-func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
+func (d *Decoder) doDecode(data []byte, c *cfg) ([]*Point, error) {
 	var (
 		pts []*Point
 		err error
 	)
-
-	// point options
-	cfg := GetCfg(opts...)
-	defer PutCfg(cfg)
 
 	switch d.enc {
 	case JSON:
@@ -102,7 +98,7 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 		}
 
 	case Protobuf:
-		if d.easyproto || defaultPTPool != nil { // force use easyproto when point pool enabled
+		if d.easyproto {
 			pts, err = unmarshalPoints(data)
 			if err != nil {
 				return nil, err
@@ -114,96 +110,120 @@ func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
 			}
 
 			for _, pbpt := range pbpts.Arr {
-				pts = append(pts, FromPB(pbpt))
-			}
-		}
-
-		var chk *checker
-		if cfg.precheck {
-			chk = &checker{cfg: cfg}
-			for idx, pt := range pts {
-				pts[idx] = chk.check(pt)
+				// NOTE: under gogo Unmarshal, nothing comes from point pool, so
+				// we create Point without NewPointV2(), and make the point escaped
+				// from point pool(if defaultPTPool set).
+				//
+				// Although put back points that not originally from the pool is
+				// possible, we still distinguish this behavior for better
+				// observability of actions(these escaped point counter are export
+				// by metrics).
+				pt := &Point{
+					pt: pbpt,
+				}
+				pt.SetFlag(Ppb)
+				pts = append(pts, pt)
 			}
 		}
 
 	case LineProtocol:
-
-		pts, err = parseLPPoints(data, cfg)
+		pts, err = parseLPPoints(data, c)
 		if err != nil {
 			d.detailedError = err
 			return nil, simplifyLPError(err)
 		}
 	}
 
-	nowNano := time.Now().UnixNano()
-	// adjust timestamp precision.
-	for _, pt := range pts {
+	return pts, err
+}
+
+func decodeAdjustPoints(pts []*Point, c *cfg) ([]*Point, error) {
+	var (
+		chk       *checker
+		newPoints []*Point
+
+		// set point's default timestamp
+		nowNano = c.timestamp
+	)
+
+	if nowNano == 0 { // not set
+		nowNano = time.Now().UnixNano()
+	}
+
+	if c.precheck {
+		chk = &checker{cfg: c}
+	}
+
+	// adjust and check the point.
+	for idx, pt := range pts {
 		// use current time
 		if pt.pt.Time == 0 {
 			pt.pt.Time = nowNano
-			continue
+		} else { // adjust point's timestamp
+			switch c.precision {
+			case PrecDyn:
+				pt.pt.Time = detectTimestampPrecision(pt.pt.Time)
+			case PrecUS:
+				pt.pt.Time *= int64(time.Microsecond)
+			case PrecMS:
+				pt.pt.Time *= int64(time.Millisecond)
+			case PrecS:
+				pt.pt.Time *= int64(time.Second)
+			case PrecM:
+				pt.pt.Time *= int64(time.Minute)
+			case PrecH:
+				pt.pt.Time *= int64(time.Hour)
+			case PrecNS: // pass
+			case PrecW, PrecD: // not used
+			default: // pass
+			}
 		}
 
-		switch cfg.precision {
-		case PrecDyn:
-			pt.pt.Time = detectTimestampPrecision(pt.pt.Time)
-		case PrecUS:
-			pt.pt.Time *= int64(time.Microsecond)
-		case PrecMS:
-			pt.pt.Time *= int64(time.Millisecond)
-		case PrecS:
-			pt.pt.Time *= int64(time.Second)
-		case PrecM:
-			pt.pt.Time *= int64(time.Minute)
-		case PrecH:
-			pt.pt.Time *= int64(time.Hour)
+		if c.precheck {
+			pts[idx] = chk.check(pts[idx])
+			chk.reset()
+		}
 
-		case PrecNS:
-			// pass
-
-		case PrecW, PrecD: // not used
-
-		default:
-			// pass
+		// Applied the callback on each point, the callback used to check if the
+		// point is valid for usage, for example:
+		//  - Is the measurement name are expected?
+		//  - Is point's key or value are expected?
+		//  - Is any warning on the point?
+		//  - ...
+		if c.callback != nil {
+			if x, err := c.callback(pts[idx]); err != nil {
+				return nil, err
+			} else if x != nil {
+				newPoints = append(newPoints, x)
+			}
 		}
 	}
 
-	// check point and apply callbak on each point
-	if cfg.precheck || cfg.callback != nil {
-		var (
-			chk = &checker{cfg: cfg}
-			arr []*Point
-		)
+	if len(newPoints) > 0 {
+		pts = newPoints
+	}
 
-		for idx, _ := range pts {
-			if cfg.precheck {
-				pts[idx] = chk.check(pts[idx])
-				chk.reset()
-			}
+	return pts, nil
+}
 
-			if cfg.callback != nil {
-				newPoint, err := cfg.callback(pts[idx])
-				if err != nil {
-					return nil, err
-				}
+func (d *Decoder) Decode(data []byte, opts ...Option) ([]*Point, error) {
+	// point options
+	c := GetCfg(opts...)
+	defer PutCfg(c)
 
-				if newPoint != nil {
-					arr = append(arr, newPoint)
-				}
-			}
-		}
+	pts, err := d.doDecode(data, c)
+	if err != nil {
+		return nil, err
+	}
 
-		// Callback may drop some point from pts, so
-		// here we override it with newPoint arr.
-		if cfg.callback != nil {
-			pts = arr
-		}
+	pts, err = decodeAdjustPoints(pts, c)
+	if err != nil {
+		return nil, err
 	}
 
 	if d.fn != nil {
 		return pts, d.fn(pts)
 	}
-
 	return pts, nil
 }
 

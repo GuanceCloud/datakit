@@ -86,7 +86,7 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 				data.input,
 			).Add(float64(len(data.pts)))
 
-			// points should put back to pool, or leaked.
+			// points should put back to pool, or leaked as dirty point.
 			datakit.PutbackPoints(data.pts...)
 
 			log.Warnf("io busy, %d (%s/%s) points dropped", len(data.pts), data.input, data.cat)

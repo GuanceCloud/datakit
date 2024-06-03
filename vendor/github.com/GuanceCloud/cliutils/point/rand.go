@@ -36,8 +36,6 @@ type ptRander struct {
 	tagVals    []string
 	sampleText []string
 
-	pointPool PointPool
-
 	ts time.Time
 
 	measurePrefix string
@@ -115,7 +113,6 @@ func WithRandFields(n int) RandOption               { return func(r *ptRander) {
 func WithRandKeyLen(n int) RandOption               { return func(r *ptRander) { r.keyLen = n } }
 func WithRandValLen(n int) RandOption               { return func(r *ptRander) { r.valLen = n } }
 func WithCategory(c Category) RandOption            { return func(r *ptRander) { r.cat = c } }
-func WithRandPointPool(pp PointPool) RandOption     { return func(r *ptRander) { r.pointPool = pp } }
 func WithRandMeasurementPrefix(s string) RandOption { return func(r *ptRander) { r.measurePrefix = s } }
 func WithKVSorted(on bool) RandOption               { return func(r *ptRander) { r.kvSorted = on } }
 func WithFixedKeys(on bool) RandOption              { return func(r *ptRander) { r.fixedKeys = on } }
@@ -128,11 +125,6 @@ func (r *ptRander) Rand(count int) []*Point {
 	}
 
 	pts := make([]*Point, 0, count)
-
-	if pp := r.pointPool; pp != nil {
-		SetPointPool(pp)
-	}
-	defer ClearPointPool()
 
 	for i := 0; i < count; i++ {
 		pts = append(pts, r.doRand())
@@ -171,10 +163,10 @@ func (r *ptRander) randTags() KVs {
 			val = randStr(r.valLen)
 		}
 
-		if r.pointPool == nil {
+		if defaultPTPool == nil {
 			kvs = kvs.MustAddTag(key, val)
 		} else {
-			kv := r.pointPool.GetKV(key, val)
+			kv := defaultPTPool.GetKV(key, val)
 			kv.IsTag = true
 			kvs = kvs.AddKV(kv, true)
 		}
@@ -187,10 +179,10 @@ func (r *ptRander) randTags() KVs {
 		// add `name` tag
 		key, val := "name", randStr(r.valLen)
 
-		if r.pointPool == nil {
+		if defaultPTPool == nil {
 			kvs = kvs.MustAddTag(key, val)
 		} else {
-			kv := r.pointPool.GetKV(key, val)
+			kv := defaultPTPool.GetKV(key, val)
 			kv.IsTag = true
 			kvs = kvs.AddKV(kv, true)
 		}
@@ -231,10 +223,10 @@ func (r *ptRander) randFields() KVs {
 			val = mrand.Int63()
 		}
 
-		if r.pointPool == nil {
+		if defaultPTPool == nil {
 			kvs = kvs.Add(key, val, false, true) // force set field
 		} else {
-			kv := r.pointPool.GetKV(key, val)
+			kv := defaultPTPool.GetKV(key, val)
 			if kv == nil {
 				panic(fmt.Sprintf("get nil kv on %q: %v", key, val))
 			}
@@ -248,10 +240,10 @@ func (r *ptRander) randFields() KVs {
 			key := "long-text" + randStr((i%r.keyLen)+1)
 			val := r.sampleText[mrand.Int63()%int64(len(r.sampleText))]
 
-			if r.pointPool == nil {
+			if defaultPTPool == nil {
 				kvs = kvs.Add(key, val, false, true)
 			} else {
-				kvs = kvs.AddKV(r.pointPool.GetKV(key, val), true)
+				kvs = kvs.AddKV(defaultPTPool.GetKV(key, val), true)
 			}
 		}
 	}

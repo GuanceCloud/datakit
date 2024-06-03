@@ -29,7 +29,7 @@ var (
 	flagDecode   = flag.Bool("decode", false, "try decode request")
 	flag5XXRatio = flag.Int("5xx-ratio", 0, "fail request ratio(minimal is 1/1000)")
 
-	MPts, LPts, totalReq, req5xx atomic.Int64
+	MPts, LPts, TPts, totalReq, req5xx atomic.Int64
 )
 
 func benchHTTPServer() {
@@ -141,9 +141,10 @@ func benchHTTPServer() {
 						switch cat {
 						case point.Logging:
 							LPts.Add(int64(len(pts)))
-
 						case point.Metric:
 							MPts.Add(int64(len(pts)))
+						case point.Tracing:
+							TPts.Add(int64(len(pts)))
 						}
 
 						log.Printf("decode %d points, %d with warnnings", len(pts), nwarns)
@@ -171,9 +172,10 @@ func showInfo() {
 	//log.Printf("total M/%s, L/%s, req/%d, 5xx/%d",
 	//humanize.SI(float64(MPts.Load()), ""),
 	//humanize.SI(float64(LPts.Load()), ""),
-	log.Printf("total M/%d, L/%d, req/%d, 5xx/%d, 5xx ratio: %d/1000",
+	log.Printf("total M/%d, L/%d, T/%d req/%d, 5xx/%d, 5xx ratio: %d/1000",
 		MPts.Load(),
 		LPts.Load(),
+		TPts.Load(),
 		totalReq.Load(),
 		req5xx.Load(),
 		*flag5XXRatio,
