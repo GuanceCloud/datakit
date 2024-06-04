@@ -3,8 +3,8 @@ title     : 'ElasticSearch'
 summary   : 'Collect ElasticSearch metrics'
 __int_icon      : 'icon/elasticsearch'
 dashboard :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'ElasticSearch'
+    path  : 'dashboard/en/elasticsearch'
 monitor   :
   - desc  : 'N/A'
     path  : '-'

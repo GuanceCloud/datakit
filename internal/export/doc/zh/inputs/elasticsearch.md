@@ -3,8 +3,8 @@ title     : 'ElasticSearch'
 summary   : '采集 ElasticSearch 的指标数据'
 __int_icon      : 'icon/elasticsearch'
 dashboard :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'ElasticSearch'
+    path  : 'dashboard/zh/elasticsearch'
 monitor   :
   - desc  : '暂无'
     path  : '-'
