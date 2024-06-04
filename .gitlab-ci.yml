@@ -13,7 +13,7 @@ before_script:
 variables:
   PROJECT: "datakit"
   CI_VERSION: "1.30.0"
-  CI_TESTING_VERSION: "1.29.0-testing"
+  CI_TESTING_VERSION: "1.30.0-testing"
   DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
 
@@ -148,7 +148,7 @@ release-testing:
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image IGN_EBPF_INSTALL_ERR=1 VERSION="$CI_TESTING_VERSION"
-    - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true
+    - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft
 

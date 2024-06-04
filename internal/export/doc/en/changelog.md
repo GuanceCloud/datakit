@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.30.0 (May 31, 2024) {#cl-1.30.0}
+## 1.30.0 (June 4, 2024) {#cl-1.30.0}
 
 This release is an iterative update with the following main changes:
 

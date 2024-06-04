@@ -419,10 +419,14 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 
 	opt.pts = after
 
-	inputsFilteredPtsVec.WithLabelValues(
-		opt.input,
-		opt.cat.String(),
-	).Add(float64(filtered))
+	if filtered > 0 {
+		inputsFilteredPtsVec.WithLabelValues(
+			opt.input,
+			opt.cat.String(),
+		).Add(float64(filtered))
+	} else {
+		log.Errorf("invalid filtered: pts: %d, after: %d, offl: %d", len(opt.pts), len(after), offl)
+	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not
@@ -436,11 +440,12 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 			inputsFeedPtsVec.WithLabelValues(crName, crCat).Add(float64(len(v)))
 			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
 
-			opt.input = "pipeline/create_point"
-			opt.cat = cat
-			opt.pts = v
+			ptsCreateOpt := getFeedOption()
+			ptsCreateOpt.input = "pipeline/create_point"
+			ptsCreateOpt.cat = cat
+			ptsCreateOpt.pts = v
 
-			if err := x.fo.Write(opt); err != nil {
+			if err := x.fo.Write(ptsCreateOpt); err != nil {
 				log.Warnf("send pts created by the script: %s", err.Error())
 			}
 		}
