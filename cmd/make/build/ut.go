@@ -53,12 +53,14 @@ var (
 	noTestPkgs       = make([]string, 0)
 	noTestPkgsLocker sync.RWMutex
 
-	passedPkgs = make(map[float64][]string, 0)
+	pkgCoverage = make(map[float64][]string, 0)
+
+	npassed  = 0
+	nskipped = 0
+	nhuge    = 0
 
 	failedPkgs       = make(map[string]string, 0)
 	failedPkgsLocker sync.RWMutex
-
-	skipedPkgs = []string{}
 )
 
 const (
@@ -99,7 +101,7 @@ func UnitTestDataKit() error {
 		i++
 		if hugePackages[p] {
 			fmt.Printf("%s is HUGE package, testing it later, skip...\n", p)
-			skipedPkgs = append(skipedPkgs, p)
+			nhuge++
 			continue
 		}
 
@@ -154,7 +156,7 @@ func UnitTestDataKit() error {
 		GoVersion: runtime.Version(),
 		Branch:    git.Branch,
 		TestID:    utID,
-		Coverage:  coverTotal.Load() / float64(len(passedPkgs)),
+		Coverage:  coverTotal.Load() / float64(npassed),
 		Message:   fmt.Sprintf("done, total cost: %s", time.Since(start)),
 	}
 
@@ -163,8 +165,8 @@ func UnitTestDataKit() error {
 	}
 
 	fmt.Printf("============ %d package passed(avg %.2f%%) ================\n",
-		len(passedPkgs), coverTotal.Load()/float64(len(passedPkgs)))
-	showTopNCoveragePkgs(passedPkgs)
+		npassed, coverTotal.Load()/float64(npassed))
+	showTopNCoveragePkgs(pkgCoverage)
 
 	fmt.Printf("============= %d package got no test ===============\n", len(noTestPkgs))
 	sort.Strings(noTestPkgs)
@@ -201,12 +203,15 @@ type Job struct {
 func doWork(j Job) {
 	start := time.Now()
 	fmt.Printf("=======================\n")
-	fmt.Printf("[%s][%02d:%02d:%02d][passed:%d/failed:%d] testing(%03d/%03d) %s...\n",
+	fmt.Printf("[%s][%02d:%02d:%02d][passed:%d/notest:%d/skipped:%d/huge:%d/failed:%d] testing(%03d/%03d) %s...\n",
 		j.UTID,
 		start.Hour(),
 		start.Minute(),
 		start.Second(),
-		len(passedPkgs),
+		npassed,
+		len(noTestPkgs),
+		nskipped,
+		nhuge,
 		len(failedPkgs),
 		j.Index,
 		j.LenPkgs,
@@ -214,11 +219,13 @@ func doWork(j Job) {
 
 	if excludes[j.Pkg] {
 		fmt.Printf("[%s] package(%03d/%03d) %s excluded...\n", j.UTID, j.Index, j.LenPkgs, j.Pkg)
+		nskipped++
 		return
 	}
 
 	if len(only) > 0 && !only[j.Pkg] {
 		fmt.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n", j.UTID, j.Index, j.LenPkgs, j.Pkg, only)
+		nskipped++
 		return
 	}
 
@@ -284,6 +291,7 @@ func doWork(j Job) {
 
 	case strings.HasPrefix(coverageLine, "ok"):
 		mr.Status = testutils.TestPassed
+		npassed++
 
 		coverage := percentCoverage.FindString(coverageLine)
 		if len(coverage) != 0 {
@@ -293,7 +301,7 @@ func doWork(j Job) {
 				return
 			}
 
-			passedPkgs[f] = append(passedPkgs[f], j.Pkg)
+			pkgCoverage[f] = append(pkgCoverage[f], j.Pkg)
 			coverTotal.Add(f)
 			mr.Coverage = f
 		} else {

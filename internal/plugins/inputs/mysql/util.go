@@ -34,10 +34,40 @@ func Conv(val interface{}, datatype string) (interface{}, error) {
 	case inputs.Float:
 		res, err = cast.ToFloat64E(val)
 	case inputs.Int:
-		if res, err := cast.ToInt64E(val); err == nil {
-			return res, nil
-		} else if res, err := cast.ToUint64E(val); err == nil {
-			return res, nil
+		switch x := val.(type) {
+		case int:
+			return int64(x), nil
+		case int8:
+			return int64(x), nil
+		case int16:
+			return int64(x), nil
+		case int32:
+			return int64(x), nil
+		case int64:
+			return x, nil
+
+		case uint:
+			return uint64(x), nil
+		case uint8:
+			return uint64(x), nil
+		case uint16:
+			return uint64(x), nil
+		case uint32:
+			return uint64(x), nil
+		case uint64:
+			return x, nil
+
+		case string:
+			if i64, err := strconv.ParseInt(x, 10, 64); err == nil {
+				return i64, nil
+			} else if u64, err := strconv.ParseUint(x, 10, 64); err == nil {
+				return u64, nil
+			} else {
+				return val, fmt.Errorf("unknown int value")
+			}
+
+		default:
+			return val, fmt.Errorf("unknown int value, should not been here")
 		}
 	case inputs.Bool:
 		res, err = cast.ToBoolE(val)

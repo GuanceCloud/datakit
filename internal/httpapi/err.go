@@ -42,6 +42,7 @@ var (
 	ErrInvalidJSONPoint     = newErr(errors.New("invalid json point"), http.StatusBadRequest)
 	ErrInvalidLinePoint     = newErr(errors.New("invalid line point"), http.StatusBadRequest)
 	ErrInvalidProtobufPoint = newErr(errors.New("invalid protobuf point"), http.StatusBadRequest)
+	ErrStrictPoint          = newErr(errors.New("point got warning"), http.StatusBadRequest)
 )
 
 func newErr(err error, code int) *uhttp.HttpError {

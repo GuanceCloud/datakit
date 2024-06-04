@@ -447,6 +447,13 @@ func SetupPointPool(reservedCap int64) {
 	metrics.MustRegister(pointPool)
 }
 
+// ClearPointPool reset pooled point for global point usage.
+func ClearPointPool(reservedCap int64) {
+	point.ClearPointPool()
+
+	metrics.Unregister(pointPool)
+}
+
 // PutbackPoints return unused points back to pool.
 func PutbackPoints(pts ...*point.Point) {
 	if pointPool != nil {

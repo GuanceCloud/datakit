@@ -13,17 +13,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 	T "testing"
 	"time"
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
+	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -706,7 +710,7 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 			contentType:      "application/json",
 			body:             []byte(`[{"measurement":"object-class","tags":{"t1": "1"}, "fields":{"f1":"1i", "message": "dump object message"}}]`),
 			expectStatusCode: 400,
-			expectBody:       ErrInvalidJSONPoint,
+			expectBody:       ErrStrictPoint,
 		},
 
 		// global-host-tag
@@ -758,6 +762,34 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 					},
 					Fields: map[string]interface{}{
 						"f1": 1, "message": "dump object message",
+					},
+					Time: 123,
+				},
+			},
+		},
+
+		{
+			name:        `content-type-protobuf`,
+			method:      "POST",
+			url:         "/v1/write/network?precision=n&echo=json",
+			contentType: point.Protobuf.HTTPContentType(),
+			body: func() []byte {
+				var kvs point.KVs
+				kvs = kvs.AddV2("f1", 123, true)
+				pt := point.NewPointV2("some", kvs, point.WithTimestamp(123))
+				enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
+				defer point.PutEncoder(enc)
+
+				arr, err := enc.Encode([]*point.Point{pt})
+				assert.NoError(t, err)
+				return arr[0]
+			}(),
+			expectStatusCode: 200,
+			expectBody: []*point.JSONPoint{
+				{
+					Measurement: "some",
+					Fields: map[string]interface{}{
+						"f1": 123,
 					},
 					Time: 123,
 				},
@@ -992,6 +1024,116 @@ var (
 	}()
 )
 
+func TestPBPointEscaped(t *T.T) {
+	t.Run("pb-body-escape-point-pool", func(t *T.T) {
+		pointPool := point.NewReservedCapPointPool(32)
+		point.SetPointPool(pointPool)
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(pointPool)
+
+		t.Cleanup(func() {
+			point.ClearPointPool()
+		})
+
+		req := httptest.NewRequest("POST", "/v1/write/network?precision=n", bytes.NewBuffer(pb))
+		req.Header.Add("Content-Type", point.Protobuf.HTTPContentType())
+
+		wr := GetAPIWriteResult()
+		defer PutAPIWriteResult(wr)
+
+		assert.NoError(t, wr.APIV1Write(req))
+		assert.Len(t, wr.Points, len(samplePoints))
+
+		for _, pt := range wr.Points {
+			pointPool.Put(pt)
+		}
+
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+		m := metrics.GetMetric(mfs, "pointpool_escaped", 0)
+
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		assert.Equal(t, float64(len(samplePoints)), m.GetCounter().GetValue())
+	})
+}
+
+func TestAPIV1WriteParallel(t *T.T) {
+	r := point.NewRander()
+
+	encode := func(pts []*point.Point, ctype point.Encoding) []byte {
+		enc := point.GetEncoder(point.WithEncEncoding(ctype))
+		defer point.PutEncoder(enc)
+
+		arr, err := enc.Encode(pts)
+		assert.NoError(t, err)
+		return arr[0]
+	}
+
+	encodeV2 := func(pts []*point.Point, ctype point.Encoding) []byte {
+		buf := make([]byte, 1<<20) // large enought to hold all pts
+		enc := point.GetEncoder(point.WithEncEncoding(ctype))
+		defer point.PutEncoder(enc)
+
+		enc.EncodeV2(pts)
+		for {
+			if buf, ok := enc.Next(buf); ok {
+				return buf // single package
+			}
+
+			assert.True(t, false) // should not been here
+		}
+	}
+
+	// TODO: add pb-json body.
+	f := func(npts int, enc point.Encoding) {
+		pts := r.Rand(npts)
+		var body []byte
+
+		if len(pts)%2 == 0 {
+			body = encode(pts, enc)
+		} else {
+			body = encodeV2(pts, enc)
+		}
+
+		req := httptest.NewRequest("POST", "/v1/write/tracing", bytes.NewBuffer(body))
+		req.Header.Add("Content-Type", enc.HTTPContentType())
+
+		wr := GetAPIWriteResult()
+		defer PutAPIWriteResult(wr)
+		require.NoError(t, wr.APIV1Write(req))
+		require.Len(t, wr.Points, len(pts))
+
+		// check if received points equal to origin points
+		for idx, pt := range wr.Points {
+			eq, why := pts[idx].EqualWithReason(pt)
+			assert.Truef(t, eq, "why: %s, expect: %s, got: %s", why, pts[idx].Pretty(), pt.Pretty())
+		}
+	}
+
+	// 100 workers
+	wg := sync.WaitGroup{}
+	nworkers := 100
+	wg.Add(nworkers)
+	for i := 0; i < nworkers; i++ {
+		switch i % 2 {
+		case 0:
+			go func(npts int) {
+				defer wg.Done()
+				f(npts, point.Protobuf)
+			}(i + 1)
+		case 1:
+			go func(npts int) {
+				defer wg.Done()
+				f(npts, point.LineProtocol)
+			}(i + 1)
+		}
+	}
+
+	wg.Wait()
+}
+
 func TestAPIV1Write(t *T.T) {
 	t.Logf("lineProtocol:\n%s", string(lineProtocol))
 	t.Logf("JSON:\n%s", string(JSON))
@@ -1152,7 +1294,7 @@ func TestAPIV1Write(t *T.T) {
 
 		err := wr.APIV1Write(req)
 		assert.Error(t, err)
-		t.Logf("error(expected): %s", err)
+		t.Logf("error(expected): %+#v", err)
 		assert.Len(t, wr.Points, 0)
 	})
 
