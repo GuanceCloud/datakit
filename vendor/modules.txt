@@ -37,11 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-<<<<<<< HEAD
-# github.com/GuanceCloud/cliutils v1.1.15-0.20240527011722-6b3f46455ac5 => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
-=======
-# github.com/GuanceCloud/cliutils v1.1.16
->>>>>>> dev
+# github.com/GuanceCloud/cliutils v1.1.17
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -2364,7 +2360,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/GuanceCloud/cliutils => /Users/tanbiao/go/src/github.com/GuanceCloud/cliutils
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 # github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8

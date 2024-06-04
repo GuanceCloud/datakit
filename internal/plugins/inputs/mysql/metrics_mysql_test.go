@@ -297,7 +297,14 @@ func TestGetCleanUserStatusVariable(t *testing.T) {
 					assert.Equal(t, x, res[k].(int))
 				case int64:
 					assert.True(t, res[k] != nil, "key %s should not be nil", k)
-					assert.Equalf(t, x, res[k].(int64), "res[%q]: %q", k, res[k])
+
+					switch resk := res[k].(type) {
+					case int64:
+						assert.Equalf(t, x, resk, "res[%q]: %q", k, res[k])
+					default:
+						assert.True(t, false, "got type %s on %q, res: %+#v", reflect.TypeOf(res[k]), k, res)
+					}
+
 				case string:
 					assert.Equal(t, x, res[k].(string))
 				case bool:

@@ -84,7 +84,13 @@ func HandleWriteBody(body []byte, encTyp point.Encoding, opts ...point.Option) (
 		}
 
 	case point.Protobuf:
-		dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+		dec := point.GetDecoder(
+			point.WithDecEncoding(point.Protobuf),
+
+			// do NOT enable easyproto for memory safe.
+			point.WithDecEasyproto(false),
+		)
+
 		defer point.PutDecoder(dec)
 
 		pts, err := dec.Decode(body, opts...)
@@ -406,11 +412,14 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 			if arr := pt.Warns(); len(arr) > 0 {
 				switch cntTyp {
 				case point.JSON, point.PBJSON:
-					return uhttp.Errorf(ErrInvalidJSONPoint, "%s: %s", arr[0].Type, arr[0].Msg)
+					l.Warnf("point warnning: %s", arr[0].Msg)
+					return uhttp.Errorf(ErrStrictPoint, "%s: %s", arr[0].Type, arr[0].Msg)
 				case point.LineProtocol:
-					return uhttp.Errorf(ErrInvalidLinePoint, "%s: %s", arr[0].Type, arr[0].Msg)
+					l.Warnf("point warnning: %s", arr[0].Msg)
+					return uhttp.Errorf(ErrStrictPoint, "%s: %s", arr[0].Type, arr[0].Msg)
 				case point.Protobuf:
-					return uhttp.Errorf(ErrInvalidProtobufPoint, "%s: %s", arr[0].Type, arr[0].Msg)
+					l.Warnf("point warnning: %s", arr[0].Msg)
+					return uhttp.Errorf(ErrStrictPoint, "%s: %s", arr[0].Type, arr[0].Msg)
 				}
 			}
 		}
@@ -455,6 +464,10 @@ echoLineProtocol:
 	return []byte(strings.Join(arr, "\n"))
 
 echoSimpleJSON:
+	for _, pt := range pts {
+		pt.ClearFlag(point.Ppb)
+	}
+
 	if j, err := json.Marshal(pts); err != nil {
 		return []byte(err.Error())
 	} else {
