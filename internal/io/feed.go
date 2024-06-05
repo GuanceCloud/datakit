@@ -419,7 +419,7 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 
 	opt.pts = after
 
-	if filtered > 0 {
+	if filtered >= 0 {
 		inputsFilteredPtsVec.WithLabelValues(
 			opt.input,
 			opt.cat.String(),
