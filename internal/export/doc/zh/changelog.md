@@ -39,7 +39,7 @@
 
 本次版本，扩展了数据协议，老版本的 Datakit 升级上来之后，如果中心底座是私有部署的，可以做如下措施，保持数据兼容：
 
-- 升级中心底座至 [1.86.166](../deployment/changelog.md/#1861662024-05-29)
+- 升级中心底座至 [1.86.166](../deployment/changelog.md#1861662024-05-29)
 - 修改 *datakit.conf* 中[上传协议配置 `content_encoding`](datakit-conf.md#dataway-settings)，将其改为 `v2`
 
 ---

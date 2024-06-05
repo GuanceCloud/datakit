@@ -40,7 +40,7 @@ This release is an iterative update with the following main changes:
 
 In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
 
-- Upgrade the center base to [1.86.166](../deployment/changelog.md/#1861662024-05-29)
+- Upgrade the center base to [1.86.166](../deployment/changelog.md#1861662024-05-29)
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
 ---
