@@ -7,6 +7,7 @@ package container
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	gruntime "runtime"
@@ -59,6 +60,8 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 	}, nil
 }
 
+var containerExistList sync.Map
+
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
 	filters, err := newFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	if err != nil {
@@ -82,7 +85,14 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	if err != nil {
 		return nil, fmt.Errorf("get runtime version err: %w", err)
 	}
-	l.Infof("runtime platform: %s, api-version: %s", config.Cfg.Hostname, version.PlatformName, version.APIVersion)
+	l.Infof("runtime platform %s, api-version %s", version.PlatformName, version.APIVersion)
+
+	key := fmt.Sprintf("%s:%s", version.PlatformName, version.APIVersion)
+	if _, exist := containerExistList.Load(key); exist {
+		return nil, fmt.Errorf("runtime %s already exists", key)
+	} else {
+		containerExistList.Store(key, nil)
+	}
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
@@ -207,6 +217,7 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 				case "object":
 					pt = c.transformPoint(info, setPodLabelAsTagsForObject)
 					pt.SetTags(c.extraTags)
+					pt.SetFields(transLabels(info.Labels))
 					pt.SetTag("name", info.ID)
 					pt.SetField("age", time.Since(time.Unix(0, info.CreatedAt)).Milliseconds()/1e3)
 				default:
@@ -621,4 +632,26 @@ func calculateCount(pts []*typed.PointKV) map[string]int {
 		}
 	}
 	return count
+}
+
+func transLabels(labels map[string]string) map[string]interface{} {
+	// empty array
+	labelsString := "[]"
+	if len(labels) != 0 {
+		var lb []string
+		for k, v := range labels {
+			lb = append(lb, k+":"+v)
+		}
+
+		b, err := json.Marshal(lb)
+		if err == nil {
+			labelsString = string(b)
+		}
+	}
+	// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
+	return map[string]interface{}{
+		"df_label":            labelsString,
+		"df_label_permission": "read_only",
+		"df_label_source":     "datakit",
+	}
 }
