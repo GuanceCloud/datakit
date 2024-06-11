@@ -99,7 +99,7 @@ When log collection is turned on, a log with a log (aka *source*) of`sqlserver` 
 
 ## Metrics {#measurements}
 
-For all of the following data collections, a global tag name `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
+For all of the following data collections, the global election tags will be added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 ``` toml
  [inputs.sqlserver.tags]

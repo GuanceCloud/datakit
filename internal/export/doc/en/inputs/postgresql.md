@@ -60,7 +60,7 @@ grant SELECT ON pg_stat_database to datakit;
 
 ## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or it can be named by `[[inputs.{{.InputName}}.tags]]` alternative host in the configuration.
+For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 {{ range $i, $m := .Measurements }}
 

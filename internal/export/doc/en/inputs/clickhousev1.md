@@ -73,12 +73,12 @@ See [ClickHouse official documents](https://ClickHouse.com/docs/en/operations/se
 
 ## Metric {#metric}
 
-For all the following data collections, a global tag named `host` is appended by default (the tag value is the host name where the DataKit is located), or other tags can be customized in the configuration through `[inputs.prom.tags]`(Hostname can be added to the cluster).
+For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 ``` toml
-    [inputs.prom.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
+[inputs.prom.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
 ```
 
 {{ range $i, $m := .Measurements }}

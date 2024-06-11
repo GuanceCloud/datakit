@@ -81,24 +81,24 @@ Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中
 
 ## 指标 {#metric}
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名）。
+以下所有数据采集，默认会追加全局选举 tag，也可以在配置中指定其它标签：
 
-可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为 **GitLab 指标数据**指定其它标签：
+- 可以在配置中通过 `[inputs.{{.InputName}}.tags]` 为 **GitLab 指标数据**指定其它标签：
 
 ``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+[inputs.{{.InputName}}.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 ```
 
-可以在配置中通过 `[inputs.{{.InputName}}.ci_extra_tags]` 为 **GitLab CI 数据**指定其它标签：
+- 可以在配置中通过 `[inputs.{{.InputName}}.ci_extra_tags]` 为 **GitLab CI 数据**指定其它标签：
 
 ``` toml
- [inputs.{{.InputName}}.ci_extra_tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+[inputs.{{.InputName}}.ci_extra_tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 ```
 
 注意：为了确保 GitLab CI 功能正常，为 GitLab CI 数据指定的 extra tags 不会覆盖其数据中已有的标签（GitLab CI 标签列表见下）。

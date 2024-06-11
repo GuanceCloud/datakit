@@ -195,7 +195,7 @@ As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined
 
 ## Metric {#metric}
 
-All of the following data collections are appended by default with the name `host` (the value is the name of the SNMP device), or other labels can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
+For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 ``` toml
  [inputs.{{.InputName}}.tags]
