@@ -67,22 +67,21 @@ After configuration, Jenkins can send CI events to Datakit through Datadog Plugi
 
 ## Metric {#metric}
 
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit).
-You can specify additional labels for collected metrics in the configuration by `[inputs.{{.InputName}}.tags]`:
+For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 ``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+[inputs.{{.InputName}}.tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 ```
 
 You can specify additional tags for the Jenkins CI Event in the configuration by `[inputs.{{.InputName}}.ci_extra_tags]`:
 
 ```toml
- [inputs.{{.InputName}}.ci_extra_tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
+[inputs.{{.InputName}}.ci_extra_tags]
+# some_tag = "some_value"
+# more_tag = "some_other_value"
 ```
 
 {{ range $i, $m := .Measurements }}

@@ -71,7 +71,7 @@ Restart Datakit to make configuration take effect.
 
 There will be two metrics set, one for [JVM's metrics](jvm.md#dd-jvm-measurement){:target="_blank"}, and the other for `tomcat`, only `tomcat` is shown below.
 
-All the following data collections will have a global tag named `host` appended by default(the tag value is the host name of the Datakit), or you can specify other tags in the configuration via `[inputs.statsd.tags]`:
+For all of the following data collections, the global election tags will be added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 ``` toml
  [inputs.statsd.tags]

@@ -193,7 +193,7 @@ metrics:
 
 ## 指标 {#metric}
 
-以下所有数据采集，默认会追加名为 `host`（值为 SNMP 设备的名称），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
 [inputs.{{.InputName}}.tags]
