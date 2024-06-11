@@ -138,6 +138,38 @@ func Test_getIPInterfaceByTags(t *testing.T) {
 				"some",
 			},
 		},
+
+		{
+			name: "tow colon",
+			tags: []string{
+				"snmp_profile:cisco-catalyst",
+				"device_vendor:cisco",
+				"snmp_host:jk",
+				"ip:1.1.1.1",
+				"agent_host:",
+				"agent_version:1.6.1-459-g0d3783817f",
+				"interface:Gi1/0/3:1",
+				"interface_alias:conn-to-4XF4BX2-2port-2.2.2.2",
+			},
+			expectIP:  "1.1.1.1",
+			expectInf: "Gi1/0/3:1",
+		},
+
+		{
+			name: "zero colon fail",
+			tags: []string{
+				"snmp_profile:cisco-catalyst",
+				"device_vendor:cisco",
+				"snmp_host:jk",
+				"ip 1.1.1.1",
+				"agent_host:",
+				"agent_version:1.6.1-459-g0d3783817f",
+				"interface-Gi1/0/3-1",
+				"interface_alias:conn-to-4XF4BX2-2port-2.2.2.2",
+			},
+			expectIP:  "",
+			expectInf: "",
+		},
 	}
 
 	for _, tc := range cases {

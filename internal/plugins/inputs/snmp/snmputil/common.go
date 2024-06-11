@@ -63,7 +63,7 @@ func getIPInterfaceByTags(tags []string) (ip, inf string) {
 			break
 		}
 
-		arr := strings.Split(v, ":")
+		arr := strings.SplitN(v, ":", 2)
 		if len(arr) == 2 {
 			switch arr[0] {
 			case "interface":
