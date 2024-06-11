@@ -76,7 +76,7 @@ func (d *Discovery) newPromFromServiceAnnotations() []*promRunner {
 		}
 
 		selector := &metav1.LabelSelector{MatchLabels: svc.Spec.Selector}
-		pods := d.getLocalPodsFromLabelSelector("service-export-to-pod", defaultNamespace, selector)
+		pods := d.getLocalPodsFromLabelSelector("service-export-to-pod", svc.Namespace, selector)
 
 		for _, pod := range pods {
 			measurementName := ""
@@ -313,7 +313,7 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 
 		for _, svc := range svcs {
 			selector := &metav1.LabelSelector{MatchLabels: svc.Spec.Selector}
-			pods := d.getLocalPodsFromLabelSelector("ServiceMonitor", defaultNamespace, selector)
+			pods := d.getLocalPodsFromLabelSelector("ServiceMonitor", svc.Namespace, selector)
 
 			for _, endpoint := range item.Spec.Endpoints {
 				for _, pod := range pods {
