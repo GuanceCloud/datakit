@@ -29,9 +29,12 @@ import (
 )
 
 const (
-	inputName  = "oceanbase"
-	metricName = "oceanbase"
-	logName    = "oceanbase_log"
+	inputName       = "oceanbase"
+	metricName      = "oceanbase"
+	statMetricName  = "oceanbase_stat"
+	eventMetricName = "oceanbase_event"
+	cacheMetricName = "oceanbase_cache"
+	logName         = "oceanbase_log"
 )
 
 var (

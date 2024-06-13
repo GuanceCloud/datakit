@@ -43,16 +43,6 @@ var externals = []*dkexternal{
 		},
 	},
 	{
-		name: "oceanbase",
-		lang: "go",
-
-		entry: "oceanbase.go",
-		osarchs: map[string]bool{
-			"linux/amd64": true,
-			"linux/arm64": true,
-		},
-	},
-	{
 		// requirement: apt-get install gcc-multilib
 		name: "db2",
 		lang: "go",
@@ -149,7 +139,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 		}
 
 		switch ex.name {
-		case "oceanbase", "db2", "oracle":
+		case "db2", "oracle":
 			if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
 				l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
 				continue
@@ -217,7 +207,7 @@ func buildExternals(dir, goos, goarch string, standalone bool) error {
 			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
 			switch ex.name {
-			case "oceanbase", "db2", "oracle":
+			case "db2", "oracle":
 				// x86
 				// docker run --rm \
 				//   --name $DOCKER_IMAGE_NAME \

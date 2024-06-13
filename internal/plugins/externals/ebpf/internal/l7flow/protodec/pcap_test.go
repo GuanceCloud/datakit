@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux && with_pcap
+// +build linux,with_pcap
 
 package protodec
 
