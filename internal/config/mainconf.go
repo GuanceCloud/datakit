@@ -111,6 +111,9 @@ type Config struct {
 
 	Ulimit      uint64 `toml:"ulimit"`
 	DatakitUser string `toml:"datakit_user"`
+
+	// crypto
+	Crypto *configCrpto `toml:"crypto,omitempty"`
 }
 
 func DefaultConfig() *Config {
@@ -238,6 +241,7 @@ func DefaultConfig() *Config {
 				return uint64(0)
 			}
 		}(),
+		Crypto: &configCrpto{},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起

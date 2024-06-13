@@ -337,6 +337,177 @@ ulimit 默认配置为 64000。在 Kubernetes 中，通过[设置 `ENV_ULIMIT`](
 
 CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
 
+### 采集器密码保护 {#secrets_management}
+
+如果您希望避免在配置文件中以明文存储密码，则可以使用该功能。
+
+DataKit 在启动加载采集器配置文件时遇到 `ENC[]` 时会在文件、env、或者 AES 加密得到密码后替换文本并重新加载到内存中，以得到正确的密码。
+
+ENC 目前支持三种方式：
+
+- 文件形式（推荐）：
+
+    配置文件中密码格式： ENC[file:///path/to/enc4dk] ，在对应的文件中填写正确的密码即可。
+
+- AES 加密方式。
+
+    需要在主配置文件 `datakit.conf`  中配置秘钥： crypto_AES_key 或者 crypto_AES_Key_filePath
+    密码处的填写格式为： `ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`
+
+
+接下来以 `mysql` 为例，说明两种方式如何配置使用：
+
+1 文件形式
+
+首先，将明文密码放到文件 `/usr/local/datakit/enc4mysql` 中，然后修改配置文件 mysql.conf:
+
+```toml
+# 部分配置
+[[inputs.mysql]]
+  host = "localhost"
+  user = "datakit"
+  pass = "ENC[file:///usr/local/datakit/enc4mysql]"
+  port = 3306
+  # sock = "<SOCK>"
+  # charset = "utf8"
+```
+
+DK 会从 `/usr/local/datakit/enc4mysql` 中读取密码并替换密码，替换后为 `pass = "Hello*******"`
+
+2 AES 加密方式
+
+首先在 `datakit.conf` 中配置秘钥：
+
+```toml
+# 配置文件中的一级字段
+# 秘钥 key
+crypto_AES_key = "0123456789abcdef"
+# 或者 秘钥文件：
+crypto_AES_Key_filePath = "/usr/local/datakit/mykey"
+```
+
+`mysql.conf` 配置文件：
+
+```toml
+pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
+```
+
+注意，通过 `AES` 加密得到的密文需要完整的填入。以下是代码示例：
+<!-- markdownlint-disable MD046 -->
+=== "Golang"
+
+    ```go
+    // AESEncrypt  加密。
+    func AESEncrypt(key []byte, plaintext string) (string, error) {
+        block, err := aes.NewCipher(key)
+        if err != nil {
+            return "", err
+        }
+    
+        // PKCS7 padding
+        padding := aes.BlockSize - len(plaintext)%aes.BlockSize
+        padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+        plaintext += string(padtext)
+        ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+        iv := ciphertext[:aes.BlockSize]
+        if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+            return "", err
+        }
+        mode := cipher.NewCBCEncrypter(block, iv)
+        mode.CryptBlocks(ciphertext[aes.BlockSize:], []byte(plaintext))
+    
+        return base64.StdEncoding.EncodeToString(ciphertext), nil
+    }
+    
+    // AESDecrypt AES  解密。
+    func AESDecrypt(key []byte, cryptoText string) (string, error) {
+        ciphertext, err := base64.StdEncoding.DecodeString(cryptoText)
+        if err != nil {
+            return "", err
+        }
+    
+        block, err := aes.NewCipher(key)
+        if err != nil {
+            return "", err
+        }
+    
+        if len(ciphertext) < aes.BlockSize {
+            return "", fmt.Errorf("ciphertext too short")
+        }
+    
+        iv := ciphertext[:aes.BlockSize]
+        ciphertext = ciphertext[aes.BlockSize:]
+    
+        mode := cipher.NewCBCDecrypter(block, iv)
+        mode.CryptBlocks(ciphertext, ciphertext)
+    
+        // Remove PKCS7 padding
+        padding := int(ciphertext[len(ciphertext)-1])
+        if padding > aes.BlockSize {
+            return "", fmt.Errorf("invalid padding")
+        }
+        ciphertext = ciphertext[:len(ciphertext)-padding]
+    
+        return string(ciphertext), nil
+    }
+    ```
+
+=== "Java"
+
+    ```java
+    import javax.crypto.Cipher;
+    import javax.crypto.spec.IvParameterSpec;
+    import javax.crypto.spec.SecretKeySpec;
+    import java.security.SecureRandom;
+    import java.util.Base64;
+    
+    public class AESUtils {
+        public static String AESEncrypt(byte[] key, String plaintext) throws Exception {
+            javax.crypto.Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    
+            SecureRandom random = new SecureRandom();
+            byte[] iv = new byte[16];
+            random.nextBytes(iv);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes());
+            byte[] ivAndEncrypted = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, ivAndEncrypted, 0, iv.length);
+            System.arraycopy(encrypted, 0, ivAndEncrypted, iv.length, encrypted.length);
+    
+            return Base64.getEncoder().encodeToString(ivAndEncrypted);
+        }
+    
+        public static String AESDecrypt(byte[] key, String cryptoText) throws Exception {
+            byte[] ciphertext = Base64.getDecoder().decode(cryptoText);
+    
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    
+            if (ciphertext.length < 16) {
+                throw new Exception("ciphertext too short");
+            }
+    
+            byte[] iv = new byte[16];
+            System.arraycopy(ciphertext, 0, iv, 0, 16);
+            byte[] encrypted = new byte[ciphertext.length - 16];
+            System.arraycopy(ciphertext, 16, encrypted, 0, ciphertext.length - 16);
+    
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+    
+            byte[] decrypted = cipher.doFinal(encrypted);
+    
+            return new String(decrypted);
+        }
+    }    
+    ```
+<!-- markdownlint-enable -->
+
+K8S 环境下可以通过环境变量方式添加私钥：`ENV_CRYPTO_AES_KEY` 和 `ENV_CRYPTO_AES_KEY_FILEPATH` 可以参考：[DaemonSet 安装-其他](datakit-daemonset-deploy.md#env-others)
+
+
 ## 延伸阅读 {#more-reading}
 
 - [DataKit 宿主机安装](datakit-install.md)

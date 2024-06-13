@@ -429,6 +429,8 @@ func envOthers() []*inputs.ENVInfo {
 		{ENVName: "ENV_ULIMIT", Type: doc.Int, Desc: "Specify the maximum number of open files for Datakit", DescZh: "指定 Datakit 最大的可打开文件数"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_RECEIVER", Type: doc.String, Default: "`datakit-http`", Desc: "Set offload receiver", DescZh: "设置 Offload 目标接收器的类型"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_ADDRESSES", Type: doc.List, Example: "`http://aaa:123,http://1.2.3.4:1234`", Desc: "Set offload addresses", DescZh: "设置 Offload 目标地址"},
+		{ENVName: "ENV_CRYPTO_AES_KEY", Type: doc.String, Example: "`0123456789abcdef`", Desc: "The crypto key(len 16)", DescZh: "AES 加解密的 key 长度是 16"},
+		{ENVName: "ENV_CRYPTO_AES_KEY_FILE", Type: doc.String, Example: "`/usr/local/datakit/enc4mysql`", Desc: "File path for storing AES encryption and decryption key", DescZh: "AES 加解密的 key 存放的文件路径"},
 	}
 
 	for idx := range infos {

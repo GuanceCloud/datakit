@@ -236,6 +236,12 @@ var (
 	}
 
 	LogSinkDetail bool
+
+	// ConfigAESKey
+	// The datakit configuration file and all configuration files containing passwords
+	// can be encrypted using AES and used in ENC[xxx] mode.
+	// see: config/enc.go
+	ConfigAESKey string
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {

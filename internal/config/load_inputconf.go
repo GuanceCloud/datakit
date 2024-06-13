@@ -148,7 +148,7 @@ func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipCheck
 	}
 
 	data = feedEnvs(data)
-
+	data = decodeEncs(data)
 	return LoadSingleConf(string(data), creators)
 }
 

@@ -6,6 +6,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -114,6 +115,62 @@ func Test_getConfRootPaths(t *testing.T) {
 
 			out := getConfRootPaths()
 			assert.Equal(t, tc.expect, out)
+		})
+	}
+}
+
+func Test_decodeEncs(t *testing.T) {
+	// var cryp = "5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI="
+	cryStr := "HelloAES9*&."
+
+	type args struct {
+		data     []byte
+		filepath string
+		env      string
+		aes      string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "test1",
+			args: args{data: []byte("abc ENC[this is int]")},
+			want: []byte("abc ENC[this is int]"),
+		},
+		{
+			name: "test-file",
+			args: args{data: []byte("[[inputs.mysql]]\n  host = \"localhost\"\n  user = \"datakit\"\n  pass = \"ENC[file:///tmp/enc4dk]\"\n  port = 3306"), filepath: "/tmp/enc4dk"},
+			want: []byte("[[inputs.mysql]]\n  host = \"localhost\"\n  user = \"datakit\"\n  pass = \"HelloAES9*&.\"\n  port = 3306"),
+		},
+		{
+			name: "test-aes",
+			args: args{data: []byte("abc ENC[aes://UtAgMlRRhvCiCE5Q1W8kAKhYerQ78LpY5I4Yx9ICZQ0=]"), aes: "0123456789abcdef"},
+			want: []byte("abc " + cryStr),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.filepath != "" {
+				f, err := os.OpenFile(tt.args.filepath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o755)
+				if err != nil {
+					t.Errorf("openfile err=%v", err)
+					return
+				}
+				f.Write([]byte(cryStr))
+				f.Write([]byte{'\n'})
+				f.Sync()
+				f.Close()
+			}
+			if tt.args.env != "" {
+				os.Setenv("TEST_ENV_1", cryStr)
+			}
+			if tt.args.aes != "" {
+				datakit.ConfigAESKey = tt.args.aes
+			}
+			assert.Equalf(t, tt.want, decodeEncs(tt.args.data), "feedEncs(%v)", tt.args.data)
 		})
 	}
 }
