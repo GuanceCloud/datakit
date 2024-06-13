@@ -420,6 +420,178 @@ ulimit is configured to 64000 by default.
 
 CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if the limit `cpu_max` is 20.0 (that is, 20%), the maximum CPU consumption of DataKit, will be displayed as about 160% on the top command.
 
+
+### Collector Password Protection {#secrets_management}
+
+If you wish to avoid storing passwords in plain text in configuration files, you can utilize this feature.
+
+When DataKit loads the collector configuration file during startup and encounters `ENC[]`, it will replace the text with the password obtained from a file, environment variable, or AES encryption and reload it into memory to obtain the correct password.
+
+ENC currently supports three methods:
+
+- File Format (Recommended):
+
+  Password format in the configuration file: `ENC[file:///path/to/enc4dk]`. Simply enter the correct password in the corresponding file.
+
+- AES Encryption Method:
+
+  You need to configure the secret key in the main configuration file `datakit.conf`: `crypto_AES_key` or `crypto_AES_Key_filePath`.
+  The password should be formatted as: `ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`
+
+Here's an example using `mysql` to illustrate how to configure and use these methods:
+
+1 File Format:
+
+First, save the password in the file `/usr/local/datakit/enc4mysql`, then modify the configuration file mysql.conf:
+
+```toml
+# Partial configuration
+[[inputs.mysql]]
+  host = "localhost"
+  user = "datakit"
+  pass = "ENC[file:///usr/local/datakit/enc4mysql]"
+  port = 3306
+  # sock = "<SOCK>"
+  # charset = "utf8"
+```
+
+DK will read the password from `/usr/local/datakit/enc4mysql` and replace it, resulting in `pass = "Hello*******"`
+
+2 AES Encryption Method
+
+First, configure the secret key in `datakit.conf`:
+
+```toml
+# Top-level field in the configuration file
+# Secret key
+crypto_AES_key = "0123456789abcdef"
+# Or secret key file:
+crypto_AES_Key_filePath = "/usr/local/datakit/mykey"
+```
+
+`mysql.conf` file:
+
+```toml
+pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
+```
+
+Note that the cipherText obtained through AES encryption needs to be filled in completely. Here is a code example：
+<!-- markdownlint-disable MD046 -->
+=== "Golang"
+
+    ```go
+    // AESEncrypt.
+    func AESEncrypt(key []byte, plaintext string) (string, error) {
+        block, err := aes.NewCipher(key)
+        if err != nil {
+            return "", err
+        }
+    
+        // PKCS7 padding
+        padding := aes.BlockSize - len(plaintext)%aes.BlockSize
+        padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+        plaintext += string(padtext)
+        ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+        iv := ciphertext[:aes.BlockSize]
+        if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+            return "", err
+        }
+        mode := cipher.NewCBCEncrypter(block, iv)
+        mode.CryptBlocks(ciphertext[aes.BlockSize:], []byte(plaintext))
+    
+        return base64.StdEncoding.EncodeToString(ciphertext), nil
+    }
+    
+    // AESDecrypt AES.
+    func AESDecrypt(key []byte, cryptoText string) (string, error) {
+        ciphertext, err := base64.StdEncoding.DecodeString(cryptoText)
+        if err != nil {
+            return "", err
+        }
+    
+        block, err := aes.NewCipher(key)
+        if err != nil {
+            return "", err
+        }
+    
+        if len(ciphertext) < aes.BlockSize {
+            return "", fmt.Errorf("ciphertext too short")
+        }
+    
+        iv := ciphertext[:aes.BlockSize]
+        ciphertext = ciphertext[aes.BlockSize:]
+    
+        mode := cipher.NewCBCDecrypter(block, iv)
+        mode.CryptBlocks(ciphertext, ciphertext)
+    
+        // Remove PKCS7 padding
+        padding := int(ciphertext[len(ciphertext)-1])
+        if padding > aes.BlockSize {
+            return "", fmt.Errorf("invalid padding")
+        }
+        ciphertext = ciphertext[:len(ciphertext)-padding]
+    
+        return string(ciphertext), nil
+    }
+    ```
+
+=== "Java"
+
+    ```java
+    import javax.crypto.Cipher;
+    import javax.crypto.spec.IvParameterSpec;
+    import javax.crypto.spec.SecretKeySpec;
+    import java.security.SecureRandom;
+    import java.util.Base64;
+    
+    public class AESUtils {
+        public static String AESEncrypt(byte[] key, String plaintext) throws Exception {
+            javax.crypto.Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    
+            SecureRandom random = new SecureRandom();
+            byte[] iv = new byte[16];
+            random.nextBytes(iv);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes());
+            byte[] ivAndEncrypted = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, ivAndEncrypted, 0, iv.length);
+            System.arraycopy(encrypted, 0, ivAndEncrypted, iv.length, encrypted.length);
+    
+            return Base64.getEncoder().encodeToString(ivAndEncrypted);
+        }
+    
+        public static String AESDecrypt(byte[] key, String cryptoText) throws Exception {
+            byte[] cipherText = Base64.getDecoder().decode(cryptoText);
+    
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    
+            if (cipherText.length < 16) {
+                throw new Exception("cipherText too short");
+            }
+    
+            byte[] iv = new byte[16];
+            System.arraycopy(cipherText, 0, iv, 0, 16);
+            byte[] encrypted = new byte[cipherText.length - 16];
+            System.arraycopy(cipherText, 16, encrypted, 0, cipherText.length - 16);
+    
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+    
+            byte[] decrypted = cipher.doFinal(encrypted);
+    
+            return new String(decrypted);
+        }
+    }    
+    ```
+<!-- markdownlint-enable -->
+
+In a K8S (Kubernetes) environment, private keys can be added through environment variables.
+The environment variables ENV_CRYPTO_AES_KEY and ENV_CRYPTO_AES_KEY_FILEPATH can be referenced for this purpose:[DaemonSet 安装-其他](datakit-daemonset-deploy.md#env-others)
+
+
 ## Extended Readings {#more-reading}
 
 - [DataKit host installation](datakit-install.md)

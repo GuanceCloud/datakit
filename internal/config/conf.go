@@ -62,6 +62,11 @@ type GitRepost struct {
 	Repos        []*GitRepository `toml:"repo"`
 }
 
+type configCrpto struct {
+	AESKey     string `toml:"aes_key"`
+	AESKeyFile string `toml:"aes_key_file"`
+}
+
 func (c *Config) String() string {
 	buf := new(bytes.Buffer)
 	if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
@@ -459,7 +464,8 @@ func (c *Config) ApplyMainConfig() error {
 	InitGitreposDir()
 	// Operator 使用 ENV 初始化
 	c.Operator = operator.NewOperatorClientFromEnv()
-
+	// 初始化 ENC 密码加密功能。
+	initCrypto(c)
 	return nil
 }
 

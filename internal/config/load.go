@@ -8,6 +8,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,6 +25,7 @@ import (
 var (
 	// envVarRe is a regex to find environment variables in the config file.
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
+	re            = regexp.MustCompile(`ENC\[(.*?)\]`)
 	envVarEscaper = strings.NewReplacer(
 		`"`, `\"`,
 		`\`, `\\`,
@@ -156,6 +158,53 @@ func feedEnvs(data []byte) []byte {
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
 		} else {
 			l.Infof("load ENV %q failed, ignored", envvar)
+		}
+	}
+
+	return data
+}
+
+func decodeEncs(data []byte) []byte {
+	data = trimBOM(data)
+
+	parameters := re.FindAllSubmatch(data, -1)
+
+	for _, parameter := range parameters {
+		if len(parameter) != 2 {
+			l.Infof("%s", parameter)
+			continue
+		}
+		envvar := string(parameter[1])
+		l.Infof("envvar=%s", envvar)
+
+		u, err := url.Parse(envvar)
+		if err != nil {
+			l.Errorf("%s can not parse to url", string(parameter[0]))
+			return data
+		}
+		l.Infof("url scheme=%s host=<%s> path=<%s>", u.Scheme, u.Host, u.Path)
+		encVal := ""
+		switch u.Scheme {
+		case "file":
+			encVal = readFromFile(u.Host + u.Path)
+			if encVal != "" {
+				encVal = strings.TrimRight(encVal, "\n")
+				l.Infof("ENC read from file,value=%s", maskPassword(encVal))
+			}
+		case "aes":
+			l.Infof("aes decrypt key=%s text=%s", maskPassword(datakit.ConfigAESKey), u.Host+u.Path)
+			encVal, err = AESDecrypt([]byte(datakit.ConfigAESKey), u.Host+u.Path)
+			if err == nil {
+				l.Infof("ENC from aes decrypt password= %s", maskPassword(encVal))
+			} else {
+				l.Errorf("aes decrypt err=%v", err)
+			}
+		default:
+			l.Infof("unknown ENC scheme:%s,and enc=%s", u.Scheme, envvar)
+		}
+
+		if encVal != "" {
+			data = bytes.Replace(data, parameter[0], []byte(encVal), 1)
 		}
 	}
 

@@ -694,6 +694,20 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_CRYPTO_AES_KEY"); v != "" {
+		if c.Crypto == nil {
+			c.Crypto = &configCrpto{}
+		}
+		c.Crypto.AESKey = v
+	}
+
+	if v := datakit.GetEnv("ENV_CRYPTO_AES_KEY_FILE"); v != "" {
+		if c.Crypto == nil {
+			c.Crypto = &configCrpto{}
+		}
+		c.Crypto.AESKeyFile = v
+	}
+
 	c.loadConfdEnvs()
 
 	return nil

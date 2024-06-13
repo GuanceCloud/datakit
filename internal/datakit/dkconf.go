@@ -339,4 +339,9 @@ ulimit = 64000
     # For formats Git and SSH, we need extra configures:
     ssh_private_key_path = ""
     ssh_private_key_password = ""
+
+# crypto key or key filePath.
+[crypto]
+  aes_key = ""
+  aes_Key_file = ""
 `
