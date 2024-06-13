@@ -1,8 +1,13 @@
 ---
-
-title     : 'Pushgateway'
+title     : 'Prometheus Push Gateway'
 summary   : 'Enable Pushgateway API to receive Prometheus metric data'
-
+__int_icon      : 'icon/pushgateway'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
 ---
 
 <!-- markdownlint-disable MD025 -->
@@ -10,7 +15,7 @@ summary   : 'Enable Pushgateway API to receive Prometheus metric data'
 <!-- markdownlint-enable -->
 ---
 
-{{.AvailableArchs}}
+{{.AvailableArchs}} · [:octicons-tag-24: Version-1.31.0](../datakit/changelog.md#cl-1.31.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ---
 
@@ -55,7 +60,7 @@ The Pushgateway collector follows the [Prometheus Pushgateway](https://github.co
 
 Below is a simple example deployed in a Kubernetes cluster:
 
-1. Enable the Pushgateway collector. Here, it's enabled as an environment variable in the Datakit YAML.
+- Enable the Pushgateway collector. Here, it's enabled as an environment variable in the Datakit YAML.
 
 ```yaml
     # ..other..
@@ -70,7 +75,7 @@ Below is a simple example deployed in a Kubernetes cluster:
     # ..other..
 ```
 
-2. Create a Deployment that generates Prometheus data and sends it to the Datakit Pushgateway API.
+- Create a Deployment that generates Prometheus data and sends it to the Datakit Pushgateway API.
 
 ```yaml
 apiVersion: apps/v1
@@ -123,7 +128,7 @@ spec:
           done
 ```
 
-3. The metric set seen on the Observability Cloud page is `pushgateway`, with the field being `count`.
+- The metric set seen on the Observability Cloud page is `pushgateway`, with the field being `count`.
 
 ## Metric Sets and Tags {#measurement-and-tags}
 
@@ -132,5 +137,4 @@ The Pushgateway collector does not add any tags.
 There are two cases for naming metric sets:
 
 1. Use the configuration option `measurement_name` to specify the metric set name.
-
-2. Split the data field names using an underscore `_`, where the first field after splitting becomes the metric set name, and the remaining fields become the current metric name.
+1. Split the data field names using an underscore `_`, where the first field after splitting becomes the metric set name, and the remaining fields become the current metric name.

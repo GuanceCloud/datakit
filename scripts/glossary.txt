@@ -12,7 +12,6 @@ Ansible
 BATIS
 Batis
 Binlog
-cAdvisor
 CORB
 CUBRID
 Chrony
@@ -36,8 +35,8 @@ DialTesting
 Distro
 Dubbo
 Dubbox
-ElasticSearch
 ELinker
+ElasticSearch
 Fastjson
 Filebeat
 FireLens
@@ -90,6 +89,7 @@ Promtail
 Protobuf
 Proxied
 PushGateway
+Pushgateway
 Pyroscope
 Pythond
 RabbitMQ
@@ -114,6 +114,7 @@ Weblogic
 Websphere
 XDAs
 Zipkin
+cAdvisor
 catalina
 cgroup
 clidriver
@@ -164,6 +165,7 @@ nginx
 nsec
 nullable
 nvme
+ppid
 pprof
 promremote
 pythond
@@ -198,7 +200,6 @@ vnode
 workarea
 xpack
 zhangsan
-ppid
 
 ##############################################
 # 缩写

@@ -9,7 +9,7 @@
 
 ---
 
-DCA 主要用于管理 Datakit，如 Datakit 列表查看、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。
+DCA（Datakit Control App）主要用于管理 Datakit，如 Datakit 列表查看、配置文件管理、Pipeline 管理以及帮助文档的查看等功能。
 
 DCA 基本网络拓扑结构如下：
 
