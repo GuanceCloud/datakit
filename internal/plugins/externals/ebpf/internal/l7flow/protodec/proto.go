@@ -26,7 +26,7 @@ const (
 	ProtoHTTP2
 	ProtoGRPC
 	ProtoMySQL
-	ProroRedis
+	ProtoRedis
 )
 
 var _protoSet = &ProtoSet{
@@ -66,7 +66,7 @@ func (p L7Protocol) StringLower() string {
 		return "grpc"
 	case ProtoMySQL:
 		return "mysql"
-	case ProroRedis:
+	case ProtoRedis:
 		return "redis"
 	default:
 		return "unknown"
@@ -83,7 +83,7 @@ func (p L7Protocol) String() string {
 		return "gRPC"
 	case ProtoMySQL:
 		return "MySQL"
-	case ProroRedis:
+	case ProtoRedis:
 		return "Redis"
 	default:
 		return "unknown"
@@ -153,6 +153,8 @@ func Init() {
 	_protoSet.RegisterDetector(HTTPProtoDetect)
 	// HTTP2 and gRPC
 	_protoSet.RegisterDetector(H2ProtoDetect)
+
+	_protoSet.RegisterDetector(RedisProtoDetect)
 
 	_protoSet.RegisterDetector(MysqlProtoDetect)
 
