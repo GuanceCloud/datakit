@@ -5,6 +5,7 @@ package l4log
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/gopacket/layers"
 	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"golang.org/x/net/bpf"
+	internalapi "k8s.io/cri-api/pkg/apis"
 )
 
 var log = logger.DefaultSLogger("netlog")
@@ -25,14 +27,25 @@ func SetLogger(l *logger.Logger) {
 var (
 	enableNetlog     = false
 	enabledNetMetric = false
+
+	enableL7HTTP = false
 )
 
-func ConfigFunc(netlog, netMetric bool) {
+func ConfigFunc(netlog, netMetric bool, enabledL7Proto []string) {
 	log.Info("enable net log: ", netlog)
 	log.Info("enable net metric: ", netMetric)
 
 	enableNetlog = netlog
 	enabledNetMetric = netMetric
+
+	for _, v := range enabledL7Proto {
+		switch strings.ToLower(v) {
+		case "http":
+			enableL7HTTP = true
+			log.Info("enable http protocol")
+		default:
+		}
+	}
 }
 
 type L7Proto uint16
@@ -164,13 +177,31 @@ func NetLog(ctx context.Context, gtags map[string]string, url, aggURL, blacklist
 		log.Warnf("skip connect to docker: %w", err)
 	}
 
-	containerdCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/containerd/containerd.sock", time.Second*5)
-	if err != nil {
+	var ctrLi []internalapi.RuntimeService
+
+	if containerdCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/containerd/containerd.sock",
+		time.Second*5); err != nil {
 		log.Warnf("skip connect to containerd: %w", err)
+	} else {
+		ctrLi = append(ctrLi, containerdCtr)
 	}
 
-	if dockerCtr == nil && containerdCtr == nil {
-		log.Error("no container runtime")
+	if containerK3sCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/k3s/containerd/containerd.sock",
+		time.Second*5); err != nil {
+		log.Warnf("skip connect to k3s: %w", err)
+	} else {
+		ctrLi = append(ctrLi, containerK3sCtr)
+	}
+
+	if crioCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/crio/crio.sock",
+		time.Second*5); err != nil {
+		log.Warnf("skip connect to crio: %w", err)
+	} else {
+		ctrLi = append(ctrLi, crioCtr)
+	}
+
+	if dockerCtr == nil && len(ctrLi) == 0 {
+		log.Warnf("no container runtime")
 	}
 
 	m, err := newNetlogMonitor(gtags, url, aggURL, blacklist, _fnList)
@@ -178,8 +209,9 @@ func NetLog(ctx context.Context, gtags map[string]string, url, aggURL, blacklist
 		log.Errorf("create netlog monitor failed: %s", err.Error())
 		return
 	}
+
 	rCtx, cFn := context.WithCancel(ctx)
-	go m.Run(rCtx, containerdCtr, dockerCtr)
+	go m.Run(rCtx, ctrLi, dockerCtr)
 	<-ctx.Done()
 
 	cFn()

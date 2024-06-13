@@ -15,7 +15,8 @@ import (
 // const maxTCPHDRCountLimit = 320
 
 type HTTPLog struct {
-	elems []*HTTPLogElem
+	elems  []*HTTPLogElem
+	isHTTP bool
 }
 
 func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
@@ -24,6 +25,14 @@ func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
 	reqResp := httpReqOrResp(cnt)
 	var elem *HTTPLogElem
 	if len(h.elems) == 0 {
+		if !h.isHTTP {
+			if reqResp == 0 {
+				return nil
+			} else {
+				h.isHTTP = true
+			}
+		}
+
 		elem = &HTTPLogElem{}
 		h.elems = append(h.elems, elem)
 	} else {
@@ -110,8 +119,8 @@ type HTTPLogElem struct {
 	// RespHeaders map[string][]string `json:"resp_headers"`
 
 	// URL
-	Path  string `json:"path"`
-	Param string `json:"param"`
+	Path string `json:"path"`
+	// Param string `json:"param"`
 
 	Method string `json:"method"`
 
@@ -222,7 +231,7 @@ func (h *HTTPLogElem) handle(v any, txrx int8, cnt []byte, cntSize int64,
 			// h.ReqTS = ln.TS
 
 			h.Method = req.Method
-			h.Param = req.URL.RawQuery
+			// h.Param = req.URL.RawQuery
 			h.Path = req.URL.Path
 			// h.ReqHeaders = req.Header
 			for k, v := range req.Header {

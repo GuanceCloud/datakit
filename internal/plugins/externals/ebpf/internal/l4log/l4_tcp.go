@@ -59,12 +59,6 @@ type tcpSortElem struct {
 	len uint32
 
 	ackSeq uint32
-
-	// todo: control flag
-	// ack int8
-	// fin int8
-	// syn int8
-	// rst int8
 }
 
 // const (
@@ -76,10 +70,9 @@ type tcpRetransAndReorder struct {
 	// todo: resort
 
 	tcpStatus tcpStatus
+	keepalive bool
 
 	txPkts []*tcpSortElem // 记录少量数据包
-
-	keepalive bool
 
 	rxPkts []*tcpSortElem // 记录少量数据包
 }
@@ -283,8 +276,6 @@ type PktChunk struct {
 
 	RSTTx int `json:"tx_rst"`
 	RSTRx int `json:"rx_rst"`
-
-	RetransmitsSYN int `json:"tcp_syn_retrans"`
 }
 
 func (chunk *PktChunk) GetMacID(mac string) string {
@@ -359,9 +350,66 @@ func (c conndirection) String() string {
 	}
 }
 
+type RTT struct {
+	// 当前一次不带载荷则不计算
+	nextSeq uint32
+	ack     bool
+
+	ts     int64
+	prvRtt int64
+}
+
+func (rtt *RTT) cal(txRx int8, seq uint32, ts int64) {
+	if rtt.ack || seq == 0 {
+		return
+	}
+
+	switch txRx {
+	case directionTX:
+		// 暂不考虑回绕，这需要记录 next seq
+		if seq >= rtt.nextSeq {
+			rtt.nextSeq = seq
+			rtt.ts = ts
+		}
+	case directionRX:
+		if seq == rtt.nextSeq {
+			rtt.ts = ts - rtt.ts
+			rtt.ack = true
+		}
+	}
+}
+
+func (rtt *RTT) toNext() {
+	if rtt.ack {
+		rtt.prvRtt = rtt.ts
+	}
+
+	rtt.ack = false
+	rtt.nextSeq = 0
+	rtt.ts = 0
+}
+
+func (rtt *RTT) getRTT() int64 {
+	var rttVal int64
+	if rtt.ack {
+		rttVal = rtt.ts
+	} else {
+		rttVal = rtt.prvRtt
+	}
+
+	if rttVal < 0 {
+		rttVal = 0
+	}
+
+	return rttVal
+}
+
 type TCPLog struct {
+	direction conndirection
 	reuseConn bool
 	rstPkt    bool
+
+	rtt RTT
 
 	// 只能通过重复的 tx 数据反推重传
 	tcpStatusRec tcpRetransAndReorder // seq, ack
@@ -369,16 +417,12 @@ type TCPLog struct {
 	// common info
 	//
 
-	direction   conndirection
-	synfinTS    [4]int64
-	rttTxseqAck [2]uint32
-	rttTxTS     int64
+	synfinTS [4]int64
 
 	synSeq, synAckSeq uint32
 
-	// l7proto L7Proto
-
-	tcpRTT float64
+	l7proto        L7Proto
+	RetransmitsSYN int16
 
 	// win scale
 	txWinScale int // https://www.rfc-editor.org/rfc/rfc7323.html#section-2.1
@@ -398,6 +442,7 @@ func (tcpl *TCPLog) GetPktChunk(nxt bool) *PktChunk {
 			ChunkID: tcpl.chunkID,
 		}
 		tcpl.chunk = append(tcpl.chunk, c)
+		tcpl.rtt.toNext()
 		return c
 	}
 
@@ -410,6 +455,7 @@ func (tcpl *TCPLog) GetPktChunk(nxt bool) *PktChunk {
 			ChunkID: tcpl.chunkID,
 		}
 		tcpl.chunk = append(tcpl.chunk, c)
+		tcpl.rtt.toNext()
 	}
 
 	return c
@@ -504,25 +550,19 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 
 	switch txRx {
 	case directionTX:
-		if tcpl.tcpRTT == 0 && ln.Seq > tcpl.rttTxseqAck[0] {
-			tcpl.rttTxTS = ln.TS
-			tcpl.rttTxseqAck[0] = ln.Seq
-			if ln.Flags.HasFlag(TCPFIN | TCPSYN) {
-				tcpl.rttTxseqAck[1] = ln.Seq + 1 + uint32(cntLen)
-			} else {
-				tcpl.rttTxseqAck[1] = ln.Seq + uint32(cntLen)
-			}
+		if ln.Flags.HasFlag(TCPSYN | TCPFIN) {
+			tcpl.rtt.cal(txRx, ln.Seq+1+uint32(cntLen), ln.TS)
+		} else {
+			tcpl.rtt.cal(txRx, ln.Seq+uint32(cntLen), ln.TS)
 		}
+
 		chunk.recSeqRange(ln.Seq, ln.AckSeq, true, ln.Flags)
 		chunk.TXPacket++
 		if cntLen > 0 {
 			chunk.TxBytes += int(cntLen)
 		}
 	case directionRX:
-		if tcpl.tcpRTT == 0 && ln.AckSeq != 0 && ln.AckSeq == tcpl.rttTxseqAck[1] {
-			tcpl.tcpRTT = float64(ln.TS-tcpl.rttTxTS) / float64(time.Millisecond)
-			tcpl.metric.RTT = (ln.TS - tcpl.rttTxTS) / int64(time.Microsecond)
-		}
+		tcpl.rtt.cal(txRx, ln.AckSeq, ln.TS)
 		chunk.recSeqRange(ln.Seq, ln.AckSeq, false, ln.Flags)
 		chunk.RXPacket++
 		if cntLen > 0 {
@@ -550,7 +590,7 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 			}
 
 			if txRx == directionTX && tcpl.tcpStatusRec.tcpStatus == TCPSYNRcvd {
-				chunk.RetransmitsSYN++
+				tcpl.RetransmitsSYN++
 			}
 
 			tcpl.tcpStatusRec.tcpStatus = TCPSYNRcvd
@@ -558,7 +598,7 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 			tcpl.synSeq = ln.Seq
 			tcpl.synfinTS[0] = ln.TS
 			if txRx == directionTX && tcpl.tcpStatusRec.tcpStatus == TCPSYNSend {
-				chunk.RetransmitsSYN++
+				tcpl.RetransmitsSYN++
 			}
 			tcpl.tcpStatusRec.tcpStatus = TCPSYNSend
 		}

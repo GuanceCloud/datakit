@@ -70,6 +70,8 @@ type netnsInformation struct {
 	pid map[int]struct{}
 	// mac:
 	ifaceInf map[[2]string]*ifaceInfomation
+
+	tags map[string]string
 }
 
 func (nsInf *netnsInformation) Close() {
@@ -124,7 +126,7 @@ func newNetlogMonitor(gtags map[string]string, url, aggURL, blacklist string, fn
 	return m, nil
 }
 
-func (m *netlogMonitor) Run(ctx context.Context, containerCtr internalapi.RuntimeService,
+func (m *netlogMonitor) Run(ctx context.Context, containerCtr []internalapi.RuntimeService,
 	dockerCtr cruntime.ContainerRuntime,
 ) {
 	ticker := time.NewTicker(time.Second * 20)
@@ -163,6 +165,7 @@ func (m *netlogMonitor) CmpAndCleanNetNsNIC(netnsInfo map[string]*netnsInformati
 func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsInformation) {
 	for nsUID, nsInf := range netnsInfo {
 		diffTps := map[[2]string]*afpacket.TPacket{}
+		diffTpsNicInfo := map[[2]string]*NICInfo{}
 
 		nicIP := []string{}
 		if v, err := nsInf.nns.nicInfo(); err != nil {
@@ -174,6 +177,7 @@ func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsInformation) {
 					nicIP = append(nicIP, v.IP.String())
 				}
 				diffTps[[2]string{v.Name, v.MAC}] = nil
+				diffTpsNicInfo[[2]string{v.Name, v.MAC}] = v
 			}
 		}
 
@@ -224,8 +228,20 @@ func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsInformation) {
 			// 未被采集且 raw_socket fd 存在
 			if _, ok := preNsInf.ifaceInf[idx]; !ok && h != nil {
 				ctx, cacel := context.WithCancel(context.Background())
-				conns := NewTCPConns(m.gtags, m.url, m.aggURL, preNsInf.contianerID, preNsInf.nsUID,
+				tags := map[string]string{}
+				for k, v := range m.gtags {
+					tags[k] = v
+				}
+				for k, v := range preNsInf.tags {
+					tags[k] = v
+				}
+				conns := NewTCPConns(tags, m.url, m.aggURL, preNsInf.contianerID, preNsInf.nsUID,
 					idx, m.portListen, m.transportBlacklist, m.filterRuntime)
+
+				if inf, ok := diffTpsNicInfo[idx]; ok && inf != nil {
+					conns.virtualNIC = inf.VIface
+					conns.hostNetwork = inf.HostIface
+				}
 				preNsInf.ifaceInf[idx] = &ifaceInfomation{
 					cacel:  cacel,
 					ifaces: idx,
@@ -283,7 +299,7 @@ func CallWithNetNS(newNS netns.NsHandle, fn func()) error {
 	return nil
 }
 
-func ListContainersAndHostNetNS(containerdCtr internalapi.RuntimeService,
+func ListContainersAndHostNetNS(ctrLi []internalapi.RuntimeService,
 	dockerCtr cruntime.ContainerRuntime, allowLo bool,
 ) map[string]*netnsInformation {
 	netnsInfo := map[string]*netnsInformation{}
@@ -345,48 +361,64 @@ func ListContainersAndHostNetNS(containerdCtr internalapi.RuntimeService,
 		}
 	}
 
-	if containerdCtr != nil {
-		ctrs, err := containerdCtr.ListContainers(nil)
-		if err != nil {
-			log.Errorf("get containerd containers: %s", err.Error())
-		}
-		for _, c := range ctrs {
-			resp, err := containerdCtr.ContainerStatus(c.Id, true)
+	for _, containerdCtr := range ctrLi {
+		if containerdCtr != nil {
+			ctrs, err := containerdCtr.ListContainers(nil)
 			if err != nil {
-				log.Errorf("get containerd containers: %w", err)
-				continue
+				log.Errorf("get containerd containers: %s", err.Error())
 			}
-			info, err := cruntime.ParseCriInfo(resp.GetInfo()["info"])
-			if err != nil {
-				log.Errorf("parse cri info: %w", err)
-				continue
-			}
-			nsH, err := netns.GetFromPid(info.Pid)
-			if err != nil {
-				continue
-			}
-			nsHStr := NSInode(nsH)
-			if nsHStr == curNetnsStr { // skip host network
-				if err := nsH.Close(); err != nil {
-					log.Error(err)
+			for _, c := range ctrs {
+				resp, err := containerdCtr.ContainerStatus(c.Id, true)
+				if err != nil {
+					log.Errorf("get containerd containers: %w", err)
+					continue
 				}
-				continue
-			}
-			if v, ok := netnsInfo[nsHStr]; !ok {
-				netnsInfo[nsHStr] = &netnsInformation{
-					nsUID:       nsHStr,
-					nns:         newNetNsHandle(false, allowLo, nsH),
-					contianerID: c.Id,
-					ifaceInf:    map[[2]string]*ifaceInfomation{},
-					pid:         map[int]struct{}{info.Pid: {}},
+				info, err := cruntime.ParseCriInfo(resp.GetInfo()["info"])
+				if err != nil {
+					log.Errorf("parse cri info: %w", err)
+					continue
 				}
-			} else {
-				v.pid[info.Pid] = struct{}{}
-				if err := nsH.Close(); err != nil {
-					log.Error(err)
+				nsH, err := netns.GetFromPid(info.Pid)
+				if err != nil {
+					continue
+				}
+				nsHStr := NSInode(nsH)
+				if nsHStr == curNetnsStr { // skip host network
+					if err := nsH.Close(); err != nil {
+						log.Error(err)
+					}
+					continue
+				}
+
+				k8sTags := getK8sTags(c.Labels)
+				if v, ok := netnsInfo[nsHStr]; !ok {
+					netnsInfo[nsHStr] = &netnsInformation{
+						nsUID:       nsHStr,
+						nns:         newNetNsHandle(false, allowLo, nsH),
+						contianerID: c.Id,
+						ifaceInf:    map[[2]string]*ifaceInfomation{},
+						pid:         map[int]struct{}{info.Pid: {}},
+						tags:        k8sTags,
+					}
+				} else {
+					v.pid[info.Pid] = struct{}{}
+					if err := nsH.Close(); err != nil {
+						log.Error(err)
+					}
 				}
 			}
 		}
 	}
 	return netnsInfo
+}
+
+func getK8sTags(labels map[string]string) map[string]string {
+	if len(labels) == 0 {
+		return nil
+	}
+	v := map[string]string{}
+	v["k8s_namespace"] = labels["io.kubernetes.pod.namespace"]
+	v["k8s_pod_name"] = labels["io.kubernetes.pod.name"]
+	v["k8s_container_name"] = labels["io.kubernetes.container.name"]
+	return v
 }
