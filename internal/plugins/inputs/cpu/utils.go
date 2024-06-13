@@ -97,6 +97,15 @@ type UsageStat struct {
 	Total     float64
 }
 
+func usageCPU(cur, pre, total float64) float64 {
+	v := 100 * (cur - pre) / total
+	// 此处规避异常数值，Windows 上存在原始数据异常的情况
+	if v < 0 || v > 100 {
+		return 0
+	}
+	return v
+}
+
 // CalculateUsage calculate cpu usage.
 func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64) (*UsageStat, error) {
 	if nowT.CPU != lastT.CPU {
@@ -106,17 +115,20 @@ func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64)
 	c := new(UsageStat)
 
 	c.CPU = nowT.CPU
-	c.User = 100 * (nowT.User - lastT.User - (nowT.Guest - lastT.Guest)) / totalDelta
-	c.System = 100 * (nowT.System - lastT.System) / totalDelta
-	c.Idle = 100 * (nowT.Idle - lastT.Idle) / totalDelta
-	c.Nice = 100 * (nowT.Nice - lastT.Nice - (nowT.GuestNice - lastT.GuestNice)) / totalDelta
-	c.Iowait = 100 * (nowT.Iowait - lastT.Iowait) / totalDelta
-	c.Irq = 100 * (nowT.Irq - lastT.Irq) / totalDelta
-	c.Softirq = 100 * (nowT.Softirq - lastT.Softirq) / totalDelta
-	c.Steal = 100 * (nowT.Steal - lastT.Steal) / totalDelta
-	c.Guest = 100 * (nowT.Guest - lastT.Guest) / totalDelta
-	c.GuestNice = 100 * (nowT.GuestNice - lastT.GuestNice) / totalDelta
-	c.Total = 100 * (nowT.Total() - nowT.Idle - lastT.Total() + lastT.Idle) / totalDelta
+	c.User = usageCPU(nowT.User-nowT.Guest, lastT.User-lastT.Guest, totalDelta)
+	c.System = usageCPU(nowT.System, lastT.System, totalDelta)
+	c.Idle = usageCPU(nowT.Idle, lastT.Idle, totalDelta)
+	c.Nice = usageCPU(nowT.Nice-nowT.GuestNice, lastT.Nice-lastT.GuestNice, totalDelta)
+	c.Iowait = usageCPU(nowT.Iowait, lastT.Iowait, totalDelta)
+	c.Irq = usageCPU(nowT.Irq, lastT.Irq, totalDelta)
+	c.Softirq = usageCPU(nowT.Softirq, lastT.Softirq, totalDelta)
+	c.Steal = usageCPU(nowT.Steal, lastT.Steal, totalDelta)
+	c.Guest = usageCPU(nowT.Guest, lastT.Guest, totalDelta)
+	c.GuestNice = usageCPU(nowT.GuestNice, lastT.GuestNice, totalDelta)
+	c.Total = c.User + c.System + c.Nice + c.Iowait + c.Irq + c.Softirq + c.Steal + c.Guest + c.GuestNice
+	if c.Total < 0 || c.Total > 100 {
+		c.Total = 0
+	}
 	return c, nil
 }
 
