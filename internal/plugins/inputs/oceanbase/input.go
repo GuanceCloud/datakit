@@ -3,112 +3,390 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package oceanbase collect OceanBase metrics by wrap a external input.
+// Package oceanbase collect OceanBase metrics
 package oceanbase
 
 import (
+	"context"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/external"
 )
 
-const (
-	configSample = `
-[[inputs.external]]
-  daemon = true
-  name   = "oceanbase"
-  cmd    = "/usr/local/datakit/externals/oceanbase"
-
-  ## Set true to enable election
-  election = true
-
-  ## Modify below if necessary.
-  ## The password use environment variable named "ENV_INPUT_OCEANBASE_PASSWORD".
-  args = [
-    "--interval"        , "1m"                              ,
-    "--host"            , "<your-oceanbase-host>"           ,
-    "--port"            , "2883"                            ,
-    "--tenant"          , "oraclet"                         ,
-    "--cluster"         , "obcluster"                       ,
-    "--username"        , "<oceanbase-user-name>"           ,
-    "--database"        , "oceanbase"                       ,
-    "--mode"            , "oracle"                          ,
-    "--service-name"    , "<oceanbase-service-name>"        ,
-    "--slow-query-time" , "0s"                              ,
-    "--log"             , "/var/log/datakit/oceanbase.log"  ,
-  ]
-  envs = [
-    "ENV_INPUT_OCEANBASE_PASSWORD=<oceanbase-password>",
-    "LD_LIBRARY_PATH=/u01/obclient/lib:$LD_LIBRARY_PATH",
-  ]
-
-  [inputs.external.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-
-  ## Run a custom SQL query and collect corresponding metrics.
-  # [[inputs.external.custom_queries]]
-  #   sql = '''
-  #     SELECT
-  #       GROUP_ID, METRIC_NAME, VALUE
-  #     FROM GV$SYSMETRIC
-  #   '''
-  #   metric = "oceanbase_custom"
-  #   tags = ["GROUP_ID", "METRIC_NAME"]
-  #   fields = ["VALUE"]
-
-  #############################
-  # Parameter Description (Marked with * is mandatory field)
-  #############################
-  # *--interval                      : Collect interval (Default is 1m).
-  # *--host                          : OceanBase instance address (IP).
-  # *--port                          : OceanBase listen port (Default is 2883).
-  # *--tenant                        : OceanBase tenant name (Default is oraclet).
-  # *--cluster                       : OceanBase cluster name (Default is obcluster).
-  # *--username                      : OceanBase username.
-  # *--database                      : OceanBase database name. Generally, fill in 'oceanbase'.
-  # *--mode                          : OceanBase tenant mode, fill in 'oracle' or 'mysql'.
-  # *--service-name                  : OceanBase service name.
-  # *--slow-query-time               : OceanBase slow query time threshold defined. If larger than this, the executed sql will be reported.
-  # *--log                           : Collector log path.
-  # *ENV_INPUT_OCEANBASE_PASSWORD    : OceanBase password.
-`
-)
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
+	maxInterval = 15 * time.Minute
+	minInterval = 10 * time.Second
 	inputName   = "oceanbase"
 	catalogName = "db"
 )
 
 var l = logger.DefaultSLogger(inputName)
 
+type customQuery struct {
+	SQL    string   `toml:"sql"`
+	Metric string   `toml:"metric"`
+	Tags   []string `toml:"tags"`
+	Fields []string `toml:"fields"`
+}
+
 type Input struct {
-	external.Input
+	Host            string `toml:"host"`
+	Port            int    `toml:"port"`
+	User            string `toml:"user"`
+	Password        string `toml:"password"`
+	Tenant          string `toml:"tenant"`
+	Cluster         string `toml:"cluster"`
+	Database        string `toml:"database"`
+	Mode            string `toml:"mode"`
+	Interval        datakit.Duration
+	Timeout         string `toml:"connect_timeout"`
+	timeoutDuration time.Duration
+	Query           []*customQuery    `toml:"custom_queries"`
+	SlowQueryTime   string            `toml:"slow_query_time"`
+	Election        bool              `toml:"election"`
+	Tags            map[string]string `toml:"tags"`
+
+	semStop            *cliutils.Sem // start stop signal
+	pauseCh            chan bool
+	feeder             dkio.Feeder
+	tagger             datakit.GlobalTagger
+	mergedTags         map[string]string
+	db                 *sqlx.DB
+	pause              bool
+	start              time.Time
+	slowQueryStartTime time.Time
+	slowQueryTime      time.Duration
+	collectors         map[string]func() (point.Category, []*point.Point, error)
+	tenantNames        map[string]string
 }
 
-func (i *Input) Run() {
-	l.Info("Only for measurement documentation information, should not be here.")
+func (ipt *Input) initCfg() error {
+	var err error
+	// select slow query from last hour
+	ipt.slowQueryStartTime = time.Now().Add(-1 * time.Hour)
+	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
+	if err != nil {
+		ipt.timeoutDuration = 10 * time.Second
+	}
+
+	dsnStr, err := ipt.getDsnString()
+	if err != nil {
+		return err
+	}
+
+	db, err := sqlx.Open("mysql", dsnStr)
+	if err != nil {
+		l.Errorf("sql.Open(): %s", err.Error())
+		return err
+	} else {
+		ipt.db = db
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	if err := ipt.db.PingContext(ctx); err != nil {
+		l.Errorf("init config connect error %v", err)
+		ipt.db.Close() //nolint:errcheck,gosec
+		return err
+	}
+
+	return nil
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (ipt *Input) getDsnString() (string, error) {
+	user := ipt.User
 
-func (i *Input) SampleConfig() string { return configSample }
+	if len(ipt.Tenant) > 0 {
+		user += "@" + ipt.Tenant
+	}
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&metricMeasurement{},
-		&loggingMeasurement{},
+	if len(ipt.Cluster) > 0 {
+		user += "#" + ipt.Cluster
+	}
+
+	if ipt.Port == 0 {
+		ipt.Port = 2883
+	}
+
+	cfg := mysql.Config{
+		AllowNativePasswords: true,
+		CheckConnLiveness:    true,
+		Net:                  "tcp",
+		User:                 user,
+		Passwd:               ipt.Password,
+		Params:               map[string]string{},
+		Addr:                 net.JoinHostPort(ipt.Host, fmt.Sprintf("%d", ipt.Port)),
+		DBName:               ipt.Database,
+	}
+
+	// set timeout
+	if ipt.timeoutDuration != 0 {
+		cfg.Timeout = ipt.timeoutDuration
+	}
+
+	return cfg.FormatDSN(), nil
+}
+
+// init db connect.
+func (ipt *Input) initDBConnect() error {
+	isNeedConnect := false
+
+	if ipt.db == nil {
+		isNeedConnect = true
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer func() {
+			cancel()
+		}()
+
+		if err := ipt.db.PingContext(ctx); err != nil {
+			isNeedConnect = true
+		}
+	}
+
+	if isNeedConnect {
+		if err := ipt.initCfg(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
+	var err error
+	allPts := make(map[point.Category][]*point.Point)
+
+	ipt.start = time.Now()
+
+	if err := ipt.initDBConnect(); err != nil {
+		return nil, err
+	}
+
+	if err := ipt.initTenantNames(); err != nil {
+		return nil, err
+	}
+
+	for name, collector := range ipt.collectors {
+		category, pts, err := collector()
+		if err != nil {
+			l.Warnf("collect %s failed: %s", name, err.Error())
+			continue
+		}
+
+		allPts[category] = append(allPts[category], pts...)
+	}
+
+	return allPts, err
+}
+
+func (ipt *Input) Init() {
+	var err error
+
+	l = logger.SLogger(inputName)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+
+	setHost := false
+	host := strings.ToLower(ipt.Host)
+	switch host {
+	case "", "localhost":
+		setHost = true
+	default:
+		if net.ParseIP(host).IsLoopback() {
+			setHost = true
+		}
+	}
+	if setHost {
+		host, err = os.Hostname()
+		if err != nil {
+			l.Errorf("os.Hostname failed: %v", err)
+		}
+	}
+
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, host)
+
+	ipt.collectors = map[string]func() (point.Category, []*point.Point, error){
+		"oceanbase_stat":    ipt.collectStat,
+		"oceanbase_event":   ipt.collectEvent,
+		"oceanbase_cache":   ipt.collectCache,
+		"oceanbase_session": ipt.collectSession,
+		"oceanbase_clog":    ipt.collectClog,
+	}
+
+	if len(ipt.SlowQueryTime) > 0 {
+		du, err := time.ParseDuration(ipt.SlowQueryTime)
+		if err != nil {
+			l.Warnf("bad slow query %s: %s, disable slow query", ipt.SlowQueryTime, err.Error())
+		} else {
+			if du >= time.Millisecond {
+				ipt.slowQueryTime = du
+				ipt.collectors["slow_query"] = ipt.collectSlowQuery
+			} else {
+				l.Warnf("slow query time %v less than 1 millisecond, skip", du)
+			}
+		}
+	}
+
+	if len(ipt.Query) > 0 {
+		ipt.collectors["custom_query"] = ipt.collectCustomQuery
+	}
+
+	// Try until init OK.
+	for {
+		if err := ipt.initCfg(); err != nil {
+			l.Warnf("init config error: %s", err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorCategory(point.Metric),
+			)
+		} else {
+			break
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+
+		case <-ipt.semStop.Wait():
+			return
+
+		case <-tick.C:
+		}
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux, datakit.LabelElection}
+func (ipt *Input) Run() {
+	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+	defer func() {
+		l.Info("oceanbase exit")
+	}()
+
+	ipt.Init()
+
+	l.Infof("collecting each %v", ipt.Interval.Duration)
+
+	for {
+		if ipt.pause {
+			l.Debugf("not leader, skipped")
+		} else {
+			l.Debugf("oceanbase input gathering...")
+
+			mpts, err := ipt.Collect()
+			if err != nil {
+				l.Warnf("i.Collect failed: %v", err)
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(point.Metric),
+				)
+			}
+
+			for category, pts := range mpts {
+				if len(pts) > 0 {
+					if err := ipt.feeder.FeedV2(category, pts,
+						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(inputName),
+					); err != nil {
+						ipt.feeder.FeedLastError(err.Error(),
+							dkio.WithLastErrorInput(inputName),
+							dkio.WithLastErrorCategory(point.Metric),
+						)
+						l.Errorf("feed : %s", err)
+					}
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+
+		case <-ipt.semStop.Wait():
+			return
+
+		case <-tick.C:
+
+		case ipt.pause = <-ipt.pauseCh:
+			// nil
+		}
+	}
+}
+
+func (ipt *Input) Catalog() string { return catalogName }
+
+func (ipt *Input) SampleConfig() string { return configSample }
+
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&statMeasurement{},
+		&loggingMeasurement{},
+		&cacheBlockMeasurement{},
+		&cachePlanMeasurement{},
+		&eventMeasurement{},
+		&sessionMeasurement{},
+		&clogMeasurement{},
+	}
+}
+
+func (ipt *Input) AvailableArchs() []string {
+	return datakit.AllOSWithElection
+}
+
+func (ipt *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
 }
 
 func defaultInput() *Input {
 	return &Input{
-		Input: *external.NewInput(),
+		Tags:     make(map[string]string),
+		Timeout:  "10s",
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true,
+		feeder:   dkio.DefaultFeeder(),
+		tagger:   datakit.DefaultGlobalTagger(),
+		semStop:  cliutils.NewSem(),
 	}
 }
 
@@ -117,70 +395,3 @@ func init() { //nolint:gochecknoinits
 		return defaultInput()
 	})
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-const (
-	metricName = "oceanbase"
-	logName    = "oceanbase_log"
-)
-
-type metricMeasurement struct{}
-
-// https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376664
-//
-//nolint:lll
-func (m *metricMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Type: datakit.CategoryMetric,
-		Fields: map[string]interface{}{
-			"ob_concurrent_limit_sql_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of throttled SQL."},
-			"ob_database_status":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The status of the database. 1: Normal (active)."},
-			"ob_lock_count":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of database row locks."},
-			"ob_lock_max_ctime":                  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Maximum database lock time (seconds)."},
-			"ob_mem_sum_count":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of memory units in use by all tenants."},
-			"ob_mem_sum_used":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The memory value currently used by all tenants."},
-			"ob_memstore_active_rate":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Memory activity rate of Memtable for all tenants on all servers."},
-			"ob_plancache_avg_hit_rate":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The average hit rate of plan_cache across all servers."},
-			"ob_plancache_mem_used_rate":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Overall memory usage of plan_cache across all servers (memory used divided by memory held)."},
-			"ob_plancache_sum_plan_num":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of plans on all servers."},
-			"ob_ps_hit_rate":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "PS (Prepared Statement) Cache hit rate."},
-			"ob_session_avg_wait_time":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "The average waiting time of the current or last wait event for all Sessions on all servers."},
-			"ob_workarea_global_mem_bound":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "In auto mode, the global maximum available memory size."},
-			"ob_workarea_max_auto_workarea_size": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum memory size managed by auto under the current workarea."},
-			"ob_workarea_mem_target":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The target size of the memory available to the current workarea."},
-		},
-		Tags: map[string]interface{}{
-			"host":                 &inputs.TagInfo{Desc: "Host name."},
-			"ob_host_name":         &inputs.TagInfo{Desc: "Server address where the instance is located."},
-			"ob_version":           &inputs.TagInfo{Desc: "The version of the database instance."},
-			inputName + "_server":  &inputs.TagInfo{Desc: "The address of the database instance (including port)."},
-			inputName + "_service": &inputs.TagInfo{Desc: "OceanBase service name."},
-		},
-	}
-}
-
-type loggingMeasurement struct{}
-
-// https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376664
-//
-//nolint:lll
-func (m *loggingMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: logName,
-		Type: datakit.CategoryLogging,
-		Desc: "Using `source` field in the config file, default is `default`.",
-		Tags: map[string]interface{}{
-			"host":                 &inputs.TagInfo{Desc: "Hostname."},
-			inputName + "_server":  &inputs.TagInfo{Desc: "The address of the database instance (including port)."},
-			inputName + "_service": &inputs.TagInfo{Desc: "OceanBase service name."},
-		},
-		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, only supported `info/emerg/alert/critical/error/warning/debug/OK/unknown`."},
-		},
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
