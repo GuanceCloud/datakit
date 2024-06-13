@@ -455,6 +455,34 @@ func (m replicationMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+type replicationSlotMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m replicationSlotMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_replication_slot",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"spill_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of decoded transaction data spilled to disk while performing decoding of changes from WAL for this slot. This and other spill counters can be used to gauge the I/O which occurred during logical decoding and allow tuning `logical_decoding_work_mem`. Only available with PostgreSQL 14 and newer."},
+			"spill_count":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times transactions were spilled to disk while decoding changes from WAL for this slot. This counter is incremented each time a transaction is spilled, and the same transaction may be spilled multiple times. Only available with PostgreSQL 14 and newer."},
+			"spill_txns":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of transactions spilled to disk once the memory used by logical decoding to decode changes from WAL has exceeded `logical_decoding_work_mem`. The counter gets incremented for both top-level transactions and subtransactions. Only available with PostgreSQL 14 and newer."},
+			"stream_bytes": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of transaction data decoded for streaming in-progress transactions to the decoding output plugin while decoding changes from WAL for this slot. This and other streaming counters for this slot can be used to tune `logical_decoding_work_mem`. Only available with PostgreSQL 14 and newer."},
+			"stream_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times in-progress transactions were streamed to the decoding output plugin while decoding changes from WAL for this slot. This counter is incremented each time a transaction is streamed, and the same transaction may be streamed multiple times. Only available with PostgreSQL 14 and newer."},
+			"stream_txns":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of in-progress transactions streamed to the decoding output plugin after the memory used by logical decoding to decode changes from WAL for this slot has exceeded `logical_decoding_work_mem`. Streaming only works with top-level transactions (subtransactions can't be streamed independently), so the counter is not incremented for subtransactions. Only available with PostgreSQL 14 and newer."},
+			"total_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of transaction data decoded for sending transactions to the decoding output plugin while decoding changes from WAL for this slot. Note that this includes data that is streamed and/or spilled. Only available with PostgreSQL 14 and newer."},
+			"total_txns":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of decoded transactions sent to the decoding output plugin for this slot. This counts top-level transactions only, and is not incremented for subtransactions. Note that this includes the transactions that are streamed and/or spilled. Only available with PostgreSQL 14 and newer."},
+		},
+		Tags: map[string]interface{}{
+			"db":        inputs.NewTagInfo("The database name"),
+			"server":    inputs.NewTagInfo("The server address"),
+			"slot_name": inputs.NewTagInfo("The replication slot name"),
+			"slot_type": inputs.NewTagInfo("The replication slot type"),
+		},
+	}
+}
+
 type slruMeasurement struct {
 	inputMeasurement
 }

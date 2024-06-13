@@ -46,6 +46,7 @@ const (
 	RelationMetric    = "relation"
 	DynamicMetric     = "dynamic"
 	ArchiverMetric    = "archiver"
+	ReplicationSlot   = "replication_slot"
 )
 
 const sampleConfig = `
@@ -241,6 +242,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&lockMeasurement{},
 		&indexMeasurement{},
 		&replicationMeasurement{},
+		&replicationSlotMeasurement{},
 		&sizeMeasurement{},
 		&statIOMeasurement{},
 		&statMeasurement{},
@@ -527,6 +529,31 @@ SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive
 			measurementInfo: replicationMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ReplicationMetric] = cache
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
+
+	return ipt.executeQuery(cache)
+}
+
+func (ipt *Input) getReplicationSlotMetrics() error {
+	cache, ok := ipt.metricQueryCache[ReplicationSlot]
+	if !ok {
+		query := `
+SELECT
+    stat.slot_name,
+    slot_type,
+    CASE WHEN active THEN 'active' ELSE 'inactive' END,
+    spill_txns, spill_count, spill_bytes,
+    stream_txns, stream_count, stream_bytes,
+    total_txns, total_bytes
+FROM pg_stat_replication_slots AS stat
+JOIN pg_replication_slots ON pg_replication_slots.slot_name = stat.slot_name
+`
+		cache = &queryCacheItem{
+			query:           query,
+			measurementInfo: replicationSlotMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[ReplicationSlot] = cache
 		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
@@ -879,6 +906,10 @@ func (ipt *Input) init() error {
 		"bgwriter":    ipt.getBgwMetrics,
 		"connection":  ipt.getConnectionMetrics,
 		"customQuery": ipt.getCustomQueryMetrics,
+	}
+
+	if V140.LessThan(*ipt.version) || V140.Equal(*ipt.version) {
+		ipt.collectFuncs["replication_slot"] = ipt.getReplicationSlotMetrics
 	}
 
 	if V130.LessThan(*ipt.version) || V130.Equal(*ipt.version) {
