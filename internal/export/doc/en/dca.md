@@ -9,7 +9,7 @@
 
 ---
 
-DCA is mainly used to manage DataKit, such as DataKit list view, configuration file management, Pipeline management and help document view. At present, it supports two usage modes, namely desktop and web page.
+DCA(Datakit Control App) is mainly used to manage DataKit, such as DataKit list view, configuration file management, Pipeline management and help document view. At present, it supports two usage modes, namely desktop and web page.
 
 DCA network topology model explained:
 

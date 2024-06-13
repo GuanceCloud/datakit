@@ -56,11 +56,13 @@ type Input struct {
 	feeder              dkio.Feeder
 }
 
-func (*Input) SampleConfig() string     { return sampleConfig }
-func (*Input) Catalog() string          { return inputName }
-func (*Input) AvailableArchs() []string { return datakit.AllOS }
-func (*Input) Singleton()               { /*nil*/ }
-func (*Input) Run()                     { /*nil*/ }
+func (*Input) SampleConfig() string                    { return sampleConfig }
+func (*Input) Catalog() string                         { return inputName }
+func (*Input) AvailableArchs() []string                { return datakit.AllOS }
+func (*Input) Singleton()                              { /*nil*/ }
+func (*Input) Run()                                    { /*nil*/ }
+func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
+func (*Input) Terminate()                              { /* TODO */ }
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)

@@ -132,7 +132,7 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 		archs = strings.Join(i.AvailableArchs(), " ")
 	default:
 		cp.Warnf("[W] input %s not implement InputV2 interfaces, ignored\n", inputName)
-		return nil, nil
+		return nil, fmt.Errorf("input %s not implement InputV2 interfaces", inputName)
 	}
 
 	p := &Params{

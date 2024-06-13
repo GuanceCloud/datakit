@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.30.1 (June 12, 2024) {#cl-1.31.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.31.0-new}
+
+- Added support for configuring sensitive information (such as database passwords) through encryption (#2249).
+- Introduced Prometheus Push Gateway metric pushing functionality (#2260).
+- Added the ability to append corresponding Kubernetes Labels to container objects (#2252).
+- Enhanced eBPF tracing plugin with Redis protocol recognition (#2248).
+
+### Bug Fixes {#cl-1.31.0-fix}
+
+- Fixed an issue where SNMP collection was incomplete (#2262).
+- Addressed a problem with Kubernetes Autodiscovery that caused duplicate Pod collection (#2259).
+- Implemented protective measures to prevent duplicate collection of container-related metrics (#2253).
+- Resolved an issue with abnormal CPU metrics on the Windows platform (extremely large invalid values) (#2028).
+
+### Feature Enhancements {#cl-1.31.0-opt}
+
+- Improved PostgreSQL metric collection (#2263).
+- Optimized bpf-netlog collection fields (#2247).
+- Enhanced data collection for OceanBase (#2122).
+- Other adjustments (#2267/#2255/#2237).
+
+---
+
 ## 1.30.0 (June 4, 2024) {#cl-1.30.0}
 
 This release is an iterative update with the following main changes:
@@ -40,7 +67,7 @@ This release is an iterative update with the following main changes:
 
 In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
 
-- Upgrade the center base to [1.86.166](../deployment/changelog.md#1861662024-05-29)
+- Upgrade the center base to [1.87.167](../deployment/changelog.md#1871672024-06-05) or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
 ---
