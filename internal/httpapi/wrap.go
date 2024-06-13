@@ -6,6 +6,7 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -72,7 +73,11 @@ func ginLimiter(lmt *limiter.Limiter) gin.HandlerFunc {
 	}
 }
 
-type APIHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
+type (
+	APIHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
+
+	Param string
+)
 
 func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -106,7 +111,13 @@ func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) 
 			return
 		}
 
-		if res, err := next(c.Writer, c.Request, other...); err != nil {
+		ctx, cancel := context.WithCancel(c.Request.Context())
+		defer cancel()
+		for _, p := range c.Params {
+			ctx = context.WithValue(ctx, Param(p.Key), p.Value)
+		}
+
+		if res, err := next(c.Writer, c.Request.WithContext(ctx), other...); err != nil {
 			uhttp.HttpErr(c, err)
 			status = http.StatusText(getStatusCode(err))
 		} else {
