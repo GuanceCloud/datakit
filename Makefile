@@ -68,6 +68,7 @@ DLEBPF                      ?= false
 AUTO_FIX                    ?= on
 UT_EXCLUDE                  ?= "-"
 UT_ONLY                     ?= "-"
+UT_PARALLEL                 ?= "0"
 DOCKER_REMOTE_HOST          ?= "0.0.0.0" # default use localhost as docker server
 MERGE_REQUEST_TARGET_BRANCH ?= ""
 
@@ -371,7 +372,7 @@ vet:
 ut: deps
 	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
 						 REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
-						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) \
+						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) -ut-parallel $(UT_PARALLEL) \
 						 -dataway-url $(DATAWAY_URL); \
 		if [ $$? != 0 ]; then \
 			exit 1; \

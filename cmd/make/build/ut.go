@@ -36,31 +36,8 @@ var (
 	}
 
 	UTExclude, UTOnly string
+	Parallel          = runtime.NumCPU()
 	percentCoverage   *regexp.Regexp
-	coverTotal        = atomic.NewFloat64(0.0)
-	excludes          = map[string]bool{
-		// There are multiple-main() within these modules.
-		"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/proxy/bench": true,
-
-		// root package got no test to run.
-		"gitlab.jiagouyun.com/cloudcare-tools/datakit":         true,
-		"gitlab.jiagouyun.com/cloudcare-tools/datakit/scripts": true,
-	}
-
-	// only run these test.
-	only = map[string]bool{}
-
-	noTestPkgs       = make([]string, 0)
-	noTestPkgsLocker sync.RWMutex
-
-	pkgCoverage = make(map[float64][]string, 0)
-
-	npassed  = 0
-	nskipped = 0
-	nhuge    = 0
-
-	failedPkgs       = make(map[string]string, 0)
-	failedPkgsLocker sync.RWMutex
 )
 
 const (
@@ -68,7 +45,53 @@ const (
 	envExcludeHugeIntegrationTesting = "UT_EXCLUDE_HUGE_INTEGRATION_TESTING"
 )
 
+type job struct {
+	UTID    string // unit test ID.
+	index   int
+	lenPkgs int
+	pkg     string
+}
+
+type unitTest struct {
+	only, exclude map[string]bool
+
+	noTestPkgs  []string
+	pkgCoverage map[float64][]string
+
+	npassed,
+	nskipped,
+	nhuge atomic.Int64
+	coverTotal atomic.Float64
+
+	failedPkgs map[string]string
+	mtx        sync.RWMutex
+}
+
+func defaultUnitTest() *unitTest {
+	return &unitTest{
+		only: map[string]bool{},
+		exclude: map[string]bool{
+			// There are multiple-main() within these modules.
+			"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/proxy/bench": true,
+
+			// root package got no test to run.
+			"gitlab.jiagouyun.com/cloudcare-tools/datakit":         true,
+			"gitlab.jiagouyun.com/cloudcare-tools/datakit/scripts": true,
+		},
+		pkgCoverage: map[float64][]string{},
+		failedPkgs:  map[string]string{},
+	}
+}
+
+func (ut *unitTest) jobWorker(ch chan *job) {
+	for j := range ch {
+		ut.doWork(j)
+	}
+}
+
 func UnitTestDataKit() error {
+	ut := defaultUnitTest()
+
 	pkgsListCmd := exec.Command("go", "list", "./...") //nolint:gosec
 	res, err := pkgsListCmd.CombinedOutput()
 	if err != nil {
@@ -83,35 +106,56 @@ func UnitTestDataKit() error {
 	if len(UTExclude) > 0 && UTExclude != "-" {
 		for _, ex := range strings.Split(UTExclude, ",") {
 			fmt.Printf("package %q excluded\n", ex)
-			excludes[ex] = true
+			ut.exclude[ex] = true
 		}
 	}
 
 	if len(UTOnly) > 0 && UTOnly != "-" {
 		for _, item := range strings.Split(UTOnly, ",") {
 			fmt.Printf("package %q selected\n", item)
-			only[item] = true
+			ut.only[item] = true
 		}
 	}
 
 	start := time.Now()
+
+	var wg sync.WaitGroup
+	if Parallel < 0 {
+		Parallel = 1
+	} else if Parallel == 0 {
+		Parallel = runtime.NumCPU()
+	}
+
+	wg.Add(Parallel)
+	jobCh := make(chan *job, Parallel)
+
+	for i := 0; i < Parallel; i++ {
+		go func() {
+			defer wg.Done()
+			ut.jobWorker(jobCh)
+		}()
+	}
 
 	lenPkgs := len(pkgs)
 	for i, p := range pkgs {
 		i++
 		if hugePackages[p] {
 			fmt.Printf("%s is HUGE package, testing it later, skip...\n", p)
-			nhuge++
+			ut.nhuge.Add(1)
 			continue
 		}
 
-		doWork(Job{
+		jobCh <- &job{
 			UTID:    utID,
-			Index:   i,
-			LenPkgs: lenPkgs,
-			Pkg:     p,
-		})
+			index:   i,
+			lenPkgs: lenPkgs,
+			pkg:     p,
+		}
 	}
+
+	close(jobCh)
+
+	wg.Wait()
 
 	costNormal := time.Now()
 	fmt.Printf("Normal tests completed, costs = %v\n", costNormal.Sub(start))
@@ -128,26 +172,25 @@ func UnitTestDataKit() error {
 		nIdx := 0
 		lenHugePkgs := len(hugePackages)
 		for pkg := range hugePackages {
-			if excludes[pkg] {
+			if ut.exclude[pkg] {
 				fmt.Printf("Skip huge test %q\n", pkg)
 				continue
 			}
 
 			nIdx++
 			fmt.Printf("run huge test %q\n", pkg)
-			doWork(Job{
+			ut.doWork(&job{
 				UTID:    utID,
-				Index:   nIdx,
-				LenPkgs: lenHugePkgs,
-				Pkg:     pkg,
+				index:   nIdx,
+				lenPkgs: lenHugePkgs,
+				pkg:     pkg,
 			})
 		}
 
-		costHuge := time.Now()
-		fmt.Printf("Huge tests completed, costs = %v, total = %v\n", costHuge.Sub(costNormal), costHuge.Sub(start))
-	} else {
-		fmt.Printf("All huge tests skipped\n")
+		fmt.Printf("Huge tests completed, elapsed: %v\n", time.Since(costNormal))
 	}
+
+	fmt.Printf("All tests done, elapsed: %v\n", time.Since(start))
 
 	mr := &testutils.ModuleResult{
 		Name:      "datakit-ut",
@@ -156,7 +199,7 @@ func UnitTestDataKit() error {
 		GoVersion: runtime.Version(),
 		Branch:    git.Branch,
 		TestID:    utID,
-		Coverage:  coverTotal.Load() / float64(npassed),
+		Coverage:  ut.coverTotal.Load() / float64(ut.npassed.Load()),
 		Message:   fmt.Sprintf("done, total cost: %s", time.Since(start)),
 	}
 
@@ -164,73 +207,59 @@ func UnitTestDataKit() error {
 		fmt.Printf("[E] flush metric failed: %s\n", err)
 	}
 
-	fmt.Printf("============ %d package passed(avg %.2f%%) ================\n",
-		npassed, coverTotal.Load()/float64(npassed))
-	showTopNCoveragePkgs(pkgCoverage)
+	ut.show()
 
-	fmt.Printf("============= %d package got no test ===============\n", len(noTestPkgs))
-	sort.Strings(noTestPkgs)
-	showNoTestPkgs(noTestPkgs)
-
-	fmt.Printf("============= %d pakage failed ===============\n", len(failedPkgs))
-	showFailedPkgs(failedPkgs)
-	if len(failedPkgs) > 0 {
-		return fmt.Errorf("%d package failed", len(failedPkgs))
+	if len(ut.failedPkgs) > 0 {
+		return fmt.Errorf("%d package failed", len(ut.failedPkgs))
 	}
 
 	return nil
 }
 
-func addNoTestPkgs(pkg string) {
-	noTestPkgsLocker.Lock()
-	defer noTestPkgsLocker.Unlock()
-	noTestPkgs = append(noTestPkgs, pkg)
+func (ut *unitTest) show() {
+	fmt.Printf("============ %d package passed(avg %.2f%%) ================\n",
+		ut.npassed.Load(), ut.coverTotal.Load()/float64(ut.npassed.Load()))
+	ut.showTopNCoveragePkgs()
+
+	fmt.Printf("============= %d package got no test ===============\n", len(ut.noTestPkgs))
+	sort.Strings(ut.noTestPkgs)
+	ut.showNoTestPkgs()
+
+	fmt.Printf("============= %d pakage failed ===============\n", len(ut.failedPkgs))
+	ut.showFailedPkgs()
 }
 
-func addFailedPkgs(pkg, detail string) {
-	failedPkgsLocker.Lock()
-	defer failedPkgsLocker.Unlock()
-	failedPkgs[pkg] = detail
+func (ut *unitTest) addNoTestPkgs(pkg string) {
+	ut.mtx.Lock()
+	defer ut.mtx.Unlock()
+	ut.noTestPkgs = append(ut.noTestPkgs, pkg)
 }
 
-type Job struct {
-	UTID    string // unit test ID.
-	Index   int
-	LenPkgs int
-	Pkg     string
+func (ut *unitTest) addFailedPkgs(pkg, detail string) {
+	ut.mtx.Lock()
+	defer ut.mtx.Unlock()
+	ut.failedPkgs[pkg] = detail
 }
 
-func doWork(j Job) {
+func (ut *unitTest) doWork(j *job) {
 	start := time.Now()
-	fmt.Printf("=======================\n")
-	fmt.Printf("[%s][%02d:%02d:%02d][passed:%d/notest:%d/skipped:%d/huge:%d/failed:%d] testing(%03d/%03d) %s...\n",
-		j.UTID,
-		start.Hour(),
-		start.Minute(),
-		start.Second(),
-		npassed,
-		len(noTestPkgs),
-		nskipped,
-		nhuge,
-		len(failedPkgs),
-		j.Index,
-		j.LenPkgs,
-		j.Pkg)
 
-	if excludes[j.Pkg] {
-		fmt.Printf("[%s] package(%03d/%03d) %s excluded...\n", j.UTID, j.Index, j.LenPkgs, j.Pkg)
-		nskipped++
+	if ut.exclude[j.pkg] {
+		fmt.Printf("[%s] package(%03d/%03d) %s excluded...\n",
+			j.UTID, j.index, j.lenPkgs, j.pkg)
+		ut.nskipped.Add(1)
 		return
 	}
 
-	if len(only) > 0 && !only[j.Pkg] {
-		fmt.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n", j.UTID, j.Index, j.LenPkgs, j.Pkg, only)
-		nskipped++
+	if len(ut.only) > 0 && !ut.only[j.pkg] {
+		fmt.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n",
+			j.UTID, j.index, j.lenPkgs, j.pkg, ut.only)
+		ut.nskipped.Add(1)
 		return
 	}
 
 	mr := &testutils.ModuleResult{
-		Name:      strings.TrimPrefix(j.Pkg, pkgPrefix), // remove prefix for human readable.
+		Name:      strings.TrimPrefix(j.pkg, pkgPrefix), // remove prefix for human readable.
 		OS:        runtime.GOOS,
 		Arch:      runtime.GOARCH,
 		GoVersion: runtime.Version(),
@@ -238,7 +267,7 @@ func doWork(j Job) {
 		TestID:    j.UTID,
 	}
 
-	tcmd := exec.Command("go", "test", "-count=1", "-timeout", "1h", "-cover", j.Pkg) //nolint:gosec
+	tcmd := exec.Command("go", "test", "-count=1", "-timeout", "1h", "-cover", j.pkg) //nolint:gosec
 	tcmd.Env = append(os.Environ(), []string{
 		"GO111MODULE=off",
 		"CGO_ENABLED=1",
@@ -253,9 +282,7 @@ func doWork(j Job) {
 
 	if err != nil {
 		if (!strings.Contains(mr.Message, "no Go files in")) || strings.Contains(mr.Message, "FAIL") {
-			addFailedPkgs(j.Pkg, string(res))
-
-			showFailedPkgs(failedPkgs) // show failed packages ASAP.
+			ut.addFailedPkgs(j.pkg, string(res))
 
 			mr.Status = testutils.TestFailed
 			mr.FailedMessage = err.Error()
@@ -263,7 +290,8 @@ func doWork(j Job) {
 				fmt.Printf("[E] flush metric failed: %s\n", err)
 			}
 
-			l.Errorf("package %s failed: %s", j.Pkg, string(res))
+			l.Errorf("package %s failed: %s", j.pkg, string(res))
+			return
 		} else {
 			mr.Status = testutils.TestSkipped
 		}
@@ -281,65 +309,93 @@ func doWork(j Job) {
 	// ok  	gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/conntrack	(cached)	coverage: [no statements] [no tests to run]
 	// package gitlab.jiagouyun.com/cloudcare-tools/datakit: no Go files in /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
 
-	fmt.Println(coverageLine)
-
 	switch {
 	case strings.HasPrefix(coverageLine, "?"),
 		strings.Contains(coverageLine, "[no tests to run]"):
-		addNoTestPkgs(j.Pkg)
+		ut.addNoTestPkgs(j.pkg)
 		mr.NoTest = true
 
 	case strings.HasPrefix(coverageLine, "ok"):
 		mr.Status = testutils.TestPassed
-		npassed++
+		ut.npassed.Add(1)
 
 		coverage := percentCoverage.FindString(coverageLine)
 		if len(coverage) != 0 {
 			f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
 			if err != nil {
-				fmt.Printf("[E] invalid coverage %q: %s: %s\n", j.Pkg, coverage, err)
+				fmt.Printf("[E] invalid coverage %q: %s: %s\n", j.pkg, coverage, err)
 				return
 			}
 
-			pkgCoverage[f] = append(pkgCoverage[f], j.Pkg)
-			coverTotal.Add(f)
+			ut.addCoveragePkgs(f, j.pkg)
+			ut.coverTotal.Add(f)
 			mr.Coverage = f
 		} else {
-			fmt.Printf("[W] test ok, but no coverage: %q\n", j.Pkg)
+			fmt.Printf("[W] test ok, but no coverage: %q\n", j.pkg)
+			return
 		}
 
 	default: // pass
-		fmt.Printf("[W] unknown coverage line in package %q: %s\n", j.Pkg, coverageLine)
+		fmt.Printf("[W] unknown coverage line in package %q: %s\n", j.pkg, coverageLine)
+		return
 	}
 
 	if err := testutils.Flush(mr); err != nil {
 		fmt.Printf("[E] flush metric failed: %s\n", err)
+		return
 	}
+
+	j.show(ut, mr)
 }
 
-func showTopNCoveragePkgs(pkgs map[float64][]string) {
+func (j *job) show(ut *unitTest, mr *testutils.ModuleResult) {
+	// here will access ut.failedPkgs, we lock it to avoid map concurrent access.
+	ut.mtx.Lock()
+	defer ut.mtx.Unlock()
+	fmt.Printf("%s | %d | passed:%d/notest:%d/skipped:%d/huge:%d/failed:%d | %03d/%03d | %s | %f%% | %v\n",
+		j.UTID,
+		Parallel,
+		ut.npassed.Load(),
+		len(ut.noTestPkgs),
+		ut.nskipped.Load(),
+		ut.nhuge.Load(),
+		len(ut.failedPkgs),
+		j.index,
+		j.lenPkgs,
+		j.pkg,
+		mr.Coverage,
+		mr.Cost,
+	)
+}
+
+func (ut *unitTest) addCoveragePkgs(cov float64, pkg string) {
+	ut.mtx.Lock()
+	defer ut.mtx.Unlock()
+
+	ut.pkgCoverage[cov] = append(ut.pkgCoverage[cov], pkg)
+}
+
+func (ut *unitTest) showTopNCoveragePkgs() {
 	topn := []float64{}
-	for k := range pkgs {
+	for k := range ut.pkgCoverage {
 		topn = append(topn, k)
 	}
 
 	sort.Float64s(topn)
 	for _, c := range topn {
-		fmt.Printf("%.2f%%\n\t%s\n", c, strings.Join(pkgs[c], "\n\t"))
+		fmt.Printf("%.2f%%\n\t%s\n", c, strings.Join(ut.pkgCoverage[c], "\n\t"))
 	}
 }
 
-func showFailedPkgs(pkgs map[string]string) {
-	failedPkgsLocker.Lock()
-	for k, v := range pkgs {
+func (ut *unitTest) showFailedPkgs() {
+	for k, v := range ut.failedPkgs {
 		fmt.Printf("%s\n%s\n", k, v)
 		fmt.Println("----------------------------")
 	}
-	failedPkgsLocker.Unlock()
 }
 
-func showNoTestPkgs(pkgs []string) {
-	for _, p := range pkgs {
+func (ut *unitTest) showNoTestPkgs() {
+	for _, p := range ut.noTestPkgs {
 		fmt.Printf("%s\n", p)
 	}
 }
