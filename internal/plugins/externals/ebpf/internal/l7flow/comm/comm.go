@@ -64,6 +64,11 @@ const (
 	FieldMysqlStatusCode = "mysql_status_code"
 	FieldMysqlErrMsg     = "mysql_err_msg"
 
+	FieldResourceType = "resource_type"
+	FieldStatusMsg    = "status_msg"
+	FieldErrMsg       = "err_msg"
+	FieldStatusCode   = "status_code"
+
 	FieldStatus    = "status"
 	FieldOperation = "operation"
 	FieldResource  = "resource"

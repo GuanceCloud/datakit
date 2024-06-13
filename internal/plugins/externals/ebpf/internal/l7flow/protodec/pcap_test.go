@@ -4,6 +4,7 @@
 package protodec
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -16,15 +17,96 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
-func TestMySQLProto(t *testing.T) {
-	type filePort struct {
-		fp          string
-		localIP     net.IP
-		foreignIP   net.IP
-		localPort   uint16
-		foreignPort uint16
+type filePort struct {
+	fp          string
+	localIP     net.IP
+	foreignIP   net.IP
+	localPort   uint16
+	foreignPort uint16
+}
+
+func TestRedisProto(t *testing.T) {
+	filePorts := []filePort{
+		{
+			fp:          "./pcapdata/redis_1.pcapng",
+			localIP:     net.ParseIP("::1"),
+			foreignIP:   net.ParseIP("::1"),
+			localPort:   uint16(51153),
+			foreignPort: uint16(6379),
+		},
+		// {
+		// 	fp:          "./pcapdata/redis_2.pcapng",
+		// 	localIP:     net.ParseIP("::1"),
+		// 	foreignIP:   net.ParseIP("::1"),
+		// 	localPort:   uint16(53553),
+		// 	foreignPort: uint16(6379),
+		// },
+		// {
+		// 	fp:          "./pcapdata/redis_3.pcapng",
+		// 	localIP:     net.ParseIP("::1"),
+		// 	foreignIP:   net.ParseIP("::1"),
+		// 	localPort:   uint16(51153),
+		// 	foreignPort: uint16(6379),
+		// },
 	}
 
+	for _, fp := range filePorts {
+		t.Run(fp.fp, func(t *testing.T) {
+			stream := &netStream{}
+			if err := stream.Open(fp.fp); err != nil {
+				t.Fatal(err)
+			}
+			defer stream.Close()
+
+			cases := [][2]any{}
+			for {
+				if dir, netdata, ok, err := stream.Get(fp.localIP, fp.foreignIP, fp.localPort, fp.foreignPort); err != nil {
+					if !errors.Is(err, io.EOF) {
+						t.Fatal(err)
+					}
+					break
+				} else if ok {
+					cases = append(cases, [2]any{dir, netdata})
+				}
+			}
+
+			var impl ProtoDecPipe
+			for _, c := range cases {
+				netdata := c[1].(*comm.NetwrkData)
+				_, impl, _ = RedisProtoDetect(netdata.Payload, netdata.ActSize)
+				if impl != nil {
+					break
+				}
+			}
+
+			if impl == nil {
+				t.Fatal("not found")
+			}
+
+			for _, c := range cases {
+				netdata := c[1].(*comm.NetwrkData)
+				dir := c[0].(comm.NICDirection)
+
+				if dir == comm.NICDIngress {
+					netdata.Fn = comm.FnSysRead
+				} else {
+					netdata.Fn = comm.FnSysWrite
+				}
+				if len(netdata.Payload) == 0 {
+					continue
+				}
+				impl.Decode(dir, netdata, 0, nil)
+			}
+
+			// impl.ConnClose()
+			for _, v := range impl.Export(true) {
+				t.Log(v.KVs.Pretty())
+			}
+		})
+	}
+}
+
+func TestMySQLProto(t *testing.T) {
 	filePorts := []filePort{
 		{
 			fp:          "./pcapdata/mysql.pcapng",
@@ -128,11 +210,14 @@ func (s *netStream) Get(localIP, foreignIP net.IP, localPort, foreignPort uint16
 		return comm.NICDUnknown, nil, false, err
 	}
 	if len(data) > 4 {
-		if data[0] == 0x02 && data[1] == 0x00 &&
-			data[2] == 0x00 && data[3] == 0x00 {
-			// linktype is null, such as pcap packet start with Null/Loopback
+		v := binary.BigEndian.Uint32(data[:4])
+		switch v {
+		case 0x02000000:
 			data = append(make([]byte, 14), data[4:]...)
-			data[12] = 0x08
+			binary.BigEndian.PutUint16(data[12:], uint16(layers.EthernetTypeIPv4))
+		case 0x1e000000:
+			data = append(make([]byte, 14), data[4:]...)
+			binary.BigEndian.PutUint16(data[12:], uint16(layers.EthernetTypeIPv6))
 		}
 	}
 
@@ -140,9 +225,18 @@ func (s *netStream) Get(localIP, foreignIP net.IP, localPort, foreignPort uint16
 	layerLi := make([]gopacket.LayerType, 0, 10)
 
 	_ = decoder.pktDecode.DecodeLayers(data, &layerLi)
-	srcIP := decoder.ipv4.SrcIP
+
+	var srcIP, dstIP net.IP
+	switch decoder.eth.EthernetType { //nolint:exhaustive
+	case layers.EthernetTypeIPv4:
+		srcIP = decoder.ipv4.SrcIP
+		dstIP = decoder.ipv4.DstIP
+	case layers.EthernetTypeIPv6:
+		srcIP = decoder.ipv6.SrcIP
+		dstIP = decoder.ipv6.DstIP
+	}
+
 	srcPort := decoder.tcp.SrcPort
-	dstIP := decoder.ipv4.DstIP
 	dstPort := decoder.tcp.DstPort
 
 	data = decoder.tcp.Payload
@@ -168,21 +262,25 @@ func (s *netStream) Get(localIP, foreignIP net.IP, localPort, foreignPort uint16
 	if srcIP.Equal(localIP) && srcPort == layers.TCPPort(localPort) &&
 		dstIP.Equal(foreignIP) && dstPort == layers.TCPPort(foreignPort) {
 		return comm.NICDEgress, wrapPacket(
-			data, comm.NICDEgress, decoder.tcp.Seq), true, nil
+			data, comm.NICDEgress, decoder.tcp.Seq, uint32(srcPort), uint32(dstPort)), true, nil
 	} else if srcIP.Equal(foreignIP) && srcPort == layers.TCPPort(foreignPort) &&
 		dstIP.Equal(localIP) && dstPort == layers.TCPPort(localPort) {
 		return comm.NICDIngress, wrapPacket(
-			data, comm.NICDIngress, decoder.tcp.Seq), true, nil
+			data, comm.NICDIngress, decoder.tcp.Seq, uint32(dstPort), uint32(srcPort)), true, nil
 	}
 
 	return comm.NICDUnknown, nil, false, nil
 }
 
-func wrapPacket(buf []byte, dir comm.NICDirection, tcpSeq uint32) *comm.NetwrkData {
+func wrapPacket(buf []byte, dir comm.NICDirection, tcpSeq, sPort, dPort uint32) *comm.NetwrkData {
 	netdata := &comm.NetwrkData{
 		ActSize: len(buf),
 		Payload: buf,
 		TCPSeq:  tcpSeq,
+		Conn: comm.ConnectionInfo{
+			Sport: sPort,
+			Dport: dPort,
+		},
 	}
 	return netdata
 }
