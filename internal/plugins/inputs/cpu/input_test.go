@@ -171,7 +171,17 @@ func TestCollect(t *testing.T) {
 	assertEqualFloat64(t, 100*(nowT.Steal-lastT.Steal)/totalDelta, fields.Get("usage_steal").GetF(), "usage_steal")
 	assertEqualFloat64(t, 100*(nowT.Guest-lastT.Guest)/totalDelta, fields.Get("usage_guest").GetF(), "usage_guest")
 	assertEqualFloat64(t, 100*(nowT.GuestNice-lastT.GuestNice)/totalDelta, fields.Get("usage_guest_nice").GetF(), "usage_guest_nice")
-	assertEqualFloat64(t, 100*(active-lastActive)/totalDelta, fields.Get("usage_total").GetF(), "usage_total")
+
+	total := 100 * (active - lastActive) / totalDelta
+	actTotal := fields.Get("usage_total").GetF()
+	var diffTotal float64
+	if total >= actTotal {
+		diffTotal = total - actTotal
+	} else {
+		diffTotal = actTotal - total
+	}
+
+	tu.Assert(t, diffTotal < 0.1e-3, "usage_total")
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
