@@ -9,6 +9,7 @@ APIServer
 Akka
 Aliyun
 Ansible
+Autodiscovery
 BATIS
 Batis
 Binlog
@@ -76,6 +77,7 @@ Nacos
 NetFlow
 Ning
 ODBC
+netlog
 OpenSSL
 OpenTelemetry
 OpenTracing
