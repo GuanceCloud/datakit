@@ -121,8 +121,9 @@ func (inf *nicInfo) _nicInfo() {
 			if lo && !inf.allowLo {
 				continue
 			}
+			vIface = true
 		} else if vIface {
-			// (virtual nic) keep lo nic or not for host
+			// host virtual nic only keep lo nic or not for host
 			if !lo || !inf.allowLo {
 				continue
 			}
@@ -147,11 +148,12 @@ func (inf *nicInfo) _nicInfo() {
 		}
 		// multiCAddr, _ := v.MulticastAddrs()
 		inf.inf = append(inf.inf, &NICInfo{
-			Index:  v.Index,
-			MAC:    mac,
-			Name:   v.Name,
-			Addrs:  ipnetLi,
-			VIface: vIface,
+			Index:     v.Index,
+			MAC:       mac,
+			Name:      v.Name,
+			Addrs:     ipnetLi,
+			VIface:    vIface,
+			HostIface: inf.hostNet,
 		})
 	}
 }
@@ -253,7 +255,8 @@ type NICInfo struct {
 
 	// MulticastAddrs []net.Addr
 
-	VIface bool
+	HostIface bool
+	VIface    bool
 }
 
 func (nns *netnsHandle) nicInfo() ([]*NICInfo, error) {

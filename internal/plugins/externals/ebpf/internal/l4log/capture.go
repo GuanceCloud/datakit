@@ -77,8 +77,7 @@ type PValue struct {
 
 	tcpInfo TCPLog
 
-	httpInfo  HTTPLog
-	http2Info HTTP2Log
+	httpInfo HTTPLog
 
 	lastGetTS int64
 }
@@ -102,6 +101,9 @@ type TCPConns struct {
 	portListen   *portListen
 	ifaceNameMAC [2]string
 
+	hostNetwork bool
+	virtualNIC  bool
+
 	tags map[string]string
 
 	url    string
@@ -112,9 +114,8 @@ type TCPConns struct {
 	ctrID string
 	nsUID string
 
-	agg      FlowAggTCP
-	aggHTTP  FlowAggHTTP
-	aggHTTP2 FlowAggHTTP
+	agg     FlowAggTCP
+	aggHTTP FlowAggHTTP
 
 	stop chan struct{}
 
@@ -130,7 +131,7 @@ func NewTCPConns(gtags map[string]string, url, aggURL, ctrID, nsUID string,
 ) *TCPConns {
 	tags := map[string]string{}
 
-	for k, v := range tags {
+	for k, v := range gtags {
 		tags[k] = v
 	}
 
@@ -150,13 +151,9 @@ func NewTCPConns(gtags map[string]string, url, aggURL, ctrID, nsUID string,
 
 			pool:       *newConnsMaps(defaultTCPKeepAlive / 4),
 			twoMSLPool: *newConnsMaps(time.Second * 10),
-
-			// timeoutDur:     timeoutDur,
 		},
 
 		stop: make(chan struct{}),
-		// ch:        make(chan []*point.Point, 64),
-		// cleanUpCh: make(chan map[PktMeta]*PktValue, 2),
 	}
 }
 
@@ -175,9 +172,10 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, b
 	var tcpReuse bool
 
 	if _, v, ok := conns.conns.twoMSLPool.getMapAndV(key); ok {
-		if syncFlagOnly && v.tcpInfo.GetPktChunk(false).RetransmitsSYN < 3 { // maybe resuse
+		if syncFlagOnly && v.tcpInfo.RetransmitsSYN < 3 { // maybe resuse
 			v.reuseByNxt = true
 			tcpReuse = true
+			v.tcpInfo.RetransmitsSYN = 0
 		} else if !v.reuseByNxt {
 			v.lastGetTS = ts
 			return v, true
@@ -190,7 +188,6 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, b
 				recEstab: true,
 			},
 		},
-		http2Info: *NewH2Log(),
 	}
 	if id, ok := genID128(); ok {
 		// set conn innter traceid
@@ -312,15 +309,20 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 			pktVal.tcpInfo.metric.recClose[0] = true
 			pktVal.tcpInfo.metric.recClose[1] = true
 		}
-	} else if pktVal.tcpInfo.GetPktChunk(false).RetransmitsSYN >= 3 {
+	} else if pktVal.tcpInfo.RetransmitsSYN >= 3 {
 		conns.markTCPTimeWait(k)
 	}
 
 	if pktVal.tcpInfo.tcpStatusRec.tcpStatus == TCPEstablished || tcpPayloadSize > 0 {
-		_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
-			pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
-		pktVal.http2Info.Handle(txRx, payload, tcpPayloadSize, ln, k,
-			pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
+		if enableL7HTTP {
+			_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
+				pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
+		}
+	}
+
+	// maybe proto will change
+	if pktVal.httpInfo.isHTTP {
+		pktVal.tcpInfo.l7proto = L7ProtoHTTP
 	}
 
 	switch pktVal.tcpInfo.direction {

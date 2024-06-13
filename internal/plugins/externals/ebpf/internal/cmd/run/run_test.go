@@ -12,16 +12,18 @@ func TestDKE(t *testing.T) {
 		LogLevel:  "info",
 		PprofHost: "0.0.0.0",
 		PprofPort: "6267",
+		Service:   "ebpf",
 
-		Enabled: []string{"ebpf-net", "ebpf-trace", "bpf-netlog"},
+		Enabled: []string{"bpf-netlog"},
 
 		EBPFNet: FlagNet{
 			L7NetEnabled: []string{"httpflow"},
 		},
 
 		BPFNetLog: FlagBPFNetLog{
-			EnableLog: true,
-			// EnableMetric: true,
+			EnableLog:      true,
+			EnableMetric:   true,
+			L7LogProtocols: []string{"http"},
 		},
 
 		EBPFTrace: FlagTrace{

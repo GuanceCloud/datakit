@@ -4,93 +4,128 @@
 
 ### 公共字段
 
-- Tag:
+**常规标签**：
 
-    | 名称          | 类型 | 描述                                                                             |
-    | ------------- | ---- | -------------------------------------------------------------------------------- |
-    | src_ip        | str  | 以被观测的网卡为参照，出网卡数据包的源 ip 为源，进网卡数据包的目标 ip 翻转为 src |
-    | dst_ip        | str  | 目标 ip                                                                          |
-    | src_port      | str  | 源 port                                                                          |
-    | dst_port      | str  | 目标 port                                                                        |
-    | l4_proto      | str  | 传输层网络协议                                                                   |
-    | nic_mac       | str  | 被观测的网卡 MAC 地址                                                            |
-    | nic_name      | str  | 被观测的网卡的名                                                                 |
-    | netns         | str  | 网络命名空间，模板： `NS(<device id>:<inode number>)`                            |
-    | vni_id        | str  | vni id                                                                           |
-    | vxlan_packet  | str  | 是否为 vxlan 协议数据包                                                          |
-    | inner_traceid | str  | 关联某个网卡的某个连接的 4 层和 7 层网络数据                                     |
+- src_ip
+  - 类型： string
+  - 描述：本地计算机的 IP 地址，等价于 netstat 输出的 local ip addr；**不表示** client ip 或 server ip
+- dst_ip
+  - 类型：string
+  - 描述：套接字所连接的目标计算机的 IP 地址；可视为取自 Linux Socket 相关函数，即
+    `int connect(int sockfd, struct sockaddr * addr, socklen_t addrlen)` 传入的 addr 或
+    `int accept(int sockfd, struct sockaddr * addr, socklen_t * addrlen)` 执行后的 addr；
+    等价于 netstat 的 foreign ip addr
+- src_port
+  - 类型：string
+  - 描述：本地计算机的端口，与 src_ip 共同组成一个网络地址
+- dst_port:
+  - 类型：string
+  - 描述：目标端口，与 dst_ip 共同组曾一个网络地址
+- l4_proto
+  - 类型：string
+  - 描述：传输层协议
+- nic_mac
+  - 类型：string
+  - 描述：网卡 MAC 地址
+- nic_name
+  - 类型：string
+  - 描述：网卡名
+- netns
+  - 类型：string
+  - 描述：网络命名空间，模板： `NS(<device id>:<inode number>)`
+- vni_id
+  - 类型：string
+  - 描述：vni id
+- vxlan_packet
+  - 类型：string
+  - 描述：是否为 vxlan 协议数据包
+- inner_traceid
+  - 类型：string
+  - 描述：关联该被采集网卡上的某个 tcp 连接的 4 层和 7 层网络日志数据
+- host_network
+  - 类型：string
+  - 描述：是否为主机网络
+- virtual_nic
+  - 类型：string
+  - 描述：是否为虚拟网卡
+- direction
+  - 类型：string
+  - 描述：标识 src 是否为传输层 tcp 连接的发起方，或者是否为应用层的服务端，对于 L4 log，其值除了 `incoming`, `outgoing` 外还可能是 `unknown`
 
-- Field:
+**网卡的 K8s 标签**：
 
-    | 名称    | 类型 | 描述                           |
-    | ------- | ---- | ------------------------------ |
-    | message | str  | 消息体，记录 tcp/http 协议信息 |
+添加以下标签的前提是主机上有部署 K8s/K3s，不同于标签`src_k8s_<xxx>`，这些**标签仅与 K8s Pod 内的网卡相绑定**，故要目标容器有不同于主机网络的 Linux network namespace，即 Pod 资源的 K8s yaml 中不配置 host network。
 
-- Field 中的 `message` 示例：
+- k8s_namespace
+  - 类型：string
+  - 描述：K8s 的命名空间名称
+- k8s_pod_name
+  - 类型：string
+  - 描述：K8s Pod 名称
+- k8s_container_name
+  - 类型：string
+  - 描述：K8s 容器名
 
-    ```json
-    {
-        "l4_proto": "tcp",
-        "l7_proto": "http",
-        "tcp": {
-            ...
-        },
-        "http": {
-            ...
-        }
-    }
-    ```
+**网络连接的 K8s 公共字段**
+
+如果 ip 和 port 能对应上 K8s 资源（使用 host network 的 pod 作为客户端时通常无法标记），将追加 K8s 相关标签
+
+- sub_source
+  - 类型：string
+  - 描述：默认值 `K8s`
+- src_k8s_namespace
+  - 类型：string
+  - 描述：源 K8s namespace
+- src_k8s_pod_name
+  - 类型：string
+- src_k8s_service_name
+  - 类型：string
+- src_k8s_deployment_name
+  - 类型：string
+- dst_k8s_namespace
+  - 类型：string
+  - 描述：目标对应的 K8s Namespace
+- dst_k8s_pod_name
+  - 类型：string
+- dst_k8s_service_name
+  - 类型：string
+- dst_k8s_deployment_name
+  - 类型：string
 
 ### L4 网络相关字段
 
-- Field:
+**字段**：
 
-    | 名称             | 类型  | 描述                   |
-    | ---------------- | ----- | ---------------------- |
-    | tcp_syn_retrans  | int   | syn 报文重传数量       |
-    | tx_first_byte_ts | int   | 出网卡的首字节的时间   |
-    | tx_last_byte_ts  | int   | 出网卡的最后字节的时间 |
-    | rx_first_byte_ts | int   | 进网卡的首字节时间     |
-    | rx_last_byte_ts  | int   | 出网卡的最后字节的时间 |
-    | tx_packets       | int   | 出网卡的数据包数       |
-    | rx_packets       | int   | 进网卡的数据包数       |
-    | tx_bytes         | int   | 网卡发送的字节数       |
-    | rx_bytes         | int   | 网卡接收的字节数       |
-    | tx_retrans       | int   | 出网卡的重传数         |
-    | rx_retrans       | int   | 进网卡的重传数         |
-    | tcp_rtt          | float | tcp rtt，单位毫秒      |
-    | tcp_3whs_cost    | float | tcp 握手耗时，单位毫秒 |
-    | tcp_4whs_cost    | float | tcp 挥手耗时，单位毫秒 |
-    | tx_seq_max | uint32 | tcp_series 中 tx seq 的最大值；当最大值小于最小值时，tcp seq 发生回绕 |
-    | tx_seq_min | uint32 | tcp_series 中 tx seq 的最小值 |
-    | rx_seq_max | uint32 | 同 tx |
-    | rx_seq_min | uint32 | 同 tx |
-    | chunk_id | int | tcp 连接数据上报分段（通常 256 个包做一条数据上传）id， 从 1 开始 |
-    | chunk_syn | bool | 包含 syn 报文的 tcp 记录段|
-    | chunk_fin | bool | 包含 fin/rst 报文的 tcp 记录段|
-
-- `message` 中 `tcp` 的 map 中的字段
-
-    | 名称                | 类型  | 描述                                                                  |
-    | ------------------- | ----- | --------------------------------------------------------------------- |
-    | tx_first_byte_ts    | int   | 出网卡的首字节的时间                                                  |
-    | tx_last_byte_ts     | int   | 出网卡的最后字节的时间                                                |
-    | rx_first_byte_ts    | int   | 进网卡的首字节时间                                                    |
-    | rx_last_byte_ts     | int   | 出网卡的最后字节的时间                                                |
-    | tx_packets          | int   | 出网卡的数据包数                                                      |
-    | rx_packets          | int   | 进网卡的数据包数                                                      |
-    | tx_bytes            | int   | 网卡发送的字节数                                                      |
-    | rx_bytes            | int   | 网卡接收的字节数                                                      |
-    | tx_retrans          | int   | 出网卡的重传数                                                        |
-    | rx_retrans          | int   | 进网卡的重传数                                                        |
-    | tcp_rtt             | float | tcp rtt，单位毫秒                                                     |
-    | tcp_3whs_cost       | float | tcp 握手耗时，单位毫秒                                                |
-    | tcp_4whs_cost       | float | tcp 挥手耗时，单位毫秒                                                |
-    | tcp_syn_retrans     | int   | syn 报文重传数量                                                      |
-    | tcp_series_col_name | list  | tcp 序列的列名                                                        |
-    | tcp_3whs            | list  | tcp 三次握手的 tcp 协议数据包的 header 的序列                         |
-    | tcp_4whs            | list  | tcp 四次挥手 tcp 包头序列                                             |
-    | tcp_series          | list  | tcp 包头序列（识别出 L7 协议后裁切出 L7 请求响应相关的 tcp 包头序列） |
+- chunk_id
+  - 类型： int
+  - 描述： 一个 tcp 连接数据包信息将被分成几段上传，每一段有一个 chunk id
+- tx_seq_min
+  - 类型：uint32
+  - 描述：当前 chunk，src（出网卡数据包）这一侧的 tcp 序列号最小值
+- tx_seq_max
+  - 类型：uint32
+- rx_seq_min
+  - 类型：uint32
+  - 描述：当前 chunk，dsr（出网卡数据包）这一侧的 tcp 序列号最小值
+- rx_seq_max
+  - 类型：uint32
+- message
+  - 类型：string
+  - 描述：此次变更将导致 tcp_series 中 tx/rx 的 seq 要加上 tx/rx_seq_pos，time 加上 time_pos，mac 根据 mac_map 进行映射
+    ```json
+    {
+        "l4_proto": "tcp",
+        "tcp": {
+            "chunk_id": ...,
+            "mac_map": {...},
+            "tx_seq_pos": ...,
+            "rx_seq_pos": ...,
+            "time_pos": ...,
+            "tcp_series_col_name": ...,
+            "tcp_series": ...,
+        }
+    }
+    ```
 
 - `tcp_series`/`tcp_3(4)whs` 对应 `tcp_series_col_name` 列表参考字段
 
@@ -108,50 +143,42 @@
 
 ### L7 网络相关字段
 
-- Tag:
+标签：
 
-    | 名称        | 类型 | 描述                                                      |
-    | ----------- | ---- | --------------------------------------------------------- |
-    | l7_proto    | str  | 应用层网络协议                                            |
-    | http_path   | str  | http path                                                 |
-    | http_method | str  | http method                                               |
-    | l7_traceid  | str  | 应用层请求跟踪 id；结合网卡标签，可跟踪请求经过的各个网卡 |
-    | trace_id    | str  | APM trace id                                              |
-    | parent id   | str  | APM parent id                                             |
+- l7_traceid
+  - 类型：string
+  - 描述：应用层请求跟踪 id；结合网卡标签，可跟踪请求经过的各个网卡
+- trace_id
+  - 类型：string
+  - 描述：APM trace id
+- parent_id
+  - 类型：string
+  - 描述：APM parent id
+- l7_proto
+  - 类型：string
+  - 描述：应用层网络协议
+- http_path
+  - 类型：string
+  - 描述：http path
+- http_method
+  - 类型：string
+  - 描述：http method
+- http_status_code
+  - 类型：string
+  - 描述：http status code
 
-- Field:
+字段：
 
-    | 名称             | 类型 | 描述             |
-    | ---------------- | ---- | ---------------- |
-    | http_status_code | int  | http status code |
+- tx_seq
+  - 类型：int
+  - 描述：对应 l4log 的 tx seq
+- rx_seq
+  - 类型：int
+  - 描述：对应 l4log 的 rx seq
 
-- `message` 中 `http` 的 map 中的字段：
-
-    | 名称        | 类型 | 描述                                                                        |
-    | ----------- | ---- | --------------------------------------------------------------------------- |
-    | direction   | str  | `incoming`/`outgoing` 代表请求的方向，`incoming` 代表本机接收请求，为服务端 |
-    | trace_id    | str  | APM trace id                                                                |
-    | parent_id   | str  | APM parent id                                                               |
-    | path        | str  | http path                                                                   |
-    | param       | str  | http parameters                                                             |
-    | method      | str  | http method                                                                 |
-    | status_code | int  | http status code                                                            |
-    | pkt_chunk_range | list | tcp chunk id 的范围，如 [1,3]，该请求的涉及的数据包位于 1 ～ 3 的 tcp 记录中 |
-
-### K8s 公共字段
-
-如果 ip 和 port 能对应上 K8s 资源（使用 host network 的 pod 作为客户端时通常无法标记），将追加 K8s 相关标签
-
-- Tag:
-
-    | 名称                    | 类型 | 描述                  |
-    | ----------------------- | ---- | --------------------- |
-    | sub_source              | str  | 默认值 `K8s`          |
-    | src_k8s_namespace       | str  | 源对应的 K8s 资源名   |
-    | src_k8s_pod_name        | str  |                       |
-    | src_k8s_service_name    | str  |                       |
-    | src_k8s_deployment_name | str  |                       |
-    | dst_k8s_namespace       | str  | 目标对应的 K8s 资源名 |
-    | dst_k8s_pod_name        | str  |                       |
-    | dst_k8s_service_name    | str  |                       |
-    | dst_k8s_deployment_name | str  |                       |
+- req_seq
+  - 类型：string
+  - 描述：请求的 tcp 序列号，diection 为 outgoing 则对应 l4log 的 tx seq，否则为 rx。
+- resp_seq
+  - 类型：string
+  - 描述：响应的 tcp 序列号，diection 为 outgoing 则对应 l4log 的 rx seq，否则为 tx。

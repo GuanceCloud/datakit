@@ -27,10 +27,6 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 	tsnow := time.Now().UnixNano()
 	tags := buildCommTags(k, v, conns)
 
-	if v.tcpInfo.tcpRTT < 0 {
-		v.tcpInfo.tcpRTT = 0
-	}
-
 	{ // http log and metric
 		var feedHTTPElem []*HTTPLogElem
 		var keeplastHTTPElem []*HTTPLogElem
@@ -56,37 +52,6 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 			if kvs, reqTS, ok, err := buildHTTPLog(k, v, elem, tags,
 				&conns.aggHTTP, conns.nsUID, nicIPList); err != nil {
 				log.Errorf("build http log failed: %s", err.Error())
-			} else if ok && enableNetlog {
-				pts = append(pts, point.NewPointV2("bpf_net_l7_log", kvs, append(
-					opt, point.WithExtraTags(conns.tags), point.WithTime(time.Unix(0, reqTS)))...))
-			}
-		}
-	}
-
-	{ // http2 log and metric
-		var feedH2Elem []*HTTP2LogElem
-		if !rm {
-			var keeplastH2Elem []*HTTP2LogElem
-			for _, v := range v.http2Info.elems {
-				if v.hFinished {
-					feedH2Elem = append(feedH2Elem, v)
-				} else {
-					keeplastH2Elem = append(keeplastH2Elem, v)
-				}
-			}
-			v.http2Info.elems = keeplastH2Elem
-		} else {
-			feedH2Elem = v.http2Info.elems
-			v.http2Info.elems = nil
-		}
-
-		for _, elem := range feedH2Elem {
-			if elem.hState == 0 {
-				continue
-			}
-			if kvs, reqTS, ok, err := buildH2Log(k, v, elem, tags,
-				&conns.aggHTTP2, conns.nsUID, nicIPList); err != nil {
-				log.Errorf("build http2 log failed: %s", err.Error())
 			} else if ok && enableNetlog {
 				pts = append(pts, point.NewPointV2("bpf_net_l7_log", kvs, append(
 					opt, point.WithExtraTags(conns.tags), point.WithTime(time.Unix(0, reqTS)))...))
@@ -182,6 +147,7 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 			}
 		}
 
+		v.tcpInfo.metric.RTT = v.tcpInfo.rtt.getRTT() / int64(time.Microsecond)
 		if removeConn {
 			if !v.tcpInfo.metric.recClose[0] || v.tcpInfo.metric.recClose[1] {
 				v.tcpInfo.metric.recClose[0] = true
@@ -196,7 +162,8 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 
 		opt := append(point.CommonLoggingOptions(), point.WithTime(tn))
 
-		if ptsGot, err := conns.netlogConv2Point(&k, v, opt, removeConn, nicIPList); err == nil {
+		if ptsGot, err := conns.netlogConv2Point(&k, v, opt, removeConn,
+			nicIPList); err == nil && len(ptsGot) > 0 {
 			count += len(ptsGot)
 			pts = append(pts, ptsGot...)
 		} else {
@@ -235,6 +202,9 @@ func buildCommTags(k *PMeta, v *PValue, conns *TCPConns) map[string]string {
 		"vxlan_packet": strconv.FormatBool(k.VXLAN),
 	}
 
+	tags["host_network"] = strconv.FormatBool(conns.hostNetwork)
+	tags["virtual_nic"] = strconv.FormatBool(conns.virtualNIC)
+
 	if v.connTraceID != nil {
 		tags["inner_traceid"] = v.connTraceID.StringHex()
 	}
@@ -264,11 +234,23 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	kvs = kvs.Add("http_status_code", elem.StatusCode, false, true)
 	kvs = kvs.Add("http_method", elem.Method, true, true)
 	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
-		elem.reqSeq), 10), true, true)
+		elem.reqSeq), 10), false, true)
 	kvs = kvs.Add("resp_seq", strconv.FormatInt(int64(
-		elem.respSeq), 10), true, true)
+		elem.respSeq), 10), false, true)
 	kvs = kvs.Add("l7_traceid", fmt.Sprintf("%d_%d",
 		elem.reqSeq, elem.respSeq), true, true)
+
+	if elem.Direction == DOutging {
+		kvs = kvs.Add("tx_seq", int64(
+			elem.reqSeq), false, true)
+		kvs = kvs.Add("rx_seq", int64(
+			elem.respSeq), false, true)
+	} else {
+		kvs = kvs.Add("tx_seq", int64(
+			elem.respSeq), false, true)
+		kvs = kvs.Add("rx_seq", int64(
+			elem.reqSeq), false, true)
+	}
 
 	var reqDlDur, respDlDur float64
 	var reqTS int64
@@ -347,6 +329,8 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 	tags map[string]string, v *PValue,
 ) (point.KVs, int64, bool, error) {
 	kvs := point.NewTags(tags)
+	kvs = kvs.Add("direction", v.tcpInfo.direction.String(), true, true)
+	kvs = kvs.Add("l7_proto", v.tcpInfo.l7proto.String(), true, true)
 	kvs = kvs.Add("chunk_id", chunk.ChunkID, false, true)
 	kvs = kvs.Add("tx_seq_min", chunk.txSeq[0], false, true)
 	kvs = kvs.Add("tx_seq_max", chunk.txSeq[1], false, true)
@@ -370,14 +354,14 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 		}
 	}
 
-	kvs = kvs.Add("tcp_rtt", v.tcpInfo.tcpRTT, false, true)
+	kvs = kvs.Add("tcp_rtt", float64(v.tcpInfo.rtt.getRTT())/float64(time.Millisecond), false, true)
 	kvs = kvs.Add("tx_packets", chunk.TXPacket, false, true)
 	kvs = kvs.Add("rx_packets", chunk.RXPacket, false, true)
 	kvs = kvs.Add("tx_bytes", chunk.TxBytes, false, true)
 	kvs = kvs.Add("rx_bytes", chunk.RxBytes, false, true)
 	kvs = kvs.Add("tx_retrans", chunk.RetransmitsTx, false, true)
 	kvs = kvs.Add("tx_retrans", chunk.RetransmitsRx, false, true)
-	kvs = kvs.Add("tcp_syn_retrans", chunk.RetransmitsSYN, false, true)
+	kvs = kvs.Add("tcp_syn_retrans", v.tcpInfo.RetransmitsSYN, false, true)
 
 	chunk.TCPColName = _colsnames
 
@@ -399,6 +383,8 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 		return kvs, tsnow, true, nil
 	}
 }
+
+var _ = buildH2Log
 
 func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	agg *FlowAggHTTP, nsUID string, nicIPList []string,

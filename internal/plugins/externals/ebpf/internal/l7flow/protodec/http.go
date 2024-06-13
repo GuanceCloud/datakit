@@ -17,6 +17,7 @@ import (
 var _ ProtoDecPipe = (*httpDecPipe)(nil)
 
 var (
+	// skip http method: CONNECT, TRACE.
 	RequestPrefixHTTP  = regexp.MustCompile(`^(?:GET|PUT|POST|HEAD|PATCH|DELETE|OPTIONS) `)
 	ResponsePrefixHTTP = regexp.MustCompile(`^HTTP/\d.\d \d{3}`)
 )
@@ -125,8 +126,6 @@ func FindHTTPURI(payload []byte) string {
 
 func HTTPProtoDetect(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
 	if RequestPrefixHTTP.Match(data) {
-		return ProtoHTTP, newHTTPDecPipe(ProtoHTTP), true
-	} else if ResponsePrefixHTTP.Match(data) {
 		return ProtoHTTP, newHTTPDecPipe(ProtoHTTP), true
 	}
 

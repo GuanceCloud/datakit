@@ -192,6 +192,8 @@ func NewRunCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableMetric, "netlog-metric", false, "netlog metric")
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableLog, "netlog-log", false, "netlog log")
+	cmd.Flags().StringSliceVar(&opt.BPFNetLog.L7LogProtocols, "netlog-protocols", []string{"http"},
+		"netlog protocols list in 'a,b,...' format")
 
 	cmd.Flags().Int32Var(&opt.EBPFNet.EphemeralPort, "ephemeral_port", 0, "set ephemeral port")
 	cmd.Flags().Int32Var(&opt.EBPFNet.EphemeralPort, "ephemeral-port", 0, "set ephemeral port")
@@ -509,7 +511,8 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	if enableBpfNetlog {
 		log.Info(" >>> datakit bpf-netlog tracer(ebpf) starting ...")
 		blacklist := fl.BPFNetLog.NetFilter
-		l4log.ConfigFunc(fl.BPFNetLog.EnableLog, fl.BPFNetLog.EnableMetric)
+		l4log.ConfigFunc(fl.BPFNetLog.EnableLog, fl.BPFNetLog.EnableMetric,
+			fl.BPFNetLog.L7LogProtocols)
 
 		go l4log.NetLog(ctx, gTags, fmt.Sprintf("http://%s%s?input=",
 			exporter.DataKitAPIServer, point.Logging.URL())+url.QueryEscape(inputNameNetlog),

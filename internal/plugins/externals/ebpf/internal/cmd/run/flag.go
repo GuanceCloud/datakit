@@ -53,9 +53,10 @@ type FlagNet struct {
 }
 
 type FlagBPFNetLog struct {
-	EnableLog    bool   `toml:"enable_log"`
-	EnableMetric bool   `toml:"enable_metric"`
-	NetFilter    string `toml:"net_filter"`
+	EnableLog      bool     `toml:"enable_log"`
+	EnableMetric   bool     `toml:"enable_metric"`
+	L7LogProtocols []string `toml:"l7log_protocols"`
+	NetFilter      string   `toml:"net_filter"`
 }
 
 type FlagTrace struct {
