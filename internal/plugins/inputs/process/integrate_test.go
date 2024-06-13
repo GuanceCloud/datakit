@@ -84,9 +84,10 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		name string // Also used as build image name:tag.
 		conf string
 		opts []inputs.PointCheckOption
+		m    inputs.Measurement
 	}{
 		{
-			name: "process_no_metric",
+			name: "process_object",
 			conf: `min_run_time = "1s"
 			open_metric = false`, // set conf URL later.
 			opts: []inputs.PointCheckOption{
@@ -103,6 +104,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"listen_ports",
 				),
 			},
+			m: &ProcessObject{},
 		},
 		{
 			name: "process_metric",
@@ -113,6 +115,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"open_files",
 				),
 			},
+			m: &ProcessMetric{},
 		},
 	}
 
@@ -137,6 +140,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			name:   base.name,
 			feeder: feeder,
 			opts:   base.opts,
+			m:      base.m,
 
 			cr: &testutils.CaseResult{
 				Name:        t.Name(),
@@ -166,6 +170,8 @@ type caseSpec struct {
 	pool     *dockertest.Pool
 	resource *dockertest.Resource
 
+	m inputs.Measurement
+
 	cr *testutils.CaseResult
 }
 
@@ -179,11 +185,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 
 		switch measurement {
 		case inputName:
-			if _, ok := pt.MapTags()["name"]; ok {
-				opts = append(opts, inputs.WithDoc(&ProcessObject{}))
-			} else {
-				opts = append(opts, inputs.WithDoc(&ProcessMetric{}))
-			}
+			opts = append(opts, inputs.WithDoc(cs.m))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 

@@ -40,7 +40,7 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
 
@@ -55,7 +55,7 @@ ut-datakit-production:
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make lint AUTO_FIX=off
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
 

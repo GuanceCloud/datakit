@@ -589,8 +589,10 @@ type caseSpec struct {
 	optsRedisDB          []inputs.PointCheckOption
 	optsRedisInfoM       []inputs.PointCheckOption
 	optsRedisReplica     []inputs.PointCheckOption
-	cmd                  []string
-	mCount               map[string]struct{}
+	optsRedisSlowlog     []inputs.PointCheckOption
+
+	cmd    []string
+	mCount map[string]struct{}
 
 	ipt    *Input
 	feeder *io.MockedFeeder
@@ -618,7 +620,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -635,7 +636,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -652,7 +652,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -669,7 +668,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -686,7 +684,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -703,7 +700,6 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
@@ -720,12 +716,14 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
 			}
 
-			// TODO: error here
 			if len(msgs) > 0 {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
 			cs.mCount[redisReplica] = struct{}{}
+
+		case redisSlowlog:
+			// TODO:
 
 		default: // TODO: check other measurement
 			panic("unknown measurement: " + measurement)
