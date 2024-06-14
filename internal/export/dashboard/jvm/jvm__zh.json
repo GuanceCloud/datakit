@@ -1595,73 +1595,70 @@
         ],
         "type": "sequence"
       },
-      {
+			{
         "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "units": [],
             "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
             "compareColors": {
               "dayCompare": "rgba(11,11,12,0.5)",
               "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
             },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
             "compareColorsDark": {
               "dayCompare": "rgba(213,217,226,0.5)",
               "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
             },
+            "onlyShowGroupName": false,
             "compareColorsLight": {
               "dayCompare": "rgba(11,11,12,0.5)",
               "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
             },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
             "tableSortMetricName": "gc_major_collection_time",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "MajorrGC 耗时",
-                "name": "MajorrGC 耗时",
-                "unit": "",
-                "units": [
-                  "time",
-                  "ms"
-                ]
-              },
-              {
-                "key": "MinorGC 耗时",
-                "name": "MinorGC 耗时",
-                "unit": "",
-                "units": [
-                  "time",
-                  "ss"
-                ]
-              }
-            ],
-            "xAxisShowType": "time"
-          }
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
           "name": null
@@ -1673,115 +1670,143 @@
           "x": 16,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "MinorGC 耗时",
+              "q": "M::`jvm`:(avg(`gc_minor_collection_time`) AS `MinorGC 耗时`) { `host` = '#{host}' and `service` = '#{service}' and `env` = '#{env}' } BY `service`",
               "code": "B",
-              "dataSource": "jvm",
-              "field": "gc_minor_collection_time",
-              "fieldFunc": "avg",
               "fill": null,
+              "type": "simple",
+              "alias": "MinorGC 耗时",
+              "field": "gc_minor_collection_time",
               "fillNum": null,
               "filters": [
                 {
-                  "logic": "and",
+                  "id": "1f7e4200-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "host",
-                  "op": "=",
-                  "value": "#{host}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
+                  "id": "1f7e4201-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "service",
-                  "op": "=",
-                  "value": "#{service}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
+                  "id": "1f7e4202-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "env",
-                  "op": "=",
-                  "value": "#{env}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
-                  "name": "cluster_name_k8s",
+                  "id": "1f7e4203-29f1-11ef-b756-cdb22191330c",
                   "op": "=",
-                  "value": {}
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "",
+                  "values": []
                 }
               ],
-              "funcList": [],
               "groupBy": [
                 "service"
               ],
-              "groupByTime": "",
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
               "namespace": "metric",
-              "q": "M::`jvm`:(AVG(`gc_minor_collection_time`) AS `MinorGC 耗时`) { `host` = '#{host}' and `service` = '#{service}' and `env` = '#{env}' and 'cluster_name_k8s' =''} BY `service`",
+              "dataSource": "jvm",
               "queryFuncs": [],
-              "type": "dql",
-              "withLabels": []
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           },
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "MajorrGC 耗时",
+              "q": "M::`jvm`:(avg(`gc_major_collection_time`) AS `MajorGC 耗时`) { `host` = '#{host}' and `service` = '#{service}' and `env` = '#{env}' } BY `service`",
               "code": "A",
-              "dataSource": "jvm",
-              "field": "gc_major_collection_time",
-              "fieldFunc": "avg",
               "fill": null,
+              "type": "simple",
+              "alias": "MajorGC 耗时",
+              "field": "gc_major_collection_time",
               "fillNum": null,
               "filters": [
                 {
-                  "logic": "and",
+                  "id": "20afbd20-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "host",
-                  "op": "=",
-                  "value": "#{host}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
+                  "id": "20afbd21-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "service",
-                  "op": "=",
-                  "value": "#{service}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
+                  "id": "20afbd22-29f1-11ef-b756-cdb22191330c",
+                  "op": "=",
                   "name": "env",
-                  "op": "=",
-                  "value": "#{env}"
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
                 },
                 {
-                  "logic": "and",
-                  "name": "cluster_name_k8s",
+                  "id": "20afbd23-29f1-11ef-b756-cdb22191330c",
                   "op": "=",
-                  "value": {}
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "",
+                  "values": []
                 }
               ],
-              "funcList": [],
               "groupBy": [
                 "service"
               ],
-              "groupByTime": "",
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
               "namespace": "metric",
-              "q": "M::`jvm`:(AVG(`gc_major_collection_time`) AS `MajorrGC 耗时`) { `host` = '#{host}' and `service` = '#{service}' and `env` = '#{env}' and 'cluster_name_k8s' =''} BY `service`",
+              "dataSource": "jvm",
               "queryFuncs": [],
-              "type": "dql",
-              "withLabels": []
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {

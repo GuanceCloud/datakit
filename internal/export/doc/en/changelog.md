@@ -1,13 +1,13 @@
 # Changelog
 
-## 1.30.1 (June 12, 2024) {#cl-1.31.0}
+## 1.31.0 (June 13, 2024) {#cl-1.31.0}
 
 This release is an iterative update with the following main changes:
 
 ### New Features {#cl-1.31.0-new}
 
-- Added support for configuring sensitive information (such as database passwords) through encryption (#2249).
-- Introduced Prometheus Push Gateway metric pushing functionality (#2260).
+- Added support for [configuring sensitive information](datakit-conf.md#secrets_management) (such as database passwords) through encryption (#2249).
+- Introduced Prometheus [Push Gateway metric pushing](../integrations/pushgateway.md) functionality (#2260).
 - Added the ability to append corresponding Kubernetes Labels to container objects (#2252).
 - Enhanced eBPF tracing plugin with Redis protocol recognition (#2248).
 
