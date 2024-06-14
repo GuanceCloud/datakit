@@ -39,16 +39,14 @@ There are host deployment and Kubernetes deployment installation solutions:
 
 - Deploy the ELinker version of DataKit or DataKit on the host. The two methods will currently overwrite each other:
 
-  1. Install [*DataKit ELinker*](../datakit/datakit-install.md#elinker-install). This version does not contain the `ebpf` collector.
-  2. Install [*DataKit*](../datakit/datakit-install.md#get-install). This method may be deprecated later.
+    1. Install [*DataKit ELinker*](../datakit/datakit-install.md#elinker-install). This version does not contain the `ebpf` collector.
+    1. Install [*DataKit*](../datakit/datakit-install.md#get-install). This method may be deprecated later.
 
 - Deploy DataKit ELinker on Kubernetes:
-  Download [*datakit-elinker.yaml*](https://static.guance.com/datakit/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`,
-  You can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
 
-*In order to reduce the possibility of data pollution caused by misoperation, it is recommended to deploy DataKit ELinker instead of DataKit.*
+Download [*datakit-elinker.yaml*](https://static.guance.com/datakit/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`, we can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
 
-*The ELinker version of DataKit is about 50% and 75% smaller than the binary and image size of DataKit, respectively.*
+*In order to reduce the possibility of data pollution caused by misoperation, it is recommended to deploy DataKit ELinker instead of DataKit. The ELinker version of DataKit is about 50% and 75% smaller than the binary and image size of DataKit, respectively.*
 
 ## Configuration {#config}
 

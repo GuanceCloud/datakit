@@ -420,8 +420,9 @@ ulimit is configured to 64000 by default.
 
 CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if the limit `cpu_max` is 20.0 (that is, 20%), the maximum CPU consumption of DataKit, will be displayed as about 160% on the top command.
 
-
 ### Collector Password Protection {#secrets_management}
+
+[:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)
 
 If you wish to avoid storing passwords in plain text in configuration files, you can utilize this feature.
 

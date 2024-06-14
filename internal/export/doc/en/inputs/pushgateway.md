@@ -23,8 +23,6 @@ The Pushgateway collector will open the corresponding API interface to receive P
 
 ## Configuration  {#config}
 
-After successfully installing DataKit and starting it, the CPU collector will be enabled by default without manual activation.
-
 <!-- markdownlint-disable MD046 -->
 
 === "Host Deployment"
@@ -39,11 +37,11 @@ After successfully installing DataKit and starting it, the CPU collector will be
 
 === "Kubernetes"
 
-    You can enable the collector configuration through the [ConfigMap method injection](../datakit/datakit-daemonset-deploy.md#configmap-setting) or by setting [ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting).
+    You can enable the collector configuration through the [ConfigMap method injection](../datakit/datakit-daemonset-deploy.md#configmap-setting) or by setting [`ENV_DATAKIT_INPUTS`](../datakit/datakit-daemonset-deploy.md#env-setting).
 
-    It also supports modifying configuration parameters via environment variables (needs to be added as a default collector in ENV_DEFAULT_ENABLED_INPUTS):
+    It also supports modifying configuration parameters via environment variables (needs to be added as a default collector in `ENV_DEFAULT_ENABLED_INPUTS`):
 
-{{ CodeBlock .InputENVSampleZh 4 }}
+{{ CodeBlock .InputENVSample 4 }}
 
 <!-- markdownlint-enable -->
 

@@ -23,8 +23,6 @@ Pushgateway 采集器会开启对应的 API 接口，用于接收 Prometheus 指
 
 ## 配置  {#config}
 
-成功安装 DataKit 并启动后，会默认开启 CPU 采集器，无需手动开启。
-
 <!-- markdownlint-disable MD046 -->
 
 === "主机部署"
@@ -39,9 +37,9 @@ Pushgateway 采集器会开启对应的 API 接口，用于接收 Prometheus 指
 
 === "Kubernetes"
 
-    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 `ENV_DATAKIT_INPUTS`](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
-    也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
+    也支持以环境变量的方式修改配置参数（需要在 `ENV_DEFAULT_ENABLED_INPUTS` 中加为默认采集器）：
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
