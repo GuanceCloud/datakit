@@ -358,6 +358,10 @@ func (r *redisInfo) decodeSimpleType(output *[]byte, payload []byte, cond func(i
 		return !cond(i, byte(r)) || byte(r) == '\r'
 	})
 
+	if end == -1 {
+		return nil, errors.New("decode simple type error")
+	}
+
 	if end+2 > len(payload) || string(payload[end:end+2]) != customReturn {
 		return nil, errors.New("decode simple type error")
 	}
