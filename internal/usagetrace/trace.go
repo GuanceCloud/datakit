@@ -10,10 +10,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/netip"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -94,23 +97,67 @@ func doClearInputNames() UsageTraceOption {
 }
 
 func checkLoopbackServerListen(urlStr string) (bool, error) {
-	var host string
+	host := urlStr
 
-	if u, err := url.Parse(urlStr); err != nil {
-		l.Debugf("url.Parse: %s, ignored", err.Error())
-		host = urlStr
-	} else {
-		host = u.Host
+	// check if unix domain socket
+	if _, err := os.Stat(urlStr); err == nil {
+		l.Infof("local file(%q) as URL string", urlStr)
+		return true, nil
+	}
+
+	if strings.Contains(urlStr, "://") { // this is a url like udp://localhost:1234
+		if u, err := url.Parse(urlStr); err != nil {
+			l.Debugf("url.Parse: %s, ignored", err.Error())
+			host = urlStr
+		} else {
+			l.Debugf("url: %+#v", u)
+			host = u.Host
+		}
 	}
 
 	addrport, err := netip.ParseAddrPort(host)
 	if err != nil {
-		l.Warnf("invalid addr-port(%s): %s", err.Error())
-		return true, nil
+		l.Warnf("invalid addr-port(%q): %s", host, err.Error())
+
+		// For host like ':1234', the error is 'no IP', but this is a valid listen address.
+		arr := strings.Split(host, ":")
+		if len(arr) == 2 {
+			switch arr[0] {
+			case "":
+				return false, nil
+
+			default:
+				if isDomainLoopback(arr[0]) {
+					l.Infof("domain %q is loopback", arr[0])
+					return true, nil
+				} else {
+					return false, err
+				}
+			}
+		}
+
+		// on any other errors, not a loopback address.
+		return false, err
 	}
 
 	l.Debugf("addrport: %s, addr.Addr(): %s", addrport, addrport.Addr())
-	return addrport.IsValid() && !addrport.Addr().IsLoopback(), nil
+	return addrport.IsValid() && addrport.Addr().IsLoopback(), nil
+}
+
+func isDomainLoopback(domain string) bool {
+	ips, err := net.LookupIP(domain)
+	if err == nil {
+		for _, ip := range ips {
+			if !ip.IsLoopback() {
+				return false
+			}
+		}
+	} else {
+		l.Warnf("Lookup (%q): %s", domain, err.Error())
+		return false
+	}
+
+	return true
 }
 
 func WithUpgraderServer(s string) UsageTraceOption {
@@ -126,7 +173,7 @@ func WithServerListens(listens ...string) UsageTraceOption {
 			if ok, err := checkLoopbackServerListen(urlStr); err != nil {
 				l.Warnf("checkLoopbackServerListen: %s, ignored", err.Error())
 				continue
-			} else if ok {
+			} else if !ok { // not loopback listen
 				l.Infof("add server listen %q", urlStr)
 				ut.ServerListens = append(ut.ServerListens, urlStr)
 			}
