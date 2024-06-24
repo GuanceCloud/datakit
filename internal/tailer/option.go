@@ -87,7 +87,7 @@ func WithSource(s string) Option {
 func WithService(s string) Option {
 	return func(opt *option) {
 		if s == "" {
-			return
+			s = opt.source
 		}
 		opt.service = s
 		if opt.globalTags == nil {
