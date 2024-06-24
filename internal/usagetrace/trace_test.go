@@ -7,6 +7,7 @@ package usagetrace
 
 import (
 	"encoding/json"
+	"os"
 	"runtime"
 	"sync"
 	T "testing"
@@ -148,48 +149,110 @@ func TestUsageTrace(t *T.T) {
 	})
 }
 
-func TestURLParse(t *T.T) {
-	ok, err := checkLoopbackServerListen("1.2.3.4:1234")
-	assert.NoError(t, err)
-	assert.True(t, ok)
+func Test_checkLoopbackServerListen(t *T.T) {
+	t.Run("1.2.3.4:1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("1.2.3.4:1234")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("tcp://1.2.3.4:1234")
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("tcp://1.2.3.4:1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("tcp://1.2.3.4:1234")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("udp://1.2.3.4:1234")
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("udp://1.2.3.4:1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("udp://1.2.3.4:1234")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("udp://1.2.3:1234") // invalid IP
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("udp://1.2.3:1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("udp://1.2.3:1234") // invalid IP
+		assert.Error(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("udp://1.2.3.4:0")
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("udp://1.2.3.4:0", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("udp://1.2.3.4:0")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("udp://127.0.0.1:0")
-	assert.NoError(t, err)
-	assert.False(t, ok)
+	t.Run(":1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen(":1234")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("udp://localhost:0") // invalid IP
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("udp://127.0.0.1:0", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("udp://127.0.0.1:0")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen(":1234") // treat as 0.0.0.0
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("udp://localhost:0", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("udp://localhost:0") // invalid IP
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("0.0.0.0:1234")
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("6666", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("6666") // invalid port
+		assert.Error(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("0.0.0.0:66666") // invalid port
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("0.0.0.0:66666", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("0.0.0.0:66666") // invalid port
+		assert.Error(t, err)
+		assert.False(t, ok)
+	})
 
-	ok, err = checkLoopbackServerListen("6666") // invalid port
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	t.Run("0.0.0.0:1234", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("0.0.0.0:1234")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
+
+	t.Run("localhost:9529", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("localhost:9529")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("127.0.0.1:9529", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("127.0.0.1:9529")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("127.x", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("127.1.1.1:9529")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("domain-socket", func(t *T.T) {
+		f, err := os.CreateTemp("", "uds.sock")
+		assert.NoError(t, err)
+		defer os.Remove(f.Name())
+
+		ok, err := checkLoopbackServerListen(f.Name())
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("loopback-ipv6", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("[::1]:9529")
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("all-ipv6", func(t *T.T) {
+		ok, err := checkLoopbackServerListen("[::]:9529")
+		assert.NoError(t, err)
+		assert.False(t, ok)
+	})
 }
