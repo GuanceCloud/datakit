@@ -35,18 +35,30 @@ var (
   ## Instance name. If not specified, a connection to the default instance is made.
   instance_name = ""
 
-  ## (optional) collection interval, default is 10s
-  interval = "10s"
+  ## Database name to query. Default is master.
+  database = "master"
 
   ## by default, support TLS 1.2 and above.
   ## set to true if server side uses TLS 1.0 or TLS 1.1
   allow_tls10 = false
 
+  ## connection timeout default: 30s
+  connect_timeout = "30s"
+
+  ## parameters to be added to the connection string
+  ## Examples:
+  ##   "encrypt=disable"
+  ##   "certificate=/path/to/cert.pem"
+  ## reference: https://github.com/microsoft/go-mssqldb?tab=readme-ov-file#connection-parameters-and-dsn 
+  #
+  # connection_parameters = "encrypt=disable"
+
+  ## (optional) collection interval, default is 10s
+  interval = "10s"
+
+
   ## Set true to enable election
   election = true
-
-  ## Database name to query. Default is master.
-  database = "master"
 
   ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
   ## If leave blank, no metric from any database is filtered out.
@@ -114,16 +126,20 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host         string            `toml:"host"`
-	User         string            `toml:"user"`
-	Password     string            `toml:"password"`
-	Interval     datakit.Duration  `toml:"interval"`
-	InstanceName string            `toml:"instance_name"`
-	Tags         map[string]string `toml:"tags"`
-	Log          *sqlserverlog     `toml:"log"`
-	Database     string            `toml:"database,omitempty"`
-	CustomQuery  []*customQuery    `toml:"custom_queries"`
-	AllowTLS10   bool              `toml:"allow_tls10,omitempty"`
+	Host                 string            `toml:"host"`
+	User                 string            `toml:"user"`
+	Password             string            `toml:"password"`
+	Interval             datakit.Duration  `toml:"interval"`
+	InstanceName         string            `toml:"instance_name"`
+	ConnectionParameters string            `toml:"connection_parameters,omitempty"`
+	Tags                 map[string]string `toml:"tags"`
+	Log                  *sqlserverlog     `toml:"log"`
+	Database             string            `toml:"database,omitempty"`
+	CustomQuery          []*customQuery    `toml:"custom_queries"`
+	AllowTLS10           bool              `toml:"allow_tls10,omitempty"`
+
+	Timeout         string `toml:"connect_timeout"`
+	timeoutDuration time.Duration
 
 	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
 	ExcludeQuery           []string `toml:"exclude_query,omitempty"`

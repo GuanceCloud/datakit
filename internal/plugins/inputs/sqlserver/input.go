@@ -8,7 +8,6 @@ package sqlserver
 
 import (
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"math"
@@ -136,7 +135,9 @@ func (ipt *Input) getCustomQueryMetrics() {
 }
 
 func (ipt *Input) getPerformanceCounters() {
-	rows, err := ipt.db.Query(sqlServerPerformanceCounters)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+	rows, err := ipt.db.QueryContext(ctx, sqlServerPerformanceCounters)
 	if err != nil {
 		l.Error(err.Error())
 		ipt.lastErr = err
@@ -291,8 +292,32 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 }
 
 func (ipt *Input) initDB() error {
-	connStr := fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", url.PathEscape(ipt.User), url.PathEscape(ipt.Password), url.PathEscape(ipt.Host))
-	cfg, err := msdsn.Parse(connStr)
+	query := url.Values{}
+	if ipt.AllowTLS10 {
+		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
+		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
+		query.Add("tlsmin", "1.0")
+	}
+
+	if len(ipt.ConnectionParameters) > 0 {
+		paramsQuery, err := url.ParseQuery(ipt.ConnectionParameters)
+		if err != nil {
+			return fmt.Errorf("parse connection_parameters failed: %w", err)
+		}
+
+		for k, v := range paramsQuery {
+			query.Set(k, v[0])
+		}
+	}
+
+	u := &url.URL{
+		Scheme:   "sqlserver",
+		User:     url.UserPassword(ipt.User, ipt.Password),
+		Host:     ipt.Host,
+		RawQuery: query.Encode(),
+	}
+
+	cfg, err := msdsn.Parse(u.String())
 	if err != nil {
 		return err
 	}
@@ -301,15 +326,12 @@ func (ipt *Input) initDB() error {
 		cfg.Instance = ipt.InstanceName
 	}
 
-	if ipt.AllowTLS10 {
-		// Because go1.18 defaults client-sids's TLS minimum version to TLS 1.2,
-		// we need to configure MinVersion manually to enable TLS 1.0 and TLS 1.1.
-		cfg.TLSConfig.MinVersion = tls.VersionTLS10
-	}
 	conn := mssql.NewConnectorConfig(cfg)
 	db := sql.OpenDB(conn)
 
-	if err := db.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
 		db.Close() //nolint:errcheck,gosec
 		return err
 	}
@@ -403,6 +425,7 @@ func (ipt *Input) Run() {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
+			l.Infof("start to collect")
 			ipt.getMetric()
 			if len(collectCache) > 0 {
 				err := ipt.feeder.FeedV2(point.Metric, collectCache,
@@ -504,7 +527,9 @@ func (ipt *Input) getMetric() {
 }
 
 func (ipt *Input) handRow(query string, ts time.Time, isLogging bool) {
-	rows, err := ipt.db.Query(query)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+	rows, err := ipt.db.QueryContext(ctx, query)
 	if err != nil {
 		l.Error(err.Error())
 		ipt.lastErr = err
@@ -631,6 +656,11 @@ func (ipt *Input) init() {
 	ipt.collectFuncs = map[string]func() error{
 		"sqlserver_database_files": ipt.getDatabaseFilesMetrics,
 	}
+	var err error
+	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
+	if err != nil {
+		ipt.timeoutDuration = 30 * time.Second
+	}
 
 	ipt.initDBFilterMap()
 }
@@ -690,7 +720,9 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 }
 
 func (ipt *Input) query(sql string) (resRows []map[string]*interface{}, err error) {
-	rows, err := ipt.db.Query(sql)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+	rows, err := ipt.db.QueryContext(ctx, sql)
 	if err != nil {
 		return
 	}
