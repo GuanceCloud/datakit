@@ -180,7 +180,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
     reserved_capacity = 4096
 ```
 
-同时，[Datakit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码，相比 v1，它的内存和 CPU 开销都更低。
+同时，[Datakit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码（[:octicons-tag-24: Version-1.32.0](changelog.md#cl-1.32.0) 已默认启用 v2），相比 v1，它的内存和 CPU 开销都更低。
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

@@ -58,6 +58,11 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.Dataway.DeprecatedURL = ""
 		c.Dataway.HTTPProxy = Proxy
 
+		if c.Dataway.ContentEncoding == "v1" {
+			l.Infof("switch default content-encoding from v1 to v2")
+			c.Dataway.ContentEncoding = "v2"
+		}
+
 		if c.Dataway.DeprecatedHTTPTimeout != "" {
 			du, err := time.ParseDuration(c.Dataway.DeprecatedHTTPTimeout)
 			if err == nil {
