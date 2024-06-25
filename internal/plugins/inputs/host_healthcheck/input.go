@@ -332,6 +332,9 @@ func filterHTTPEmptyValues(list []string) []string {
 	filterList := []string{}
 
 	for _, v := range list {
+		if len(v) == 0 {
+			continue
+		}
 		if _, err := url.Parse(v); err != nil {
 			l.Warnf("parse URL failed: %s, ignore this check", err.Error())
 			continue

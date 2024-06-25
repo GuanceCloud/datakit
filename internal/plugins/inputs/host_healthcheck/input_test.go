@@ -101,11 +101,12 @@ func TestTCP(t *testing.T) {
 
 		assert.NoError(t, input.Collect())
 
+		assert.NotEmpty(t, input.collectCache)
+		p := input.collectCache[0]
 		if !cs.IsFail {
-			assert.Empty(t, input.collectCache)
+			assert.Equal(t, noneType, p.GetTag("type"))
+			assert.Equal(t, false, input.collectCache[0].Fields().Get("exception").GetB())
 		} else {
-			assert.NotEmpty(t, input.collectCache)
-			p := input.collectCache[0]
 			assert.Equal(t, p.Name(), tcpMetricName)
 			if len(cs.FailType) > 0 {
 				failType := p.GetTag("type")
@@ -196,11 +197,12 @@ func TestHTTP(t *testing.T) {
 		input.initConfig()
 
 		assert.NoError(t, input.Collect())
+		assert.NotEmpty(t, input.collectCache)
 
 		if !cs.IsFail {
-			assert.Empty(t, input.collectCache)
+			assert.Equal(t, false, input.collectCache[0].Fields().Get("exception").GetB())
 		} else {
-			assert.NotEmpty(t, input.collectCache)
+			assert.NotEmpty(t, input.collectCache[0].GetTag("error"))
 		}
 		server.Close()
 	}

@@ -53,29 +53,31 @@ func (ipt *Input) collectTCP() error {
 
 			tags, fields := task.GetResults()
 
+			var kvs point.KVs
+			kvs = kvs.Add("port", ip, true, true)
+			kvs = kvs.Add("exception", false, false, true)
+			kvs = kvs.Add("type", noneType, true, true)
+
 			if tags["status"] == "FAIL" {
+				failType := "unknown-type"
+				kvs = kvs.Add("exception", true, false, true)
 				if reason, ok := fields["fail_reason"].(string); ok {
-					failType := "unknown-type"
 					if strings.Contains(reason, "i/o timeout") {
 						failType = "connection-timeout"
 					} else if strings.Contains(reason, "connection refused") {
 						failType = "connection-refused"
 					}
-					var kvs point.KVs
-					kvs = kvs.Add("type", failType, true, true)
-					kvs = kvs.Add("port", ip, true, true)
-					kvs = kvs.Add("exception", true, false, true)
-
-					for k, v := range ipt.mergedTags {
-						kvs = kvs.AddTag(k, v)
-					}
-
-					opts := point.DefaultMetricOptions()
-					opts = append(opts, point.WithTime(ts))
-
-					ipt.collectCache = append(ipt.collectCache, point.NewPointV2(tcpMetricName, kvs, opts...))
 				}
+				kvs = kvs.Add("type", failType, true, true)
 			}
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
+			}
+
+			opts := point.DefaultMetricOptions()
+			opts = append(opts, point.WithTime(ts))
+
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(tcpMetricName, kvs, opts...))
 		}
 	}
 
