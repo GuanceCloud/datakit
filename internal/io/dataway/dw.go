@@ -74,7 +74,7 @@ func NewDefaultDataway() *Dataway {
 		IdleTimeout:        90 * time.Second,
 		MaxRawBodySize:     DefaultMaxRawBodySize,
 		GlobalCustomerKeys: []string{},
-		ContentEncoding:    "v1",
+		ContentEncoding:    "v2",
 		GZip:               true,
 		MaxRetryCount:      DefaultRetryCount,
 		RetryDelay:         DefaultRetryDelay,

@@ -224,7 +224,7 @@ ulimit = 64000
   # HTTP body content type, other candidates are(case insensitive):
   #  - v1: line-protocol
   #  - v2: protobuf
-  content_encoding = "v1"
+  content_encoding = "v2"
 
   # Enable GZip to upload point data.
   #
