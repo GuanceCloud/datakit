@@ -316,7 +316,10 @@ func (cpp *ReservedCapPointPool) GetKV(k string, v any) *Field {
 		arr, err = NewAnyArray(x...)
 
 	default: // for nil or other types
-		return nil
+		return &Field{
+			Key: k,
+			Val: newVal(v),
+		}
 	}
 
 	// there are array types.
