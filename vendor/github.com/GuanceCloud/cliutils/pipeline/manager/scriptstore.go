@@ -294,33 +294,27 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string,
 		stats.WriteEvent(&change, sTags)
 	}
 
-	needDelete := map[string]*PlScript{}
-
-	// 在 storage & index 执行删除以及更新操作
+	// 如果上一次的集合中的脚本不存在于当前结果，则删除
 	for name, curScript := range store.storage.scripts[ns] {
-		if newScript, ok := retScripts[name]; ok {
+		if newScript, ok := retScripts[name]; ok { // 有更新
 			store.storage.scripts[ns][name] = newScript
 			stats.WriteUpdateTime(newScript.tags)
 			store.indexUpdate(newScript)
-		}
-		needDelete[name] = curScript
-	}
-
-	for name, scriptDel := range needDelete {
-		stats.WriteUpdateTime(scriptDel.tags)
-		store.indexDeleteAndBack(name, ns, store.storage.scripts)
-
-		if v, ok := store.storage.scripts[ns][name]; ok {
-			if v.plBuks != nil {
-				v.plBuks.StopAllBukScanner()
-			}
-			if v.cache != nil {
-				v.cache.Stop()
-			}
-			if v.ptWindow != nil {
-				v.ptWindow.Deprecated()
-			}
+		} else { // 删除
+			stats.WriteUpdateTime(curScript.tags)
+			store.indexDeleteAndBack(name, ns, store.storage.scripts)
 			delete(store.storage.scripts[ns], name)
+		}
+
+		// 清理之前一个脚本的资源
+		if curScript.plBuks != nil {
+			curScript.plBuks.StopAllBukScanner()
+		}
+		if curScript.cache != nil {
+			curScript.cache.Stop()
+		}
+		if curScript.ptWindow != nil {
+			curScript.ptWindow.Deprecated()
 		}
 	}
 
