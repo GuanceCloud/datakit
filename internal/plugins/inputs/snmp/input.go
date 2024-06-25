@@ -496,6 +496,7 @@ func (ipt *Input) checkIPWorking(deviceIP string) {
 		l.Debugf("IP working: %s", deviceIP)
 
 		tk := time.NewTicker(time.Second)
+		defer tk.Stop()
 
 		select {
 		case <-tk.C:
