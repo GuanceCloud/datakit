@@ -54,24 +54,26 @@ func (ipt *Input) collectHTTP() error {
 			}
 
 			tags, fields := task.GetResults()
+			var kvs point.KVs
+			kvs = kvs.Add("url", url, true, true)
+			kvs = kvs.Add("exception", false, false, true)
+			kvs = kvs.Add("error", "none", true, true)
 
 			if tags["status"] == "FAIL" {
+				kvs = kvs.Add("exception", true, false, true)
 				if reason, ok := fields["fail_reason"].(string); ok {
-					var kvs point.KVs
-					kvs = kvs.Add("url", url, true, true)
 					kvs = kvs.Add("error", reason, true, true)
-					kvs = kvs.Add("exception", true, false, true)
-
-					for k, v := range ipt.mergedTags {
-						kvs = kvs.AddTag(k, v)
-					}
-
-					opts := point.DefaultMetricOptions()
-					opts = append(opts, point.WithTime(ts))
-
-					ipt.collectCache = append(ipt.collectCache, point.NewPointV2(httpMetricName, kvs, opts...))
 				}
 			}
+
+			for k, v := range ipt.mergedTags {
+				kvs = kvs.AddTag(k, v)
+			}
+
+			opts := point.DefaultMetricOptions()
+			opts = append(opts, point.WithTime(ts))
+
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(httpMetricName, kvs, opts...))
 		}
 	}
 
