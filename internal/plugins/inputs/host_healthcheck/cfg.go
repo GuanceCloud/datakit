@@ -12,6 +12,7 @@ import (
 const (
 	inputName = "host_healthcheck"
 	category  = "host"
+	noneType  = "none"
 
 	sampleConfig = `
 [[inputs.host_healthcheck]]
@@ -82,7 +83,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 		Name: processMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
+			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 			"pid":            newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.Int, "The process ID"),
 			"start_duration": newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationUS, "The total time the process has run"),
 		},
@@ -103,7 +104,7 @@ func (m *TCPMetric) Info() *inputs.MeasurementInfo {
 		Name: tcpMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
+			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 		},
 		Tags: map[string]interface{}{
 			"type": inputs.NewTagInfo("The type of the exception"),
@@ -121,7 +122,7 @@ func (m *HTTPMetric) Info() *inputs.MeasurementInfo {
 		Name: httpMetricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 is default"),
+			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 		},
 		Tags: map[string]interface{}{
 			"url":   inputs.NewTagInfo("The URL"),
