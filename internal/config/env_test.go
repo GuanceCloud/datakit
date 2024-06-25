@@ -122,7 +122,7 @@ func TestLoadEnv(t *testing.T) {
 					EnableHTTPTrace:     true,
 					IdleTimeout:         90 * time.Second,
 					HTTPTimeout:         30 * time.Second,
-					ContentEncoding:     "v1",
+					ContentEncoding:     "v2",
 					MaxRetryCount:       dataway.DefaultRetryCount,
 					InsecureSkipVerify:  true,
 					RetryDelay:          dataway.DefaultRetryDelay,

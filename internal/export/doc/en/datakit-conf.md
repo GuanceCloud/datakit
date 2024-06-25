@@ -180,7 +180,7 @@ To optimize Datakit's memory usage under high load conditions, we can enable *Po
     reserved_capacity = 4096
 ```
 
-We can also enable `content_encoding = "v2"` under [Dataway configure](datakit-conf.md#dataway-settings), with v2 encoding, it has lower memory and CPU overhead compared to v1.
+We can also enable `content_encoding = "v2"`([:octicons-tag-24: Version-1.32.0](changelog.md#cl-1.32.0) has enabled v2 by default) under [Dataway configure](datakit-conf.md#dataway-settings), with v2 encoding, it has lower memory and CPU overhead compared to v1.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

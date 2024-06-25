@@ -263,6 +263,21 @@ func TestUpgradeMainConfig(t *T.T) {
 				return c
 			}(),
 		},
+
+		{
+			name: "default-encoding-v2",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.ContentEncoding = "v1"
+
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				return c
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
