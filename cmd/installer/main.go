@@ -187,6 +187,9 @@ func init() {
 	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 30.0, "CPU max usage")
 	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 5.0, "CPU min usage")
 	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 4096, "memory limit")
+
+	flag.StringVar(&installer.CryptoAESKey, "crypto-aes_key", "", "ENC crypto for AES key")
+	flag.StringVar(&installer.CryptoAESKeyFile, "crypto-aes_key_file", "", "ENC crypto for AES key filepath")
 }
 
 func setDatakitLiteAndELinker() {
