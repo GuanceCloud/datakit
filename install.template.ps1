@@ -483,6 +483,20 @@ if ($x -ne $null) {
 	Write-COutput green "* Set global_customer_keys => $x"
 }
 
+$crypto_aes_key=""
+$x = [Environment]::GetEnvironmentVariable("DK_CRYPTO_AES_KEY")
+if ($x -ne $null) {
+	$crypto_aes_key = $x
+	Write-COutput green "* Set crypto_aes_key => $x"
+}
+
+$crypto_aes_key_file=""
+$x = [Environment]::GetEnvironmentVariable("DK_CRYPTO_AES_KEY_FILE")
+if ($x -ne $null) {
+	$crypto_aes_key_file = $x
+	Write-COutput green "* Set crypto_aes_key_file => $x"
+}
+
 Write-COutput green "* Apply all DK_* envs done."
 
 ##########################
@@ -583,6 +597,8 @@ if ($upgrade -ne $null) { # upgrade
 			"--pprof-listen='${pprof_listen}'",
 			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
 			"--enable-dataway-sinker='${enable_sinker}'",
+			"--crypto-aes_key='${crypto_aes_key}'",
+			"--crypto-aes_key_file='${crypto_aes_key_file}'",
 			"--sinker-global-customer-keys='${global_customer_keys}'" # Do NOT add trailing `,' here!
 				)
 }

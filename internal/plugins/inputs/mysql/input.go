@@ -301,7 +301,7 @@ func (ipt *Input) initCfg() error {
 
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
-		l.Errorf("sql.Open(): %s", err.Error())
+		l.Errorf("sql.Open(): %s ,and db data source=%s", err.Error(), dsnStr)
 		return err
 	} else {
 		ipt.db = db
@@ -311,7 +311,7 @@ func (ipt *Input) initCfg() error {
 	defer cancel()
 
 	if err := ipt.db.PingContext(ctx); err != nil {
-		l.Errorf("init config connect error %v", err)
+		l.Errorf("init config connect error %v db data source=%s", err, dsnStr)
 		ipt.db.Close() //nolint:errcheck,gosec
 		return err
 	}

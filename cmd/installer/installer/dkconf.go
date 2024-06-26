@@ -131,7 +131,9 @@ var (
 	LimitCPUMax float64
 	LimitCPUMin float64 // deprecated
 
-	LimitMemMax int64
+	LimitMemMax      int64
+	CryptoAESKey     string
+	CryptoAESKeyFile string
 )
 
 // generate default inputs list.
