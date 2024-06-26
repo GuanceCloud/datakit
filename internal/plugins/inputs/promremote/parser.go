@@ -18,6 +18,7 @@ import (
 )
 
 type Parser struct {
+	JobAsMeasurement      bool         `toml:"job_as_measurement"`
 	MetricNameFilter      []string     `toml:"metric_name_filter"`
 	MeasurementNameFilter []string     `toml:"measurement_name_filter"`
 	MeasurementPrefix     string       `toml:"measurement_prefix"`
@@ -76,7 +77,7 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 			return nil, fmt.Errorf("metric name %q not found in tag-set or empty", model.MetricNameLabel)
 		}
 
-		measurementName, metricName := p.getNames(metric)
+		measurementName, metricName := p.getNames(metric, string(tags["job"]))
 
 		if !p.shouldFilterMeasurementName(measurementName) {
 			continue

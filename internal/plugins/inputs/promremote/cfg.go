@@ -37,6 +37,10 @@ const (
   # if specified, you can use 'datakit --prom-conf /path/to/this/conf' to debug collected data
   # output = "/abs/path/file"
 
+  ## If job_as_measurement is true, use the job field for the measurement name.
+  ## The measurement_name configuration takes precedence.
+  job_as_measurement = false
+
   ## Metric name filter
   # Regex is supported.
   # Only metric matches one of the regex can pass through. No filter if left empty.

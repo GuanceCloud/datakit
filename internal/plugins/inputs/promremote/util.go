@@ -39,9 +39,12 @@ func (p *Parser) shouldFilterMeasurementName(metric string) bool {
 	return false
 }
 
-func (p *Parser) getNames(metric string) (measurementName, metricName string) {
+func (p *Parser) getNames(metric, job string) (measurementName, metricName string) {
 	if p.MeasurementName != "" {
 		return p.MeasurementPrefix + p.MeasurementName, metric
+	}
+	if p.JobAsMeasurement && job != "" {
+		return job, metric
 	}
 	// Split measurement name and metric name by the first '_' met.
 	measurementName, metricName = p.getNamesByDefaultRule(metric)
