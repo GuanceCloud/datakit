@@ -15,22 +15,79 @@ There are two ways to obtain the version number:
 - Request the DataKit ping interface: `curl http://ip:9529/v1/ping`
 - In the response header of each of the following API requests, the current DataKit version for the request can be identified through `X-DataKit`
 
-## `/v1/write/:category` {#api-v1-write}
+## `/v1/write/:category` | `POST` {#api-v1-write}
 
-This API is used to report various types of data (`category`) to DataKit. The URL parameter description is as follows:
+This API is used to upload(`POST`) various data (`category`) to DataKit. The URL parameters are explained as follows:
 
-| Parameter                 | Type   | Required | Default Value  | Description                                                                                                                                                                                                                                              |
-| ---                       | ---    | ---      | ---            | ---                                                                                                                                                                                                                                                      |
-| `category`                | string | Y        | -              | Currently only supports `metric,logging,rum,object,custom_object,keyevent`. For example, for `metric`, the URL should be written as `/v1/write/metric`                                                                                                   |
-| `dry`                     | bool   | N        | false          | Test mode, which only POSTs the Point to Datakit without actually uploading it to the observation cloud ([:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0))                                                                                     |
-| `echo`                    | string | N        | -              | Optional values `lp/json/pbjson`, `lp` represents the line protocol form in the returned Body for the uploaded Point, followed by [regular JSON](apis.md#api-v1-write-body-json-protocol) and [advanced JSON](apis.md#api-v1-write-body-pbjson-protocol) |
-| `global_election_tags`    | bool   | N        | false          | Whether to append *global election tags* ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6))                                                                                                                                                      |
-| `ignore_global_host_tags` | bool   | N        | -              | Whether to ignore DataKit's *global host tags* ([:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6))                                                                                                                                                |
-| `input`                   | string | N        | `datakit-http` | The name of the data source, which will be displayed on Datakit monitor for easy debugging ([:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0))                                                                                                  |
-| `loose`                   | bool   | N        | true           | Whether it's loose mode, for some non-compliant Points, DataKit will try to fix them ([:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11))                                                                                                        |
-| `precision`               | string | N        |                | Data precision (supports `n/u/ms/s/m/h`), if the parameter is not passed, the time precision will be automatically recognized ([:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0))                                                               |
-| `source`                  | string | N        | -              | If `source` is not specified (or the corresponding *source.p* does not exist or is invalid), the uploaded Point data will not execute Pipeline                                                                                                           |
-| `strict`                  | bool   | N        | false          | Strict mode, for some non-compliant line protocols, the API will report an error directly and inform the specific reasons ([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9))                                                                     |
+**`category`**
+
+- Type: string
+- Required: N
+- Default value: -
+- Description: Currently only supports `metric,logging,rum,object,custom_object,keyevent`, for example `metric`, the URL should be written as `/v1/write/metric`
+
+**`dry`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- Type: bool
+- Required: N
+- Default value: false
+- Description: Test mode, just POST Point to Datakit, not actually uploaded to the observation cloud
+
+**`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- Type: enum
+- Required: N
+- Default value: -
+- Description: Optional values `lp/json/pbjson`, `lp` indicates that the uploaded Point is represented in line protocol format in the returned Body, followed by [normal JSON](apis.md#api-v1-write-body-json-protocol) and [PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
+
+**`global_election_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+
+- Type: bool
+- Required: N
+- Default value: false
+- Description: Whether to append [global election tags](datakit-conf.md#set-global-tag)
+
+**`ignore_global_host_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+
+- Type: bool
+- Required: N
+- Default value: false
+- Description: Whether to ignore the [global host tags](datakit-conf.md#set-global-tag) on DataKit. By default, the data written by this interface will carry the global host tag
+
+**`input`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- Type: string
+- Required: N
+- Default value: `datakit-http`
+- Description: Data source name, which will be displayed on the Datakit monitor for debugging
+
+**`loose`** [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)
+
+- Type: bool
+- Required: N
+- Default value: true
+- Description: Whether to be in loose mode, for some non-compliant Points, DataKit will try to fix them
+
+**`precision`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- Type: enum
+- Required: N
+- Default value: -
+- Description: Data precision (supports `n/u/ms/s/m/h`). If the parameter is not passed in, the timestamp precision will be automatically recognized
+
+**`source`**
+
+- Type: string
+- Required: N
+- Default value: -
+- Description: If `source` is not specified (or the corresponding *source.p* does not exist or is invalid), the uploaded Point data will not execute the Pipeline
+
+**`strict`** [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
+
+- Type: bool
+- Required: N
+- Default value: false
+- Description: Strict mode, for some non-compliant line protocols, the API directly reports an error and tells the specific reason
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -396,28 +453,28 @@ In the Datakit logs, if the line protocol is incorrect, the content of `message`
 
 ### Verifying Uploaded Data {#review-post-point}
 
-The `echo` parameter can be used to review the uploaded data for debugging to see if the data is processed as expected:
+No matter which method (`lp`/`pbjson`/`json`) is used to upload data, DataKit will *attempt to make some corrections* to the data. These corrections may not be as expected, but we can use the `echo` parameter to view the final data:
 
 <!-- markdownlint-disable MD046 -->
-=== "Advanced JSON form (`ebco=pbjson`)"
+=== "PB-JSON(`echo=pbjson`)"
 
-    Presented in [advanced JSON format](apis.md#api-v1-write-body-pbjson-protocol). If the Point structure is automatically corrected, the JSON will have an additional `warns` field on the specific Point to indicate the reason for the correction.
+    Compared to the other two methods, using the [PB-JSON](apis.md#api-v1-write-body-pbjson-protocol) method allows you to see the details and reasons for the correction. If the Point structure is automatically corrected, the Point will have a `warns` field to indicate the reason for the correction.
 
-    For example, in log data, field keys with `.` are not allowed, Datakit will automatically convert them to `_`, and the reviewed JSON will have an additional `warns` message:
-
+    For example, in logging data, field keys are not allowed to contain `.` characters. DataKit will automatically convert them to `_`. In this case, the JSON(pbjson) response body will include additional `warns` information:
+    
     ```json
     [
-       {
-           "name": "...",
-           "fields": [...],
-           "time": "...",
-           "warns": [
-             {
-                 "type": "dot_in_key",
-                 "message": "invalid field key `some.field`: found `.'"
-             }
-           ]
-       }
+      {
+        "name": "...",
+        "fields": [...],
+        "time": "...",
+        "warns": [
+          {
+            "type": "dot_in_key",
+            "message": "invalid field key `some.field`: found `.'"
+          }
+        ]
+      }
     ]
     ```
 

@@ -422,11 +422,13 @@ define check_docs
 
 	@if [ -s dist/md-lint.json ]; then \
 		printf "$(RED) [FAIL] dist/md-lint.json not empty \n$(NC)"; \
+		cat dist/md-lint.json; \
 		exit -1; \
 	fi
 
 	@if [ -s dist/cspell.lint ]; then \
 		printf "$(RED) [FAIL] dist/cspell.lint not empty \n$(NC)"; \
+		cat dist/cspell.lint; \
 		exit -1; \
 	fi
 endef

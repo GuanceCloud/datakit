@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.32.0 (June 13, 2024) {#cl-1.32.0}
+
+This release is an iterative update with the following main changes:
+
+### Bug Fixes {#cl-1.32.0-fix}
+
+- Fixed an issue with the identification of `localhost` in Datakit usage reporting (#2281).
+- Resolved a problem with the assignment of the `service` field in log collection (#2286).
+- Other bug fixes (#2284/#2282).
+
+### Feature Enhancements {#cl-1.32.0-opt}
+
+- MySQL now includes more comprehensive metrics and log collection for master-slave replication (#2279).
+- Improved documentation and installation options related to configuration encryption (#2274).
+- Reduced memory consumption for DDTrace collector(#2272).
+- Optimized data reporting strategy in health check collector (#2268).
+- Improved timeout control and TLS settings in SQLServer collector (#2264).
+- Optimized handling of the `job` field in Prometheus-related metric collection (Push Gateway/Remote Write) (#2271).
+- Enhanced slow query fields in OceanBase, adding client IP information (#2280).
+- Rewrote the Oracle collector (#2186).
+- In eBPF collector, optimized the value acquisition of the target domain name for network data (#2287).
+- By default, use the v2 (Protobuf) protocol to upload collected data (#2269).
+    - [Comparison between v1 and v2](pb-vs-lp.md)
+- Other adjustments (#2267/#2255/#2237/#2270/#2248).
+
+---
+
 ## 1.31.0 (June 13, 2024) {#cl-1.31.0}
 
 This release is an iterative update with the following main changes:
