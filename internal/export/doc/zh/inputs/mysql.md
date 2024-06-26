@@ -223,7 +223,7 @@ UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events
 采集主从复制 `mysql_replication` 指标的前提是开启主从复制，`mysql_replication` 指标都是由从数据库采集的，确认主从复制环境是否正常可以在从数据库输入：
 
 ```sql
-SHOW SLAVE STATUS;;
+SHOW SLAVE STATUS;
 ```
 
 可以看到 `Replica_IO_Running`、`Replica_SQL_Running` 的值均为 Yes，说明主从复制环境状态正常。
