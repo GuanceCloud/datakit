@@ -145,7 +145,7 @@ $ kubectl apply -f pod-monitor.yaml
 - port: client
 - path: `/nacos/actuator/prometheus`
 
-配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerToeknSecret` 和 `tlsConfig` 等认证配置。
+配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerTokenSecret` 和 `tlsConfig` 等认证配置。
 
 ### 指标集和 tags {#measurement-and-tags}
 
