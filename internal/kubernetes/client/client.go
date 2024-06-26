@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 
 	prometheusclientv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned"
 	prometheusmonitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
@@ -106,7 +107,13 @@ type client struct {
 	prometheusMonitoring *prometheusclientv1.Clientset
 }
 
+var doOnce sync.Once
+
 func newKubernetesClient(restConfig *rest.Config) (*client, error) {
+	doOnce.Do(func() {
+		_ = guancev1beta1.AddToScheme(clientsetscheme.Scheme)
+	})
+
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -119,9 +126,6 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 
 	guanceClient, err := guancev1beta1.NewForConfig(restConfig)
 	if err != nil {
-		return nil, err
-	}
-	if err := guancev1beta1.AddToScheme(clientsetscheme.Scheme); err != nil {
 		return nil, err
 	}
 

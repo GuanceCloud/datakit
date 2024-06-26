@@ -173,6 +173,9 @@ func (dec *redisDecPipe) Export(force bool) []*ProtoData {
 	var result []*ProtoData
 
 	for _, inf := range dec.infCache {
+		if inf == nil {
+			continue
+		}
 		kvs := make(point.KVs, 0, 20)
 
 		switch dec.direction { //nolint:exhaustive
@@ -833,7 +836,7 @@ func readLength(payload []byte) ([]byte, int, error) {
 
 func isASCII(data []byte) bool {
 	for _, c := range data {
-		if c < 32 || c > 126 {
+		if c > 127 {
 			return false
 		}
 	}

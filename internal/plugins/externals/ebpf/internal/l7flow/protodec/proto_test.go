@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
 func TestPrefix(t *testing.T) {
@@ -39,70 +38,6 @@ func TestPrefix(t *testing.T) {
 		}
 		assert.Equal(t, "1.1", v)
 		assert.Equal(t, 200, code)
-	})
-}
-
-func TestMysql(t *testing.T) {
-	m := &mysqlInfo{}
-	t.Run("DetectMysql", func(t *testing.T) {
-		mysqlReqMsg := "\x17\x00\x00\x00\x03\x43\x52\x45\x41\x54\x45\x20\x44\x41\x54\x41\x42\x41\x53\x45\x20" +
-			"\x74\x65\x73\x74\x64\x62"
-		seq, err := detectMysql([]byte(mysqlReqMsg), len(mysqlReqMsg))
-		expectedSeq := 0
-		if err != nil {
-			t.Fatal("not client req create")
-		}
-		assert.Equal(t, expectedSeq, int(seq))
-	})
-
-	t.Run("Client", func(t *testing.T) {
-		mysqlReqMsg := "\x03\x43\x52\x45\x41\x54\x45\x20\x44\x41\x54\x41\x42\x41\x53\x45\x20" +
-			"\x74\x65\x73\x74\x64\x62"
-		expected := "CREATE DATABASE testdb"
-		msg, stmtId, err := m.isClientMsg([]byte(mysqlReqMsg), comm.FnSysRecvfrom)
-		if err != nil {
-			t.Fatal("not client req")
-		}
-		assert.Equal(t, expected, msg)
-		assert.Equal(t, 0, stmtId)
-	})
-
-	t.Run("InsertPreStmt", func(t *testing.T) {
-		insertReqMsg := "\x16\x49\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20" +
-			"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
-			"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b"
-		expected := "INSERT INTO cities(name, population) VALUES(?, ?);"
-		msg, stmtId, err := m.isClientMsg([]byte(insertReqMsg), comm.FnSysRecvfrom)
-		if err != nil {
-			t.Fatal("not client req")
-		}
-		assert.Equal(t, expected, msg)
-		assert.Equal(t, -1, stmtId)
-	})
-
-	t.Run("InsertPreStmtServer", func(t *testing.T) {
-		insertResMsg := "\x00\x01\x00\x00\x00\x00\x00\x02\x00\x00\x00\x00"
-		msg, code, err := m.isServerMsg([]byte(insertResMsg), comm.FnSysSendto)
-		if err != nil {
-			t.Fatal("not server req")
-		}
-		t.Log(msg)
-		assert.Equal(t, 0, code)
-	})
-
-	t.Run("Server", func(t *testing.T) {
-		mysqlRespMsg := "\xff\xef\x03\x23\x48\x59\x30\x30\x30\x43\x61\x6e\x27\x74\x20" +
-			"\x63\x72\x65\x61\x74\x65\x20\x64\x61\x74\x61\x62\x61\x73\x65\x20\x27\x74\x65" +
-			"\x73\x74\x64\x62\x27\x3b\x20\x64\x61\x74\x61\x62\x61\x73\x65\x20\x65\x78\x69" +
-			"\x73\x74\x73"
-		expectedMsg := "Error Code: 1007, Error Msg: Can't create database 'testdb'; database exists"
-		expectedCode := 1007
-		msg, code, err := m.isServerMsg([]byte(mysqlRespMsg), 0)
-		if err != nil {
-			t.Fatal("not server req")
-		}
-		assert.Equal(t, expectedCode, code)
-		assert.Equal(t, expectedMsg, msg)
 	})
 }
 
@@ -359,6 +294,159 @@ func TestRedisStringify(t *testing.T) {
 			}
 			output := r.stringify()
 			assert.Equal(t, c.expected, string(output))
+		})
+	}
+}
+
+func TestMysqlHeaderDecoder(t *testing.T) {
+	insertReqMsg := "\x1e\x00\x00\x00\x16\x49\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20" +
+		"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
+		"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b"
+
+	hd := &headerDecoder{}
+	offset, err := hd.decode([]byte(insertReqMsg), 0)
+	if err != nil {
+		t.Fatalf("error occurred %v", err)
+	}
+	expectedOffset := 4
+	assert.Equal(t, expectedOffset, offset)
+}
+
+func TestTrimComment(t *testing.T) {
+	type cases struct {
+		resource        string
+		expectedCommand string
+		expectedComment string
+	}
+
+	tc := []cases{
+		{
+			resource:        "sELECT 1",
+			expectedCommand: "SELECT",
+			expectedComment: "",
+		},
+		{
+			resource:        "/* comment */ SELECT 1 FROM TABLE",
+			expectedCommand: "SELECT",
+			expectedComment: "/* comment */ ",
+		},
+		{
+			resource:        "/* i am comment */ /*i am comment*/SelecT 1",
+			expectedCommand: "SELECT",
+			expectedComment: "/* i am comment */ /*i am comment*/",
+		},
+		{
+			resource:        "/* spanID: 1234567 */ SELECT * from TABLE",
+			expectedCommand: "SELECT",
+			expectedComment: "/* spanID: 1234567 */ ",
+		},
+		{
+			resource:        "\x00\x01/* spanID: 1234567 */ SELECT * from TABLE",
+			expectedCommand: "SELECT",
+			expectedComment: "/* spanID: 1234567 */ ",
+		},
+	}
+
+	for _, c := range tc {
+		t.Run(c.resource, func(t *testing.T) {
+			payload := readMysql([]byte(c.resource))
+			comment, output, _ := trimCommentGetFirst(payload, 6)
+			t.Log(string(comment))
+			t.Log(string(output))
+			m := &mysqlInfo{}
+			assert.Equal(t, true, m.isValidSQL(output))
+			assert.Equal(t, c.expectedCommand, strings.ToUpper(string(output)))
+			assert.Equal(t, c.expectedComment, string(comment))
+		})
+	}
+}
+
+func TestCheckmysql(t *testing.T) {
+	type cases struct {
+		msg string
+	}
+
+	tc := []cases{
+		{
+			msg: "\x1e\x00\x00\x00\x16\x49\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20" +
+				"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
+				"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b",
+		},
+	}
+
+	for _, c := range tc {
+		t.Run("testing", func(t *testing.T) {
+			isMysql := checkMysql([]byte(c.msg))
+			assert.Equal(t, true, isMysql)
+		})
+	}
+}
+
+func TestCheckMysqlHeader(t *testing.T) {
+	type cases struct {
+		name               string
+		resource           string
+		direction          Direction
+		expectedPacketType mysqlPacketType
+	}
+
+	tc := []cases{
+		{
+			name: "INSERT",
+			resource: "\x1e\x00\x00\x00\x16\x49\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20" +
+				"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
+				"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b",
+			expectedPacketType: packetRequest,
+		},
+	}
+
+	for _, c := range tc {
+		t.Run(c.name, func(t *testing.T) {
+			hd := &headerDecoder{}
+			offset, err := hd.decode([]byte(c.resource), 0)
+			if err != nil {
+				t.Fatalf("error occurred %v", err)
+			}
+
+			packetType, err := hd.checkHeader([]byte(c.resource), offset)
+			if err != nil {
+				t.Fatalf("error occurred %v", err)
+			}
+
+			assert.Equal(t, c.expectedPacketType, packetType)
+		})
+	}
+}
+
+func TestParseRequest(t *testing.T) {
+	type cases struct {
+		name               string
+		resource           string
+		expectedPacketType mysqlPacketType
+		expectedResource   string
+	}
+
+	tc := []cases{
+		{
+			name: "INSERT",
+			resource: "\x1e\x00\x00\x00\x16\x49\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20" +
+				"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
+				"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b",
+			expectedPacketType: packetRequest,
+			expectedResource:   "INSERT INTO cities(name, population) VALUES(?, ?);",
+		},
+	}
+
+	for _, c := range tc {
+		t.Run(c.name, func(t *testing.T) {
+			m := &mysqlInfo{}
+			packetType, err := m.parseRequest([]byte(c.resource[4:]))
+			if err != nil {
+				t.Fatalf("error occurred %v", err)
+			}
+
+			assert.Equal(t, c.expectedPacketType, packetType)
+			assert.Equal(t, c.expectedResource, m.resource)
 		})
 	}
 }
