@@ -26,11 +26,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l4log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/dumpstd"
+
+	// nolint:gosec
+	_ "net/http/pprof"
 )
 
 var (
@@ -212,6 +216,9 @@ func NewRunCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opt.EBPFTrace.TraceAllProc, "trace-allprocess", false, "trace all processes directly")
 
+	cmd.Flags().StringSliceVar(&opt.EBPFTrace.TraceProtoList, "trace-protos", []string{}, "trace specified protocols")
+	cmd.Flags().StringSliceVar(&opt.EBPFTrace.TraceProtoBlacklist, "trace-protos-blacklist", []string{}, "deny tracking specified protocols")
+
 	cmd.Flags().StringSliceVar(&opt.EBPFTrace.TraceEnvList, "trace-env-list", []string{},
 		"trace all processes containing any specified environment variable")
 
@@ -299,13 +306,13 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 	log.Info("datakit-ebpf starting ...")
 
-	if k8sinfo, err := k8sinfo.NewK8sInfo(fl.K8sInfo.URL,
-		fl.K8sInfo.BearerToken, fl.K8sInfo.BearerTokenPath); err != nil {
+	k8sinfo, err := k8sinfo.NewK8sInfo(fl.K8sInfo.URL,
+		fl.K8sInfo.BearerToken, fl.K8sInfo.BearerTokenPath)
+	if err != nil {
 		log.Warn(err)
 	} else {
 		k8sinfo.AutoUpdate(ctx)
 		netflow.SetK8sNetInfo(k8sinfo)
-		l7flow.SetK8sNetInfo(k8sinfo)
 		dnsflow.SetK8sNetInfo(k8sinfo)
 		l4log.SetK8sNetInfo(k8sinfo)
 	}
@@ -347,10 +354,19 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		}
 
 		var enableTraceFilter bool
+		enableProtos := map[protodec.L7Protocol]struct{}{}
 		if enableTrace && fl.EBPFTrace.TraceServer != "" {
+			protoLi := netproto(fl.EBPFTrace.TraceProtoList, fl.EBPFTrace.TraceProtoBlacklist)
+			var protoStr []string
+			for _, p := range protoLi {
+				enableProtos[p] = struct{}{}
+				protoStr = append(protoStr, p.StringLower())
+			}
 			enableTraceFilter = true
+			log.Info("trace function enabled")
+			log.Info("trace protocols: ", strings.Join(protoStr, ","))
 			log.Info("trace all processes: ", traceAll)
-			log.Info("service name environment variables: ", envAssignAllowed)
+			log.Info("service name environment variables: ", strings.Join(envAssignAllowed, ","))
 			log.Info("enable trace environment variables: ", envSet)
 			log.Info("process name set: ", processSet)
 		}
@@ -486,9 +502,21 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			if exporter.DataKitTraceServer != "" {
 				traceSvc = fmt.Sprintf("http://%s%s", exporter.DataKitTraceServer, "/v1/bpftracing")
 			}
-			tracer := l7flow.NewHTTPFlowTracer(ctx, gTags, fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetHTTP),
-				traceSvc, conv2ddID, enableTrace, procFilter)
+
+			dkPostURL := fmt.Sprintf("http://%s%s?input=",
+				exporter.DataKitAPIServer, point.Network.URL()) +
+				url.QueryEscape(inputNameNetHTTP)
+
+			tracer := l7flow.NewAPIFlowTracer(ctx,
+				l7flow.WithTags(gTags),
+				l7flow.WithDatakitPostURL(dkPostURL),
+				l7flow.WithTracePostURL(traceSvc),
+				l7flow.WithConv2dd(conv2ddID),
+				l7flow.WithEnableTrace(enableTrace),
+				l7flow.WithProcessFilter(procFilter),
+				l7flow.WithProtos(enableProtos),
+				l7flow.WithK8sNetInfo(k8sinfo),
+			)
 
 			if err := tracer.Run(ctx, constEditor, bmaps, enableHTTPFlowTLS, interval); err != nil {
 				log.Error(err)
@@ -529,6 +557,32 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	quit(pidFile)
 
 	return nil
+}
+
+func netproto(protos []string, blacklist []string) []protodec.L7Protocol {
+	bk := map[protodec.L7Protocol]struct{}{}
+	for _, p := range blacklist {
+		bk[protodec.ProtocalNum(p)] = struct{}{}
+	}
+	var vals []protodec.L7Protocol
+	if len(protos) != 0 {
+		for _, p := range protos {
+			pNum := protodec.ProtocalNum(p)
+			if pNum == protodec.ProtoUnknown {
+				continue
+			}
+			if _, ok := bk[pNum]; !ok {
+				vals = append(vals, pNum)
+			}
+		}
+	} else {
+		for _, p := range protodec.AllProtos {
+			if _, ok := bk[p]; !ok {
+				vals = append(vals, p)
+			}
+		}
+	}
+	return vals
 }
 
 func openPprof(host, port string) {

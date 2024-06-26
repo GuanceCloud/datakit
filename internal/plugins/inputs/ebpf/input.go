@@ -287,6 +287,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&DNSStatsM{},
 		&BashM{},
 		&HTTPFlowM{},
+		&BPFL4Log{},
+		&BPFL7Log{},
+		&EBPFTrace{},
 	}
 }
 

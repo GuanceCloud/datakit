@@ -113,6 +113,7 @@ Tablespace
 Tencent
 Uprobe
 Vertx
+VXLAN
 Weblogic
 Websphere
 XDAs
