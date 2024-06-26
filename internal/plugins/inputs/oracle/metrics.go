@@ -80,10 +80,10 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: oracleTablespace,
 		Fields: map[string]interface{}{
-			"in_use":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Table space in-use"},
-			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Table space offline"},
+			"in_use":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of used space,as a function of the maximum possible Tablespace size"},
+			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total space consumed by the Tablespace,in database blocks"},
 			"ts_size":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Table space size"},
-			"used_space": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Used space"},
+			"used_space": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Used space"},
 		},
 		Tags: map[string]interface{}{
 			"host":            &inputs.TagInfo{Desc: "Host name"},
