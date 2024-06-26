@@ -4,6 +4,10 @@
 
 This release is an iterative update with the following main changes:
 
+### New Features {#cl-1.32.0-new}
+
+- OpenTelemetry add Histogram  Metrics（#2276）
+
 ### Bug Fixes {#cl-1.32.0-fix}
 
 - Fixed an issue with the identification of `localhost` in Datakit usage reporting (#2281).
