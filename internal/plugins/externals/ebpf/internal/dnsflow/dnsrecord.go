@@ -34,22 +34,29 @@ func (c *DNSAnswerRecord) LookupAddr(ip string) string {
 func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 	c.Lock()
 	defer c.Unlock()
+	var cnameDomain string
 	for _, answer := range packetInfo.Answers {
-		switch answer.Type {
+		switch answer.Type { //nolint:exhaustive
 		case layers.DNSTypeA, layers.DNSTypeAAAA:
 			if answer.IP == nil || answer.Name == nil {
 				continue
 			}
-			c.record[answer.IP.String()] = [2]interface{}{
-				string(answer.Name),
-				packetInfo.TS,
+			if cnameDomain != "" {
+				c.record[answer.IP.String()] = [2]interface{}{
+					cnameDomain,
+					packetInfo.TS,
+				}
+			} else {
+				c.record[answer.IP.String()] = [2]interface{}{
+					string(answer.Name),
+					packetInfo.TS,
+				}
 			}
-		case layers.DNSTypeCNAME, layers.DNSTypeHINFO, layers.DNSTypeMB,
-			layers.DNSTypeMD, layers.DNSTypeMF, layers.DNSTypeMG,
-			layers.DNSTypeMINFO, layers.DNSTypeMR, layers.DNSTypeMX,
-			layers.DNSTypeNS, layers.DNSTypeNULL, layers.DNSTypeOPT,
-			layers.DNSTypePTR, layers.DNSTypeSOA, layers.DNSTypeSRV,
-			layers.DNSTypeTXT, layers.DNSTypeURI, layers.DNSTypeWKS:
+
+		case layers.DNSTypeCNAME:
+			if cnameDomain == "" {
+				cnameDomain = string(answer.Name)
+			}
 		default:
 		}
 	}
