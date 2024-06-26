@@ -140,7 +140,7 @@ Several important configuration items should be consistent with Nacos:
 - port: client
 - path: `/nacos/actuator/prometheus`
 
-Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerToeknSecret` and `tlsConfig`.
+Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, Datakit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerTokenSecret` and `tlsConfig`.
 
 ### Measurements and Tags {#measurement-and-tags}
 
