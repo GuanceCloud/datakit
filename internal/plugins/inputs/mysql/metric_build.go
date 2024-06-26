@@ -129,6 +129,35 @@ func (ipt *Input) buildMysqlReplication() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
+func (ipt *Input) buildMysqlReplicationLog() ([]*gcPoint.Point, error) {
+	ms := []inputs.MeasurementV2{}
+
+	m := &replicationLogMeasurement{
+		tags:     map[string]string{},
+		fields:   make(map[string]interface{}),
+		election: ipt.Election,
+	}
+	setHostTagIfNotLoopback(m.tags, ipt.Host)
+
+	m.name = "mysql_replication_log"
+
+	for key, value := range ipt.Tags {
+		m.tags[key] = value
+	}
+
+	m.fields = getMetricFields(ipt.mReplication, m.Info())
+
+	if len(m.fields) > 0 {
+		ms = append(ms, m)
+	}
+
+	if len(ms) > 0 {
+		pts := getPointsFromMeasurement(ms)
+		return pts, nil
+	}
+	return []*gcPoint.Point{}, nil
+}
+
 func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 

@@ -109,15 +109,17 @@ func (ipt *Input) collectMysqlReplication() error {
 		err = errors.New("version_nil")
 		return err
 	}
-	var queryReplicationSQL string
-	if version.versionCompatible([]int{10, 5, 1}) || (version.flavor != strMariaDB && version.versionCompatible([]int{8, 0, 22})) {
-		queryReplicationSQL = "SHOW REPLICA STATUS;"
-	} else {
-		queryReplicationSQL = "SHOW SLAVE STATUS;"
-	}
+	queryReplicationSQL := "SHOW SLAVE STATUS;"
 	if ipt.Replica {
 		if res := replicationMetrics(ipt.q(queryReplicationSQL)); res != nil {
 			ipt.mReplication = res
+			// change Slave_IO_Running and Slave_SQL_Running to bool
+			if hasKey(ipt.mReplication, "Slave_IO_Running") {
+				ipt.mReplication["Slave_IO_Running"] = ipt.mReplication["Slave_IO_Running"].(string) == "Yes"
+			}
+			if hasKey(ipt.mReplication, "Slave_SQL_Running") {
+				ipt.mReplication["Slave_SQL_Running"] = ipt.mReplication["Slave_SQL_Running"].(string) == "Yes"
+			}
 		} else {
 			l.Warn("collect_replica_status_failed")
 		}
