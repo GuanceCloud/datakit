@@ -74,10 +74,15 @@ func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
 			continue
 		}
 
-		if pipe.Decoder == nil {
+		if pipe.Proto == protodec.ProtoUnknown {
 			if proto, dec, ok := protodec.ProtoDetector(d.Payload, d.ActSize); ok {
-				pipe.Decoder = dec
 				pipe.Proto = proto
+				if _, ok := protoLi[pipe.Proto]; !ok && pipe.Proto != protodec.ProtoHTTP {
+					continue
+				} else {
+					pipe.Decoder = dec
+				}
+
 				if proto == protodec.ProtoHTTP2 {
 					continue
 				}
@@ -87,11 +92,7 @@ func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
 			}
 		}
 
-		if _, ok := protoLi[pipe.Proto]; !ok && pipe.Proto != protodec.ProtoHTTP {
-			continue
-		}
-
-		if d.ActSize > 0 {
+		if pipe.Decoder != nil && d.ActSize > 0 {
 			pipe.Decoder.Decode(txRx, d, time.Now().UnixNano(), &netTrace.threadInnerID)
 		}
 	}

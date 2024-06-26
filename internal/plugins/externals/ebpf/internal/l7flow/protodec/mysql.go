@@ -213,6 +213,9 @@ func (dec *mysqlDecPipe) Export(force bool) []*ProtoData {
 	var result []*ProtoData
 	var keep []*mysqlInfo
 	for _, inf := range dec.elems {
+		if inf == nil {
+			continue
+		}
 		if inf.stmtID == 0 {
 			kvs := make(point.KVs, 0, 20)
 
