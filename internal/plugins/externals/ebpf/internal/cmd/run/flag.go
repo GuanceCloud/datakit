@@ -60,13 +60,15 @@ type FlagBPFNetLog struct {
 }
 
 type FlagTrace struct {
-	TraceServer        string   `toml:"trace_server"`
-	TraceAllProc       bool     `toml:"trace_all_proc"`
-	TraceEnvList       []string `toml:"trace_env_list"`
-	TraceNameList      []string `toml:"trace_name_list"`
-	TraceEnvBlacklist  []string `toml:"trace_env_blacklist"`
-	TraceNameBlacklist []string `toml:"trace_name_blacklist"`
-	ConvTraceToDD      bool     `toml:"conv_trace_to_dd"`
+	TraceServer         string   `toml:"trace_server"`
+	TraceAllProc        bool     `toml:"trace_all_proc"`
+	TraceEnvList        []string `toml:"trace_env_list"`
+	TraceNameList       []string `toml:"trace_name_list"`
+	TraceProtoList      []string `toml:"trace_proto_list"`
+	TraceEnvBlacklist   []string `toml:"trace_env_blacklist"`
+	TraceNameBlacklist  []string `toml:"trace_name_blacklist"`
+	TraceProtoBlacklist []string `toml:"trace_proto_blacklist"`
+	ConvTraceToDD       bool     `toml:"conv_trace_to_dd"`
 }
 
 type FlagK8s struct {

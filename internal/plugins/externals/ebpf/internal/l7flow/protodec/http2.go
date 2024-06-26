@@ -255,7 +255,7 @@ func (dec *h2DecPipe) Export(force bool) []*ProtoData {
 			kvs = kvs.Add(comm.FieldOperation, proto.String(), false, true)
 			kvs = kvs.Add(comm.FieldResource, inf.method+" "+inf.path, false, true)
 
-			dur := int64(inf.dur[1] - inf.dur[0])
+			dur := int64(inf.ktime[3] - inf.ktime[0])
 			cost := int64(inf.ktime[2] - inf.ktime[1])
 			rst = append(rst, &ProtoData{
 				Meta:      inf.meta,

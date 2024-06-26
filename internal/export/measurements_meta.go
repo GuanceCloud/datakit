@@ -89,7 +89,7 @@ func exportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 				}
 
 				switch tmp.Type {
-				case "logging", "tracing":
+				case "logging", "tracing", "network":
 					l.Warnf("ignore %s from %s", tmp.Type, k)
 					continue
 

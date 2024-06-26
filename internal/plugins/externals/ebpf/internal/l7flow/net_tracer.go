@@ -38,8 +38,9 @@ type ProcNetworkTrace struct {
 	allowESPan bool
 }
 
-func (netTrace *ProcNetworkTrace) Handle(data *comm.NetwrkData,
-	aggPool map[protodec.L7Protocol]protodec.AggPool,
+func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
+	aggPool map[protodec.L7Protocol]protodec.AggPool, allowTrace bool,
+	protoLi map[protodec.L7Protocol]struct{},
 ) {
 	if netTrace.ConnMap == nil {
 		netTrace.ConnMap = make(map[comm.ConnUniID]*FlowPipe)
@@ -86,6 +87,10 @@ func (netTrace *ProcNetworkTrace) Handle(data *comm.NetwrkData,
 			}
 		}
 
+		if _, ok := protoLi[pipe.Proto]; !ok && pipe.Proto != protodec.ProtoHTTP {
+			continue
+		}
+
 		if d.ActSize > 0 {
 			pipe.Decoder.Decode(txRx, d, time.Now().UnixNano(), &netTrace.threadInnerID)
 		}
@@ -115,10 +120,12 @@ func (netTrace *ProcNetworkTrace) Handle(data *comm.NetwrkData,
 					p.Obs(&data.Conn, v[i])
 				}
 			}
-			if netTrace.allowESPan && pipe.Conn.ProcessName != "datakit" &&
-				pipe.Conn.ProcessName != "datakit-ebpf" {
-				pts := genPts(v, &data.Conn)
-				netTrace.ptsCur = append(netTrace.ptsCur, pts...)
+			if _, ok := protoLi[pipe.Proto]; ok {
+				if netTrace.allowESPan && pipe.Conn.ProcessName != "datakit" &&
+					pipe.Conn.ProcessName != "datakit-ebpf" {
+					pts := genPts(v, &data.Conn)
+					netTrace.ptsCur = append(netTrace.ptsCur, pts...)
+				}
 			}
 		}
 	}
@@ -135,7 +142,7 @@ type FlowPipe struct {
 	connClosed bool
 }
 
-type PidMap struct {
+type PidWatcher struct {
 	pidMap  map[int]*ProcNetworkTrace
 	ch      chan *comm.NetwrkData
 	aggPool map[protodec.L7Protocol]protodec.AggPool
@@ -147,9 +154,11 @@ type PidMap struct {
 	metricPostURL string
 	tracePostURL  string
 	enableTrace   bool
+
+	enabledProto map[protodec.L7Protocol]struct{}
 }
 
-func (p *PidMap) start(ctx context.Context) {
+func (p *PidWatcher) start(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 5)
 	tickerClean := time.NewTicker(time.Minute * 5)
 
@@ -178,7 +187,7 @@ func (p *PidMap) start(ctx context.Context) {
 					netdata.Conn.ServiceName = v.Service
 				}
 			}
-			nettracer.Handle(netdata, p.aggPool)
+			nettracer.StreamHandle(netdata, p.aggPool, p.enableTrace, p.enabledProto)
 
 		case <-tickerClean.C:
 			for _, v := range p.pidMap {
@@ -203,7 +212,7 @@ func (p *PidMap) start(ctx context.Context) {
 	}
 }
 
-func (p *PidMap) Handle(v *comm.NetwrkData) {
+func (p *PidWatcher) Handle(v *comm.NetwrkData) {
 	p.ch <- v
 }
 
@@ -234,26 +243,25 @@ func setInnerID(pt *point.Point, threadInnerID *comm.ThreadTrace) {
 	pt.Add(spanid.ThrTraceID, id)
 }
 
-func newPidMap(ctx context.Context, aggPool map[protodec.L7Protocol]protodec.AggPool, procFilter *tracing.ProcessFilter,
-	tags map[string]string, k8sInfo *k8sinfo.K8sNetInfo, metricPostURL string, tracePostURL string, enableTrace bool,
-) *PidMap {
-	p := &PidMap{
+func newPidMap(ctx context.Context, cfg *pidMapConfig) *PidWatcher {
+	p := &PidWatcher{
 		pidMap:        make(map[int]*ProcNetworkTrace),
 		ch:            make(chan *comm.NetwrkData, 32),
-		aggPool:       aggPool,
-		procFilter:    procFilter,
-		tags:          tags,
-		k8sInfo:       k8sInfo,
-		metricPostURL: metricPostURL,
-		tracePostURL:  tracePostURL,
-		enableTrace:   enableTrace,
+		aggPool:       cfg.aggPool,
+		procFilter:    cfg.procFilter,
+		tags:          cfg.tags,
+		k8sInfo:       cfg.k8sNetInfo,
+		metricPostURL: cfg.datakitPostURL,
+		tracePostURL:  cfg.tracePostURL,
+		enableTrace:   cfg.enableTrace,
+		enabledProto:  cfg.protos,
 	}
 	go p.start(ctx)
 	return p
 }
 
 type Tracer struct {
-	pidMap [5]*PidMap
+	pidMap [5]*PidWatcher
 
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 
@@ -330,24 +338,34 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 	tracer.pidMap[pid%5].Handle(netdata)
 }
 
-func newTracer(ctx context.Context, procFilter *tracing.ProcessFilter, tags map[string]string,
-	k8sInfo *k8sinfo.K8sNetInfo, metricPostURL string, tracePostURL string, enableTrace bool,
-) *Tracer {
-	mps := [5]*PidMap{}
+type pidMapConfig struct {
+	apiTracerConfig
+	aggPool map[protodec.L7Protocol]protodec.AggPool
+}
+
+func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
+	if cfg == nil {
+		return nil
+	}
+
+	mps := [5]*PidWatcher{}
 
 	aggP := protodec.NewProtoAggregators()
 	for i := 0; i < 5; i++ {
-		mps[i] = newPidMap(ctx, aggP, procFilter, tags, k8sInfo, metricPostURL, tracePostURL, enableTrace)
+		mps[i] = newPidMap(ctx, &pidMapConfig{
+			apiTracerConfig: *cfg,
+			aggPool:         aggP,
+		})
 	}
 
 	return &Tracer{
 		pidMap:        mps,
 		aggPool:       aggP,
-		tags:          tags,
-		k8sInfo:       k8sInfo,
-		metricPostURL: metricPostURL,
-		tracePostURL:  tracePostURL,
-		enableTrace:   enableTrace,
+		tags:          cfg.tags,
+		k8sInfo:       cfg.k8sNetInfo,
+		metricPostURL: cfg.datakitPostURL,
+		tracePostURL:  cfg.tracePostURL,
+		enableTrace:   cfg.enableTrace,
 	}
 }
 
@@ -495,7 +513,7 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		// span info
 		v.KVs = v.KVs.Add("start", v.Time/1000, false, true)        // conv ns to us
 		v.KVs = v.KVs.Add("duration", v.Duration/1000, false, true) // conv ns to us
-		v.KVs = v.KVs.Add("cost", v.Cost, false, true)
+		// v.KVs = v.KVs.Add("cost", v.Cost, false, true)
 		v.KVs = v.KVs.Add("span_type", spanType, false, true)
 
 		opt := point.CommonLoggingOptions()
