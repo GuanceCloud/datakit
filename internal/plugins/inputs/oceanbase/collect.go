@@ -563,10 +563,12 @@ func GetMD5String32(bt []byte) string {
 }
 
 const MySQLSlowQuery = `SELECT 
+	 /*+ QUERY_TIMEOUT(60000000) */
   TENANT_ID,
 	TENANT_NAME,
 	DB_NAME,
 	CLIENT_IP,
+	USER_CLIENT_IP,
   SVR_IP,
   SVR_PORT,
   PLAN_ID,
@@ -872,7 +874,7 @@ func obfuscateSQL(text string) string {
 
 	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", sql); err != nil {
 		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
-		return "ERROR: failed to obfuscate"
+		return sql
 	} else {
 		return out.Query
 	}
