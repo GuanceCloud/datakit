@@ -105,25 +105,9 @@ func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 }
 
 func parseDDTraces(param *itrace.TraceParameters) error {
-	traces, err := decodeDDTraces(param)
+	dktraces, err := decodeDDTraces(param)
 	if err != nil {
 		return err
-	}
-	if len(traces) == 0 {
-		log.Debug("### get empty traces after decoding")
-
-		return nil
-	}
-
-	var dktraces itrace.DatakitTraces
-	for _, trace := range traces {
-		if len(trace) == 0 {
-			log.Debug("### empty trace in traces")
-			continue
-		}
-		if dktrace := ddtraceToDkTrace(trace); len(dktrace) != 0 {
-			dktraces = append(dktraces, dktrace)
-		}
 	}
 
 	if len(dktraces) != 0 && afterGatherRun != nil {
@@ -133,11 +117,17 @@ func parseDDTraces(param *itrace.TraceParameters) error {
 	return nil
 }
 
-func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
+func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error) {
 	var (
-		traces DDTraces
-		err    error
+		err      error
+		dktraces itrace.DatakitTraces
 	)
+	traces := ddtracePool.Get().(DDTraces)
+	defer func() {
+		traces.reset()
+		ddtracePool.Put(traces) //nolint
+	}()
+
 	switch param.URLPath {
 	case v1:
 		var spans DDTrace
@@ -150,12 +140,24 @@ func decodeDDTraces(param *itrace.TraceParameters) (DDTraces, error) {
 			traces = mergeTraces(traces)
 		}
 	default:
-		if err = decodeRequest(param, &traces); err == nil {
-			traces = mergeTraces(traces)
+		if err = decodeRequest(param, &traces); err != nil {
+			// traces = mergeTraces(traces)
+			return nil, err
 		}
 	}
 
-	return traces, err
+	if len(traces) != 0 {
+		for _, trace := range traces {
+			if len(trace) == 0 {
+				log.Debug("### empty trace in traces")
+				continue
+			}
+			if dktrace := ddtraceToDkTrace(trace); len(dktrace) != 0 {
+				dktraces = append(dktraces, dktrace)
+			}
+		}
+	}
+	return dktraces, err
 }
 
 func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
