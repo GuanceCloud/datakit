@@ -551,6 +551,18 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 		}
 	}
 
+	if ipt.Replica {
+		// mysql_replication_log
+		pts, err := ipt.buildMysqlReplicationLog()
+		if err != nil {
+			l.Errorf("metricCollectMysqlReplicationLog failed: %s", err.Error())
+		}
+
+		if len(pts) > 0 {
+			ptsLoggingMetric = append(ptsLoggingMetric, pts...)
+		}
+	}
+
 	if ipt.Dbm && (ipt.DbmMetric.Enabled || ipt.DbmSample.Enabled || ipt.DbmActivity.Enabled) {
 		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql")})
 		if ipt.DbmMetric.Enabled {
@@ -769,6 +781,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&dbmStateMeasurement{},
 		&dbmSampleMeasurement{},
 		&dbmActivityMeasurement{},
+		&replicationLogMeasurement{},
 	}
 }
 
