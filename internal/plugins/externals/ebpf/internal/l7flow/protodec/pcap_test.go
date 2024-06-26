@@ -109,6 +109,41 @@ func TestRedisProto(t *testing.T) {
 func TestMySQLProto(t *testing.T) {
 	filePorts := []filePort{
 		{
+			fp:          "./pcapdata/mysql_6.pcapng",
+			localIP:     net.ParseIP("10.211.55.2"),
+			foreignIP:   net.ParseIP("10.211.55.5"),
+			localPort:   uint16(53679),
+			foreignPort: uint16(3306),
+		},
+		{
+			fp:          "./pcapdata/mysql_5.pcapng",
+			localIP:     net.ParseIP("127.0.0.1"),
+			foreignIP:   net.ParseIP("127.0.0.1"),
+			localPort:   uint16(60110),
+			foreignPort: uint16(3306),
+		},
+		{
+			fp:          "./pcapdata/mysql_4.pcapng",
+			localIP:     net.ParseIP("127.0.0.1"),
+			foreignIP:   net.ParseIP("127.0.0.1"),
+			localPort:   uint16(60061),
+			foreignPort: uint16(3306),
+		},
+		{
+			fp:          "./pcapdata/mysql_dbeaver.pcapng",
+			localIP:     net.ParseIP("192.168.191.138"),
+			foreignIP:   net.ParseIP("142.171.118.7"),
+			localPort:   uint16(55288),
+			foreignPort: uint16(3306),
+		},
+		{
+			fp:          "./pcapdata/mysql_panic.pcapng",
+			localIP:     net.ParseIP("192.168.207.138"),
+			foreignIP:   net.ParseIP("142.171.118.7"),
+			localPort:   uint16(47472),
+			foreignPort: uint16(3306),
+		},
+		{
 			fp:          "./pcapdata/mysql.pcapng",
 			localIP:     net.ParseIP("127.0.0.1"),
 			foreignIP:   net.ParseIP("127.0.0.1"),
@@ -180,7 +215,8 @@ func TestMySQLProto(t *testing.T) {
 			}
 
 			// impl.ConnClose()
-			for _, v := range impl.Export(true) {
+			data := impl.Export(true)
+			for _, v := range data {
 				t.Log(v.KVs.Pretty())
 			}
 		})

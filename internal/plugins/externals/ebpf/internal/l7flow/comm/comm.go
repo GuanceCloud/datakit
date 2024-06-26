@@ -63,10 +63,12 @@ const (
 
 	FieldMysqlStatusCode = "mysql_status_code"
 	FieldMysqlErrMsg     = "mysql_err_msg"
+	FiledMysqlComment    = "mysql_comment"
 
 	FieldResourceType = "resource_type"
 	FieldStatusMsg    = "status_msg"
 	FieldErrMsg       = "err_msg"
+	FieldErrCode      = "err_code"
 	FieldStatusCode   = "status_code"
 
 	FieldStatus    = "status"
@@ -115,20 +117,20 @@ func (fn FnID) String() string {
 }
 
 type ConnectionInfo struct {
-	Saddr [4]uint32
-	Daddr [4]uint32
-	Sport uint32
-	Dport uint32
-	Pid   uint32
-	Netns uint32
-	Meta  uint32
+	Saddr [4]uint32 `json:"saddr"`
+	Daddr [4]uint32 `json:"daddr"`
+	Sport uint32    `json:"sport"`
+	Dport uint32    `json:"dport"`
+	Pid   uint32    `json:"pid"`
+	Netns uint32    `json:"netns"`
+	Meta  uint32    `json:"meta"`
 
-	NATDaddr [4]uint32
-	NATDport uint32
+	NATDaddr [4]uint32 `json:"nat_daddr"`
+	NATDport uint32    `json:"nat_dport"`
 
-	ProcessName string
-	TaskName    string
-	ServiceName string
+	ProcessName string `json:"process_name"`
+	TaskName    string `json:"task_name"`
+	ServiceName string `json:"service_name"`
 }
 
 func (conn ConnectionInfo) String() string {
@@ -172,21 +174,21 @@ func FnInOut(fn FnID) NICDirection {
 }
 
 type ConnUniID struct {
-	SkPtr uint64
-	Ktime uint32
-	Rand  uint32
+	SkPtr uint64 `json:"sk_ptr"`
+	Ktime uint32 `json:"ktime"`
+	Rand  uint32 `json:"rand"`
 }
 type NetwrkData struct {
-	Conn      ConnectionInfo
-	ConnUniID ConnUniID
-	ActSize   int
-	TCPSeq    uint32
-	Thread    [2]int32
-	TS        uint64
-	TSTail    uint64
-	Index     uint32
-	Fn        FnID
-	Payload   []byte
+	Conn      ConnectionInfo `json:"conn"`
+	ConnUniID ConnUniID      `json:"conn_uni_id"`
+	ActSize   int            `json:"act_size"`
+	TCPSeq    uint32         `json:"tcp_seq"`
+	Thread    [2]int32       `json:"thread"`
+	TS        uint64         `json:"ts"`
+	TSTail    uint64         `json:"ts_tail"`
+	Index     uint32         `json:"index"`
+	Fn        FnID           `json:"fn_id"`
+	Payload   []byte         `json:"payload"`
 }
 
 func (d NetwrkData) String() string {

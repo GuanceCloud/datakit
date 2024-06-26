@@ -836,7 +836,7 @@ func readLength(payload []byte) ([]byte, int, error) {
 
 func isASCII(data []byte) bool {
 	for _, c := range data {
-		if c < 32 || c > 126 {
+		if c > 127 {
 			return false
 		}
 	}
