@@ -1517,6 +1517,17 @@ github.com/shirou/gopsutil/v3/process
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 ## explicit
 github.com/shirou/w32
+# github.com/sijms/go-ora/v2 v2.8.19
+## explicit; go 1.17
+github.com/sijms/go-ora/v2
+github.com/sijms/go-ora/v2/advanced_nego
+github.com/sijms/go-ora/v2/advanced_nego/ntlmssp
+github.com/sijms/go-ora/v2/configurations
+github.com/sijms/go-ora/v2/converters
+github.com/sijms/go-ora/v2/network
+github.com/sijms/go-ora/v2/network/security
+github.com/sijms/go-ora/v2/network/security/md4
+github.com/sijms/go-ora/v2/trace
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
