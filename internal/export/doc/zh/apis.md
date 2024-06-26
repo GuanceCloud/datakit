@@ -16,22 +16,79 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
 - 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
 
-## `/v1/write/:category` {#api-v1-write}
+## `/v1/write/:category` | `POST` {#api-v1-write}
 
 本 API 用于给 DataKit 上报各类数据（`category`），URL 参数说明如下：
 
-| 参数名                                                            | 类型   | 是否必选 | 默认值         | 说明                                                                                                                                                                                                      |
-| ---                                                               | ---    | ---      | ---            | ---                                                                                                                                                                                                       |
-| `category`                                                        | string | Y        | -              | 目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`                                                                                      |
-| `dry`                                                             | bool   | N        | false          | 测试模式，只是将 Point POST 给 Datakit，实际上并不上传到观测云（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）                                                                              |
-| `echo` [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) | string | N        | -              | 可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[高级 JSON](apis.md#api-v1-write-body-pbjson-protocol) |
-| `global_election_tags`                                            | bool   | N        | false          | 是否追加 *全局选举 tag* （[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                                                                      |
-| `ignore_global_host_tags`                                         | bool   | N        | -              | 是否忽略 DataKit 上的 *全局主机 tag* （[:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)）                                                                                                         |
-| `input`                                                           | string | N        | `datakit-http` | 数据源名称，该名称会在 Datakit monitor 上展示，便于调试（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）                                                                                     |
-| `loose`                                                           | bool   | N        | true           | 是否宽松模式，对于一些不合规的 Point，DataKit 会尝试修复它们（[:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)）                                                                                |
-| `precision`                                                       | string | N        |                | 数据精度（支持 `n/u/ms/s/m/h`）。如果参数不传入，则自动识别时间精度[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)                                                                             |
-| `source`                                                          | string | N        | -              | 如果不指定 `source`（或者对应的 *source.p* 不存在或无效），上传的 Point 数据不会执行 Pipeline                                                                                                             |
-| `strict`                                                          | bool   | N        | false          | 严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）                                                                              |
+**`category`**
+
+- 类型：string
+- 是否必选：N
+- 默认值：-
+- 说明：目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`
+
+**`dry`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：测试模式，只是将 Point POST 给 Datakit，实际上并不上传到观测云
+
+**`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- 类型：enum
+- 是否必选：N
+- 默认值：-
+- 说明：可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
+
+**`global_election_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：是否追加[全局选举 tag](datakit-conf.md#set-global-tag)
+
+**`ignore_global_host_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：是否忽略 DataKit 上的[全局主机 tag](datakit-conf.md#set-global-tag)，默认情况下，本接口写入的数据都会带上全局主机 tag
+
+**`input`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- 类型：string
+- 是否必选：N
+- 默认值：`datakit-http`
+- 说明：数据源名称，该名称会在 Datakit monitor 上展示，便于调试
+
+**`loose`** [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：true
+- 说明：是否宽松模式，对于一些不合规的 Point，DataKit 会尝试修复它们
+
+**`precision`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
+
+- 类型：enum
+- 是否必选：N
+- 默认值：-
+- 说明：数据精度（支持 `n/u/ms/s/m/h`）。如果参数不传入，则自动识别时间戳精度
+
+**`source`**
+
+- 类型：string
+- 是否必选：N
+- 默认值：-
+- 说明：如果不指定 `source`（或者对应的 *source.p* 不存在或无效），上传的 Point 数据不会执行 Pipeline
+
+**`strict`** [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -395,12 +452,12 @@ with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=
 
 ### 验证上传的数据 {#review-post-point}
 
-通过 `echo` 参数可以回看上传的数据，用于调试数据是否按照预期的方式处理：
+不管通过哪种方式（`lp`/`pbjson`/`json`）写入数据，Datakit 都会 *尝试对数据做一些矫正*，这些矫正可能不是预期之内的，不过我们可以通过 `echo` 参数来回看最终的数据：
 
 <!-- markdownlint-disable MD046 -->
-=== "高级 JSON 形式（`ebco=pbjson`）"
+=== "PB-JSON 形式（`echo=pbjson`）"
 
-    以[高级 JSON 方式](apis.md#api-v1-write-body-pbjson-protocol)展示。如果 Point 结构被自动纠正，JSON 中具体 Point 上会带一个 `warns` 字段，以表示这个 Point 被纠正的原因。
+    相比其它两种，通过[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)方式，可以得知矫正的细节以及原因。如果 Point 结构被自动纠正，该 Point 上会带一个 `warns` 字段，以表示这个 Point 被纠正的原因。
     
     比如，日志数据中，不允许字段的 Key 带 `.` 字段，Datakit 会自动将其转换成 `_`，此时回看的 JSON 中会额外带上 `warns` 信息：
 
