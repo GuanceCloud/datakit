@@ -4,6 +4,8 @@
 package protodec
 
 import (
+	"strings"
+
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
@@ -89,6 +91,26 @@ func (p L7Protocol) String() string {
 		return "unknown"
 	}
 }
+
+func ProtocalNum(p string) L7Protocol {
+	p = strings.ToLower(p)
+	switch p { //nolint:exhaustive
+	case "http":
+		return ProtoHTTP
+	case "http2":
+		return ProtoHTTP2
+	case "grpc":
+		return ProtoGRPC
+	case "mysql":
+		return ProtoMySQL
+	case "redis":
+		return ProtoRedis
+	default:
+		return ProtoUnknown
+	}
+}
+
+var AllProtos = []L7Protocol{ProtoHTTP, ProtoHTTP2, ProtoGRPC, ProtoMySQL, ProtoRedis}
 
 type ProtoMeta struct {
 	TraceID      spanid.ID128

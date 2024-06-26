@@ -38,8 +38,8 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
     - Application call relationship tracking.
 
 - `bpf-netlog`:
-    - Data category: `Logging`, `Network`
-    - This plugin implements `ebpf-net`’s `netflow/httpflow`
+    - Data categories: `Logging`, `Network`
+    - This plugin implements the collection of network logs `bpf_net_l4_log/bpf_net_l7_log`, and can also replace `ebpf-net`'s `netflow/httpflow` data collection when the kernel does not support eBPF;
 
 ## Configuration {#config}
 
@@ -82,14 +82,6 @@ For SELinux-enabled systems, you need to shut them down (pending subsequent opti
 ```sh
 setenforce 0
 ```
-
-### `eBPF Tracing` using {#ebpf-trace}
-
-`ebpf-trace` uses eBPF technology to obtain network data, and traces the kernel-level threads/user-level threads of the process (such as golang goroutine) to generate link eBPF Span.
-
-If the eBPF collector with link data collection enabled is deployed on multiple nodes, all eBPF link data needs to be sent to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled.
-
-For more details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
 
 ### Collector Configuration {#input-config}
 
@@ -158,12 +150,12 @@ Configuration items:
     - Example: `false`
 
 - `trace_name_blacklist`
-    - Description: The process with the specified process name will be **disabled** from collecting trace data
+    - Description: The process with the specified process name will be disabled from collecting trace data
     - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
     - Example:
 
 - `trace_env_blacklist`
-    - Description: Any process containing any of the specified environment variable names will be **disabled** from collecting trace data
+    - Description: Any process containing any of the specified environment variable names will be disabled from collecting trace data
     - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
     - Example: `DKE_DISABLE_ETRACE`
 
@@ -214,7 +206,13 @@ Configuration items:
 
 <!-- markdownlint-enable -->
 
-### The blacklist function of the `netlog` plug-in
+## eBPF Tracing function {#ebpf-tracing}
+
+`ebpf-trace` collects and analyzes the network data read and written by the process on the host, and tracks the kernel-level threads/user-level threads (such as golang goroutine) of the process to generate link eBPF Span. This data needs to be collected by `ebpftrace` for further processing.
+
+When using, you need to deploy the eBPF collector with link data collection enabled on multiple nodes, then you need to send all eBPF Span data to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled. For more configuration details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
+
+### The blacklist function of the `bpf-netlog` plug-in
 
 Filter rule example:
 
@@ -305,7 +303,7 @@ function:
 
     This rule returns `true` if the pod name is `datakit-kfez321`.
 
-## Metric {#metric}
+## Network aggregation data {#network}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
@@ -318,14 +316,57 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "network"}}
+
 ### `{{$m.Name}}`
 
-- tag
+- tag list
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- field list
 
 {{$m.FieldsMarkdownTable}}
+
+{{ end }}
+
+{{ end }}
+
+## Logging {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+- tag list
+
+{{$m.TagsMarkdownTable}}
+
+- field list
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
+
+{{ end }}
+
+## Tracing {#tracing}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+- tag list
+
+{{$m.TagsMarkdownTable}}
+
+- field list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}

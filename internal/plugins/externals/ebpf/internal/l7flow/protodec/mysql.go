@@ -231,7 +231,7 @@ func (dec *mysqlDecPipe) Export(force bool) []*ProtoData {
 
 			kvs = kvs.Add(comm.FieldOperation, ProtoMySQL.String(), false, true)
 
-			dur := int64(inf.dur[1] - inf.dur[0])
+			dur := int64(inf.ktime[3] - inf.ktime[0])
 			cost := int64(inf.ktime[2] - inf.ktime[1])
 			result = append(result, &ProtoData{
 				Meta:      inf.meta,

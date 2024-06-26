@@ -39,7 +39,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 - `bpf-netlog`:
     - 数据类别： `Logging`, `Network`
-    - 该插件实现 `ebpf-net` 的 `netflow/httpflow`
+    - 该插件实现网络日志 `bpf_net_l4_log/bpf_net_l7_log`   采集，也可以在内核不支持 eBPF 的情况下替代 `ebpf-net` 的 `netflow/httpflow` 数据采集；
 
 ## 配置 {#config}
 
@@ -81,14 +81,6 @@ lsmod | grep nf_conntrack
 ```shell
 setenforce 0
 ```
-
-### `eBPF Tracing` 使用 {#ebpf-trace}
-
-`ebpf-trace` 使用 eBPF 技术获取网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span。
-
-如果在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF 的链路数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。
-
-更多细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
 
 ### 采集器配置 {#input-config}
 
@@ -157,12 +149,12 @@ setenforce 0
     - 示例：`false`
 
 - `trace_name_blacklist`
-    - 描述：指定进程名的进程将被**禁止采集**链路数据
+    - 描述：指定进程名的进程将被禁止采集链路数据
     - 环境变量：`ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
     - 示例：
 
 - `trace_env_blacklist`
-    - 描述：包含任意一个指定环境变量名的进程将被**禁止采集**链路数据
+    - 描述：包含任意一个指定环境变量名的进程将被禁止采集链路数据
     - 环境变量：`ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
     - 示例：`DKE_DISABLE_ETRACE`
 
@@ -213,7 +205,13 @@ setenforce 0
 
 <!-- markdownlint-enable -->
 
-### `netlog` 插件的黑名单功能
+## eBPF 链路功能 {#ebpf-tracing}
+
+`ebpf-trace` 采集分析主机上的进程读写的网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span 该数据需要被 `ebpftrace` 采集进行进一步的加工处理。
+
+使用时，需要在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF Span 数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。更多配置细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
+
+## `bpf-netlog` 插件的黑名单功能
 
 过滤器规则示例：
 
@@ -304,7 +302,7 @@ ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
 
     如果 pod 名为 `datakit-kfez321`，该规则返回 `true`。
 
-## 指标 {#metric}
+## 网络聚合数据 {#network}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -317,14 +315,55 @@ ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "network"}}
+
 ### `{{$m.Name}}`
 
-- 标签
+- 标签列表
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+- 标签列表
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{ end }}
+
+{{end}}
+
+## 链路 {#tracing}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+- 标签列表
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}

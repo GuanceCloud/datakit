@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/ebpf"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
@@ -311,45 +312,101 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 	return m, r, nil
 }
 
-type HTTPFlowTracer struct {
+type APIFlowTracer struct {
 	gTags          map[string]string
 	datakitPostURL string
 	tracePostURL   string
 	conv2dd        bool
-	enableTrace    bool
 	procFilter     *tracing.ProcessFilter
 
 	tracer *Tracer
 }
 
-var _datakitPostURL string
-var _tracePostURL string
-var _enableTrace bool
-
 var selfPid = 0
 
-func NewHTTPFlowTracer(ctx context.Context, tags map[string]string, datakitPostURL, tracePostURL string,
-	conv2dd, enableTrace bool, filter *tracing.ProcessFilter) *HTTPFlowTracer {
-	_tracePostURL = tracePostURL
-	_datakitPostURL = datakitPostURL
-	_enableTrace = enableTrace
+type APITracerOpt func(*apiTracerConfig)
+
+type apiTracerConfig struct {
+	tags           map[string]string
+	datakitPostURL string
+	tracePostURL   string
+	conv2dd        bool
+	enableTrace    bool
+	procFilter     *tracing.ProcessFilter
+	protos         map[protodec.L7Protocol]struct{}
+	k8sNetInfo     *k8sinfo.K8sNetInfo
+}
+
+func WithTags(tags map[string]string) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.tags = tags
+	}
+}
+
+func WithDatakitPostURL(datakitPostURL string) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.datakitPostURL = datakitPostURL
+	}
+}
+
+func WithTracePostURL(tracePostURL string) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.tracePostURL = tracePostURL
+	}
+}
+
+func WithConv2dd(conv2dd bool) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.conv2dd = conv2dd
+	}
+}
+
+func WithEnableTrace(enableTrace bool) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.enableTrace = enableTrace
+	}
+}
+
+func WithProcessFilter(procFilter *tracing.ProcessFilter) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.procFilter = procFilter
+	}
+}
+
+func WithProtos(protos map[protodec.L7Protocol]struct{}) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.protos = protos
+	}
+}
+
+func WithK8sNetInfo(k8sNetInfo *k8sinfo.K8sNetInfo) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.k8sNetInfo = k8sNetInfo
+	}
+}
+
+func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer {
+	var cfg apiTracerConfig
+	for _, fn := range opts {
+		if fn != nil {
+			fn(&cfg)
+		}
+	}
 
 	if selfPid == 0 {
 		selfPid = os.Getpid()
 	}
-	return &HTTPFlowTracer{
-		gTags:          tags,
-		datakitPostURL: datakitPostURL,
-		tracePostURL:   tracePostURL,
-		conv2dd:        conv2dd,
-		enableTrace:    enableTrace,
-		procFilter:     filter,
-		tracer: newTracer(ctx, filter, tags, k8sNetInfo,
-			_datakitPostURL, _tracePostURL, enableTrace),
+	return &APIFlowTracer{
+		gTags:          cfg.tags,
+		datakitPostURL: cfg.datakitPostURL,
+		tracePostURL:   cfg.tracePostURL,
+		conv2dd:        cfg.conv2dd,
+		procFilter:     cfg.procFilter,
+		tracer:         newTracer(ctx, &cfg),
 	}
 }
 
-func (tracer *HTTPFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
+func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
 	bmaps map[string]*ebpf.Map, enableTLS bool, interval time.Duration) error {
 	if selfPid == 0 {
 		selfPid = os.Getpid()
