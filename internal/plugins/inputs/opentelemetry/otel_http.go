@@ -101,13 +101,8 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	omcs := parseResourceMetrics(msreq.ResourceMetrics)
-	var points []*point.Point
-	for i := range omcs {
-		if pts := omcs[i].getPoints(); len(pts) != 0 {
-			points = append(points, pts...)
-		}
-	}
+	points := parseResourceMetricsV2(msreq.ResourceMetrics)
+
 	if len(points) != 0 {
 		if err := iptGlobal.feeder.FeedV2(point.Metric, points,
 			dkio.WithInputName(inputName),

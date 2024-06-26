@@ -128,20 +128,19 @@ const (
 )
 
 var (
-	log               = logger.DefaultSLogger(inputName)
-	statusOK          = 200
-	defaultTraceAPI   = "/otel/v1/trace"
-	defaultMetricAPI  = "/otel/v1/metric"
-	afterGatherRun    itrace.AfterGatherHandler
-	ignoreTags        []*regexp.Regexp
-	getAttribute      getAttributeFunc
-	extractAtrributes extractAttributesFunc
-	tags              map[string]string
-	wkpool            *workerpool.WorkerPool
-	localCache        *storage.Storage
-	otelSvr           *grpc.Server
-	iptGlobal         *Input
-	delMessage        bool
+	log              = logger.DefaultSLogger(inputName)
+	statusOK         = 200
+	defaultTraceAPI  = "/otel/v1/trace"
+	defaultMetricAPI = "/otel/v1/metric"
+	afterGatherRun   itrace.AfterGatherHandler
+	ignoreTags       []*regexp.Regexp
+	getAttribute     getAttributeFunc
+	tags             map[string]string
+	wkpool           *workerpool.WorkerPool
+	localCache       *storage.Storage
+	otelSvr          *grpc.Server
+	iptGlobal        *Input
+	delMessage       bool
 )
 
 type httpConfig struct {
@@ -331,7 +330,6 @@ func (ipt *Input) Run() {
 	convertToDD = ipt.CompatibleDDTrace
 	convertToZhaoShang = ipt.CompatibleZhaoShang
 	getAttribute = getAttrWrapper(ignoreTags)
-	extractAtrributes = extractAttrsWrapper(ignoreTags)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
