@@ -364,6 +364,7 @@ require (
 	github.com/oklog/ulid v1.3.1
 	github.com/petermattis/goid v0.0.0-20240327183114-c42a807a84ba
 	github.com/rosedblabs/wal v1.3.6
+	github.com/sijms/go-ora/v2 v2.8.19
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000

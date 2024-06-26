@@ -7,48 +7,531 @@ package oracle
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
-	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	lp "github.com/GuanceCloud/cliutils/lineproto"
-	"github.com/GuanceCloud/cliutils/point"
-	"github.com/gin-gonic/gin"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"github.com/ory/dockertest/v3"
+	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/stretchr/testify/require"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-// ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
+const RepoURL = "pubrepo.guance.com/image-repo-for-testing/oracle/"
+
+var (
+	user     = "datakit"
+	password = "Abc123!"
+	initSQL  = fmt.Sprintf(`
+-- Create the datakit user. Replace the password placeholder with a secure password.
+    CREATE USER %s IDENTIFIED BY "%s";
+
+    -- Grant access to the datakit user.
+    GRANT CONNECT, CREATE SESSION TO datakit;
+    GRANT SELECT_CATALOG_ROLE to datakit;
+    GRANT SELECT ON DBA_TABLESPACE_USAGE_METRICS TO datakit;
+    GRANT SELECT ON DBA_TABLESPACES TO datakit;
+    GRANT SELECT ON DBA_USERS TO datakit;
+    GRANT SELECT ON SYS.DBA_DATA_FILES TO datakit;
+    GRANT SELECT ON V_\$ACTIVE_SESSION_HISTORY TO datakit;
+    GRANT SELECT ON V_\$ARCHIVE_DEST TO datakit;
+    GRANT SELECT ON V_\$ASM_DISKGROUP TO datakit;
+    GRANT SELECT ON V_\$DATABASE TO datakit;
+    GRANT SELECT ON V_\$DATAFILE TO datakit;
+    GRANT SELECT ON V_\$INSTANCE TO datakit;
+    GRANT SELECT ON V_\$LOG TO datakit;
+    GRANT SELECT ON V_\$OSSTAT TO datakit;
+    GRANT SELECT ON V_\$PGASTAT TO datakit;
+    GRANT SELECT ON V_\$PROCESS TO datakit;
+    GRANT SELECT ON V_\$RECOVERY_FILE_DEST TO datakit;
+    GRANT SELECT ON V_\$RESTORE_POINT TO datakit;
+    GRANT SELECT ON V_\$SESSION TO datakit;
+    GRANT SELECT ON V_\$SGASTAT TO datakit;
+    GRANT SELECT ON V_\$SYSMETRIC TO datakit;
+    GRANT SELECT ON V_\$SYSTEM_PARAMETER TO datakit;
+
+    -- Initialize testing data.
+    CREATE TABLE students  ( student_id number(10) NOT NULL,  student_name varchar2(40) NOT NULL,  student_age varchar2(10)  );
+    INSERT INTO students  (student_id, student_name, student_age)  VALUES  (3, 'Happy', '11');
+    exit;
+`, user, password)
+)
+
+type (
+	validateFunc  func(pts []*point.Point, measurementsInfo map[string]measurementInfo, cs *caseSpec) error
+	serviceOKFunc func(t *testing.T, cs *caseSpec) bool
+)
+
+type caseSpec struct {
+	t *testing.T
+
+	name        string
+	repo        string
+	repoTag     string
+	envs        []string
+	servicePort string
+
+	validate      validateFunc
+	serviceOK     serviceOKFunc
+	postServiceOK serviceOKFunc
+
+	measurementsInfo map[string]measurementInfo
+
+	ipt    *Input
+	feeder *io.MockedFeeder
+
+	pool     *dt.Pool
+	resource *dt.Resource
+
+	cr *testutils.CaseResult
+}
+
+// getPool generates pool to connect to Docker.
+func (cs *caseSpec) getPool(r *testutils.RemoteInfo) (*dt.Pool, error) {
+	dockerTCP := r.TCPURL()
+
+	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
+
+	p, err := dt.NewPool(dockerTCP)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.Client.Ping()
+	if err != nil {
+		if r.Host != "0.0.0.0" {
+			return nil, err
+		}
+		// use default docker service
+		cs.t.Log("try default docker")
+		p, err = dt.NewPool("")
+		if err != nil {
+			return nil, err
+		} else {
+			if err = p.Client.Ping(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return p, nil
+}
+
+func (cs *caseSpec) run() error {
+	r := testutils.GetRemote()
+	start := time.Now()
+	p, err := cs.getPool(r)
+	if err != nil {
+		return err
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		cs.t.Logf("get hostname failed: %s, ignored", err)
+		hostname = "unknown-hostname"
+	}
+
+	containerName := fmt.Sprintf("%s.%s", hostname, cs.name)
+
+	// remove the container if exist.
+	if err := p.RemoveContainerByName(containerName); err != nil {
+		return err
+	}
+
+	resource, err := p.RunWithOptions(&dt.RunOptions{
+		// specify container image & tag
+		Repository: cs.repo,
+		Tag:        cs.repoTag,
+
+		ExposedPorts: []string{cs.servicePort},
+		Name:         containerName,
+
+		// container run-time envs
+		Env: cs.envs,
+	}, func(c *docker.HostConfig) {
+		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
+	})
+	if err != nil {
+		return err
+	}
+
+	hostPort := resource.GetHostPort(cs.servicePort)
+	_, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return fmt.Errorf("get host port error: %w", err)
+	}
+
+	cs.pool = p
+	cs.resource = resource
+	if portNumber, err := strconv.Atoi(port); err != nil {
+		return fmt.Errorf("get host port error: %w", err)
+	} else {
+		cs.ipt.Port = portNumber
+	}
+
+	// check port
+	if !r.PortOK(port, 5*time.Minute) {
+		return fmt.Errorf("service port checking failed")
+	}
+
+	cs.t.Logf("check service(%s:%s)...", r.Host, port)
+	if cs.serviceOK != nil {
+		if !cs.serviceOK(cs.t, cs) {
+			return fmt.Errorf("service failed to serve")
+		}
+	}
+
+	if cs.postServiceOK != nil && !cs.postServiceOK(cs.t, cs) {
+		return fmt.Errorf("post service ok failed")
+	}
+
+	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
+	var wg sync.WaitGroup
+
+	// start input
+	cs.t.Logf("start input...")
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cs.ipt.Run()
+	}()
+
+	// wait data
+	start = time.Now()
+	cs.t.Logf("wait points...")
+	pts := []*point.Point{}
+	m := map[string]interface{}{}
+	for k := range cs.measurementsInfo {
+		m[k] = struct{}{}
+	}
+	// merge pts, one pt per measurement
+	for len(m) > 0 {
+		ps, err := cs.feeder.AnyPoints(10 * time.Second)
+		if err != nil {
+			cs.t.Log("got points error: ", err.Error())
+			continue
+		}
+		for _, p := range ps {
+			if _, ok := m[p.Name()]; ok {
+				pts = append(pts, p)
+				delete(m, p.Name())
+			}
+		}
+	}
+
+	cs.cr.AddField("point_latency", int64(time.Since(start)))
+	cs.cr.AddField("point_count", len(pts))
+
+	cs.t.Logf("get %d points", len(pts))
+	if cs.validate != nil {
+		if err := cs.validate(pts, cs.measurementsInfo, cs); err != nil {
+			return err
+		}
+	}
+
+	cs.t.Logf("stop input...")
+	cs.ipt.Terminate()
+
+	cs.t.Logf("exit...")
+	wg.Wait()
+
+	return nil
+}
+
+type imageInfo struct {
+	Input
+	images    []string
+	serviceOK serviceOKFunc
+}
+
+func buildCases(t *testing.T) ([]*caseSpec, error) {
+	t.Helper()
+	defaultServiceOK := func(t *testing.T, cs *caseSpec) bool {
+		t.Helper()
+		ipt := cs.ipt
+		ipt.User = user
+		ipt.Password = password
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		initSQL := "$ORACLE_HOME/bin/sqlplus / as sysdba <<EOF\n" + initSQL + "EOF\n"
+		for {
+			// init sql
+			if code, err := cs.resource.Exec(
+				[]string{"/bin/sh", "-c", fmt.Sprintf("su oracle && su oracle -c '%s' || %s", initSQL, initSQL)},
+				dt.ExecOptions{StdOut: os.Stdout, StdErr: os.Stderr},
+			); err != nil {
+				t.Logf("run command in container failed(errCode: %d): %s", code, err.Error())
+			}
+			select {
+			case <-ctx.Done():
+				return false
+			case <-ticker.C:
+				err := ipt.setupDB()
+				if err != nil {
+					continue
+				} else {
+					return true
+				}
+			}
+		}
+	}
+
+	bases := []struct {
+		name             string
+		conf             string
+		validate         validateFunc
+		measurementsInfo map[string]measurementInfo
+	}{
+		{
+			name: "oracle-ok",
+			conf: fmt.Sprintf(`
+host = "%s"
+user = "%s"
+pass = "%s"
+port = 1521
+interval = "1s"
+service = "XE"
+timeout = "30s"
+[[custom_queries]]
+  sql = "SELECT GROUP_ID, METRIC_NAME, VALUE FROM GV$SYSMETRIC"
+  metric = "oracle_custom"
+  tags = ["GROUP_ID", "METRIC_NAME"]
+  fields = ["VALUE"]
+`, testutils.GetRemote().Host, user, password),
+			validate: assertMeasurements,
+		},
+	}
+
+	// TODO: 19c
+	images := []imageInfo{
+		{
+			images: []string{RepoURL + "oracle", "11g"},
+		},
+		{
+			images: []string{RepoURL + "oracle", "12c"},
+		},
+	}
+
+	measurementsInfo := map[string]measurementInfo{
+		"oracle_process": {
+			measurement:    &processMeasurement{},
+			optionalFields: []string{"pid"},
+			optionalTags:   []string{"pdb_name"},
+		},
+		"oracle_tablespace": {
+			measurement:  &tablespaceMeasurement{},
+			optionalTags: []string{"pdb_name"},
+		},
+		"oracle_system": {
+			measurement:  &systemMeasurement{},
+			optionalTags: []string{"pdb_name"},
+			optionalFields: []string{
+				"cache_blocks_corrupt",
+				"cache_blocks_lost",
+				"cursor_cachehit_ratio",
+				"database_wait_time_ratio",
+				"disk_sorts",
+				"enqueue_timeouts",
+				"gc_cr_block_received",
+				"memory_sorts_ratio",
+				"rows_per_sort",
+				"service_response_time",
+				"session_count",
+				"session_limit_usage",
+				"sorts_per_user_call",
+				"temp_space_used",
+				"user_rollbacks",
+				"pga_over_allocation_count",
+			},
+		},
+		"oracle_custom": {
+			measurement: &customMeasurement{},
+		},
+	}
+
+	var cases []*caseSpec
+
+	for _, img := range images {
+		for _, base := range bases {
+			feeder := io.NewMockedFeeder()
+			ipt := defaultInput()
+			ipt.feeder = feeder
+
+			ipt.Service = "XE"
+			if img.Service != "" {
+				ipt.Service = img.Service
+			}
+
+			ms := measurementsInfo
+			if base.measurementsInfo != nil {
+				ms = base.measurementsInfo
+			}
+			_, err := toml.Decode(base.conf, ipt)
+			assert.NoError(t, err)
+
+			envs := []string{
+				fmt.Sprintf("ORACLE_PASSWORD=%s", password),
+			}
+
+			cases = append(cases, &caseSpec{
+				t:      t,
+				ipt:    ipt,
+				name:   fmt.Sprintf("%s.%s", base.name, "oracle"+img.images[1]),
+				feeder: feeder,
+				envs:   envs,
+
+				repo:    img.images[0],
+				repoTag: img.images[1],
+
+				servicePort: "1521/tcp",
+
+				validate:         base.validate,
+				measurementsInfo: ms,
+
+				cr: &testutils.CaseResult{
+					Name: t.Name(),
+					Case: base.name,
+					ExtraTags: map[string]string{
+						"image":         img.images[0],
+						"image_tag":     img.images[1],
+						"remote_server": ipt.Host,
+					},
+				},
+				serviceOK: func(t *testing.T, cs *caseSpec) bool {
+					t.Helper()
+					if img.serviceOK != nil {
+						return img.serviceOK(t, cs)
+					} else {
+						return defaultServiceOK(t, cs)
+					}
+				},
+			})
+		}
+	}
+
+	return cases, nil
+}
+
+type measurementInfo struct {
+	measurement    inputs.Measurement
+	optionalFields []string
+	optionalTags   []string
+	extraTags      map[string]string
+}
+
+type customMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+}
+
+// Point implement MeasurementV2.
+func (m *customMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+//nolint:lll,funlen
+func (m *customMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "oracle_custom",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"VALUE": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "value",
+			},
+		},
+		Tags: map[string]interface{}{
+			"GROUP_ID":       &inputs.TagInfo{Desc: "group_id"},
+			"METRIC_NAME":    &inputs.TagInfo{Desc: "metric_name"},
+			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
+		},
+	}
+}
+
+func assertMeasurements(pts []*point.Point, mtMap map[string]measurementInfo, cs *caseSpec) error {
+	pointMap := map[string]bool{}
+	for _, pt := range pts {
+		name := pt.Name()
+		if _, ok := pointMap[name]; ok {
+			continue
+		}
+
+		if m, ok := mtMap[name]; ok {
+			extraTags := map[string]string{
+				"host": "host",
+			}
+
+			for k, v := range m.extraTags {
+				extraTags[k] = v
+			}
+			msgs := inputs.CheckPoint(pt,
+				inputs.WithDoc(m.measurement),
+				inputs.WithOptionalFields(m.optionalFields...),
+				inputs.WithExtraTags(cs.ipt.Tags),
+				inputs.WithOptionalTags(m.optionalTags...),
+				inputs.WithExtraTags(extraTags),
+			)
+			for _, msg := range msgs {
+				cs.t.Logf("[%s] check measurement %s failed: %+#v", cs.t.Name(), name, msg)
+			}
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: collected points are not as expected ", name)
+			}
+			pointMap[name] = true
+		} else {
+			continue
+		}
+		// check if tag appended
+		if len(cs.ipt.Tags) != 0 {
+			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
+
+			tags := pt.Tags()
+			for k := range cs.ipt.Tags {
+				if v := tags.Get(k); v == nil {
+					return fmt.Errorf("tag %s not found, got %v", k, tags)
+				}
+			}
+		}
+	}
+
+	missingMeasurements := []string{}
+	for m := range mtMap {
+		if _, ok := pointMap[m]; !ok {
+			missingMeasurements = append(missingMeasurements, m)
+		}
+	}
+
+	if len(missingMeasurements) > 0 {
+		return fmt.Errorf("measurements not found: %s", strings.Join(missingMeasurements, ","))
+	}
+
+	return nil
+}
 
 func TestIntegrate(t *testing.T) {
 	if !testutils.CheckIntegrationTestingRunning() {
 		t.Skip()
 	}
-
-	r := testutils.GetRemote()
-	dockerTCP := r.TCPURL()
-	p, res, mounts, err := testutils.RunOraemon(dockerTCP)
-	if err != nil {
-		panic("RunOraemon failed:" + err.Error())
-	}
-
-	testutils.PurgeRemoteByName(inputName) // purge at first.
-
-	defer testutils.RemoveOraemon(p, res)
-	defer testutils.PurgeRemoteByName(inputName) // purge at last.
 
 	start := time.Now()
 	cases, err := buildCases(t)
@@ -69,24 +552,23 @@ func TestIntegrate(t *testing.T) {
 	for _, tc := range cases {
 		func(tc *caseSpec) {
 			t.Run(tc.name, func(t *testing.T) {
-				// t.Parallel() // Oracle should not be parallel, if so, it would dead and timeout due to junk machine.
+				tc.t = t
 				caseStart := time.Now()
-				tc.mounts = mounts
 
 				t.Logf("testing %s...", tc.name)
 
-				if err := testutils.RetryTestRun(tc.run); err != nil {
+				if err := tc.run(); err != nil {
 					tc.cr.Status = testutils.TestFailed
 					tc.cr.FailedMessage = err.Error()
 
-					panic(err)
+					assert.NoError(t, err)
 				} else {
 					tc.cr.Status = testutils.TestPassed
 				}
 
 				tc.cr.Cost = time.Since(caseStart)
 
-				require.NoError(t, testutils.Flush(tc.cr))
+				assert.NoError(t, testutils.Flush(tc.cr))
 
 				t.Cleanup(func() {
 					// clean remote docker resources
@@ -99,600 +581,4 @@ func TestIntegrate(t *testing.T) {
 			})
 		}(tc)
 	}
-}
-
-func buildCases(t *testing.T) ([]*caseSpec, error) {
-	t.Helper()
-
-	remote := testutils.GetRemote()
-
-	bases := []struct {
-		name           string // Also used as build image name:tag.
-		conf           string
-		exposedPorts   []string
-		sid            string
-		optsProcess    []inputs.PointCheckOption
-		optsTablespace []inputs.PointCheckOption
-		optsSystem     []inputs.PointCheckOption
-	}{
-		{
-			name:         "pubrepo.guance.com/image-repo-for-testing/oracle:11g-xe-datakit-v5",
-			exposedPorts: []string{"1521/tcp"},
-			sid:          "XE",
-			optsProcess: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"pdb_name",
-				),
-				inputs.WithOptionalFields(
-					"pid",
-				),
-			},
-			optsTablespace: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"pdb_name",
-				),
-			},
-			optsSystem: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"pdb_name",
-				),
-				inputs.WithOptionalFields(
-					"cache_blocks_corrupt",
-					"cache_blocks_lost",
-					"cursor_cachehit_ratio",
-					"database_wait_time_ratio",
-					"disk_sorts",
-					"enqueue_timeouts",
-					"gc_cr_block_received",
-					"memory_sorts_ratio",
-					"rows_per_sort",
-					"service_response_time",
-					"session_count",
-					"session_limit_usage",
-					"sorts_per_user_call",
-					"temp_space_used",
-					"user_rollbacks",
-				),
-			},
-		},
-
-		{
-			name:         "pubrepo.guance.com/image-repo-for-testing/oracle:12c-se-datakit-v5",
-			exposedPorts: []string{"1521/tcp"},
-			sid:          "xe",
-			optsTablespace: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"pdb_name",
-				),
-			},
-			optsSystem: []inputs.PointCheckOption{
-				inputs.WithOptionalTags(
-					"pdb_name",
-				),
-				inputs.WithOptionalFields(
-					"cache_blocks_corrupt",
-					"cache_blocks_lost",
-					"cursor_cachehit_ratio",
-					"database_wait_time_ratio",
-					"disk_sorts",
-					"enqueue_timeouts",
-					"gc_cr_block_received",
-					"memory_sorts_ratio",
-					"rows_per_sort",
-					"service_response_time",
-					"session_count",
-					"session_limit_usage",
-					"sorts_per_user_call",
-					"temp_space_used",
-					"user_rollbacks",
-				),
-			},
-		},
-
-		{
-			name:         "pubrepo.guance.com/image-repo-for-testing/oracle:19c-ee-datakit-v5",
-			exposedPorts: []string{"1521/tcp"},
-			sid:          "XE",
-			optsSystem: []inputs.PointCheckOption{
-				inputs.WithOptionalFields(
-					"cache_blocks_corrupt",
-					"cache_blocks_lost",
-					"cursor_cachehit_ratio",
-					"database_wait_time_ratio",
-					"disk_sorts",
-					"enqueue_timeouts",
-					"gc_cr_block_received",
-					"memory_sorts_ratio",
-					"rows_per_sort",
-					"service_response_time",
-					"session_count",
-					"session_limit_usage",
-					"sorts_per_user_call",
-					"temp_space_used",
-					"user_rollbacks",
-				),
-			},
-		},
-	}
-
-	var cases []*caseSpec
-
-	// compose cases
-	for _, base := range bases {
-		feeder := dkio.NewMockedFeeder()
-
-		ipt := defaultInput()
-		// ipt.feeder = feeder // no need.
-
-		_, err := toml.Decode(base.conf, ipt)
-		require.NoError(t, err)
-
-		repoTag := strings.Split(base.name, ":")
-
-		cases = append(cases, &caseSpec{
-			t:       t,
-			ipt:     ipt,
-			name:    base.name,
-			feeder:  feeder,
-			repo:    repoTag[0],
-			repoTag: repoTag[1],
-
-			exposedPorts:   base.exposedPorts,
-			sid:            base.sid,
-			optsProcess:    base.optsProcess,
-			optsTablespace: base.optsTablespace,
-			optsSystem:     base.optsSystem,
-
-			cr: &testutils.CaseResult{
-				Name:        t.Name(),
-				Case:        base.name,
-				ExtraFields: map[string]any{},
-				ExtraTags: map[string]string{
-					"image":       repoTag[0],
-					"image_tag":   repoTag[1],
-					"docker_host": remote.Host,
-					"docker_port": remote.Port,
-				},
-			},
-		})
-	}
-
-	return cases, nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// caseSpec.
-
-type caseSpec struct {
-	t *testing.T
-
-	name           string
-	repo           string
-	repoTag        string
-	dockerFileText string
-	exposedPorts   []string
-	serverPorts    []string
-	sid            string
-	optsProcess    []inputs.PointCheckOption
-	optsTablespace []inputs.PointCheckOption
-	optsSystem     []inputs.PointCheckOption
-	done           chan struct{}
-	mCount         map[string]struct{}
-	mounts         string
-
-	ipt    *Input
-	feeder *dkio.MockedFeeder
-
-	pool     *dockertest.Pool
-	resource *dockertest.Resource
-
-	cr *testutils.CaseResult
-}
-
-type FeedMeasurementBody []struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags"`
-	Fields      map[string]interface{} `json:"fields"`
-}
-
-func (cs *caseSpec) handler(c *gin.Context) {
-	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
-
-	body, err := io.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
-
-	switch uri.Path {
-	case "/v1/write/metric":
-		pts, err := lp.ParsePoints(body, nil)
-		if err != nil {
-			cs.t.Logf("ParsePoints failed: %s", err.Error())
-			return
-		}
-
-		newPts := dkpt2point(pts...)
-
-		for _, pt := range newPts {
-			fmt.Println(pt.LineProto())
-		}
-
-		if err := cs.checkPoint(newPts); err != nil {
-			cs.t.Logf("%s", err.Error())
-			require.NoError(cs.t, err)
-			return
-		}
-
-	default:
-		panic("unknown measurement")
-	}
-
-	if len(cs.mCount) == 3 {
-		cs.done <- struct{}{}
-	}
-}
-
-func (cs *caseSpec) lasterror(c *gin.Context) {
-	uri, err := url.ParseRequestURI(c.Request.URL.RequestURI())
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
-	fmt.Println("uri ==>", uri)
-
-	body, err := io.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return
-	}
-	fmt.Println("lasterror ==>", string(body))
-}
-
-func (cs *caseSpec) checkPoint(pts []*point.Point) error {
-	for _, pt := range pts {
-		var opts []inputs.PointCheckOption
-		opts = append(opts, inputs.WithExtraTags(cs.ipt.Tags))
-
-		measurement := pt.Name()
-
-		switch measurement {
-		case oracleProcess:
-			_, ok := cs.mCount[oracleProcess]
-			if ok {
-				continue
-			}
-
-			opts = append(opts, cs.optsProcess...)
-			opts = append(opts, inputs.WithDoc(&processMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			cs.t.Logf("oracle_process check completed!")
-			cs.mCount[oracleProcess] = struct{}{}
-
-		case oracleTablespace:
-			_, ok := cs.mCount[oracleTablespace]
-			if ok {
-				continue
-			}
-
-			opts = append(opts, cs.optsTablespace...)
-			opts = append(opts, inputs.WithDoc(&tablespaceMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			cs.t.Logf("oracle_tablespace check completed!")
-			cs.mCount[oracleTablespace] = struct{}{}
-
-		case oracleSystem:
-			_, ok := cs.mCount[oracleSystem]
-			if ok {
-				continue
-			}
-
-			opts = append(opts, cs.optsSystem...)
-			opts = append(opts, inputs.WithDoc(&systemMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			cs.t.Logf("oracle_system check completed!")
-			cs.mCount[oracleSystem] = struct{}{}
-
-		default: // TODO: check other measurement
-			panic("unknown measurement: " + measurement)
-		}
-
-		// check if tag appended
-		if len(cs.ipt.Tags) != 0 {
-			cs.t.Logf("checking tags %+#v...", cs.ipt.Tags)
-
-			tags := pt.Tags()
-			for k, expect := range cs.ipt.Tags {
-				if v := tags.Get(k); v != nil {
-					got := v.GetS()
-					if got != expect {
-						return fmt.Errorf("expect tag value %s, got %s", expect, got)
-					}
-				} else {
-					return fmt.Errorf("tag %s not found, got %v", k, tags)
-				}
-			}
-		}
-	}
-
-	// TODO: some other checking on @pts, such as `if some required measurements exist'...
-
-	return nil
-}
-
-func (cs *caseSpec) run() error {
-	cs.t.Helper()
-
-	r := testutils.GetRemote()
-	dockerTCP := r.TCPURL()
-
-	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
-
-	gin.SetMode(gin.DebugMode)
-	router := gin.Default()
-	router.POST("/v1/write/metric", cs.handler)
-	router.POST("/v1/lasterror", cs.lasterror)
-
-	var (
-		listener    net.Listener
-		randPortStr string
-		err         error
-	)
-
-	for {
-		randPort := testutils.RandPort("tcp")
-		randPortStr = fmt.Sprintf("%d", randPort)
-		listener, err = net.Listen("tcp", ":"+randPortStr)
-		if err != nil {
-			if strings.Contains(err.Error(), "bind: address already in use") {
-				continue
-			}
-			cs.t.Logf("net.Listen failed: %v", err)
-			return err
-		}
-		break
-	}
-
-	cs.t.Logf("listening port " + randPortStr + "...")
-
-	srv := &http.Server{Handler: router}
-
-	go func() {
-		cs.done = make(chan struct{})
-		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
-	}()
-
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil && errors.Is(err, http.ErrServerClosed) {
-			cs.t.Logf("Shutdown failed: %v", err)
-		}
-	}()
-
-	start := time.Now()
-
-	p, err := testutils.GetPool(dockerTCP)
-	if err != nil {
-		return err
-	}
-
-	dockerFileDir, dockerFilePath, err := cs.getDockerFilePath()
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(dockerFileDir)
-
-	extIP, err := testutils.ExternalIP()
-	if err != nil {
-		return err
-	}
-
-	uniqueContainerName := testutils.GetUniqueContainerName(inputName)
-
-	var resource *dockertest.Resource
-
-	if len(cs.dockerFileText) == 0 {
-		// Just run a container from existing docker image.
-		resource, err = p.RunWithOptions(
-			&dockertest.RunOptions{
-				Name: uniqueContainerName, // ATTENTION: not cs.name.
-
-				Repository: cs.repo,
-				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=5s", "IMPORT_FROM_VOLUME=true"},
-
-				ExposedPorts: cs.exposedPorts,
-				Mounts:       []string{cs.mounts},
-			},
-
-			func(c *docker.HostConfig) {
-				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
-			},
-		)
-	} else {
-		// Build docker image from Dockerfile and run a container from it.
-		resource, err = p.BuildAndRunWithOptions(
-			dockerFilePath,
-
-			&dockertest.RunOptions{
-				ContainerName: uniqueContainerName,
-				Name:          cs.name, // ATTENTION: not uniqueContainerName.
-
-				Repository: cs.repo,
-				Tag:        cs.repoTag,
-				Env:        []string{fmt.Sprintf("DATAKIT_HOST=%s", extIP), "DATAKIT_PORT=" + randPortStr, "ORACLE_PASSWORD=123456", "ORACLE_SID=" + cs.sid, "DATAKIT_INTERVAL=5s", "IMPORT_FROM_VOLUME=true"},
-
-				ExposedPorts: cs.exposedPorts,
-			},
-
-			func(c *docker.HostConfig) {
-				c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-				c.AutoRemove = true
-			},
-		)
-	}
-
-	if err != nil {
-		cs.t.Logf("%s", err.Error())
-		return err
-	}
-
-	cs.pool = p
-	cs.resource = resource
-
-	if err := cs.getMappingPorts(); err != nil {
-		return err
-	}
-
-	cs.t.Logf("check service(%s:%v)...", r.Host, cs.serverPorts)
-
-	if err := cs.portsOK(r); err != nil {
-		return err
-	}
-
-	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-
-	cs.mCount = map[string]struct{}{}
-
-	timeout := 10 * time.Minute
-	cs.t.Logf("checking oracle in %v...", timeout)
-	tick := time.NewTicker(timeout)
-	out := false
-	for {
-		if out {
-			break
-		}
-
-		select {
-		case <-tick.C:
-			panic("check " + inputName + " timeout: " + cs.name)
-		case <-cs.done:
-			cs.t.Logf("check " + inputName + " all done!")
-			out = true
-		}
-	}
-
-	cs.t.Logf("exit...")
-
-	return nil
-}
-
-func (cs *caseSpec) getDockerFilePath() (dirName string, fileName string, err error) {
-	if len(cs.dockerFileText) == 0 {
-		return
-	}
-
-	tmpDir, err := os.MkdirTemp("", "dockerfiles_")
-	if err != nil {
-		cs.t.Logf("os.MkdirTemp.TempDir failed: %s", err.Error())
-		return "", "", err
-	}
-
-	tmpFile, err := os.CreateTemp(tmpDir, "dockerfile_")
-	if err != nil {
-		cs.t.Logf("os.CreateTemp failed: %s", err.Error())
-		return "", "", err
-	}
-
-	_, err = tmpFile.WriteString(cs.dockerFileText)
-	if err != nil {
-		cs.t.Logf("TempFile.WriteString failed: %s", err.Error())
-		return "", "", err
-	}
-
-	if err := os.Chmod(tmpFile.Name(), os.ModePerm); err != nil {
-		cs.t.Logf("os.Chmod failed: %s", err.Error())
-		return "", "", err
-	}
-
-	if err := tmpFile.Close(); err != nil {
-		cs.t.Logf("Close failed: %s", err.Error())
-		return "", "", err
-	}
-
-	return tmpDir, tmpFile.Name(), nil
-}
-
-func (cs *caseSpec) getMappingPorts() error {
-	cs.serverPorts = make([]string, len(cs.exposedPorts))
-	for k, v := range cs.exposedPorts {
-		mapStr := cs.resource.GetHostPort(v)
-		_, port, err := net.SplitHostPort(mapStr)
-		if err != nil {
-			return err
-		}
-		cs.serverPorts[k] = port
-	}
-	return nil
-}
-
-func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
-	for _, v := range cs.serverPorts {
-		if !r.PortOK(docker.Port(v).Port(), 2*time.Minute) {
-			return fmt.Errorf("service checking failed")
-		}
-	}
-	return nil
-}
-
-// nolint: deadcode,unused
-// dkpt2point convert old io/point.Point to point.Point.
-func dkpt2point(pts ...*influxdb.Point) (res []*point.Point) {
-	for _, pt := range pts {
-		fs, err := pt.Fields()
-		if err != nil {
-			continue
-		}
-
-		pt := point.NewPointV2(pt.Name(),
-			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
-
-		res = append(res, pt)
-	}
-
-	return res
 }
