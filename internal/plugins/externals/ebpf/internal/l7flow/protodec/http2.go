@@ -224,6 +224,9 @@ func (dec *h2DecPipe) Export(force bool) []*ProtoData {
 	var rst []*ProtoData
 	var keep []*h2Info
 	for _, inf := range dec.elems {
+		if inf == nil {
+			continue
+		}
 		if inf.hFinished {
 			kvs := make(point.KVs, 0, 20)
 

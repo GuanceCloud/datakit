@@ -173,6 +173,9 @@ func (dec *redisDecPipe) Export(force bool) []*ProtoData {
 	var result []*ProtoData
 
 	for _, inf := range dec.infCache {
+		if inf == nil {
+			continue
+		}
 		kvs := make(point.KVs, 0, 20)
 
 		switch dec.direction { //nolint:exhaustive

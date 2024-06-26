@@ -277,6 +277,10 @@ func (dec *httpDecPipe) Export(force bool) []*ProtoData {
 	var result []*ProtoData
 
 	for _, inf := range dec.infCache {
+		if inf == nil {
+			continue
+		}
+
 		kvs := make(point.KVs, 0, 20)
 
 		// 这几个字段需要与聚合函数的字段相同
