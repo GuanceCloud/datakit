@@ -160,7 +160,7 @@ func defaultOption() *option {
 		source:                         "default",
 		globalTags:                     map[string]string{"service": "default"},
 		maxForceFlushLimit:             10,
-		fileFromBeginningThresholdSize: 1024 * 1024 * 1, // 1 MiB
+		fileFromBeginningThresholdSize: 1000 * 1000 * 1, // 1 MB
 		done:                           make(<-chan interface{}),
 		feeder:                         dkio.DefaultFeeder(),
 	}

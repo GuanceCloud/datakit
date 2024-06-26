@@ -160,6 +160,7 @@ func (t *Single) seekOffset() error {
 			return err
 		}
 	}
+	t.log.Infof("not found position for recorder key %s", t.recordKey)
 
 	// use fromBeginning
 	if t.opt.fromBeginning {

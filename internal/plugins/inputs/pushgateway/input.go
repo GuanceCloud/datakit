@@ -37,11 +37,15 @@ const (
   route_prefix = ""
 
   ## Measurement name.
-  ## If measurement_name is empty, split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
   ## If measurement_name is not empty, using this as measurement set name.
   # measurement_name = "prom_pushgateway"
 
+  ## If job_as_measurement is true, use the job field for the measurement name.
+  ## The measurement_name configuration takes precedence.
+  job_as_measurement = false
+
   ## Keep Exist Metric Name.
+  ## Split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
 `
@@ -52,6 +56,7 @@ var log = logger.DefaultSLogger(inputName)
 type Input struct {
 	RoutePrefix         string `toml:"route_prefix,omitempty"`
 	MeasurementName     string `toml:"measurement_name"`
+	JobAsMeasurement    bool   `toml:"job_as_measurement"`
 	KeepExistMetricName bool   `toml:"keep_exist_metric_name"`
 	feeder              dkio.Feeder
 }
@@ -67,19 +72,12 @@ func (*Input) Terminate()                              { /* TODO */ }
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 
-	opts := []iprom.PromOption{
-		iprom.WithLogger(log), // WithLogger must in the first
-		iprom.WithSource(inputName),
-		iprom.KeepExistMetricName(ipt.KeepExistMetricName),
-	}
-	if ipt.MeasurementName != "" {
-		opts = append(opts, iprom.WithMeasurementName(ipt.MeasurementName))
-	}
-
-	text := func(body io.Reader, tags map[string]string) error {
+	textFunc := func(body io.Reader, tags map[string]string) error {
+		opts := ipt.newPromOptions(tags)
 		return textProcessor(opts, ipt.feeder, body, tags)
 	}
-	protobuf := func(body io.Reader, tags map[string]string) error {
+	protobufFunc := func(body io.Reader, tags map[string]string) error {
+		opts := ipt.newPromOptions(tags)
 		return protobufProcessor(opts, ipt.feeder, body, tags)
 	}
 
@@ -87,11 +85,32 @@ func (ipt *Input) RegHTTPHandler() {
 
 	for _, suffix := range []string{"", base64Suffix} {
 		jobBase64Encoded := suffix == base64Suffix
-		httpapi.RegHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job", pushHandle(jobBase64Encoded, text, protobuf))
-		httpapi.RegHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job", pushHandle(jobBase64Encoded, text, protobuf))
-		httpapi.RegHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job/*labels", pushHandle(jobBase64Encoded, text, protobuf))
-		httpapi.RegHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job/*labels", pushHandle(jobBase64Encoded, text, protobuf))
+		httpapi.RegHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job", pushHandle(jobBase64Encoded, textFunc, protobufFunc))
+		httpapi.RegHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job", pushHandle(jobBase64Encoded, textFunc, protobufFunc))
+		httpapi.RegHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job/*labels", pushHandle(jobBase64Encoded, textFunc, protobufFunc))
+		httpapi.RegHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job/*labels", pushHandle(jobBase64Encoded, textFunc, protobufFunc))
 	}
+}
+
+func (ipt *Input) newPromOptions(tags map[string]string) []iprom.PromOption {
+	opts := []iprom.PromOption{
+		iprom.WithLogger(log), // WithLogger must in the first
+		iprom.WithSource(inputName),
+		iprom.KeepExistMetricName(ipt.KeepExistMetricName),
+		iprom.WithTags(tags),
+	}
+	if ipt.MeasurementName != "" {
+		opts = append(opts, iprom.WithMeasurementName(ipt.MeasurementName))
+	} else if ipt.JobAsMeasurement {
+		if tags != nil {
+			job, exist := tags["job"]
+			if exist {
+				opts = append(opts, iprom.WithMeasurementName(job))
+			}
+		}
+	}
+
+	return opts
 }
 
 func textProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, tags map[string]string) error {
@@ -106,7 +125,6 @@ func textProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, 
 		return err
 	}
 
-	addTagsToPoints(pts, tags)
 	return feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.DisableGlobalTags(true))
 }
 
@@ -137,14 +155,7 @@ func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Read
 		return err
 	}
 
-	addTagsToPoints(pts, tags)
 	return feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.DisableGlobalTags(true))
-}
-
-func addTagsToPoints(pts []*point.Point, tags map[string]string) {
-	for _, pt := range pts {
-		pt.AddKVs(point.NewTags(tags)...)
-	}
 }
 
 func init() { //nolint:gochecknoinits
