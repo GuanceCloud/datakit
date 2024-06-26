@@ -504,6 +504,18 @@ if [ -n "$DK_USER_NAME" ]; then
 	printf "* Set user_name => $DK_USER_NAME \n"
 fi
 
+crypto_aes_key=""
+if [ -n "$DK_CRYPTO_AES_KEY" ]; then
+	crypto_aes_key=$DK_CRYPTO_AES_KEY
+	printf "* Set aes_key => $DK_CRYPTO_AES_KEY \n"
+fi
+
+crypto_aes_key_file=""
+if [ -n "$DK_CRYPTO_AES_KEY_FILE" ]; then
+	crypto_aes_key_file=$DK_CRYPTO_AES_KEY_FILE
+	printf "* Set aes_key_file => $DK_CRYPTO_AES_KEY_FILE \n"
+fi
+
 printf "* Apply all DK_* envs done.\n"
 
 ##################
@@ -590,6 +602,8 @@ $sudo_cmd $installer \
 		--sinker-global-customer-keys="${global_customer_keys}" \
 		--enable-dataway-sinker="${dataway_sinker}" \
 		--user-name="${user_name}" \
+		--crypto-aes_key="${crypto_aes_key}" \
+		--crypto-aes_key_file="${crypto_aes_key_file}" \
 		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--gin-log="${gin_log}"
 		fi

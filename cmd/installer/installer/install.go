@@ -52,7 +52,6 @@ func Install(svc service.Service, userName string) {
 
 	// prepare dataway info and check token format
 	if len(Dataway) != 0 {
-		var err error
 		mc.Dataway, err = getDataway()
 		if err != nil {
 			l.Errorf("getDataway failed: %s", err.Error())
@@ -174,6 +173,14 @@ func Install(svc service.Service, userName string) {
 	if DatakitName != "" {
 		mc.Name = DatakitName
 		l.Infof("set datakit name to %s", mc.Name)
+	}
+
+	if CryptoAESKey != "" || CryptoAESKeyFile != "" {
+		if mc.Crypto != nil {
+			mc.Crypto.AESKey = CryptoAESKey
+			mc.Crypto.AESKeyFile = CryptoAESKeyFile
+			l.Infof("set datakit crypto key=%s or crypto key file=%s", mc.Crypto.AESKey, mc.Crypto.AESKeyFile)
+		}
 	}
 
 	// 一个 func 最大 230 行

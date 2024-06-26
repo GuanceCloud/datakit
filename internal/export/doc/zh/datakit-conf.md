@@ -354,7 +354,7 @@ ENC 目前支持三种方式：
 
 - AES 加密方式。
 
-    需要在主配置文件 `datakit.conf`  中配置秘钥： crypto_AES_key 或者 crypto_AES_Key_filePath
+    需要在主配置文件 `datakit.conf`  中配置秘钥： crypto_AES_key 或者 crypto_AES_Key_filePath, 秘钥长度是 16 位。
     密码处的填写格式为： `ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`
 
 
@@ -382,11 +382,12 @@ DK 会从 `/usr/local/datakit/enc4mysql` 中读取密码并替换密码，替换
 首先在 `datakit.conf` 中配置秘钥：
 
 ```toml
-# 配置文件中的一级字段
-# 秘钥 key
-crypto_AES_key = "0123456789abcdef"
-# 或者 秘钥文件：
-crypto_AES_Key_filePath = "/usr/local/datakit/mykey"
+# crypto key or key filePath.
+[crypto]
+  # 配置秘钥
+  aes_key = "0123456789abcdef"
+  # 或者，将秘钥放到文件中并在此配置文件位置。
+  aes_Key_file = "/usr/local/datakit/mykey"
 ```
 
 `mysql.conf` 配置文件：
@@ -504,7 +505,23 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
     
             return new String(decrypted);
         }
-    }    
+    }
+    public static void main(String[] args) {
+        try {
+            String key = "0123456789abcdef"; // 16, 24, or 32 bytes AES key
+            String plaintext = "HelloAES9*&.";
+            byte[] keyBytes = key.getBytes("UTF-8");
+
+            String encrypted = AESEncrypt(keyBytes, plaintext);
+            System.out.println("Encrypted text: " + encrypted);
+
+            String decrypt = AESDecrypt(keyBytes, encrypted);
+            System.out.println("解码后的是："+decrypt);
+        } catch (Exception e) {
+            System.out.println(e);
+            e.printStackTrace();
+        }
+    }
     ```
 <!-- markdownlint-enable -->
 
