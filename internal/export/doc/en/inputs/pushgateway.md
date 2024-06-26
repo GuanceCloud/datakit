@@ -135,4 +135,5 @@ The Pushgateway collector does not add any tags.
 There are two cases for naming metric sets:
 
 1. Use the configuration option `measurement_name` to specify the metric set name.
+1. Use the job field for the measurement name.
 1. Split the data field names using an underscore `_`, where the first field after splitting becomes the metric set name, and the remaining fields become the current metric name.
