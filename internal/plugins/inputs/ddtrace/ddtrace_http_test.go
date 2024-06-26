@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,8 +43,10 @@ func Marshal(src interface{}) ([]byte, error) {
 	buf := bufpool.GetBuffer()
 	encoder.Reset(buf)
 	err := encoder.Encode(src)
+	b := buf.Bytes()
+	bufpool.PutBuffer(buf)
 
-	return buf.Bytes(), err
+	return b, err
 }
 
 type ddHandler struct{}
@@ -255,3 +258,51 @@ func randomDDTraces(n, m int) DDTraces {
 func jsonEncoder(ddtraces DDTraces) ([]byte, error) {
 	return json.Marshal(ddtraces)
 }
+
+func BenchmarkDecodeRequest(b *testing.B) {
+	buf, err := msgpackEncoder(randomDDTraces(10, 10))
+	if err != nil {
+		b.Error(err)
+		return
+	}
+	parm := &itrace.TraceParameters{
+		URLPath: "/v0.4/traces",
+		Media:   "application/msgpack",
+		Encode:  "",
+		Body:    bytes.NewBuffer(buf),
+	}
+	b.Logf("body len =%d", len(buf))
+	b.ResetTimer()
+	b.Run("with pool", func(b *testing.B) {
+		ddtracePoolT := &sync.Pool{
+			New: func() interface{} {
+				return DDTraces{}
+			},
+		}
+		for i := 0; i < b.N; i++ {
+			dt := ddtracePoolT.Get().(DDTraces)
+			decodeRequest(parm, &dt)
+			dt.reset()
+			ddtracePoolT.Put(dt) //nolint
+		}
+	})
+
+	b.ResetTimer()
+	b.Run("no pool", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			decodeRequest(parm, &DDTraces{})
+		}
+	})
+}
+
+/*
+// go test -benchmem -run=^$ -tags with_inputs -cpuprofile=cpu.prof -memprofile=mem.prof  -bench ^BenchmarkDecodeRequest$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace
+cpu: AMD Ryzen 7 7700X 8-Core Processor
+BenchmarkDecodeRequest/with_pool-16                 6388            180710 ns/op           41654 B/op       3402 allocs/op
+BenchmarkDecodeRequest/no_pool-16                   6806            169198 ns/op          167056 B/op       3914 allocs/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace    3.555s
+*/

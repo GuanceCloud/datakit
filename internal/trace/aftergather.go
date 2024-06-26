@@ -90,6 +90,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	if len(aga.filters) == 0 {
 		afterFilters = dktraces
 	} else {
+		afterFilters = make(DatakitTraces, 0, len(dktraces))
 		for k := range dktraces {
 			aga.log.Debugf("len = %d spans", len(dktraces[k]))
 			var temp DatakitTrace
