@@ -351,7 +351,7 @@ NAME1="value1" NAME2="value2"
 | `HTTPS_PROXY`                 | `IP:Port`                   | 通过 Datakit 代理安装                                                                                         |
 | `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`                        | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                   |
 | `DK_VERBOSE`                  | `on`                        | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
-| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md/#cl-1.31.0)                  |
+| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
 | `DK_CRYPTO_AES_KEY_FILE`      | `/usr/local/datakit/enc4dk` | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                                                       |
 
 ## FAQ {#faq}

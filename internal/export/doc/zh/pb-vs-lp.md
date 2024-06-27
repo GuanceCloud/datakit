@@ -47,9 +47,7 @@ disk,device=/dev/disk3s4,fstype=apfs free=167050518528i,total=494384795648i,used
 - InfluxDB 官方的行协议 SDK 设计不当，且有一些性能问题：
 
     - 数据点（Point）构建出来之后，对其做二次操作（比如 Pipeline），需要再次解开 Point，造成 CPU/内存浪费
-    - 编码/解码性能不佳[^1]，导致在高吞吐量情况下，数据处理受影响
-
-[^1]: 似乎可读性好的数据格式，其编解码性能都不如二进制。
+    - 编码/解码性能不佳，导致在高吞吐量情况下，数据处理受影响
 
 ---
 
@@ -81,11 +79,16 @@ BenchmarkDecode/decode-pb-10 393 3044680 ns/op 3052845 B/op 70025 allocs/op
 
 在中低负载 Datakit 上，v2/v1 性能差异很明显：
 
-![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
+<figure markdown>
+  ![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
+</figure>
 
 10:30 从 v2 切换到 v1，能看到 CPU/内存都有明显的上升。在在高负载 Datakit 上，性能差异也很明显：
 
-![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
+
+<figure markdown>
+  ![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
+</figure>
 
 23:45 切换了 v2，此时 sys/heap mem 相比第二天 10:30 切换到 v1 要低很多。CPU 方面，10:30 切换到 v1 后，CPU 也有上升，但不是很明显，主要是因为高负载的 Datakit 主力 CPU 不在数据编码。
 

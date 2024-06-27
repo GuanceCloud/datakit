@@ -20,20 +20,19 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 - 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
 - 完整支持 Kubernetes 云原生生态
-- [Pipeline](https://docs.guance.com/datakit/pipeline)：简便的结构化数据提取
+- [Pipeline](https://docs.guance.com/pipeline/use-pipeline)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-    - [Telegraf](https://docs.guance.com/datakit/telegraf)
-    - [Prometheus](https://docs.guance.com/datakit/prom)
-    - [Statsd](https://docs.guance.com/datakit/statsd)
-    - [Fluentd](https://docs.guance.com/datakit/logstreaming-fluentd)
-    - [Filebeats](https://docs.guance.com/datakit/beats_output)
-    - [Function](https://docs.guance.com/dataflux-func/write-data-via-datakit)
+    - [Telegraf](https://docs.guance.com/integrations/telegraf)
+    - [Prometheus](https://docs.guance.com/integrations/prom)
+    - [Statsd](https://docs.guance.com/integrations/statsd)
+    - [Fluentd](https://docs.guance.com/integrations/logstreaming-fluentd)
+    - [Filebeats](https://docs.guance.com/integrations/beats_output)
     - Tracing 相关
-        - [OpenTelemetry](https://docs.guance.com/datakit/opentelemetry)
-        - [DDTrace](https://docs.guance.com/datakit/ddtrace)
-        - [Zipkin](https://docs.guance.com/datakit/zipkin)
-        - [Jaeger](https://docs.guance.com/datakit/jaeger)
-        - [Skywalking](https://docs.guance.com/datakit/skywalking)
+        - [OpenTelemetry](https://docs.guance.com/integrations/opentelemetry)
+        - [DDTrace](https://docs.guance.com/integrations/ddtrace)
+        - [Zipkin](https://docs.guance.com/integrations/zipkin)
+        - [Jaeger](https://docs.guance.com/integrations/jaeger)
+        - [Skywalking](https://docs.guance.com/integrations/skywalking)
 
 ## 发布历史
 
@@ -110,8 +109,6 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
     - clang 10.0+: `apt-get install clang`
     - llvm 10.0+: `apt-get install llvm`
     - kernel headers: `apt-get install -y linux-headers-$(uname -r)`
-- 文档相关: [waque 1.13.1+](https://github.com/yesmeck/waque)
-  - 文档工具也不是必须的，可不安装
 
 ### 编译
 

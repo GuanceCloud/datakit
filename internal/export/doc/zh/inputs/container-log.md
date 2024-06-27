@@ -459,5 +459,5 @@ Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，�
 
 ## 延伸阅读 {#more-reading}
 
-- [Pipeline：文本数据处理](../developers/pipeline/index.md)
+- [Pipeline：文本数据处理](../pipeline/use-pipeline/index.md)
 - [DataKit 日志采集综述](datakit-logging.md)

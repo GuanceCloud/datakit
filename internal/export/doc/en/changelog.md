@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.32.0 (June 13, 2024) {#cl-1.32.0}
+## 1.32.0 (June 26, 2024) {#cl-1.32.0}
 
 This release is an iterative update with the following main changes:
 
@@ -592,7 +592,7 @@ This release is a Hotfix release, which fixes the following issues:
 ### New features {#cl-1.17.1-new}
 
 - eBPF can also [build APM data](../integrations/ebpftrace.md) to trace process/thread relationship under Linux(#1835)
-- Pipeline add new function [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
+- Pipeline add new function [`pt_name`](../pipeline/pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
 
 ### Features Optimizations {#cl-1.17.1-opt}
 
@@ -972,7 +972,7 @@ This release is an iterative mid-term release, adding some functions for docking
 - Added [Chrony collector](../integrations/chrony.md) (#1671)
 - Added RUM Headless support (#1644)
 -Pipeline
-    - Added [offload function](../developers/pipeline/pipeline-offload.md) (#1634)
+    - Added [offload function](../pipeline/pipeline/pipeline-offload.md) (#1634)
     - Restructured existing documentation (#1686)
 
 ### Bug fixes {#cl-1.9.2-fix}
@@ -1172,8 +1172,8 @@ This release is an emergency release and includes the following updates:
 
 - Add support to [auto-discovery Prometheus metrics](kubernetes-prom.md#auto-discovery-metrics-with-prometheus) on Kubernetes Pods(#1564)
 - Add new aggregation function in Pipeline(#1554)
-    - [agg_create()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-create)
-    - [agg_metric()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-metric)
+    - [agg_create()](../pipeline/pipeline/pipeline-built-in-function.md#fn-agg-create)
+    - [agg_metric()](../pipeline/pipeline/pipeline-built-in-function.md#fn-agg-metric)
 
 ### Feature Optimization {#cl-1.5.10-opt}
 
@@ -1242,8 +1242,8 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 - Improve support for [cgroup v2](datakit-conf.md#resource-limit) (#1494)
 - Add an environment variable (`ENV_CLUSTER_K8S_NAME`) to configure the cluster name during Kubernetes installation (#1504)
 - Pipeline
-    - Add protective measures to the [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)
-    - Optimize the functionality of [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) and [`delete()`](../developers/pipeline/pipeline-built-in-function.md#fn-delete) for processing JSON keys.
+    - Add protective measures to the [`kv_split()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-kv_split) function to prevent data inflation (#1510)
+    - Optimize the functionality of [`json()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-json) and [`delete()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-delete) for processing JSON keys.
 - Other engineering optimizations (#1500)
 
 ### Documentation Adjustments {#cl-1.5.8-doc}
@@ -1263,9 +1263,9 @@ This release is an iterative release with the following updates:
 ### New Features {#cl-1.5.7-new}
 
 - Pipeline
-    - Add [key deletion](../developers/pipeline/pipeline-built-in-function.md#fn-json) for `json` function (#1465)
-    - Add new function [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
-    - Add new function[`datatime()`](../developers/pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
+    - Add [key deletion](../pipeline/pipeline/pipeline-built-in-function.md#fn-json) for `json` function (#1465)
+    - Add new function [`kv_split()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
+    - Add new function[`datatime()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
 - Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
 - Disk io add extended metrics on [io wait](diskio.md#extend)(#1472)
 - Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
@@ -1281,7 +1281,7 @@ This release is an iterative release with the following updates:
 ### Features Optimizations {#cl-1.5.7-opt}
 
 - Optimize Point Checker(#1478)
-- Optimize Pipeline function [`replace()`](../developers/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
+- Optimize Pipeline function [`replace()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
 - Optimize Datakit installation under Windows(#1406)
 - Optimize [Confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)

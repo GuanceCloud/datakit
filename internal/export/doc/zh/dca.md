@@ -309,7 +309,7 @@ DCA 开启和安装以后，您可在浏览器输入地址 `localhost:8000` 进�
 
 ### Pipelines 管理 {#view-pipeline}
 
-远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 Pipeline 文件。关于 Pipeline 可参考文档 [文本数据处理](../developers/pipeline/index.md) 。
+远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 Pipeline 文件。关于 Pipeline 可参考文档 [文本数据处理](../pipeline/use-pipeline/index.md) 。
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca/dca-pipeline-1.png){ width="800" }

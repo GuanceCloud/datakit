@@ -465,6 +465,6 @@ Note that the mounting directory for the emptyDir volume must be higher than the
 
 ## Extended Reading {#more-reading}
 
-- [Pipeline: Text Data Processing](../developers/pipeline/index.md)
+- [Pipeline: Text Data Processing](../pipeline/pipeline/index.md)
 - [Overview of DataKit Log Collection](datakit-logging.md)
 Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.
