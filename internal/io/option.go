@@ -154,3 +154,12 @@ func WithMaxCacheCount(count int) IOOption {
 		}
 	}
 }
+
+// WithAvailableCPUs used to set concurrent uploader worker numbers.
+func WithAvailableCPUs(cpus int) IOOption {
+	return func(x *dkIO) {
+		if cpus > 0 {
+			x.availableCPUs = cpus
+		}
+	}
+}

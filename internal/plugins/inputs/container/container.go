@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	gruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -99,7 +99,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
-	maxConcurrent := gruntime.NumCPU() + 1
+	maxConcurrent := datakit.AvailableCPUs + 1
 	if ipt.ContainerMaxConcurrent > 0 {
 		maxConcurrent = ipt.ContainerMaxConcurrent
 	}

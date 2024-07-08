@@ -237,6 +237,8 @@ var (
 
 	LogSinkDetail bool
 
+	AvailableCPUs int = 1 // default assign only 1 CPU core
+
 	// ConfigAESKey
 	// The datakit configuration file and all configuration files containing passwords
 	// can be encrypted using AES and used in ENC[xxx] mode.

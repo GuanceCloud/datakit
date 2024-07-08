@@ -225,6 +225,7 @@ func startIO() {
 		dkio.WithCacheAll(c.CacheAll),
 		dkio.WithFlushWorkers(c.FlushWorkers),
 		dkio.WithRecorder(config.Cfg.Recorder),
+		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
 	}
 
 	du, err := time.ParseDuration(c.FlushInterval)
@@ -277,6 +278,11 @@ func doRun() error {
 		go gc(du)
 	}
 
+	cpuLimit := getCurrentCPULimits()
+	if cpuLimit > 1.0 {
+		datakit.AvailableCPUs = int(cpuLimit)
+	} // else datakit.AvailableCPUs default to 1
+
 	startIO()
 
 	checkutil.CheckConditionExit(func() bool {
@@ -317,7 +323,7 @@ func doRun() error {
 	// start CPU-core-based datakit running instance counting.
 	usagetrace.Start(usagetrace.WithRefresher(config.Cfg.Dataway),
 		usagetrace.WithServerListens(config.Cfg.HTTPAPI.Listen),
-		usagetrace.WithCPULimits(getCurrentCPULimits()),
+		usagetrace.WithCPULimits(cpuLimit),
 		usagetrace.WithDatakitHostname(config.Cfg.Hostname),
 		usagetrace.WithDatakitRuntimeID(runtimeID),
 		usagetrace.WithDatakitVersion(ReleaseVersion),

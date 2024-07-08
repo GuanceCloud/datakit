@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -158,7 +157,9 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 		} else {
 			SetOffload(wkr)
 
-			for i := 0; i < int(math.Ceil(float64(runtime.NumCPU())*1.5)); i++ {
+			nworkers := int(math.Ceil(float64(datakit.AvailableCPUs) * 1.5))
+			l.Infof("start %d offload workers...", nworkers)
+			for i := 0; i < nworkers; i++ {
 				if i >= maxCustomer {
 					break
 				}
