@@ -8,7 +8,6 @@ package io
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"time"
 
@@ -46,7 +45,8 @@ type dkIO struct {
 	recorder *recorder.Recorder
 
 	flushInterval time.Duration
-	flushWorkers  int
+	availableCPUs,
+	flushWorkers int
 
 	maxCacheCount int
 
@@ -121,7 +121,7 @@ func (x *dkIO) start() {
 			}
 		}
 
-		nworker := runtime.NumCPU()*2 + 1
+		nworker := x.availableCPUs * 2
 		if x.flushWorkers > 0 {
 			nworker = x.flushWorkers
 		}
