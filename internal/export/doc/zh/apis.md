@@ -27,6 +27,13 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 默认值：-
 - 说明：目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`
 
+**`noblocking`** [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：针对时序数据（`/v1/write/metric`），老版本在 io 队列满的时候，会丢弃数据点。新版本默认都改用阻塞形式来上报这些数据点。如果希望维持老版本的行为，可通过指定该参数来实现。
+
 **`dry`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - 类型：bool

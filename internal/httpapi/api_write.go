@@ -261,12 +261,13 @@ func (wr *APIWriteResult) getIPInfo(req *http.Request) error {
 	return nil
 }
 
-var (
+const (
 	argPrecision            = "precision"
 	argInput                = "input"
 	argIgnoreGlobalTags     = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
 	argIgnoreGlobalHostTags = "ignore_global_host_tags" // default enabled
 	argGlobalElectionTags   = "global_election_tags"    // default disabled
+	argNoBlocking           = "noblocking"              // no blocking on feed
 
 	// echo point in line-protocol or JSON for debugging.
 	argEchoLineProtoDeprecated = "echo_line_proto"
@@ -332,6 +333,11 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	}
 
 	wr.FeedOptions = append(wr.FeedOptions, dkio.WithInputName(inputName))
+
+	if q.Get(argNoBlocking) == "" {
+		wr.FeedOptions = append(wr.FeedOptions, dkio.WithBlocking(true)) // default set block, see #2300.
+	}
+
 	wr.input = inputName
 
 	if x := q.Get(argPrecision); x != "" {
