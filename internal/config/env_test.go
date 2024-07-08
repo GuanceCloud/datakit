@@ -463,9 +463,12 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_IO_ENABLE_CACHE":      "hahahah",
 				"ENV_IO_CACHE_MAX_SIZE_GB": "8",
 
-				"ENV_IO_FLUSH_INTERVAL":       "2s",
-				"ENV_IO_FLUSH_WORKERS":        "1",
+				"ENV_IO_FLUSH_INTERVAL": "2s",
+				"ENV_IO_FLUSH_WORKERS":  "1",
+
 				"ENV_IO_FEED_CHAN_SIZE":       "123",
+				"ENV_IO_FEED_GLOBAL_BLOCKING": "1",
+
 				"ENV_IO_CACHE_CLEAN_INTERVAL": "100s",
 				"ENV_IO_CACHE_ALL":            "on",
 			},
@@ -483,6 +486,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IO.FlushWorkers = 1
 				cfg.IO.CacheCleanInterval = "100s"
 				cfg.IO.CacheAll = true
+				cfg.IO.GlobalBlocking = true
 
 				return cfg
 			}(),
