@@ -111,6 +111,10 @@ func (ipt *Input) getHotData(ctxKey context.Context, db int) (string, error) {
 	if ipt.Username != "" && ipt.Password != "" {
 		args = append(args, "--user", ipt.Username, "--pass", ipt.Password)
 	}
+	// Example: redis-cli --hotkeys -i 0.1 -u redis://127.0.0.1:6379/0 -a password
+	if ipt.Username == "" && ipt.Password != "" {
+		args = append(args, "-a", ipt.Password)
+	}
 
 	if ipt.TLSOpen {
 		args = append(args, "--tls")
