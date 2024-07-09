@@ -1517,7 +1517,7 @@ github.com/shirou/gopsutil/v3/process
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 ## explicit
 github.com/shirou/w32
-# github.com/sijms/go-ora/v2 v2.8.19
+# github.com/sijms/go-ora/v2 v2.8.19 => github.com/GuanceCloud/go-ora/v2 v2.8.20
 ## explicit; go 1.17
 github.com/sijms/go-ora/v2
 github.com/sijms/go-ora/v2/advanced_nego
@@ -2379,6 +2379,7 @@ sigs.k8s.io/yaml
 # github.com/prometheus/client_model => github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e
 # github.com/prometheus/common => github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616
 # github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20210720084720-59d02b5ef003
+# github.com/sijms/go-ora/v2 => github.com/GuanceCloud/go-ora/v2 v2.8.20
 # github.com/weaveworks/common => github.com/pyh4/common v0.0.0-20220923021349-874c8cc0db2c
 # k8s.io/api => k8s.io/api v0.25.0
 # k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.0

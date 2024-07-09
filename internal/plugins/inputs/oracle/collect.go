@@ -6,6 +6,7 @@
 package oracle
 
 import (
+	"context"
 	"crypto/md5" //nolint:gosec
 	"database/sql"
 	"encoding/json"
@@ -950,8 +951,9 @@ func (ipt *Input) buildPoint(name string, tags map[string]string, fields map[str
 
 func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	now := time.Now()
-
-	err := ipt.db.Select(s, sql)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+	err := ipt.db.SelectContext(ctx, s, sql)
 	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
 		if err := ipt.initDBConnect(); err != nil {
 			_ = ipt.db.Close()

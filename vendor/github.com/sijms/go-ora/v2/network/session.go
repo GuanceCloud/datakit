@@ -1591,6 +1591,9 @@ func (session *Session) GetInt64(size int, compress bool, bigEndian bool) (int64
 	}
 	temp := make([]byte, 8)
 	if bigEndian {
+		if 8-size < 0 {
+			return 0, errors.New("size is bigger than 8")
+		}
 		copy(temp[8-size:], rb)
 		ret = int64(binary.BigEndian.Uint64(temp))
 	} else {
