@@ -158,7 +158,8 @@ NAME1="value1" NAME2="value2"
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    1. [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    1. 这些环境变量只有在安装模式才能生效，升级模式下，这些环境变量都是不生效的。
 <!-- markdownlint-enable -->
 
 ### 最常用环境变量 {#common-envs}

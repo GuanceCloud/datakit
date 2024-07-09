@@ -310,3 +310,16 @@ ReleasedInputs: checked
 ## 离线更新 {#offline-upgrade}
 
 参见[离线安装](datakit-offline-install.md)相关的章节。
+
+## FAQ {#faq}
+
+### 更新和安装的差异 {#upgrade-vs-install}
+
+如果要升级较新版本的 Datakit，可以通过：
+
+- 重新安装
+- [执行升级命令](datakit-update.md#manual)
+
+在已经安装好 Datakit 的主机上，建议通过升级命令来升级到较新的版本，而不是重新安装。如果重新安装，所有 [*datakit.conf* 里面的配置](datakit-conf.md#maincfg-example)都会被重置为默认设置，比如全局 tag 配置、端口设置等等。这可能不是我们所期望的。
+
+不过，不管是重新安装，还是执行升级命令，所有采集相关的配置，都不会因此变更。

@@ -21,6 +21,7 @@ nav:
     - '其它命令': datakit-tools-how-to.md
     - '故障排查':
       - '无数据排查': why-no-data.md
+      - 'Bug Report 分析': bug-report-how-to.md
       - 'Datakit Metrics': datakit-metrics.md
     - '虚拟互联网接入':
       - '阿里云接入': aliyun-access.md

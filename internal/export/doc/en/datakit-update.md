@@ -302,3 +302,16 @@ ReleasedInputs: checked
 ## Offline Upgrade {#offline-upgrade}
 
 Please refer to [Offline Install](datakit-offline-install.md) related sections.
+
+## FAQ {#faq}
+
+### Differences Between Updating and Installing {#upgrade-vs-install}
+
+To upgrade to a newer version of Datakit, you can do so by:
+
+- Reinstallation
+- [Executing the upgrade command](datakit-update.md#manual)
+
+On a host where Datakit is already installed, it is recommended to upgrade to a newer version using the upgrade command rather than reinstalling. If you reinstall, all configurations in [*datakit.conf*](datakit-conf.md#maincfg-example) will be reset to their default settings, such as global tag configurations, port settings, and so on. This may not be desirable.
+
+However, whether you reinstall or execute the upgrade command, all the collectors(inputs) configurations are not reset to default.

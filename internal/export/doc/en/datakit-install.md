@@ -152,8 +152,10 @@ The environment variables supported by the installation script are as follows (s
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
+    1. These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
+    1. These environment variables are only effective in installation mode; they do not take effect in upgrade mode.
 <!-- markdownlint-enable -->
+
 ### Most Commonly Used Environment Variables {#common-envs}
 
 - `DK_DATAWAY`: Specify the DataWay address, and the DataKit installation command has been brought by default

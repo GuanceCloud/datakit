@@ -1,5 +1,6 @@
 {
   "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
   "dashboardMapping": [],
   "dashboardOwnerType": "inner",
   "iconSet": {
@@ -1035,7 +1036,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true
+          "isRefresh": false
         },
         "group": {
           "name": "Pipeline"
@@ -1056,11 +1057,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_pipeline_cost_seconds_sum`)) { `host` = '#{host}' } BY `category`, `name`, `host`, `namespace`\")",
+              "q": "irate(\"M::`dk`:(avg(`datakit_pipeline_cost_seconds_sum`) AS `cost`) { `host` = '#{host}' } BY `category`, `name`, `host`, `namespace`\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "",
+              "alias": "cost",
               "field": "datakit_pipeline_cost_seconds_sum",
               "fillNum": null,
               "filters": [
@@ -2818,37 +2819,32 @@
         "extend": {
           "settings": {
             "alias": [],
-            "units": [
-              {
-                "key": "Cost",
-                "name": "Cost",
-                "unit": "",
-                "units": [
-                  "time",
-                  "s"
-                ]
-              }
-            ],
+            "units": [],
             "colors": [],
             "levels": [],
             "slimit": 100,
             "density": "medium",
             "showLine": false,
-            "unitType": "custom",
+            "unitType": "global",
             "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
-            "globalUnit": [],
+            "globalUnit": [
+              "time",
+              "s"
+            ],
             "isSampling": true,
             "compareType": [],
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -2908,11 +2904,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(avg(`datakit_filter_pull_latency_seconds`) AS `Cost`) { `host` = '#{host}' and `quantile` = '0.9' } BY `host`",
+              "q": "M::`dk`:(avg(`datakit_filter_pull_latency_seconds`) AS `cost`) { `host` = '#{host}' and `quantile` = '0.9' } BY `host`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "Cost",
+              "alias": "cost",
               "field": "datakit_filter_pull_latency_seconds",
               "filters": [
                 {
@@ -5449,33 +5445,42 @@
       {
         "extend": {
           "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
             "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
-            "mappings": [],
-            "showLine": false,
+            "slimit": 20,
+            "topSize": 10,
             "unitType": "global",
+            "chartType": "bar",
             "fixedTime": "",
-            "fontColor": "",
-            "lineColor": "#3AB8FF",
             "precision": "2",
             "showTitle": true,
             "titleDesc": "",
-            "downsample": "last",
             "globalUnit": [],
             "isSampling": true,
-            "compareType": "",
             "openCompare": false,
-            "showLineAxis": false,
+            "showTopSize": true,
             "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
             "isTimeInterval": false,
             "changeWorkspace": false,
-            "currentChartType": "singlestat",
+            "currentChartType": "toplist",
             "showFieldMapping": false,
-            "sequenceChartType": "line",
-            "openThousandsSeparator": true
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 100,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
           "isRefresh": true,
@@ -5491,20 +5496,20 @@
           "x": 6,
           "y": 11
         },
-        "type": "singlestat",
+        "type": "toplist",
         "queries": [
           {
             "name": "",
-            "type": "singlestat",
+            "type": "toplist",
             "unit": "",
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(avg(`pointpool_reserved_capacity`)) { `host` = '#{host}' } BY `host`",
+              "q": "M::`dk`:(avg(`pointpool_reserved_capacity`) AS `cap`) { `host` = '#{host}' } BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "",
+              "alias": "cap",
               "field": "pointpool_reserved_capacity",
               "filters": [
                 {
@@ -7928,36 +7933,45 @@
       {
         "extend": {
           "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
             "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
-            "mappings": [],
-            "showLine": false,
+            "slimit": 20,
+            "topSize": 10,
             "unitType": "global",
+            "chartType": "bar",
             "fixedTime": "",
-            "fontColor": "",
-            "lineColor": "#3AB8FF",
             "precision": "2",
             "showTitle": true,
-            "titleDesc": "Flush workers per category",
-            "downsample": "last",
+            "titleDesc": "",
             "globalUnit": [],
             "isSampling": true,
-            "compareType": "",
             "openCompare": false,
-            "showLineAxis": false,
+            "showTopSize": true,
             "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
             "isTimeInterval": false,
             "changeWorkspace": false,
-            "currentChartType": "singlestat",
+            "currentChartType": "toplist",
             "showFieldMapping": false,
-            "sequenceChartType": "line",
-            "openThousandsSeparator": true
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 100,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "fixedGroupByTime": null
         },
         "group": {
@@ -7970,11 +7984,11 @@
           "x": 12,
           "y": 14
         },
-        "type": "singlestat",
+        "type": "toplist",
         "queries": [
           {
             "name": "",
-            "type": "singlestat",
+            "type": "toplist",
             "unit": "",
             "color": "",
             "qtype": "dql",
@@ -7988,7 +8002,7 @@
               "fillNum": null,
               "filters": [
                 {
-                  "id": "c2574660-0cdd-11ef-8b8f-9389928954cf",
+                  "id": "48bb48b0-382a-11ef-bb18-7f9f9aa44149",
                   "op": "=",
                   "name": "host",
                   "type": "",
@@ -7997,10 +8011,10 @@
                   "values": []
                 },
                 {
-                  "id": "6e7ada90-345e-11ef-96a4-9d1023f56c95",
+                  "id": "48bb48b1-382a-11ef-bb18-7f9f9aa44149",
                   "op": "=",
                   "name": "category",
-                  "type": "keyword",
+                  "type": "",
                   "logic": "and",
                   "value": "logging",
                   "values": []
