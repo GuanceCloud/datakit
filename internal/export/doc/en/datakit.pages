@@ -21,6 +21,7 @@ nav:
     - 'Other Commands': datakit-tools-how-to.md
     - 'Trouble Shooting':
       - 'No data collected': why-no-data.md
+      - 'Bug report': bug-report-how-to.md
       - 'Datakit Metrics': datakit-metrics.md
     - 'Virtual Internet Access':
       - 'Alibaba Cloud': aliyun-access.md

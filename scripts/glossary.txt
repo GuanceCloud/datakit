@@ -142,6 +142,7 @@ gofumpt
 golint
 goyacc
 guance
+hotspots
 inodes
 ipfix
 jemalloc
