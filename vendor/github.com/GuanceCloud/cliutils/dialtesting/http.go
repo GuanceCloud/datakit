@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -325,9 +326,10 @@ func (t *HTTPTask) Run() error {
 		ConnectStart: func(network, addr string) { connect = time.Now() },
 		ConnectDone: func(network, addr string, err error) {
 			t.connectionTime = float64(time.Since(connect)) / float64(time.Microsecond)
-			addrParts := strings.Split(addr, ":")
-			if len(addrParts) > 0 {
-				t.destIP = addrParts[0]
+			if host, _, err := net.SplitHostPort(addr); err == nil {
+				t.destIP = host
+			} else {
+				t.destIP = addr
 			}
 		},
 
@@ -374,8 +376,8 @@ func (t *HTTPTask) Run() error {
 		goto result
 	}
 
-	t.reqCost = time.Since(t.reqStart)
 	t.respBody, err = io.ReadAll(t.resp.Body)
+	t.reqCost = time.Since(t.reqStart)
 	if err != nil {
 		goto result
 	}
