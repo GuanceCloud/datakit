@@ -36,14 +36,14 @@ This document focuses on local disk log collection and Socket log collection:
     ``` toml
     [[inputs.logging]]
       # Log file list, you can specify absolute path, support batch specification using glob rules
-      # Absolute path recommended
+      # It is recommended to use the absolute path and specify the file type suffix
+      # Please reduce the scope and do not capture to zip file or binary file
       logfiles = [
-        "/var/log/*",                          # All files under the file path
+        "/var/log/*.log",                      # All files of the log
+        "/var/log/*.txt",                      # All files of the txt
         "/var/log/sys*",                       # All files prefixed with sys under the file path
         "/var/log/syslog",                     # Unix format file path
         "C:/path/space 空格中文路径/some.txt", # Windows format file path
-        "/var/log/*",                          # All files under the file path
-        "/var/log/sys*",                       # All files prefixed with sys under the file path
       ]
     
       ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards
@@ -86,9 +86,6 @@ This document focuses on local disk log collection and Socket log collection:
 
       ## Removes ANSI escape codes from text strings.
       remove_ansi_escape_codes = false
-
-      ## If the data sent failure, will retry forevery.
-      blocking_mode = true
 
       ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
       ## Time unit supports "ms", "s", "m", "h"
