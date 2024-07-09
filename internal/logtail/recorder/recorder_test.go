@@ -113,6 +113,38 @@ func TestFlush(t *testing.T) {
 	assert.Equal(t, tc, out)
 }
 
+func TestFlushEmpty(t *testing.T) {
+	// write file
+	file, err := os.CreateTemp("", "")
+	assert.NoError(t, err)
+	defer os.Remove(file.Name())
+
+	content := `{"history":{"key":{"source":"source","offset":100}}}`
+	_, err = file.WriteString(content)
+	assert.NoError(t, err)
+
+	// new recorder
+	r, err := newRecorder(file.Name())
+	assert.NoError(t, err)
+	// clean
+	r.Data = make(map[string]*MetaData)
+	r.count = 1
+
+	// flush
+	err = r.Flush()
+	assert.NoError(t, err)
+
+	// verification
+	data, err := os.ReadFile(file.Name())
+	assert.NoError(t, err)
+
+	out := strings.ReplaceAll(string(data), " ", "")
+	out = strings.ReplaceAll(out, "\n", "")
+	tc := `{"history":{}}`
+
+	assert.Equal(t, tc, out)
+}
+
 func TestParse(t *testing.T) {
 	cases := []struct {
 		in   string

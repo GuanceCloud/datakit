@@ -34,14 +34,14 @@ monitor   :
     ``` toml
     [[inputs.logging]]
       # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-      # 推荐使用绝对路径
+      # 推荐使用绝对路径且指定文件后缀
+      # 尽量缩小范围，避免采集到压缩包文件或二进制文件
       logfiles = [
-        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/*.log",                      # 文件路径下所有 log 文件
+        "/var/log/*.txt",                      # 文件路径下所有 txt 文件
         "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
         "/var/log/syslog",                     # Unix 格式文件路径
         "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
-        "/var/log/*",                          # 文件路径下所有文件
-        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
       ]
     
       ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
@@ -84,9 +84,6 @@ monitor   :
 
       ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
       remove_ansi_escape_codes = false
-
-      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
-      blocking_mode = true
 
       ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
       ## 时间单位支持 "ms", "s", "m", "h"
