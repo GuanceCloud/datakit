@@ -7,7 +7,12 @@
 package kafkamq
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
 	"os"
+	"strings"
+
+	"github.com/xdg-go/scram"
 
 	"github.com/IBM/sarama"
 )
@@ -15,11 +20,11 @@ import (
 var (
 	// kafka 分区分配策略.
 	assignors = map[string]sarama.BalanceStrategy{
-		"range":      sarama.BalanceStrategyRange,
-		"roundrobin": sarama.BalanceStrategyRoundRobin,
-		"sticky":     sarama.BalanceStrategySticky,
+		"range":      sarama.NewBalanceStrategyRange(),
+		"roundrobin": sarama.NewBalanceStrategyRoundRobin(),
+		"sticky":     sarama.NewBalanceStrategySticky(),
 	}
-	defaultAssignors = sarama.BalanceStrategyRange // 轮训模式最适合 datakit 的工作模式.
+	defaultAssignors = sarama.NewBalanceStrategyRange() // 轮训模式最适合 datakit 的工作模式.
 )
 
 func getKafkaVersion(ver string) sarama.KafkaVersion {
@@ -76,8 +81,44 @@ func withSASL(enable bool, mechanism, username, pw string) option {
 			config.Net.SASL.Password = pw
 			config.Net.SASL.Mechanism = sarama.SASLMechanism(mechanism)
 			config.Net.SASL.Version = sarama.SASLHandshakeV1
+			switch strings.ToUpper(mechanism) {
+			case sarama.SASLTypeSCRAMSHA512:
+				config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA512} }
+			case sarama.SASLTypeSCRAMSHA256:
+				config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
+			default:
+			}
 		}
 	}
+}
+
+var (
+	SHA256 scram.HashGeneratorFcn = sha256.New
+	SHA512 scram.HashGeneratorFcn = sha512.New
+)
+
+type XDGSCRAMClient struct {
+	*scram.Client
+	*scram.ClientConversation
+	scram.HashGeneratorFcn
+}
+
+func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
+	x.Client, err = x.HashGeneratorFcn.NewClient(userName, password, authzID)
+	if err != nil {
+		return err
+	}
+	x.ClientConversation = x.Client.NewConversation()
+	return nil
+}
+
+func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
+	response, err = x.ClientConversation.Step(challenge)
+	return
+}
+
+func (x *XDGSCRAMClient) Done() bool {
+	return x.ClientConversation.Done()
 }
 
 func newSaramaConfig(opts ...option) *sarama.Config {
