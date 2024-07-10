@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
@@ -52,7 +54,8 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType,
-						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs))
+						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs)).
+					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
 				for k, v := range tags { // span.attribute 优先级大于全局tag。
 					spanKV = spanKV.MustAddTag(k, v)
 				}

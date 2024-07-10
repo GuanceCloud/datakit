@@ -117,9 +117,11 @@ github.com/GuanceCloud/toml
 github.com/GuanceCloud/toml/internal
 # github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 ## explicit
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1
+github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/logs/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1
