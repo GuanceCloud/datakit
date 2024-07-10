@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -93,10 +95,13 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		afterFilters = make(DatakitTraces, 0, len(dktraces))
 		for k := range dktraces {
 			aga.log.Debugf("len = %d spans", len(dktraces[k]))
+			serviceName := dktraces[k][0].GetTag(TagService)
+			TracingProcessCount.WithLabelValues(inputName, serviceName).Add(1)
 			var temp DatakitTrace
 			for i := range aga.filters {
 				var skip bool
 				if temp, skip = aga.filters[i](aga.log, dktraces[k]); skip {
+					tracingSamplerCount.WithLabelValues(inputName, serviceName).Add(1)
 					break
 				}
 			}
@@ -111,6 +116,7 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	pts := make([]*point.Point, 0)
 	for _, filter := range afterFilters {
 		for _, span := range filter {
+			span.Point.AddTag(TagDKFingerprintKey, datakit.DatakitHostName)
 			pts = append(pts, span.Point)
 		}
 	}

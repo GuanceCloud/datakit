@@ -53,7 +53,6 @@ const (
 	SpanSourceDb        = "db"
 	SpanSourceWeb       = "web"
 
-	// line protocol tags.
 	TagHost             = "host"
 	TagContainerHost    = "container_host"
 	TagEndpoint         = "endpoint"
