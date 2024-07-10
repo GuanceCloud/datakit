@@ -58,6 +58,11 @@ const configSample = `
     # "httpflow-tls"
   ]
 
+
+  ## datakit-ebpf pprof service
+  pprof_host = "127.0.0.1"
+  pprof_port = "6061"
+
   ## netlog blacklist
   ##
   # netlog_blacklist = "ip_saddr=='127.0.0.1' || ip_daddr=='127.0.0.1'"
