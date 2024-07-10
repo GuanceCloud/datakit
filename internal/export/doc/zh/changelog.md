@@ -1,6 +1,44 @@
 # 更新日志
 
-## 1.32.0(2024/06/13) {#cl-1.32.0}
+## 1.33.0(2024/07/10) {#cl-1.33.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.33.0-new}
+
+- 新增 [OpenTelemetry 日志采集](../integrations/opentelemetry.md#logging)（#2292）
+- 重构 [SNMP 采集器](../integrations/snmp.md)，新增 Zabbix/Prometheus 两种配置支持，同时新增了其对应的内置视图（#2290）
+
+### 问题修复 {#cl-1.33.0-fix}
+
+- 修复 HTTP 拨测问题（#2293）
+    - 响应时间（`response_time`）未包含下载时间（`response_download`）的问题
+    - HTTP 拨测中 IPv6 识别问题
+- 修复 Oracle 采集器崩溃问题以及 max-cursor 问题（#2297）
+- 修复日志采集 position 记录问题，该问题自 1.27 版本引入，**建议升级**（#2301）
+- 修复 DDTrace/OpenTelemetry HTTP API 接收数据时，部分 customer-tags 不生效问题（#2308）
+
+### 功能优化 {#cl-1.33.0-opt}
+
+- Redis big-key 采集增加 4.x 版本支持（#2296）
+- 依据实际限制的 CPU 核心数，优化内部各类 worker 个数，能极大减少一些 buffer 内存开销，**建议升级**（#2275）
+- Datakit API 在接收时序数据时，默认改成阻塞形式，避免数据点丢弃（#2300）
+- 优化 Pipeline 中 `grok()` 函数性能（#2310）
+- [Bug report](why-no-data.md#bug-report) 中增加 eBPF 相关的信息以及 Pipeline 信息（#2289）
+- k8s 自动发现 ServiceMonitor 支持配置 TLS 证书路径（#1866）
+- [主机进程采集器](../integrations/host_processes.md)对象和指标数据采集上，增加对应容器 ID 字段（`container_id`）（#2283）
+- Trace 数据采集上增加 Datakit 指纹字段（`datakit_fingerprint`，值是 Datakit 所在主机名），便于问题排查，同时增加了一些采集过程中的指标暴露（#2295）
+    - 增加采集的 Trace 数量统计
+    - 增加了采样丢弃的 Trace 统计
+
+- 文档优化：
+    - 新增 bug-report 有关的[说明文档](bug-report-how-to.md)
+    - 补充 Datakit [安装和升级之间的差异说明](datakit-update.md#upgrade-vs-install)
+    - 补充[离线安装](datakit-offline-install.md#simple-install)时安装参数设置有关的文档
+    - 优化 [MongoDB 采集器](../integrations/mongodb.md)字段文档（#2278）
+
+---
+
+## 1.32.0(2024/06/26) {#cl-1.32.0}
 
 本次发布属于迭代发布，主要有如下更新：
 
@@ -590,7 +628,7 @@
 ### 新加功能 {#cl-1.17.1-new}
 
 - 新增通过 [eBPF 构建链路数据](../integrations/ebpftrace.md)，用来表示 Linux 进程/线程的调用关系（#1836）
-- Pipeline 新增函数 [`pt_name`](../developers/pipeline/pipeline-built-in-function.md#fn-pt-name)（#1937）
+- Pipeline 新增函数 [`pt_name`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-pt-name)（#1937）
 
 ### 功能优化 {#cl-1.17.1-opt}
 
@@ -970,7 +1008,7 @@
 - 新增 [Chrony 采集器](../integrations/chrony.md)（#1671）
 - 新增 RUM Headless 支持（#1644）
 - Pipeline
-    - 新增 [offload 功能](../developers/pipeline/pipeline-offload.md)（#1634）
+    - 新增 [offload 功能](../pipeline/use-pipeline/pipeline-offload.md)（#1634）
     - 重新调整了已有的文档结构（#1686）
 
 ### 问题修复 {#cl-1.9.2-fix}
@@ -1174,8 +1212,8 @@
 
 - 支持自动发现并采集 [Pod 上的 Prometheus 指标](kubernetes-prom.md#auto-discovery-metrics-with-prometheus)(#1564)
 - Pipeline 新增聚合类函数(#1554)
-    - [agg_create()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-create)
-    - [agg_metric()](../developers/pipeline/pipeline-built-in-function.md#fn-agg-metric)
+    - [agg_create()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-agg-create)
+    - [agg_metric()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-agg-metric)
 
 ### 功能优化 {#cl-1.5.10-opt}
 
@@ -1242,8 +1280,8 @@
 - 完善 [cgroup v2](datakit-conf.md#resource-limit) 支持(#1494)
 - Kubernetes 安装时增加环境变量（`ENV_CLUSTER_K8S_NAME`）来配置 cluster 名称(#1504)
 - Pipeline
-    - [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split) 函数增加强制保护措施，避免数据膨胀(#1510)
-    - 关于 JSON 的处理，优化了 [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) 和 [`delete()`](../developers/pipeline/pipeline-built-in-function.md#fn-delete) 删除 key 的功能。
+    - [`kv_split()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-kv_split) 函数增加强制保护措施，避免数据膨胀(#1510)
+    - 关于 JSON 的处理，优化了 [`json()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-json) 和 [`delete()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-delete) 删除 key 的功能。
 - 其它工程上的优化(#1500)
 
 ### 文档调整 {#cl-1.5.8-doc}
@@ -1261,9 +1299,9 @@
 ### 新加功能 {#cl-1.5.7-new}
 
 - Pipeline
-    - `json` 函数增加 [key 删除](../developers/pipeline/pipeline-built-in-function.md#fn-json) 功能(#1465)
-    - 增加函数 [`kv_split()`](../developers/pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
-    - 增加[时间函数](../developers/pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
+    - `json` 函数增加 [key 删除](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-json) 功能(#1465)
+    - 增加函数 [`kv_split()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-kv_split)(#1414)
+    - 增加[时间函数](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-datetime)(#1411)
 - 增加 [IPv6 支持](datakit-conf.md#config-http-server)(#1454)
 - 磁盘 IO 采集支持 [io wait 扩展指标](diskio.md#extend)(#1472)
 - 容器采集支持 [Docker 和 containerd 共存](container.md#requrements)(#1401)
@@ -1279,7 +1317,7 @@
 ### 功能优化 {#cl-1.5.7-opt}
 
 - 优化 Point Checker(#1478)
-- 优化 Pipeline [`replace()`](../developers/pipeline/pipeline-built-in-function.md#fn-replace.md) 性能(#1477)
+- 优化 Pipeline [`replace()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-replace.md) 性能(#1477)
 - 优化 Windows 下 Datakit 安装流程(#1404)
 - 优化 [配置中心](confd.md) 的配置处理流程(#1402)
 - 添加 [Filebeat](beats_output.md) 集成测试能力(#1459)
@@ -1503,11 +1541,11 @@
 - 纯容器环境下，支持[通过 label 方式](container-log.md#logging-with-annotation-or-label)配置容器内日志采集(#1187)
 - [SQLServer 采集器](sqlserver.md)增加更多指标集采集(#1216)
 - 新增 Pipeline 函数(#1220/#1224)
-    - [sample()](../developers/pipeline/pipeline-built-in-function.md#fn-sample)：采样函数
-    - [b64enc()](../developers/pipeline/pipeline-built-in-function.md#fn-b64enc)：Base64 编码函数
-    - [b64dec()](../developers/pipeline/pipeline-built-in-function.md#fn-b64dec)：Base64 解码函数
-    - [append()](../developers/pipeline/pipeline-built-in-function.md#fn-append)：列表追加函数
-    - [url_parse()](../developers/pipeline/pipeline-built-in-function.md#fn-url-parse)：HTTP URL 解析函数
+    - [sample()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-sample)：采样函数
+    - [b64enc()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-b64enc)：Base64 编码函数
+    - [b64dec()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-b64dec)：Base64 解码函数
+    - [append()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-append)：列表追加函数
+    - [url_parse()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-url-parse)：HTTP URL 解析函数
 
 - 各种文档完善(#1242/#1238/#1247)
 
@@ -1558,9 +1596,9 @@
     - 支持通过正则过滤指标集名称(#1196)
 
 - Pipeline 优化(#1188)
-    - 优化 [grok()](../developers/pipeline/pipeline-built-in-function.md#fn-grok) 等函数，使得其可以用在 `if/else` 语句中，以判定操作是否生效
-    - 增加 [match()](../developers/pipeline/pipeline-built-in-function.md#fn-match) 函数
-    - 增加 [cidr()](../developers/pipeline/pipeline-built-in-function.md#fn-cidr) 函数(#733)
+    - 优化 [grok()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-grok) 等函数，使得其可以用在 `if/else` 语句中，以判定操作是否生效
+    - 增加 [match()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-match) 函数
+    - 增加 [cidr()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-cidr) 函数(#733)
     <!-- - Pipeline 函数增加分类支持，便于用户在 Studio 页面上更快速定位操作函数(#1150) -->
 
 - 进程采集器增加打开的文件列表详情字段(#1173)
@@ -1643,12 +1681,12 @@
 - 支持将 k8s 中各类 yaml 信息采集到对应的[对象数据](container.md#objects)上(#1102)
 - Trace 采集支持自动提取一些关键 meta 信息(#1092)
 - 支持安装过程中指定安装源地址，以简化[离线安装](datakit-offline-install.md)流程(#1065)
-- [Pipeline](../developers/pipeline/index.md) 新增功能：
+- [Pipeline](../pipeline/use-pipeline/index.md) 新增功能：
     - 新增 for 循环/字典/数组支持(#1037/#1093)
     - 新增算数表达式支持(#798)
     - Pipeline 出错信息将在采集的数据上展示(#784/#1091)
     - 如果时间字段切割出错，支持自动修正时间字段(`time`)，以避免控制台页面上时间无法展示(#1091)
-    - 新增 [len()](../developers/pipeline/pipeline-built-in-function.md#fn-len) 函数
+    - 新增 [len()](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-len) 函数
 
 ### 问题修复 {#cl-1.4.16-fix}
 
@@ -1765,7 +1803,7 @@
 
 ### 新功能 {#cl-1.4.11-newfeature}
 
-- Pipeline 中新增 [Ref-Table 功能](../developers/pipeline/pipeline-refer-table/)(#967)
+- Pipeline 中新增 [Ref-Table 功能](../pipeline/use-pipeline/pipeline-refer-table/)(#967)
 - DataKit 9529 HTTP [支持绑定到 domain socket](datakit-conf.md#uds)(#925)
     - 对应的 [eBPF 采集](ebpf.md) 和 [Oracle 采集](oracle.md)，其配置方式也需做对应变更。
 - RUM sourcemap 增加 Android R8 支持(#1040)
@@ -1814,7 +1852,7 @@
 
 - Pipeline 相关更新：
     - 优化 Pipeline 执行步骤(#1007)
-    - [`grok()`](../developers/pipeline/pipeline-built-in-function.md#fn-grok) 和 [`json()`](../developers/pipeline/pipeline-built-in-function.md#fn-json) 函数默认执行 trim-space 操作(#1001)
+    - [`grok()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-grok) 和 [`json()`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-json) 函数默认执行 trim-space 操作(#1001)
 
 - DDTrace 相关更新：
     - 修复潜在的 goroutine 泄露问题(#1008)
@@ -1913,7 +1951,7 @@
 - Redis 调整 [`slowlog` 采集](redis.md#redis_slowlog)，将其数据改为日志存储(#885)
 - 优化 [TDEngine 采集](tdengine.md)(#877)
 - 完善 Containerd 日志采集，支持默认格式的日志自动解析(#869)
-- [Pipeline](../developers/pipeline/index.md) 增加 [Profiling 类数据](profile.md)支持(#866)
+- [Pipeline](../pipeline/use-pipeline/index.md) 增加 [Profiling 类数据](profile.md)支持(#866)
 - 容器/Pod 日志采集支持在 Label/Annotation 上[额外追加 tag](container-log.md#logging-with-annotation-or-label)(#861)
 - 修复 [Jenkins CI](jenkins.md#jenkins_pipeline) 数据采集的时间精度问题(#860)
 - 修复 Tracing resource-type 值不统一的问题(#856)

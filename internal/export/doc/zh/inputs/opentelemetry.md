@@ -22,9 +22,7 @@ monitor   :
 
 OpenTelemetry （以下简称 OTEL）是 CNCF 的一个可观测性项目，旨在提供可观测性领域的标准化方案，解决观测数据的数据模型、采集、处理、导出等的标准化问题。
 
-OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace、metrics、logs 等（未来可能有新的观测类数据类型出现）。
-
-OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据导出到不同的后端，如开源的 Prometheus、Jaeger、Datakit 或云厂商的服务中。
+OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace、metrics、logs 。
 
 本篇旨在介绍如何在 Datakit 上配置并开启 OTEL 的数据接入，以及 Java、Go 的最佳实践。
 
@@ -60,23 +58,25 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 3. 在涉及到 `float/double` 类型数据时，会最多保留两位小数
 4. HTTP 和 gRPC 都支持 gzip 压缩格式。在 exporter 中可配置环境变量来开启：`OTEL_EXPORTER_OTLP_COMPRESSION = gzip`, 默认是不会开启 gzip。
 5. HTTP 协议请求格式同时支持 JSON 和 Protobuf 两种序列化格式。但 gRPC 仅支持 Protobuf 一种。
+6. 请使用 V1 版本的 `javaagent` 版本号为 `1.xx.xx`。OTEL Java Agent V2 版本依然是 alpha 状态。
 
 使用 OTEL HTTP exporter 时注意环境变量的配置，由于 Datakit 的默认配置是 `/otel/v1/trace` 和 `/otel/v1/metric`，所以想要使用 HTTP 协议的话，需要单独配置 `trace` 和 `metric`，
 
-## SDK 常规配置 {#sdk-configuration}
+## 常规命令 {#sdk-configuration}
 
-| 命令                           | 说明                                         | 默认                    | 注意                                          |
-|:------------------------------|:--------------------------------------------|:------------------------|:---------------------------------------------|
-| `OTEL_SDK_DISABLED`           | 关闭 SDK                                     | false                   | 关闭后将不会产生任何链路指标信息                   |
-| `OTEL_RESOURCE_ATTRIBUTES`    | "service.name=App,username=liu"             |                         | 每一个 span 中都会有该 tag 信息                  |
-| `OTEL_SERVICE_NAME`           | 服务名，等效于上面 "service.name=App"           |                         | 优先级高于上面                                 |
-| `OTEL_LOG_LEVEL`              | 日志级别                                      | `info`                  |                                              |
-| `OTEL_PROPAGATORS`            | 透传协议                                      | `tracecontext,baggage`  |                                              |
-| `OTEL_TRACES_SAMPLER`         | 采样                                         | `parentbased_always_on` |                                              |
-| `OTEL_TRACES_SAMPLER_ARG`     | 配合上面采样 参数                              | 1.0                     | 0 - 1.0                                      |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | 协议包括： `grpc`,`http/protobuf`,`http/json` | gRPC                    |                                              |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP 地址                                    | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace> |
-| `OTEL_TRACES_EXPORTER`        | 链路导出器                                    | `otlp`                  |                                              |
+| ENV                           | Command                       | 说明                                       | 默认                    | 注意                                           |
+|:------------------------------|:------------------------------|:-----------------------------------------|:------------------------|:---------------------------------------------|
+| `OTEL_SDK_DISABLED`           | `otel.sdk.disabled`           | 关闭 SDK                                   | false                   | 关闭后将不会产生任何链路指标信息                             |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `otel.resource.attributes`    | "service.name=App,username=liu"          |                         | 每一个 span 中都会有该 tag 信息                        |
+| `OTEL_SERVICE_NAME`           | `otel.service.name`           | 服务名，等效于上面 "service.name=App"             |                                  | 优先级高于上面                                      |
+| `OTEL_LOG_LEVEL`              | `otel.log.level`              | 日志级别                                     | `info`                          |                                              |
+| `OTEL_PROPAGATORS`            | `otel.propagators`            | 透传协议                                     | `tracecontext,baggage`          |                                              |
+| `OTEL_TRACES_SAMPLER`         | `otel.traces.sampler`         | 采样                                       | `parentbased_always_on`         |                                              |
+| `OTEL_TRACES_SAMPLER_ARG`     | `otel.traces.sampler.arg`     | 配合上面采样 参数                                | 1.0                             | 0 - 1.0                                      |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `otel.exporter.otlp.protocol` | 协议包括： `grpc`,`http/protobuf`,`http/json` | gRPC                            |                                              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel.exporter.otlp.endpoint` | OTLP 地址                                  | <http://localhost:4317>                  | <http://datakit-endpoint:9529/otel/v1/trace> |
+| `OTEL_TRACES_EXPORTER`        | `otel.traces.exporter`        | 链路导出器                                    | `otlp`                                   |                                              |
+| `OTEL_LOGS_EXPORTER`          | `otel.logs.exporter`          | 日志导出器                                    | `otlp`                                   | OTEL V1 版本需要显式配置，否则默认不开启                     |
 
 
 > 您可以将 `otel.javaagent.debug=true` 参数传递给 Agent 以查看调试日志。请注意，这些日志内容相当冗长，生产环境下谨慎使用。
@@ -185,12 +185,6 @@ customer_tags = ["sink_project", "username","env"]
 - `producer`:  消息的生产者。
 - `consumer`:  消息的消费者。
 
-### 示例 {#examples}
-
-Datakit 目前提供了如下两种语言的最佳实践：
-
-- [Golang](opentelemetry-go.md)
-- [Java](opentelemetry-java.md)
 
 ## 指标 {#metric}
 
@@ -237,6 +231,42 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 {{end}}
 
 {{end}}
+
+## 日志 {#logging}
+
+[:octicons-tag-24: Version-1.33.0](../datakit/changelog.md#cl-1.33.0)
+
+目前 JAVA Agent 支持采集 `stdout` 日志。并使用 [Standard output](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"} 方式通过 `otlp` 协议发送到 DataKit 中。
+
+`OTEL Agent` 默认情况下不开启 log 采集，必须需要通过显式命令： `otel.logs.exporter` 开启方式为：
+
+```shell
+# env
+export OTEL_LOGS_EXPORTER=OTLP
+export OTEL_EXPORTER_OTLP.ENDPOINT=http://<DataKit Addr>:4317
+# other env
+java -jar app.jar
+
+# command
+java -javaagent:/path/to/agnet.jar \
+  -otel.logs.exporter=otlp \
+  -Dotel.exporter.otlp.endpoint=http://<DataKit Addr>:4317 \
+  -jar app.jar
+```
+
+通过 OTEL 采集的日志的 `source` 为服务名，也可以通过添加标签的方式自定义：`log.source` ，比如：`-Dotel.resource.attributes="log.source=source_name"`。
+
+> 注意：如果 app 是运行在容器环境（比如 k8s），Datakit 本来就会[自动采集日志](container-log.md#logging-stdout){:target="_blank"}（默认行为），如果再采集一次，会有重复采集的问题。建议在开启采集日志之前，[手动关闭 Datakit 自主的日志采集行为](container-log.md#logging-with-image-config){:target="_blank"}
+
+更多语言可以[查看官方文档](https://opentelemetry.io/docs/specs/otel/logs/){:target="_blank"}
+
+## 示例 {#examples}
+
+Datakit 目前提供了如下两种语言的最佳实践：
+
+- [Golang](opentelemetry-go.md)
+- [Java](opentelemetry-java.md)
+
 
 ## 更多文档 {#more-readings}
 

@@ -8,17 +8,21 @@ package cmds
 import (
 	"archive/zip"
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils"
 	"github.com/dustin/go-humanize"
 	"github.com/pyroscope-io/pyroscope/pkg/util/file"
@@ -68,9 +72,19 @@ func (info *datakitInfo) collect() error {
 		cp.Warnf("collect data files error: %s\n", err.Error())
 	}
 
+	cp.Infof("collect pipeline files...\n")
+	if err := info.collectPipeline(); err != nil {
+		cp.Warnf("collect pipeline files error: %s\n", err.Error())
+	}
+
 	cp.Infof("collect basic information...\n")
 	if err := info.collectInfo(); err != nil {
 		cp.Warnf("collect basic information error: %s\n", err.Error())
+	}
+
+	cp.Infof("collect externals information...\n")
+	if err := info.collectExternals(!*flagDebugBugreportDisableProfile); err != nil {
+		cp.Warnf("collect externals error: %s\n", err.Error())
 	}
 
 	if !*flagDebugBugreportDisableProfile {
@@ -103,7 +117,7 @@ func (info *datakitInfo) collectSystemdLog() error {
 	errMsg := ""
 	defer func() {
 		if len(errMsg) > 0 {
-			info.errList = append(info.errList, fmt.Sprintf("Collect systemd log error: \n%s", errMsg))
+			info.errList = append(info.errList, fmt.Sprintf("Collect systemd log error: %s\n", errMsg))
 		}
 	}()
 	cmd := exec.Command("journalctl", "-u", "datakit.service", "-n", "10000", "--no-pager") // last 10000 lines
@@ -131,7 +145,7 @@ func (info *datakitInfo) collectMetrics(round int) error {
 
 	defer func() {
 		if len(errMsg) > 0 {
-			info.errList = append(info.errList, fmt.Sprintf("Collect metrics error: \n%s", errMsg))
+			info.errList = append(info.errList, fmt.Sprintf("Collect metrics error: %s\n", errMsg))
 		}
 	}()
 
@@ -178,6 +192,15 @@ func (info *datakitInfo) collectProfile() error {
 		return err
 	}
 
+	errList := getProfile(profileDir, config.Cfg.PProfListen)
+	if errList != "" {
+		info.errList = append(info.errList, errList)
+	}
+
+	return nil
+}
+
+func getProfile(profileDir, addr string) string {
 	profileTypes := []string{
 		"profile",
 		"heap",
@@ -194,7 +217,7 @@ func (info *datakitInfo) collectProfile() error {
 		if name == "profile" {
 			params = "duration=30"
 		}
-		resp, err := http.Get(fmt.Sprintf("http://%s/debug/pprof/%s?%s", config.Cfg.PProfListen, name, params))
+		resp, err := http.Get(fmt.Sprintf("http://%s/debug/pprof/%s?%s", addr, name, params))
 		if err != nil {
 			cp.Warnf("request profile for %s error: %s\n", name, err.Error())
 			errMsg += fmt.Sprintf("request profile for %s error: %s\n", name, err.Error())
@@ -219,10 +242,10 @@ func (info *datakitInfo) collectProfile() error {
 	}
 
 	if len(errMsg) > 0 {
-		info.errList = append(info.errList, fmt.Sprintf("Collect profile error: \n%s", errMsg))
+		return fmt.Sprintf("Collect profile error: %s\n", errMsg)
 	}
 
-	return nil
+	return ""
 }
 
 func (info *datakitInfo) collectInfo() error {
@@ -283,12 +306,15 @@ func (info *datakitInfo) collectConfig() error {
 		return err
 	}
 
-	err = info.copyDir(datakit.ConfdDir, configDir, func(s string) string {
-		return info.escapeString(s, []string{"dataway", "password", "uri"})
-	})
+	err = info.copyDir(datakit.ConfdDir, configDir,
+		func(fileName string) bool {
+			return strings.HasSuffix(fileName, ".conf")
+		}, func(s string) string {
+			return info.escapeString(s, []string{"dataway", "password", "uri"})
+		})
 
 	if err != nil {
-		info.errList = append(info.errList, fmt.Sprintf("collect config error: \n%s", err.Error()))
+		info.errList = append(info.errList, fmt.Sprintf("collect config error: %s\n", err.Error()))
 		return err
 	}
 
@@ -371,11 +397,193 @@ func (info *datakitInfo) collectLog() error {
 	}
 
 	if len(errMsg) > 0 {
-		info.errList = append(info.errList, fmt.Sprintf("Collect log error: \n%s", errMsg))
+		info.errList = append(info.errList, fmt.Sprintf("Collect log error: %s\n", errMsg))
 	}
 
 	return nil
 }
+
+func (info *datakitInfo) collectPipeline() error {
+	_, err := info.makeDir("pipeline")
+	if err != nil {
+		return err
+	}
+	localDst, err := info.makeDir("pipeline/local_scripts")
+	if err != nil {
+		return err
+	}
+	remoteDst, err := info.makeDir("pipeline/remote_scripts")
+	if err != nil {
+		return err
+	}
+
+	localSrc := filepath.Join(datakit.InstallDir, "pipeline")
+	remoteSrc := filepath.Join(datakit.InstallDir, "pipeline_remote")
+
+	if err := info.copyDir(localSrc, localDst, func(s string) bool {
+		return strings.HasSuffix(s, ".p")
+	}, nil); err != nil {
+		return fmt.Errorf("copy local pipeline error: %w", err)
+	}
+
+	for _, fname := range []string{"pull_config.json", "scripts.tar.gz", "relation.json"} {
+		var fn transformFunc
+		if fname == "pull_config.json" {
+			fn = func(s string) string {
+				return info.escapeString(s, []string{"dataway", "password"})
+			}
+		}
+		if err := info.copyFile(filepath.Join(remoteSrc, fname),
+			filepath.Join(remoteDst, fname), fn); err != nil {
+			cp.Warnf("copy local pipeline %s error: %s\n", fname, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (info *datakitInfo) collectExternals(enableProfile bool) error {
+	if _, err := info.makeDir("externals"); err != nil {
+		return err
+	}
+
+	confMulti, err := getConfig("ebpf")
+	if err != nil {
+		return err
+	}
+
+	if len(confMulti) == 0 {
+		return nil
+	}
+
+	dstBase, err := info.makeDir("externals/ebpf")
+	if err != nil {
+		return err
+	}
+
+	localBase := filepath.Join(datakit.InstallDir, "externals")
+
+	for _, name := range []string{
+		"datakit-ebpf.log",
+		"datakit-ebpf.stderr",
+		"datakit-ebpf.offset",
+	} {
+		if err := info.copyFile(filepath.Join(localBase, name),
+			filepath.Join(dstBase, name), nil); err != nil {
+			cp.Warnf("copy file %s error: %s\n", name, err.Error())
+		}
+	}
+
+	if enableProfile {
+		var pprofHost, pprofPort string
+		envs := getEnvs()
+		if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
+			pprofHost = v
+		}
+		if v, ok := envs["ENV_INPUT_EBPF_PPROF_PORT"]; ok {
+			pprofPort = v
+		}
+
+		if len(confMulti) > 0 {
+			conf := confMulti[0]
+			if v, ok := conf["pprof_host"]; ok && pprofHost == "" {
+				if v, ok := v.(string); ok {
+					pprofHost = v
+				} else {
+					return errors.New("invalid pprof_host in ebpf.conf")
+				}
+			}
+			if v, ok := conf["pprof_port"]; ok && pprofPort == "" {
+				if v, ok := v.(string); ok {
+					pprofPort = v
+				} else {
+					return errors.New("invalid pprof_port in ebpf.conf")
+				}
+			}
+		}
+
+		switch {
+		case pprofHost == "" && pprofPort == "":
+		case pprofHost == "":
+			pprofHost = "127.0.0.1"
+		case pprofPort == "":
+			pprofPort = "6061"
+		}
+
+		if pprofHost != "" && pprofPort != "" {
+			port, err := strconv.Atoi(pprofPort)
+			if err != nil {
+				return fmt.Errorf("invalid pprof_port: %s", pprofPort)
+			}
+			addr := net.TCPAddr{
+				IP:   net.ParseIP(pprofHost),
+				Port: port,
+			}
+			profileDir, err := info.makeDir("externals/ebpf/profile")
+			if err != nil {
+				return err
+			}
+			cp.Infof("collect externals/ebpf profile...\n")
+			errMsg := getProfile(profileDir, addr.String())
+			if errMsg != "" {
+				info.errList = append(info.errList, fmt.Sprintf(
+					"collect externals/ebpf profile error: %s\n", errMsg))
+			}
+		}
+	}
+	return nil
+}
+
+func getConfig(inputName string) ([]map[string]any, error) {
+	confs := config.SearchDir(datakit.ConfdDir, ".conf", ".git")
+	var r []map[string]any
+	for _, fp := range confs {
+		if filepath.Base(fp) == "datakit.conf" {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Clean(fp))
+		if err != nil {
+			return nil, fmt.Errorf("read file %s: %w", fp, err)
+		}
+
+		// We need to avoid introducing the collector structure.
+		val := map[string]any{}
+		if err := toml.Unmarshal(data, &val); err != nil {
+			return nil, err
+		}
+
+		if v, ok := val["inputs"]; ok {
+			if v, ok := v.(map[string]any); ok {
+				for k, v := range v {
+					if k == inputName {
+						if v, ok := v.([]map[string]any); ok && len(v) > 0 {
+							r = append(r, v...)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return r, nil
+}
+
+func getEnvs() map[string]string {
+	envs := map[string]string{}
+	for _, v := range os.Environ() {
+		arr := strings.SplitN(v, "=", 2)
+		if len(arr) != 2 {
+			continue
+		}
+		if strings.HasPrefix(arr[0], "ENV_") || strings.HasPrefix(arr[0], "DK_") {
+			envs[arr[0]] = arr[1]
+		}
+	}
+
+	return envs
+}
+
+type suffixFunc func(string) bool
 
 type transformFunc func(string) string
 
@@ -517,7 +725,7 @@ func (info *datakitInfo) compressDir() (string, error) {
 	return zipPath, err
 }
 
-func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transformFunc) error {
+func (info *datakitInfo) copyDir(srcDir string, dstDir string, suffixFn suffixFunc, transform transformFunc) error {
 	files, err := os.ReadDir(srcDir)
 	if err != nil {
 		return fmt.Errorf("error reading directory: %w", err)
@@ -535,14 +743,15 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, transform transfo
 				return fmt.Errorf("error creating directory %s: %w", dstFilePath, err)
 			}
 
-			err = info.copyDir(srcFilePath, dstFilePath, transform)
+			err = info.copyDir(srcFilePath, dstFilePath, suffixFn, transform)
 			if err != nil {
 				return err
 			}
 		} else {
-			if !strings.HasSuffix(fileName, ".conf") {
+			if suffixFn != nil && !suffixFn(fileName) {
 				continue
 			}
+
 			dstName := fmt.Sprintf("%s.copy", fileName)
 			dstFilePath := filepath.Join(dstDir, dstName)
 			err := info.copyFile(srcFilePath, dstFilePath, transform)

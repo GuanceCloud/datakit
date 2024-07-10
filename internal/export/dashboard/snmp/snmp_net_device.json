@@ -1,0 +1,1862 @@
+{
+  "title": "snmp_net_device_meta",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "SYS_NAME",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "sys_name",
+        "type": "TAG",
+        "definition": {
+          "tag": "sys_name",
+          "field": "",
+          "value": "",
+          "metric": "snmp_server",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true
+      },
+      {
+        "name": "IP",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "ip",
+        "type": "TAG",
+        "definition": {
+          "tag": "ip",
+          "field": "",
+          "value": "",
+          "metric": "snmp_server",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Device_Alive}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`snmp_net_device`:(count(`*`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "search": "",
+              "filters": [
+                {
+                  "id": "edd48c90-2a1e-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "5178aab0-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "s"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Uptime}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`uptime`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "uptime",
+              "filters": [
+                {
+                  "id": "d4e75d60-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "dbc0c090-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`netUptime`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "netUptime",
+              "filters": [
+                {
+                  "id": "d4e75d60-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "dbc0c090-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(fanStatus)",
+                "name": "last(fanStatus)",
+                "unit": "",
+                "units": []
+              },
+              {
+                "key": "avg(fanSpeed)",
+                "name": "avg(fanSpeed)",
+                "unit": "r/m",
+                "units": [
+                  "custom",
+                  "r/m"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Fan}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(last(`fanStatus`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`, `unit_desc`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "fanStatus",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip",
+                "unit_desc"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`fanSpeed`)) BY `ip`, `unit_desc`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "fanSpeed",
+              "filters": [],
+              "groupBy": [
+                "ip",
+                "unit_desc"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(temperature)",
+                "name": "avg(temperature)",
+                "unit": "",
+                "units": [
+                  "temperature",
+                  "C"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Temperature}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`temperature`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "temperature",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(cpuUsage)",
+                "name": "avg(cpuUsage)",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.CPU}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`cpuUsage`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpuUsage",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(memoryTotal)",
+                "name": "avg(memoryTotal)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Memory}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`memoryUsage`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "memoryUsage",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Net}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 26
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(last(`ifNetStatus`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`, `unit_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifNetStatus",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip",
+                "unit_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(last(`ifNetConnStatus`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `ip`, `unit_name`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifNetConnStatus",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "ip",
+                "unit_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(ifHighSpeed)",
+                "name": "avg(ifHighSpeed)",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              },
+              {
+                "key": "avg(ifSpeed)",
+                "name": "avg(ifSpeed)",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Interface}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 26
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(last(` ifOperStatus`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": " ifOperStatus",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifSpeed`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifSpeed",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(last(` ifStatus`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": " ifStatus",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifHighSpeed`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifHighSpeed",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Discards}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 26
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifInDiscards`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifInDiscards",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifOutDiscards`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifOutDiscards",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Errors}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 39
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifInErrors`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifInErrors",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifOutErrors`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifOutErrors",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Packets}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 39
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifHCInPkts`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifHCInPkts",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifHCOutPkts`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifHCOutPkts",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.Bytes}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 39
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifHCInOctets`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifHCInOctets",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`snmp_net_device`:(avg(`ifHCOutOctets`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' } BY `unit_name`, `ip`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ifHCOutOctets",
+              "filters": [
+                {
+                  "id": "271dab30-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "sys_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{sys_name}",
+                  "values": []
+                },
+                {
+                  "id": "376af290-26fa-11ef-b0c4-e1b38f53b759",
+                  "op": "=",
+                  "name": "ip",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{ip}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "unit_name",
+                "ip"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "snmp_net_device",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "type": "template"
+  }
+}

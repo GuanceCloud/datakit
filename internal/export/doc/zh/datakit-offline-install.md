@@ -187,6 +187,18 @@
     ```
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD046 -->
+???+ tip "离线安装如何指定更多的配置参数"
+
+    非离线安装时，我们可以通过[环境变量 `DK_XXX=YYY` 的方式](datakit-install.md#extra-envs)来指定一些默认参数，这些默认参数实际上是通过 *install.sh*（Windows 下为 *install.ps1*）来生效的，但是这些环境变量对安装程序 *installer-xxx* 无效，我们只能使用 *installer-xxx* 的命令行参数来额外添加这些选项，通过如下命令，我们可以得知安装程序支持的参数：
+
+    ```shell
+    ./installer-linux-amd64 --help
+    ```
+
+    比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，（离线）升级模式下，这些是不生效的。
+<!-- markdownlint-enable -->
+
 ### 高级模式 {#offline-advanced}
 
 DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 static.guance.com 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.guance.com 站点。

@@ -43,7 +43,7 @@ func (gd *GuanceDocs) Export() error {
 	dirs := []string{
 		"datakit",
 		"integrations",
-		"developers/pipeline",
+		"pipeline/use-pipeline",
 	}
 
 	for _, lang := range gd.opt.langs {
@@ -105,7 +105,7 @@ func (gd *GuanceDocs) exportPipelineDocs(lang inputs.I18n) error {
 		}
 
 		if strings.Contains(f.Name(), ".pages") {
-			gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "developers", "pipeline", ".pages")] = md
+			gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "pipeline", "use-pipeline", ".pages")] = md
 			continue
 		}
 
@@ -131,7 +131,7 @@ func (gd *GuanceDocs) exportPipelineDocs(lang inputs.I18n) error {
 		}
 
 		l.Debugf("add doc %q to pipeline", f.Name())
-		gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "developers", "pipeline", f.Name())] = doc
+		gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "pipeline", "use-pipeline", f.Name())] = doc
 		n++
 	}
 

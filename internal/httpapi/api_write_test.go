@@ -383,9 +383,22 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) Feed(point.Category, []*point.Point, []io.FeedOption) error {
+func (x *apiWriteMock) Feed(cat point.Category, _ []*point.Point, opts []io.FeedOption) error {
 	x.t.Helper()
 	x.t.Log("mock feed impl")
+
+	// Test if /v1/write/metric are force blocking.
+	if cat == point.Metric {
+		fo := io.GetFeedOption()
+		defer io.PutFeedOption(fo)
+
+		for _, opt := range opts {
+			opt(fo)
+		}
+
+		assert.True(x.t, fo.IsBlocking())
+	}
+
 	return nil // do nothing
 }
 

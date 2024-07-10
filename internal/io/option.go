@@ -154,3 +154,19 @@ func WithMaxCacheCount(count int) IOOption {
 		}
 	}
 }
+
+// WithGlobalBlocking used to set global feed blocking.
+func WithGlobalBlocking(on bool) IOOption {
+	return func(x *dkIO) {
+		x.globalBlocking = on
+	}
+}
+
+// WithAvailableCPUs used to set concurrent uploader worker numbers.
+func WithAvailableCPUs(cpus int) IOOption {
+	return func(x *dkIO) {
+		if cpus > 0 {
+			x.availableCPUs = cpus
+		}
+	}
+}

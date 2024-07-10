@@ -140,6 +140,7 @@ func (c *container) queryContainerLogInfo(info *runtime.Container) *logInstance 
 				ins.configStr = v
 			}
 
+			ins.podIP = podInfo.pod.Status.PodIP
 			ins.podLabels = podInfo.pod.Labels
 			ins.ownerKind, ins.ownerName = podInfo.owner()
 

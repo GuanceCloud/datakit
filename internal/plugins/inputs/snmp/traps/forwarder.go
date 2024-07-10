@@ -8,6 +8,7 @@ package traps
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 )
 
-const trapsObject = "traps-object"
+const trapsLogging = "traps-logging"
 
 // TrapForwarder consumes from a trapsIn channel, format traps and send them as EventPlatformEvents
 // The TrapForwarder is an intermediate step between the listener and the epforwarder in order to limit the processing of the listener
@@ -94,10 +95,26 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 		return
 	}
 
+	message := "host: " + host
+	type Trap struct {
+		SnmpTrapName string `json:"snmpTrapName"`
+	}
+	type TrapPayload struct {
+		Trap Trap `json:"trap"`
+	}
+	trapPayload := TrapPayload{}
+	err = json.Unmarshal(data, &trapPayload)
+	if err != nil {
+		l.Errorf("json.Unmarshal trapPayload failed: %v", err)
+	} else {
+		message += ", snmpTrapName: " + trapPayload.Trap.SnmpTrapName
+	}
+
 	tags := map[string]string{
 		"host": host,
 	}
 	fields := map[string]interface{}{
+		"message":      message,
 		"trap_payload": payload,
 	}
 	tn := time.Now()
@@ -115,16 +132,16 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 		TS:     tn,
 	}
 
-	if err := tf.feeder.FeedV2(point.Object, []*point.Point{metric.Point()},
+	if err := tf.feeder.FeedV2(point.Logging, []*point.Point{metric.Point()},
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(tf.election),
-		dkio.WithInputName(trapsObject),
+		dkio.WithInputName(trapsLogging),
 	); err != nil {
-		l.Errorf("Feed object err: %v", err)
+		l.Errorf("Feed logging err: %v", err)
 		tf.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorSource(trapsObject),
-			dkio.WithLastErrorCategory(point.Object),
+			dkio.WithLastErrorSource(trapsLogging),
+			dkio.WithLastErrorCategory(point.Logging),
 		)
 	}
 }

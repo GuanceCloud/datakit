@@ -9,9 +9,9 @@ This library is a fork of [github.com/vjeantet/grok](https://github.com/vjeantet
 ```go
 denormalized, errs := DenormalizePatternsFromMap(CopyDefalutPatterns())
 if len(errs) == 0 {
-  g, err := CompilePattern("%{DAY:day}", denormalized)
+  g, err := CompilePattern("%{DAY:day}", grok.PatternStorage{denormalized})
   if err == nil {
-    ret, _ := g.Run("Tue qds")
+    ret, _ := g.Run("Tue qds", false)
   }
 }
 ```
@@ -33,16 +33,16 @@ func main() {
     fmt.Print(errs)
     return
   }
-  g, err := grok.CompilePattern("%{COMMONAPACHELOG}", de)
+  g, err := grok.CompilePattern("%{COMMONAPACHELOG}", grok.PatternStorage{de})
   if err != nil {
     fmt.Print(err)
   }
-  ret, err := g.Run(`127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`)
+  ret, err := g.Run(`127.0.0.1 - - [23/Apr/2014:22:58:32 +0200] "GET /index.php HTTP/1.1" 404 207`, true)
   if err != nil {
     fmt.Print(err)
   }
-  for k, v := range ret {
-    fmt.Printf("%+15s: %s\n", k, v)
+  for k, name := range g.MatchNames() {
+    fmt.Printf("%+15s: %s\n", name, ret[k])
   }
 }
 
@@ -51,15 +51,14 @@ func main() {
 output:
 
 ```txt
-      timestamp: 23/Apr/2014:22:58:32 +0200
-           verb: GET
-        request: /index.php
-    httpversion: 1.1
-          bytes: 207
-       response: 404
-               : 207
-       clientip: 127.0.0.1
-          ident: -
-           auth: -
-     rawrequest: 
+     clientip: 127.0.0.1
+        ident: -
+         auth: -
+    timestamp: 23/Apr/2014:22:58:32 +0200
+         verb: GET
+      request: /index.php
+  httpversion: 1.1
+   rawrequest:
+     response: 404
+        bytes: 207
 ```

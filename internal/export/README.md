@@ -14,7 +14,7 @@ Datakit 文档目录结构遵循如下约定：
 - 在中英目录下，分别有 *inputs/*、*pipeline/* 两个目录以及一堆 *xxx.md* 文件
 
   - *inputs* 存放采集器文档，包括跟采集器关联的文档，以 ddtrace 为例，除了采集器文档，各种语言的示例文档，都应该归入 *inputs/* 目录下，这些文档会发布到[集成](https://docs.guance.com/integrations/integration-index/)中。
-  - *pipeline* 存放 Pipeline 有关的文档，其文档会发布到[自定义开发](https://docs.guance.com/developers/pipeline/)中。
+  - *pipeline* 存放 Pipeline 有关的文档，其文档会发布到[自定义开发](https://docs.guance.com/pipeline/use-pipeline/)中。
   - *xxx.md* 这些才是 Datakit 自身的文档，其不含任何采集器有关的文档，比如 Datakit 安装、工具链使用等文档。其文档会发布到 [Datakit 文档](https://docs.guance.com/datakit/) 中。 
 
 由于 Datakit 的文档目前分出了 3 批导出，在 docs.guance.com 站点，它们分别分流到了不同的顶级目录，如果要引用的话，需加上对应的目录跳转，比如 *prom.md* 中如果要引用 *datakit-tools-how-to.md* 中的某一个章节，需这样写：
@@ -23,13 +23,13 @@ Datakit 文档目录结构遵循如下约定：
 这里引用一下[工具的使用](../datakit/datakit-tools-how-to.md#some-section)方式...
 ```
 
-而 Pipeline 可能要跳跃两层，因为在自定义开发的文档中，它是放在 *developers/pipeline/* 下，所以，如果要引用上面 Datakit 的文档，需这样写：
+而 Pipeline 可能要跳跃两层，因为在自定义开发的文档中，它是放在 *pipeline/pipeline/* 下，所以，如果要引用上面 Datakit 的文档，需这样写：
 
 ```markdown
 这里引用一下[工具的使用](../../datakit/datakit-tools-how-to.md#some-section)方式...
 ```
 
-即，先需要跳出 *developers/pipeline/* 两层目录。
+即，先需要跳出 *pipeline/pipeline/* 两层目录。
 
 ### 采集器关联的资源导出
 

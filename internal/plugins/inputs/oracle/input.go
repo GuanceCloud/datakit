@@ -87,6 +87,8 @@ func (ipt *Input) setupDB() error {
 		ipt.db = db
 	}
 
+	db.SetConnMaxLifetime(ipt.Interval.Duration) // avoid max cursor problem
+
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
 

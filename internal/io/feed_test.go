@@ -107,7 +107,7 @@ func TestRunpl(t *T.T) {
 				t.Error("!ok")
 			}
 
-			fo := getFeedOption()
+			fo := GetFeedOption()
 			fo.input = "a"
 			fo.cat = point.Logging
 			fo.pts = c.pts
@@ -131,16 +131,35 @@ func TestRunpl(t *T.T) {
 
 func Test_forceBlocking(t *T.T) {
 	t.Run(`basic`, func(t *T.T) {
-		fo := getFeedOption()
+		x := dkIO{}
+		fo := GetFeedOption()
 		fo.input = "some"
 		fo.cat = point.Logging
-		opt := forceBlocking(fo)
+		opt := x.forceBlocking(fo)
 		assert.True(t, opt.blocking)
 
-		fo = getFeedOption()
+		fo = GetFeedOption()
 		fo.input = "some"
 		fo.cat = point.RUM
-		opt = forceBlocking(fo)
+		opt = x.forceBlocking(fo)
+		assert.True(t, opt.blocking)
+	})
+
+	t.Run(`global-blocking`, func(t *T.T) {
+		x := dkIO{
+			globalBlocking: true,
+		}
+
+		fo := GetFeedOption()
+		fo.input = "some"
+		fo.cat = point.Metric
+		opt := x.forceBlocking(fo)
+		assert.True(t, opt.blocking)
+
+		fo = GetFeedOption()
+		fo.input = "some"
+		fo.cat = point.DynamicDWCategory
+		opt = x.forceBlocking(fo)
 		assert.True(t, opt.blocking)
 	})
 }

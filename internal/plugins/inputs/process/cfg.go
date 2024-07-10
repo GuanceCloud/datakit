@@ -81,6 +81,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 			"host":         inputs.NewTagInfo("Host name"),
 			"process_name": inputs.NewTagInfo("Process name"),
 			"pid":          inputs.NewTagInfo("Process ID"),
+			"container_id": inputs.NewTagInfo("Container ID of the process, only supported Linux"),
 		},
 	}
 }
@@ -131,6 +132,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"host":         inputs.NewTagInfo("Host name"),
 			"state":        inputs.NewTagInfo("Process status, currently not supported on Windows"),
 			"process_name": inputs.NewTagInfo("Process name"),
+			"container_id": inputs.NewTagInfo("Container ID of the process, only supported Linux"),
 			"listen_ports": inputs.NewTagInfo("The port the process is listening onW"),
 		},
 	}

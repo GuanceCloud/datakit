@@ -69,9 +69,6 @@ const (
   ## Removes ANSI escape codes from text strings.
   remove_ansi_escape_codes = false
 
-  ## If the data sent failure, will retry forevery.
-  blocking_mode = true
-
   ## If file is inactive, it is ignored.
   ## time units are "ms", "s", "m", "h"
   ignore_dead_log = "1h"

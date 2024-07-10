@@ -47,9 +47,7 @@ In the collection of processes, we need to collect the list of ports opened by t
 - The official InfluxDB line protocol SDK is poorly designed and has some performance issues:
 
     - After the data point (Point) is constructed, secondary operations on it (such as Pipeline) require the Point to be unpacked again, causing a waste of CPU/memory.
-    - The performance of encoding/decoding is not good[^1], which affects data processing under high throughput conditions.
-
-[^1]: It seems that data formats with good readability generally have worse encoding/decoding performance than binary formats.
+    - The performance of encoding/decoding is not good, which affects data processing under high throughput conditions.
 
 ---
 

@@ -40,7 +40,8 @@ var (
 	feedOptionPool sync.Pool
 )
 
-func getFeedOption() *feedOption {
+// GetFeedOption create or get-back a raw feed-option.
+func GetFeedOption() *feedOption {
 	if x := feedOptionPool.Get(); x == nil {
 		return &feedOption{}
 	} else {
@@ -48,7 +49,8 @@ func getFeedOption() *feedOption {
 	}
 }
 
-func putFeedOption(fo *feedOption) {
+// PutFeedOption reset and put-back a feed-option to pool.
+func PutFeedOption(fo *feedOption) {
 	fo.collectCost = 0
 	fo.input = "unknown"
 	fo.version = ""
@@ -99,6 +101,11 @@ type feedOption struct {
 	election bool
 
 	pts []*point.Point
+}
+
+// IsBlocking test if blocking set on current feed option.
+func (fo *feedOption) IsBlocking() bool {
+	return fo.blocking
 }
 
 // FeedOption used to define various feed options.
@@ -192,7 +199,7 @@ func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point
 	inputsFeedPtsVec.WithLabelValues(name, category.String()).Add(float64(len(pts)))
 	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
 
-	fo := getFeedOption()
+	fo := GetFeedOption()
 	fo.input = name
 	fo.cat = category
 	fo.pts = pts
@@ -252,7 +259,7 @@ func (f *ioFeeder) attachTags(pts []*point.Point, fo *feedOption) {
 }
 
 func (f *ioFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...FeedOption) error {
-	fo := getFeedOption()
+	fo := GetFeedOption()
 	for _, opt := range opts {
 		if opt != nil {
 			opt(fo)
@@ -312,7 +319,7 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 		catStr,
 	).Add(float64(bf - len(pts)))
 
-	fo := getFeedOption()
+	fo := GetFeedOption()
 	fo.pts = pts
 	fo.cat = cat
 	fo.input = name
@@ -375,7 +382,11 @@ func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Po
 }
 
 // make sure non-metric feed are blocking!
-func forceBlocking(opt *feedOption) *feedOption {
+func (x *dkIO) forceBlocking(opt *feedOption) *feedOption {
+	if opt != nil && opt.blocking { // fast path
+		return opt
+	}
+
 	switch opt.cat {
 	case point.Logging,
 		point.Tracing,
@@ -399,6 +410,10 @@ func forceBlocking(opt *feedOption) *feedOption {
 	case point.DynamicDWCategory, point.UnknownCategory:
 	}
 
+	if x.globalBlocking && !opt.blocking {
+		opt.blocking = true
+	}
+
 	return opt
 }
 
@@ -408,7 +423,8 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 		return nil
 	}
 	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
-	opt = forceBlocking(opt)
+
+	opt = x.forceBlocking(opt)
 
 	after, plCreate, offl, err := beforeFeed(opt)
 	if err != nil {
@@ -440,7 +456,7 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 			inputsFeedPtsVec.WithLabelValues(crName, crCat).Add(float64(len(v)))
 			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
 
-			ptsCreateOpt := getFeedOption()
+			ptsCreateOpt := GetFeedOption()
 			ptsCreateOpt.input = "pipeline/create_point"
 			ptsCreateOpt.cat = cat
 			ptsCreateOpt.pts = v

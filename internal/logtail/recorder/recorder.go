@@ -86,8 +86,10 @@ func (r *recorder) Flush() error {
 
 func (r *recorder) flush() error {
 	if r.count != 0 && r.encoder != nil {
-		_, err := r.file.Seek(0, io.SeekStart)
-		if err != nil {
+		if err := r.file.Truncate(0); err != nil {
+			return fmt.Errorf("failed of truncate file, err %w", err)
+		}
+		if _, err := r.file.Seek(0, io.SeekStart); err != nil {
 			return fmt.Errorf("failed of reset file, err %w", err)
 		}
 		if err := r.encoder.Encode(r); err != nil {

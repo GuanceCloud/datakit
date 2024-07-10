@@ -44,7 +44,7 @@ func Test_refreshWithProfile(t *testing.T) {
 			{Tag: "interface", Column: snmputil.SymbolConfig{OID: "1.3.6.1.2.1.31.1.1.1.1", Name: "ifName"}},
 		},
 		Metadata: snmputil.MetadataConfig{
-			"device": {
+			"device": snmputil.MetadataResourceConfig{
 				Fields: map[string]snmputil.MetadataField{
 					"description": {
 						Symbol: snmputil.SymbolConfig{
@@ -66,7 +66,7 @@ func Test_refreshWithProfile(t *testing.T) {
 					},
 				},
 			},
-			"interface": {
+			"interface": snmputil.MetadataResourceConfig{
 				Fields: map[string]snmputil.MetadataField{
 					"oper_status": {
 						Symbol: snmputil.SymbolConfig{
@@ -76,7 +76,7 @@ func Test_refreshWithProfile(t *testing.T) {
 					},
 				},
 				IDTags: snmputil.MetricTagConfigList{
-					{
+					snmputil.MetricTagConfig{
 						Tag: "interface",
 						Column: snmputil.SymbolConfig{
 							OID:  "1.3.6.1.2.1.31.1.1.1.1",

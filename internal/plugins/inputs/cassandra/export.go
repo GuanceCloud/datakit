@@ -11,9 +11,9 @@ import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
-		return getData(true)
+		return getMapping(true)
 	case inputs.I18nEn:
-		return getData(false)
+		return getMapping(false)
 	default:
 		return nil
 	}
@@ -23,9 +23,9 @@ func (ipt *Input) DashboardList() []string {
 	return nil
 }
 
-func getData(zh bool) map[string]string {
+func getMapping(zh bool) map[string]string {
 	out := make(map[string]string)
-	for k, v := range data {
+	for k, v := range templateNamingMapping {
 		if zh {
 			out[k] = v[1]
 		} else {
@@ -36,7 +36,7 @@ func getData(zh bool) map[string]string {
 }
 
 //nolint:lll
-var data = map[string]([2]string){
+var templateNamingMapping = map[string]([2]string){
 	"Overview":                                          {"Overview", "概览"},
 	"Read_Path":                                         {"Read Path", "读操作"},
 	"Write_Path":                                        {"Write Path", "写操作"},

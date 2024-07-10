@@ -125,6 +125,7 @@ func (*containerLog) Info() *inputs.MeasurementInfo {
 			"container_name": inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
 			"service":        inputs.NewTagInfo("The name of the service, if `service` is empty then use `source`."),
 			"pod_name":       inputs.NewTagInfo("The pod name of the container (label `io.kubernetes.pod.name`)."),
+			"pod_ip":         inputs.NewTagInfo("The pod ip of the container."),
 			"namespace":      inputs.NewTagInfo("The namespace of the container (label `io.kubernetes.pod.namespace`)."),
 			"deployment":     inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"daemonset":      inputs.NewTagInfo("The name of the DaemonSet which the object belongs to."),

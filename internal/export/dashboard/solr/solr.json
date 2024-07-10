@@ -23,9 +23,9 @@
           }
         },
         "group": {
-          "name": "简介"
+          "name": "{{.Dashboard.introduction}}"
         },
-        "name": "说明",
+        "name": "{{.Dashboard.description}}",
         "pos": {
           "h": 8,
           "w": 24,
@@ -36,7 +36,7 @@
           {
             "name": "",
             "query": {
-              "content": "采集器可以从 Solr 实例中采取很多指标，比如cache、request数等多种指标，并将指标采集到观测云，帮助监控分析 Solr 各种异常情况。\n\nhttps://docs.guance.com/datakit/solr/"
+              "content": "{{.Dashboard.description_content}}"
             }
           }
         ],
@@ -69,9 +69,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "删除文档数",
+        "name": "{{.Dashboard.deleted_document_number}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -137,9 +137,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "文档数",
+        "name": "{{.Dashboard.document_number}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -214,9 +214,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "最大文档数",
+        "name": "{{.Dashboard.maximum_document_number}}",
         "pos": {
           "h": 8,
           "w": 8,
@@ -316,9 +316,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "请求总览",
+        "name": "{{.Dashboard.request_overview}}",
         "pos": {
           "h": 11,
           "w": 24,
@@ -332,7 +332,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "15分钟请求总和",
+              "alias": "{{.Dashboard.fifteen_min_request}}",
               "code": "A",
               "dataSource": "solr_request_times",
               "field": "rate_15min",
@@ -354,7 +354,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`solr_request_times`:(LAST(`rate_15min`) AS `15分钟请求总和`) { `core` = '#{core}' }",
+              "q": "M::`solr_request_times`:(LAST(`rate_15min`) AS `{{.Dashboard.fifteen_min_request}}`) { `core` = '#{core}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -367,7 +367,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "5分钟请求总和",
+              "alias": "{{.Dashboard.five_min_request}}",
               "code": "B",
               "dataSource": "solr_request_times",
               "field": "rate_5min",
@@ -389,7 +389,7 @@
               "groupByTime": "",
               "labelOp": "",
               "namespace": "metric",
-              "q": "M::`solr_request_times`:(AVG(`rate_5min`) AS `5分钟请求总和`) { `core` = '#{core}' }",
+              "q": "M::`solr_request_times`:(AVG(`rate_5min`) AS `{{.Dashboard.five_min_request}}`) { `core` = '#{core}' }",
               "queryFuncs": [],
               "type": "simple",
               "withLabels": []
@@ -403,7 +403,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "1分钟请求总和",
+              "alias": "{{.Dashboard.one_min_request}}",
               "code": "C",
               "dataSource": "solr_request_times",
               "field": "rate_1min",
@@ -425,7 +425,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`solr_request_times`:(AVG(`rate_1min`) AS `1分钟请求总和`) { `core` = '#{core}' }",
+              "q": "M::`solr_request_times`:(AVG(`rate_1min`) AS `{{.Dashboard.one_min_request}}`) { `core` = '#{core}' }",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -488,9 +488,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "索引缓存命中数",
+        "name": "{{.Dashboard.index_cache_hit_number}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -587,9 +587,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "插入缓存数",
+        "name": "{{.Dashboard.insertion_cache_number}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -686,9 +686,9 @@
           }
         },
         "group": {
-          "name": "指标"
+          "name": "{{.Dashboard.metric}}"
         },
-        "name": "缓存查找数",
+        "name": "{{.Dashboard.cache_lookup_number}}",
         "pos": {
           "h": 10,
           "w": 8,
@@ -736,8 +736,8 @@
       }
     ],
     "groups": [
-      "简介",
-      "指标"
+      "{{.Dashboard.introduction}}",
+      "{{.Dashboard.metric}}"
     ],
     "type": "template",
     "vars": [

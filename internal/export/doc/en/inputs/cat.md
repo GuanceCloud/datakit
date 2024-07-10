@@ -80,9 +80,9 @@ client config：
 
 > Note: The 9529 port in the configuration is the HTTP port of the Datakit. 2280 is the 2280 port opened by the cat input.
 
-Datakit config：
-
 <!-- markdownlint-disable MD046 -->
+
+=== "Host Installation"
 
     Go to the `conf.d/cat` directory under the DataKit installation directory, copy `cat.conf.sample` and name it `cat.conf`. Examples are as follows:
     
@@ -90,18 +90,18 @@ Datakit config：
     {{ CodeBlock .InputSample 4 }}
     ```
 
-
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-disable MD046 -->
 
+---
 
 Notes on configuration files:
 
-1. `startTransactionTypes` `MatchTransactionTypes` `block` `routers` `sample`  is the data returned to the client end.
-2. `routers` is Datakit IP or Domain.
-3. `tcp_port`  client config `servers ip` address
+1. `startTransactionTypes` `MatchTransactionTypes` `block` `routers` `sample`  is the data returned to the client end
+1. `routers` is Datakit IP or Domain
+1. `tcp_port`  client config `servers ip` address
 
 ---
 

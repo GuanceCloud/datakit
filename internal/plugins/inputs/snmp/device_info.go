@@ -38,6 +38,7 @@ type deviceInfo struct {
 	Metrics     []snmputil.MetricsConfig   // SNMP metrics definition
 	MetricTags  []snmputil.MetricTagConfig // SNMP metric tags definition
 	//--------------------------------------------------------------------------
+	UserProfileDefinition *snmputil.UserProfileDefinition
 }
 
 // NewDeviceInfo why not use a struct to pass parameters? Because every parameter matters.

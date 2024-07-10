@@ -152,8 +152,10 @@ The environment variables supported by the installation script are as follows (s
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
+    1. These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
+    1. These environment variables are only effective in installation mode; they do not take effect in upgrade mode.
 <!-- markdownlint-enable -->
+
 ### Most Commonly Used Environment Variables {#common-envs}
 
 - `DK_DATAWAY`: Specify the DataWay address, and the DataKit installation command has been brought by default
@@ -327,7 +329,7 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 | `HTTPS_PROXY`                 | `IP:Port`                   | Installed through the Datakit agent                                                                                                                                                         |
 | `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`                        | Install source map tools for RUM, support from Datakit [1.9.2](changelog.md#cl-1.9.2).                                                                                                      |
 | `DK_VERBOSE`                  | `on`                        | Enable more verbose info during install(only for Linux/Mac)[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)                                                                       |
-| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | Use the encrypted password decryption key to protect plaintext passwords in the collector.  [:octicons-tag-24: Version-1.31.0](changelog.md/#cl-1.31.0)                                     |
+| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | Use the encrypted password decryption key to protect plaintext passwords in the collector.  [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                                     |
 | `DK_CRYPTO_AES_KEY_FILE`      | `/usr/local/datakit/enc4dk` | Another way to configure the secret key takes priority over the previous one. Put the key into the file and configure the configuration file path through environment variables.            |
 
 ## FAQ {#faq}

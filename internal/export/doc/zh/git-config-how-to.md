@@ -132,7 +132,7 @@ Git 仓库中必须以如下目录结构来存放各种配置：
 其中
 
 - *conf.d* 专门存放采集器配置，其下的子目录可以任意规划（可以有子目录），任何采集器配置文件，只需要以 `.conf` 结尾即可
-- *pipeline* 用来放 Pipeline 脚本，Pipeline 脚本建议以[数据类型来做规划](../developers/pipeline/pipeline-category.md#store-and-index)
+- *pipeline* 用来放 Pipeline 脚本，Pipeline 脚本建议以[数据类型来做规划](../pipeline/use-pipeline/pipeline-category.md#store-and-index)
 - *python.d* 用来放 python 脚本
 
 以下是开启 Git 同步后 DataKit 目录结构示例：

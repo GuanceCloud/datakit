@@ -182,6 +182,20 @@ Copy these files to the corresponding machine (via USB flash drive or scp and ot
     .\installer-windows-amd64.exe --offline --upgrade --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\data.tar.gz
     ```
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD046 -->
+???+ tip "How to Specify More Configuration Parameters for Offline Installation"
+
+    During online installation, we can specify some default parameters through [environment variables `DK_XXX=YYY`](datakit-install.md#extra-envs). These default parameters actually take effect through the *install.sh* script (on Windows, it's *install.ps1*). However, these environment variables are ineffective for the installation program *installer-xxx*. We can only use the command-line arguments of *installer-xxx* to add these options. By using the following command, we can find out the parameters supported by the installation program:
+
+    ```shell
+    ./installer-linux-amd64 --help
+    ```
+
+    For example, the Dataway address we specified above is set through the `--dataway` option. Additionally, these extra command-line parameter settings are only effective in installation mode and do not take effect in (offline) upgrade mode.
+
+<!-- markdownlint-enable -->
+
 ### Advanced Mode {#offline-advanced}
 
 DataKit is currently installed on the public web, and all binary data and installation scripts are downloaded from the static.guance.com site. For machines that cannot access the site, you can replace the static.guance.com site by deploying a file server on the intranet.

@@ -192,5 +192,6 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 
 func (smp *Sampler) Init() *Sampler {
 	smp.threshold = uint64(float64(10000) * smp.SamplingRateGlobal)
+	log.Infof("init trace sampler samplingRate=%f threahold=%d", smp.SamplingRateGlobal, smp.threshold)
 	return smp
 }

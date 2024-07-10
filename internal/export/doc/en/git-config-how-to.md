@@ -133,7 +133,7 @@ The Git repository must be stored with the following directory structure for var
 Among them:
 
 - *conf.d* is dedicated to storing collector configurations, and its subdirectories can be planned arbitrarily (subdirectories are allowed), any collector configuration file just needs to end with `.conf`
-- *pipeline* is used to store Pipeline scripts, and it is recommended to plan Pipeline scripts according to [data type](../developers/pipeline/pipeline-category.md#store-and-index)
+- *pipeline* is used to store Pipeline scripts, and it is recommended to plan Pipeline scripts according to [data type](../pipeline/pipeline/pipeline-category.md#store-and-index)
 - *python.d* is used to store Python scripts
 
 Here is an example of DataKit's directory structure after Git synchronization is enabled:

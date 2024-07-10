@@ -44,11 +44,10 @@ type logInstance struct {
 	configStr                           string
 	configs                             logConfigs
 
-	podName      string
-	podNamespace string
-	podLabels    map[string]string
-	ownerKind    string
-	ownerName    string
+	podName, podIP, podNamespace string
+	podLabels                    map[string]string
+	ownerKind                    string
+	ownerName                    string
 
 	// volMounts Source to HostTarget
 	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
@@ -227,6 +226,7 @@ func (lc *logInstance) tags() map[string]string {
 
 	if lc.podName != "" {
 		m["pod_name"] = lc.podName
+		m["pod_ip"] = lc.podIP
 		m["namespace"] = lc.podNamespace
 	}
 

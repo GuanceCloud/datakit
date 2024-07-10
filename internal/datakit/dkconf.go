@@ -150,6 +150,13 @@ ulimit = 64000
   flush_workers   = 0 # default to (cpu_core * 2 + 1)
   flush_interval  = "10s"
 
+  # Queue size of feed.
+  feed_chan_size = 1
+
+  # Set blocking if queue is full.
+  # NOTE: Global blocking mode may consume more memory on large metric points.
+  global_blocking = false
+
   # Disk cache on datakit upload failed
   enable_cache = false
   # Cache all categories data point into disk
@@ -340,7 +347,9 @@ ulimit = 64000
     ssh_private_key_path = ""
     ssh_private_key_password = ""
 
+################################################
 # crypto key or key filePath.
+################################################
 [crypto]
   aes_key = ""
   aes_Key_file = ""

@@ -224,6 +224,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		dktrace            itrace.DatakitTrace
 		parentIDs, spanIDs = gatherSpansInfo(trace)
 	)
+
 	for _, span := range trace {
 		if span == nil {
 			continue
@@ -271,6 +272,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		for k, v := range span.Meta {
+			ddTagsLock.RLock()
 			if replace, ok := ddTags[k]; ok {
 				if len(v) > 1024 {
 					spanKV = spanKV.Add(replace, v, false, true)
@@ -280,6 +282,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 				// 从 message 中删除 key.
 				delete(span.Meta, k)
 			}
+			ddTagsLock.RUnlock()
 		}
 
 		if span.Error != 0 {
@@ -295,6 +298,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 			}
 		}
+
 		t := time.Unix(span.Start/1e9, span.Start%1e9)
 		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})

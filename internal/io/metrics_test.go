@@ -139,7 +139,7 @@ func TestDropPtsMetric(t *T.T) {
 
 		npts := 100
 
-		fo := getFeedOption()
+		fo := GetFeedOption()
 		fo.input = "metric-drop-pts-metric"
 		fo.cat = point.Metric
 		fo.pts = r.Rand(npts)

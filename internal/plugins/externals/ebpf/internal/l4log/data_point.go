@@ -166,7 +166,7 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 			nicIPList); err == nil && len(ptsGot) > 0 {
 			count += len(ptsGot)
 			pts = append(pts, ptsGot...)
-		} else {
+		} else if err != nil {
 			log.Errorf("conv metric and event to point failed: %w", err)
 		}
 		if count >= maxFeedCount {

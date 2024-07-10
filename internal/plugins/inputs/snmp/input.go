@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
@@ -31,95 +33,6 @@ import (
 )
 
 const (
-	// nolint:lll
-	sampleCfg = `
-[[inputs.snmp]]
-  ## Filling in specific device IP address, like ["10.200.10.240", "10.200.10.241"].
-  ## And you can use auto_discovery and specific_devices at the same time.
-  ## If you don't want to specific device, you don't need provide this.
-  #
-  # specific_devices = ["***"] # SNMP Device IP.
-
-  ## Filling in autodiscovery CIDR subnet, like ["10.200.10.0/24", "10.200.20.0/24"].
-  ## If you don't want to enable autodiscovery feature, you don't need provide this.
-  #
-  # auto_discovery = ["***"] # Used in autodiscovery mode only, ignore this in other cases.
-
-  ## SNMP protocol version the devices using, fill in 2 or 3.
-  ## If you using the version 1, just fill in 2. Version 2 supported version 1.
-  ## This is must be provided.
-  #
-  snmp_version = 2
-
-  ## SNMP port in the devices. Default is 161. In most cases, you don't need change this.
-  ## This is optional.
-  #
-  # port = 161
-
-  ## Password in SNMP v2, enclose with single quote. Only worked in SNMP v2.
-  ## If you are using SNMP v2, this is must be provided.
-  ## If you are using SNMP v3, you don't need provide this.
-  #
-  # v2_community_string = "***"
-
-  ## Authentication stuff in SNMP v3.
-  ## If you are using SNMP v2, you don't need provide this.
-  ## If you are using SNMP v3, this is must be provided.
-  #
-  # v3_user = "***"
-  # v3_auth_protocol = "***"
-  # v3_auth_key = "***"
-  # v3_priv_protocol = "***"
-  # v3_priv_key = "***"
-  # v3_context_engine_id = "***"
-  # v3_context_name = "***"
-
-  ## Number of workers used to collect and discovery devices concurrently. Default is 100.
-  ## Modifying it based on device's number and network scale.
-  ## This is optional.
-  #
-  # workers = 100
-
-  ## Interval between each autodiscovery in seconds. Default is "1h".
-  ## Only worked in autodiscovery feature.
-  ## This is optional.
-  #
-  # discovery_interval = "1h"
-
-  ## Filling in excluded device IP address, like ["10.200.10.220", "10.200.10.221"].
-  ## Only worked in autodiscovery feature.
-  ## This is optional.
-  #
-  # discovery_ignored_ip = []
-
-  ## Set true to enable election
-  #
-  # election = true
-
-  ## Device Namespace. Default is "default".
-  #
-  # device_namespace = "default"
-
-  ## Picking the metric data only contains the field's names below.
-  #
-  # enable_picking_data = true # Default is "false", which means collecting all data.
-  # status = ["sysUpTimeInstance", "tcpCurrEstab", "ifAdminStatus", "ifOperStatus", "cswSwitchState"]
-  # speed = ["ifHCInOctets", "ifHCInOctetsRate", "ifHCOutOctets", "ifHCOutOctetsRate", "ifHighSpeed", "ifSpeed", "ifBandwidthInUsageRate", "ifBandwidthOutUsageRate"]
-  # cpu = ["cpuUsage"]
-  # mem = ["memoryUsed", "memoryUsage", "memoryFree"]
-  # extra = []
-
-  [inputs.snmp.tags]
-  # tag1 = "val1"
-  # tag2 = "val2"
-
-  [inputs.snmp.traps]
-  # enable = true
-  # bind_host = "0.0.0.0"
-  # port = 9162
-  # stop_timeout = 3    # stop timeout in seconds.
-`
-
 	defaultPort              = uint16(161)
 	defaultWorkers           = 100
 	defaultDiscoveryInterval = time.Hour
@@ -154,7 +67,12 @@ var (
 )
 
 type Input struct {
-	AutoDiscovery       []string          `toml:"auto_discovery"`
+	AutoDiscovery      []string `toml:"auto_discovery"`
+	ConsulDiscoveryURL string   `toml:"consul_discovery_url"`
+	ConsulToken        string   `toml:"consul_token"`
+	InstanceIPKey      string   `toml:"instance_ip_key"`
+	ExporterIPs        []string `toml:"exporter_ips"`
+	*dknet.TLSClientConfig
 	SpecificDevices     []string          `toml:"specific_devices"`
 	SNMPVersion         uint8             `toml:"snmp_version"`
 	Port                uint16            `toml:"port"`
@@ -184,6 +102,19 @@ type Input struct {
 
 	Profiles       snmputil.ProfileDefinitionMap
 	CustomProfiles snmputil.ProfileConfigMap `toml:"custom_profiles,omitempty"`
+
+	userSpecificDevices sync.Map                   // key is ip, value need assert .(*deviceInfo)
+	UserProfileStore    *snmputil.UserProfileStore `toml:"-"`
+	ZabbixProfiles      []*snmputil.ZabbixProfile  `toml:"zabbix_profiles,omitempty"`
+	PromeProfiles       []*snmputil.PromProfile    `toml:"prom_profiles,omitempty"`
+	ModuleRegexps       []*ModuleRegexp            `toml:"module_regexps,omitempty"`
+	DatadogProfiles     []*snmputil.DatadogProfile `toml:"datadog_profiles,omitempty"`
+	KeyMapping          map[string]string          `toml:"key_mapping,omitempty"`
+	OIDKeys             map[string]string          `toml:"oid_keys,omitempty"`
+	TagsIgnore          []string                   `toml:"tags_ignore"`
+	TagsIgnoreRegexp    []string                   `toml:"tags_ignore_regexp"`
+	TagsIgnoreRule      []*regexp.Regexp           `toml:"-"`
+	DiscoveryRunning    uint32                     `toml:"-"` // 1 = is running, 0 = is stop
 
 	// Those need pass to devices, because they could be changed inside deviceInfo.
 	ProfileTags []string
@@ -223,17 +154,32 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&snmpmeasurement.SNMPObject{}, &snmpmeasurement.SNMPMetric{}}
 }
 
-func (ipt *Input) Run() {
+func (ipt *Input) setup() {
 	l = logger.SLogger(snmpmeasurement.InputName)
 	snmputil.SetLog()
-
 	l.Info("Run entry")
 
-	onceReleasePrefiles.Do(func() {
-		if err := snmprefiles.ReleaseFiles(); err != nil {
-			l.Errorf("snmp release prefiles failed: %v", err)
+	for _, s := range ipt.TagsIgnoreRegexp {
+		matcher, err := regexp.Compile(s)
+		if err != nil {
+			l.Errorf("unable to parse regex %s, err: %w", s, err)
+			continue
 		}
-	})
+		ipt.TagsIgnoreRule = append(ipt.TagsIgnoreRule, matcher)
+	}
+}
+
+func (ipt *Input) Run() {
+	ipt.setup()
+	if ipt.ZabbixProfiles == nil && ipt.PromeProfiles == nil && ipt.DatadogProfiles == nil {
+		onceReleasePrefiles.Do(func() {
+			if err := snmprefiles.ReleaseFiles(); err != nil {
+				l.Errorf("snmp release prefiles failed: %v", err)
+			}
+		})
+	} else {
+		ipt.SpecificDevices = ipt.SpecificDevices[0:0]
+	}
 
 	// starting traps server
 	if ipt.Traps.Enable {
@@ -267,7 +213,6 @@ func (ipt *Input) Run() {
 			Tagger:           ipt.Tagger,
 		}); err != nil {
 			l.Errorf("traps.StartServer failed: %v, port = %d", err, ipt.Traps.Port)
-			return
 		}
 	}
 
@@ -279,14 +224,29 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	if err := ipt.Initialize(); err != nil {
+	if err := ipt.initializeDiscovery(); err != nil {
 		l.Errorf("initialize failed: %v", err)
 		return
 	}
 
-	tickerObject := time.NewTicker(ipt.ObjectInterval)
-	tickerMetric := time.NewTicker(ipt.MetricInterval)
-	tickerDiscovery := time.NewTicker(ipt.DiscoveryInterval)
+	if ipt.ZabbixProfiles == nil && ipt.PromeProfiles == nil && ipt.DatadogProfiles == nil {
+		if err := ipt.initializeSpecificDevices(); err != nil {
+			l.Errorf("initialize failed: %v", err)
+			return
+		}
+	} else {
+		if err := ipt.loadUserProfileStores(); err != nil {
+			l.Errorf("loadUserProfileStores failed: %v", err)
+			return
+		}
+	}
+
+	workerNum := 0
+	if len(ipt.mAutoDiscovery) > 0 || ipt.ConsulDiscoveryURL != "" || ipt.Workers != defaultWorkers {
+		workerNum = ipt.Workers
+	} else {
+		workerNum = ipt.getIPCount()
+	}
 
 	workerFunc := func() {
 		g.Go(func(ctx context.Context) error {
@@ -307,20 +267,23 @@ func (ipt *Input) Run() {
 		})
 	}
 
-	length := 0
-	if len(ipt.mAutoDiscovery) > 0 {
-		length = ipt.Workers
-	} else {
-		length = len(ipt.mSpecificDevices)
-	}
-
-	for w := 0; w < length; w++ {
+	for w := 0; w < workerNum; w++ {
 		workerFunc()
 	}
 
+	ipt.initUserDefinition()
+	ipt.userAutoDiscovery()
+	ipt.consulDiscovery()
 	ipt.autoDiscovery()
 	ipt.collectObject()
 	ipt.collectMetrics()
+
+	tickerObject := time.NewTicker(ipt.ObjectInterval)
+	tickerMetric := time.NewTicker(ipt.MetricInterval)
+	tickerDiscovery := time.NewTicker(ipt.DiscoveryInterval)
+	defer tickerObject.Stop()
+	defer tickerMetric.Stop()
+	defer tickerDiscovery.Stop()
 
 	for {
 		select {
@@ -331,6 +294,7 @@ func (ipt *Input) Run() {
 			ipt.collectMetrics()
 
 		case <-tickerDiscovery.C:
+			ipt.userAutoDiscovery()
 			ipt.autoDiscovery()
 
 		case <-datakit.Exit.Wait():
@@ -347,6 +311,11 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) collectObject() {
+	if ipt.ZabbixProfiles != nil || ipt.PromeProfiles != nil || ipt.DatadogProfiles != nil {
+		ipt.collectUserObject()
+		return
+	}
+
 	// send specific devices
 	for deviceIP, device := range ipt.mSpecificDevices {
 		ipt.jobs <- Job{
@@ -379,6 +348,11 @@ func (ipt *Input) collectObject() {
 }
 
 func (ipt *Input) collectMetrics() {
+	if ipt.ZabbixProfiles != nil || ipt.PromeProfiles != nil || ipt.DatadogProfiles != nil {
+		ipt.collectUserMetrics()
+		return
+	}
+
 	// send specific devices
 	for deviceIP, device := range ipt.mSpecificDevices {
 		ipt.jobs <- Job{
@@ -411,7 +385,7 @@ func (ipt *Input) collectMetrics() {
 }
 
 func (ipt *Input) autoDiscovery() {
-	if len(ipt.mAutoDiscovery) == 0 {
+	if ipt.ZabbixProfiles != nil || ipt.PromeProfiles != nil || ipt.DatadogProfiles != nil || len(ipt.mAutoDiscovery) == 0 {
 		return
 	}
 
@@ -480,6 +454,12 @@ func (ipt *Input) doJob(job Job) {
 		ipt.doCollectMetrics(job.IP, job.Device)
 	case DISCOVERY:
 		ipt.doAutoDiscovery(job.IP, job.Subnet)
+	case COLLECT_USER_OBJECT:
+		ipt.doCollectUserObject(job.IP, job.Device)
+	case COLLECT_USER_METRICS:
+		ipt.doCollectUserMetrics(job.IP, job.Device)
+	case USER_DISCOVERY:
+		ipt.doAfterDiscovery(job.Idx, job.IP, job.DeviceType, job.Tags)
 	}
 }
 
@@ -1051,9 +1031,6 @@ func (ipt *Input) ValidateConfig() error {
 	if ipt.MetricInterval == 0 {
 		ipt.MetricInterval = defaultMetricInterval
 	}
-	if ipt.Workers == 0 {
-		ipt.Workers = defaultWorkers
-	}
 	if ipt.DiscoveryInterval == 0 {
 		ipt.DiscoveryInterval = defaultDiscoveryInterval
 	}
@@ -1100,16 +1077,6 @@ func (ipt *Input) validateNetAddress() error {
 			return fmt.Errorf("invalid IP address")
 		}
 		ipt.mSpecificDevices[v] = &deviceInfo{}
-	}
-	return nil
-}
-
-func (ipt *Input) Initialize() error {
-	if err := ipt.initializeDiscovery(); err != nil {
-		return err
-	}
-	if err := ipt.initializeSpecificDevices(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -1171,6 +1138,26 @@ func (ipt *Input) initializeSpecificDevices() error {
 	return nil
 }
 
+func (ipt *Input) loadUserProfileStores() error {
+	profileStore := snmputil.LoadUserProfiles(ipt.ZabbixProfiles, ipt.PromeProfiles, ipt.DatadogProfiles, ipt.Tags)
+	if len(profileStore.ZabbixStores)+len(profileStore.DatadogStores) == 0 {
+		return fmt.Errorf("load no user defined profiles")
+	}
+
+	ipt.UserProfileStore = profileStore
+
+	return nil
+}
+
+func (ipt *Input) cloneZabbixDefinition(store *snmputil.ProfileStore) *snmputil.UserProfileDefinition {
+	d := store.Definition.Clone()
+	for k, v := range ipt.Tags {
+		d.InputTags[k] = v
+	}
+
+	return d
+}
+
 func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error) {
 	session, err := snmputil.NewGosnmpSession(&snmputil.SessionOpts{
 		IPAddress:       deviceIP,
@@ -1195,6 +1182,22 @@ func (ipt *Input) initializeDevice(deviceIP, subnet string) (*deviceInfo, error)
 	}
 
 	return di, nil
+}
+
+func (ipt *Input) getIPCount() int {
+	if len(ipt.mSpecificDevices) > 0 {
+		return len(ipt.mSpecificDevices)
+	}
+	if ipt.UserProfileStore == nil {
+		return ipt.Workers
+	}
+
+	count := 0
+	for _, store := range ipt.UserProfileStore.ZabbixStores {
+		count += len(store.IPList)
+	}
+
+	return count
 }
 
 func (ipt *Input) exit() {
@@ -1237,6 +1240,7 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
+		Workers: defaultWorkers,
 		Tags:    make(map[string]string),
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),

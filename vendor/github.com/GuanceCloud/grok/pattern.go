@@ -147,9 +147,29 @@ func CompilePattern(input string, denomalized PatternStorageIface) (*GrokRegexp,
 		return nil, err
 	}
 
+	var subMatchNames SubMatchName
+	for i, name := range re.SubexpNames() {
+		if name != "" {
+			// update index
+			for j := range subMatchNames.name {
+				if subMatchNames.name[j] == name {
+					subMatchNames.subexpIndex[j] = i
+					break
+				}
+			}
+
+			// insert name and index
+			subMatchNames.name = append(subMatchNames.name, name)
+			subMatchNames.subexpIndex = append(subMatchNames.subexpIndex, i)
+		}
+	}
+
+	subMatchNames.subexpCount = len(re.SubexpNames())
+
 	return &GrokRegexp{
-		grokPattern: gP,
-		re:          re,
+		grokPattern:   gP,
+		re:            re,
+		subMatchNames: subMatchNames,
 	}, nil
 }
 

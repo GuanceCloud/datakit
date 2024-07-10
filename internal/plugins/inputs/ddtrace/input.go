@@ -8,6 +8,7 @@ package ddtrace
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -150,6 +151,21 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
+	log.Infof("DdTrace start init and register HTTP. Input=%s", ipt.string())
+	tags = ipt.Tags
+	if ipt.CompatibleOTEL {
+		spanBase = 16
+	}
+	if ipt.TraceID64BitHex {
+		ignoreTraceIDFromTag = true
+		traceBase = 16
+		spanBase = 16
+	}
+	if len(ipt.CustomerTags) != 0 {
+		setCustomTags(ipt.CustomerTags)
+	}
+	delMessage = ipt.DelMessage
+	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 
 	var err error
 	if ipt.WPConfig != nil {
@@ -279,25 +295,10 @@ func (ipt *Input) RegHTTPHandler() {
 		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)
 		httpapi.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
 	}
+	log.Infof("### %s agent is running...", inputName)
 }
 
 func (ipt *Input) Run() {
-	tags = ipt.Tags
-	if ipt.CompatibleOTEL {
-		spanBase = 16
-	}
-	if ipt.TraceID64BitHex {
-		ignoreTraceIDFromTag = true
-		traceBase = 16
-		spanBase = 16
-	}
-	if len(ipt.CustomerTags) != 0 {
-		setCustomTags(ipt.CustomerTags)
-	}
-	delMessage = ipt.DelMessage
-	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
-	log.Debugf("### %s agent is running...", inputName)
-
 	select {
 	case <-datakit.Exit.Wait():
 		ipt.exit()
@@ -313,6 +314,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
+	traceOpts = []point.Option{}
 	if wkpool != nil {
 		wkpool.Shutdown()
 		log.Debug("### workerpool closed")
@@ -328,6 +330,15 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) string() string {
+	bts, err := json.Marshal(ipt)
+	if err != nil {
+		return ""
+	} else {
+		return string(bts)
 	}
 }
 

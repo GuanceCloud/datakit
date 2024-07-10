@@ -34,14 +34,14 @@ monitor   :
     ``` toml
     [[inputs.logging]]
       # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-      # 推荐使用绝对路径
+      # 推荐使用绝对路径且指定文件后缀
+      # 尽量缩小范围，避免采集到压缩包文件或二进制文件
       logfiles = [
-        "/var/log/*",                          # 文件路径下所有文件
+        "/var/log/*.log",                      # 文件路径下所有 log 文件
+        "/var/log/*.txt",                      # 文件路径下所有 txt 文件
         "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
         "/var/log/syslog",                     # Unix 格式文件路径
         "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
-        "/var/log/*",                          # 文件路径下所有文件
-        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
       ]
     
       ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
@@ -84,9 +84,6 @@ monitor   :
 
       ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
       remove_ansi_escape_codes = false
-
-      ## 是否开启阻塞模式，阻塞模式会在数据发送失败后持续重试，而不是丢弃该数据
-      blocking_mode = true
 
       ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
       ## 时间单位支持 "ms", "s", "m", "h"
@@ -281,7 +278,7 @@ Traceback (most recent call last):
 
 ### Pipeline 配置和使用 {#pipeline}
 
-[Pipeline](../developers/pipeline/index.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](../pipeline/use-pipeline/index.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
 对日志数据而言，主要提取两个字段：
 
@@ -496,13 +493,13 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 <!-- markdownlint-disable MD046 -->
 ??? info
 
-    此处 `*2` 考虑到了 [Pipeline 切割](../developers/pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+    此处 `*2` 考虑到了 [Pipeline 切割](../pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
 <!-- markdownlint-enable -->
 
 ## 延伸阅读 {#more-reading}
 
 - [DataKit 日志采集综述](datakit-logging.md)
-- [Pipeline: 文本数据处理](../developers/pipeline/index.md)
+- [Pipeline: 文本数据处理](../pipeline/use-pipeline/index.md)
 - [Pipeline 调试](../developers/datakit-pl-how-to.md)
 - [Pipeline 性能测试和对比](logging-pipeline-bench.md)
 - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd.md)

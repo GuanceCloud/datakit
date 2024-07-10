@@ -22,20 +22,19 @@ DataKit is an open source, integrated data collection agent, which provides full
 
 - Support collection of metrics, logging and tracing
 - Fully support Kubernetes ecology
-- [Pipeline](https://docs.guance.com/datakit/pipeline): Simple structured data extraction
+- [Pipeline](https://docs.guance.com/pipeline/use-pipeline): Simple structured data extraction
 - Supports third-party data import:
-    - [Telegraf](https://docs.guance.com/datakit/telegraf)
-    - [Prometheus](https://docs.guance.com/datakit/prom)
-    - [Statsd](https://docs.guance.com/datakit/statsd)
-    - [Fluentd](https://docs.guance.com/datakit/logstreaming-fluentd)
-    - [Filebeats](https://docs.guance.com/datakit/beats_output)
-    - [Function](https://docs.guance.com/dataflux-func/write-data-via-datakit)
+    - [Telegraf](https://docs.guance.com/integrations/telegraf)
+    - [Prometheus](https://docs.guance.com/integrations/prom)
+    - [Statsd](https://docs.guance.com/integrations/statsd)
+    - [Fluentd](https://docs.guance.com/integrations/logstreaming-fluentd)
+    - [Filebeats](https://docs.guance.com/integrations/beats_output)
     - Tracing 
-        - [OpenTelemetry](https://docs.guance.com/datakit/opentelemetry)
-        - [DDTrace](https://docs.guance.com/datakit/ddtrace)
-        - [Zipkin](https://docs.guance.com/datakit/zipkin)
-        - [Jaeger](https://docs.guance.com/datakit/jaeger)
-        - [Skywalking](https://docs.guance.com/datakit/skywalking)
+        - [OpenTelemetry](https://docs.guance.com/integrations/opentelemetry)
+        - [DDTrace](https://docs.guance.com/integrations/ddtrace)
+        - [Zipkin](https://docs.guance.com/integrations/zipkin)
+        - [Jaeger](https://docs.guance.com/integrations/jaeger)
+        - [Skywalking](https://docs.guance.com/integrations/skywalking)
 
 ## Changelog
 
@@ -111,8 +110,6 @@ export PATH=$GOROOT/bin:~/go/bin:$PATH
 	- llvm 10.0+: `apt-get install llvm`
 	- kernel headers
 		- apt: `apt-get install -y linux-headers-$(uname -r)`
-- Documentation exporting:
-	- [waque 1.13.1+](https://github.com/yesmeck/waque)
 
 ### Build
 
@@ -180,7 +177,7 @@ Before contributing, check out some guideline of DataKit:
 
 For full documents of DataKit, see
 
-- [DataKit Doc](https://docs.guance.com/en/datakit)
+- [DataKit Doc](https://docs.guance.com/datakit)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_large)

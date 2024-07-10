@@ -142,6 +142,7 @@ gofumpt
 golint
 goyacc
 guance
+hotspots
 inodes
 ipfix
 jemalloc
@@ -180,6 +181,7 @@ schedulability
 sflow
 sharded
 smartmontools
+snmp
 solr
 stderr
 stdout
@@ -203,7 +205,12 @@ vnode
 vnode
 workarea
 xpack
+zabbix
 zhangsan
+oplog
+getmore
+getmores
+spinlocks
 
 ##############################################
 # 缩写

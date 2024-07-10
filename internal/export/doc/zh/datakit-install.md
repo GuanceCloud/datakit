@@ -158,7 +158,8 @@ NAME1="value1" NAME2="value2"
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    1. [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
+    1. 这些环境变量只有在安装模式才能生效，升级模式下，这些环境变量都是不生效的。
 <!-- markdownlint-enable -->
 
 ### 最常用环境变量 {#common-envs}
@@ -351,7 +352,7 @@ NAME1="value1" NAME2="value2"
 | `HTTPS_PROXY`                 | `IP:Port`                   | 通过 Datakit 代理安装                                                                                         |
 | `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`                        | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                   |
 | `DK_VERBOSE`                  | `on`                        | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
-| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md/#cl-1.31.0)                  |
+| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
 | `DK_CRYPTO_AES_KEY_FILE`      | `/usr/local/datakit/enc4dk` | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                                                       |
 
 ## FAQ {#faq}

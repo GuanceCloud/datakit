@@ -36,14 +36,14 @@ This document focuses on local disk log collection and Socket log collection:
     ``` toml
     [[inputs.logging]]
       # Log file list, you can specify absolute path, support batch specification using glob rules
-      # Absolute path recommended
+      # It is recommended to use the absolute path and specify the file type suffix
+      # Please reduce the scope and do not capture to zip file or binary file
       logfiles = [
-        "/var/log/*",                          # All files under the file path
+        "/var/log/*.log",                      # All files of the log
+        "/var/log/*.txt",                      # All files of the txt
         "/var/log/sys*",                       # All files prefixed with sys under the file path
         "/var/log/syslog",                     # Unix format file path
         "C:/path/space 空格中文路径/some.txt", # Windows format file path
-        "/var/log/*",                          # All files under the file path
-        "/var/log/sys*",                       # All files prefixed with sys under the file path
       ]
     
       ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards
@@ -86,9 +86,6 @@ This document focuses on local disk log collection and Socket log collection:
 
       ## Removes ANSI escape codes from text strings.
       remove_ansi_escape_codes = false
-
-      ## If the data sent failure, will retry forevery.
-      blocking_mode = true
 
       ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
       ## Time unit supports "ms", "s", "m", "h"
@@ -285,7 +282,7 @@ The maximum length of a single line (including after `multiline_match`) is 32MB,
 
 ### Pipeline Configuring and Using {#pipeline}
 
-[Pipeline](../developers/pipeline/index.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
+[Pipeline](../pipeline/pipeline/index.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
 
 For log data, there are two main fields to extract:
 
@@ -475,14 +472,14 @@ But in fact, the compression ratio of DataKit will not be so high, because DataK
 <!-- markdownlint-disable MD046 -->
 ??? info
 
-    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../developers/pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
+    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../pipeline/pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
 <!-- markdownlint-enable -->
 
 ## Extended reading {#more-reading}
 
 - [DataKit Log Collection Overview](datakit-logging.md)
-- [Pipeline: Text Data Processing](../developers/pipeline/index.md)
-- [Pipeline debugging](../developers/pipeline/pipeline-quick-start.md#debug)
+- [Pipeline: Text Data Processing](../pipeline/pipeline/index.md)
+- [Pipeline debugging](../pipeline/pipeline/pipeline-quick-start.md#debug)
 - [Pipeline Performance Test and Comparison](logging-pipeline-bench.md)
 - [Collect container internal logs via Sidecar (logfwd)](logfwd.md)
 - [Configure correctly with regular expressions](datakit-input-conf#debug-regex)
