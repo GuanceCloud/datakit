@@ -26,16 +26,22 @@ const (
 type jobType int
 
 const (
-	COLLECT_OBJECT  = 0 //nolint:stylecheck
-	COLLECT_METRICS = 1 //nolint:stylecheck
-	DISCOVERY       = 2 //nolint:stylecheck
+	COLLECT_OBJECT       = 0 //nolint:stylecheck
+	COLLECT_METRICS      = 1 //nolint:stylecheck
+	DISCOVERY            = 2 //nolint:stylecheck
+	COLLECT_USER_OBJECT  = 3 //nolint:stylecheck
+	COLLECT_USER_METRICS = 4 //nolint:stylecheck
+	USER_DISCOVERY       = 5 //nolint:stylecheck
 )
 
 type Job struct {
-	ID     jobType
-	IP     string
-	Device *deviceInfo
-	Subnet string
+	ID         jobType
+	IP         string
+	Device     *deviceInfo
+	Subnet     string
+	Idx        int
+	DeviceType string
+	Tags       map[string]string
 }
 
 //------------------------------------------------------------------------------

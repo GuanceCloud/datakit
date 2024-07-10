@@ -80,6 +80,11 @@ func (s *MockSession) GetNext(oids []string) (result *gosnmp.SnmpPacket, err err
 	return args.Get(0).(*gosnmp.SnmpPacket), args.Error(1)
 }
 
+func (s *MockSession) GetWalkAll(oid string) (result []gosnmp.SnmpPDU, err error) {
+	args := s.Mock.Called(oid)
+	return args.Get(0).([]gosnmp.SnmpPDU), args.Error(1)
+}
+
 // GetVersion returns the snmp version used.
 func (s *MockSession) GetVersion() gosnmp.SnmpVersion {
 	return s.Version

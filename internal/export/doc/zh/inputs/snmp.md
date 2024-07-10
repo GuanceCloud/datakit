@@ -24,10 +24,10 @@ monitor   :
 
 ## 术语  {#terminology}
 
-- `SNMP` (Simple network management protocol): A network protocol that is used to collect information about bare metal networking gear.
-- `OID` (Object identifier): A unique ID or address on a device that when polled returns the response code of that value. For example, OIDs are CPU or device fan speed.
-- `sysOID` (System object identifier): A specific address that defines the device type. All devices have a unique ID that defines it. For example, the Meraki base sysOID is `1.3.6.1.4.1.29671`.
-- `MIB` (Managed information base): A database or list of all the possible OIDs and their definitions that are related to the MIB. For example, the `IF-MIB` (interface MIB) contains all the OIDs for descriptive information about a device’s interface.
+- `SNMP` (Simple network management protocol): 用于收集有关裸机网络设备信息的网络协议。
+- `OID` (Object identifier): 设备上的唯一 ID 或地址，轮询时返回该值的响应代码。例如，OID 是 CPU 或设备风扇速度。
+- `sysOID` (System object identifier): 定义设备类型的特定地址。所有设备都有一个定义它的唯一 ID。例如，`Meraki` 基础 sysOID 是“1.3.6.1.4.1.29671”。
+- `MIB` (Managed information base): 与 MIB 相关的所有可能的 OID 及其定义的数据库或列表。例如，“IF-MIB”（接口 MIB）包含有关设备接口的描述性信息的所有 OID。
 
 ## 关于 SNMP 协议 {#config-pre}
 
@@ -66,9 +66,95 @@ Datakit 支持以上所有版本。
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
 
----
+### 多种配置格式 {#configuration-formats}
+
+#### Zabbix 格式 {#format-zabbix}
+
+- 配置
+
+    ```toml
+      [[inputs.snmp.zabbix_profiles]]
+        profile_name = "xxx.yaml"
+        ip_list = ["ip1", "ip2"]
+        class = "server"
+    
+      [[inputs.snmp.zabbix_profiles]]
+        profile_name = "yyy.xml"
+        ip_list = ["ip3", "ip4"]
+        class = "firewall"
+    
+      # ...
+    ```
+  
+    `profile_name` 可以是全路径或只包含文件名，只包含文件名的话，文件要放到 *./conf.d/snmp/userprofiles/* 子目录下。
+
+    您可以去 Zabbix 官方下载对应的的配置，也可以去 [社区](https://github.com/zabbix/community-templates){:target="_blank"} 下载。
+
+    如果您对下载到的 yaml 或 xml 文件不满意，也可以自行修改。
+
+- 自动发现
+    - 自动发现在引入的多个 yaml 配置里面匹配采集规则，进行采集。
+    - 自动发现请尽量按 C 段配置，配置 B 段可能会慢一些。
+    - 万一自动发现匹配不到 yaml ，是因为已有的 yaml 里面没有被采集设备的生产商特征码。
+        - 可以在 yaml 的 items 里面人为加入一条 oid 信息，引导自动匹配过程。
+
+          ```yaml
+          zabbix_export:
+            templates:
+            - items:
+              - snmp_oid: 1.3.6.1.4.1.2011.5.2.1.1.1.1.6.114.97.100.105.117.115.0.0.0.0
+          ```
+
+        - 拟加入的 oid 通过执行以下命令获得，后面加上 .0.0.0.0 是为了防止产生无用的指标。
+
+        ```shell
+        $ snmpwalk -v 2c -c public <ip> 1.3.6.1.2.1.1.2.0
+        iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.2011.2.240.12
+        
+        $ snmpgetnext -v 2c -c public <ip> 1.3.6.1.4.1.2011.2.240.12
+        iso.3.6.1.4.1.2011.5.2.1.1.1.1.6.114.97.100.105.117.115 = STRING: "radius"
+        ```
+
+#### Prometheus 格式 {#format-Prometheus}
+
+- 配置
+
+    ```toml
+      [[inputs.snmp.prom_profiles]]
+        profile_name = "xxx.yml"
+        ip_list = ["ip1", "ip2"]
+        class = "server"
+    
+      [[inputs.snmp.prom_profiles]]
+        profile_name = "yyy.yml"
+        ip_list = ["ip3", "ip4"]
+        class = "firewall"
+    
+      # ...
+    ```
+
+    profile 参考 Prometheus [snmp_exporter](https://github.com/prometheus/snmp_exporter){:target="_blank"} 的 snmp.yml 文件，
+    建议把不同 class 的 [module](https://github.com/prometheus/snmp_exporter?tab=readme-ov-file#prometheus-configuration){:target="_blank"} 拆分成  不同 .yml 配置。
+
+    Prometheus 的 profile 允许为 module 单独配置团体名 community，这个团体名优先于采集器配置的团体名。
+
+    ```yml
+    switch:
+      walk:
+      ...
+      get:
+      ...
+      metrics:
+      ...
+      auth:
+        community: xxxxxxxxxxxx
+    ```
+
+- 自动发现
+
+    SNMP 采集器支持通过 Consul 服务发现来发现被采集对象，服务注入格式参考 [prom 官网](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#consul_sd_config){:target="_blank"}。
 
 ???+ tip
 
@@ -87,16 +173,15 @@ Datakit 支持以上所有版本。
     3. 「指定设备」模式和「自动发现」模式，两种模式可以共存，但设备间的 SNMP 协议的版本号及相对应的鉴权字段必须保持一致
 <!-- markdownlint-enable -->
 
-### 配置 SNMP {#config-snmp}
-
-- 在设备侧，配置 SNMP 协议
+### 配置被采集 SNMP 设备 {#config-snmp}
 
 SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进入管理界面手动打开。同时，需要根据实际情况选择协议版本和填写相应信息。
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    有些设备为了安全需要额外配置放行 SNMP，具体因设备而异。比如华为系防火墙，需要在 "启用访问管理" 中勾选 SNMP 以放行。可以使用 `snmpwalk` 命令来测试采集侧与设备侧是否配置连通成功（在 Datakit 运行的主机上运行以下命令）：
+    有些设备为了安全需要额外配置放行 SNMP，具体因设备而异。比如华为系防火墙，需要在 "启用访问管理" 中勾选 SNMP 以放行。
+    可以使用 `snmpwalk` 命令来测试采集侧与设备侧是否配置连通成功（在 Datakit 运行的主机上运行以下命令）：
 
     ```shell
     # 适用 v2c 版本
@@ -111,84 +196,6 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
     sudo yum install net-snmp net-snmp-utils # CentOS
     sudo apt–get install snmp                # Ubuntu
     ```
-<!-- markdownlint-enable -->
-
-- 在 DataKit 侧，配置采集。
-
-## 高级功能 {#advanced-features}
-
-### 自定义设备的 OID 配置 {#advanced-custom-oid}
-
-如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可以需要为该设备额外定义一份 Profile。
-
-设备的所有 OID 一般都可以在其官网上下载。Datakit 定义了一些通用的 OID，以及 Cisco/Dell/HP 等部分设备。根据 SNMP 协议，各设备生产商可以自定义 [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"}，用于标识其内部特殊对象。如果想要标识这些，你需要自定义设备的配置(我们这里称这种配置为 Profile，即 "自定义 Profile")，方法如下。
-
-要增加指标或者自定义配置，需要列出 MIB name, table name, table OID, symbol 和 symbol OID，例如：
-
-```yaml
-- MIB: EXAMPLE-MIB
-    table:
-      # Identification of the table which metrics come from.
-      OID: 1.3.6.1.4.1.10
-      name: exampleTable
-    symbols:
-      # List of symbols ('columns') to retrieve.
-      # Same format as for a single OID.
-      # Each row in the table emits these metrics.
-      - OID: 1.3.6.1.4.1.10.1.1
-        name: exampleColumn1
-```
-
-下面是一个操作示例。
-
-在 Datakit 的安装目录的路径 `conf.d/snmp/profiles` 下，如下所示创建 yml 文件 `cisco-3850.yaml`（这里以 Cisco 3850 为例）：
-
-``` yaml
-# Backward compatibility shim. Prefer the Cisco Catalyst profile directly
-# Profile for Cisco 3850 devices
-
-extends:
-  - _base.yaml
-  - _cisco-generic.yaml
-  - _cisco-catalyst.yaml
-
-sysobjectid: 1.3.6.1.4.1.9.1.1745 # cat38xxstack
-
-device:
-  vendor: "cisco"
-
-# Example sysDescr:
-#   Cisco IOS Software, IOS-XE Software, Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 03.06.06E RELEASE SOFTWARE (fc1) Technical Support: http://www.cisco.com/techsupport Copyright (c) 1986-2016 by Cisco Systems, Inc. Compiled Sat 17-Dec-
-
-metadata:
-  device:
-    fields:
-      serial_number:
-        symbol:
-          MIB: OLD-CISCO-CHASSIS-MIB
-          OID: 1.3.6.1.4.1.9.3.6.3.0
-          name: info
-
-metrics:
-  # iLO controller metrics.
-
-  - # Power state.
-    # NOTE: unknown(1), poweredOff(2), poweredOn(3), insufficientPowerOrPowerOnDenied(4)
-    MIB: CPQSM2-MIB
-    symbol:
-      OID: 1.3.6.1.4.1.232.9.2.2.32
-      name: temperature
-```
-
-如上所示，定义了一个 `sysobjectid` 为 `1.3.6.1.4.1.9.1.1745` 的设备，下次 Datakit 如果采集到 `sysobjectid` 相同的设备时，便会应用该文件，在此情况下：
-
-- 采集到 OID 为 `1.3.6.1.4.1.9.3.6.3.0` 的数据时会把名称为 `serial_number` 的字段加到 `device_meta` 字段（JSON）里面，然后附加到指标集 `snmp_object` 中作为 Object 上报；
-- 采集到 OID 为 `1.3.6.1.4.1.232.9.2.2.32` 的数据时把名称为 `temperature` 的字段附加到指标集 `snmp_metric` 中作为 Metric 上报；
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    `conf.d/snmp/profiles` 这个文件夹需要 SNMP 采集器运行一次后才会出现。
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}

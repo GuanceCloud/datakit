@@ -66,7 +66,7 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 === "Kubernetes"
 
-    The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
 ---
 
@@ -88,9 +88,102 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
 <!-- markdownlint-enable -->
 
-### Configure SNMP {#config-snmp}
+### Multiple configuration formats {#configuration-formats}
 
-- On the device side, configure the SNMP protocol
+#### Zabbix format {#format-zabbix}
+
+- Config
+
+  ```toml
+    [[inputs.snmp.zabbix_profiles]]
+      profile_name = "xxx.yaml"
+      ip_list = ["ip1", "ip2"]
+      class = "server"
+  
+    [[inputs.snmp.zabbix_profiles]]
+      profile_name = "yyy.xml"
+      ip_list = ["ip3", "ip4"]
+      class = "switch"
+  
+    # ...
+  ```
+
+  `profile_name` can be full path file name or only file name.
+  If only file name, the path is *./conf.d/snmp/userprofiles/*
+
+  profile_name can from Zabbix official, or from [community](https://github.com/zabbix/community-templates){:target="_blank"} .
+
+  You can modify the yaml or xml.
+
+- AutoDiscovery
+
+    - Automatic discovery matches the collection rules in the imported multiple yaml configurations and performs collection.
+
+    - Please try to configure according to class C. Configuring class B may be slower.
+
+    - If automatic discovery fails to match yaml, it is because these yaml does not contain the manufacturer's signature code of the collected     device.
+
+        - Add an oid message to the items of yaml to guide the automatic matching process.
+
+          ```yaml
+          zabbix_export:
+            templates:
+            - items:
+              - snmp_oid: 1.3.6.1.4.1.2011.5.2.1.1.1.1.6.114.97.100.105.117.115.0.0.0.0
+          ```
+
+        - The oid to be added is obtained by executing the following command. .0.0.0.0 is added at the end to prevent the generation of useless     indicators.
+
+          ```shell
+          $ snmpwalk -v 2c -c public <ip> 1.3.6.1.2.1.1.2.0
+          iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.2011.2.240.12
+          
+          $ snmpgetnext -v 2c -c public <ip> 1.3.6.1.4.1.2011.2.240.12
+          iso.3.6.1.4.1.2011.5.2.1.1.1.1.6.114.97.100.105.117.115 = STRING: "radius"
+          ```
+
+#### Prometheus format {#format-Prometheus}
+
+- Config
+
+    ```toml
+      [[inputs.snmp.prom_profiles]]
+        profile_name = "xxx.yml"
+        ip_list = ["ip1", "ip2"]
+        class = "server"
+    
+      [[inputs.snmp.prom_profiles]]
+        profile_name = "yyy.yml"
+        ip_list = ["ip3", "ip4"]
+        class = "firewall"
+    
+      # ...
+    ```
+
+    Please refer to the snmp.yml file of  Prometheus [snmp_exporter](https://github.com/prometheus/snmp_exporter){:target="_blank"}  for the profile.
+    It is recommended to split [module](https://github.com/prometheus/snmp_exporter?tab=readme-ov-file#prometheus-configuration){:target="_blank"} of different classes into different .yml configurations.
+
+    Prometheus profile allows you to configure a separate community name for a module.
+    This community name takes precedence over the community name configured for the input.
+  
+    ```yml
+    switch:
+      walk:
+      ...
+      get:
+      ...
+      metrics:
+      ...
+      auth:
+        community: xxxxxxxxxxxx
+    ```
+
+- AutoDiscovery
+
+  The SNMP collector can discovery instance through Consul service, and the service injection format can be found on [prom official website](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#consul_sd_config){:target="_blank"}。
+
+
+### Configure SNMP device {#config-snmp}
 
 When SNMP devices are in the default, the general SNMP protocol is closed, you need to enter the management interface to open manually. At the same time, it is necessary to select the protocol version and fill in the corresponding information according to the actual situation.
 
@@ -113,84 +206,6 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
     sudo apt–get install snmp                # Ubuntu
     ```
 
-<!-- markdownlint-enable -->
-
-- On the DataKit side, configure collection.
-
-## Advanced features {#advanced-features}
-
-### Custom Device OID configuration {#advanced-custom-oid}
-
-If you find that the data reported by the collected device does not contain the indicators you want, then you may need to define an additional Profile for the device.
-
-All OIDs of devices can generally be downloaded from their official website. Datakit defines some common OIDs, as well as some devices such as Cisco/Dell/HP. According to SNMP protocol, each device manufacturer can customize [OID](https://www.dpstele.com/snmp/what-does-oid-network-elements.php){:target="_blank"} to identify its internal special objects. If you want to identify these, you need to customize the configuration of the device (we call this configuration Profile here, that is, "Custom Profile"), as follows.
-
-To add metrics or a custom configuration, list the MIB name, table name, table OID, symbol, and symbol OID, for example:
-
-```yaml
-- MIB: EXAMPLE-MIB
-    table:
-      # Identification of the table which metrics come from.
-      OID: 1.3.6.1.4.1.10
-      name: exampleTable
-    symbols:
-      # List of symbols ('columns') to retrieve.
-      # Same format as for a single OID.
-      # Each row in the table emits these metrics.
-      - OID: 1.3.6.1.4.1.10.1.1
-        name: exampleColumn1
-```
-
-Here is an example of operation.
-
-Create the yml file `cisco-3850.yaml` under the path `conf.d/snmp/profiles` of the Datakit installation directory (in this case, Cisco 3850) as follows:
-
-``` yaml
-# Backward compatibility shim. Prefer the Cisco Catalyst profile directly
-# Profile for Cisco 3850 devices
-
-extends:
-  - _base.yaml
-  - _cisco-generic.yaml
-  - _cisco-catalyst.yaml
-
-sysobjectid: 1.3.6.1.4.1.9.1.1745 # cat38xxstack
-
-device:
-  vendor: "cisco"
-
-# Example sysDescr:
-#   Cisco IOS Software, IOS-XE Software, Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 03.06.06E RELEASE SOFTWARE (fc1) Technical Support: http://www.cisco.com/techsupport Copyright (c) 1986-2016 by Cisco Systems, Inc. Compiled Sat 17-Dec-
-
-metadata:
-  device:
-    fields:
-      serial_number:
-        symbol:
-          MIB: OLD-CISCO-CHASSIS-MIB
-          OID: 1.3.6.1.4.1.9.3.6.3.0
-          name: info
-
-metrics:
-  # iLO controller metrics.
-
-  - # Power state.
-    # NOTE: unknown(1), poweredOff(2), poweredOn(3), insufficientPowerOrPowerOnDenied(4)
-    MIB: CPQSM2-MIB
-    symbol:
-      OID: 1.3.6.1.4.1.232.9.2.2.32
-      name: temperature
-```
-
-As shown above, a device with `sysobjectid` of `1.3.6.1.4.1.9.1.1745` is defined, and the next time Datakit captures a device with the same `sysobjectid`, the file will be applied, in this case:
-
-- When device data is captured for an OID of `1.3.6.1.4.1.9.3.6.3.0`, the field with the name `serial_number` will added to the `device_meta` field(JSON), and appended to the set `snmp_object` to be reported as an Object;
-- When device data is captured for an OID of `1.3.6.1.4.1.232.9.2.2.32`, the field with the name `temperature` will added to the the metric set `snmp_metric` and reported as a Metric;
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    The folder `conf.d/snmp/profiles` requires the SNMP collector to run once before it appears.
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}
