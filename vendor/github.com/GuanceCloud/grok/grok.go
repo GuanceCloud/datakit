@@ -2,7 +2,7 @@
 package grok
 
 import (
-	"fmt"
+	"errors"
 	"regexp"
 	"strings"
 
@@ -17,80 +17,129 @@ var (
 
 // Denormalized patterns as regular expressions.
 
-type GrokRegexp struct {
-	grokPattern *GrokPattern
-	re          *regexp.Regexp
+type SubMatchName struct {
+	name []string
+
+	subexpIndex []int
+	subexpCount int
 }
 
-func (g *GrokRegexp) Run(content interface{}, trimSpace bool) (map[string]string, error) {
-	if g.re == nil {
-		return nil, fmt.Errorf("not complied")
-	}
-	result := map[string]string{}
+type GrokRegexp struct {
+	grokPattern   *GrokPattern
+	re            *regexp.Regexp
+	subMatchNames SubMatchName
+}
 
-	switch v := content.(type) {
-	case []byte:
-		match := g.re.FindSubmatch(v)
-		if len(match) == 0 {
-			return nil, fmt.Errorf("no match")
+var ErrNotCompiled = errors.New("not compiled")
+var ErrMismatch = errors.New("mismatch")
+
+func (g *GrokRegexp) GetValByName(k string, val []string) (string, bool) {
+	if len(val) != len(g.subMatchNames.name) {
+		return "", false
+	}
+	for i, name := range g.subMatchNames.name {
+		if name == k {
+			return val[i], true
 		}
-		for i, name := range g.re.SubexpNames() {
-			if name != "" {
-				if trimSpace {
-					result[name] = strings.TrimSpace(string(match[i]))
-				} else {
-					result[name] = string(match[i])
+	}
+	return "", false
+}
+
+func (g *GrokRegexp) MatchNames() []string {
+	return g.subMatchNames.name
+}
+
+func (g *GrokRegexp) GetValAnyByName(k string, val []any) (any, bool) {
+	if len(val) != len(g.subMatchNames.name) {
+		return "", false
+	}
+	for i, name := range g.subMatchNames.name {
+		if name == k {
+			return val[i], true
+		}
+	}
+	return "", false
+}
+
+func (g *GrokRegexp) GetValCastByName(k string, val []string) (any, bool) {
+	if len(val) != len(g.subMatchNames.name) {
+		return nil, false
+	}
+
+	for i, name := range g.subMatchNames.name {
+		if name == k {
+			if varType, ok := g.grokPattern.varbType[name]; ok {
+				var dstV any
+				switch varType {
+				case GTypeInt:
+					dstV, _ = cast.ToInt64E(val[i])
+				case GTypeFloat:
+					dstV, _ = cast.ToFloat64E(val[i])
+				case GTypeBool:
+					dstV, _ = cast.ToBoolE(val[i])
+				case GTypeStr:
+					dstV = val[i]
+				default:
+					return nil, false
 				}
-			}
-		}
-	case string:
-		match := g.re.FindStringSubmatch(v)
-		if len(match) == 0 {
-			return nil, fmt.Errorf("no match")
-		}
-		for i, name := range g.re.SubexpNames() {
-			if name != "" {
-				if trimSpace {
-					result[name] = strings.TrimSpace(match[i])
-				} else {
-					result[name] = match[i]
-				}
+				return dstV, true
+			} else {
+				return val[i], true
 			}
 		}
 	}
+	return nil, false
+}
+
+func (g *GrokRegexp) Run(content string, trimSpace bool) ([]string, error) {
+	if g.re == nil {
+		return nil, ErrNotCompiled
+	}
+
+	match := g.re.FindStringSubmatchIndex(content)
+	if len(match) == 0 {
+		return nil, ErrMismatch
+	}
+	if g.subMatchNames.subexpCount*2 != len(match) {
+		return nil, ErrMismatch
+	}
+
+	result := make([]string, len(g.subMatchNames.name))
+
+	for i := range g.subMatchNames.name {
+		idx := g.subMatchNames.subexpIndex[i]
+
+		left := match[2*idx]
+		right := match[2*idx+1]
+		if left == -1 || right == -1 {
+			continue
+		}
+
+		if trimSpace {
+			result[i] = strings.TrimSpace(content[left:right])
+		} else {
+			result[i] = content[left:right]
+		}
+	}
+
 	return result, nil
 }
 
-func (g *GrokRegexp) RunWithTypeInfo(content interface{}, trimSpace bool) (map[string]interface{}, map[string]string, error) {
-	castDst := map[string]interface{}{}
-	castFail := map[string]string{}
+func (g *GrokRegexp) WithTypeInfo() bool {
+	return len(g.grokPattern.varbType) > 0
+}
+
+func (g *GrokRegexp) RunWithTypeInfo(content string, trimSpace bool) ([]any, error) {
 	ret, err := g.Run(content, trimSpace)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	var dstV interface{}
-	for k, v := range ret {
-		var err error
-		dstV = v
-		if varType, ok := g.grokPattern.varbType[k]; ok {
-			switch varType {
-			case GTypeInt:
-				dstV, err = cast.ToInt64E(v)
-			case GTypeFloat:
-				dstV, err = cast.ToFloat64E(v)
-			case GTypeBool:
-				dstV, err = cast.ToBoolE(v)
-			case GTypeStr:
-			default:
-				err = fmt.Errorf("unsupported data type: %s", varType)
-			}
-		}
-		// TODO: use the default value of the data type
-		// cast 操作失败赋予默认值
-		castDst[k] = dstV
-		if err != nil {
-			castFail[k] = v
-		}
+
+	castDst := make([]any, len(g.subMatchNames.name))
+
+	for i, name := range g.subMatchNames.name {
+		castDst[i], _ = g.GetValCastByName(name, ret)
 	}
-	return castDst, castFail, nil
+
+	return castDst, nil
 }
