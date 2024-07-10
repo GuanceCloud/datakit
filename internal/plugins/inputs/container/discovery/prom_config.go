@@ -34,9 +34,12 @@ type promConfig struct {
 	Measurements           []iprom.Rule `toml:"measurements" json:"measurements"`
 
 	TLSOpen            bool   `toml:"tls_open" json:"tls_open"`
+	UDSPath            string `toml:"uds_path" json:"uds_path"`
+	CacertFile         string `toml:"tls_ca"`
+	CertFile           string `toml:"tls_cert"`
+	KeyFile            string `toml:"tls_key"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify" json:"insecure_skip_verify"`
 	BearerTokenFile    string `toml:"bearer_token_file" json:"bearer_token_file"`
-	UDSPath            string `toml:"uds_path" json:"uds_path"`
 
 	TagsIgnore  []string            `toml:"tags_ignore" json:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename" json:"tags_rename"`
@@ -105,7 +108,11 @@ func withTags(tags map[string]string) promOption {
 	}
 }
 
-func withTLSOpen(b bool) promOption { return func(c *promConfig) { c.TLSOpen = b } }
+func withTLSOpen(b bool) promOption        { return func(c *promConfig) { c.TLSOpen = b } }
+func withCacertFile(str string) promOption { return func(c *promConfig) { c.CacertFile = str } }
+func withCertFile(str string) promOption   { return func(c *promConfig) { c.CertFile = str } }
+func withKeyFile(str string) promOption    { return func(c *promConfig) { c.KeyFile = str } }
+
 func withInsecureSkipVerify(b bool) promOption {
 	return func(c *promConfig) { c.InsecureSkipVerify = b }
 }

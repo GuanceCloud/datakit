@@ -43,13 +43,24 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
           path
           params
           tlsConfig
+              caFile
+              certFile
+              keyFile
               insecureSkipVerify
     - namespaceSelector:
         any
         matchNames
 ```
 
-注意：`tlsConfig` 目前只支持配置 insecureSkipVerify，暂不支持从 Kubernetes Secret/ConfigMap 获取证书。
+注意：`tlsConfig` 暂不支持从 Kubernetes Secret/ConfigMap 获取证书。
+
+`params` 支持以 `measurement` 字段来指定数据的指标集，例如：
+
+```yaml
+params:
+    measurement:
+    - new-measurement
+```
 
 ## 示例 {#example}
 

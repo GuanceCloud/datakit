@@ -42,6 +42,9 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
           port
           path
           tlsConfig
+              caFile
+              certFile
+              keyFile
               insecureSkipVerify
       params
     - namespaceSelector:
@@ -50,6 +53,14 @@ Currently, Datakit supports Prometheus-Operator CRD resources —— `PodMonitor
 ```
 
 Note: The `tlsConfig` only supports configuring insecureSkipVerify, it does not support getting certificates from Kubernetes Secret/ConfigMap.
+
+Use `params` to specify `measurement`, for example:
+
+```yaml
+params:
+    measurement:
+    - new-measurement
+```
 
 ## Examples {#example}
 

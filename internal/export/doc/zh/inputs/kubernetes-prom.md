@@ -211,13 +211,10 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
     - 如果是 Prometheus 的 PodMonitor/ServiceMonitor CRDs，可以使用 `params` 指定 `measurement`，例如：
 
       ```yaml
-      # URL parameter of the scrape request
       params:
           measurement:
           - new-measurement
       ```
-
-      它的 Prometheus 数据指标集为 `new-measurement`。
 
 1. 由数据切割所得
 

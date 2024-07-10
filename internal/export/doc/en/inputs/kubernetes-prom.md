@@ -210,10 +210,9 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
 
       Its Prometheus data metric set would be `pod-measurement`.
 
-    - For Prometheus's PodMonitor/ServiceMonitor CRDs, you can use `params` to specify `measurement`, for instance:
+    - For Prometheus's PodMonitor/ServiceMonitor CRDs, you can use `params` to specify `measurement`, for example:
 
       ```yaml
-      # URL parameter of the scrape request
       params:
           measurement:
           - new-measurement
