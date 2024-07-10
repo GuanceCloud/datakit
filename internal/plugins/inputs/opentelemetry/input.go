@@ -108,6 +108,7 @@ const (
    http_status_ok = 200
    trace_api = "/otel/v1/trace"
    metric_api = "/otel/v1/metric"
+   logs_api = "/otel/v1/logs"
 
   ## OTEL agent GRPC config for trace and metrics.
   ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
@@ -148,6 +149,7 @@ type httpConfig struct {
 	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
 	TraceAPI     string `toml:"trace_api" json:"trace_api"`
 	MetricAPI    string `toml:"metric_api" json:"metric_api"`
+	LogsAPI      string `toml:"logs_api" json:"logs_api"`
 }
 
 type grpcConfig struct {
@@ -191,6 +193,22 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
+	if (ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled) &&
+		(ipt.GRPCConfig == nil || (!ipt.GRPCConfig.MetricEnabled && !ipt.GRPCConfig.TraceEnabled)) {
+		log.Infof("### All OpenTelemetry web protocol are not enabled")
+
+		return
+	}
+	if len(ipt.CustomerTags) > 0 {
+		AddCustomTags(ipt.CustomerTags)
+	}
+
+	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
+	delMessage = ipt.DelMessage
+	tags = ipt.Tags
+	convertToDD = ipt.CompatibleDDTrace
+	convertToZhaoShang = ipt.CompatibleZhaoShang
+	getAttribute = getAttrWrapper(ignoreTags)
 
 	var err error
 	if ipt.WPConfig != nil {
@@ -300,37 +318,20 @@ func (ipt *Input) RegHTTPHandler() {
 		ipt.HTTPConfig.MetricAPI = defaultMetricAPI
 	}
 
-	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.TraceAPI, inputName)
 	statusOK = ipt.HTTPConfig.StatusCodeOK
 	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
 		httpapi.CheckExpectedHeaders(
 			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
 
-	log.Debugf("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
+	log.Infof("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
 
 	iptGlobal = ipt
 	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
+	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.LogsAPI, httpapi.CheckExpectedHeaders(handleOTELLogging, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {
-	if (ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled) &&
-		(ipt.GRPCConfig == nil || (!ipt.GRPCConfig.MetricEnabled && !ipt.GRPCConfig.TraceEnabled)) {
-		log.Debugf("### All OpenTelemetry web protocol are not enabled")
-
-		return
-	}
-	if len(ipt.CustomerTags) > 0 {
-		AddCustomTags(ipt.CustomerTags)
-	}
-
-	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
-	delMessage = ipt.DelMessage
-	tags = ipt.Tags
-	convertToDD = ipt.CompatibleDDTrace
-	convertToZhaoShang = ipt.CompatibleZhaoShang
-	getAttribute = getAttrWrapper(ignoreTags)
-
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
 		runGRPCV1(ipt.GRPCConfig.Address, ipt)
@@ -338,7 +339,7 @@ func (ipt *Input) Run() {
 		return nil
 	})
 
-	log.Debugf("### %s agent is running...", inputName)
+	log.Infof("### %s agent is running...", inputName)
 
 	select {
 	case <-datakit.Exit.Wait():

@@ -33,7 +33,6 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 			scopeTags["scope_version"] = scopeMetrics.GetScope().GetName()
 
 			for _, metric := range scopeMetrics.GetMetrics() {
-				// pts = extractMetricPoints(metric, resourceTags, scopeTags)
 				switch t := metric.Data.(type) {
 				case *metrics.Metric_Gauge:
 					for _, dataPoint := range t.Gauge.GetDataPoints() {
@@ -140,6 +139,10 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 			shadowTags[key] = fmt.Sprintf("%.3f", keyVal.Value.GetDoubleValue())
 		case *common.AnyValue_IntValue:
 			shadowTags[key] = fmt.Sprintf("%d", keyVal.Value.GetIntValue())
+		case *common.AnyValue_KvlistValue:
+			shadowTags[key] = keyVal.Value.GetKvlistValue().String()
+		case *common.AnyValue_ArrayValue:
+			shadowTags[key] = keyVal.Value.GetArrayValue().String()
 		}
 	}
 

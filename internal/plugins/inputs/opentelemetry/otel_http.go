@@ -9,13 +9,13 @@ import (
 	"net/http"
 
 	"github.com/GuanceCloud/cliutils/point"
+	logs "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
@@ -108,6 +108,40 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 			dkio.WithInputName(inputName),
 		); err != nil {
 			log.Error(err.Error())
+		}
+	}
+}
+
+func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
+	media, _, buf, err := itrace.ParseTracerRequest(req)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+	otelLogs := &logs.ExportLogsServiceRequest{}
+	switch media {
+	case "application/x-protobuf":
+		err = proto.Unmarshal(buf, otelLogs)
+	case "application/json":
+		err = protojson.Unmarshal(buf, otelLogs)
+	default:
+		log.Error("unrecognized Content-Type")
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+	pts := ParseLogsRequest(otelLogs.GetResourceLogs())
+	if len(pts) > 0 {
+		if err = iptGlobal.feeder.FeedV2(point.Logging, pts, dkio.WithInputName(inputName)); err != nil {
+			log.Errorf("feed logging to io err=%v", err)
 		}
 	}
 }

@@ -54,24 +54,25 @@ const (
 	SpanSourceWeb       = "web"
 
 	// line protocol tags.
-	TagHost           = "host"
-	TagContainerHost  = "container_host"
-	TagEndpoint       = "endpoint"
-	TagEnv            = "env"
-	TagHttpHost       = "http_host"
-	TagHttpMethod     = "http_method"
-	TagHttpRoute      = "http_route"
-	TagHttpStatusCode = "http_status_code"
-	TagHttpUrl        = "http_url"
-	TagOperation      = "operation"
-	TagSource         = "source"
-	TagPid            = "pid"
-	TagProject        = "project"
-	TagService        = "service"
-	TagSourceType     = "source_type"
-	TagSpanStatus     = "status"
-	TagSpanType       = "span_type"
-	TagVersion        = "version"
+	TagHost             = "host"
+	TagContainerHost    = "container_host"
+	TagEndpoint         = "endpoint"
+	TagEnv              = "env"
+	TagHttpHost         = "http_host"
+	TagHttpMethod       = "http_method"
+	TagHttpRoute        = "http_route"
+	TagHttpStatusCode   = "http_status_code"
+	TagHttpUrl          = "http_url"
+	TagOperation        = "operation"
+	TagSource           = "source"
+	TagPid              = "pid"
+	TagProject          = "project"
+	TagService          = "service"
+	TagSourceType       = "source_type"
+	TagSpanStatus       = "status"
+	TagSpanType         = "span_type"
+	TagVersion          = "version"
+	TagDKFingerprintKey = "dk_fingerprint"
 
 	// line protocol fields.
 	FieldDuration   = "duration"
@@ -358,26 +359,4 @@ type TraceParameters struct {
 	Media   string
 	Encode  string
 	Body    *bytes.Buffer
-}
-
-func MergeTags(input ...map[string]string) map[string]string {
-	tags := make(map[string]string)
-	for i := range input {
-		for k, v := range input[i] {
-			tags[k] = v
-		}
-	}
-
-	return tags
-}
-
-func MergeFields(input ...map[string]interface{}) map[string]interface{} {
-	fields := make(map[string]interface{})
-	for i := range input {
-		for k, v := range input[i] {
-			fields[k] = v
-		}
-	}
-
-	return fields
 }

@@ -72,18 +72,19 @@ The default request routes of OTLP are `v1/traces` and `v1/metrics`, which need 
 
 ## General SDK Configuration {#sdk-configuration}
 
-| Command                       | doc                                                     | default                 | note                                                                                                         |
-|:------------------------------|:--------------------------------------------------------|:------------------------|:-------------------------------------------------------------------------------------------------------------|
-| `OTEL_SDK_DISABLED`           | Disable the SDK for all signals                         | false                   | Boolean value. If “true”, a no-op SDK implementation will be used for all telemetry signals                  |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Key-value pairs to be used as resource attributes       |                         |                                                                                                              |
-| `OTEL_SERVICE_NAME`           | Sets the value of the `service.name` resource attribute |                         | If `service.name` is also provided in `OTEL_RESOURCE_ATTRIBUTES`, then `OTEL_SERVICE_NAME` takes precedence. |
-| `OTEL_LOG_LEVEL`              | Log level used by the SDK logger                        | `info`                  |                                                                                                              |
-| `OTEL_PROPAGATORS`            | Propagators to be used as a comma-separated list        | `tracecontext,baggage`  | Values MUST be deduplicated in order to register a `Propagator` only once.                                   |
-| `OTEL_TRACES_SAMPLER`         | Sampler to be used for traces                           | `parentbased_always_on` |                                                                                                              |
-| `OTEL_TRACES_SAMPLER_ARG`     | String value to be used as the sampler argument         | 1.0                     | 0 - 1.0                                                                                                      |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`,`http/protobuf`,`http/json`                      | gRPC                    |                                                                                                              |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP Addr                                               | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace>                                                                 |
-| `OTEL_TRACES_EXPORTER`        | Trace Exporter                                          | `otlp`                  |                                                                                                              |
+| ENV                           | Command                       | doc                                                     | default                 | note                                                                                                         |
+|:------------------------------|:------------------------------|:--------------------------------------------------------|:------------------------|:-------------------------------------------------------------------------------------------------------------|
+| `OTEL_SDK_DISABLED`           | `otel.sdk.disabled`           | Disable the SDK for all signals                         | false                   | Boolean value. If “true”, a no-op SDK implementation will be used for all telemetry signals                  |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `otel.resource.attributes`    | Key-value pairs to be used as resource attributes       |                         |                                                                                                              |
+| `OTEL_SERVICE_NAME`           | `otel.service.name`           | Sets the value of the `service.name` resource attribute |                         | If `service.name` is also provided in `OTEL_RESOURCE_ATTRIBUTES`, then `OTEL_SERVICE_NAME` takes precedence. |
+| `OTEL_LOG_LEVEL`              | `otel.log.level`              | Log level used by the SDK logger                        | `info`                  |                                                                                                              |
+| `OTEL_PROPAGATORS`            | `otel.propagators`            | Propagators to be used as a comma-separated list        | `tracecontext,baggage`  | Values MUST be deduplicated in order to register a `Propagator` only once.                                   |
+| `OTEL_TRACES_SAMPLER`         | `otel.traces.sampler`         | Sampler to be used for traces                           | `parentbased_always_on` |                                                                                                              |
+| `OTEL_TRACES_SAMPLER_ARG`     | `otel.traces.sampler.arg`     | String value to be used as the sampler argument         | 1.0                     | 0 - 1.0                                                                                                      |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `otel.exporter.otlp.protocol` | `grpc`,`http/protobuf`,`http/json`                      | gRPC                    |                                                                                                              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel.exporter.otlp.endpoint` | OTLP Addr                                               | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace>                                                                 |
+| `OTEL_TRACES_EXPORTER`        | `otel.traces.exporter`        | Trace Exporter                                          | `otlp`                  |                                                                                                              |
+| `OTEL_LOGS_EXPORTER`          | `otel.logs.exporter`          | Logging Exporter                                        | `otlp`                  | default disable                                                                                              |
 
 > You can pass the 'otel.javaagent.debug=true' parameter to the agent to view debugging logs. Please note that these logs are quite lengthy and should be used with caution in production environments.
 
@@ -211,6 +212,23 @@ In addition, the acquisition configuration of some third-party software built in
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## Logging {#logging}
+
+[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+“Standard output” LogRecord Exporter is a LogRecord Exporter which outputs the logs to stdout/console.
+
+If a language provides a mechanism to automatically configure a LogRecordProcessor to pair with the associated exporter (e.g., using the `OTEL_LOGS_EXPORTER` environment variable),
+by default the standard output exporter SHOULD be paired with a simple processor.
+
+The `source` of the logs collected through OTEL is the `service.name`, and it can also be customized by adding tags such as `log.source`,
+for example: `-Dotel.resource.attributes="log.source=sourcename"`.
+
+You can [View logging documents](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"}
+
+> Note: If the app is running in a container environment (such as k8s), [Datakit will automatically collect logs](container-log.md#logging-stdout){:target="_blank"}. If `otel` collects logs again, there will be a problem of duplicate collection.
+> It is recommended to manually [turn off Datakit's autonomous log](container-log.md#logging-with-image-config){:target="_blank"} collection behavior before enabling `otel` to collect logs.
 
 ## More Docs {#more-readings}
 
