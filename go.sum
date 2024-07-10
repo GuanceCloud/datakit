@@ -143,8 +143,8 @@ github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8Cw
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
-github.com/GuanceCloud/cliutils v1.1.19 h1:r9xb9QWNGRyRpkW9Pzr024X/083PqpGhUMC5ggwGPeQ=
-github.com/GuanceCloud/cliutils v1.1.19/go.mod h1:J+vcEIVCCAM1uC9UMsUeuTIwA3a2oUrHf6JbbfcAzio=
+github.com/GuanceCloud/cliutils v1.1.20 h1:7QNT6OEoz2VkQk8NUSQglw7rvlVIAXCqIyWRZ/XBipI=
+github.com/GuanceCloud/cliutils v1.1.20/go.mod h1:JOSrgcF3LbVmicqC7gz2RDZ/U6hmJCKcfUhIQYTTeMQ=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
@@ -153,8 +153,8 @@ github.com/GuanceCloud/go-ora/v2 v2.8.20 h1:RE+wYOcx3rxvdUk2Gn8rFmfqmdDicASmWIIq
 github.com/GuanceCloud/go-ora/v2 v2.8.20/go.mod h1:EHxlY6x7y9HAsdfumurRfTd+v8NrEOTR3Xl4FWlH6xk=
 github.com/GuanceCloud/gopacket v0.0.1 h1:3hb9ssiAiQxOvSliaLZNz5DJ2GzJGbFAlo3BocDM0/8=
 github.com/GuanceCloud/gopacket v0.0.1/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
-github.com/GuanceCloud/grok v1.1.3 h1:0Phqza1ChCro6r9YG6AfpBB7GM0aYSXFRREFmbjF5AI=
-github.com/GuanceCloud/grok v1.1.3/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
+github.com/GuanceCloud/grok v1.1.4 h1:+w/U5a54cgY0O+dvfcKc2qD3JuhmaS8Hi29BM4QMYts=
+github.com/GuanceCloud/grok v1.1.4/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/influxdb1-client v0.1.8 h1:7XNICWcW+NxAHFkzQ8mkOCKA/8U2WNH5m+Hm9g0vz4k=
 github.com/GuanceCloud/influxdb1-client v0.1.8/go.mod h1:4HC4b/O653/ezBiHMPBnHYnHCCfsNT2LvCr7wNLngw4=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cro+7xCCruRvPh9z1L6DwX8xo2N4RDgHGUmtg=

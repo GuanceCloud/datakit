@@ -89,36 +89,51 @@ func Grok(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
-	m, _, err := grokRe.RunWithTypeInfo(val, trimSpace)
-	if err != nil {
-		ctx.Regs.ReturnAppend(false, ast.Bool)
-		return nil
-	}
-
-	for k, v := range m {
-		var dtype ast.DType
-		if v == nil {
-			dtype = ast.Nil
-		} else {
-			switch v.(type) {
-			case int64:
-				dtype = ast.Int
-			case float64:
-				dtype = ast.Float
-			case string:
-				dtype = ast.String
-			case bool:
-				dtype = ast.Bool
-			default:
-				continue
-			}
-		}
-		if err := addKey2PtWithVal(ctx.InData(), k, v, dtype, ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
+	if grokRe.WithTypeInfo() {
+		result, err := grokRe.RunWithTypeInfo(val, trimSpace)
+		if err != nil {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil
 		}
+		for i, name := range grokRe.MatchNames() {
+			var dtype ast.DType
+			if result[i] == nil {
+				dtype = ast.Nil
+			} else {
+				switch result[i].(type) {
+				case int64:
+					dtype = ast.Int
+				case float64:
+					dtype = ast.Float
+				case string:
+					dtype = ast.String
+				case bool:
+					dtype = ast.Bool
+				default:
+					continue
+				}
+			}
+			if err := addKey2PtWithVal(ctx.InData(), name, result[i], dtype, ptinput.KindPtDefault); err != nil {
+				l.Debug(err)
+				ctx.Regs.ReturnAppend(false, ast.Bool)
+				return nil
+			}
+		}
+	} else {
+		result, err := grokRe.Run(val, trimSpace)
+		if err != nil {
+			ctx.Regs.ReturnAppend(false, ast.Bool)
+			return nil
+		}
+		for i, name := range grokRe.MatchNames() {
+			if err := addKey2PtWithVal(ctx.InData(), name, result[i], ast.String, ptinput.KindPtDefault); err != nil {
+				l.Debug(err)
+				ctx.Regs.ReturnAppend(false, ast.Bool)
+				return nil
+			}
+		}
 	}
+
 	ctx.Regs.ReturnAppend(true, ast.Bool)
 	return nil
 }
