@@ -101,6 +101,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
+				log.Infof("customerTags from ENV key=%s value=%s", key, value)
 				ipt.CustomerTags = list
 			}
 		case "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE":
