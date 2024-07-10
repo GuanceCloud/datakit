@@ -21,6 +21,7 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 			"top_n_memory_usage": "Top(n) 内存占用",
 			"host_name":          "主机名",
 			"process_name":       "进程名",
+			"container_id":       "进程所属的容器 ID，仅支持 Linux",
 			"host":               "主机",
 		}
 	case inputs.I18nEn:
@@ -35,6 +36,7 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 			"top_n_memory_usage": "Top(n) Memory Usage",
 			"host_name":          "Host Name",
 			"process_name":       "Process Name",
+			"container_id":       "Container ID of the process, only supported Linux",
 			"host":               "Host",
 		}
 	default:
