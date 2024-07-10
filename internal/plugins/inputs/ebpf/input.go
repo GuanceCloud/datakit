@@ -66,6 +66,9 @@ type Input struct {
 	Conv2DD         bool   `toml:"conv_to_ddtrace"`
 	TraceAllProcess bool   `toml:"trace_all_process"`
 
+	PprofHost string `toml:"pprof_host"`
+	PprofPort string `toml:"pprof_port"`
+
 	CPULimit string `toml:"cpu_limit"`
 	MemLimit string `toml:"mem_limit"`
 	NetLimit string `toml:"net_limit"`
@@ -171,6 +174,16 @@ loop:
 	} else if len(ipt.L7NetDisabled) > 0 {
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--l7net-disabled", strings.Join(ipt.L7NetDisabled, ","))
+	}
+
+	if ipt.PprofHost != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--pprof-host", ipt.PprofHost)
+	}
+
+	if ipt.PprofPort != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--pprof-port", ipt.PprofPort)
 	}
 
 	if ipt.IPv6Disabled {
@@ -304,7 +317,8 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_IPV6_DISABLED   : bool
 // ENV_INPUT_EBPF_EPHEMERAL_PORT  : int32
 // ENV_INPUT_EBPF_INTERVAL        : string
-// ENV_INPUT_EBPF_PPROF_PORT      : int32
+// ENV_INPUT_EBPF_PPROF_HOST      : string
+// ENV_INPUT_EBPF_PPROF_PORT      : string
 //
 // ENV_INPUT_EBPF_NETLOG_BLACKLIST   : string
 // ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
@@ -323,8 +337,11 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_TRACE_NAME_LIST      : string
 // ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST : string.
 func (ipt *Input) ReadEnv(envs map[string]string) {
+	if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
+		ipt.PprofHost = v
+	}
 	if v, ok := envs["ENV_INPUT_EBPF_PPROF_PORT"]; ok {
-		ipt.Input.Args = append(ipt.Input.Args, []string{"--pprof-port", v}...)
+		ipt.PprofPort = v
 	}
 
 	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {

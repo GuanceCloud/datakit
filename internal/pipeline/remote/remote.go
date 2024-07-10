@@ -28,16 +28,12 @@ import (
 )
 
 const (
-	pipelineRemoteName             = "PipelineRemote"
-	pipelineRemoteConfigFile       = ".config"
-	pipelineRemoteContentFile      = "content.tar.gz"
-	pipelineRemoteRelationDumpFile = ".relation_dump.json"
-	// pipelineWarning           = `
-	// #------------------------------------   警告   -------------------------------------
-	// # 不要修改或删除本文件
-	// #-----------------------------------------------------------------------------------
-	// `.
-	deleteAll = 1
+	pipelineRemoteName              = "PipelineRemote"
+	pipelineRemoteConfigFile        = "pull_config.json"
+	pipelineRemoteContentFile       = "scripts.tar.gz"
+	pipelineRemoteRelationDumpFile  = "relation.json"
+	pipelineRemoteDefaultScriptFile = "default.json"
+	deleteAll                       = 1
 )
 
 var (
@@ -414,7 +410,7 @@ func convertThreeMapToContentMap(in map[string]map[string]string, defaultPl map[
 		if v, err := json.Marshal(defaultPl); err != nil {
 			l.Error(err)
 		} else {
-			out["category_default.json"] = string(v)
+			out[pipelineRemoteDefaultScriptFile] = string(v)
 		}
 	}
 

@@ -659,10 +659,10 @@ func TestConvertThreeMapToContentMap(t *testing.T) {
 				"logging": "123.p",
 			},
 			expect: map[string]string{
-				"logging/123.p":         "text123",
-				"logging/1234.p":        "text1234",
-				"metric/456.p":          "text456",
-				"category_default.json": "{\"logging\":\"123.p\"}",
+				"logging/123.p":                 "text123",
+				"logging/1234.p":                "text1234",
+				"metric/456.p":                  "text456",
+				pipelineRemoteDefaultScriptFile: "{\"logging\":\"123.p\"}",
 			},
 		},
 		{
@@ -695,10 +695,10 @@ func TestConvertThreeMapToContentMap(t *testing.T) {
 			},
 			inDefault: map[string]string{},
 			expect: map[string]string{
-				"logging/123.p":         "text123",
-				"logging/1234.p":        "text1234",
-				"metric/456.p":          "text456",
-				"category_default.json": "{}",
+				"logging/123.p":                 "text123",
+				"logging/1234.p":                "text1234",
+				"metric/456.p":                  "text456",
+				pipelineRemoteDefaultScriptFile: "{}",
 			},
 		},
 	}

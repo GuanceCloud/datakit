@@ -590,6 +590,9 @@ func openPprof(host, port string) {
 		go func() {
 			var addr string
 			if host != "" {
+				if port == "" {
+					port = "6061"
+				}
 				addr = fmt.Sprintf("%s:%s", host, port)
 			} else {
 				addr = fmt.Sprintf(":%s", port)
