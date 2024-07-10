@@ -357,6 +357,9 @@ func (d *Discovery) newPromForServiceMonitors() []*promRunner {
 					if endpoint.TLSConfig != nil {
 						opts = append(opts,
 							withTLSOpen(true),
+							withCacertFile(endpoint.TLSConfig.CAFile),
+							withCertFile(endpoint.TLSConfig.CertFile),
+							withKeyFile(endpoint.TLSConfig.KeyFile),
 							withInsecureSkipVerify(endpoint.TLSConfig.SafeTLSConfig.InsecureSkipVerify),
 							withBearerTokenFile(endpoint.BearerTokenFile),
 						)
