@@ -38,6 +38,10 @@ func GetProfilesRoot() string {
 	return filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName, profilesDir)
 }
 
+func GetUserProfilesRoot() string {
+	return filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName, "user"+profilesDir)
+}
+
 func GetTrapsDBRoot() string {
 	return filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName, trapsDBDir)
 }

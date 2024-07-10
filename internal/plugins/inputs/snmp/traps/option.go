@@ -14,7 +14,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-const packageName = "traps"
+const packageName = "snmp"
 
 var (
 	l = logger.DefaultSLogger(packageName)

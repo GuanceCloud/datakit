@@ -44,6 +44,7 @@ type Session interface {
 	Get(oids []string) (result *gosnmp.SnmpPacket, err error)
 	GetBulk(oids []string, bulkMaxRepetitions uint32) (result *gosnmp.SnmpPacket, err error)
 	GetNext(oids []string) (result *gosnmp.SnmpPacket, err error)
+	GetWalkAll(rootOid string) (results []gosnmp.SnmpPDU, err error)
 	GetVersion() gosnmp.SnmpVersion
 }
 
@@ -80,6 +81,11 @@ func (s *GosnmpSession) GetNext(oids []string) (result *gosnmp.SnmpPacket, err e
 // GetVersion returns the snmp version used.
 func (s *GosnmpSession) GetVersion() gosnmp.SnmpVersion {
 	return s.gosnmpInst.Version
+}
+
+// GetWalkAll will send a SNMP GetWalkAll command.
+func (s *GosnmpSession) GetWalkAll(rootOid string) (result []gosnmp.SnmpPDU, err error) {
+	return s.gosnmpInst.WalkAll(rootOid)
 }
 
 // NewGosnmpSession creates a new session.

@@ -290,7 +290,7 @@ func InsertionSort(elements []string) {
 
 //------------------------------------------------------------------------------
 
-const packageName = "snmputil"
+const packageName = "snmp"
 
 var (
 	l       = logger.DefaultSLogger(packageName)
