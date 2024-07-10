@@ -207,6 +207,10 @@ workarea
 xpack
 zabbix
 zhangsan
+oplog
+getmore
+getmores
+spinlocks
 
 ##############################################
 # 缩写
