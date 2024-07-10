@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.33.0 (July 10, 2024) {#cl-1.33.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.33.0-new}
+
+- Added [OpenTelemetry Logging Collection](../integrations/opentelemetry.md#logging) (#2292)
+- New [SNMP Collector](../integrations/snmp.md), added support for Zabbix/Prometheus configurations, and added related dashboards (#2290)
+
+### Bug Fixes {#cl-1.33.0-fix}
+
+- Fixed HTTP dial-testing issues (#2293)
+    - The bug that response time (`response_time`) did not include the download time (`response_download`).
+    - Issues with IPv6 recognition in HTTP request.
+- Fixed Oracle Collector crash issues and max-cursor problems (#2297)
+- Fixed log collection position recording issues that were introduced in version 1.27, **an upgrade is recommended** (#2301)
+- Fixed issues where some customer-tags were not effective when receiving data through DDTrace/OpenTelemetry HTTP API (#2308)
+
+### Feature Enhancements {#cl-1.33.0-opt}
+
+- Added big-key collection for Redis 4.x (#2296)
+- Optimized the number of internal workers based on the actual limited number of CPU cores, which can greatly reduce some buffer memory overhead, **an upgrade is recommended** (#2275)
+- On API `/v1/write/metric`, the behavior has been switched to *blocking mode* by default to avoid data point loss (#2300)
+- Optimized the performance of the `grok()` function in Pipeline (#2310)
+- Added eBPF-related information and Pipeline information to the [bug report](why-no-data.md#bug-report) (#2289)
+- k8s Auto-discovery ServiceMonitor now supports configuring TLS certificate paths (#1866)
+- In the [host process](../integrations/host_processes.md) collector, added corresponding container ID fields (`container_id`) for object and metrics data collection (#2283)
+- In Trace data collection, added a Datakit fingerprint field (`datakit_fingerprint`, which is the hostname where Datakit installed) to facilitate problem investigation, and exposed some additional collection process metrics (#2295)
+    - Added statistics on the number of collected traces
+    - Added statistics on sampled and discarded traces
+
+- Documentation improvements:
+    - Added [documentation on bug reporting](bug-report-how-to.md)
+    - Explained the differences between [Datakit installation and upgrade](datakit-update.md#upgrade-vs-install)
+    - Add documentation on add extra parameters during [offline installation](datakit-offline-install.md#simple-install)
+    - Optimized the MongoDB collector field documentation (#2278)
+
+---
+
 ## 1.32.0 (June 26, 2024) {#cl-1.32.0}
 
 This release is an iterative update with the following main changes:

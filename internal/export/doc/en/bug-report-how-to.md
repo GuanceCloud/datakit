@@ -11,9 +11,11 @@ Through BR, we can obtain various on-site data of Datakit during its operation p
 - *basic*: Basic machine environment information
 - *config*: Various collection-related configurations
 - *data*: Central configuration pull status
+- *external*: eBPF related logging and profiles[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
 - *log*: Datakit's own program logs
 - *metrics*: Prometheus metrics exposed by Datakit itself
 - *profile*: Profile data of Datakit itself
+- *pipeline*: Pipeline scripts[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
 
 Below, we will explain how to troubleshoot specific issues encountered through the information already available in these aspects.
 
@@ -149,6 +151,18 @@ At this time, we can use the built-in [`dk` collector](../integrations/dk.md) of
 - For host installation, modify `dk.conf`, and open the first metric comment in `metric_name_filter` (remove the comment `# ".*"`), which is equivalent to allowing all metrics to be collected
 
 This will collect a copy of all the metrics exposed by Datakit to the user's workspace. In the workspace, search for `datakit` in the 'built-in views' (select 'Datakit(New)') to see the visual effect of these metrics.
+
+## Pipeline {#pipeline}
+
+[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+If the user has configured Pipelines, we'll get a copy of these Pipeline scripts in the *pipeline* directory. By examining these Pipelines, we can identify issues with data field parsing; if certain Pipelines are found to be time-consuming, we can also offer optimization suggestions to reduce the resource consumption of the Pipeline scripts.
+
+## External {#external}
+
+[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+In the *external* directory, logs and debug information from external collectors (currently primarily eBPF collector) are gathered to facilitate troubleshooting issues related to these external collectors.
 
 ## Profile Analysis {#profile}
 

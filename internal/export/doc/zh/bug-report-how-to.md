@@ -11,9 +11,11 @@
 - *basic*：机器基本环境信息
 - *config*：各种采集相关的配置
 - *data*：中心的配置拉取情况
+- *external*：主要是 eBPF 采集器有关的日志和 Profile 数据[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
 - *log*：Datakit 自身的程序日志
 - *metrics*：Datakit 自身暴露的 Prometheus 指标
 - *profile*：Datakit 自身 Profile 数据
+- *pipeline*：Pipeline 脚本 [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
 
 下面就以上各个方面，分别说明如何通过这些已有的信息，来排查遇到的具体问题。
 
@@ -149,6 +151,18 @@ BR 在分析问题时能提供非常多的帮助，但是很多时候，用户�
 - 主机安装，修改 `dk.conf`，在 `metric_name_filter` 中，打开第一个指标注释（`# ".*"`），相当于放行所有指标采集
 
 这样会将 Datakit 暴露的所有指标都采集一份到用户的工作空间。在工作空间中，通过「内置视图」中搜索 `datakit`（选择「Datakit(New)」），即可看到这些指标的可视化效果。
+
+## Pipeline 查看 {#pipeline}
+
+[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+如果用户配置了 Pipeline，在 *pipeline* 目录下会复制一份 Pipeline 拷贝。通过查看这些 Pipeline 我们可以定位一些数据字段切割问题；如果某些 Pipeline 耗时较大，我们也能提供一些优化建议，降低 Pipeline 脚本的消耗。
+
+## External 信息 {#external}
+
+[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+
+在 *external* 目录下，一些外部采集器（目前主要是 eBPF 采集器）的日志和调试信息都会收集起来，以便于排查跟这些外部采集器有关的问题。
 
 ## Profile 分析 {#profile}
 

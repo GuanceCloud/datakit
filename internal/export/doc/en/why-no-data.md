@@ -326,10 +326,33 @@ The list of files is as follows:
 │       └── rum.conf.copy
 ├── data
 │   └── pull
+├── externals
+│   └── ebpf
+│       ├── datakit-ebpf.log
+│       ├── datakit-ebpf.stderr
+│       ├── datakit-ebpf.offset
+│       └── profile
+│           ├── allocs
+│           ├── block
+│           ├── goroutine
+│           ├── heap
+│           ├── mutex
+│           └── profile
 ├── metrics 
 │   ├── metric-1680513455403 
 │   ├── metric-1680513460410
 │   └── metric-1680513465416 
+├── pipeline
+│   ├── local_scripts
+│   │   ├── elasticsearch.p.copy
+│   │   ├── logging
+│   │   │   ├── aaa.p.copy
+│   │   │   └── refer.p.copy
+│   │   └── tomcat.p.copy
+│   └── remote_scripts
+│       ├── pull_config.json.copy
+│       ├── relation.json.copy
+│       └── scripts.tar.gz.copy
 ├── log
 │   ├── gin.log
 │   └── log
@@ -342,7 +365,6 @@ The list of files is as follows:
     ├── mutex
     ├── block
     └── profile
-
 ```
 
 Document Explanation

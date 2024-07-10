@@ -234,7 +234,7 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 ## 日志 {#logging}
 
-[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+[:octicons-tag-24: Version-1.33.0](../datakit/changelog.md#cl-1.33.0)
 
 目前 JAVA Agent 支持采集 `stdout` 日志。并使用 [Standard output](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"} 方式通过 `otlp` 协议发送到 DataKit 中。
 

@@ -215,7 +215,7 @@ In addition, the acquisition configuration of some third-party software built in
 
 ## Logging {#logging}
 
-[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
+[:octicons-tag-24: Version-1.33.0](../datakit/changelog.md#cl-1.33.0)
 
 “Standard output” LogRecord Exporter is a LogRecord Exporter which outputs the logs to stdout/console.
 

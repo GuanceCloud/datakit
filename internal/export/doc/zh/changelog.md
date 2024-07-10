@@ -1,5 +1,43 @@
 # 更新日志
 
+## 1.33.0(2024/07/10) {#cl-1.33.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.33.0-new}
+
+- 新增 [OpenTelemetry 日志采集](../integrations/opentelemetry.md#logging)（#2292）
+- 重构 [SNMP 采集器](../integrations/snmp.md)，新增 Zabbix/Prometheus 两种配置支持，同时新增了其对应的内置视图（#2290）
+
+### 问题修复 {#cl-1.33.0-fix}
+
+- 修复 HTTP 拨测问题（#2293）
+    - 响应时间（`response_time`）未包含下载时间（`response_download`）的问题
+    - HTTP 拨测中 IPv6 识别问题
+- 修复 Oracle 采集器崩溃问题以及 max-cursor 问题（#2297）
+- 修复日志采集 position 记录问题，该问题自 1.27 版本引入，**建议升级**（#2301）
+- 修复 DDTrace/OpenTelemetry HTTP API 接收数据时，部分 customer-tags 不生效问题（#2308）
+
+### 功能优化 {#cl-1.33.0-opt}
+
+- Redis big-key 采集增加 4.x 版本支持（#2296）
+- 依据实际限制的 CPU 核心数，优化内部各类 worker 个数，能极大减少一些 buffer 内存开销，**建议升级**（#2275）
+- Datakit API 在接收时序数据时，默认改成阻塞形式，避免数据点丢弃（#2300）
+- 优化 Pipeline 中 `grok()` 函数性能（#2310）
+- [Bug report](why-no-data.md#bug-report) 中增加 eBPF 相关的信息以及 Pipeline 信息（#2289）
+- k8s 自动发现 ServiceMonitor 支持配置 TLS 证书路径（#1866）
+- [主机进程采集器](../integrations/host_processes.md)对象和指标数据采集上，增加对应容器 ID 字段（`container_id`）（#2283）
+- Trace 数据采集上增加 Datakit 指纹字段（`datakit_fingerprint`，值是 Datakit 所在主机名），便于问题排查，同时增加了一些采集过程中的指标暴露（#2295）
+    - 增加采集的 Trace 数量统计
+    - 增加了采样丢弃的 Trace 统计
+
+- 文档优化：
+    - 新增 bug-report 有关的[说明文档](bug-report-how-to.md)
+    - 补充 Datakit [安装和升级之间的差异说明](datakit-update.md#upgrade-vs-install)
+    - 补充[离线安装](datakit-offline-install.md#simple-install)时安装参数设置有关的文档
+    - 优化 [MongoDB 采集器](../integrations/mongodb.md)字段文档（#2278）
+
+---
+
 ## 1.32.0(2024/06/26) {#cl-1.32.0}
 
 本次发布属于迭代发布，主要有如下更新：
