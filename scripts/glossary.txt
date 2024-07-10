@@ -205,6 +205,10 @@ vnode
 workarea
 xpack
 zhangsan
+oplog
+getmore
+getmores
+spinlocks
 
 ##############################################
 # 缩写
