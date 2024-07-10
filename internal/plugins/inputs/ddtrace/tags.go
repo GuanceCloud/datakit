@@ -6,7 +6,10 @@
 // Package ddtrace tags.
 package ddtrace
 
-import "strings"
+import (
+	"strings"
+	"sync"
+)
 
 // ddTags DDtrace.
 var ddTags = map[string]string{
@@ -35,8 +38,13 @@ var ddTags = map[string]string{
 	"_dd.base_service":  "base_service",
 }
 
+var ddTagsLock sync.RWMutex
+
 func setCustomTags(customTags []string) {
+	ddTagsLock.Lock()
 	for _, tag := range customTags {
+		log.Infof("set customtag key %s to ddTags", tag)
 		ddTags[tag] = strings.ReplaceAll(tag, ".", "_")
 	}
+	ddTagsLock.Unlock()
 }
