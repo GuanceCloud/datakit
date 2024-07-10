@@ -25,6 +25,20 @@ Currently, DDTrace has added the following extensions to the technology stack：
 <!-- markdownlint-enable -->
 ## changelog {#changelog}
 
+## v1.36.1-guance {#cl-1.36.1-guance}
+
+### fix {#cl-1.36.1-guance-fix}
+
+- Merge DataDog Java Agent tag 1.36.0.
+- Add `dd-guance-version` tag.
+- Using `mybatis plus`, the SQL statements executed by the batch class are not recorded as span information.
+
+## v1.34.2-guance {#cl-1.34.2-guance}
+
+### fix {#cl-1.34.2-guance-fix}
+
+- Due to excessive memory usage, it has been decided to remove the [add response body](ddtrace-ext-java.md#response_body) feature.
+
 ## v1.34.0-guance {#cl-1.34.0-guance}
 
 ### new {#cl-1.34.0-guance-fix}
