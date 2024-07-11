@@ -155,28 +155,22 @@ func TestKeepRareResource(t *testing.T) {
 func TestSampler(t *testing.T) {
 	var origin DatakitTraces
 	for i := 0; i < 1000; i++ {
-		dktrace := randDatakitTrace(t, 1, randService(_services...), randResource(_resources...))
+		dktrace := randDatakitTrace(t, 2, randService(_services...), randResource(_resources...))
 		parentialize(dktrace)
 		origin = append(origin, dktrace)
 	}
 
 	sampler := &Sampler{SamplingRateGlobal: 0.15}
+	sampler.Init()
+	l := logger.DefaultSLogger("filters-test")
 
-	log := logger.DefaultSLogger("filters-test")
-	wg := sync.WaitGroup{}
-	wg.Add(10)
 	for i := 0; i < 10; i++ {
-		go func() { // nolint:govet,staticcheck
-			defer wg.Done()
-
-			var sampled DatakitTraces
-			for i := range origin {
-				if t, _ := sampler.Sample(log, origin[i]); t != nil {
-					sampled = append(sampled, t)
-				}
+		var sampled DatakitTraces
+		for j := range origin {
+			if r, _ := sampler.Sample(l, origin[j]); r != nil {
+				sampled = append(sampled, r)
 			}
-			fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
-		}()
+		}
+		fmt.Printf("sampling_rate=0.15 ,origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
 	}
-	wg.Wait()
 }

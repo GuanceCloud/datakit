@@ -176,11 +176,11 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 		switch str {
 		case UserDrop, SamplerDrop:
 			return nil, true
-		case UserKeep, SamplerKeep:
+		case UserKeep:
 			return dktrace, false
 		}
 	}
-
+	dktrace[0].Add(SampleRate, smp.SamplingRateGlobal)
 	traceID := UnifyToUint64ID(dktrace[0].GetFiledToString(FieldTraceID))
 	f := traceID%10000 <= smp.threshold
 	if f {
