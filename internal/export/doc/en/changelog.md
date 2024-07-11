@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.33.1 (July 11, 2024) {#cl-1.33.1}
+
+This release is a hotfix update that addresses the following issues:
+
+- Fixed bug on trace sampling, which was introduced in version 1.26.0. We also added a new filed(`dk_sampling_rate`) on root span to indicate that the trace has been sampled. **An upgrade is recommended** (#2312)
+- Fixed bug on SNMP collector related to IP handling, and additionally exposed a set of new metrics during the SNMP collection process (#3099)
+
+---
+
 ## 1.33.0 (July 10, 2024) {#cl-1.33.0}
 
 This release is an iterative update with the following main changes:
@@ -140,6 +149,14 @@ In this version, the data protocol has been extended. After upgrading from an ol
 - Upgrade the center base to [1.87.167](../deployment/changelog.md#1871672024-06-05) or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
+#### For InfluxDB {#cl-1.30.0-brk-influxdb}
+
+If your time series storage is InfluxDB, then **do not upgrade Datakit**. Please maintain the highest version at 1.29.1. We'll upgraded the central latter to make it compatible with InfluxDB.
+
+Additionally, if the central has been upgraded to a newer version (1.87.167+), then lower versions of Datakit should also **use the `v1` upload protocol**. Please switch from `v2` to `v1` if you have set `v2` before.
+
+If you do indeed want to upgrade to a newer version of Datakit, please replace the time series engine with guance-storage.
+
 ---
 
 ## 1.29.1 (May 20, 2024) {#cl-1.29.1}
@@ -267,6 +284,8 @@ This release is a hotfix release that addresses the following issues:
 - Fixed an problem with missing tags in SQLServer custom collection (#2144)
 - Resolved duplicate collection issue with Kubernetes Events (#2145)
 - Corrected inaccurate container count collection in Kubernetes (#2146)
+- Fixed an issue where sampler would incorrectly delete some traces (#2135)
+
 
 ### Enhancements {#cl-1.26.0-opt}
 
