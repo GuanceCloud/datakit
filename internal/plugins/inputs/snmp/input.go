@@ -414,7 +414,7 @@ func (ipt *Input) autoDiscovery() {
 
 func (ipt *Input) dispatchDiscovery(subnet string, discovery *discoveryInfo, mSpecificDevices map[string]struct{}) {
 	l.Debugf("subnet %s: Run discovery", subnet)
-	for currentIP := discovery.StartingIP; discovery.Network.Contains(currentIP); incrementIP(currentIP) {
+	for currentIP := cloneIP(discovery.StartingIP); discovery.Network.Contains(currentIP); incrementIP(currentIP) {
 		deviceIP := currentIP.String()
 
 		if ignored := ipt.isIPIgnored(deviceIP); ignored {
