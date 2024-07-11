@@ -87,6 +87,7 @@ const (
 	FieldCallTree   = "calling_tree"
 	Trace128BitId   = "trace_128_bit_id"
 	FieldRuntimeID  = "runtime_id"
+	SampleRate      = "dk_sampling_rate"
 )
 
 // nolint:stylecheck

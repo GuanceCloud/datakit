@@ -179,7 +179,7 @@ func randDatakitSpan(t *testing.T, opts ...randSpanOption) *DkSpan {
 		AddTag(TagPid, testutils.RandInt64StrID(10)).
 		AddTag(TagContainerHost, testutils.RandString(20))
 
-	pt := point.NewPointV2("testSource", spanKV, point.DefaultLoggingOptions()...)
+	pt := point.NewPointV2("testSource", spanKV, point.CommonLoggingOptions()...)
 	dkSpan := &DkSpan{pt}
 	for i := range opts {
 		opts[i](dkSpan)
