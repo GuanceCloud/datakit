@@ -46,7 +46,7 @@ func (ipt *Input) userAutoDiscovery() {
 		return
 	}
 
-	if len(ipt.UserProfileStore.ZabbixStores) == 0 {
+	if len(ipt.UserProfileStore.ZabbixStores) == 0 || len(ipt.mAutoDiscovery) == 0 {
 		return
 	}
 
@@ -56,6 +56,7 @@ func (ipt *Input) userAutoDiscovery() {
 			return nil
 		}
 
+		tn := time.Now().UTC()
 		for subnet, discovery := range ipt.mAutoDiscovery {
 			ipt.dispatchUserDiscovery(subnet, discovery)
 
@@ -71,6 +72,7 @@ func (ipt *Input) userAutoDiscovery() {
 			default:
 			}
 		}
+		discoveryCostVec.WithLabelValues("zabbix").Observe(float64(time.Since(tn)) / float64(time.Second))
 
 		atomic.StoreUint32(&ipt.DiscoveryRunning, 0)
 		return nil
@@ -79,7 +81,7 @@ func (ipt *Input) userAutoDiscovery() {
 
 func (ipt *Input) dispatchUserDiscovery(subnet string, discovery *discoveryInfo) {
 	l.Debugf("subnet %s: Run discovery", subnet)
-	for currentIP := discovery.StartingIP; discovery.Network.Contains(currentIP); incrementIP(currentIP) {
+	for currentIP := cloneIP(discovery.StartingIP); discovery.Network.Contains(currentIP); incrementIP(currentIP) {
 		deviceIP := currentIP.String()
 
 		if ignored := ipt.isIPIgnored(deviceIP); ignored {
@@ -371,6 +373,9 @@ func (ipt *Input) doCollectUserObject(deviceIP string, device *deviceInfo) {
 }
 
 func (ipt *Input) collectUserMetrics() {
+	tn := time.Now().UTC()
+	deviceNumbers := make(map[string]int)
+
 	ipt.userSpecificDevices.Range(func(deviceIP, v interface{}) bool {
 		device, ok := v.(*deviceInfo)
 		if !ok {
@@ -384,6 +389,9 @@ func (ipt *Input) collectUserMetrics() {
 			return true
 		}
 
+		class := device.ClassName()
+		deviceNumbers[class]++
+
 		ipt.jobs <- Job{
 			ID:     COLLECT_USER_METRICS,
 			IP:     ip,
@@ -391,6 +399,14 @@ func (ipt *Input) collectUserMetrics() {
 		}
 		return true
 	})
+
+	deviceTotal := 0
+	for class, i := range deviceNumbers {
+		aliveDevicesVec.WithLabelValues(class).Set(float64(i))
+		deviceTotal += i
+	}
+	aliveDevicesVec.WithLabelValues("total").Set(float64(deviceTotal))
+	collectCostVec.WithLabelValues().Observe(float64(time.Since(tn)) / float64(time.Second))
 }
 
 func (ipt *Input) doCollectUserMetrics(deviceIP string, device *deviceInfo) {
@@ -401,6 +417,7 @@ func (ipt *Input) doCollectUserMetrics(deviceIP string, device *deviceInfo) {
 	tn := time.Now().UTC()
 	points, _ := device.getUserMeasurements(deviceIP, tn, false)
 	l.Debugf("collect points: %d, ip: %s, profile name: %s", len(points), deviceIP, device.UserProfileDefinition.ProfileName)
+	deviceCollectCostVec.WithLabelValues(device.ClassName()).Observe(float64(time.Since(tn)) / float64(time.Second))
 
 	if len(points) == 0 {
 		return

@@ -18,6 +18,12 @@ type discoveryInfo struct {
 	Network    net.IPNet
 }
 
+func cloneIP(ip net.IP) net.IP {
+	clonedIP := make([]byte, len(ip))
+	copy(clonedIP, ip)
+	return net.IP(clonedIP)
+}
+
 func NewDiscoveryInfo(
 	ipt *Input,
 	subnet string,

@@ -31,7 +31,8 @@
         "valueSort": "asc",
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "multiple": true
+        "multiple": true,
+        "includeStar": true
       },
       {
         "name": "IP",
@@ -53,7 +54,8 @@
         "valueSort": "asc",
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "multiple": true
+        "multiple": true,
+        "includeStar": true
       }
     ],
     "charts": [
@@ -111,7 +113,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "O::`snmp_net_device`:(count(`*`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' }",
+              "q": "CO::`snmp_net_device`:(count(`*`)) { `sys_name` = '#{sys_name}' and `ip` = '#{ip}' }",
               "code": "A",
               "fill": "",
               "type": "simple",
@@ -120,7 +122,7 @@
               "search": "",
               "filters": [
                 {
-                  "id": "edd48c90-2a1e-11ef-a7ed-0f84d28b01b9",
+                  "id": "a2f72b20-3f6c-11ef-86bc-454c2e20fbc8",
                   "op": "=",
                   "name": "sys_name",
                   "type": "keyword",
@@ -129,7 +131,7 @@
                   "values": []
                 },
                 {
-                  "id": "5178aab0-2a1f-11ef-a7ed-0f84d28b01b9",
+                  "id": "a3ecaeb0-3f6c-11ef-86bc-454c2e20fbc8",
                   "op": "=",
                   "name": "ip",
                   "type": "keyword",
@@ -142,7 +144,7 @@
               "funcList": [],
               "fieldFunc": "count",
               "fieldType": "keyword",
-              "namespace": "object",
+              "namespace": "custom_object",
               "dataSource": "snmp_net_device",
               "queryFuncs": [],
               "withLabels": [],
