@@ -1,1766 +1,3574 @@
 {
-  "dashboardBindSet": [],
+  "title": "{{.Dashboard.title}}",
+  "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "{{.Dashboard.category_alarm}}": true,
-      "{{.Dashboard.category_lock}}": true,
-      "{{.Dashboard.category_log}}": true,
-      "{{.Dashboard.category_memory}}": true,
-      "{{.Dashboard.category_plancache}}": true,
-      "{{.Dashboard.category_status}}": true,
-      "{{.Dashboard.category_workarea}}": true
+      "Transaction": false,
+      "Storage and Caching": false,
+      "System & Resource Health": true,
+      "SQL Execution & Concurrency Management": true
     }
   },
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
-  "dashboardType": "CUSTOM",
   "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
   "main": {
+    "vars": [
+      {
+        "name": "{{.Dashboard.cluster_name}}",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "cluster_name",
+        "type": "TAG",
+        "definition": {
+          "tag": "cluster",
+          "field": "",
+          "value": "",
+          "metric": "oceanbase_stat",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "{{.Dashboard.tenant_name}}",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "tenant_name",
+        "type": "TAG",
+        "definition": {
+          "tag": "tenant_name",
+          "field": "",
+          "value": "",
+          "metric": "oceanbase_stat",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
     "charts": [
       {
         "extend": {
-          "isRefresh": false,
-          "links": [],
           "settings": {
-            "alias": [],
-            "backgroundStyle": {
-              "background-position": "center"
-            },
-            "changeWorkspace": false,
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "avg_time"
+              }
+            ],
+            "units": [
+              {
+                "key": "(sum(rate(metric_value))  + sum(rate(metric_value{stat_id=40003}))  + sum(rate(metric_value{stat_id=40005}))  + sum(rate(metric_value{stat_id=40007}))  + sum(rate(metric_value{stat_id=40009})) + sum(rate(metric_value{stat_id=40019})))  / (sum(rate(metric_value{stat_id=40000}))  + sum(rate(metric_value{stat_id=40002})) + sum(rate(metric_value{stat_id=40004}))  + sum(rate(metric_value{stat_id=40006}))  + sum(rate(metric_value{stat_id=40008})) + sum(rate(metric_value{stat_id=40018})))",
+                "name": "(sum(rate(metric_value))  + sum(rate(metric_value{stat_id=40003}))  + sum(rate(metric_value{stat_id=40005}))  + sum(rate(metric_value{stat_id=40007}))  + sum(rate(metric_value{stat_id=40009})) + sum(rate(metric_value{stat_id=40019})))  / (sum(rate(metric_value{stat_id=40000}))  + sum(rate(metric_value{stat_id=40002})) + sum(rate(metric_value{stat_id=40004}))  + sum(rate(metric_value{stat_id=40006}))  + sum(rate(metric_value{stat_id=40008})) + sum(rate(metric_value{stat_id=40018})))",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
             "colors": [],
-            "fixedTime": "",
-            "globalUnit": [],
-            "isTimeInterval": false,
             "levels": [],
-            "showFieldMapping": false,
-            "showTitle": false,
-            "timeInterval": "default",
-            "titleDesc": "",
-            "type": "center",
-            "unitType": "global",
-            "units": [],
-            "url": "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/public/images/oceanbase.png"
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_alarm}}"
-        },
-        "name": "brand",
-        "pos": {
-          "h": 20,
-          "w": 4,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [],
-        "type": "picture"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "areaLine",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
             "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_status}}"
-        },
-        "name": "{{.Dashboard.ob_database_status}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_database_status",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_database_status`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
             "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
             "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_lock}}"
-        },
-        "name": "{{.Dashboard.ob_concurrent_limit_sql_count}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_concurrent_limit_sql_count",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_concurrent_limit_sql_count`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
             "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
             "fixedTime": "",
-            "globalUnit": [],
             "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
             "openStack": false,
-            "openThousandsSeparator": true,
             "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
+            "showLabel": false,
             "showTitle": true,
-            "slimit": 20,
             "stackType": "time",
-            "timeInterval": "auto",
             "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_lock}}"
-        },
-        "name": "{{.Dashboard.ob_lock_count}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_lock_count",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_lock_count`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
             "globalUnit": [
               "time",
-              "s"
+              "ms"
             ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
+            "isSampling": true,
+            "compareType": [],
             "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "last"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_lock}}"
+          "name": "System & Resource Health"
         },
-        "name": "{{.Dashboard.ob_lock_max_ctime}}",
+        "name": "Response time",
         "pos": {
           "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
+          "w": 12,
+          "x": 0,
+          "y": 9
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_lock_max_ctime",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_lock_max_ctime`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "(sum(rate(metric_value{stat_id=~\"40001|40003|40005|40007|40009|40019\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) / (sum(rate(metric_value{stat_id=~\"40000|40002|40004|40006|40008|40018\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) ",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "select"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "insert"
+              },
+              {
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "update"
+              },
+              {
+                "key": "promql_4",
+                "name": "promql_4",
+                "alias": "replace"
+              },
+              {
+                "key": "promql_5",
+                "name": "promql_5",
+                "alias": "delete"
+              },
+              {
+                "key": "promql_6",
+                "name": "promql_6",
+                "alias": "other"
+              }
+            ],
             "units": [],
-            "xAxisShowType": "time",
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "1m",
+            "legendPostion": "right",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "G"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_memory}}"
+          "name": "System & Resource Health"
         },
-        "name": "{{.Dashboard.ob_mem_sum_count}}",
+        "name": "Response time detail",
         "pos": {
           "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "(sum(rate(metric_value{stat_id=\"40001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) / (sum(rate(metric_value{stat_id=\"40000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) default 0 ",
+              "code": "G",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40003\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"40002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0 ",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40007\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"40006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0 ",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40009\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"40008\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0 ",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 4
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40019\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"40018\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0 ",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 5
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"40004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0 ",
+              "code": "E",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 6
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "1m",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL Execution & Concurrency Management"
+        },
+        "name": "SQL execution plan",
+        "pos": {
+          "h": 12,
           "w": 8,
+          "x": 8,
+          "y": 22
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"40010|40011|40012\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}event_group{{.Dashboard.right_curly}}"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "total"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "1m",
+            "legendPostion": "right",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "H"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL Execution & Concurrency Management"
+        },
+        "name": "Wait events",
+        "pos": {
+          "h": 11,
+          "w": 12,
           "x": 0,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_mem_sum_count",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_mem_sum_count`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(total_waits{tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (event_group)\n",
+              "code": "H",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(total_waits{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "total"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "{{.Dashboard.left_curly}}event_group{{.Dashboard.right_curly}}"
+              }
+            ],
             "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_memory}}"
-        },
-        "name": "{{.Dashboard.ob_mem_sum_used}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_mem_sum_used",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_mem_sum_used`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
             "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
             "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [
-              "percent",
-              "percent"
-            ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
             "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_memory}}"
+          "name": "SQL Execution & Concurrency Management"
         },
-        "name": "{{.Dashboard.ob_memstore_active_rate}}",
+        "name": "Wait time",
         "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
+          "h": 11,
+          "w": 12,
+          "x": 12,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_memstore_active_rate",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_memstore_active_rate`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(time_waited{tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(total_waits{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(time_waited{tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (event_group)\n",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [
-              "percent",
-              "percent"
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
             ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time",
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_plancache}}"
+          "name": "SQL Execution & Concurrency Management"
         },
-        "name": "{{.Dashboard.ob_plancache_avg_hit_rate}}",
+        "name": "Request wait queue",
         "pos": {
-          "h": 10,
-          "w": 8,
+          "h": 11,
+          "w": 12,
           "x": 0,
-          "y": 0
+          "y": 11
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_plancache_avg_hit_rate",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_plancache_avg_hit_rate`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"20000|20001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)  \n",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [
-              "percent",
-              "percent"
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "request_queue_time"
+              }
             ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
             "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_plancache}}"
-        },
-        "name": "{{.Dashboard.ob_plancache_mem_used_rate}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_plancache_mem_used_rate",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_plancache_mem_used_rate`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
             "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
+            "showLine": false,
             "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_plancache}}"
-        },
-        "name": "{{.Dashboard.ob_plancache_sum_plan_num}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_plancache_sum_plan_num",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_plancache_sum_plan_num`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
             "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
             "fixedTime": "",
-            "globalUnit": [
-              "percent",
-              "percent"
-            ],
             "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
             "openStack": false,
-            "openThousandsSeparator": true,
             "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
+            "showLabel": false,
             "showTitle": true,
-            "slimit": 20,
             "stackType": "time",
-            "timeInterval": "auto",
             "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_status}}"
-        },
-        "name": "{{.Dashboard.ob_ps_hit_rate}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_ps_hit_rate",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_ps_hit_rate`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
             "globalUnit": [
               "time",
               "μs"
             ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
+            "isSampling": true,
+            "compareType": [],
             "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_status}}"
+          "name": "SQL Execution & Concurrency Management"
         },
-        "name": "{{.Dashboard.ob_session_avg_wait_time}}",
+        "name": "Request wait time",
         "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 11
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_session_avg_wait_time",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_session_avg_wait_time`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"20002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"20001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
-          "isRefresh": true,
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
+            "alias": [
+              {
+                "key": "100 * sum(metric_value{stat_id=140006,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip) / sum(metric_value{stat_id=140005,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip)\n{svr_ip: 10.200.14.240}",
+                "name": "100 * sum(metric_value{stat_id=140006,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip) / sum(metric_value{stat_id=140005,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip)\n{svr_ip: 10.200.14.240}",
+                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
             "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "CPU usage",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 19
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * sum(metric_value{stat_id=\"140006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip) / sum(metric_value{stat_id=\"140005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)\n",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "MEMStore usage",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 41
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * sum(metric_value{stat_id=\"130001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)/ sum(metric_value{stat_id=\"130004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "max",
+              "avg"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "Memory usage",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 19
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * sum(metric_value{stat_id=\"140003\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)/ sum(metric_value{stat_id=\"140002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "rpc_packet_in_rt"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "rpc_packet_out_rt"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "RPC packet latency",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 30
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "(sum(rate(metric_value{stat_id=\"10005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) + sum(rate(metric_value{stat_id=\"10006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) / sum(rate(metric_value{stat_id=\"10000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "(sum(rate(metric_value{stat_id=\"10005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) + sum(rate(metric_value{stat_id=\"10006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) / sum(rate(metric_value{stat_id=\"10002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
             "globalUnit": [
               "digital",
               "b"
             ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
+            "isSampling": true,
+            "compareType": [],
             "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_workarea}}"
+          "name": "System & Resource Health"
         },
-        "name": "{{.Dashboard.ob_workarea_global_mem_bound}}",
+        "name": "RPC packet throughput",
         "pos": {
-          "h": 10,
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 30
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"10001|10003\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL Execution & Concurrency Management"
+        },
+        "name": "Open cursors",
+        "pos": {
+          "h": 12,
           "w": 8,
+          "x": 0,
+          "y": 22
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(delta(metric_value{stat_id=\"40030\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "E"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "TPS",
+        "pos": {
+          "h": 12,
+          "w": 12,
           "x": 0,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_workarea_global_mem_bound",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_workarea_global_mem_bound`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
             "type": "sequence",
-            "unit": ""
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"30005|30007|30009|30011\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name) ",
+              "code": "E",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [
-              "digital",
-              "b"
-            ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_workarea}}"
-        },
-        "name": "{{.Dashboard.ob_workarea_max_auto_workarea_size}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_workarea_max_auto_workarea_size",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_workarea_max_auto_workarea_size`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "alias": [],
-            "changeWorkspace": false,
-            "chartType": "line",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareType": [],
-            "density": "medium",
-            "fixedTime": "",
-            "globalUnit": [
-              "digital",
-              "b"
-            ],
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "mainMeasurementQueryCode": "A",
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "openThousandsSeparator": true,
-            "precision": "2",
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "slimit": 20,
-            "stackType": "time",
-            "timeInterval": "auto",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": "{{.Dashboard.category_workarea}}"
-        },
-        "name": "{{.Dashboard.ob_workarea_mem_target}}",
-        "pos": {
-          "h": 10,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "A",
-              "dataSource": "oceanbase",
-              "field": "ob_workarea_mem_target",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "fill": null,
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "ob_host_name"
-              ],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "metric",
-              "q": "M::`oceanbase`:(LAST(`ob_workarea_mem_target`)) BY `ob_host_name`",
-              "queryFuncs": [],
-              "type": "simple"
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "settings": {
-            "addColumns": [
+            "alias": [
               {
-                "field": "df_status",
-                "headerName": "状态"
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "all"
               },
               {
-                "field": "df_title",
-                "headerName": "事件"
-              }
-            ],
-            "alias": [],
-            "changeWorkspace": false,
-            "colors": [],
-            "currentChartType": "alarm",
-            "fixedTime": "",
-            "globalUnit": [],
-            "inColumns": [
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "trans_commit_rt"
+              },
               {
-                "cellRenderer": "StatusCellRender",
-                "field": "time",
-                "filterParams": {},
-                "headerName": "时间",
-                "showTooltip": false
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "trans_rollback_rt"
               }
             ],
-            "index": "",
-            "isTimeInterval": false,
+            "units": [],
+            "colors": [],
             "levels": [],
-            "showFieldMapping": false,
-            "showPart": "all",
-            "showTitle": true,
-            "timeInterval": "",
-            "titleDesc": "",
+            "slimit": 20,
+            "showLine": false,
             "unitType": "global",
-            "units": []
-          }
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_alarm}}"
+          "name": "Transaction"
         },
-        "name": "{{.Dashboard.alarm}}",
+        "name": "Transaction Response Time",
         "pos": {
-          "h": 20,
-          "w": 20,
-          "x": 4,
+          "h": 12,
+          "w": 12,
+          "x": 12,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "noTimeRange": false,
-            "qtype": "dql",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
             "query": {
-              "alias": "事件",
-              "code": "A",
-              "dataSource": "monitor",
-              "disableMultipleField": false,
-              "field": null,
-              "fieldFunc": "count",
-              "fieldType": "keyword",
-              "fields": [
-                {
-                  "alias": "状态",
-                  "field": "df_status"
-                },
-                {
-                  "alias": "事件",
-                  "field": "df_title"
-                }
-              ],
-              "fill": null,
-              "filters": [],
+              "q": "sum(rate(metric_value{stat_id=\"30006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))/ sum(rate(metric_value{stat_id=\"30005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "D",
+              "type": "promql",
               "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "indexFilter": "",
-              "namespace": "event",
-              "q": "E::`monitor`:(`df_status` AS `状态`, `df_title` AS `事件`)",
-              "queryFuncs": [],
-              "search": "oceanbase_status_exception",
-              "type": "simple"
+              "promqlCode": 1
             },
-            "type": "alarm",
-            "unit": ""
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30008\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (tenant_name) / sum(rate(metric_value{stat_id=\"30007\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "E",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30010\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"30009\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "F",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
           }
-        ],
-        "type": "alarm"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
           "settings": {
+            "alias": [
+              {
+                "key": "sum(rate(metric_value))",
+                "name": "sum(rate(metric_value))",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Number of Transaction Logs",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name) \n\n",
+              "code": "A",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "sum(rate(metric_value))",
+                "name": "sum(rate(metric_value))",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Size of Transaction Logs",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"80057\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)",
+              "code": "A",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "sync_time"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "write_disk"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Transaction Waiting Time",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 23
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"30001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"80041\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"80040\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Lock Waits",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 23
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"60021|60022\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "memstore_write_lock_wait_time"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Time Spent Waiting for Locks",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"60023\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / (sum(rate(metric_value{stat_id=\"60021\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) + sum(rate(metric_value{stat_id=\"60022\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) default 0",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "transaction_single_partition_count"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "transaction_multi_partition_count"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Transaction"
+        },
+        "name": "Number of Transactions",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30012\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"30013\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "1m",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "IOPS",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=~\"60000|60003\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name) ",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "read"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "write"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "μs"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "I/O Latency",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"60001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"60000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"60004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"60003\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) default 0",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "I/O Throughput",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"60002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name) default 0 \n",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"60005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name) default 0 \n",
+              "code": "D",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "block_cache"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "row_cache"
+              },
+              {
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "plan_cache"
+              },
+              {
+                "key": "promql_4",
+                "name": "promql_4",
+                "alias": "clog_cache"
+              },
+              {
+                "key": "promql_5",
+                "name": "promql_5",
+                "alias": "bloomfilter_cache"
+              },
+              {
+                "key": "promql_6",
+                "name": "promql_6",
+                "alias": "location_cache"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "G"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "Cache Hit Ratio",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 25
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * 1 / (1 + sum(rate(metric_value{stat_id=\"50009\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"50008\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})))\n",
+              "code": "G",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * 1 / (1 + sum(rate(metric_value{stat_id=\"50001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"50000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) ) default 0\n",
+              "code": "H",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * 1 / (1 + sum(rate(metric_value{stat_id=\"50038\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))  / sum(rate(metric_value{stat_id=\"50037\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))) default 0\n",
+              "code": "I",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * 1 / (1 + sum(rate(metric_value{stat_id=\"50005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"50004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) ) default 0\n",
+              "code": "J",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 4
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * 1 / (1 + sum(rate(metric_value{stat_id=\"50011\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(metric_value{stat_id=\"50010\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) ) default 0\n",
+              "code": "K",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 5
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "100 * sum(rate(hit_count{tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) / sum(rate(access_count{tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) ",
+              "code": "L",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 6
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "block_cache"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "row_cache"
+              },
+              {
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "clog_cache"
+              },
+              {
+                "key": "promql_4",
+                "name": "promql_4",
+                "alias": "bloomfilter_cache"
+              },
+              {
+                "key": "promql_5",
+                "name": "promql_5",
+                "alias": "location_cache"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "F"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "Cache Request Count",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 25
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"50008\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) + sum(rate(metric_value{stat_id=\"50009\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "F",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"50000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))+ sum(rate(metric_value{stat_id=\"50001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "G",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"50037\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))+ sum(rate(metric_value{stat_id=\"50038\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "H",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"50004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) + sum(rate(metric_value{stat_id=\"50005\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "I",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 4
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"50010\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))+ sum(rate(metric_value{stat_id=\"50011\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}))",
+              "code": "J",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 5
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "total"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "limit"
+              },
+              {
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "active"
+              },
+              {
+                "key": "promql_4",
+                "name": "promql_4",
+                "alias": "trigger"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "Mb"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "E"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "MEMStore",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(metric_value{stat_id=\"130001\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576\n\n",
+              "code": "E",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(metric_value{stat_id=\"130000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576\n",
+              "code": "F",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(metric_value{stat_id=\"130002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576\n",
+              "code": "G",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(metric_value{stat_id=\"130004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576\n",
+              "code": "H",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 4
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "active"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "all"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL Execution & Concurrency Management"
+        },
+        "name": "Active session count",
+        "pos": {
+          "h": 12,
+          "w": 8,
+          "x": 16,
+          "y": 22
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(active_cnt{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)\n",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(all_cnt{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) by (svr_ip)",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "max_clog_sync_delay_seconds"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "s"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "Clog synchronization delay",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 41
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "max(max_clog_sync_delay_seconds{replica_type = \"0\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "access_count"
+              },
+              {
+                "key": "promql_2",
+                "name": "promql_2",
+                "alias": "cache_size"
+              },
+              {
+                "key": "promql_3",
+                "name": "promql_3",
+                "alias": "row_cache_size"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "Mb"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Storage and Caching"
+        },
+        "name": "Cache Size",
+        "pos": {
+          "h": 11,
+          "w": 24,
+          "x": 0,
+          "y": 37
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(access_count{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576",
+              "code": "B",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 1
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(cache_size{tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576",
+              "code": "A",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 2
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(metric_value{stat_id='120008',tenant_name='#{tenant_name}',cluster='#{cluster_name}'}) / 1048576",
+              "code": "C",
+              "type": "promql",
+              "funcList": [],
+              "promqlCode": 3
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "index": "default",
+            "units": [
+              {
+                "key": "elapsed_time",
+                "name": "elapsed_time",
+                "unit": "",
+                "units": [
+                  "time",
+                  "μs"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "unitType": "custom",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "field": "time",
+                "headerName": "Time",
+                "showTooltip": false,
+                "cellRenderer": "StatusCellRender",
+                "filterParams": {}
+              }
+            ],
+            "showTitle": true,
+            "titleDesc": "",
             "addColumns": [
               {
                 "field": "message",
-                "headerName": "内容"
+                "headerName": "content"
               },
               {
-                "field": "status",
-                "hide": true
+                "hide": true,
+                "field": "status"
               },
               {
-                "field": "__docid",
-                "hide": true
+                "hide": true,
+                "field": "__docid"
+              },
+              {
+                "field": "elapsed_time"
               }
             ],
-            "alias": [],
-            "changeWorkspace": false,
-            "colors": [],
-            "currentChartType": "log",
-            "fixedTime": "",
             "globalUnit": [],
-            "inColumns": [
-              {
-                "cellRenderer": "StatusCellRender",
-                "field": "time",
-                "filterParams": {},
-                "headerName": "时间",
-                "showTooltip": false
-              }
-            ],
-            "index": "default",
-            "isTimeInterval": false,
-            "levels": [],
-            "showFieldMapping": false,
-            "showTitle": true,
+            "isSampling": true,
+            "valMappings": [],
             "timeInterval": "",
-            "titleDesc": "",
-            "unitType": "global",
-            "units": [],
-            "valColorMappings": [],
-            "valMappings": []
-          }
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "log",
+            "showFieldMapping": false,
+            "valColorMappings": []
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.category_log}}"
+          "name": "SQL Execution & Concurrency Management"
         },
-        "name": "{{.Dashboard.log_slow}}",
+        "name": "Slow SQL",
         "pos": {
-          "h": 19,
+          "h": 10,
           "w": 24,
+          "x": 0,
+          "y": 34
+        },
+        "type": "log",
+        "queries": [
+          {
+            "name": "",
+            "type": "log",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "L('default')::`oceanbase_log`:(`message`, `status`, `__docid`, `elapsed_time`)",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "内容",
+              "field": null,
+              "fields": [
+                {
+                  "alias": "content",
+                  "field": "message",
+                  "isEditAlias": false
+                },
+                {
+                  "hide": true,
+                  "field": "status"
+                },
+                {
+                  "hide": true,
+                  "field": "__docid"
+                },
+                {
+                  "field": "elapsed_time"
+                }
+              ],
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "highlight": true,
+              "namespace": "logging",
+              "dataSource": "oceanbase_log",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "additionalFields": null,
+              "disableMultipleField": false
+            },
+            "datasource": "dataflux",
+            "noTimeRange": false
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "promql_1",
+                "name": "promql_1",
+                "alias": "QPS"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "last"
+            ],
+            "timeInterval": "1m",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "QPS total",
+        "pos": {
+          "h": 9,
+          "w": 12,
           "x": 0,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
-            "noTimeRange": false,
-            "qtype": "dql",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
             "query": {
-              "alias": "内容",
+              "q": "sum(rate(metric_value{stat_id=~\"40000|40002|40004|40006|40008|40018\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) ",
               "code": "A",
-              "dataSource": "oceanbase_log",
-              "disableMultipleField": false,
-              "field": null,
-              "fieldFunc": "count",
-              "fieldType": "keyword",
-              "fields": [
-                {
-                  "alias": "内容",
-                  "field": "message"
-                },
-                {
-                  "field": "status",
-                  "hide": true
-                },
-                {
-                  "field": "__docid",
-                  "hide": true
-                }
-              ],
-              "fill": "",
-              "filters": [],
+              "type": "promql",
               "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "highlight": true,
-              "indexFilter": "default",
-              "namespace": "logging",
-              "q": "L::`oceanbase_log`:(`message`, `status`, `__docid`) { `index` = 'default' }",
-              "queryFuncs": [],
-              "search": "",
-              "type": "simple"
+              "promqlCode": 1
             },
-            "type": "log",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "log"
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "sum(rate(metric_value{stat_id=40000,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n\n{metric_name: sql_select_count}",
+                "name": "sum(rate(metric_value{stat_id=40000,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n\n{metric_name: sql_select_count}",
+                "alias": "select"
+              },
+              {
+                "key": "sum(rate(metric_value{stat_id=40002,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_insert_count}",
+                "name": "sum(rate(metric_value{stat_id=40002,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_insert_count}",
+                "alias": "insert"
+              },
+              {
+                "key": "sum(rate(metric_value{stat_id=40008,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_delete_count}",
+                "name": "sum(rate(metric_value{stat_id=40008,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_delete_count}",
+                "alias": "delete"
+              },
+              {
+                "key": "sum(rate(metric_value{stat_id=40004,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_replace_count}",
+                "name": "sum(rate(metric_value{stat_id=40004,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_replace_count}",
+                "alias": "replace"
+              },
+              {
+                "key": "sum(rate(metric_value{stat_id=40018,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_other_count}",
+                "name": "sum(rate(metric_value{stat_id=40018,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_other_count}",
+                "alias": "other"
+              },
+              {
+                "key": "sum(rate(metric_value{stat_id=40006,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_update_count}",
+                "name": "sum(rate(metric_value{stat_id=40006,tenant_name=~'.+',cluster=~'.+'})) by (metric_name)\n{metric_name: sql_update_count}",
+                "alias": "update"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [],
+            "timeInterval": "1m",
+            "legendPostion": "right",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "G"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System & Resource Health"
+        },
+        "name": "QPS detail",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40000\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n\n",
+              "code": "G",
+              "type": "promql",
+              "funcList": []
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40008\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "C",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40006\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "E",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40002\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "A",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40004\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "B",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "promql",
+            "query": {
+              "q": "sum(rate(metric_value{stat_id=\"40018\",tenant_name='#{tenant_name}',cluster='#{cluster_name}'})) by (metric_name)\n",
+              "code": "D",
+              "type": "promql",
+              "funcList": []
+            },
+            "datasource": "dataflux"
+          }
+        ]
       }
     ],
     "groups": [
-      "{{.Dashboard.category_alarm}}",
-      "{{.Dashboard.category_status}}",
-      "{{.Dashboard.category_lock}}",
-      "{{.Dashboard.category_memory}}",
-      "{{.Dashboard.category_plancache}}",
-      "{{.Dashboard.category_workarea}}",
-      "{{.Dashboard.category_log}}"
+      {
+        "name": "System & Resource Health",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "SQL Execution & Concurrency Management",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "Transaction",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "Storage and Caching",
+        "extend": {
+          "bgColor": ""
+        }
+      }
     ],
-    "type": "template",
-    "vars": []
-  },
-  "summary": "",
-  "tagInfo": [],
-  "thumbnail": "",
-  "title": "Oceanbase 监控视图"
+    "type": "template"
+  }
 }

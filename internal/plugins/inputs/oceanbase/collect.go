@@ -632,13 +632,16 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 			l.Warnf("Marshal json failed: %s, ignore this result", err.Error())
 			continue
 		}
+		tags := map[string]string{
+			"cluster": ipt.Cluster,
+		}
 
 		fields := map[string]interface{}{
 			"status":  "warning",
 			"message": string(jsn),
 		}
 
-		pts = append(pts, ipt.buildPoint("oceanbase_log", nil, fields, true))
+		pts = append(pts, ipt.buildPoint("oceanbase_log", tags, fields, true))
 	}
 
 	return category, pts, nil

@@ -283,6 +283,9 @@ func (m *loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"tenant_name": &inputs.TagInfo{
 				Desc: "Tenant Name",
 			},
+			"cluster": &inputs.TagInfo{
+				Desc: "Cluster Name",
+			},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
