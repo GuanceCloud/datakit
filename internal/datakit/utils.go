@@ -332,7 +332,12 @@ func GetEnv(env string) string {
 	return ""
 }
 
+// OpenFiles get current opened file count of Datakit process.
 func OpenFiles() int {
+	if runtime.GOOS == "windows" { // disable open-files collect under windows, see #2317.
+		return 0
+	}
+
 	pid := os.Getpid()
 	p, err := pr.NewProcess(int32(pid))
 	if err != nil {
