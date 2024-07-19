@@ -12,25 +12,24 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 const cdnCacheTTL = time.Hour * 24 * 7 // 7d
 
-var cdnCache = newLruCDNCache(8192)
+var cdnCache = expirable.NewLRU[string, *cdnResolved](16384, nil, cdnCacheTTL)
 
 type cdnResolved struct {
 	domain  string
 	cname   string
 	cdnName string
-	created time.Time
 }
 
-func newCDNResolved(domain, cname, cdnName string, created time.Time) *cdnResolved {
+func newCDNResolved(domain, cname, cdnName string) *cdnResolved {
 	return &cdnResolved{
 		domain:  domain,
 		cname:   cname,
 		cdnName: cdnName,
-		created: created,
 	}
 }
 
@@ -47,37 +46,24 @@ func (ipt *Input) handleProvider(p *point.Point) (*point.Point, error) {
 	}
 
 	if resourceDomain != "" && isDomainName(resourceDomain) {
-		node := cdnCache.get(resourceDomain)
+		node, ok := cdnCache.Get(resourceDomain)
 		var (
 			cname   string
 			cdnName string
 			err     error
 		)
-		if node != nil {
-			if node.Data.created.Add(cdnCacheTTL).Before(time.Now()) {
-				// cache expired
-				cname, cdnName, err = lookupCDNName(resourceDomain)
-				if err != nil {
-					log.Warnf("unable to lookup cdn name for domain [%s]: %s", resourceDomain, err)
-				}
-				node.Data.cname = cname
-				node.Data.cdnName = cdnName
-				node.Data.created = time.Now()
-				cdnCache.moveToFront(node)
-			} else {
-				// cache is valid
-				cname = node.Data.cname
-				cdnName = node.Data.cdnName
-				cdnCache.moveToFront(node)
-			}
+		if ok && node != nil {
+			// cache is valid
+			cname = node.cname
+			cdnName = node.cdnName
 		} else {
-			// cache not exists
+			// cache doesn't exist
 			cname, cdnName, err = lookupCDNName(resourceDomain)
 			if err != nil {
 				log.Warnf("unable to lookup cdn name for domain [%s]: %s", resourceDomain, err)
 			}
-			cr := newCDNResolved(resourceDomain, cname, cdnName, time.Now())
-			cdnCache.push(cr)
+			cr := newCDNResolved(resourceDomain, cname, cdnName)
+			cdnCache.Add(resourceDomain, cr)
 		}
 
 		if cname != "" {
