@@ -3,7 +3,7 @@
 
 ---
 
-在 C++ 代码中应用 DDTrace，需要修改业务代码，需手动在现有业务代码中进行埋点。本文档以一个简单的读取文件 demo 来演示如何在 C++ 代码中进行埋点。
+在 C++ 代码中应用 DDTrace，需要修改业务代码，并且对于常见的中间件和库也没有对应的 SDK 集成，**需手动在现有业务代码中进行埋点**。
 
 ## 安装库和依赖 {#dependence}
 
@@ -64,7 +64,7 @@
 
 以下 C++ 代码演示了基本的 trace 埋点操作，其模拟的业务是一个读取本地磁盘文件的操作。
 
-```cpp
+```cpp linenums="1" hl_lines="1-2 13-14 40-43 53" title="demo.cc"
 #include <datadog/opentracing.h>
 #include <datadog/tags.h>
 
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
 
 ```shell
 LD_LIBRARY_PATH=/usr/local/lib64 g++ -std=c++14 -o demo demo.cc -ldd_opentracing -I ./dd-opentracing-cpp/deps/include
-LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./demo
+LD_LIBRARY_PATH=/usr/local/lib64 DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./demo
 ```
 
 此处可以将 *libdd_opentracing.so* 以及对应的头文件放到任意目录，然后调整 `LD_LIBRARY_PATH` 以及 `-I` 参数即可。
@@ -148,17 +148,41 @@ LD_LIBRARY_PATH=/usr/local/lib64  DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=95
 DD_XXX=<env-value> DD_YYY=<env-value> ./demo
 ```
 
-常用的几个 ENV 如下。更多 ENV 支持，可参见 [DDTrace 原始文档][7]{:target="_blank"}。
+常用的几个 ENV 如下。更多 ENV 支持，可参见 [DDTrace 文档][7]{:target="_blank"}。
 
-| Key                       | 默认值      | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---:                      | ---         | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `DD_VERSION`              | -           | 设置应用程序版本，如 *1.2.3*、*2022.02.13*                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `DD_AGENT_HOST`           | `localhost` | 设置 DataKit 地址                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `DD_TRACE_AGENT_PORT`     | -           | 设置 DataKit trace 数据的接收端口。这里需手动指定 [DataKit 的 HTTP 端口][4]（一般为 9529）                                                                                                                                                                                                                                                                                                                                                              |
-| `DD_ENV`                  | -           | 设置应用当前的环境，如 prod、pre-prod 等                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `DD_SERVICE`              | -           | 设置应用服务名                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `DD_TRACE_SAMPLING_RULES` | -           | 这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。<br> **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app` <br>**示例二**：服务名通配 `app1.*`、且 span 名称为 `abc` 的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app` <br> |
-| `DD_TAGS`                 | -           | 这里可注入一组全局 tag，这些 tag 会出现在每个 span 和 profile 数据中。多个 tag 之间可以用空格和英文逗号分割，例如 `layer:api,team:intake`、`layer:api team:intake`                                                                                                                                                                                                                                                                                   |
+- **`DD_VERSION`**
+
+    设置应用程序版本，如 `1.2.3`、`2022.02.13`
+
+- **`DD_AGENT_HOST`**
+
+    **默认值**：`localhost`
+
+    设置 DataKit 地址
+
+- **`DD_TRACE_AGENT_PORT`**
+
+    设置 DataKit trace 数据的接收端口。这里需手动指定 [DataKit 的 HTTP 端口][4]（一般为 9529）
+
+- **`DD_ENV`**
+
+    设置应用当前的环境，如 prod、pre-prod 等
+
+- **`DD_SERVICE`**
+
+    设置应用服务名
+
+- **`DD_TRACE_SAMPLING_RULES`**
+
+    这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。
+
+    **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app`
+
+    **示例二**：服务名通配 `app1.*`、且 span 名称为 `abc` 的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
+
+- **`DD_TAGS`**
+
+    这里可注入一组全局 tag，这些 tag 会出现在每个 span 和 profile 数据中。多个 tag 之间可以用空格和英文逗号分割，例如 `layer:api,team:intake`、`layer:api team:intake`
 
 <!-- markdownlint-disable MD053 -->
 [1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
