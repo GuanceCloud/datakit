@@ -57,6 +57,12 @@ type Input struct {
 	Election        bool              `toml:"election"`
 	Tags            map[string]string `toml:"tags"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	semStop        *cliutils.Sem // start stop signal
 	pauseCh        chan bool
 	feeder         dkio.Feeder
@@ -157,6 +163,8 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		allPts[category] = append(allPts[category], pts...)
 	}
 
+	ipt.getVersionAndUptime()
+
 	return allPts, err
 }
 
@@ -218,6 +226,7 @@ func (ipt *Input) Init() {
 	// Try until init OK.
 	for {
 		if err := ipt.setupDB(); err != nil {
+			ipt.FeedCoByErr(err)
 			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
@@ -255,7 +264,6 @@ func (ipt *Input) Run() {
 			l.Info("not leader, skipped")
 		} else {
 			l.Info("oracle input gathering...")
-
 			mpts, err := ipt.Collect()
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
@@ -264,7 +272,7 @@ func (ipt *Input) Run() {
 					dkio.WithLastErrorCategory(point.Metric),
 				)
 			}
-
+			ipt.FeedCoPts()
 			for category, pts := range mpts {
 				if len(pts) > 0 {
 					if err := ipt.feeder.FeedV2(category, pts,

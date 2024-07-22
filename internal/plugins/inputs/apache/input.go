@@ -51,6 +51,12 @@ type Input struct {
 		CharacterEncoding string   `toml:"character_encoding"`
 	} `toml:"log"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	tls.ClientConfig
 	host string
 
@@ -145,6 +151,9 @@ func (ipt *Input) Run() {
 	client, err := ipt.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] apache init client err:%s", err.Error())
+
+		ipt.FeedCoByErr(err)
+
 		return
 	}
 	ipt.client = client
@@ -173,6 +182,8 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+
+			ipt.FeedCoPts()
 
 			m, err := ipt.getMetric()
 			if err != nil {

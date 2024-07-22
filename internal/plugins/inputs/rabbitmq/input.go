@@ -100,17 +100,19 @@ func (ipt *Input) Run() {
 	}
 	client, err := ipt.createHTTPClient()
 	if err != nil {
+		ipt.FeedCoByErr(err)
 		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
 	}
 	ipt.client = client
-
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
 		if !ipt.pause {
 			ipt.getMetric()
+
+			ipt.FeedCoPts()
 
 			if ipt.lastErr != nil {
 				ipt.feeder.FeedLastError(ipt.lastErr.Error(),

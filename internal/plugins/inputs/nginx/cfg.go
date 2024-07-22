@@ -66,6 +66,12 @@ type Input struct {
 	Log             *ngxlog           `toml:"log"`
 	Tags            map[string]string `toml:"tags"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	tls.ClientConfig
 	// HTTP client
 	client *http.Client

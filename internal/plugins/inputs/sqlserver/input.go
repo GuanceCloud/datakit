@@ -393,6 +393,7 @@ func (ipt *Input) Run() {
 	// Init DB until OK.
 	for {
 		if err := ipt.initDB(); err != nil {
+			ipt.FeedCoByErr(err)
 			l.Errorf("initDB: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
@@ -459,6 +460,8 @@ func (ipt *Input) Run() {
 				)
 				ipt.lastErr = nil
 			}
+
+			ipt.FeedCoPts()
 
 			select {
 			case <-tick.C:

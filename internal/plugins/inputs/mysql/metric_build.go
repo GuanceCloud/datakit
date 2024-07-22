@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	"fmt"
 	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
@@ -503,6 +504,34 @@ func (ipt *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 		}
 	}
 
+	if len(ms) > 0 {
+		pts := getPointsFromMeasurement(ms)
+		return pts, nil
+	}
+	return []*gcPoint.Point{}, nil
+}
+
+func (ipt *Input) buildMysqlCustomerObject() ([]*gcPoint.Point, error) {
+	ms := []inputs.MeasurementV2{}
+	fields := map[string]interface{}{
+		"display_name": fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
+		"uptime":       ipt.Uptime,
+		"version":      ipt.Version,
+	}
+	tags := map[string]string{
+		"name":          fmt.Sprintf("mysql-%s:%d", ipt.Host, ipt.Port),
+		"host":          ipt.Host,
+		"ip":            fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
+		"col_co_status": ipt.CollectCoStatus,
+	}
+	m := &customerObjectMeasurement{
+		name:     "database",
+		tags:     tags,
+		fields:   fields,
+		election: ipt.Election,
+	}
+	ipt.LastCustomerObject = m
+	ms = append(ms, m)
 	if len(ms) > 0 {
 		pts := getPointsFromMeasurement(ms)
 		return pts, nil

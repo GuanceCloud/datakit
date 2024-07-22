@@ -868,4 +868,46 @@ func (ipt *Input) collectMysqlDbmSample() error {
 	return nil
 }
 
+// nolint:execinquery
+func (ipt *Input) collectMysqlCustomerObject() error {
+	const sqlSelectVersion = "SELECT VERSION();"
+	rows, err := ipt.db.Query(sqlSelectVersion)
+	if err != nil {
+		l.Error("collectMysqlCustomerObject fail:", err.Error())
+		return fmt.Errorf("query failed: %w", err)
+	}
+	defer closeRows(rows)
+	var version string
+	if rows.Next() {
+		if err := rows.Scan(&version); err != nil {
+			l.Error("collectMysqlCustomerObject fail:", err.Error())
+			return fmt.Errorf("scan error: %w", err)
+		}
+	}
+	ipt.Version = version
+	const sqlSelectUptime = "SHOW GLOBAL STATUS LIKE 'Uptime';"
+	rows, err = ipt.db.Query(sqlSelectUptime)
+	if err != nil {
+		l.Error("collectMysqlCustomerObject fail:", err.Error())
+		return fmt.Errorf("query failed: %w", err)
+	}
+	defer closeRows(rows)
+	var variableName string
+	var uptime int
+	if rows.Next() {
+		if err := rows.Scan(&variableName, &uptime); err != nil {
+			l.Error("collectMysqlCustomerObject fail:", err.Error())
+			return fmt.Errorf("scan error: %w", err)
+		}
+		if variableName == "Uptime" {
+			ipt.Uptime = uptime
+		}
+	}
+	if err := rows.Err(); err != nil {
+		l.Error("collectMysqlCustomerObject fail:", err.Error())
+		return fmt.Errorf("error iterating rows: %w", err)
+	}
+	return nil
+}
+
 //----------------------------------------------------------------------

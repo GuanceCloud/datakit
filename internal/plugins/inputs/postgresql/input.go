@@ -193,6 +193,12 @@ type Input struct {
 	CustomQuery      []*customQuery    `toml:"custom_queries"`
 	Log              *postgresqllog    `toml:"log"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
 
 	service      Service
@@ -748,6 +754,11 @@ func (ipt *Input) Collect() error {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 
+	err = ipt.getVersionAndUptime()
+	if err != nil {
+		l.Errorf("Failed to get version and uptime: %v", err)
+	}
+
 	// collect metrics
 	g.Go(func(ctx context.Context) error {
 		for name, collector := range ipt.collectFuncs {
@@ -957,6 +968,7 @@ func (ipt *Input) Run() {
 	// try init
 	for {
 		if err := ipt.init(); err != nil {
+			ipt.FeedCoByErr(err)
 			l.Errorf("failed to init postgresql: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
@@ -1020,6 +1032,8 @@ func (ipt *Input) Run() {
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}
+
+			ipt.FeedCoPts()
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

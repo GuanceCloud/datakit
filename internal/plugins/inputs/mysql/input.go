@@ -105,6 +105,12 @@ type Input struct {
 
 	MatchDeprecated string `toml:"match,omitempty"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	start  time.Time
 	db     *sql.DB
 	feeder dkio.Feeder
@@ -460,7 +466,6 @@ func (ipt *Input) metricCollectMysqlInnodb() ([]*gcPoint.Point, error) {
 	if err := ipt.collectMysqlInnodb(); err != nil {
 		return []*gcPoint.Point{}, err
 	}
-
 	pts, err := ipt.buildMysqlInnodb()
 	if err != nil {
 		return []*gcPoint.Point{}, err
@@ -488,6 +493,19 @@ func (ipt *Input) metricCollectMysqlDbmSample() ([]*gcPoint.Point, error) {
 	}
 
 	pts, err := ipt.buildMysqlDbmSample()
+	if err != nil {
+		return []*gcPoint.Point{}, err
+	}
+	return pts, nil
+}
+
+func (ipt *Input) metricCollectMysqlCustomerObject() ([]*gcPoint.Point, error) {
+	ipt.setIptCOStatus()
+	if err := ipt.collectMysqlCustomerObject(); err != nil {
+		ipt.setIptErrCOStatus()
+		return []*gcPoint.Point{}, err
+	}
+	pts, err := ipt.buildMysqlCustomerObject()
 	if err != nil {
 		return []*gcPoint.Point{}, err
 	}
@@ -524,7 +542,7 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 
 	ipt.start = time.Now()
 
-	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*gcPoint.Point
+	var ptsMetric, ptsLoggingMetric, ptsLoggingSample, ptsCustomerObject []*gcPoint.Point
 
 	for idx, f := range ipt.collectors {
 		l.Debugf("collecting %d(%v)...", idx, f)
@@ -617,12 +635,19 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 		}
 	}
 
+	pts, err := ipt.metricCollectMysqlCustomerObject()
+	if err != nil {
+		l.Errorf("metricCollectMysqlCustomerObject failed: %s", err.Error())
+	}
+	ptsCustomerObject = append(ptsCustomerObject, pts...)
+
 	mpts := make(map[gcPoint.Category][]*gcPoint.Point)
 	mpts[gcPoint.Metric] = ptsMetric
 
 	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
 	mpts[gcPoint.Logging] = ptsLoggingMetric
 
+	mpts[gcPoint.CustomObject] = ptsCustomerObject
 	return mpts, nil
 }
 
@@ -669,6 +694,21 @@ func (ipt *Input) Run() {
 	// Try until init OK.
 	for {
 		if err := ipt.initCfg(); err != nil {
+			ipt.setInptErrCOMsg(err.Error())
+			ipt.setIptErrCOStatus()
+			pts := ipt.getCoPointByColErr()
+			if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
+				dkio.WithCollectCost(time.Since(ipt.start)),
+				dkio.WithElection(ipt.Election),
+				dkio.WithInputName(inputName),
+			); err != nil {
+				ipt.feeder.FeedLastError(err.Error(),
+					dkio.WithLastErrorInput(inputName),
+					dkio.WithLastErrorCategory(gcPoint.CustomObject),
+				)
+				l.Errorf("feed : %s", err)
+			}
+
 			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),

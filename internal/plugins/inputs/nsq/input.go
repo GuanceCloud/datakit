@@ -58,6 +58,8 @@ type Input struct {
 
 	EndpointDeprecated []string `toml:"endpoints,omitempty"`
 
+	CustomerObjectMap map[string]*customerObjectMeasurement
+
 	lookupdEndpoint  string
 	nsqdEndpointList map[string]interface{}
 
@@ -120,6 +122,10 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+
+			l.Debugf("feed nsq pts")
+			ipt.FeedCoPts()
+
 			start := time.Now()
 			pts, err := ipt.gather()
 			if err != nil {
@@ -146,6 +152,8 @@ func (ipt *Input) Run() {
 			if ipt.isLookupd() {
 				if err := ipt.updateEndpointListByLookupd(ipt.lookupdEndpoint); err != nil {
 					l.Error(err)
+
+					ipt.FeedCoByErr(ipt.lookupdEndpoint, err)
 					continue
 				}
 				l.Debugf("nsqd endpoint list: %v", ipt.nsqdEndpointList)
@@ -213,6 +221,8 @@ func (ipt *Input) setupDo() error {
 		ipt.lookupdEndpoint = u.String()
 		if err := ipt.updateEndpointListByLookupd(ipt.lookupdEndpoint); err != nil {
 			l.Error(err)
+
+			ipt.FeedCoByErr(ipt.lookupdEndpoint, err)
 			return err
 		}
 	} else {
@@ -276,13 +286,11 @@ func (ipt *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 	if err != nil {
 		return err
 	}
-
 	var endpoints []string
 	lk := &LookupNodes{}
 	if err := json.Unmarshal(body, lk); err != nil {
 		return fmt.Errorf("error parsing response: %w", err)
 	}
-
 	for _, p := range lk.Producers {
 		// TODO
 		// protocol 是否根据 TLS 配置决定使用 https/http ?
@@ -397,6 +405,8 @@ func defaultInput() *Input {
 		semStop:          cliutils.NewSem(),
 		feeder:           dkio.DefaultFeeder(),
 		Tagger:           datakit.DefaultGlobalTagger(),
+
+		CustomerObjectMap: make(map[string]*customerObjectMeasurement),
 	}
 }
 
