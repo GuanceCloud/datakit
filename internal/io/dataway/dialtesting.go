@@ -46,7 +46,22 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 		return fmt.Errorf("endpoint is not set correctly")
 	}
 
-	return w.buildPointsBody(d.ep.writeBody)
+	// return write error or build error
+	var writeError error
+	buildErr := w.buildPointsBody(func(w *writer, b *body) error {
+		err := d.ep.writeBody(w, b)
+		if err != nil {
+			writeError = err
+		}
+
+		return err
+	})
+
+	if buildErr != nil {
+		return buildErr
+	}
+
+	return writeError
 }
 
 // CheckToken checks if token is valid based on the specified scheme and host.

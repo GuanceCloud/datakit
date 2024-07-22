@@ -153,16 +153,25 @@ func (d *dialer) run() error {
 		return err
 	}
 
+	isSleep := false
+	// init sleep timer
+	sleepTimer := time.NewTimer(0)
+	sleepTimer.Stop()
+	defer sleepTimer.Stop()
+
 	for {
 		failCount := d.getSendFailCount()
-		if failCount > 0 {
-			taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class, maskURL).Set(float64(failCount))
-		}
+		taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class, maskURL).Set(float64(failCount))
 
+		// exceed max send fail count, sleep for MaxSendFailSleepTime
 		if failCount > MaxSendFailCount {
+			if isSleep {
+				goto wait
+			}
+			isSleep = true
+			sleepTimer.Reset(d.ipt.MaxSendFailSleepTime.Duration)
 			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "exceed_max_failure_count").Inc()
 			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
-			return nil
 		}
 
 		l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
@@ -173,8 +182,9 @@ func (d *dialer) run() error {
 			return fmt.Errorf("headless task deprecated")
 		default:
 			now := time.Now()
-			if !d.dialingTime.IsZero() && d.taskExecTimeInterval > 0 {
-				interval := now.Sub(d.dialingTime) - taskInterval
+			if !d.dialingTime.IsZero() {
+				lastDialingDuration := now.Sub(d.dialingTime)
+				interval := lastDialingDuration - taskInterval
 				if interval > d.taskExecTimeInterval {
 					taskExecTimeIntervalSummary.WithLabelValues(d.regionName, d.class).Observe(float64(interval) / float64(time.Second))
 				}
@@ -182,14 +192,14 @@ func (d *dialer) run() error {
 			d.dialingTime = now
 			_ = d.task.Run() //nolint:errcheck
 			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
+			// dialtesting start
+			err := d.feedIO()
+			if err != nil {
+				l.Warnf("io feed failed, %s", err.Error())
+			}
 		}
 
-		// dialtesting start
-		err := d.feedIO()
-		if err != nil {
-			l.Warnf("io feed failed, %s", err.Error())
-		}
-
+	wait:
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("dial testing %s exit", d.task.ID())
@@ -204,7 +214,10 @@ func (d *dialer) run() error {
 		case <-d.stopCh:
 			l.Infof("stop dial testing %s, exit", d.task.ID())
 			return nil
-
+		case <-sleepTimer.C:
+			isSleep = false
+			sleepTimer.Stop()
+			goto wait
 		case t := <-d.updateCh:
 			d.doUpdateTask(t)
 

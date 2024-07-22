@@ -74,7 +74,8 @@ type Input struct {
 	AK                              string            `toml:"ak"`
 	SK                              string            `toml:"sk"`
 	PullInterval                    string            `toml:"pull_interval,omitempty"`
-	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`            // second
+	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`
+	MaxSendFailSleepTime            *datakit.Duration `toml:"max_send_fail_sleep_time,omitempty"`
 	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
 	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`      // max job number in parallel
 	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"` // max job chan number
@@ -121,6 +122,9 @@ const sample = `
  
   # Stop the task when the task failed to send data to dataway over max_send_fail_count.
   max_send_fail_count = 16
+
+  # The max sleep time when send data to dataway failed.
+  max_send_fail_sleep_time = "30m"
 
   # The max number of jobs sending data to dataway in parallel. Default 10.
   max_job_number = 10
@@ -235,6 +239,10 @@ func (ipt *Input) Run() {
 		l.Warnf("parse task_exec_time_interval(%s) error: %s", ipt.TaskExecTimeInterval, err.Error())
 	} else {
 		ipt.taskExecTimeInterval = du
+	}
+
+	if ipt.MaxSendFailSleepTime == nil || ipt.MaxSendFailSleepTime.Duration == 0 {
+		ipt.MaxSendFailSleepTime = &datakit.Duration{Duration: 30 * time.Minute}
 	}
 
 	reqURL, err := url.Parse(ipt.Server)
