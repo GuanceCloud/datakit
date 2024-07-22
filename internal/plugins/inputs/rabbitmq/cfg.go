@@ -86,6 +86,12 @@ type Input struct {
 	Log      *rabbitmqlog      `toml:"log"`
 	Tags     map[string]string `toml:"tags"`
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	QueueNameIncludeDeprecated []string `toml:"queue_name_include,omitempty"`
 	QueueNameExcludeDeprecated []string `toml:"queue_name_exclude,omitempty"`
 
@@ -260,19 +266,15 @@ func (ipt *Input) createHTTPClient() (*http.Client, error) {
 
 func (ipt *Input) requestJSON(u string, target interface{}) error {
 	u = fmt.Sprintf("%s%s", ipt.URL, u)
-
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return err
 	}
-
 	req.SetBasicAuth(ipt.Username, ipt.Password)
-
 	resp, err := ipt.client.Do(req)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close() //nolint:errcheck
 	return json.NewDecoder(resp.Body).Decode(target)
 }

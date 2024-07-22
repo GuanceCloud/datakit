@@ -29,7 +29,6 @@ type Input struct {
 	inputs.JolokiaAgent
 	Log  *kafkalog         `toml:"log"`
 	Tags map[string]string `toml:"tags"`
-
 	tail *tailer.Tailer
 }
 
@@ -52,7 +51,7 @@ func (ipt *Input) Run() {
 	ipt.JolokiaAgent.PluginName = inputName
 	ipt.JolokiaAgent.Tags = ipt.Tags
 	ipt.JolokiaAgent.Types = KafkaTypeMap
-
+	l.Debugf("kafka url:%s", ipt.URLs)
 	ipt.JolokiaAgent.Collect()
 }
 

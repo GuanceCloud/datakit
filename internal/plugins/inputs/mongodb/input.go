@@ -147,6 +147,13 @@ type Input struct {
 	ColStatsDBs           []string               `toml:"col_stats_dbs"`
 	GatherTopStat         bool                   `toml:"gather_top_stat"`
 	Election              bool                   `toml:"election"`
+
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	*dknet.TLSClientConfig
 	MgoDBLog *mongodblog       `toml:"log"`
 	Tags     map[string]string `toml:"tags"`
@@ -273,6 +280,7 @@ func (ipt *Input) tryInitServers() {
 	for _, v := range ipt.Servers {
 		mgocli, err := ipt.createMgoClient(v)
 		if err != nil {
+			ipt.FeedCoErr(err)
 			log.Error(err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				dkio.WithLastErrorInput(inputName),
@@ -280,6 +288,7 @@ func (ipt *Input) tryInitServers() {
 			)
 			continue
 		}
+
 		var (
 			host string
 			li   = strings.LastIndexByte(v, '@')
@@ -308,6 +317,8 @@ func (ipt *Input) Run() {
 	for {
 		if !ipt.pause {
 			ipt.tryInitServers()
+
+			ipt.FeedCoByPts()
 
 			log.Debugf("mongodb input gathering...")
 			if err := ipt.gather(); err != nil {

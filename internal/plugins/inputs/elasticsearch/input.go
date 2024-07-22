@@ -227,6 +227,8 @@ type Input struct {
 	KeyFile            string `toml:"tls_key"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
+	CustomerObjectMap map[string]*customerObjectMeasurement
+
 	httpTimeout     Duration
 	client          *http.Client
 	serverInfo      map[string]serverInfo
@@ -294,6 +296,7 @@ func defaultInput() *Input {
 		semStop:                    cliutils.NewSem(),
 		feeder:                     dkio.DefaultFeeder(),
 		tagger:                     datakit.DefaultGlobalTagger(),
+		CustomerObjectMap:          make(map[string]*customerObjectMeasurement),
 	}
 }
 
@@ -478,7 +481,7 @@ func (ipt *Input) Collect() error {
 			})
 		}(serv)
 	}
-
+	ipt.collectCustomerObjectMeasurement()
 	return g.Wait()
 }
 

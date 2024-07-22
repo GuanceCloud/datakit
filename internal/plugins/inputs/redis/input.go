@@ -9,6 +9,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -77,6 +78,12 @@ type Input struct {
 	KeyInterval        time.Duration `toml:"key_interval"`
 	KeyTimeout         time.Duration `toml:"key_timeout"`
 	KeyScanSleep       string        `toml:"key_scan_sleep"`
+
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
 
 	Tags map[string]string `toml:"tags"`
 	Keys []string          `toml:"keys"`
@@ -179,28 +186,24 @@ func (ipt *Input) tryInit() {
 	if ipt.isInitialized {
 		return
 	}
-
 	if err := ipt.initCfg(); err != nil {
+		ipt.FeedCoErr(err)
 		l.Errorf("initCfg error: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
 			dkio.WithLastErrorInput(inputName),
 		)
-
 		return
 	}
-
 	ipt.isInitialized = true
-
 	ipt.hashMap = make([][16]byte, ipt.SlowlogMaxLen)
-
 	ipt.collectors = []func() ([]*point.Point, error){
 		ipt.collectInfoMeasurement,
 		ipt.collectClientMeasurement,
 		ipt.collectCommandMeasurement,
 		ipt.collectDBMeasurement,
 		ipt.collectReplicaMeasurement,
+		ipt.collectCustomerObjectMeasurement,
 	}
-
 	// check if cluster
 	ctx := context.Background()
 	list1 := ipt.client.Do(ctx, "info", "cluster").String()
@@ -253,15 +256,28 @@ func (ipt *Input) Collect() error {
 		}
 
 		if len(pts) > 0 {
-			if err := ipt.feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(ipt.start)),
-				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(inputName)); err != nil {
-				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
-				)
-				l.Errorf("feed measurement: %s", err)
+			if pts[0].Name() == "database" {
+				if err := ipt.feeder.FeedV2(point.CustomObject, pts,
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName)); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.CustomObject),
+					)
+					l.Errorf("feed measurement: %s", err)
+				}
+			} else {
+				if err := ipt.feeder.FeedV2(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName)); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						dkio.WithLastErrorInput(inputName),
+						dkio.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed measurement: %s", err)
+				}
 			}
 		}
 	}
@@ -324,6 +340,39 @@ func (ipt *Input) collectCommandMeasurement() ([]*point.Point, error) {
 	}
 
 	return ipt.parseCommandData(list)
+}
+
+func (ipt *Input) collectCustomerObjectMeasurement() ([]*point.Point, error) {
+	err := ipt.getVersionAndUptime()
+	if err != nil {
+		l.Errorf("getVersionAndUptime err: %s", err)
+	}
+	ipt.setIptCOStatus()
+	ms := []inputs.MeasurementV2{}
+	fields := map[string]interface{}{
+		"display_name": fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
+		"uptime":       ipt.Uptime,
+		"version":      ipt.Version,
+	}
+	tags := map[string]string{
+		"name":          fmt.Sprintf("redis-%s:%d", ipt.Host, ipt.Port),
+		"host":          ipt.Host,
+		"ip":            fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
+		"col_co_status": ipt.CollectCoStatus,
+	}
+	m := &customerObjectMeasurement{
+		name:     "database",
+		tags:     tags,
+		fields:   fields,
+		election: ipt.Election,
+	}
+	ipt.setIptLastCOInfo(m)
+	ms = append(ms, m)
+	if len(ms) > 0 {
+		pts := getPointsFromMeasurement(ms)
+		return pts, nil
+	}
+	return []*point.Point{}, nil
 }
 
 func (ipt *Input) RunPipeline() {
@@ -512,4 +561,37 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})
+}
+
+func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*point.Point {
+	pts := []*point.Point{}
+	for _, m := range ms {
+		pts = append(pts, m.Point())
+	}
+
+	return pts
+}
+
+func parseVersion(info string) string {
+	for _, line := range strings.Split(info, "\n") {
+		if strings.HasPrefix(line, "redis_version:") {
+			return strings.TrimSpace(strings.Split(line, ":")[1])
+		}
+	}
+	return ""
+}
+
+func parseUptime(info string) int {
+	for _, line := range strings.Split(info, "\n") {
+		if strings.HasPrefix(line, "uptime_in_seconds:") {
+			uptimeStr := strings.TrimSpace(strings.Split(line, ":")[1])
+			uptime, err := strconv.Atoi(uptimeStr)
+			if err != nil {
+				l.Error("failed to parse uptime: %v", err)
+				return 0
+			}
+			return uptime
+		}
+	}
+	return 0
 }

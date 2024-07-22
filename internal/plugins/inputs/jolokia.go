@@ -10,7 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -161,6 +163,13 @@ func (j *JolokiaAgent) Gather() error {
 	for _, client := range j.clients {
 		func(client *Client) {
 			j.g.Go(func(ctx context.Context) error {
+				pts, _ := j.collectCustomerObjectMeasurement(client)
+				if err := j.Feeder.FeedV2(point.CustomObject, pts,
+					dkio.WithCollectCost(time.Since(time.Now())),
+					dkio.WithElection(j.Election),
+					dkio.WithInputName(j.PluginName)); err != nil {
+					j.L.Errorf("Feed: %s, ignored", err.Error())
+				}
 				err := j.gatherer.Gather(client, j)
 				if err != nil {
 					j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
@@ -217,6 +226,119 @@ func (j *JolokiaAgent) Adaptor() *JolokiaAgent {
 	return j
 }
 
+func (j *JolokiaAgent) getKafkaVersionAndUptime(client *Client) (version string, uptimeSeconds int64, err error) {
+	requestURL, err := formatReadURL(client.URL, client.config.Username, client.config.Password)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to format read URL: %w", err)
+	}
+
+	// 添加 MBean 请求
+	mbeanURL := buildURL(requestURL, "/kafka.server:type=app-info")
+	l.Debugf("getVersionAndUptime mbeanURL: %s", mbeanURL)
+
+	req, err := http.NewRequest("GET", mbeanURL, nil)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.SetBasicAuth(client.config.Username, client.config.Password)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.client.Do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			l.Errorf("Failed to close response body: %v", err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", 0, fmt.Errorf("response has status code %d (%s), expected %d (%s)",
+			resp.StatusCode, http.StatusText(resp.StatusCode), http.StatusOK, http.StatusText(http.StatusOK))
+	}
+
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// 解析 JSON 响应
+	var jResponse struct {
+		Request struct {
+			MBean string `json:"mbean"`
+		} `json:"request"`
+		Value struct {
+			StartTimeMs int64  `json:"start-time-ms"`
+			CommitId    string `json:"commit-id"` //nolint:stylecheck
+			Version     string `json:"version"`
+		} `json:"value"`
+	}
+
+	err = json.Unmarshal(responseBody, &jResponse)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+	}
+
+	version = jResponse.Value.Version
+	startTime := jResponse.Value.StartTimeMs
+	uptimeMillis := time.Now().UnixMilli() - startTime
+	uptimeSeconds = uptimeMillis / 1000
+
+	return version, uptimeSeconds, nil
+}
+
+func buildURL(baseURL, relativePath string) string {
+	baseURL = strings.TrimRight(baseURL, "/")
+	relativePath = strings.TrimLeft(relativePath, "/")
+	return baseURL + "/" + relativePath
+}
+
+func (j *JolokiaAgent) collectCustomerObjectMeasurement(client *Client) ([]*point.Point, error) {
+	var CoPts []*point.Point
+	uu, _ := url.Parse(client.URL)
+	h, _, err := net.SplitHostPort(uu.Host)
+	var host string
+	if err == nil {
+		host = h
+	} else {
+		l.Errorf("failed to split host and port: %s", err)
+	}
+	version, uptime, err := j.getKafkaVersionAndUptime(client)
+	if err != nil {
+		l.Errorf("failed to get kafka version and uptime: %s", err)
+		return []*point.Point{}, nil
+	}
+
+	l.Debugf("kafka version:%s,uptime:%d", version, uptime)
+
+	fields := map[string]interface{}{
+		"display_name": host,
+		"version":      version,
+		"uptime":       fmt.Sprintf("%d", int(uptime)),
+	}
+	tags := map[string]string{
+		"name":          fmt.Sprintf("%s-%s", "kafka", host),
+		"host":          host,
+		"ip":            host,
+		"col_co_status": "OK",
+	}
+	Copt := &JolokiaCustomerObject{
+		name:     "mq",
+		tags:     tags,
+		fields:   fields,
+		election: j.Election,
+	}
+	l.Debugf("pts: %s", Copt.Point().LineProto())
+	CoPts = append(CoPts, Copt.Point())
+	if len(CoPts) > 0 {
+		l.Debugf("pts: %s", CoPts[0].LineProto())
+		return CoPts, nil
+	}
+	return []*point.Point{}, nil
+}
+
 // ----------------------- gatherer --------------------------------
 
 const defaultFieldName = "value"
@@ -228,10 +350,29 @@ type JolokiaMeasurement struct {
 	ts     time.Time
 }
 
+type JolokiaCustomerObject struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
 // Point implement MeasurementV2.
 func (m *JolokiaMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
+
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *JolokiaCustomerObject) Point() *point.Point {
+	opts := point.DefaultObjectOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -1125,7 +1266,7 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// kafka requestURL eg http://localhost:8080/jolokia/read
 	requestURL, err := formatReadURL(c.URL, c.config.Username, c.config.Password)
 	if err != nil {
 		return nil, err

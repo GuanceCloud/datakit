@@ -147,6 +147,12 @@ type Input struct {
 	DBFilter    []string `toml:"db_filter,omitempty"`
 	dbFilterMap map[string]struct{}
 
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
 	lastErr error
 	tail    *tailer.Tailer
 	start   time.Time
