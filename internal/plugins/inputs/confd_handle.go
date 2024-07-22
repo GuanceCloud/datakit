@@ -61,8 +61,9 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 			defer mtx.Unlock()
 
 			// If this kind inputs is empty, delete the map
-			for name, inputInfo := range InputsInfo {
-				if len(inputInfo) == 0 {
+			for name, arr := range InputsInfo {
+				inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
+				if len(arr) == 0 {
 					delete(InputsInfo, name)
 				}
 			}
@@ -122,6 +123,8 @@ func deleteInput(handles []handle, errs *[]error) {
 			*errs = append(*errs, fmt.Errorf("confd delete skip non-datakit-input-kind %s", h.name))
 			continue
 		}
+
+		inputInstanceVec.WithLabelValues(h.name).Set(0)
 
 		// Delete this input kind
 		delete(InputsInfo, h.name)
