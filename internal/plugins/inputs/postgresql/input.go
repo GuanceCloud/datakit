@@ -220,6 +220,8 @@ type Input struct {
 
 	collectFuncs     map[string]func() error
 	metricQueryCache map[string]*queryCacheItem
+
+	UpState int
 }
 
 type postgresqllog struct {
@@ -1010,13 +1012,14 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-
+			ipt.setUpState()
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
 				l.Error(err)
+				ipt.setErrUpState()
 			}
 
 			if len(ipt.collectCache) > 0 {
@@ -1032,6 +1035,7 @@ func (ipt *Input) Run() {
 				}
 				ipt.collectCache = ipt.collectCache[:0]
 			}
+			ipt.FeedUpMetric()
 
 			ipt.FeedCoPts()
 

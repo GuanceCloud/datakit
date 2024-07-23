@@ -99,6 +99,8 @@ type Input struct {
 	startTime    time.Time
 	currentURL   string
 	callbackFunc func([]*point.Point) error
+
+	upStates map[string]int
 }
 
 type urlTags []struct {
@@ -196,7 +198,7 @@ func (i *Input) collect() error {
 					)
 					i.l.Errorf("feed measurement: %s", err)
 				}
-
+				i.FeedUpMetric(i.currentURL)
 				return nil
 			}
 		}
@@ -253,13 +255,18 @@ func (i *Input) collectFormURLs() error {
 	}
 
 	for _, u := range i.URLs {
+		i.setUpState(u)
 		pts, err := i.collectFormSource(u)
 		if err != nil {
 			i.l.Errorf("failed to get pts from %s, %s", u, err)
+			i.setErrUpState(u)
+			i.FeedUpMetric(u)
 			continue
 		}
 
 		if len(pts) > 0 {
+			i.FeedUpMetric(u)
+
 			if i.AsLogging != nil && i.AsLogging.Enable {
 				// Feed measurement as logging.
 				for _, pt := range pts {
@@ -290,7 +297,6 @@ func (i *Input) collectFormURLs() error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -481,9 +487,10 @@ func NewProm() *Input {
 
 		urlTags: map[string]urlTags{},
 
-		semStop: cliutils.NewSem(),
-		Feeder:  dkio.DefaultFeeder(),
-		Tagger:  datakit.DefaultGlobalTagger(),
+		semStop:  cliutils.NewSem(),
+		Feeder:   dkio.DefaultFeeder(),
+		Tagger:   datakit.DefaultGlobalTagger(),
+		upStates: make(map[string]int),
 	}
 }
 

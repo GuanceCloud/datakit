@@ -51,6 +51,8 @@ type Input struct {
 		CharacterEncoding string   `toml:"character_encoding"`
 	} `toml:"log"`
 
+	UpState int
+
 	Version            string
 	Uptime             int
 	CollectCoStatus    string
@@ -182,15 +184,16 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-
+			ipt.setUpState()
 			ipt.FeedCoPts()
-
 			m, err := ipt.getMetric()
 			if err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
 					dkio.WithLastErrorCategory(point.Metric),
 				)
+
+				ipt.setErrUpState()
 			}
 
 			if m != nil {
@@ -201,6 +204,8 @@ func (ipt *Input) Run() {
 					l.Errorf("Feed failed: %s, ignored", err.Error())
 				}
 			}
+
+			ipt.FeedUpMetric()
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

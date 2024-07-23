@@ -163,6 +163,9 @@ func (j *JolokiaAgent) Gather() error {
 	for _, client := range j.clients {
 		func(client *Client) {
 			j.g.Go(func(ctx context.Context) error {
+				// up指标
+				client.upState = 1
+
 				pts, _ := j.collectCustomerObjectMeasurement(client)
 				if err := j.Feeder.FeedV2(point.CustomObject, pts,
 					dkio.WithCollectCost(time.Since(time.Now())),
@@ -170,10 +173,21 @@ func (j *JolokiaAgent) Gather() error {
 					dkio.WithInputName(j.PluginName)); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
+
 				err := j.gatherer.Gather(client, j)
 				if err != nil {
+					client.upState = 0
 					j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
 				}
+
+				pts, _ = j.buildUpPoints(client)
+				if err := j.Feeder.FeedV2(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(time.Now())),
+					dkio.WithElection(j.Election),
+					dkio.WithInputName(j.PluginName)); err != nil {
+					j.L.Errorf("Feed: %s, ignored", err.Error())
+				}
+
 				return nil
 			})
 		}(client)
@@ -381,6 +395,49 @@ func (m *JolokiaCustomerObject) Point() *point.Point {
 
 func (*JolokiaMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
+}
+
+type upMeasurement struct {
+	name     string
+	tags     map[string]string
+	fields   map[string]interface{}
+	election bool
+}
+
+// Point implement MeasurementV2.
+func (m *upMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2(m.name,
+		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
+		opts...)
+}
+
+func (m *upMeasurement) Info() *MeasurementInfo { //nolint:funlen
+	return &MeasurementInfo{
+		Name: "collector",
+		Type: "metric",
+		Fields: map[string]interface{}{
+			"up": &FieldInfo{
+				DataType: Int,
+				Type:     Gauge,
+				Unit:     SizeByte,
+				Desc:     "",
+			},
+		},
+		Tags: map[string]interface{}{
+			"job": &TagInfo{
+				Desc: "Server name",
+			},
+			"instance": &TagInfo{
+				Desc: "Server addr",
+			},
+		},
+	}
 }
 
 type Gatherer struct {
@@ -1156,9 +1213,10 @@ func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 // ------------------------------------------------------------------------------
 
 type Client struct {
-	URL    string
-	client *http.Client
-	config *ClientConfig
+	URL     string
+	client  *http.Client
+	config  *ClientConfig
+	upState int
 }
 
 type ClientConfig struct {
@@ -1416,4 +1474,41 @@ func formatReadURL(configURL, username, password string) (string, error) {
 	readURL.Path = path.Join(parsedURL.Path, "read")
 	readURL.Query().Add("ignoreErrors", "true")
 	return readURL.String(), nil
+}
+
+func (j *JolokiaAgent) buildUpPoints(client *Client) ([]*point.Point, error) {
+	var CoPts []*point.Point
+	uu, _ := url.Parse(client.URL)
+	h, p, err := net.SplitHostPort(uu.Host)
+	var host string
+	var port string
+	if err == nil {
+		host = h
+		port = p
+	} else {
+		host = uu.Host
+		l.Errorf("failed to split host and port: %s", err)
+	}
+
+	tags := map[string]string{
+		"job":      j.PluginName,
+		"instance": fmt.Sprintf("%s:%s", host, port),
+	}
+	fields := map[string]interface{}{
+		"up": client.upState,
+	}
+
+	Copt := &upMeasurement{
+		name:     "collector",
+		tags:     tags,
+		fields:   fields,
+		election: j.Election,
+	}
+	l.Debugf("pts: %s", Copt.Point().LineProto())
+	CoPts = append(CoPts, Copt.Point())
+	if len(CoPts) > 0 {
+		l.Debugf("pts: %s", CoPts[0].LineProto())
+		return CoPts, nil
+	}
+	return []*point.Point{}, nil
 }

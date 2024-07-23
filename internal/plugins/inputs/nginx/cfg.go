@@ -66,6 +66,8 @@ type Input struct {
 	Log             *ngxlog           `toml:"log"`
 	Tags            map[string]string `toml:"tags"`
 
+	UpState int
+
 	Version            string
 	Uptime             int
 	CollectCoStatus    string

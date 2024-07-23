@@ -73,6 +73,8 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+
+	UpState int
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -122,17 +124,18 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-
+			ipt.setUpState()
 			l.Debugf("feed nsq pts")
 			ipt.FeedCoPts()
-
 			start := time.Now()
 			pts, err := ipt.gather()
 			if err != nil {
 				l.Errorf("gather: %s, ignored", err)
+				ipt.setErrUpState()
 			}
 
 			if len(pts) == 0 {
+				ipt.FeedUpMetric()
 				continue
 			}
 
@@ -143,7 +146,7 @@ func (ipt *Input) Run() {
 			); err != nil {
 				l.Errorf("io.Feed: %s, ignored", err)
 			}
-
+			ipt.FeedUpMetric()
 		case <-updateListTicker.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")

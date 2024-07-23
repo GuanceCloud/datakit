@@ -110,6 +110,8 @@ func (ipt *Input) Run() {
 
 	for {
 		if !ipt.pause {
+			ipt.setUpState()
+
 			ipt.getMetric()
 
 			ipt.FeedCoPts()
@@ -118,6 +120,7 @@ func (ipt *Input) Run() {
 				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 					dkio.WithLastErrorInput(inputName),
 				)
+				ipt.setErrUpState()
 				ipt.lastErr = nil
 			}
 
@@ -132,6 +135,7 @@ func (ipt *Input) Run() {
 
 				ipt.collectCache = ipt.collectCache[:0]
 			}
+			ipt.FeedUpMetric()
 		} else {
 			l.Debugf("not leader, skipped")
 		}

@@ -105,6 +105,8 @@ type Input struct {
 
 	MatchDeprecated string `toml:"match,omitempty"`
 
+	UpState int
+
 	Version            string
 	Uptime             int
 	CollectCoStatus    string
@@ -742,10 +744,13 @@ func (ipt *Input) Run() {
 		} else {
 			l.Debugf("mysql input gathering...")
 
+			ipt.setUpState()
+
 			ipt.resetLastError()
 
 			mpts, err := ipt.Collect()
 			if err != nil {
+				ipt.setErrUpState()
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
@@ -770,6 +775,8 @@ func (ipt *Input) Run() {
 			}
 
 			ipt.handleLastError()
+
+			ipt.FeedUpMetric()
 		}
 
 		select {
@@ -856,6 +863,7 @@ func defaultInput() *Input {
 		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
+		UpState:  1,
 	}
 }
 

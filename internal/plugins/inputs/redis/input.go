@@ -93,6 +93,8 @@ type Input struct {
 	MatchDeprecated   string   `toml:"match,omitempty"`
 	ServersDeprecated []string `toml:"servers,omitempty"`
 
+	UpState int
+
 	timeoutDuration time.Duration
 	keyDBS          []int
 
@@ -428,11 +430,15 @@ func (ipt *Input) Run() {
 		if !ipt.pause {
 			ipt.tryInit()
 
+			ipt.setUpState()
+
 			l.Debugf("redis input gathering...")
 			ipt.start = time.Now()
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
+				ipt.setErrUpState()
 			}
+			ipt.FeedUpMetric()
 		} else {
 			l.Debugf("not leader, skipped")
 		}
@@ -554,6 +560,8 @@ func defaultInput() *Input {
 		Election:        true,
 		feeder:          dkio.DefaultFeeder(),
 		tagger:          datakit.DefaultGlobalTagger(),
+
+		UpState: 1,
 	}
 }
 

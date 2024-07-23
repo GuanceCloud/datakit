@@ -96,6 +96,8 @@ type Input struct {
 	urls []*url.URL
 
 	l *logger.Logger
+
+	upStates map[string]int
 }
 
 func (ipt *Input) Run() {
@@ -267,6 +269,7 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 	}
 	var points []*point.Point
 	for _, u := range ipt.URLs {
+		ipt.setUpState(u)
 		uu, err := url.Parse(u)
 		if err != nil {
 			return nil, err
@@ -278,9 +281,11 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 			pts, err = ipt.CollectFromHTTP(u)
 		}
 		if err != nil {
+			ipt.setErrUpState(u)
+			ipt.FeedUpMetric(u)
 			return nil, err
 		}
-
+		ipt.FeedUpMetric(u)
 		// append tags to points
 		for k, v := range ipt.mergedTags[u] {
 			for _, pt := range pts {
@@ -529,9 +534,10 @@ func NewProm() *Input {
 
 		mergedTags: map[string]urlTags{},
 
-		semStop: cliutils.NewSem(),
-		feeder:  dkio.DefaultFeeder(),
-		tagger:  datakit.DefaultGlobalTagger(),
+		semStop:  cliutils.NewSem(),
+		feeder:   dkio.DefaultFeeder(),
+		tagger:   datakit.DefaultGlobalTagger(),
+		upStates: make(map[string]int),
 	}
 }
 
