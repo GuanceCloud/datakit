@@ -7,13 +7,29 @@ package pipeline
 
 import (
 	"fmt"
+	"time"
 
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/manager/relation"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/platypus/pkg/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
+)
+
+const (
+	plTagName    = "_pl_script"
+	plTagService = "_pl_service"
+	plTagNS      = "_pl_ns"
+	plStatus     = "_pl_status"
+
+	plFieldCost = "_pl_cost" // data type: float64, unit: second
+
+	svcName = "datakit"
+
+	sOk     = "ok"
+	sFailed = "failed"
 )
 
 type ScriptResult struct {
@@ -76,6 +92,13 @@ func RunPl(category point.Category, pts []*point.Point,
 			continue
 		}
 
+		startTime := time.Now()
+		if plval.EnableAppendRunInfo() {
+			pt.AddTag(plTagName, script.Name())
+			pt.AddTag(plTagService, svcName)
+			pt.AddTag(plTagNS, script.NS())
+		}
+
 		inputData := ptinput.WrapPoint(category, pt)
 
 		if v, ok := plval.GetRefTb(); ok {
@@ -89,6 +112,11 @@ func RunPl(category point.Category, pts []*point.Point,
 		err := script.Run(inputData, nil, plOpt)
 		if err != nil {
 			l.Warn(err)
+			if plval.EnableAppendRunInfo() {
+				plCost := time.Since(startTime)
+				pt.AddTag(plStatus, sFailed)
+				pt.Add(plFieldCost, float64(plCost)/float64(time.Second))
+			}
 			ret = append(ret, pt)
 			continue
 		}
@@ -99,6 +127,12 @@ func RunPl(category point.Category, pts []*point.Point,
 					subPt[pt.Category()] = append(subPt[pt.Category()], pt.Point())
 				}
 			}
+		}
+
+		if plval.EnableAppendRunInfo() {
+			plCost := time.Since(startTime)
+			_ = inputData.SetTag(plStatus, sOk, ast.String)
+			_ = inputData.Set(plFieldCost, float64(plCost)/float64(time.Second), ast.Float)
 		}
 
 		if ctxPts := inputData.CallbackPtWinMove(); len(ctxPts) > 0 {

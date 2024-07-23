@@ -3,12 +3,12 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package manager for managing pipeline scripts
-package manager
+package plval
 
 import (
 	"regexp"
 
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/geoip"
@@ -39,6 +39,7 @@ type PipelineCfg struct {
 	UseSQLite              bool                   `toml:"use_sqlite"`
 	SQLiteMemMode          bool                   `toml:"sqlite_mem_mode"`
 	Offload                *offload.OffloadConfig `toml:"offload"`
+	AppendRunInfo          bool                   `toml:"append_run_info"`
 }
 
 // InitIPdb init ipdb instance.
@@ -73,7 +74,7 @@ func LoadPatterns(patternDir string) error {
 	}
 
 	// 使用内置的 pattern，可能覆盖文件中的 pattern
-	for k, v := range CopyDefalutPatterns() {
+	for k, v := range manager.CopyDefalutPatterns() {
 		loadedPatterns[k] = v
 	}
 

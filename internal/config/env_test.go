@@ -108,6 +108,7 @@ func TestLoadEnv(t *testing.T) {
 
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG": "ok",
 				"ENV_PIPELINE_OFFLOAD_RECEIVER":     offload.DKRcv,
+				"ENV_PIPELINE_APPEND_RUN_INFO":      "true",
 				"ENV_PIPELINE_OFFLOAD_ADDRESSES":    "http://aaa:123,http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
@@ -144,6 +145,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Logging.RotateBackups = 10
 				cfg.Logging.Rotate = 128
 
+				cfg.Pipeline.AppendRunInfo = true
 				cfg.Pipeline.Offload = &offload.OffloadConfig{}
 				cfg.Pipeline.Offload.Receiver = offload.DKRcv
 				cfg.Pipeline.Offload.Addresses = []string{"http://aaa:123", "http://1.2.3.4:1234"}
