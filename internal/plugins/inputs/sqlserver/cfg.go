@@ -168,6 +168,8 @@ type Input struct {
 	opt     point.Option
 
 	collectFuncs map[string]func() error
+
+	UpState int
 }
 
 type sqlserverlog struct {

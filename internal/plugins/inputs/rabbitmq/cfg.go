@@ -114,6 +114,8 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+
+	UpState int
 }
 
 type rabbitmqlog struct {

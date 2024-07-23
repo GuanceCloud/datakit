@@ -75,6 +75,8 @@ type Input struct {
 	lastActiveTime string
 	collectors     map[string]func() (point.Category, []*point.Point, error)
 	cacheSQL       map[string]string
+
+	UpState int
 }
 
 func (ipt *Input) setupDB() error {
@@ -264,8 +266,10 @@ func (ipt *Input) Run() {
 			l.Info("not leader, skipped")
 		} else {
 			l.Info("oracle input gathering...")
+			ipt.setUpState()
 			mpts, err := ipt.Collect()
 			if err != nil {
+				ipt.setErrUpState()
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					dkio.WithLastErrorInput(inputName),
@@ -288,6 +292,8 @@ func (ipt *Input) Run() {
 					}
 				}
 			}
+
+			ipt.FeedUpMetric()
 		}
 
 		select {

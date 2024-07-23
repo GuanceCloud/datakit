@@ -164,6 +164,8 @@ type Input struct {
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
+
+	UpState int
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -318,13 +320,16 @@ func (ipt *Input) Run() {
 		if !ipt.pause {
 			ipt.tryInitServers()
 
-			ipt.FeedCoByPts()
+			ipt.setUpState()
 
+			ipt.FeedCoByPts()
 			log.Debugf("mongodb input gathering...")
 			if err := ipt.gather(); err != nil {
 				log.Error(err.Error())
 				ipt.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+				ipt.setErrUpState()
 			}
+			ipt.FeedUpMetric()
 		} else {
 			log.Debugf("not leader, skipped")
 		}

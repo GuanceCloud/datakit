@@ -393,6 +393,7 @@ func (ipt *Input) Run() {
 	// Init DB until OK.
 	for {
 		if err := ipt.initDB(); err != nil {
+			ipt.FeedErrUpMetric()
 			ipt.FeedCoByErr(err)
 			l.Errorf("initDB: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
@@ -426,6 +427,7 @@ func (ipt *Input) Run() {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
+			ipt.setUpState()
 			l.Infof("start to collect")
 			ipt.getMetric()
 			if len(collectCache) > 0 {
@@ -459,10 +461,11 @@ func (ipt *Input) Run() {
 					dkio.WithLastErrorInput(inputName),
 				)
 				ipt.lastErr = nil
+
+				ipt.setErrUpState()
 			}
-
+			ipt.FeedUpMetric()
 			ipt.FeedCoPts()
-
 			select {
 			case <-tick.C:
 			case <-datakit.Exit.Wait():

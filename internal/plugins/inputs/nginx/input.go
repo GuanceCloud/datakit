@@ -176,6 +176,7 @@ func (ipt *Input) RunPipeline() {
 
 func (ipt *Input) Run() {
 	if err := ipt.setup(); err != nil {
+		ipt.FeedErrUpMetric()
 		ipt.FeedCoByErr(err)
 		return
 	}
@@ -187,6 +188,7 @@ func (ipt *Input) Run() {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
+			ipt.setUpState()
 			ipt.FeedCoPts()
 			ipt.collect()
 			if len(ipt.collectCache) > 0 {
@@ -204,7 +206,11 @@ func (ipt *Input) Run() {
 				}
 			} else {
 				l.Warn("collect nil points")
+
+				ipt.setErrUpState()
 			}
+
+			ipt.FeedUpMetric()
 		}
 
 		select {
