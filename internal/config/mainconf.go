@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -19,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
@@ -64,7 +64,7 @@ type Config struct {
 	DKUpgrader *DKUpgraderCfg `toml:"dk_upgrader"`
 
 	// pipeline
-	Pipeline *plmanager.PipelineCfg `toml:"pipeline"`
+	Pipeline *plval.PipelineCfg `toml:"pipeline"`
 
 	// logging config
 	LogDeprecated       string     `toml:"log,omitempty"`
@@ -192,7 +192,7 @@ func DefaultConfig() *Config {
 			Port: 9542,
 		},
 
-		Pipeline: &plmanager.PipelineCfg{
+		Pipeline: &plval.PipelineCfg{
 			IPdbType:               "iploc",
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",

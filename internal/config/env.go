@@ -212,6 +212,10 @@ func (c *Config) loadPipelineEnvs() {
 		c.Pipeline.SQLiteMemMode = true
 	}
 
+	if v := datakit.GetEnv("ENV_PIPELINE_APPEND_RUN_INFO"); v != "" {
+		c.Pipeline.AppendRunInfo = true
+	}
+
 	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {
 		if c.Pipeline.Offload == nil {
 			c.Pipeline.Offload = &offload.OffloadConfig{

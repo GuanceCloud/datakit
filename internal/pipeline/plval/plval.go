@@ -42,7 +42,13 @@ var (
 
 	// offload.
 	_offloadWkr *offload.OffloadWorker
+
+	_enableAppendRunInfo bool
 )
+
+func EnableAppendRunInfo() bool {
+	return _enableAppendRunInfo
+}
 
 func SetManager(m *plmanager.Manager) {
 	_managerIns = m
@@ -83,7 +89,7 @@ func GetOffload() (*offload.OffloadWorker, bool) {
 
 const maxCustomer = 16
 
-func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
+func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
 	l = logger.SLogger("plval")
@@ -92,7 +98,7 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 	pipeline.InitLog()
 
 	// load grok pattern
-	if err := plmanager.LoadPatterns(datakit.PipelinePatternDir); err != nil {
+	if err := LoadPatterns(datakit.PipelinePatternDir); err != nil {
 		l.Warnf("load pattern from directory failed: %w", err)
 	}
 
@@ -108,10 +114,14 @@ func InitPlVal(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[stri
 	SetManager(managerIns)
 
 	// init ipdb
-	if ipdb, err := plmanager.InitIPdb(datakit.DataDir, cfg); err != nil {
+	if ipdb, err := InitIPdb(datakit.DataDir, cfg); err != nil {
 		l.Warnf("init ipdb error: %s", err.Error())
 	} else {
 		SetIPDB(ipdb)
+	}
+
+	if cfg != nil && cfg.AppendRunInfo {
+		_enableAppendRunInfo = true
 	}
 
 	// init refer-table

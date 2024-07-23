@@ -96,6 +96,9 @@ ulimit = 64000
   # or use pure memory to cache the reftab data
   sqlite_mem_mode = false
 
+  # append run info
+  append_run_info = false
+
   # Offload data processing tasks to post-level data processors.
   [pipeline.offload]
     receiver = "datakit-http"

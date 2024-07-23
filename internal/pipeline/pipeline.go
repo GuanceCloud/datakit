@@ -31,7 +31,7 @@ import (
 
 var l = logger.DefaultSLogger("pipeline")
 
-func InitPipeline(cfg *plmanager.PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
+func InitPipeline(cfg *plval.PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
 	l = logger.SLogger("pipeline")
