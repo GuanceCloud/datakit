@@ -106,11 +106,35 @@ var alwaysBlockedMetrics = []string{
 }
 
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
-	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{FieldName: "Any", ENVName: "ENABLE_ALL_METRICS", ConfField: "none", Type: doc.Boolean, Example: `any_string`, Desc: "Collect all metrics, any string", DescZh: "采集所有指标，任意非空字符串"},
-		{FieldName: "Any", ENVName: "ADD_METRICS", ConfField: "none", Type: doc.JSON, Example: `["datakit_io_.*", "datakit_pipeline_.*"]`, Desc: "Additional metrics, Available metrics list [here](../datakit/datakit-metrics.md)", DescZh: "追加指标列表，可用的指标名参见[这里](../datakit/datakit-metrics.md)"},
-		{FieldName: "Any", ENVName: "ONLY_METRICS", ConfField: "none", Type: doc.JSON, Example: `["datakit_io_.*", "datakit_pipeline_.*"]`, Desc: "Only enable metrics", DescZh: "只开启指定指标"},
+		{
+			ENVName:   "ENABLE_ALL_METRICS",
+			Type:      doc.Boolean,
+			Example:   `true`,
+			Default:   doc.NoDefaultSet,
+			ConfField: doc.NoField,
+			Desc:      "Collect all metrics, any string",
+			DescZh:    "采集所有指标，任意非空字符串",
+		},
+		{
+			ENVName:   "ADD_METRICS",
+			Type:      doc.List,
+			Default:   doc.NoDefaultSet,
+			ConfField: doc.NoField,
+			Example:   "`[\"datakit_io_.*\", \"datakit_pipeline_.*\"]`",
+			Desc:      "Additional metrics, Available metrics list [here](../datakit/datakit-metrics.md)",
+			DescZh:    "追加指标列表，可用的指标名参见[这里](../datakit/datakit-metrics.md)",
+		},
+
+		{
+			ENVName:   "ONLY_METRICS",
+			Type:      doc.List,
+			ConfField: doc.NoField,
+			Example:   "`[\"datakit_io_.*\", \"datakit_pipeline_.*\"]`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "Only enable metrics",
+			DescZh:    "只开启指定指标",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DK_", infos)

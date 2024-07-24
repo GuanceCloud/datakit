@@ -146,8 +146,8 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 	}
 
 	if inp, ok := ipt.(inputs.GetENVDoc); ok {
-		p.InputENVSample = getENVSample(inp.GetENVDoc(), false)
-		p.InputENVSampleZh = getENVSample(inp.GetENVDoc(), true)
+		p.InputENVSample = inputs.GetENVSample(inp.GetENVDoc(), false)
+		p.InputENVSampleZh = inputs.GetENVSample(inp.GetENVDoc(), true)
 	}
 
 	if buf, err := renderBuf(md, p); err != nil {
@@ -155,52 +155,6 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 	} else {
 		return buf, nil
 	}
-}
-
-func getENVSample(infos []*inputs.ENVInfo, zh bool) string {
-	result := ""
-	if len(infos) == 0 {
-		return ""
-	}
-
-	for _, info := range infos {
-		s := []string{}
-		s = append(s, "- **"+info.ENVName+"**\n\n")
-
-		if zh && info.DescZh != "" {
-			s = append(s, "    "+info.DescZh+"\n\n")
-		} else if info.Desc != "" {
-			s = append(s, "    "+info.Desc+"\n\n")
-		}
-
-		if info.Type != "" {
-			s = append(s, "    "+"**Type**: "+info.Type+"\n\n")
-		}
-
-		// info.DocType == "" --> input doc
-		if info.DocType == "" && info.ConfField != "" {
-			s = append(s, "    "+"**ConfField**: `"+info.ConfField+"`\n\n")
-		}
-
-		if info.Example != "" {
-			s = append(s, "    "+"**Example**: "+info.Example+"\n\n")
-		}
-
-		if info.Default != "" {
-			s = append(s, "    "+"**Default**: "+info.Default+"\n\n")
-		}
-
-		if info.Required != "" {
-			s = append(s, "    "+"**Required**: "+info.Required+"\n\n")
-		}
-
-		for _, v := range s {
-			result += v
-		}
-	}
-	result = strings.TrimSuffix(result, "\n\n")
-
-	return result
 }
 
 // buildNonInputDocs render non-inputs docs.
@@ -215,8 +169,8 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 
 	if _, ok := nonInputDocs[fileName]; ok {
 		for contentName, info := range nonInputDocs[fileName] {
-			p.NonInputENVSample[contentName] = getENVSample(info, false)
-			p.NonInputENVSampleZh[contentName] = getENVSample(info, true)
+			p.NonInputENVSample[contentName] = inputs.GetENVSample(info, false)
+			p.NonInputENVSampleZh[contentName] = inputs.GetENVSample(info, true)
 		}
 	}
 

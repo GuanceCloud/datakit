@@ -8,7 +8,10 @@
 
 package dialtesting
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
 
 func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
@@ -68,4 +71,39 @@ func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 	default:
 		return nil
 	}
+}
+
+func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
+	infos := []*inputs.ENVInfo{
+		{
+			ENVName:   "ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK",
+			ConfField: "disable_internal_network_task",
+			Type:      doc.Boolean,
+			Example:   "`true`",
+			Default:   "`false`",
+			Desc:      "Enable or disable internal IP/service testing",
+			DescZh:    "是否允许内网地址/服务的拨测。默认不允许",
+		},
+
+		{
+			ENVName:   "ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST",
+			ConfField: "disabled_internal_network_cidr_list",
+			Type:      doc.List,
+			Example:   "`[\"192.168.0.0/16\"]`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "Disable testing on specific internal CIDR IP ranges",
+			DescZh:    "禁止拨测的 CIDR 地址列表",
+		},
+
+		{
+			ENVName: "ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API",
+			Type:    doc.Boolean,
+			Example: "`false`",
+			Default: "`false`",
+			Desc:    "Disable debug API on dial-testing(Default disabled)",
+			DescZh:  "禁止拨测调试接口（默认禁止）",
+		},
+	}
+
+	return doc.SetENVDoc("ENV_INPUT_DIALTESTING_", infos)
 }
