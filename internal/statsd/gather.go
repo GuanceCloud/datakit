@@ -92,6 +92,7 @@ func (col *Collector) GetPoints() ([]*point.Point, error) {
 	}
 	col.expireCachedMetrics()
 
+	collectPointsTotalVec.WithLabelValues().Observe(float64(len(points)))
 	return points, nil
 }
 

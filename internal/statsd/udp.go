@@ -73,6 +73,8 @@ func (col *Collector) udpListen(conn *net.UDPConn) error {
 
 			col.opts.l.Debugf("UDP: read %d bytes from %s", n, addr.IP.String())
 
+			httpGetBytesVec.WithLabelValues().Observe(float64(n))
+
 			b, ok := col.bufPool.Get().(*bytes.Buffer)
 			if !ok {
 				return fmt.Errorf("bufPool is not a bytes buffer")
