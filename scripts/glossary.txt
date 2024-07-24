@@ -162,6 +162,7 @@ logfiles
 logfwd
 logfwdserver
 logstreaming
+malloc
 macOS
 mcache
 mitm

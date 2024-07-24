@@ -10,6 +10,8 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 <!-- markdownlint-disable MD046 -->
 === "观测云版本"
 
+    为了增加更多中间件支持，观测云增强了 [DDTrace-Java 实现](ddtrace-ext-java.md)。
+
     ```shell
     wget -O dd-java-agent.jar 'https://static.guance.com/dd-image/dd-java-agent.jar'
     ```

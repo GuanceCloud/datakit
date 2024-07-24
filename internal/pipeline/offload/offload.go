@@ -30,7 +30,7 @@ var (
 		Namespace: "datakit",
 		Subsystem: "pipeline",
 		Name:      "offload_point_total",
-		Help:      "Pieline offload processed total points",
+		Help:      "Pipeline offload processed total points",
 	}, []string{"category", "exporter", "remote"})
 
 	ptOffloadErrorCountVec = prometheus.NewCounterVec(prometheus.CounterOpts{

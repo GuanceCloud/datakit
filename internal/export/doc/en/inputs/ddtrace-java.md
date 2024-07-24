@@ -7,7 +7,9 @@ Integrating APM into Java is quite convenient, as it does not require any modifi
 ## Install Dependencies {#dependence}
 
 <!-- markdownlint-disable MD046 -->
-=== "Observation Cloud Version"
+=== "GuanceCloud Version"
+
+    To add support for more middleware, GuanceCloud has enhanced the [DDTrace-Java implementation](ddtrace-ext-java.md).
 
     ```shell
     wget -O dd-java-agent.jar 'https://static.guance.com/dd-image/dd-java-agent.jar'

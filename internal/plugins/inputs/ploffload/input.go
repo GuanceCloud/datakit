@@ -55,21 +55,21 @@ var (
 		Namespace: "datakit",
 		Subsystem: "input_ploffload",
 		Name:      "chan_capacity",
-		Help:      "ploffload channel capacity",
+		Help:      "PlOffload channel capacity",
 	}, []string{"channel_name"})
 
 	chanUsageVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "datakit",
 		Subsystem: "input_ploffload",
 		Name:      "chan_usage",
-		Help:      "ploffload channel usage",
+		Help:      "PlOffload channel usage",
 	}, []string{"channel_name"})
 
 	ptCounterVec = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "datakit",
 		Subsystem: "input_ploffload",
 		Name:      "point_total",
-		Help:      "ploffload processed total points",
+		Help:      "PlOffload processed total points",
 	}, []string{"category"})
 )
 
