@@ -272,11 +272,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{FieldName: "Interval", Type: doc.TimeDuration, Default: `10s`, Desc: "Collect interval", DescZh: "采集器重复间隔时长"},
-		{FieldName: "PerCPU", ENVName: "PERCPU", Type: doc.Boolean, Default: `false`, Desc: "Collect CPU usage per core", DescZh: "采集每一个 cpu 核"},
-		{FieldName: "EnableTemperature", Type: doc.Boolean, Default: `true`, Desc: "Enable to collect core temperature data", DescZh: "采集 cpu 温度"},
-		{FieldName: "EnableLoad5s", ENVName: "ENABLE_LOAD5S", Type: doc.Boolean, Default: `false`, Desc: "Enable gets average load information every five seconds", DescZh: "每五秒钟获取一次平均负载信息"},
-		{FieldName: "Tags", Type: doc.Map, Example: `tag1=value1,tag2=value2`, Desc: "Customize tags. If there is a tag with the same name in the configuration file, it will be overwritten", DescZh: "自定义标签。如果配置文件有同名标签，将会覆盖它"},
+		{FieldName: "Interval", Type: doc.TimeDuration, Default: "`10s`", Desc: "Collect interval", DescZh: "采集器重复间隔时长"},
+		{FieldName: "PerCPU", ENVName: "PERCPU", Type: doc.Boolean, Default: `false`, Desc: "Collect CPU usage per core", DescZh: "采集每一个 CPU 核"},
+		{FieldName: "EnableTemperature", Type: doc.Boolean, Default: "`true`", Desc: "Enable to collect core temperature data", DescZh: "采集 CPU 温度"},
+		{FieldName: "EnableLoad5s", ENVName: "ENABLE_LOAD5S", Type: doc.Boolean, Default: "`false`", Desc: "Enable gets average load information every five seconds", DescZh: "每五秒钟获取一次平均负载信息"},
+		{FieldName: "Tags", Type: doc.String, Example: "`tag1=value1,tag2=value2`", Desc: "Customize tags. If there is a tag with the same name in the configuration file, it will be overwritten", DescZh: "自定义标签。如果配置文件有同名标签，将会覆盖它"},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_CPU_", infos)

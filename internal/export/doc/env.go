@@ -24,15 +24,13 @@ const (
 	JSON         = "JSON"
 	List         = "List"
 	TimeDuration = "TimeDuration"
-)
 
-// Doc type.
-const (
+	// Doc type.
 	NonInput = "NonInput"
-)
 
-// Required.
-const (
+	NoDefaultSet = "`-`"
+	NoField      = "`-`"
+
 	Yes = "Yes"
 )
 
