@@ -1,0 +1,3442 @@
+{
+  "title": "cockroachdb",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "SQL": true,
+      "Overview": false,
+      "CPU & Memory": true,
+      "{{.Dashboard.Storage}}": true,
+      "{{.Dashboard.Overview}}": true,
+      "{{.Dashboard.SQL_Latency}}": true,
+      "{{.Dashboard.Replication_Admission_Control}}": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "instamce",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "instamce",
+        "type": "TAG",
+        "definition": {
+          "tag": "instance",
+          "field": "",
+          "value": "",
+          "metric": "cockroachdb",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "node_id",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "node_id",
+        "type": "TAG",
+        "definition": {
+          "tag": "node_id",
+          "field": "",
+          "value": "",
+          "metric": "cockroachdb",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "store",
+        "seq": 2,
+        "datasource": "ftinfluxdb",
+        "code": "store",
+        "type": "TAG",
+        "definition": {
+          "tag": "store",
+          "field": "",
+          "value": "",
+          "metric": "cockroachdb",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.Capacity_Available_by_Node}}",
+        "pos": {
+          "h": 21,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_available`) AS `Capacity Available`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `store`, `instance`, `node_id`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Capacity Available",
+              "field": "capacity_available",
+              "rollup": "",
+              "filters": [
+                {
+                  "id": "8571f610-0ec1-11ef-8fe4-73d34b01b247",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "8f90c040-0ec1-11ef-8fe4-73d34b01b247",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "98348330-0ec1-11ef-8fe4-73d34b01b247",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "store",
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_used`) AS `Capacity Used`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `store`, `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Capacity Used",
+              "field": "capacity_used",
+              "rollup": "",
+              "filters": [
+                {
+                  "id": "55392860-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "5eccc990-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "6487eb80-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "store",
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.SQL_Statements_P99}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_service_latency_bucket`, 99)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_service_latency_bucket",
+              "filters": [
+                {
+                  "id": "8836e630-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "8f088130-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.Live_Nodes}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(min(`liveness_livenodes`)) BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "liveness_livenodes",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "min",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.SQL_Connections}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 7
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_conns`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_conns",
+              "filters": [
+                {
+                  "id": "bfc88400-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "c555df30-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.Available_Capacity}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 7
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_available`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`, `store`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "capacity_available",
+              "filters": [
+                {
+                  "id": "cdbdf8b0-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "d21544e0-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.Avg_Node_CPU_Usage}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 14
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_cpu_combined_percent_normalized`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_cpu_combined_percent_normalized",
+              "filters": [
+                {
+                  "id": "fa1f3540-0f34-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "00cf3e80-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Overview}}"
+        },
+        "name": "{{.Dashboard.Avg_Node_Memory_Usage}}",
+        "pos": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 14
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_rss`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_rss",
+              "filters": [
+                {
+                  "id": "123ebec0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "173afd80-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Service_Latency_SQL_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_service_latency_bucket`, 99) AS `Latency_SQL_99th`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Latency_SQL_99th",
+              "field": "sql_service_latency_bucket",
+              "filters": [
+                {
+                  "id": "34f94750-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "397d48d0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Service_Latency_SQL_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 8,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_service_latency_bucket`, 99)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_service_latency_bucket",
+              "filters": [
+                {
+                  "id": "46023d90-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "4c6ab680-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Transaction_Latency_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_txn_latency_bucket`, 99) AS `Transaction_Latency_99th`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Transaction_Latency_99th",
+              "field": "sql_txn_latency_bucket",
+              "filters": [
+                {
+                  "id": "68b32930-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "6c8f7900-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Transaction_Latency_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 20,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_txn_latency_bucket`, 99)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_txn_latency_bucket",
+              "filters": [
+                {
+                  "id": "75dbff10-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "7a931e80-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Connection_Latency_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_conn_latency_bucket`, 99) AS `Connection_Latency_99th`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Connection_Latency_99th",
+              "field": "sql_conn_latency_bucket",
+              "filters": [
+                {
+                  "id": "849c8bf0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "890da1b0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "time",
+              "ns"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "{{.Dashboard.SQL_Latency}}"
+        },
+        "name": "{{.Dashboard.Connection_Latency_99th_Percentile}}",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 8,
+          "y": 10
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(percentile(`sql_conn_latency_bucket`, 99)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_conn_latency_bucket",
+              "filters": [
+                {
+                  "id": "94994250-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "99e41640-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "p99",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL"
+        },
+        "name": "{{.Dashboard.Open_SQL_Sessions}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_conns`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_conns",
+              "filters": [
+                {
+                  "id": "cd0e6250-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "d4ea4160-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL"
+        },
+        "name": "{{.Dashboard.SQL_Statements}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_insert_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_insert_count",
+              "filters": [
+                {
+                  "id": "e4ba1b60-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "ea82d1e0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_select_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_select_count",
+              "filters": [
+                {
+                  "id": "f0c26610-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "f4c18020-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_update_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_update_count",
+              "filters": [
+                {
+                  "id": "f9671360-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "fdcdeff0-0f35-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_delete_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_delete_count",
+              "filters": [
+                {
+                  "id": "03fae680-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "083e5c90-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SQL"
+        },
+        "name": "{{.Dashboard.SQL_Statement_Errors}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_failure_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sql_failure_count",
+              "filters": [
+                {
+                  "id": "2070aac0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "25ce1c50-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "CPU & Memory"
+        },
+        "name": "{{.Dashboard.Node_CPU_Usage}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_cpu_combined_percent_normalized`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_cpu_combined_percent_normalized",
+              "filters": [
+                {
+                  "id": "4b324110-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "4ef78670-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "CPU & Memory"
+        },
+        "name": "{{.Dashboard.Node_Memory_Usage}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_rss`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_rss",
+              "filters": [
+                {
+                  "id": "997113b0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "9de8b920-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "CPU & Memory"
+        },
+        "name": "{{.Dashboard.Cluster_Memory_Usage}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_rss`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' }[:::sum] BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_rss",
+              "rollup": "sum",
+              "filters": [
+                {
+                  "id": "be1edf40-48a6-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "c6a4b9f0-48a6-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_go_allocbytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' }[:::sum] BY `instance`, `node_id`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_go_allocbytes",
+              "rollup": "sum",
+              "filters": [
+                {
+                  "id": "deb04640-48a6-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "e3e45de0-48a6-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_go_totalbytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' }[:::sum] BY `instance`, `node_id`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_go_totalbytes",
+              "rollup": "sum",
+              "filters": [
+                {
+                  "id": "023e7280-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "07442720-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_cgo_allocbytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' }[:::sum] BY `instance`, `node_id`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_cgo_allocbytes",
+              "rollup": "sum",
+              "filters": [
+                {
+                  "id": "0f389740-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "13136070-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sys_cgo_totalbytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' }[:::sum]",
+              "code": "E",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sys_cgo_totalbytes",
+              "rollup": "sum",
+              "filters": [
+                {
+                  "id": "1d299f20-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "2163ed70-48a7-11ef-ada5-93ebd879975f",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Storage}}"
+        },
+        "name": "{{.Dashboard.Available_Node_Disk_Capacity}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_available`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "capacity_available",
+              "filters": [
+                {
+                  "id": "cebb80a0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "d2e02410-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Storage}}"
+        },
+        "name": "{{.Dashboard.Storage_Capacity}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "capacity",
+              "filters": [
+                {
+                  "id": "5a3ca830-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "5eecc2c0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_available`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "capacity_available",
+              "filters": [
+                {
+                  "id": "63086580-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "671f2640-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`capacity_used`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "capacity_used",
+              "filters": [
+                {
+                  "id": "6ba1a120-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "705bf4e0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "C"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Storage}}"
+        },
+        "name": "{{.Dashboard.Live_Bytes}}",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`livebytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "livebytes",
+              "filters": [
+                {
+                  "id": "f9b760d0-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "fd471740-0f36-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sysbytes`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "sysbytes",
+              "filters": [
+                {
+                  "id": "01f1daa0-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "06409b50-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Replication_Admission_Control}}"
+        },
+        "name": "{{.Dashboard.Replicas_per_store}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`replicas_quiescent`) AS `Replicas_Quiescent`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `instance`, `node_id`, `store`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Replicas_Quiescent",
+              "field": "replicas_quiescent",
+              "filters": [
+                {
+                  "id": "12495b30-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "16be6890-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "1b5bbe70-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Replication_Admission_Control}}"
+        },
+        "name": "{{.Dashboard.Admission_Delay_Rate}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`admission_wait_sum_kv_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `instance`, `node_id`, `store`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "admission_wait_sum_kv_count",
+              "filters": [
+                {
+                  "id": "2ef1ef40-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "330c5980-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "37b9b4f0-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`admission_wait_sum_kv_stores_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `instance`, `node_id`, `store`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "admission_wait_sum_kv_stores_count",
+              "filters": [
+                {
+                  "id": "3b557950-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "3fa0b790-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "42c9bcf0-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`admission_wait_sum_sql_kv_response_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `instance`, `node_id`, `store`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "admission_wait_sum_sql_kv_response_count",
+              "filters": [
+                {
+                  "id": "47c622c0-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "4b0e9700-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "4e8ce850-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`admission_wait_sum_sql_sql_response_count`)) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' and `store` = '#{store}' } BY `instance`, `node_id`, `store`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "admission_wait_sum_sql_sql_response_count",
+              "filters": [
+                {
+                  "id": "5323d590-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "579364b0-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                },
+                {
+                  "id": "5a523690-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "store",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{store}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "store"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "{{.Dashboard.Replication_Admission_Control}}"
+        },
+        "name": "{{.Dashboard.Service_Latency}}",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cockroachdb`:(avg(`sql_service_latency_bucket`) AS `SQL_Latency`) { `instance` = '#{instamce}' and `node_id` = '#{node_id}' } BY `instance`, `node_id`, `le`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "SQL_Latency",
+              "field": "sql_service_latency_bucket",
+              "filters": [
+                {
+                  "id": "2ef1ef40-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instamce}",
+                  "values": []
+                },
+                {
+                  "id": "330c5980-0f37-11ef-bbcb-8b654ca36999",
+                  "op": "=",
+                  "name": "node_id",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_id}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance",
+                "node_id",
+                "le"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cockroachdb",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "{{.Dashboard.Overview}}",
+        "extend": {}
+      },
+      {
+        "name": "{{.Dashboard.SQL_Latency}}",
+        "extend": {}
+      },
+      {
+        "name": "SQL",
+        "extend": {}
+      },
+      {
+        "name": "CPU & Memory",
+        "extend": {}
+      },
+      {
+        "name": "{{.Dashboard.Storage}}",
+        "extend": {}
+      },
+      {
+        "name": "{{.Dashboard.Replication_Admission_Control}}",
+        "extend": {}
+      }
+    ],
+    "type": "template"
+  }
+}
