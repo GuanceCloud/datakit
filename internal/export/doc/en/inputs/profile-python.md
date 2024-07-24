@@ -64,7 +64,7 @@ After a minute or two, you can visualize your profiles on the [APM -> Profile](h
 
 ## Use `py-spy` {#py-spy}
 
-`py-spy`is a non-invasive Python performance metric sampling tool provided by the open source community, which has the advantages of running independently and having low impact on target program load By default, `py-spy` will output sampling data in different formats to a local file based on the specified parameters. To simplify the integration of `py-spy` and DataKit, Observation Cloud provides a branch version [`py-spy-for-datakit`]（<https://github.com/GuanceCloud/py-spy-for-datakit>）{: target="_Blank"}, with little modifications made to the original version, supporting automatic profiling send data to DataKit.
+`py-spy`is a non-invasive Python performance metric sampling tool provided by the open source community, which has the advantages of running independently and having low impact on target program load By default, `py-spy` will output sampling data in different formats to a local file based on the specified parameters. To simplify the integration of `py-spy` and DataKit, GuanceCloud provides a branch version [`py-spy-for-datakit`]（<https://github.com/GuanceCloud/py-spy-for-datakit>）{: target="_Blank"}, with little modifications made to the original version, supporting automatic profiling send data to DataKit.
 
 - Installation
 

@@ -48,7 +48,7 @@ If the receiving end DataKit turns on the `ploffload` collector, it can be confi
 
 ## Working Principle
 
-After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from `Observation Cloud`, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
+After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from GuanceCloud, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
 
 ![`pipeline-offload`](img/pipeline-offload.drawio.png)
 

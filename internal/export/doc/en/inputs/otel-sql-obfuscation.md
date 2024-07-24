@@ -51,7 +51,7 @@ If you want to get the data before cleaning and the value added by the `set` fun
 OTEL_JDBC_SQL_OBFUSCATION=true
 ```
 
-In the end, the link details on Observation Cloud look like this:
+In the end, the link details on GuanceCloud look like this:
 
 <!-- markdownlint-disable MD046 MD033 -->
 <figure >

@@ -122,7 +122,7 @@ Open `newrelic.config` in the `New Relic Agent` installation directory. Replace 
 
 #### Configure host {#configure-host-for-newrelic}
 
-Since `New Relic Agent` needs to configure `HTTPS` to complete data transmission, first complete the [certificate application] (certificate.md#self-signed-certificate-with-openssl) before configuring the host. Due to the `New Relic Agent` startup process The certificate validity verification needs to be completed. Here, the self-signing of `CA` and the issuance of the self-signed `CA` certificate need to be completed. After completing the issuance of the certificate authentication chain, refer to [Observation Cloud Access NewRelic .NET Probe](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"} and [Windows Server How to import root and intermediate certificates?](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"} to deploy the certificate.
+Since `New Relic Agent` needs to configure `HTTPS` to complete data transmission, first complete the [certificate application] (certificate.md#self-signed-certificate-with-openssl) before configuring the host. Due to the `New Relic Agent` startup process The certificate validity verification needs to be completed. Here, the self-signing of `CA` and the issuance of the self-signed `CA` certificate need to be completed. After completing the issuance of the certificate authentication chain, refer to [GuanceCloud Access NewRelic .NET Probe](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"} and [Windows Server How to import root and intermediate certificates?](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"} to deploy the certificate.
 
 After completing the certificate deployment, you need to configure the `hosts` file accordingly to meet the local ability to resolve domain names. The `hosts` configuration is as follows:
 
@@ -187,5 +187,5 @@ Please refer to the documentation[No data appears after disabling TLS 1.0](https
 - [Official Document](https://docs.newrelic.com/){:target="_blank"}
 - [Code Warehouse](https://github.com/newrelic/newrelic-dotnet-agent){:target="_blank"}
 - [Download](https://download.newrelic.com/){:target="_blank"}
-- [Observation Cloud Access NewRelic .NET Probe](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}
+- [GuanceCloud Access NewRelic .NET Probe](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}
 - [How to import root certificates and intermediate certificates on Windows servers?](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"}
