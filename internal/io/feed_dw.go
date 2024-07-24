@@ -26,6 +26,10 @@ func (fo *datawayOutput) Reader(cat point.Category) <-chan *feedOption {
 
 // WriteLastError send any error info into Prometheus metrics.
 func (fo *datawayOutput) WriteLastError(err string, opts ...LastErrorOption) {
+	writeLastError(err, opts...)
+}
+
+func writeLastError(err string, opts ...LastErrorOption) {
 	le := newLastError()
 
 	for _, opt := range opts {
@@ -53,6 +57,21 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 	if len(data.pts) == 0 {
 		return nil
 	}
+
+	if data.syncSend {
+		defIO.recordPoints(data)
+		fc, ok := defIO.fcs[data.cat.String()]
+		if !ok {
+			log.Infof("IO local cache not set for %q", data.cat.String())
+		}
+		err := defIO.doFlush(data.pts, data.cat, fc)
+		if err != nil {
+			log.Warnf("post %d points to %s failed: %s, ignored", len(data.pts), data.cat, err)
+		}
+		datakit.PutbackPoints(data.pts...)
+		return err
+	}
+
 	ch := fo.chans[data.cat]
 
 	start := time.Now()

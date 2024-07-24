@@ -78,7 +78,7 @@ release-ebpf-amd64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [ut-datakit-testing]
-  image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
     - testing
     - /^testing-.*$/
@@ -92,7 +92,7 @@ release-ebpf-aarch64-testing:
   stage: deploy_ebpf
   resource_group: production
   needs: [ut-datakit-testing]
-  image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
     - testing
     - /^testing-.*$/
@@ -106,7 +106,7 @@ release-ebpf-amd64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [ut-datakit-production]
-  image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
     - master
     - unstable
@@ -120,7 +120,7 @@ release-ebpf-aarch64-production:
   stage: deploy_ebpf
   resource_group: production
   needs: [ut-datakit-production]
-  image: pubrepo.guance.com/ebpf-dev/datakit-developer:1.7
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
     - master
     - unstable
@@ -143,6 +143,8 @@ release-testing:
     - testing
     - /^testing-.*$/
   script:
+    - export AWS_ACCESS_KEY_ID="$TESTING_AWS_ACCESS_KEY_ID"
+    - export AWS_SECRET_ACCESS_KEY="$TESTING_AWS_SECRET_ACCESS_KEY"
     # building && publish testing
     - make clean
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version

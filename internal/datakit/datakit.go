@@ -132,6 +132,7 @@ var (
 	Commit     = git.Commit
 	Lite       = false
 	ELinker    = false
+	AWSLambda  = false
 	AutoUpdate = false
 	IsTestMode bool
 

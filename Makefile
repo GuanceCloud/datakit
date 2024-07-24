@@ -156,6 +156,7 @@ define publish
 		-upload-addr $(2)        \
 		-download-cdn $(3)       \
 		-pub                     \
+		-enable-upload-aws       \
 		-pub-dir $(PUB_DIR)      \
 		-name $(NAME)            \
 		-build-dir $(BUILD_DIR)  \

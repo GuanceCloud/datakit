@@ -7,11 +7,24 @@
 package compareutil
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"reflect"
 )
 
-func CompareListDisordered(listA interface{}, listB interface{}) bool {
-	return assert.ElementsMatch(&testing.T{}, listA, listB)
+func CompareListDisordered[E comparable, T []E](listA T, listB T) bool {
+	if len(listA) != len(listB) {
+		return false
+	}
+
+	countA := make(map[E]int)
+	countB := make(map[E]int)
+
+	for _, elem := range listA {
+		countA[elem]++
+	}
+
+	for _, elem := range listB {
+		countB[elem]++
+	}
+
+	return reflect.DeepEqual(countA, countB)
 }

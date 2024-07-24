@@ -118,7 +118,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/aws/aws-sdk-go v1.44.175 // indirect
+	github.com/aws/aws-sdk-go v1.44.175
 	github.com/aws/aws-sdk-go-v2 v1.17.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.8 // indirect

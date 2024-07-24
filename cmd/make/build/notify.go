@@ -336,3 +336,65 @@ func NotifyPubEBpfDone() {
 		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion)))
 	}
 }
+
+func NotifyPubAWSLambdaDone() {
+	if NotifyToken == "" {
+		return
+	}
+
+	x := struct {
+		Uploader, Version, DownloadCDN string
+	}{
+		Uploader:    git.Uploader,
+		Version:     ReleaseVersion,
+		DownloadCDN: DownloadCDN,
+	}
+
+	switch ReleaseType {
+	case ReleaseLocal, ReleaseTesting:
+
+		content := func() []string {
+			x := []string{
+				fmt.Sprintf(`{{.Uploader}} 发布了 DataKit aws lambda %d 个平台测试版({{.Version}})。`, len(curArchs)),
+			}
+			for _, arch := range curArchs {
+				x = append(x, "--------------------------")
+				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
+				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
+					"datakit_aws_extension-%s-%s-%s.zip", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
+			}
+			return x
+		}()
+
+		CINotifyNewAWSVersion := fmt.Sprintf(`
+{
+	"msgtype": "text",
+	"text": {
+		"content": "%s"
+		}
+}`, strings.Join(content, "\n"))
+
+		var buf bytes.Buffer
+		t, err := template.New("").Parse(CINotifyNewAWSVersion)
+		if err != nil {
+			l.Fatal(err)
+		}
+
+		if err := t.Execute(&buf, x); err != nil {
+			l.Fatal(err)
+		}
+
+		l.Debugf("NotifyPubAWSLambdaDone...")
+		notify(NotifyToken, &buf)
+	case ReleaseProduction:
+
+		l.Debugf("NotifyPubAWSLambdaDone for release...")
+		notify(NotifyToken, bytes.NewBufferString(fmt.Sprintf(`
+		{
+			"msgtype": "text",
+			"text": {
+				"content": "%s 发布了 DataKit aws lambda %s 新版本(%s)"
+			}
+		}`, git.Uploader, strings.Join(curArchs, ", "), ReleaseVersion)))
+	}
+}

@@ -63,6 +63,8 @@ var (
 	// ...
 	Archs string
 
+	AWSRegions      string
+	EnableUploadAWS bool
 	// build race-deteciton-enabled binary.
 	RaceDetection bool
 
@@ -214,7 +216,19 @@ func Compile() error {
 				return err
 			}
 		}
-
+		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
+			dir := fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", BuildDir, AppName, goos, goarch)
+			mainEntry := filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "main.go")
+			if err := compileArch(AppBin, goos, goarch, dir, mainEntry, "datakit_aws_lambda && with_inputs"); err != nil {
+				return err
+			}
+			cmd := exec.Command("zip", []string{"-r", AppName + "_aws_extension.zip", "extensions/"}...)
+			cmd.Dir = filepath.Dir(dir)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("failed to run: %w, msg: %s", err, string(output))
+			}
+		}
 		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "with_inputs"); err != nil {
 			return err
 		}
@@ -353,4 +367,19 @@ func isExtraELinker() bool {
 	}
 
 	return extraELinker
+}
+
+// is_extra_aws_lambda check whether to build aws lambda datakit.
+func isExtraAWSLambda() bool {
+	extraAWSLambda := true
+	awsLambdaDisable := os.Getenv("AWS_LAMBDA_DISABLE")
+	if len(awsLambdaDisable) > 0 {
+		if v, err := strconv.ParseBool(awsLambdaDisable); err != nil {
+			l.Warnf("parse ELINKER_DISABLE error: %s, ignore", err.Error())
+		} else {
+			extraAWSLambda = !v
+		}
+	}
+
+	return extraAWSLambda
 }

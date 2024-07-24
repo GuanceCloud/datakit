@@ -15,6 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/lambda"
+
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
@@ -40,6 +44,13 @@ const (
 	TarNoRlsVer   tarFileOpt = 0b0
 	TarWithRlsVer tarFileOpt = 0b1
 )
+
+const (
+	ARM64 = "arm64"
+	AMD64 = "amd64"
+)
+
+const Linux = "linux"
 
 func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
 	l.Debugf("tarFiles entry, pubPath = %s, buildPath = %s, appName = %s", pubPath, buildPath, appName)
@@ -190,6 +201,18 @@ func PubDatakit() error {
 			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_elinker", parts[0], parts[1], TarWithRlsVer)
 			basics[gzName] = gzPath
 		}
+		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
+			zipName := fmt.Sprintf("%s-%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch, ReleaseVersion)
+			err := uploadAWSLambdaZip(zipName, goos, goarch, basics, true)
+			if err != nil {
+				l.Fatal(err)
+			}
+			zipNameLatest := fmt.Sprintf("%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch)
+			err = uploadAWSLambdaZip(zipNameLatest, goos, goarch, basics, false)
+			if err != nil {
+				l.Fatal(err)
+			}
+		}
 
 		upgraderGZFile, upgraderGZPath := tarFiles(PubDir, BuildDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
 
@@ -238,4 +261,73 @@ func PubDatakit() error {
 
 	l.Infof("Done!(elapsed: %v)", time.Since(start))
 	return nil
+}
+
+func uploadAWSLambdaZip(zipName string, goos string, goarch string, basics map[string]string, isUploadAWS bool) error {
+	// oss
+	targetZipPath := filepath.Join(PubDir, ReleaseType, zipName)
+	sourceZipPath := filepath.Join(BuildDir, fmt.Sprintf("%s-%s-%s", AppName+"_aws_lambda", goos, goarch), AppName+"_aws_extension.zip")
+	cmd := exec.Command("cp", sourceZipPath, targetZipPath) //nolint:gosec
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to run: %w, msg: %s", err, string(output))
+	}
+	basics[zipName] = targetZipPath
+	// aws
+	if isUploadAWS && EnableUploadAWS {
+		rs := strings.Split(AWSRegions, ",")
+		for _, region := range rs {
+			err = os.Setenv("AWS_REGION", region)
+			if err != nil {
+				return err
+			}
+			var arn string
+			switch goarch {
+			case AMD64:
+				arn, err = uploadAWSLayer(targetZipPath, AppName, "x86_64")
+			case ARM64:
+				arn, err = uploadAWSLayer(targetZipPath, AppName, ARM64)
+			default:
+			}
+			if err != nil {
+				l.Warnf("failed to upload layer to aws %v: %v", region, err)
+			}
+			l.Infof("aws layer arn: %s", arn)
+		}
+	}
+	return nil
+}
+
+// uploadAWSLayer load env:
+// AWS_REGION
+// AWS_ACCESS_KEY_ID
+// AWS_SECRET_ACCESS_KEY
+// AWS_SESSION_TOKEN.
+func uploadAWSLayer(zipPath string, layerName string, arch string) (string, error) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	// Read zip file content
+	zipBytes, err := os.ReadFile(zipPath) //nolint:gosec
+	if err != nil {
+		return "", fmt.Errorf("failed to read zip file: %w", err)
+	}
+
+	// Initialize Lambda service client
+	svc := lambda.New(sess)
+
+	// Upload layer
+	resp, err := svc.PublishLayerVersion(&lambda.PublishLayerVersionInput{
+		LayerName: aws.String(layerName + "-" + arch),
+		Content: &lambda.LayerVersionContentInput{
+			ZipFile: zipBytes,
+		},
+		CompatibleArchitectures: []*string{aws.String(arch)},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload layer: %w", err)
+	}
+
+	return aws.StringValue(resp.LayerVersionArn), nil
 }

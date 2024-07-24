@@ -30,6 +30,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.DownloadCDN, "download-cdn", "", "dist where to download from")
 	flag.StringVar(&build.PubDir, "pub-dir", "pub", "")
 	flag.StringVar(&build.Archs, "archs", "local", "os archs")
+	flag.StringVar(&build.AWSRegions, "aws-regions", "cn-north-1,cn-northwest-1", "aws regions")
+	flag.BoolVar(&build.EnableUploadAWS, "enable-upload-aws", false, "enable upload aws")
 	flag.StringVar(&raceDetection, "race", "off", "enable race deteciton")
 	flag.StringVar(&build.ReleaseType, "release", "", "build for local/testing/production")
 	flag.StringVar(&dwURL, "dataway-url", "", "set dataway URL(https://dataway.com/v1/write/logging?token=xxx) to push testing metrics")
@@ -37,6 +39,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&build.NotifyOnly, "notify-only", false, "notify CI process")
 	flag.BoolVar(&doPub, "pub", false, `publish binaries to OSS: local/testing/production`)
 	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
+	flag.BoolVar(&notifyAWSLambda, "ny-aws", false, `notify datakit-aws-lambda`)
 	flag.BoolVar(&pkgEBPF, "pkg-ebpf", false, `add datakit-ebpf to datakit tarball`)
 	flag.BoolVar(&downloadEBPF, "dl-ebpf", false, `download datakit-ebpf from OSS: local/testing/production`)
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
@@ -69,15 +72,16 @@ func init() { //nolint:gochecknoinits
 var (
 	mdCheck, mdMetaDir, mdAutofix string
 
-	doPub         = false
-	doPubeBPF     = false
-	pkgEBPF       = false
-	downloadEBPF  = false
-	buildISP      = false
-	ut            = false
-	export        = false
-	raceDetection = "off"
-	dwURL         = "not-set"
+	doPub           = false
+	doPubeBPF       = false
+	notifyAWSLambda = false
+	pkgEBPF         = false
+	downloadEBPF    = false
+	buildISP        = false
+	ut              = false
+	export          = false
+	raceDetection   = "off"
+	dwURL           = "not-set"
 
 	downloadSamples = false
 	dumpSamples     = false
@@ -213,6 +217,9 @@ func applyFlags() {
 			build.NotifyFail(err.Error())
 		} else {
 			build.NotifyPubDone()
+			if notifyAWSLambda {
+				build.NotifyPubAWSLambdaDone()
+			}
 		}
 		return
 	} else {

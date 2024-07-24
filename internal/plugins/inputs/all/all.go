@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !datakit_elinker && !datakit_lite && with_inputs
-// +build !datakit_elinker,!datakit_lite,with_inputs
+//go:build !datakit_elinker && !datakit_lite && !datakit_aws_lambda && with_inputs
+// +build !datakit_elinker,!datakit_lite,!datakit_aws_lambda,with_inputs
 
 // Package inputs wraps all inputs implements
 package inputs
@@ -98,7 +98,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/tdengine"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/tomcat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zipkin"
-
 	// only windows.
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/iis"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/winevent"
