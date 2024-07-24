@@ -1,137 +1,85 @@
+# PHP
 
-# PHP Sample
 ---
 
-## Install Dependency {#dependence}
+## Install Dependencies {#dependence}
 
-First [download](https://github.com/DataDog/dd-trace-php/releases){:target="_blank"} the required PHP ddtrace extension, and install the extension after downloading.
-<!-- markdownlint-disable MD013 -->
-### Using RPM package (RHEL/CentOS 6+, Fedora 20+)  {#rpm}
-<!-- markdownlint-enable -->
-```shell
-rpm -ivh datadog-php-tracer.rpm
-```
-<!-- markdownlint-disable MD013 -->
-### Using DEB package (Debian Jessie+ , Ubuntu 14.04+ on supported PHP versions)  {#dev}
-<!-- markdownlint-enable -->
-```shell
-dpkg -i datadog-php-tracer.deb
-```
-
-<!-- markdownlint-disable MD013 -->
-### Using APK package (Alpine) {#apk}
-<!-- markdownlint-enable -->
-```shell
-apk add datadog-php-tracer.apk --allow-untrusted
-```
-
-The default version of PHP extension will be installed in the above way. You can install the specified extension packs by configuring the DD_TRACE_PHP_BIN to the extension pack path.
-
-```shell
-export DD_TRACE_PHP_BIN=$(which version of php-fpm7)
-```
-
-After installation, restart PHP ([PHP-FPM](https://www.php.net/manual/en/install.fpm.php){:target="_blank"} or the [Apache SAPI](https://en.wikipedia.org/wiki/Server_application_programming_interface)) and visit the endpoint where tracing is started.
-
-> Note: If your PHP application does not use Composer or uses `spl_autoload_register()` to register an autoloader, you need to set the environment variable `DD_TRACE_NO_AUTOLOADER=true` to enable automatic detection.
+For the installation of the PHP APM plugin, refer to the [Datadog PHP Integration Documentation](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/php/#install-the-extension){:target="_blank"}.
 
 ## Configuration {#config}
 
-PHP tracer can be configured through environment variables and an ini configuration file.
-
-Ini can be configured globally, for example, using php.ini to configure a specific web server or virtual host.
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    If you use automatic detection (recommended solution), please note that the code used for automatic detection will run before any business code. Then the following environment variables and ini configuration need to be configured on the corresponding server and can be accessed by the PHP runtime. For example: `putenv()` function and *.env* files will be invalid.
-<!-- markdownlint-enable -->
-
-### Apache {#apache}
-
-Apache works with php-fpm to configure environment variables in the `www.conf` configuration file.
-
-```ini
-; Example of passing the host environment variable SOME_ENV
-; to the PHP process as DD_AGENT_HOST
-env[DD_AGENT_HOST] = $SOME_ENV
-; Example of passing the value 'my-app' to the PHP
-; process as DD_SERVICE
-env[DD_SERVICE] = my-app
-; Or using the equivalent INI setting
-php_value datadog.service my-app
-```
-
-You can also use SetEnv in server config, virtual host, directory, or. htaccess files.
-
-```htaccess
-# In a virtual host configuration as an environment variable
-SetEnv DD_TRACE_DEBUG true
-# In a virtual host configuration as an INI setting
-php_value datadog.service my-app
-```
-
-### NGINX {#nginx}
-
-Nginx works with php-fpm to configure environment variables in the `www.conf` configuration file.
-
-```ini
-; Example of passing the host environment variable SOME_ENV
-; to the PHP process as DD_AGENT_HOST
-env[DD_AGENT_HOST] = $SOME_ENV
-; Example of passing the value 'my-app' to the PHP
-; process as DD_SERVICE
-env[DD_SERVICE] = my-app
-; Or using the equivalent INI setting
-php_value datadog.service my-app
-```
-
-## Run {#run}
-
-Open the shell and run the following command
-
-```shell
-DD_AGENT_HOST=localhost \
-DD_TRACE_AGENT_PORT=9529 \
-DD_TRACE_DEBUG=true \
-php -d datadog.service=my-php-app -S localhost:8888
-```
+Depending on the PHP runtime environment (Apache/NGINX), there are some differences in the configuration. See the [Datadog PHP Trace SDK Configuration Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.
 
 ## Environment Variable Support {#envs}
 
-- `DD_AGENT_HOST`
-  INI: `datadog.agent_host`
-  The address of the host that Datakit listens on, default localhost.
-- `DD_TRACE_AGENT_PORT`
-  INI: `datadog.trace.agent_port`
-  Datakit listening port number, default 9529.
-- `DD_ENV`
-  INI: `datadog.env`
-  Set program environment variables.
-- `DD_SERVICE`
-  INI: `datadog.service`
-  Set the APP name, version less than 0.47. 0 using DD_SERVICE_NAME.
-- `DD_SERVICE_MAPPING`
-  INI: `datadog.service_mapping`
-  Rename the APM service name.
-- `DD_TRACE_AGENT_ATTEMPT_RETRY_TIME_MSEC`
-  INI: `datadog.trace.agent_attempt_retry_time_msec`
-  IPC-based configurable circuit breakpoint retry intervals (milliseconds), default 5000.
-- `DD_TRACE_AGENT_CONNECT_TIMEOUT`
-  INI: `datadog.trace.agent_connect_timeout`
-  Agent connection timeout (milliseconds), default 100.
-- `DD_TRACE_AGENT_MAX_CONSECUTIVE_FAILURES`
-  INI: `datadog.trace.agent_max_consecutive_failures`
-  Maximum number of consecutive breakpoints for IPC-based configurable circuits, default 3.
-- `DD_TRACE_AGENT_TIMEOUT`
-  INI: `datadog.trace.agent_timeout`
-  Agent data transfer timeout (milliseconds), the default is 500.
-- `DD_TAGS`
-  INI: `datadog.tags`
-  Set the default tags.
-- `DD_VERSION`
-  INI: `datadog.version`
-  Set the service version.
-- `DD_TRACE_SAMPLE_RATE`
-  INI: `datadog.trace.smaple_rate`
-  Set the sampling rate from 0.0 (0%) to 1.0 (100%).
+Below are common PHP APM parameter configurations. For a complete list of parameters, refer to the [Datadog Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.
+
+- **`DD_AGENT_HOST`**
+
+    **INI**: `datadog.agent_host`
+
+    **Default**: `localhost`
+
+    The host address where Datakit is listening.
+
+- **`DD_TRACE_AGENT_PORT`**
+
+    **INI**: `datadog.trace.agent_port`
+
+    **Default**: `8126`
+
+    The port number where Datakit is listening, which should be manually set to 9529.
+
+- **`DD_ENV`**
+
+    **INI**: `datadog.env`
+
+    **Default**: `null`
+
+    Sets the environment information for the program, such as `prod/pre-prod`.
+
+- **`DD_SERVICE`**
+
+    **INI**: `datadog.service`
+
+    **Default**: `null`
+
+    Sets the APP service name.
+
+- **`DD_SERVICE_MAPPING`**
+
+    **INI**: `datadog.service_mapping`
+
+    **Default**: `null`
+
+    Renames APM service names, for example: `DD_SERVICE_MAPPING=pdo:payments-db,mysqli:orders-db`.
+
+- **`DD_TRACE_AGENT_CONNECT_TIMEOUT`**
+
+    **INI**: `datadog.trace.agent_connect_timeout`
+
+    **Default**: `100`
+
+    Agent connection timeout configuration to Datakit (unit ms), default is 100.
+
+- **`DD_TAGS`**
+
+    **INI**: `datadog.tags`
+
+    **Default**: `null`
+
+    Sets a list of tags that will be appended to each span by default, for example: `key1:value1,key2:value2`.
+
+- **`DD_VERSION`**
+
+    **INI**: `datadog.version`
+
+    Sets the service version.
+
+- **`DD_TRACE_SAMPLE_RATE`**
+
+    **INI**: `datadog.trace.sample_rate`
+
+    **Default**: `-1`
+
+    Sets the sampling rate from 0.0 (0%) to 1.0 (100%).

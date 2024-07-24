@@ -341,7 +341,7 @@ Create a file named "collect.sh" in current dir, type follow text：
 bash collect.sh
 ```
 
-After the script is executed, the collected profiling data will be reported to the Observation Cloud platform through DataKit, which can be viewed later in the "APM" - "Profile" page.
+After the script is executed, the collected profiling data will be reported to the GuanceCloud platform through DataKit, which can be viewed later in the "APM" - "Profile" page.
 
 available env：
 
