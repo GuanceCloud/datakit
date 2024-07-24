@@ -18,6 +18,7 @@ CUBRID
 Chrony
 ClickHouse
 Cloudprober
+CockroachDB
 Collector
 Confd
 ConfigMag
@@ -36,9 +37,9 @@ DialTesting
 Distro
 Dubbo
 Dubbox
-Errno
 ELinker
 ElasticSearch
+Errno
 Fastjson
 Filebeat
 FireLens
@@ -78,7 +79,7 @@ Nacos
 NetFlow
 Ning
 ODBC
-netlog
+OceanBase
 OpenSSL
 OpenTelemetry
 OpenTracing
@@ -112,8 +113,8 @@ Stddev
 Tablespace
 Tencent
 Uprobe
-Vertx
 VXLAN
+Vertx
 Weblogic
 Websphere
 XDAs
@@ -138,6 +139,8 @@ fargate
 filesystems
 fsyncs
 gRPC
+getmore
+getmores
 gofumpt
 golint
 goyacc
@@ -166,10 +169,12 @@ mnodes
 mnodes
 mysqld
 netflow
+netlog
 nginx
 nsec
 nullable
 nvme
+oplog
 ppid
 pprof
 promremote
@@ -183,6 +188,7 @@ sharded
 smartmontools
 snmp
 solr
+spinlocks
 stderr
 stdout
 syscall
@@ -209,10 +215,6 @@ workarea
 xpack
 zabbix
 zhangsan
-oplog
-getmore
-getmores
-spinlocks
 
 ##############################################
 # 缩写

@@ -8,22 +8,22 @@
 
 - 新增主流采集器的自定义对象采集，如 Oracle/MySQL/Apache 等（#2207）
 - 远程采集器增加 `up` 指标（#2304）
-- statsd 采集器增加自身指标暴露（#2326）
-- 新增 [cockroachdb 采集器](../integrations/cockroachdb.md)（#2187）
+- Statsd 采集器增加自身指标暴露（#2326）
+- 新增 [CockroachDB 采集器](../integrations/cockroachdb.md)（#2187）
 - 新增 [AWS lambda 采集器](../integrations/awslambda.md)（#2258）
-- 新增 [kubernetesprometheus 采集器](../integrations/kubernetesprometheus.md)，实现自动发现 prometheus 采集（#2246）
+- 新增 [Kubernetes Prometheus 采集器](../integrations/kubernetesprometheus.md)，实现自动发现 Prometheus 采集（#2246）
 
 ### 问题修复 {#cl-1.34.0-fix}
 
-- 修复 Windows 某些版本下 bug report 以及 dk 采集器可能占用太多内存的问题，临时移除了部分指标暴露来绕过（#2317）
-- 修复 `datakit monitor` 不显示来源于 confd 的采集器（#2160）
+- 修复 Windows 某些版本下 bug report 以及 Datakit 自身采集器可能占用太多内存的问题，临时移除了部分指标暴露来绕过（#2317）
+- 修复 `datakit monitor` 不显示来源于 Confd 的采集器（#2160）
 - 修复容器日志如果在 Annotation 手动指定为 stdout 将无法采集的问题（#2327）
 - 修复 eBPF 网络日志采集器获取 K8s 标签异常（#2325）
 - 修复 RUM 采集器并发读写错误（#2319）
 
 ### 功能优化 {#cl-1.34.0-opt}
 
-- 优化 Oceanbase 采集器视图模板，以及指标 `oceanbase_log` 增加 `cluster` Tag（#2265）
+- 优化 OceanBase 采集器视图模板，以及指标 `oceanbase_log` 增加 `cluster` Tag（#2265）
 - 优化拨测采集器任务失败次数过多而导致任务退出问题（#2314）
 - Pipeline 支持添加脚本执行信息到数据中，以及 `http_request` 函数支持 body 参数（#2313/#2298）
 - 优化 eBPF 采集器内存使用（#2328）
