@@ -8,8 +8,8 @@ package rum
 import (
 	"net"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,56 +23,8 @@ func TestIsDomainName(t *testing.T) {
 	assert.True(t, isDomainName("cdn.cnbj1.fds.api.mi-img.com"))
 }
 
-func TestQueue(t *testing.T) {
-	q := NewQueue[string]()
-
-	a, b, c, d := NewQueueNode("aaaa"), NewQueueNode("bbbb"), NewQueueNode("cccc"), NewQueueNode("dddd")
-
-	q.Enqueue(a)
-	q.Enqueue(b)
-	q.Enqueue(c)
-	q.Enqueue(d)
-	q.dump() // d c b a
-
-	assert.Equal(t, 4, q.Size())
-
-	q.MoveToFront(q.RearNode()) // a d c b
-	q.MoveToFront(q.RearNode()) // b a d c
-	q.MoveToFront(q.RearNode()) // c b a d
-	q.dump()                    // c b a d
-
-	assert.Equal(t, q.RearNode(), d)
-	assert.Equal(t, 4, q.Size())
-
-	q.Remove(a) // c b d
-	q.dump()    // c b d
-
-	assert.Equal(t, 3, q.Size())
-	assert.Equal(t, d, q.Dequeue()) // c b
-	assert.Equal(t, b, q.Dequeue()) // c
-	assert.Equal(t, c, q.Dequeue()) // empty
-	q.Dequeue()                     // do nothing
-	q.Dequeue()                     // do nothing
-	q.dump()                        // empty
-
-	assert.True(t, q.Empty(), "logic error, queue expected to be empty")
-
-	e, f, g := NewQueueNode("eeee"), NewQueueNode("ffff"), NewQueueNode("gggg")
-	q.Enqueue(e)
-	assert.Equal(t, 1, q.Size())
-	assert.Equal(t, e, q.FrontNode())
-	assert.Equal(t, e, q.RearNode())
-
-	q.Enqueue(f)
-	q.Enqueue(g)
-	q.dump()
-	assert.Equal(t, 3, q.Size())
-	assert.Equal(t, g, q.FrontNode())
-	assert.Equal(t, e, q.RearNode())
-}
-
 func TestLruCDNCache(t *testing.T) {
-	cache := newLruCDNCache(8)
+	cache := expirable.NewLRU[string, *cdnResolved](8, nil, cdnCacheTTL)
 
 	domains := []string{
 		"cdn.cnbj1.fds.api.mi-img.com",
@@ -95,33 +47,42 @@ func TestLruCDNCache(t *testing.T) {
 		t.Logf("cdn name for domain %s: cname: %s, cdn: %s", domain, cname, cdnName)
 	}
 
-	a := newCDNResolved("baidu.com", "", "百度云", time.Now())
-	b := newCDNResolved("qiniu.com", "", "七牛云", time.Now())
-	c := newCDNResolved("aliyun.com", "", "阿里云", time.Now())
-	d := newCDNResolved("cloud.tencent.com", "", "腾讯云", time.Now())
-	e := newCDNResolved("kingsoft.com", "", "金山云", time.Now())
-	f := newCDNResolved("ucloud.com", "", "优克得", time.Now())
-	g := newCDNResolved("huawei.com", "", "华为云", time.Now())
-	h := newCDNResolved("wangsu.com", "", "网宿CDN", time.Now())
+	a := newCDNResolved("baidu.com", "", "百度云")
+	b := newCDNResolved("qiniu.com", "", "七牛云")
+	c := newCDNResolved("aliyun.com", "", "阿里云")
+	d := newCDNResolved("cloud.tencent.com", "", "腾讯云")
+	e := newCDNResolved("kingsoft.com", "", "金山云")
+	f := newCDNResolved("ucloud.com", "", "优克得")
+	g := newCDNResolved("huawei.com", "", "华为云")
+	h := newCDNResolved("wangsu.com", "", "网宿CDN")
 
-	cache.push(a)
-	cache.push(b)
-	cache.push(c)
-	cache.push(d)
-	cache.push(e)
-	cache.push(f)
-	cache.push(g)
-	cache.push(h)
-	cache.queue.dump()
+	cache.Add(a.domain, a)
+	cache.Add(b.domain, b)
+	cache.Add(c.domain, c)
+	cache.Add(d.domain, d)
+	cache.Add(e.domain, e)
+	cache.Add(f.domain, f)
+	cache.Add(g.domain, g)
+	cache.Add(h.domain, h)
 
-	i := newCDNResolved("cdn.cnbj1.fds.api.mi-img.com", "", "小米CDN", time.Now())
+	for _, resolved := range cache.Values() {
+		if resolved != nil {
+			t.Logf("%+#v", *resolved)
+		}
+	}
 
-	cache.push(i)
-	cache.queue.dump()
+	i := newCDNResolved("cdn.cnbj1.fds.api.mi-img.com", "", "小米CDN")
 
-	node := cache.get("qiniu.com")
-	t.Logf("%+v\n", node.Data)
-	assert.True(t, node != nil, "")
+	cache.Add(i.domain, i)
+	for _, resolved := range cache.Values() {
+		if resolved != nil {
+			t.Logf("%+#v", *resolved)
+		}
+	}
+
+	node, ok := cache.Get("qiniu.com")
+	t.Logf("%+v\n", node)
+	assert.True(t, ok, "")
 }
 
 func TestIsPrivateIP(t *testing.T) {

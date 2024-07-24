@@ -657,39 +657,10 @@ type QueueNode[T any] struct {
 	Next *QueueNode[T]
 }
 
-func NewQueueNode[T any](t T) *QueueNode[T] {
-	return &QueueNode[T]{
-		Data: t,
-		Prev: nil,
-		Next: nil,
-	}
-}
-
 type Queue[T any] struct {
 	front *QueueNode[T]
 	rear  *QueueNode[T]
 	size  int
-}
-
-func NewQueue[T any]() *Queue[T] {
-	var _nil T
-	head, tail := NewQueueNode[T](_nil), NewQueueNode[T](_nil)
-	head.Next = tail
-	tail.Prev = head
-	return &Queue[T]{
-		front: head,
-		rear:  tail,
-		size:  0,
-	}
-}
-
-func (q *Queue[T]) dump() {
-	node := q.front.Next
-	for node != q.rear {
-		fmt.Printf("%v\n", node.Data)
-		node = node.Next
-	}
-	fmt.Println("--------------------------------")
 }
 
 func (q *Queue[T]) Size() int {
@@ -746,59 +717,4 @@ func (q *Queue[T]) MoveToFront(node *QueueNode[T]) {
 		q.Remove(node)
 		q.Enqueue(node)
 	}
-}
-
-type lruCDNCache struct {
-	cdnMap  map[string]*QueueNode[*cdnResolved]
-	queue   *Queue[*cdnResolved]
-	maxSize int
-}
-
-func newLruCDNCache(maxCapacity int) *lruCDNCache {
-	return &lruCDNCache{
-		cdnMap:  make(map[string]*QueueNode[*cdnResolved], CacheInitCap),
-		queue:   NewQueue[*cdnResolved](),
-		maxSize: maxCapacity,
-	}
-}
-
-func (lru *lruCDNCache) push(cdn *cdnResolved) {
-	if lru.queue.Size() >= lru.maxSize {
-		oldest := lru.queue.Dequeue()
-		if oldest != nil {
-			delete(lru.cdnMap, oldest.Data.domain)
-
-			log.Warnf("Reach to max limit of cache，the oldest data is dropped，domain = [%s], created = [%s]",
-				oldest.Data.domain, oldest.Data.created.Format(time.RFC3339))
-		}
-	}
-
-	node := NewQueueNode(cdn)
-	lru.queue.Enqueue(node)
-	lru.cdnMap[cdn.domain] = node
-}
-
-func (lru *lruCDNCache) get(domain string) *QueueNode[*cdnResolved] {
-	if node, ok := lru.cdnMap[domain]; ok {
-		return node
-	}
-	return nil
-}
-
-func (lru *lruCDNCache) moveToFront(node *QueueNode[*cdnResolved]) {
-	lru.queue.MoveToFront(node)
-}
-
-func (lru *lruCDNCache) drop(domain string) *cdnResolved { //nolint: unused
-	if cdn, ok := lru.cdnMap[domain]; ok {
-		delete(lru.cdnMap, domain)
-		lru.queue.Remove(cdn)
-
-		if len(lru.cdnMap) != lru.queue.Size() {
-			log.Warnf("cache map size do not equals queue size, map size = [%d], queue size = [%d]",
-				len(lru.cdnMap), lru.queue.Size())
-		}
-		return cdn.Data
-	}
-	return nil
 }
