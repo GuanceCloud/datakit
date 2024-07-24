@@ -212,8 +212,8 @@ func (c *Config) loadPipelineEnvs() {
 		c.Pipeline.SQLiteMemMode = true
 	}
 
-	if v := datakit.GetEnv("ENV_PIPELINE_APPEND_RUN_INFO"); v != "" {
-		c.Pipeline.AppendRunInfo = true
+	if v := datakit.GetEnv("ENV_PIPELINE_DISABLE_APPEND_RUN_INFO"); v != "" {
+		c.Pipeline.DisableAppendRunInfo = true
 	}
 
 	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {
