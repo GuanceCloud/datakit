@@ -306,7 +306,7 @@ func (ipt *Input) Init() error {
 		iprom.WithSource(ipt.Source),
 		iprom.WithMeasurementName(ipt.MeasurementName),
 		iprom.WithTLSOpen(ipt.TLSOpen),
-		iprom.WithCacertFile(ipt.CacertFile),
+		iprom.WithCacertFiles([]string{ipt.CacertFile}),
 		iprom.WithCertFile(ipt.CertFile),
 		iprom.WithKeyFile(ipt.KeyFile),
 		iprom.WithTagsIgnore(ipt.TagsIgnore),

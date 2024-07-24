@@ -64,11 +64,11 @@ type optionMock struct {
 	output                 string
 	maxFileSize            int64
 
-	tlsOpen    bool
-	udsPath    string
-	cacertFile string
-	certFile   string
-	keyFile    string
+	tlsOpen     bool
+	udsPath     string
+	cacertFiles []string
+	certFile    string
+	keyFile     string
 
 	tagsIgnore  []string // do not keep these tags in scraped prom data
 	tagsRename  *RenameTags
@@ -117,7 +117,7 @@ func createOpts(in *optionMock) []PromOption {
 		WithMaxFileSize(in.maxFileSize),
 		WithTLSOpen(in.tlsOpen),
 		WithUDSPath(in.udsPath),
-		WithCacertFile(in.cacertFile),
+		WithCacertFiles(in.cacertFiles),
 		WithCertFile(in.certFile),
 		WithKeyFile(in.keyFile),
 		WithTagsIgnore(in.tagsIgnore),
@@ -373,8 +373,8 @@ func Test_TLS(t *testing.T) {
 		defer os.Remove(caFile) // nolint:errcheck
 
 		in := &optionMock{
-			tlsOpen:    true,
-			cacertFile: caFile,
+			tlsOpen:     true,
+			cacertFiles: []string{caFile},
 		}
 		opts := createOpts(in)
 		p, err := NewProm(opts...)

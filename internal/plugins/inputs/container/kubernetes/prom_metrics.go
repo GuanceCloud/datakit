@@ -419,7 +419,7 @@ func newPromRunner(c *promConfig, feeder dkio.Feeder) (*promRunner, error) {
 
 	if c.CaFile != "" && c.CertFile != "" {
 		opts = append(opts,
-			iprom.WithCacertFile(c.CaFile),
+			iprom.WithCacertFiles([]string{c.CaFile}),
 			iprom.WithCertFile(c.CertFile),
 			iprom.WithKeyFile(c.KeyFile),
 		)

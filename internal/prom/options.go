@@ -31,7 +31,7 @@ type option struct {
 
 	udsPath            string
 	tlsOpen            bool
-	cacertFile         string
+	cacertFiles        []string
 	certFile           string
 	keyFile            string
 	insecureSkipVerify bool
@@ -121,14 +121,14 @@ func WithMeasurementName(str string) PromOption {
 func KeepExistMetricName(b bool) PromOption {
 	return func(opt *option) { opt.keepExistMetricName = b }
 }
-func WithMeasurements(r []Rule) PromOption { return func(opt *option) { opt.measurements = r } }
-func WithOutput(str string) PromOption     { return func(opt *option) { opt.output = str } }
-func WithMaxFileSize(i int64) PromOption   { return func(opt *option) { opt.maxFileSize = i } }
-func WithTLSOpen(b bool) PromOption        { return func(opt *option) { opt.tlsOpen = b } }
-func WithUDSPath(str string) PromOption    { return func(opt *option) { opt.udsPath = str } }
-func WithCacertFile(str string) PromOption { return func(opt *option) { opt.cacertFile = str } }
-func WithCertFile(str string) PromOption   { return func(opt *option) { opt.certFile = str } }
-func WithKeyFile(str string) PromOption    { return func(opt *option) { opt.keyFile = str } }
+func WithMeasurements(r []Rule) PromOption    { return func(opt *option) { opt.measurements = r } }
+func WithOutput(str string) PromOption        { return func(opt *option) { opt.output = str } }
+func WithMaxFileSize(i int64) PromOption      { return func(opt *option) { opt.maxFileSize = i } }
+func WithTLSOpen(b bool) PromOption           { return func(opt *option) { opt.tlsOpen = b } }
+func WithUDSPath(str string) PromOption       { return func(opt *option) { opt.udsPath = str } }
+func WithCacertFiles(arr []string) PromOption { return func(opt *option) { opt.cacertFiles = arr } }
+func WithCertFile(str string) PromOption      { return func(opt *option) { opt.certFile = str } }
+func WithKeyFile(str string) PromOption       { return func(opt *option) { opt.keyFile = str } }
 func WithInsecureSkipVerify(b bool) PromOption {
 	return func(opt *option) { opt.insecureSkipVerify = b }
 }

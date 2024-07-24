@@ -448,7 +448,7 @@ func (i *Input) Init() error {
 		iprom.WithMaxFileSize(i.MaxFileSize),
 		iprom.WithTLSOpen(i.TLSOpen),
 		iprom.WithUDSPath(i.UDSPath),
-		iprom.WithCacertFile(i.CacertFile),
+		iprom.WithCacertFiles([]string{i.CacertFile}),
 		iprom.WithCertFile(i.CertFile),
 		iprom.WithKeyFile(i.KeyFile),
 		iprom.WithTagsIgnore(i.TagsIgnore),
