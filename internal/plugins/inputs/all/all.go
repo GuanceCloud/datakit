@@ -29,6 +29,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/chrony"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/clickhousev1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cloudprober"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/cockroachdb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/consul"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/coredns"
