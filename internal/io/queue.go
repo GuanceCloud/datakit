@@ -32,6 +32,18 @@ func (x *dkIO) cacheData(c *consumer, d *feedOption, tryClean bool) {
 
 	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.cat, d.input)
 
+	x.recordPoints(d)
+	c.points = append(c.points, d.pts...)
+
+	if tryClean && x.maxCacheCount > 0 && len(c.points) > x.maxCacheCount {
+		x.flush(c)
+
+		// reset consumer flush ticker to prevent send small packages
+		c.flushTiker.Reset(x.flushInterval)
+	}
+}
+
+func (x *dkIO) recordPoints(d *feedOption) {
 	if x.recorder != nil && x.recorder.Enabled {
 		if err := x.recorder.Record(d.pts, d.cat, d.input); err != nil {
 			log.Warnf("record %d points on %q from %q failed: %s", len(d.pts), d.cat, d.input, err)
@@ -40,15 +52,6 @@ func (x *dkIO) cacheData(c *consumer, d *feedOption, tryClean bool) {
 		}
 	} else {
 		log.Debugf("recorder disabled: %+#v", x.recorder)
-	}
-
-	c.points = append(c.points, d.pts...)
-
-	if tryClean && x.maxCacheCount > 0 && len(c.points) > x.maxCacheCount {
-		x.flush(c)
-
-		// reset consumer flush ticker to prevent send small packages
-		c.flushTiker.Reset(x.flushInterval)
 	}
 }
 

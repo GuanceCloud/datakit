@@ -31,6 +31,7 @@ func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
 		l.Warnf("failed to register %s %q by handler %s to HTTP server: route exists",
 			method, path, getFunctionName(handler, '/'))
 	} else {
+		l.Infof("register %s %q by handler %s to HTTP server", method, path, getFunctionName(handler, '/'))
 		httpRouteList[method+path] = &httpRouteInfo{
 			Method:            method,
 			Path:              path,

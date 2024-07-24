@@ -38,6 +38,8 @@ var (
 	rw sync.RWMutex
 
 	feedOptionPool sync.Pool
+
+	defaultFeederFun = func() Feeder { return &ioFeeder{} }
 )
 
 // GetFeedOption create or get-back a raw feed-option.
@@ -71,9 +73,14 @@ type FeederOutputer interface {
 	Reader(c point.Category) <-chan *feedOption
 }
 
+// SetDefaultFeeder get default feeder.
+func SetDefaultFeeder(f func() Feeder) {
+	defaultFeederFun = f
+}
+
 // DefaultFeeder get default feeder.
 func DefaultFeeder() Feeder {
-	return &ioFeeder{}
+	return defaultFeederFun()
 }
 
 // Option used to define various feed options.
@@ -97,6 +104,7 @@ type feedOption struct {
 	plOption *plscript.Option
 
 	noGlobalTags,
+	syncSend,
 	blocking,
 	election bool
 
@@ -129,6 +137,7 @@ func WithPipelineOption(po *plscript.Option) FeedOption {
 }
 
 func WithInputVersion(v string) FeedOption { return func(fo *feedOption) { fo.version = v } }
+func WithSyncSend(on bool) FeedOption      { return func(fo *feedOption) { fo.syncSend = on } }
 func WithBlocking(on bool) FeedOption      { return func(fo *feedOption) { fo.blocking = on } }
 func WithElection(on bool) FeedOption      { return func(fo *feedOption) { fo.election = on } }
 func WithInputName(name string) FeedOption { return func(fo *feedOption) { fo.input = name } }
@@ -419,6 +428,9 @@ func (x *dkIO) forceBlocking(opt *feedOption) *feedOption {
 
 func (x *dkIO) doFeed(opt *feedOption) error {
 	if len(opt.pts) == 0 {
+		if opt.syncSend {
+			return x.fo.Write(opt)
+		}
 		log.Warnf("no point from %q", opt.input)
 		return nil
 	}

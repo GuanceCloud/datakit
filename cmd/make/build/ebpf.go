@@ -80,7 +80,7 @@ func PubDatakitEBpf() error {
 				if parts[0] != runtime.GOOS {
 					continue
 				}
-				if parts[0] != "linux" {
+				if parts[0] != Linux {
 					continue
 				}
 				if parts[1] != runtime.GOARCH {
@@ -128,7 +128,7 @@ func PackageeBPF() {
 			NotifyFail(err.Error())
 		}
 		goos, goarch := parts[0], parts[1]
-		if goos == "linux" {
+		if goos == Linux {
 			url := "https://" + filepath.Join(UploadAddr, fmt.Sprintf(
 				"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, ReleaseVersion))
 			dir := fmt.Sprintf("%s/%s-%s-%s/externals/", BuildDir, AppName, goos, goarch)

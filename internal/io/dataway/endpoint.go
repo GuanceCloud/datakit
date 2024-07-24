@@ -545,21 +545,20 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 				}
 			}()
 
-			// Terminate retry on global exit.
-			select {
-			case <-datakit.Exit.Wait():
-				log.Info("retry abort on global exit")
-				return nil
-
-			default: // pass
-			}
-
 			if resp, err = ep.doSendReq(req); err != nil {
 				return err
 			}
 
 			if resp.StatusCode/100 == 5 { // server-side error
 				status = http.StatusText(resp.StatusCode)
+				// Terminate retry on global exit.
+				select {
+				case <-datakit.Exit.Wait():
+					log.Info("retry abort on global exit")
+					return nil
+
+				default: // pass
+				}
 				err = fmt.Errorf("doSendReq: %s", resp.Status)
 				return err
 			}
@@ -655,6 +654,7 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 
 		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}
+	log.Debugf("%s send req ok", req.URL)
 
 end:
 	if resp != nil {

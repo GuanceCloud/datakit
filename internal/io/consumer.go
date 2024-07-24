@@ -79,6 +79,12 @@ func (x *dkIO) runConsumer(cat point.Category) {
 			x.flushFailCache(c)
 
 		case <-datakit.Exit.Wait():
+			if len(c.points) > 0 {
+				log.Debugf("on tick(%s) to flush %s(%d points), last flush %s ago...",
+					x.flushInterval, c.category, len(c.points), time.Since(c.lastFlush))
+				x.flush(c)
+			}
+			x.flushFailCache(c)
 			log.Infof("io consumer on %s exit on exit", c.category)
 			return
 		}
