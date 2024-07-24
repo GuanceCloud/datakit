@@ -12,6 +12,7 @@ import (
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/cilium/ebpf/perf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
@@ -294,14 +295,12 @@ func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
+func (tracer *Tracer) PerfEventHandle(record *perf.Record,
 	perfmap *manager.PerfMap, manager *manager.Manager,
 ) {
-	bufferC := (*CL7Buffer)(unsafe.Pointer(&data[0])) //nolint:gosec
+	defer putRecoder(record)
 
-	netdata := getNetwrkData()
-
-	readMeta(bufferC, &netdata.Conn)
+	bufferC := (*CL7Buffer)(unsafe.Pointer(&record.RawSample[0])) //nolint:gosec
 
 	actLen := int(bufferC.meta.act_size)
 	bufLen := int(bufferC.meta.buf_len)
@@ -310,10 +309,19 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 		if bufLen > PayloadBufSize {
 			bufLen = PayloadBufSize
 		}
-		if actLen > 0 {
-			b := *(*[PayloadBufSize]byte)(unsafe.Pointer(&bufferC.payload)) //nolint:gosec
-			netdata.Payload = append(netdata.Payload, b[:bufLen]...)
+		if actLen > 0 && actLen > bufLen {
+			actLen = bufLen
 		}
+	}
+
+	// 需要使 actLen 不会在后续发生改变，否则内存池会出问题
+	netdata := getNetwrkData(actLen)
+
+	readMeta(bufferC, &netdata.Conn)
+
+	if bufLen > 0 && actLen > 0 {
+		b := (*[PayloadBufSize]byte)(unsafe.Pointer(&bufferC.payload)) //nolint:gosec
+		netdata.Payload = append(netdata.Payload, b[:actLen]...)
 	}
 
 	pid := int(netdata.Conn.Pid)

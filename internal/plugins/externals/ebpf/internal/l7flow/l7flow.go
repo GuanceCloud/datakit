@@ -13,7 +13,6 @@ import (
 	"math"
 	"os"
 	"regexp"
-	"sync"
 	"time"
 	"unsafe"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/perf"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
@@ -166,7 +166,7 @@ var (
 	}
 )
 
-type perferEventHandle func(cpu int, data []byte, perfmap *manager.PerfMap,
+type perferEventHandle func(record *perf.Record, perfmap *manager.PerfMap,
 	manager *manager.Manager)
 
 func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*ebpf.Map,
@@ -260,7 +260,8 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 				PerfMapOptions: manager.PerfMapOptions{
 					// pagesize ~= 4k,
 					PerfRingBufferSize: 4096 * os.Getpagesize(),
-					DataHandler:        bufHandler,
+					RecordGetter:       getRecoder,
+					RecordHandler:      bufHandler,
 					LostHandler: func(CPU int, count uint64, perfMap *manager.PerfMap, manager *manager.Manager) {
 						log.Warnf("lost %d events on cpu %d\n", count, CPU)
 					},
@@ -437,38 +438,6 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.Cons
 	}()
 
 	return nil
-}
-
-var netwrksyncPool = sync.Pool{
-	New: func() interface{} {
-		return &comm.NetwrkData{
-			Payload: make([]byte, 0, PayloadBufSize),
-		}
-	},
-}
-
-func getNetwrkData() *comm.NetwrkData {
-	return netwrksyncPool.Get().(*comm.NetwrkData)
-}
-
-func putNetwrkData(data *comm.NetwrkData) {
-	if data == nil {
-		return
-	}
-	data.Conn = comm.ConnectionInfo{}
-	data.ConnUniID = comm.ConnUniID{}
-
-	data.ActSize = 0
-	data.TCPSeq = 0
-	data.Thread[0] = 0
-	data.Thread[1] = 0
-	data.TS = 0
-	data.Fn = 0
-	data.TSTail = 0
-	data.Index = 0
-	data.Payload = data.Payload[:0]
-
-	netwrksyncPool.Put(data)
 }
 
 func feed(url string, data []*point.Point, gzip bool) error {

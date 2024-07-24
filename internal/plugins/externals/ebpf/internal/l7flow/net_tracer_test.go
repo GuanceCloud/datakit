@@ -6,10 +6,18 @@ package l7flow
 import (
 	"math"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
+
+func TestSizeof(t *testing.T) {
+	assert.Equal(t, 4224, int(unsafe.Sizeof(CL7Buffer{})))
+
+	// 此处不匹配，则会造成从 pool 取不到对象，导致 panic
+	assert.Equal(t, 4096, int(unsafe.Sizeof(CL7Buffer{}.payload)))
+}
 
 func TestSort(t *testing.T) {
 	fn := func(cases []uint32, expected []uint32, start ...uint32) {
