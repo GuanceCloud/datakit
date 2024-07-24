@@ -85,12 +85,12 @@ func (ipt *Input) FeedUpMetric(server string) {
 		if err := ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(time.Now())),
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(source),
-		); err != nil {
+			dkio.WithInputName(inputName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(source),
+				dkio.WithLastErrorInput(inputName),
 				dkio.WithLastErrorCategory(point.Metric),
 			)
+			l.Errorf("feed measurement: %s", err)
 		}
 	}
 }

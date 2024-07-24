@@ -83,14 +83,15 @@ func (i *Input) FeedUpMetric(server string) {
 	pts, _ := i.buildUpPoints(server)
 	if len(pts) > 0 {
 		if err := i.Feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(time.Now())),
+			dkio.WithCollectCost(time.Since(i.startTime)),
 			dkio.WithElection(i.Election),
-			dkio.WithInputName(i.Source),
-		); err != nil {
+			dkio.WithInputName(inputName+"/"+i.Source),
+			dkio.WithBlocking(true)); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(i.Source),
-				dkio.WithLastErrorCategory(point.Metric),
+				dkio.WithLastErrorInput(inputName),
+				dkio.WithLastErrorSource(inputName+"/"+i.Source),
 			)
+			i.l.Errorf("feed measurement: %s", err)
 		}
 	}
 }
