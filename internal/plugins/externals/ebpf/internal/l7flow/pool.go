@@ -5,9 +5,7 @@ package l7flow
 
 import (
 	"sync"
-	"unsafe"
 
-	"github.com/cilium/ebpf/perf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
@@ -103,24 +101,4 @@ func resetNetwrkData(data *comm.NetwrkData) *comm.NetwrkData {
 	data.Payload = data.Payload[:0]
 
 	return data
-}
-
-var recordSyncPool = sync.Pool{
-	New: func() interface{} {
-		return &perf.Record{
-			// 由于内核 bug，此处多几个字节
-			RawSample: make([]byte, int(unsafe.Sizeof(CL7Buffer{}))+8), //nolint:gosec
-		}
-	},
-}
-
-func getRecoder() *perf.Record {
-	return recordSyncPool.Get().(*perf.Record)
-}
-
-func putRecoder(record *perf.Record) {
-	record.CPU = 0
-	record.RawSample = record.RawSample[:0]
-	record.LostSamples = 0
-	recordSyncPool.Put(record)
 }

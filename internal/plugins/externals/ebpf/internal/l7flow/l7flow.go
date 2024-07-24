@@ -259,8 +259,7 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 				},
 				PerfMapOptions: manager.PerfMapOptions{
 					// pagesize ~= 4k,
-					PerfRingBufferSize: 4096 * os.Getpagesize(),
-					RecordGetter:       getRecoder,
+					PerfRingBufferSize: 16 * 1024 * os.Getpagesize(),
 					RecordHandler:      bufHandler,
 					LostHandler: func(CPU int, count uint64, perfMap *manager.PerfMap, manager *manager.Manager) {
 						log.Warnf("lost %d events on cpu %d\n", count, CPU)

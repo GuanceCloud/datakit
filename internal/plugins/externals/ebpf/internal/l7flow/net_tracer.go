@@ -298,8 +298,6 @@ func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
 func (tracer *Tracer) PerfEventHandle(record *perf.Record,
 	perfmap *manager.PerfMap, manager *manager.Manager,
 ) {
-	defer putRecoder(record)
-
 	bufferC := (*CL7Buffer)(unsafe.Pointer(&record.RawSample[0])) //nolint:gosec
 
 	actLen := int(bufferC.meta.act_size)
