@@ -362,13 +362,11 @@ func (conns *TCPConns) _ForceGather(nicIPList []string) {
 
 	for _, pool := range conns.conns.pool.maps {
 		conns.feedNetworkLog(pool,
-			false, true,
-			conns.ifaceNameMAC, nicIPList)
+			false, true, nicIPList)
 	}
 	for _, map2msl := range conns.conns.twoMSLPool.maps {
 		conns.feedNetworkLog(map2msl,
-			false, true,
-			conns.ifaceNameMAC, nicIPList)
+			false, true, nicIPList)
 	}
 }
 
@@ -382,7 +380,7 @@ func (conns *TCPConns) _Gather(nicIPList []string) {
 		for i := 0; i < lenMaps; i++ {
 			mps := conns.conns.pool.maps[i]
 			conns.feedNetworkLog(mps,
-				false, false, conns.ifaceNameMAC, nicIPList)
+				false, false, nicIPList)
 
 			// keepalive
 			if time.Since(mps.tn) >= defaultTCPKeepAlive {
@@ -408,8 +406,7 @@ func (conns *TCPConns) _Gather(nicIPList []string) {
 		for i := 0; i < lenMaps; i++ {
 			mps := conns.conns.twoMSLPool.maps[i]
 			conns.feedNetworkLog(mps,
-				true, false,
-				conns.ifaceNameMAC, nicIPList)
+				true, false, nicIPList)
 
 			// 2msl
 			if time.Since(mps.tn) >= twoMSL {
@@ -602,7 +599,9 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 	for {
 		select {
 		case <-conns.stop:
-			log.Info("tcp conns gather stop")
+			log.Infof("close raw socket %s %s %s",
+				conns.ifaceNameMAC[0], conns.ifaceNameMAC[1], conns.nsUID)
+
 			// 强制清理所有数据进行上报
 			conns._ForceGather(nicIPList)
 

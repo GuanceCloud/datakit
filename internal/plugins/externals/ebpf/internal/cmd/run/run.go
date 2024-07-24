@@ -194,6 +194,8 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&opt.Tags, "tags", []string{}, "additional tags in 'a=b,c=d,...' format")
 	cmd.Flags().StringSliceVar(&opt.Enabled, "enabled", []string{}, "enabled plugins list in 'a,b,...' format")
 
+	cmd.Flags().StringSliceVar(&opt.ContainerInfo.Endpoints, "container-endpoints", []string{}, "container endpoints list in 'a,b,...' format")
+
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableMetric, "netlog-metric", false, "netlog metric")
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableLog, "netlog-log", false, "netlog log")
 	cmd.Flags().StringSliceVar(&opt.BPFNetLog.L7LogProtocols, "netlog-protocols", []string{"http"},
@@ -542,13 +544,29 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		l4log.ConfigFunc(fl.BPFNetLog.EnableLog, fl.BPFNetLog.EnableMetric,
 			fl.BPFNetLog.L7LogProtocols)
 
-		go l4log.NetLog(ctx, gTags, fmt.Sprintf("http://%s%s?input=",
-			exporter.DataKitAPIServer, point.Logging.URL())+url.QueryEscape(inputNameNetlog),
-			fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetlog),
-			blacklist,
+		var fnSetEndpoints l4log.CfgFn
+
+		if fl.ContainerInfo.Endpoints != nil && len(fl.ContainerInfo.Endpoints) > 0 {
+			fnSetEndpoints = l4log.WithCtrEndpointOverride(fl.ContainerInfo.Endpoints)
+		} else {
+			var rootfs string
+			if v := os.Getenv("HOST_ROOT"); v != "" {
+				rootfs = v
+			}
+			fnSetEndpoints = l4log.WithCtrEndpointOverride(l4log.DefaultEndpoint(rootfs))
+		}
+
+		go l4log.NetLog(ctx,
+			l4log.WithGlobalTags(gTags),
+			l4log.WithURL(fmt.Sprintf("http://%s%s?input=",
+				exporter.DataKitAPIServer, point.Logging.URL())+url.QueryEscape(inputNameNetlog)),
+			l4log.WithAggURL(fmt.Sprintf("http://%s%s?input=",
+				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetlog)),
+			l4log.WithBlacklist(blacklist),
+			fnSetEndpoints,
 		)
 	}
+
 	if enableEbpfBash || enableEbpfNet || enableBpfNetlog {
 		<-signaIterrrupt
 	}

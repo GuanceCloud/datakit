@@ -104,8 +104,7 @@ const (
 )
 
 func (conns *TCPConns) feedNetworkLog(pool *connMap,
-	cal2mslDelete bool, forceDelete bool, nicNameMAC [2]string,
-	nicIPList []string,
+	cal2mslDelete bool, forceDelete bool, nicIPList []string,
 ) {
 	tn := time.Now()
 	ts := tn.UnixNano()
