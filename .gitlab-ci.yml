@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.33.1"
+  CI_VERSION: "1.34.0"
   CI_TESTING_VERSION: $CI_VERSION-testing
   DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'

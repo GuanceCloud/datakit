@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.34.0(2024/07/24) {#cl-1.34.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.34.0-new}
+
+- Added custom object collection for mainstream collectors, such as Oracle/MySQL/Apache (#2207)
+- Added `up` metric to remote collectors (#2304)
+- Statsd collector exposes its own metrics (#2326)
+- Added [CockroachDB Collector](../integrations/cockroachdb.md) (#2187)
+- Added [AWS Lambda Collector](../integrations/awslambda.md) (#2258)
+- Added [KubernetesPrometheus Collector](../integrations/kubernetesprometheus.md), enabling automatic discovery of Prometheus collection (#2246)
+
+### Bug Fixes {#cl-1.34.0-fix}
+
+- Fixed issues on certain versions of Windows where bug reports and the dk collector might consume too much memory; temporarily removed some metric exposure to work around this (#2317)
+- Fixed the issue where `datakit monitor` did not display collectors sourced from confd (#2160)
+- Fixed the problem where container logs would not be collected if manually specified as stdout in the Annotation (#2327)
+- Fixed abnormal behavior in the eBPF network log collector when fetching K8s labels (#2325)
+- Fixed concurrent read/write errors in the RUM collector (#2319)
+
+### Feature Enhancements {#cl-1.34.0-opt}
+
+- Optimized the Oceanbase collector's dashboard template, and added `cluster` tag to the `oceanbase_log` metric (#2265)
+- Improved the issue with too many task failure counts causing the probe collector task to exit (#2314)
+- Pipeline now supports adding script execution information to data, and the `http_request` function supports body parameters (#2313/#2298)
+- Optimized memory usage in the eBPF collector (#2328)
+- Various documentation improvements (#2320)
+
+---
+
 ## 1.33.1 (July 11, 2024) {#cl-1.33.1}
 
 This release is a hotfix update that addresses the following issues:

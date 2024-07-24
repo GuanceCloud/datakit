@@ -20,7 +20,9 @@ monitor   :
 {{.AvailableArchs}}
 
 ---
+
 [:octicons-beaker-24: Experimental](index.md#experimental)
+
 AWS Lambda 采集器是通过 `aws-extension` 的方式采集 AWS Lambda 的指标与日志。
 
 ## 安装 {#installation}
