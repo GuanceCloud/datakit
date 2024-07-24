@@ -213,8 +213,10 @@ spec:
           readOnly: false
         - mountPath: /rootfs
           name: rootfs
+          mountPropagation: HostToContainer
         - mountPath: /var/run
           name: run
+          mountPropagation: HostToContainer
         - mountPath: /sys/kernel/debug
           name: debugfs
         - mountPath: /var/lib/containerd/container_logs

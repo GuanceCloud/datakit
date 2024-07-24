@@ -179,7 +179,7 @@ func (ipt *Input) setup() error {
 		iprom.WithMaxFileSize(ipt.MaxFileSize),
 		iprom.WithTLSOpen(ipt.TLSOpen),
 		iprom.WithUDSPath(ipt.UDSPath),
-		iprom.WithCacertFile(ipt.CacertFile),
+		iprom.WithCacertFiles([]string{ipt.CacertFile}),
 		iprom.WithCertFile(ipt.CertFile),
 		iprom.WithKeyFile(ipt.KeyFile),
 		iprom.WithTagsIgnore(ipt.TagsIgnore),

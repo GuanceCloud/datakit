@@ -186,6 +186,8 @@ solr
 stderr
 stdout
 syscall
+target
+targetport
 tcmalloc
 tdengine
 tdengine

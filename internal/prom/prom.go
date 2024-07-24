@@ -270,14 +270,10 @@ func loadTLSConfig(opt *option) (*tls.Config, error) {
 		return nil, nil
 	}
 
-	caCerts := []string{}
-	if opt.cacertFile != "" {
-		caCerts = append(caCerts, opt.cacertFile)
-	}
-	insecureSkipVerify := opt.insecureSkipVerify || opt.cacertFile == ""
+	insecureSkipVerify := opt.insecureSkipVerify || len(opt.cacertFiles) == 0
 
 	tc := &dnet.TLSClientConfig{
-		CaCerts:            caCerts,
+		CaCerts:            opt.cacertFiles,
 		Cert:               opt.certFile,
 		CertKey:            opt.keyFile,
 		InsecureSkipVerify: insecureSkipVerify,
