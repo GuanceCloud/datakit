@@ -97,7 +97,7 @@ ulimit = 64000
   sqlite_mem_mode = false
 
   # append run info
-  append_run_info = false
+  disable_append_run_info = false
 
   # Offload data processing tasks to post-level data processors.
   [pipeline.offload]

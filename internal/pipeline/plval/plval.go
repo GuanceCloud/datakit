@@ -43,7 +43,7 @@ var (
 	// offload.
 	_offloadWkr *offload.OffloadWorker
 
-	_enableAppendRunInfo bool
+	_enableAppendRunInfo bool = true
 )
 
 func EnableAppendRunInfo() bool {
@@ -120,8 +120,8 @@ func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 		SetIPDB(ipdb)
 	}
 
-	if cfg != nil && cfg.AppendRunInfo {
-		_enableAppendRunInfo = true
+	if cfg != nil && cfg.DisableAppendRunInfo {
+		_enableAppendRunInfo = false
 	}
 
 	// init refer-table

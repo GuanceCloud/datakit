@@ -39,7 +39,7 @@ type PipelineCfg struct {
 	UseSQLite              bool                   `toml:"use_sqlite"`
 	SQLiteMemMode          bool                   `toml:"sqlite_mem_mode"`
 	Offload                *offload.OffloadConfig `toml:"offload"`
-	AppendRunInfo          bool                   `toml:"append_run_info"`
+	DisableAppendRunInfo   bool                   `toml:"disable_append_run_info"`
 }
 
 // InitIPdb init ipdb instance.
