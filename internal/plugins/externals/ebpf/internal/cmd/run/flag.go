@@ -38,6 +38,7 @@ type Flag struct {
 	Enabled []string `toml:"enabled"`
 
 	K8sInfo       FlagK8s       `toml:"k8s_info"`
+	ContainerInfo FlagContainer `toml:"container_info"`
 	EBPFNet       FlagNet       `toml:"ebpf_net"`
 	EBPFTrace     FlagTrace     `toml:"ebpf_trace"`
 	BPFNetLog     FlagBPFNetLog `toml:"bpf_netlog"`
@@ -75,6 +76,10 @@ type FlagK8s struct {
 	URL             string `toml:"url"`
 	BearerToken     string `toml:"bearer_token"`
 	BearerTokenPath string `toml:"bearer_token_path"`
+}
+
+type FlagContainer struct {
+	Endpoints []string `toml:"endpoints"`
 }
 
 type FlagResLimit struct {

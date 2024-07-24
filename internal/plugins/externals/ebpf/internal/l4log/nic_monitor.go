@@ -14,7 +14,6 @@ import (
 	"github.com/google/gopacket/afpacket"
 	"github.com/vishvananda/netns"
 	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
-	internalapi "k8s.io/cri-api/pkg/apis"
 )
 
 type cbRawSocket struct {
@@ -34,6 +33,8 @@ func (cb *cbRawSocket) cbNewRawSocket() {
 
 		opt := []any{afpacket.OptInterface(nameAndMac[0])}
 		if cb.hostNS {
+			// https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt
+			// frame nr: 64 * 128, frame size 4096Byte, total ~ 32MiB
 			opt = append(opt, afpacket.OptNumBlocks(64))
 		}
 
@@ -126,15 +127,14 @@ func newNetlogMonitor(gtags map[string]string, url, aggURL, blacklist string, fn
 	return m, nil
 }
 
-func (m *netlogMonitor) Run(ctx context.Context, containerCtr []internalapi.RuntimeService,
-	dockerCtr cruntime.ContainerRuntime,
+func (m *netlogMonitor) Run(ctx context.Context, containerCtr []cruntime.ContainerRuntime,
 ) {
 	ticker := time.NewTicker(time.Second * 20)
 	defer ticker.Stop()
 	var allowLo bool
 
 	for {
-		netnsInfo := ListContainersAndHostNetNS(containerCtr, dockerCtr, allowLo)
+		netnsInfo := ListContainersAndHostNetNS(containerCtr, allowLo)
 		m.CmpAndCleanNetNsNIC(netnsInfo)
 		m.CmpAndAddNIC(netnsInfo)
 		select {
@@ -299,8 +299,7 @@ func CallWithNetNS(newNS netns.NsHandle, fn func()) error {
 	return nil
 }
 
-func ListContainersAndHostNetNS(ctrLi []internalapi.RuntimeService,
-	dockerCtr cruntime.ContainerRuntime, allowLo bool,
+func ListContainersAndHostNetNS(ctrLi []cruntime.ContainerRuntime, allowLo bool,
 ) map[string]*netnsInformation {
 	netnsInfo := map[string]*netnsInformation{}
 	var curNetnsStr string
@@ -326,60 +325,16 @@ func ListContainersAndHostNetNS(ctrLi []internalapi.RuntimeService,
 		}
 	}
 
-	if dockerCtr != nil { // create socket and get interface info
-		ctrs, err := dockerCtr.ListContainers()
-		if err != nil {
-			log.Errorf("get docker containers: %w", err)
-		}
-		for _, c := range ctrs {
-			nsH, err := netns.GetFromPid(c.Pid)
-			if err != nil {
-				log.Error("get netns from pid: %w", err)
-				continue
-			}
-			nsHStr := NSInode(nsH)
-			if nsHStr == curNetnsStr { // skip host network
-				if err := nsH.Close(); err != nil {
-					log.Error(err)
-				}
-				continue
-			}
-			if v, ok := netnsInfo[nsHStr]; !ok {
-				netnsInfo[nsHStr] = &netnsInformation{
-					nsUID:       nsHStr,
-					nns:         newNetNsHandle(false, allowLo, nsH),
-					contianerID: c.ID,
-					ifaceInf:    map[[2]string]*ifaceInfomation{},
-					pid:         map[int]struct{}{c.Pid: {}},
-				}
-			} else {
-				v.pid[c.Pid] = struct{}{}
-				if err := nsH.Close(); err != nil {
-					log.Error(err)
-				}
-			}
-		}
-	}
-
 	for _, containerdCtr := range ctrLi {
 		if containerdCtr != nil {
-			ctrs, err := containerdCtr.ListContainers(nil)
+			ctrs, err := containerdCtr.ListContainers()
 			if err != nil {
-				log.Errorf("get containerd containers: %s", err.Error())
+				log.Errorf("get containers: %s", err.Error())
 			}
 			for _, c := range ctrs {
-				resp, err := containerdCtr.ContainerStatus(c.Id, true)
+				nsH, err := netns.GetFromPid(c.Pid)
 				if err != nil {
-					log.Errorf("get containerd containers: %w", err)
-					continue
-				}
-				info, err := cruntime.ParseCriInfo(resp.GetInfo()["info"])
-				if err != nil {
-					log.Errorf("parse cri info: %w", err)
-					continue
-				}
-				nsH, err := netns.GetFromPid(info.Pid)
-				if err != nil {
+					log.Error("get netns from pid: %w", err)
 					continue
 				}
 				nsHStr := NSInode(nsH)
@@ -395,13 +350,13 @@ func ListContainersAndHostNetNS(ctrLi []internalapi.RuntimeService,
 					netnsInfo[nsHStr] = &netnsInformation{
 						nsUID:       nsHStr,
 						nns:         newNetNsHandle(false, allowLo, nsH),
-						contianerID: c.Id,
+						contianerID: c.ID,
 						ifaceInf:    map[[2]string]*ifaceInfomation{},
-						pid:         map[int]struct{}{info.Pid: {}},
+						pid:         map[int]struct{}{c.Pid: {}},
 						tags:        k8sTags,
 					}
 				} else {
-					v.pid[info.Pid] = struct{}{}
+					v.pid[c.Pid] = struct{}{}
 					if err := nsH.Close(); err != nil {
 						log.Error(err)
 					}

@@ -5,17 +5,18 @@ package l4log
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/kubernetes/pkg/kubelet/cri/remote"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
 	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"golang.org/x/net/bpf"
-	internalapi "k8s.io/cri-api/pkg/apis"
 )
 
 var log = logger.DefaultSLogger("netlog")
@@ -169,50 +170,149 @@ func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, 
 	return h, nil
 }
 
-func NetLog(ctx context.Context, gtags map[string]string, url, aggURL, blacklist string) {
+type netlogCfg struct {
+	gTags       map[string]string
+	url         string
+	aggURL      string
+	blacklist   string
+	ctrEndpoint []string
+}
+
+type CfgFn func(cfg *netlogCfg)
+
+func WithGlobalTags(tags map[string]string) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.gTags = tags
+	}
+}
+
+func WithURL(url string) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.url = url
+	}
+}
+
+func WithAggURL(url string) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.aggURL = url
+	}
+}
+
+func WithBlacklist(blacklist string) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.blacklist = blacklist
+	}
+}
+
+func WithCtrEndpointOverride(endpoint []string) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.ctrEndpoint = endpoint
+	}
+}
+
+func DefaultEndpoint(rootPath string) []string {
+	basePath := []string{
+		"/var/run/docker.sock",
+		"/var/run/containerd/containerd.sock",
+		"/var/run/k3s/containerd/containerd.sock",
+		"/var/run/crio/crio.sock",
+	}
+	if rootPath != "" {
+		for i := range basePath {
+			basePath[i] = filepath.Join(rootPath, basePath[i])
+			if v, err := filepath.Abs(basePath[i]); err == nil {
+				basePath[i] = v
+			}
+		}
+	}
+	for i := range basePath {
+		basePath[i] = "unix://" + basePath[i]
+	}
+
+	return basePath
+}
+
+func NetLog(ctx context.Context, opts ...CfgFn) {
 	initULID()
+
+	cfg := netlogCfg{}
+	for _, fn := range opts {
+		if fn != nil {
+			fn(&cfg)
+		}
+	}
 
 	dockerCtr, err := cruntime.NewDockerRuntime("unix:///var/run/docker.sock", "")
 	if err != nil {
-		log.Warnf("skip connect to docker: %w", err)
+		log.Warnf("skip connect to docker: %s", err.Error())
 	}
 
-	var ctrLi []internalapi.RuntimeService
+	var ctrLi []cruntime.ContainerRuntime
 
-	if containerdCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/containerd/containerd.sock",
-		time.Second*5); err != nil {
-		log.Warnf("skip connect to containerd: %w", err)
-	} else {
-		ctrLi = append(ctrLi, containerdCtr)
-	}
-
-	if containerK3sCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/k3s/containerd/containerd.sock",
-		time.Second*5); err != nil {
-		log.Warnf("skip connect to k3s: %w", err)
-	} else {
-		ctrLi = append(ctrLi, containerK3sCtr)
-	}
-
-	if crioCtr, err := remote.NewRemoteRuntimeService("unix:///var/run/crio/crio.sock",
-		time.Second*5); err != nil {
-		log.Warnf("skip connect to crio: %w", err)
-	} else {
-		ctrLi = append(ctrLi, crioCtr)
+	for _, ep := range cfg.ctrEndpoint {
+		if err := checkEndpoint(ep); err != nil {
+			log.Warnf("skip connect to %s: %s", ep, err.Error())
+			continue
+		}
+		var r cruntime.ContainerRuntime
+		var err error
+		if verifyErr := cruntime.VerifyDockerRuntime(ep); verifyErr == nil {
+			r, err = cruntime.NewDockerRuntime(ep, "")
+		} else {
+			r, err = cruntime.NewCRIRuntime(ep, "")
+		}
+		if err != nil {
+			log.Warnf("skip connect to %s: %s", ep, err.Error())
+			continue
+		} else {
+			log.Infof("connect to %s success", ep)
+		}
+		ctrLi = append(ctrLi, r)
 	}
 
 	if dockerCtr == nil && len(ctrLi) == 0 {
 		log.Warnf("no container runtime")
 	}
 
-	m, err := newNetlogMonitor(gtags, url, aggURL, blacklist, _fnList)
+	m, err := newNetlogMonitor(cfg.gTags, cfg.url, cfg.aggURL, cfg.blacklist, _fnList)
 	if err != nil {
 		log.Errorf("create netlog monitor failed: %s", err.Error())
 		return
 	}
 
 	rCtx, cFn := context.WithCancel(ctx)
-	go m.Run(rCtx, ctrLi, dockerCtr)
+	go m.Run(rCtx, ctrLi)
 	<-ctx.Done()
 
 	cFn()
+}
+
+// checkEndpoint check if endpoint is valid, copy from internal/plugins/inputs/container/impl.go
+
+func checkEndpoint(endpoint string) error {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint %s, err: %w", endpoint, err)
+	}
+
+	switch u.Scheme {
+	case "unix":
+		// nil
+	default:
+		return fmt.Errorf("using %s as endpoint is not supported protocol", endpoint)
+	}
+
+	info, err := os.Stat(u.Path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("endpoint %s does not exist, maybe it is not running", endpoint)
+	}
+	if err != nil {
+		return err
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("endpoint %s cannot be a directory", u.Path)
+	}
+
+	return nil
 }
