@@ -259,9 +259,9 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 
     这里用 JSON 数组来表示采样设置（采样率应用以数组顺序为准），其中 `sample_rate` 为采样率，取值范围为 `[0.0, 1.0]`。
 
-    **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app`
+    **示例一**：设置全局采样率为 20%：`DD_TRACE_SAMPLING_RULES='[{"sample_rate": 0.2}]' ./my-app`
 
-    **示例二**：服务名通配 `app1.*`、且 span 名称为 `abc` 的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
+    **示例二**：服务名通配 `app1.*`、且 span 名称为 `abc` 的，将采样率设置为 10%，除此之外，采样率设置为 20%：`DD_TRACE_SAMPLING_RULES='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
 
 - **`DD_TRACE_SAMPLE_RATE`**
 
