@@ -257,9 +257,9 @@ For more environment variable support, see [DDTrace-Go Documentation](https://do
 
     Here a JSON array is used to represent the sampling settings (sampling rate application is in array order), where `sample_rate` is the sampling rate, and the value range is `[0.0, 1.0]`.
 
-    **Example 1**: Set the global sampling rate to 20%: `DD_TRACE_SAMPLE_RATE='[{"sample_rate": 0.2}]' ./my-app`
+    **Example 1**: Set the global sampling rate to 20%: `DD_TRACE_SAMPLING_RULES='[{"sample_rate": 0.2}]' ./my-app`
 
-    **Example 2**: Service name wildcard `app1.*`, and the span name is `abc`, set the sampling rate to 10%, otherwise, set the sampling rate to 20%: `DD_TRACE_SAMPLE_RATE='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
+    **Example 2**: Service name wildcard `app1.*`, and the span name is `abc`, set the sampling rate to 10%, otherwise, set the sampling rate to 20%: `DD_TRACE_SAMPLING_RULES='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
 
 - **`DD_TRACE_SAMPLE_RATE`**
 
