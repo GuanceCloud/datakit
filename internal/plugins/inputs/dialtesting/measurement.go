@@ -21,6 +21,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":               &inputs.TagInfo{Desc: "The name of the task"},
 			"url":                &inputs.TagInfo{Desc: "The URL of the endpoint to be monitored"},
+			"node_name":          &inputs.TagInfo{Desc: "The name of the node"},
 			"dest_ip":            &inputs.TagInfo{Desc: "The IP address of the destination"},
 			"country":            &inputs.TagInfo{Desc: "The name of the country"},
 			"province":           &inputs.TagInfo{Desc: "The name of the province"},
@@ -123,6 +124,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
 			"dest_port":       &inputs.TagInfo{Desc: "The port of the TCP connection"},
 			"dest_ip":         &inputs.TagInfo{Desc: "The IP address"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
 			"country":         &inputs.TagInfo{Desc: "The name of the country"},
 			"province":        &inputs.TagInfo{Desc: "The name of the province"},
 			"city":            &inputs.TagInfo{Desc: "The name of the city"},
@@ -189,6 +191,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
 			"country":         &inputs.TagInfo{Desc: "The name of the country"},
 			"province":        &inputs.TagInfo{Desc: "The name of the province"},
 			"city":            &inputs.TagInfo{Desc: "The name of the city"},
@@ -309,6 +312,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"url":             &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
 			"country":         &inputs.TagInfo{Desc: "The name of the country"},
 			"province":        &inputs.TagInfo{Desc: "The name of the province"},
 			"city":            &inputs.TagInfo{Desc: "The name of the city"},
