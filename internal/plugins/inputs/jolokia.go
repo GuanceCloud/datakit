@@ -1507,7 +1507,11 @@ func (j *JolokiaAgent) buildUpPoints(client *Client) ([]*point.Point, error) {
 	l.Debugf("pts: %s", Copt.Point().LineProto())
 	CoPts = append(CoPts, Copt.Point())
 	if len(CoPts) > 0 {
-		l.Debugf("pts: %s", CoPts[0].LineProto())
+		for k, v := range j.Tags {
+			for _, pt := range CoPts {
+				pt.AddTag(k, v)
+			}
+		}
 		return CoPts, nil
 	}
 	return []*point.Point{}, nil

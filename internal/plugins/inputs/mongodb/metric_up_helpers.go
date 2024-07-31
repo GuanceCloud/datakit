@@ -58,6 +58,11 @@ func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
 	ms = append(ms, m)
 	if len(ms) > 0 {
 		pts := getPointsFromMeasurement2(ms)
+		for k, v := range ipt.Tags {
+			for _, pt := range pts {
+				pt.AddTag(k, v)
+			}
+		}
 		return pts, nil
 	}
 

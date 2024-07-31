@@ -64,6 +64,11 @@ func (i *Input) buildUpPoints(server string) ([]*point.Point, error) {
 	ms = append(ms, m)
 	if len(ms) > 0 {
 		pts := getPointsFromMeasurement2(ms)
+		for k, v := range i.Tags {
+			for _, pt := range pts {
+				pt.AddTag(k, v)
+			}
+		}
 		return pts, nil
 	}
 
