@@ -10,7 +10,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 func TestInput_Collect_BatchLength(t *testing.T) {
@@ -99,7 +101,7 @@ func (m *PTLenMockedFeeder) FeedV2(category point.Category, pts []*point.Point, 
 	return nil
 }
 
-func (m *PTLenMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
+func (m *PTLenMockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 
 func (m *PTLenMockedFeeder) GetBatchLength() []int {
 	if m.batchLength == nil {

@@ -18,10 +18,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -137,7 +139,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -162,7 +164,7 @@ func (ipt *Input) Run() {
 		if err != nil {
 			l.Errorf("TLSConfig: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 			return
 		}
@@ -187,7 +189,7 @@ func (ipt *Input) Run() {
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
+					metrics.WithLastErrorInput(inputName),
 				)
 			}
 
@@ -198,7 +200,7 @@ func (ipt *Input) Run() {
 					dkio.WithInputName(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
+						metrics.WithLastErrorInput(inputName),
 					)
 					l.Errorf("feed measurement: %s", err)
 				}

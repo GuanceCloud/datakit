@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -95,8 +96,8 @@ func (ipt *Input) FeedUpMetric() {
 			dkio.WithInputName(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 			l.Errorf("feed : %s", err)
 		}
@@ -114,8 +115,8 @@ func (ipt *Input) FeedErrUpMetric() {
 			dkio.WithInputName(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 			l.Errorf("feed : %s", err)
 		}

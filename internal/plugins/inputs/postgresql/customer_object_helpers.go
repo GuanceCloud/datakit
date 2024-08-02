@@ -13,7 +13,9 @@ import (
 	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -190,8 +192,8 @@ func (ipt *Input) FeedCoPts() {
 		dkio.WithInputName(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(gcPoint.CustomObject),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(gcPoint.CustomObject),
 		)
 		l.Errorf("feed : %s", err)
 	}
@@ -207,8 +209,8 @@ func (ipt *Input) FeedCoByErr(err error) {
 		dkio.WithInputName(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(gcPoint.CustomObject),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(gcPoint.CustomObject),
 		)
 		l.Errorf("feed : %s", err)
 	}

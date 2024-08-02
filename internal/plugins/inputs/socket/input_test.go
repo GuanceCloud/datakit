@@ -15,8 +15,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -36,7 +38,7 @@ func (g *tagger) UpdateVersion() {}
 func (g *tagger) Updated() bool  { return false }
 
 type feeder struct {
-	errs    []*io.LastError
+	errs    []*metrics.LastError
 	errStrs []string
 }
 
@@ -48,8 +50,8 @@ func (f *feeder) Feed(name string,
 	return nil
 }
 
-func (f *feeder) FeedLastError(err string, opts ...io.LastErrorOption) {
-	le := &io.LastError{}
+func (f *feeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
+	le := metrics.NewLastError()
 	for _, opt := range opts {
 		opt(le)
 	}

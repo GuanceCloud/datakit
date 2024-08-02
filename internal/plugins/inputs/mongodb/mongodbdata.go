@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -244,7 +246,7 @@ func (d *MongodbData) flush(cost time.Duration) {
 			dkio.WithInputName(inputName),
 		); err != nil {
 			d.ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 		}
 	}

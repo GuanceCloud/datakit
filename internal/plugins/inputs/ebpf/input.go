@@ -18,9 +18,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/external"
 )
@@ -98,7 +99,7 @@ loop:
 		if !(runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")) {
 			l.Error("unsupport OS/Arch")
 
-			io.FeedLastError(inputName,
+			metrics.FeedLastError(inputName,
 				fmt.Sprintf("ebpf not support %s/%s ",
 					runtime.GOOS, runtime.GOARCH))
 		}
@@ -278,7 +279,7 @@ loop:
 		ipt.Input.Run()
 	} else {
 		l.Warn("no ebpf plugins enabled")
-		io.FeedLastError(inputName, "no ebpf plugins enabled")
+		metrics.FeedLastError(inputName, "no ebpf plugins enabled")
 	}
 	l.Infof("ebpf input exit")
 }

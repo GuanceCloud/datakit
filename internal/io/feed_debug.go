@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 // debugFeederOutput send feeder data to terminal.
@@ -50,8 +51,8 @@ func (fo *debugOutput) Write(data *feedOption) error {
 	return nil
 }
 
-func (fo *debugOutput) WriteLastError(err string, opts ...LastErrorOption) {
-	le := newLastError()
+func (fo *debugOutput) WriteLastError(err string, opts ...metrics.LastErrorOption) {
+	le := metrics.NewLastError()
 
 	for _, opt := range opts {
 		if opt != nil {

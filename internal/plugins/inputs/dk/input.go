@@ -241,9 +241,9 @@ func (ipt *Input) Run() {
 		if err != nil {
 			l.Warnf("prom.CollectFromHTTPV2: %s, ignored", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorSource(source),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(source),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 		} else if len(pts) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, pts,
@@ -251,8 +251,8 @@ func (ipt *Input) Run() {
 				dkio.WithElection(false),
 				dkio.WithInputName(source)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(point.Metric),
 				)
 				l.Errorf("feed measurement: %s", err)
 			}

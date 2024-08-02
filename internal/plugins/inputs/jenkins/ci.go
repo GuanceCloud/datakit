@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -85,8 +87,8 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		dkio.WithInputName("jenkins_ci"),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorSource("jenkins_ci"),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource("jenkins_ci"),
 		)
 		resp.WriteHeader(http.StatusInternalServerError)
 	}

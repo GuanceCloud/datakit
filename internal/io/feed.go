@@ -16,8 +16,10 @@ import (
 	plscript "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
@@ -69,7 +71,7 @@ func PutFeedOption(fo *feedOption) {
 
 type FeederOutputer interface {
 	Write(fo *feedOption) error
-	WriteLastError(err string, opts ...LastErrorOption)
+	WriteLastError(err string, opts ...metrics.LastErrorOption)
 	Reader(c point.Category) <-chan *feedOption
 }
 
@@ -142,50 +144,10 @@ func WithBlocking(on bool) FeedOption      { return func(fo *feedOption) { fo.bl
 func WithElection(on bool) FeedOption      { return func(fo *feedOption) { fo.election = on } }
 func WithInputName(name string) FeedOption { return func(fo *feedOption) { fo.input = name } }
 
-type LastErrorOption func(*LastError)
-
-type LastError struct {
-	Input, Source string
-	Categories    []point.Category
-}
-
-const defaultInputSource = "not-set"
-
-func newLastError() *LastError {
-	return &LastError{
-		Input:  defaultInputSource,
-		Source: defaultInputSource,
-	}
-}
-
-func WithLastErrorInput(input string) LastErrorOption {
-	return func(le *LastError) {
-		le.Input = input
-		if len(le.Source) == 0 || le.Source == defaultInputSource { // If Source is empty, filling with Input.
-			le.Source = input
-		}
-	}
-}
-
-func WithLastErrorSource(source string) LastErrorOption {
-	return func(le *LastError) {
-		le.Source = source
-		if len(le.Input) == 0 || le.Input == defaultInputSource { // If Input is empty, filling with Source.
-			le.Input = source
-		}
-	}
-}
-
-func WithLastErrorCategory(cats ...point.Category) LastErrorOption {
-	return func(le *LastError) {
-		le.Categories = cats
-	}
-}
-
 type Feeder interface {
 	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
 	FeedV2(category point.Category, pts []*point.Point, opts ...FeedOption) error
-	FeedLastError(err string, opts ...LastErrorOption)
+	FeedLastError(err string, opts ...metrics.LastErrorOption)
 }
 
 // default IO feed implements.
@@ -193,7 +155,7 @@ type ioFeeder struct{}
 
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
-func (*ioFeeder) FeedLastError(err string, opts ...LastErrorOption) {
+func (*ioFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 	if defIO.fo != nil {
 		defIO.fo.WriteLastError(err, opts...)
 	} else {
@@ -482,19 +444,5 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil
-	}
-}
-
-// FeedLastError feed some error message(*unblocking*) to inputs stats
-// we can see the error in monitor.
-//
-// NOTE: the error may be skipped if there is too many error.
-//
-// Deprecated: should use DefaultFeeder to get global default feeder.
-func FeedLastError(source, err string, cat ...point.Category) {
-	if defIO.fo != nil {
-		defIO.fo.WriteLastError(err, WithLastErrorSource(source), WithLastErrorCategory(cat...))
-	} else {
-		log.Warnf("feed output not set, ignored")
 	}
 }

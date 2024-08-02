@@ -14,8 +14,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 const (
@@ -38,8 +39,8 @@ func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 		l.Warnf("input socket: %s", err)
 
 		i.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorCategory(point.Metric))
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric))
 		return nil
 	}
 
@@ -62,8 +63,8 @@ func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 	err = runTimeout(cmd, i.UDPTimeOut.Duration)
 	if err != nil {
 		i.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorCategory(point.Metric))
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric))
 	}
 
 	res := out.String()

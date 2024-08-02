@@ -21,8 +21,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
@@ -178,7 +178,7 @@ func (c *container) gather(category string, feed func(pts []*point.Point) error)
 	start := time.Now()
 	if err := c.gatherResource(category, opts, wrapFeed); err != nil {
 		l.Errorf("feed container-%s error: %s", category, err.Error())
-		c.ipt.Feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+		c.ipt.Feeder.FeedLastError(err.Error(), metrics.WithLastErrorInput(inputName))
 	}
 	collectCostVec.WithLabelValues(category).Observe(time.Since(start).Seconds())
 }

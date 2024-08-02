@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 )
@@ -139,9 +140,9 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 	); err != nil {
 		l.Errorf("Feed logging err: %v", err)
 		tf.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorSource(trapsLogging),
-			dkio.WithLastErrorCategory(point.Logging),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorSource(trapsLogging),
+			metrics.WithLastErrorCategory(point.Logging),
 		)
 	}
 }

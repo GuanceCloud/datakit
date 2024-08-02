@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	istatsd "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/statsd"
 )
@@ -181,8 +182,8 @@ func (ipt *Input) Collect() error {
 	points, err := ipt.Col.GetPoints()
 	if err != nil {
 		ipt.Feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorSource(ipt.Source),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource(ipt.Source),
 		)
 		ipt.l.Errorf("GetPoints: %v", err)
 	}
@@ -213,8 +214,8 @@ func (ipt *Input) feedBatch(points []*point.Point) {
 				dkio.WithCollectCost(time.Since(start)),
 				dkio.WithInputName(ipt.Source)); err != nil {
 				ipt.Feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorSource(ipt.Source),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorSource(ipt.Source),
 				)
 				ipt.l.Errorf("feed measurement: %s", err)
 			}
@@ -234,7 +235,7 @@ func (ipt *Input) Run() {
 
 		if err := ipt.setup(); err != nil {
 			ipt.Feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 			time.Sleep(time.Second * 5)
 			continue

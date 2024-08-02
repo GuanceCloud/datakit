@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 // Sender is used to save points.
@@ -158,7 +159,7 @@ func (w *worker) runConsumer() {
 						w.updateFailInfo(job.url, true)
 						l.Warnf("send data failed: %s", err.Error())
 						workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "failed").Add(1)
-						dkio.ErrCountVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
+						metrics.ErrCountVec.WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
 					} else {
 						dkio.InputsFeedVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
 						dkio.InputsFeedPtsVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()

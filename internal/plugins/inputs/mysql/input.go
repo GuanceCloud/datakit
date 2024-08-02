@@ -22,10 +22,12 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sql-driver/mysql"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -521,7 +523,7 @@ func (ipt *Input) resetLastError() {
 func (ipt *Input) handleLastError() {
 	if len(ipt.lastErrors) > 0 {
 		ipt.feeder.FeedLastError(strings.Join(ipt.lastErrors, "; "),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 	}
 }
@@ -631,8 +633,8 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 		if err != nil {
 			l.Errorf("mysql dmb collect error: %v", err)
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(gcPoint.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(gcPoint.Metric),
 			)
 		}
 	}
@@ -673,8 +675,8 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(gcPoint.Metric),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(gcPoint.Metric),
 		)
 		return
 	}
@@ -705,16 +707,16 @@ func (ipt *Input) Run() {
 				dkio.WithInputName(inputName),
 			); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(gcPoint.CustomObject),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(gcPoint.CustomObject),
 				)
 				l.Errorf("feed : %s", err)
 			}
 
 			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(gcPoint.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(gcPoint.Metric),
 			)
 		} else {
 			break
@@ -753,8 +755,8 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(gcPoint.Metric),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(gcPoint.Metric),
 				)
 			}
 
@@ -766,8 +768,8 @@ func (ipt *Input) Run() {
 						dkio.WithInputName(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
-							dkio.WithLastErrorInput(inputName),
-							dkio.WithLastErrorCategory(gcPoint.Metric),
+							metrics.WithLastErrorInput(inputName),
+							metrics.WithLastErrorCategory(gcPoint.Metric),
 						)
 						l.Errorf("feed : %s", err)
 					}

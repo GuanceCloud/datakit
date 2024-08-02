@@ -19,8 +19,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -627,8 +629,8 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName("gitlab_ci")); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Logging),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Logging),
 		)
 		l.Errorf("feed measurement: %s", err)
 

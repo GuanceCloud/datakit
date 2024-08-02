@@ -16,9 +16,11 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/expfmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -47,7 +49,7 @@ func (ipt *Input) Run() {
 	for {
 		ipt.getMetric()
 		if ipt.lastErr != nil {
-			dkio.FeedLastError(inputName, ipt.lastErr.Error(), point.Metric)
+			metrics.FeedLastError(inputName, ipt.lastErr.Error(), point.Metric)
 		}
 
 		select {

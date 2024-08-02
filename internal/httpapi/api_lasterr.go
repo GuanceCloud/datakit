@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"reflect"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 type errMessage struct {
@@ -22,7 +22,7 @@ type errMessage struct {
 }
 
 type IAPIPutLastError interface {
-	FeedLastError(err string, opts ...dkio.LastErrorOption)
+	FeedLastError(err string, opts ...metrics.LastErrorOption)
 }
 
 // apiPutLastError 获取外部采集器错误，并 feederror 处理.
@@ -55,7 +55,7 @@ func apiPutLastError(_ http.ResponseWriter, req *http.Request, args ...any) (int
 
 	l.Debugf("error_name: %s, error_content:%s", em.Input, em.ErrContent)
 
-	f.FeedLastError(em.ErrContent, dkio.WithLastErrorInput(em.Input), dkio.WithLastErrorSource(em.Source))
+	f.FeedLastError(em.ErrContent, metrics.WithLastErrorInput(em.Input), metrics.WithLastErrorSource(em.Source))
 
 	return nil, nil
 }

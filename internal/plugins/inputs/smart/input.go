@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -155,7 +156,7 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			if err := ipt.gather(); err != nil {
 				l.Errorf("gagher: %s", err.Error())
-				dkio.FeedLastError(inputName, err.Error())
+				metrics.FeedLastError(inputName, err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
@@ -284,7 +285,7 @@ func (ipt *Input) getAttributes(devices []string) error {
 					ipt.NoCheck, device); err != nil {
 					l.Errorf("gatherDisk: %s", err.Error())
 
-					dkio.FeedLastError(inputName, err.Error())
+					metrics.FeedLastError(inputName, err.Error())
 				} else {
 					opts := point.DefaultMetricOptions()
 					sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
@@ -319,7 +320,7 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 							ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
 							l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
 
-							dkio.FeedLastError(inputName, err.Error())
+							metrics.FeedLastError(inputName, err.Error())
 						} else {
 							opts := point.DefaultMetricOptions()
 							sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
@@ -342,7 +343,7 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 					if sm, err := gatherIntelNVMeDisk(ipt.getCustomerTags(),
 						ipt.Timeout.Duration, ipt.UseSudo, ipt.NvmePath, device); err != nil {
 						l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
-						dkio.FeedLastError(inputName, err.Error())
+						metrics.FeedLastError(inputName, err.Error())
 					} else {
 						opts := point.DefaultMetricOptions()
 						sm.tags = inputs.MergeTagsWrapper(sm.tags, ipt.Tagger.HostTags(), ipt.Tags, "")
@@ -409,7 +410,7 @@ func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout time.Durat
 		if err != nil {
 			l.Errorf("gatherNVMeDeviceInfo: %s", err)
 
-			dkio.FeedLastError(inputName, fmt.Sprintf("cannot find device info for %s device", device))
+			metrics.FeedLastError(inputName, fmt.Sprintf("cannot find device info for %s device", device))
 			continue
 		}
 		newDevice := nvmeDevice{

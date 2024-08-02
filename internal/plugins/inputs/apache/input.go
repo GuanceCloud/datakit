@@ -22,9 +22,11 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -133,8 +135,8 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Metric),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 		return
 	}
@@ -189,8 +191,8 @@ func (ipt *Input) Run() {
 			m, err := ipt.getMetric()
 			if err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(point.Metric),
 				)
 
 				ipt.setErrUpState()

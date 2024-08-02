@@ -23,11 +23,13 @@ import (
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
 	mgmtv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3"
 	mgmtv3old "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func runGRPCV3(ipt *Input) {
@@ -201,15 +203,15 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.J
 		return &commonv3.Commands{}, err
 	}
 
-	metrics := processMetricsV3(newjvm, start, r.ipt)
-	if len(metrics) != 0 {
-		if err := r.ipt.feeder.FeedV2(point.Metric, metrics,
+	pts := processMetricsV3(newjvm, start, r.ipt)
+	if len(pts) != 0 {
+		if err := r.ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithInputName(jvmMetricName),
 		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorSource(jvmMetricName),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(jvmMetricName),
 			)
 		}
 	}
@@ -364,15 +366,15 @@ func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMM
 	log.Debugf("### JVMMetricReportServerV3:Collect JVMMetricCollection: %#v", jvm)
 
 	start := time.Now()
-	metrics := processMetricsV3(jvm, start, r.ipt)
-	if len(metrics) != 0 {
-		if err := r.ipt.feeder.FeedV2(point.Metric, metrics,
+	pts := processMetricsV3(jvm, start, r.ipt)
+	if len(pts) != 0 {
+		if err := r.ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithInputName(jvmMetricName),
 		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorSource(jvmMetricName),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(jvmMetricName),
 			)
 		}
 	}

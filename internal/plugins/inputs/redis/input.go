@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -192,7 +193,7 @@ func (ipt *Input) tryInit() {
 		ipt.FeedCoErr(err)
 		l.Errorf("initCfg error: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -253,7 +254,7 @@ func (ipt *Input) Collect() error {
 		if err != nil {
 			l.Errorf("collector %v[%d]: %s", f, idx, err)
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 		}
 
@@ -264,8 +265,8 @@ func (ipt *Input) Collect() error {
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorCategory(point.CustomObject),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.CustomObject),
 					)
 					l.Errorf("feed measurement: %s", err)
 				}
@@ -275,8 +276,8 @@ func (ipt *Input) Collect() error {
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorCategory(point.Metric),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
 					)
 					l.Errorf("feed measurement: %s", err)
 				}
@@ -399,7 +400,7 @@ func (ipt *Input) RunPipeline() {
 		l.Error("NewTailer: %s", err)
 
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}

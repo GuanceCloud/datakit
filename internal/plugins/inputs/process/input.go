@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -420,8 +421,8 @@ func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, 
 
 	if ipt.lastErr != nil {
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Object),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Object),
 		)
 		ipt.lastErr = nil
 	}
@@ -473,8 +474,8 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, 
 
 	if ipt.lastErr != nil {
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Metric),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 		ipt.lastErr = nil
 	}

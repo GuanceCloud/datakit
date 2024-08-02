@@ -11,14 +11,12 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-	imetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 var (
 	inputsFeedVec,
 	inputsFeedPtsVec,
 	feedDropPoints,
-	errCountVec,
 	flushVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
@@ -28,7 +26,6 @@ var (
 	queuePtsVec,
 	flushWorkersVec,
 	inputsLastFeedVec,
-	lastErrVec,
 	ioChanCap,
 	ioChanLen *prometheus.GaugeVec
 )
@@ -47,10 +44,6 @@ func InputsLastFeedVec() *prometheus.GaugeVec {
 
 func InputsCollectLatencyVec() *prometheus.SummaryVec {
 	return inputsCollectLatencyVec
-}
-
-func ErrCountVec() *prometheus.CounterVec {
-	return errCountVec
 }
 
 func metricsSetup() {
@@ -117,31 +110,6 @@ func metricsSetup() {
 		[]string{
 			"category",
 		})
-
-	lastErrVec = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: imetrics.DatakitLastError,
-			Help: "Datakit errors(when error occurred), these errors come from inputs or any sub modules",
-		},
-		[]string{
-			"input",
-			"source",
-			"category",
-			"error",
-		},
-	)
-
-	errCountVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Name:      "error_total",
-			Help:      "Total errors, only count on error source, not include error message",
-		},
-		[]string{
-			"source",
-			"category",
-		},
-	)
 
 	inputsFeedPtsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -254,11 +222,9 @@ func Metrics() []prometheus.Collector {
 		inputsFilteredPtsVec,
 		inputsLastFeedVec,
 		inputsCollectLatencyVec,
-		lastErrVec,
 		queuePtsVec,
 		ioChanLen,
 		ioChanCap,
-		errCountVec,
 		flushVec,
 		flushWorkersVec,
 		feedCost,
@@ -269,14 +235,12 @@ func Metrics() []prometheus.Collector {
 func MetricsReset() {
 	inputsFeedVec.Reset()
 	inputsFeedPtsVec.Reset()
-	errCountVec.Reset()
 	inputsFilteredPtsVec.Reset()
 
 	inputsCollectLatencyVec.Reset()
 
 	queuePtsVec.Reset()
 	inputsLastFeedVec.Reset()
-	lastErrVec.Reset()
 	ioChanCap.Reset()
 	ioChanLen.Reset()
 	flushVec.Reset()

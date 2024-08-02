@@ -16,10 +16,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -79,7 +81,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -118,7 +120,7 @@ func (ipt *Input) Run() {
 
 			if ipt.lastErr != nil {
 				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
-					dkio.WithLastErrorInput(inputName),
+					metrics.WithLastErrorInput(inputName),
 				)
 				ipt.setErrUpState()
 				ipt.lastErr = nil

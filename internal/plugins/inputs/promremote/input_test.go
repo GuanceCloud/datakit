@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 // $ go test -benchmem -bench Benchmark_serveWrite -run=^$ -cpu=1  -cpuprofile=cpu.pprof -memprofile=mem.pprof
@@ -443,7 +444,7 @@ func (m *UnitTestMockedFeeder) FeedV2(category point.Category, pts []*point.Poin
 	return nil
 }
 
-func (m *UnitTestMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
+func (m *UnitTestMockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 func (m *UnitTestMockedFeeder) GetPoints() []*point.Point {
 	return m.PTs
 }

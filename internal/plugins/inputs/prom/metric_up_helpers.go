@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -88,8 +90,8 @@ func (i *Input) FeedUpMetric(server string) {
 			dkio.WithInputName(inputName+"/"+i.Source),
 			dkio.WithBlocking(true)); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorSource(inputName+"/"+i.Source),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(inputName+"/"+i.Source),
 			)
 			i.l.Errorf("feed measurement: %s", err)
 		}

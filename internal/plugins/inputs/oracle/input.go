@@ -19,9 +19,11 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/jmoiron/sqlx"
 	go_ora "github.com/sijms/go-ora/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -231,8 +233,8 @@ func (ipt *Input) Init() {
 			ipt.FeedCoByErr(err)
 			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 		} else {
 			break
@@ -272,8 +274,8 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(point.Metric),
 				)
 			}
 			ipt.FeedCoPts()
@@ -285,8 +287,8 @@ func (ipt *Input) Run() {
 						dkio.WithInputName(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
-							dkio.WithLastErrorInput(inputName),
-							dkio.WithLastErrorCategory(point.Metric),
+							metrics.WithLastErrorInput(inputName),
+							metrics.WithLastErrorCategory(point.Metric),
 						)
 						l.Errorf("feed : %s", err)
 					}

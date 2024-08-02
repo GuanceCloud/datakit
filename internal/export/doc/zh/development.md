@@ -97,7 +97,7 @@ func (ipt *Input) Run() {
         ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
         if err := ipt.Collect(); err != nil {
             l.Errorf("Collect: %s", err)
-            io.FeedLastError(inputName, err.Error())
+            metrics.FeedLastError(inputName, err.Error())
         }
 
         // ... 上传指标和日志
@@ -141,7 +141,7 @@ func (ipt *Input) Run() {
         ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
         if err := ipt.Collect(); err != nil {
             l.Errorf("Collect: %s", err)
-            io.FeedLastError(inputName, err.Error())
+            metrics.FeedLastError(inputName, err.Error())
         }
 
         // ... 上传指标和日志
@@ -185,7 +185,7 @@ func (ipt *Input) Run() {
         ipt.loggingCache = make([]*point.Point, 0)       // 也可以放到 Collect()
         if err := ipt.Collect(); err != nil {
             l.Errorf("Collect: %s", err)
-            io.FeedLastError(inputName, err.Error())
+            metrics.FeedLastError(inputName, err.Error())
         }
 
         // ... 上传指标和日志

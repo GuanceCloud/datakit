@@ -20,7 +20,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -364,13 +364,13 @@ func protectRunningInput(name string, ii *inputInfo) {
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
-			io.FeedLastError("crach_"+name, string(trace))
+			metrics.FeedLastError("crach_"+name, string(trace))
 
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
 
-				io.FeedLastError("crash_"+name,
+				metrics.FeedLastError("crash_"+name,
 					fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash))
 
 				return

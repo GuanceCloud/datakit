@@ -12,7 +12,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 type tcpTask struct {
@@ -88,8 +89,8 @@ func (i *input) runTCP(t *tcpTask) *point.Point {
 		pt.MustAdd("success", int64(-1))
 
 		i.feeder.FeedLastError(err.Error(),
-			io.WithLastErrorInput(inputName),
-			io.WithLastErrorCategory(point.Metric))
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric))
 	}
 
 	return pt

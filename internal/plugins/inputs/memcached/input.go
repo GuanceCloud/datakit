@@ -18,10 +18,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -138,7 +140,7 @@ func (ipt *Input) gatherServer(address string, unix bool) error {
 		conn, err = net.DialTimeout("unix", address, defaultTimeout)
 		if err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 			return err
 		}
@@ -152,7 +154,7 @@ func (ipt *Input) gatherServer(address string, unix bool) error {
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 			return err
 		}
@@ -432,7 +434,7 @@ func (ipt *Input) Run() {
 		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
+				metrics.WithLastErrorInput(inputName),
 			)
 		}
 
@@ -443,7 +445,7 @@ func (ipt *Input) Run() {
 				dkio.WithInputName(inputName),
 			); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
+					metrics.WithLastErrorInput(inputName),
 				)
 				l.Errorf("feed measurement: %s", err)
 			}
