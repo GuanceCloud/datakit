@@ -20,10 +20,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
@@ -511,8 +513,8 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 	); err != nil {
 		l.Errorf("FeedMeasurement object err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorSource(snmpmeasurement.SNMPObjectName),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorSource(snmpmeasurement.SNMPObjectName),
 		)
 	}
 }
@@ -531,8 +533,8 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorSource(snmpmeasurement.SNMPMetricName),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorSource(snmpmeasurement.SNMPMetricName),
 		)
 	}
 }

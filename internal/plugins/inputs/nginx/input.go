@@ -17,10 +17,12 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -198,7 +200,7 @@ func (ipt *Input) Run() {
 					dkio.WithInputName(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
+						metrics.WithLastErrorInput(inputName),
 					)
 					l.Errorf("feed : %s", err)
 				} else {

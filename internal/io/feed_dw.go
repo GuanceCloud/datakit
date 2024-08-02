@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 var _ FeederOutputer = new(datawayOutput)
@@ -25,12 +26,12 @@ func (fo *datawayOutput) Reader(cat point.Category) <-chan *feedOption {
 }
 
 // WriteLastError send any error info into Prometheus metrics.
-func (fo *datawayOutput) WriteLastError(err string, opts ...LastErrorOption) {
+func (fo *datawayOutput) WriteLastError(err string, opts ...metrics.LastErrorOption) {
 	writeLastError(err, opts...)
 }
 
-func writeLastError(err string, opts ...LastErrorOption) {
-	le := newLastError()
+func writeLastError(err string, opts ...metrics.LastErrorOption) {
+	le := metrics.NewLastError()
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -49,8 +50,8 @@ func writeLastError(err string, opts ...LastErrorOption) {
 	inputsFeedVec.WithLabelValues(le.Source, catStr).Inc()
 	inputsLastFeedVec.WithLabelValues(le.Source, catStr).Set(float64(time.Now().Unix()))
 
-	errCountVec.WithLabelValues(le.Source, catStr).Inc()
-	lastErrVec.WithLabelValues(le.Input, le.Source, catStr, err).Set(float64(time.Now().Unix()))
+	metrics.ErrCountVec.WithLabelValues(le.Source, catStr).Inc()
+	metrics.LastErrVec.WithLabelValues(le.Input, le.Source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
 func (fo *datawayOutput) Write(data *feedOption) error {

@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/couchbase/collectors"
@@ -87,7 +88,7 @@ func (ipt *Input) Run() {
 
 			if err := ipt.collect(); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
+					metrics.WithLastErrorInput(inputName),
 				)
 				l.Error(err)
 			}
@@ -98,8 +99,8 @@ func (ipt *Input) Run() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorCategory(point.Metric),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
 					)
 					l.Errorf("feed measurement: %s", err)
 				}

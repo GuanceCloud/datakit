@@ -29,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkmetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -103,8 +104,8 @@ func (ipt *Input) Run() {
 		start := time.Now()
 		if err := ipt.collect(); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Object),
+				dkmetrics.WithLastErrorInput(inputName),
+				dkmetrics.WithLastErrorCategory(point.Object),
 			)
 		} else {
 			if err := ipt.feeder.FeedV2(point.Object, ipt.collectCache,
@@ -112,8 +113,8 @@ func (ipt *Input) Run() {
 				dkio.WithElection(false),
 				dkio.WithInputName(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorCategory(point.Metric),
+					dkmetrics.WithLastErrorInput(inputName),
+					dkmetrics.WithLastErrorCategory(point.Metric),
 				)
 				l.Errorf("feed measurement: %s", err)
 			}

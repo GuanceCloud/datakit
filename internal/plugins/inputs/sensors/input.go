@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -76,7 +77,7 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			if err = ipt.gather(); err != nil {
 				l.Errorf("gather: %s", err.Error())
-				dkio.FeedLastError(inputName, err.Error())
+				metrics.FeedLastError(inputName, err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():

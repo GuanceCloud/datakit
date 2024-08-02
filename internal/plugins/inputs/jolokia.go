@@ -29,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 // --------------------------------------------------------------------
@@ -108,8 +109,8 @@ func (j *JolokiaAgent) Collect() {
 			start := time.Now()
 			if err := j.Gather(); err != nil {
 				j.Feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(j.PluginName),
-					dkio.WithLastErrorCategory(point.Metric),
+					metrics.WithLastErrorInput(j.PluginName),
+					metrics.WithLastErrorCategory(point.Metric),
 				)
 			}
 

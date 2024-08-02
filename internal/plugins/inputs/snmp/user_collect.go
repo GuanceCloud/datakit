@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
 )
@@ -366,8 +367,8 @@ func (ipt *Input) doCollectUserObject(deviceIP string, device *deviceInfo) {
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorCategory(point.CustomObject),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorCategory(point.CustomObject),
 		)
 	}
 }
@@ -430,8 +431,8 @@ func (ipt *Input) doCollectUserMetrics(deviceIP string, device *deviceInfo) {
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(snmpmeasurement.InputName),
-			dkio.WithLastErrorCategory(point.Metric),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 	}
 }

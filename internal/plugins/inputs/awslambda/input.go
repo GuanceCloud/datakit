@@ -16,11 +16,13 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/extension"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/model"
@@ -139,8 +141,8 @@ func (ipt *Input) feedLog(logEvent []*telemetry.LogEvent, syncSend bool) {
 		dkio.WithElection(false),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Logging),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Logging),
 		)
 		l.Errorf("feed measurement: %s", err)
 	}
@@ -157,8 +159,8 @@ func (ipt *Input) feedMetric(metricEvent []*telemetry.Event, syncSend bool) {
 		dkio.WithElection(false),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Metric),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 		l.Errorf("feed measurement: %s", err)
 	}

@@ -16,11 +16,13 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -195,7 +197,7 @@ func (ipt *Input) gather() {
 		collectCache, err := ipt.getMetrics(clientCfg)
 		if err != nil {
 			l.Errorf("getMetrics: %s", err.Error())
-			dkio.FeedLastError(inputName, err.Error())
+			metrics.FeedLastError(inputName, err.Error())
 		}
 
 		if len(collectCache) != 0 {

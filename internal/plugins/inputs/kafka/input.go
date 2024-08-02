@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -75,7 +75,7 @@ func (ipt *Input) RunPipeline() {
 	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
-		io.FeedLastError(inputName, err.Error())
+		metrics.FeedLastError(inputName, err.Error())
 		return
 	}
 

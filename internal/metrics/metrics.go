@@ -36,7 +36,7 @@ var (
 
 //nolint:gochecknoinits
 func init() {
-	metrics.MustRegister(collector)
+	metrics.MustRegister(collector, ErrCountVec, LastErrVec)
 }
 
 type runtimeInfo struct {

@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -215,8 +216,8 @@ func (ipt *Input) collect() error {
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Metric),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 		l.Errorf("feed measurement: %s", err)
 	}
@@ -241,8 +242,8 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 	if err != nil {
 		ipt.l.Errorf("getPts: %s", err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorSource(source),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource(source),
 		)
 
 		// Try testing the connect

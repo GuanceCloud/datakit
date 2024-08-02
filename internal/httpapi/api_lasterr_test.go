@@ -15,14 +15,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 type mockAPIPutLastError struct {
 	em *errMessage
 }
 
-func (m *mockAPIPutLastError) FeedLastError(err string, opts ...dkio.LastErrorOption) {
+func (m *mockAPIPutLastError) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 	m.em = &errMessage{
 		ErrContent: err,
 	}

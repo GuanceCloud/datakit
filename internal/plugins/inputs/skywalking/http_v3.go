@@ -14,9 +14,11 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	agentv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/agent/v3"
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/proto"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
@@ -91,15 +93,15 @@ func (ipt *Input) handleSkyMetricV3(resp http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	metrics := processMetricsV3(jvm, start, ipt)
-	if len(metrics) != 0 {
-		if err := ipt.feeder.FeedV2(point.Metric, metrics,
+	pts := processMetricsV3(jvm, start, ipt)
+	if len(pts) != 0 {
+		if err := ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithInputName(jvmMetricName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorSource(jvmMetricName),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(jvmMetricName),
 			)
 		}
 	}

@@ -83,8 +83,8 @@ func (ipt *Input) Run() {
 	ipt.subscription, err = ipt.evtSubscribe("", ipt.Query)
 	if err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorCategory(point.Logging))
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Logging))
 		return
 	}
 	defer func() {
@@ -111,8 +111,8 @@ func (ipt *Input) Run() {
 					l.Errorf("fetch events failed: %s", err.Error())
 
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorCategory(point.Logging))
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Logging))
 				} // else: ignore no-more-items error
 			}
 
@@ -130,8 +130,8 @@ func (ipt *Input) Run() {
 					); err != nil {
 						l.Errorf("feed error: %s", err.Error())
 						ipt.feeder.FeedLastError(err.Error(),
-							dkio.WithLastErrorInput(inputName),
-							dkio.WithLastErrorCategory(point.Logging))
+							metrics.WithLastErrorInput(inputName),
+							metrics.WithLastErrorCategory(point.Logging))
 					}
 					// expose metric
 					pointTime := ipt.collectCache[len(ipt.collectCache)-1].Time()

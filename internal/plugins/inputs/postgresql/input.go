@@ -21,10 +21,12 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-semver/semver"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -862,7 +864,7 @@ func (ipt *Input) RunPipeline() {
 	if err != nil {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -973,8 +975,8 @@ func (ipt *Input) Run() {
 			ipt.FeedCoByErr(err)
 			l.Errorf("failed to init postgresql: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 		} else {
 			break
@@ -1016,7 +1018,7 @@ func (ipt *Input) Run() {
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
+					metrics.WithLastErrorInput(inputName),
 				)
 				l.Error(err)
 				ipt.setErrUpState()
@@ -1029,7 +1031,7 @@ func (ipt *Input) Run() {
 					dkio.WithInputName(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
+						metrics.WithLastErrorInput(inputName),
 					)
 					l.Errorf("feed : %s", err)
 				}

@@ -87,7 +87,7 @@ func (ipt *Input) RunPipeline() {
 	var err error
 	if ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...); err != nil {
 		l.Error(err)
-		dkio.FeedLastError(inputName, err.Error())
+		metrics.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -139,11 +139,11 @@ func (ipt *Input) Run() {
 					dkio.WithInputName(inputName),
 				); feedErr != nil {
 					l.Error(feedErr)
-					dkio.FeedLastError(inputName, feedErr.Error())
+					metrics.FeedLastError(inputName, feedErr.Error())
 				}
 			} else {
 				l.Error(err)
-				dkio.FeedLastError(inputName, err.Error())
+				metrics.FeedLastError(inputName, err.Error())
 			}
 			ipt.collectCache = make([]*point.Point, 0)
 		case <-datakit.Exit.Wait():

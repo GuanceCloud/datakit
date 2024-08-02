@@ -17,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/require"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 )
 
@@ -112,4 +113,4 @@ func (m *BenchmarkMockedFeeder) FeedV2(category point.Category, pts []*point.Poi
 	return nil
 }
 
-func (m *BenchmarkMockedFeeder) FeedLastError(err string, opts ...dkio.LastErrorOption) {}
+func (m *BenchmarkMockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}

@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -234,7 +235,7 @@ func (ipt *Input) RunPipeline() {
 		log.Errorf("NewTailer: %s", err)
 
 		ipt.feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(inputName),
 		)
 		return
 	}
@@ -285,8 +286,8 @@ func (ipt *Input) tryInitServers() {
 			ipt.FeedCoErr(err)
 			log.Error(err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 			continue
 		}
@@ -326,7 +327,7 @@ func (ipt *Input) Run() {
 			log.Debugf("mongodb input gathering...")
 			if err := ipt.gather(); err != nil {
 				log.Error(err.Error())
-				ipt.feeder.FeedLastError(err.Error(), dkio.WithLastErrorInput(inputName))
+				ipt.feeder.FeedLastError(err.Error(), metrics.WithLastErrorInput(inputName))
 				ipt.setErrUpState()
 			}
 			ipt.FeedUpMetric()

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -92,7 +92,7 @@ func (x *leaderElection) runOnce() int {
 	}
 
 	if err != nil {
-		io.FeedLastError("election", err.Error())
+		metrics.FeedLastError("election", err.Error())
 	}
 
 	return elecIntv

@@ -15,9 +15,11 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -186,8 +188,8 @@ func (i *input) Collect() {
 			l.Warnf("unknown scheme %q", resURL.Scheme)
 
 			i.feeder.FeedLastError(fmt.Sprintf("unknown scheme %q", resURL.Scheme),
-				dkio.WithLastErrorInput(inputName),
-				dkio.WithLastErrorCategory(point.Metric))
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric))
 		}
 	}
 }

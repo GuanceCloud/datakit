@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -181,8 +182,8 @@ func (i *Input) collect() error {
 							dkio.WithInputName(pt.Name()),
 							dkio.WithBlocking(true)); err != nil {
 							i.Feeder.FeedLastError(err.Error(),
-								dkio.WithLastErrorInput(inputName),
-								dkio.WithLastErrorSource(inputName+"/"+i.Source),
+								metrics.WithLastErrorInput(inputName),
+								metrics.WithLastErrorSource(inputName+"/"+i.Source),
 							)
 							i.l.Errorf("feed logging: %s", err)
 						}
@@ -193,8 +194,8 @@ func (i *Input) collect() error {
 					dkio.WithInputName(inputName+"/"+i.Source),
 					dkio.WithBlocking(true)); err != nil {
 					i.Feeder.FeedLastError(err.Error(),
-						dkio.WithLastErrorInput(inputName),
-						dkio.WithLastErrorSource(inputName+"/"+i.Source),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorSource(inputName+"/"+i.Source),
 					)
 					i.l.Errorf("feed measurement: %s", err)
 				}
@@ -231,8 +232,8 @@ func (i *Input) doCollect() error {
 
 		ioname := inputName + "/" + i.Source
 		i.Feeder.FeedLastError(err.Error(),
-			dkio.WithLastErrorInput(inputName),
-			dkio.WithLastErrorSource(ioname),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource(ioname),
 		)
 
 		// Try testing the connect
@@ -278,8 +279,8 @@ func (i *Input) collectFormURLs() error {
 						dkio.WithInputName(pt.Name()),
 						dkio.WithBlocking(true)); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
-							dkio.WithLastErrorInput(inputName),
-							dkio.WithLastErrorSource(inputName+"/"+i.Source),
+							metrics.WithLastErrorInput(inputName),
+							metrics.WithLastErrorSource(inputName+"/"+i.Source),
 						)
 						i.l.Errorf("feed logging: %s", err)
 					}
@@ -290,8 +291,8 @@ func (i *Input) collectFormURLs() error {
 				dkio.WithInputName(inputName+"/"+i.Source),
 				dkio.WithBlocking(true)); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
-					dkio.WithLastErrorInput(inputName),
-					dkio.WithLastErrorSource(inputName+"/"+i.Source),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorSource(inputName+"/"+i.Source),
 				)
 				i.l.Errorf("feed measurement: %s", err)
 			}

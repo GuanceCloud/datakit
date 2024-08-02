@@ -30,12 +30,14 @@ import (
 	dkhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/golang/protobuf/proto"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -682,8 +684,8 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			feedErr = fmt.Errorf("error status code %d", resp.StatusCode)
 		}
 		ipt.feeder.FeedLastError(feedErr.Error(),
-			dkio.WithLastErrorInput(metricName),
-			dkio.WithLastErrorCategory(point.Profiling),
+			metrics.WithLastErrorInput(metricName),
+			metrics.WithLastErrorCategory(point.Profiling),
 		)
 	}
 

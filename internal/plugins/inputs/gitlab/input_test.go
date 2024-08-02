@@ -19,7 +19,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 const (
@@ -804,8 +806,7 @@ func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.P
 	return fmt.Errorf("mock error")
 }
 
-func (f *MockedFeeder) FeedLastError(err string, opts ...io.LastErrorOption) {
-}
+func (f *MockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 
 func (f *MockedFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
 	return fmt.Errorf("mock error")
@@ -831,7 +832,7 @@ func (f *MockedFeederEmpty) Feed(name string, category point.Category, pts []*po
 	return nil
 }
 
-func (f *MockedFeederEmpty) FeedLastError(err string, opts ...io.LastErrorOption) {
+func (f *MockedFeederEmpty) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 }
 
 func (f *MockedFeederEmpty) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {

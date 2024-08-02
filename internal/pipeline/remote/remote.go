@@ -20,9 +20,11 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 )
@@ -144,7 +146,7 @@ func (*pipelineRemoteImpl) Remove(name string) error {
 }
 
 func (*pipelineRemoteImpl) FeedLastError(inputName string, err string) {
-	io.FeedLastError(inputName, err)
+	metrics.FeedLastError(inputName, err)
 }
 
 func (*pipelineRemoteImpl) ReadTarToMap(srcFile string) (map[string]string, error) {

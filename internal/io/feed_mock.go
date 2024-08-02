@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 var (
@@ -55,8 +56,8 @@ func (f *MockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts 
 	return nil
 }
 
-func (f *MockedFeeder) FeedLastError(err string, opts ...LastErrorOption) {
-	le := newLastError()
+func (f *MockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
+	le := metrics.NewLastError()
 
 	for _, opt := range opts {
 		if opt != nil {

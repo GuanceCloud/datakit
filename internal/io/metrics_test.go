@@ -14,6 +14,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	dkmetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 func TestInputFeedMetrics(t *T.T) {
@@ -77,8 +79,8 @@ func TestFeedMetrics(t *T.T) {
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)
 
-		lastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix()))
-		lastErrVec.WithLabelValues("input_ipt", "def", "cat_def", "err_def").Set(float64(time.Now().Unix()))
+		dkmetrics.LastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix()))
+		dkmetrics.LastErrVec.WithLabelValues("input_ipt", "def", "cat_def", "err_def").Set(float64(time.Now().Unix()))
 
 		inputsFeedVec.WithLabelValues("abc", "cat_abc").Inc()
 		inputsFeedVec.WithLabelValues("def", "cat_def").Inc()
@@ -100,7 +102,7 @@ func TestFeedMetrics(t *T.T) {
 	})
 
 	t.Run("exclude-expired-error", func(t *T.T) {
-		lastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix() - 100))
+		dkmetrics.LastErrVec.WithLabelValues("input_ipt", "abc", "cat_abc", "err_abc").Set(float64(time.Now().Unix() - 100))
 
 		inputsFeedVec.WithLabelValues("abc", "cat_abc").Inc()
 
@@ -120,7 +122,7 @@ func TestFeedMetrics(t *T.T) {
 		assert.Equal(t, int64(0), arr[0].LastErrTime)
 
 		t.Cleanup(func() {
-			lastErrVec.Reset()
+			dkmetrics.LastErrVec.Reset()
 			inputsFeedVec.Reset()
 			inputsLastFeedVec.Reset()
 		})

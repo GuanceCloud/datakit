@@ -10,6 +10,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 type awsLambdaOutput struct {
@@ -28,7 +29,7 @@ func (a *awsLambdaOutput) Write(fo *feedOption) error {
 	return nil
 }
 
-func (a *awsLambdaOutput) WriteLastError(err string, opts ...LastErrorOption) {
+func (a *awsLambdaOutput) WriteLastError(err string, opts ...metrics.LastErrorOption) {
 	writeLastError(err, opts...)
 }
 
