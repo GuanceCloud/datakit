@@ -22,8 +22,8 @@ import (
 
 //nolint:lll
 var (
-	k8sDaemonsetTemplete         = "wget https://{{.DownloadCDN}}/datakit.yaml"
-	k8sDeploymentELinkerTemplete = "wget https://{{.DownloadCDN}}/datakit-elinker.yaml"
+	k8sDaemonsetTemplete         = "wget https://{{.DownloadCDN}}/datakit-{{.Version}}.yaml"
+	k8sDeploymentELinkerTemplete = "wget https://{{.DownloadCDN}}/datakit-elinker-{{.Version}}.yaml"
 	NotifyOnly                   = false
 )
 

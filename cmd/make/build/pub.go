@@ -150,11 +150,17 @@ func PubDatakit() error {
 	}
 
 	basics := map[string]string{
-		"version":              path.Join(PubDir, ReleaseType, "version"),
+		"version": path.Join(PubDir, ReleaseType, "version"),
+
+		// NOTE: these will overwrite online files, you should instead use xxx-<version>.
 		"datakit.yaml":         "datakit.yaml",
 		"datakit-elinker.yaml": "datakit-elinker.yaml",
 		"install.sh":           "install.sh",
 		"install.ps1":          "install.ps1",
+		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion):         "datakit.yaml",
+		fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion): "datakit-elinker.yaml",
+		fmt.Sprintf("install-%s.sh", ReleaseVersion):           "install.sh",
+		fmt.Sprintf("install-%s.ps1", ReleaseVersion):          "install.ps1",
 
 		"measurements-meta.json": filepath.Join(PubDir,
 			"datakit",
@@ -176,11 +182,6 @@ func PubDatakit() error {
 			"datakit",
 			inputs.I18nZh.String(),
 			"internal-pipelines.json"),
-
-		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion):         "datakit.yaml",
-		fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion): "datakit-elinker.yaml",
-		fmt.Sprintf("install-%s.sh", ReleaseVersion):           "install.sh",
-		fmt.Sprintf("install-%s.ps1", ReleaseVersion):          "install.ps1",
 	}
 
 	// tar files and collect OSS upload/backup info
