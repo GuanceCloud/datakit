@@ -40,6 +40,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 
 	fields["seq_number"] = d.seqNumber
 	tags["datakit_version"] = datakit.Version
+	tags["node_name"] = d.ipt.regionName
 	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))
 	data := pt.NewPointV2(d.task.MetricName(),
 		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
