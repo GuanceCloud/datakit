@@ -24,6 +24,7 @@ func TestParseScopePathForCgroup(t *testing.T) {
 			in:  "0::/system.slice/containerd.service",
 			out: "",
 		},
+		// ubuntu
 		{
 			in:  "0::/system.slice/docker-89ac90181a86fdea23d87ab993ceb698aa61528123c23135ef43fe5246a1b11e.scope/system.slice/containerd.service",
 			out: "89ac90181a86fdea23d87ab993ceb698aa61528123c23135ef43fe5246a1b11e",
@@ -41,12 +42,12 @@ func TestParseScopePathForCgroup(t *testing.T) {
 			out: "b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
 		},
 		{
-			in:   "0::/system.slice/docker-b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b-.scope",
-			fail: true,
+			in:  "0::/system.slice/docker-b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b-.scope",
+			out: "",
 		},
 		{
-			in:   "0::/system.slice/docker#####################b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b.scope",
-			fail: true,
+			in:  "0::/system.slice/docker#####################b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b.scope",
+			out: "",
 		},
 		{
 			in:   "0:",
@@ -63,6 +64,11 @@ func TestParseScopePathForCgroup(t *testing.T) {
 		{
 			in:  "1::/faker.slice/docker-b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b.scope\n0::/system.slice/docker-b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b.scope\n",
 			out: "b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
+		},
+		// centos
+		{
+			in:  "12:pids:/kubepods/burstable/pod73711620-97c1-45b6-a8e2-6d820a9cfda0/57c035ac757daceb490d54d54bd7201183c991658afb3f008d8632ab02ef6114",
+			out: "57c035ac757daceb490d54d54bd7201183c991658afb3f008d8632ab02ef6114",
 		},
 	}
 
