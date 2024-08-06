@@ -40,26 +40,51 @@ type synchronizer interface {
 	ZoneID() string
 }
 
-func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
+func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	defer cloudCli.CloseIdleConnections()
 
 	switch provider {
 	case Aliyun:
-		p := &aliyun{baseURL: "http://100.100.100.200/latest/meta-data"}
+		var p *aliyun
+		if url, ok := ipt.CloudMetaURL[Aliyun]; ok {
+			p = &aliyun{baseURL: url}
+		} else {
+			p = &aliyun{baseURL: "http://100.100.100.200/latest/meta-data"}
+		}
 		return p.Sync()
 
 	case AWS:
-		p := &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
+		var p *aws
+		if url, ok := ipt.CloudMetaURL[AWS]; ok {
+			p = &aws{baseURL: url}
+		} else {
+			p = &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
+		}
 		return p.Sync()
 
 	case Tencent:
-		p := &tencent{baseURL: "http://metadata.tencentyun.com/latest/meta-data"}
+		var p *tencent
+		if url, ok := ipt.CloudMetaURL[Tencent]; ok {
+			p = &tencent{baseURL: url}
+		} else {
+			p = &tencent{baseURL: "http://metadata.tencentyun.com/latest/meta-data"}
+		}
 		return p.Sync()
 	case Azure:
-		p := &azure{baseURL: "http://169.254.169.254/metadata/instance"}
+		var p *azure
+		if url, ok := ipt.CloudMetaURL[Azure]; ok {
+			p = &azure{baseURL: url}
+		} else {
+			p = &azure{baseURL: "http://169.254.169.254/metadata/instance"}
+		}
 		return p.Sync()
 	case Hwcloud:
-		p := &hwcloud{baseURL: "http://169.254.169.254/latest/meta-data"}
+		var p *hwcloud
+		if url, ok := ipt.CloudMetaURL[Hwcloud]; ok {
+			p = &hwcloud{baseURL: url}
+		} else {
+			p = &hwcloud{baseURL: "http://169.254.169.254/latest/meta-data"}
+		}
 		return p.Sync()
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
