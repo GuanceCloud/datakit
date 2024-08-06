@@ -112,10 +112,8 @@ func fetchNodesData(url string) ([]*CatNode, error) {
 
 func parseUptime(uptime string) int {
 	var seconds float64
-	fmt.Printf("uptime before is %s\n", uptime)
 
 	if len(uptime) == 0 {
-		fmt.Printf("uptime is empty\n")
 		return 0
 	}
 
@@ -132,18 +130,14 @@ func parseUptime(uptime string) int {
 	case "d":
 		multiplier = 86400.0
 	default:
-		fmt.Printf("unknown uptime format: %s\n", uptime)
 		return 0
 	}
 
 	val, err := strconv.ParseFloat(uptime[:len(uptime)-1], 64)
 	if err != nil {
-		fmt.Printf("uptime parse error: %v\n", err)
 		return 0
 	}
 	seconds = val * multiplier
-
-	fmt.Printf("uptime is %.0f seconds\n", seconds)
 	return int(seconds)
 }
 

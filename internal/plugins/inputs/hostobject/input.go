@@ -59,9 +59,9 @@ type Input struct {
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
 	Tags                                        map[string]string `toml:"tags,omitempty"`
-	EnableCloudHostTagsGlobalElection           bool              `toml:"enable_cloud_host_tags_as_global_election"`
+	EnableCloudHostTagsGlobalElection           bool              `toml:"enable_cloud_host_tags_as_global_election_tags"`
 	EnableCloudHostTagsGlobalElectionDeprecated bool              `toml:"enable_cloud_host_tags_global_election"` // deprecated
-	EnableCloudHostTagsGlobalHost               bool              `toml:"enable_cloud_host_tags_as_global_host"`
+	EnableCloudHostTagsGlobalHost               bool              `toml:"enable_cloud_host_tags_as_global_host_tags"`
 	EnableCloudHostTagsGlobalHostDeprecated     bool              `toml:"enable_cloud_host_tags_global_host"` // deprecated
 
 	Interval                 time.Duration `toml:"interval,omitempty"`
@@ -91,11 +91,12 @@ type Input struct {
 	tagger       datakit.GlobalTagger
 
 	mfs []*dto.MetricFamily
+
+	CloudMetaURL map[string]string `toml:"cloud_meta_url,omitempty"`
 }
 
 func (ipt *Input) Run() {
 	ipt.setup()
-
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
@@ -270,10 +271,11 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "OnlyPhysicalDevice", ENVName: "INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE", ConfField: "only_physical_device", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only, any string", DescZh: "忽略非物理磁盘（如网盘、NFS），任意非空字符串"},
 		{FieldName: "ExcludeDevice", ENVName: "INPUT_HOSTOBJECT_EXCLUDE_DEVICE", ConfField: "exclude_device", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Exclude some with dev prefix", DescZh: "忽略的 device"},
 		{FieldName: "ExtraDevice", ENVName: "INPUT_HOSTOBJECT_EXTRA_DEVICE", ConfField: "extra_device", Type: doc.List, Example: "`/nfsdata,other`", Desc: "Additional device", DescZh: "额外增加的 device"},
-		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
-		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
+		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
+		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
 		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
 		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
+		{FieldName: "CloudMetaURL", ENVName: "CLOUD_META_URL", ConfField: "cloud_meta_url", Type: doc.Map, Example: "`{\"tencent\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata URL mapping", DescZh: "云服务商元数据 URL 映射"},
 	}
 
 	return doc.SetENVDoc("ENV_", infos)
@@ -347,6 +349,17 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Tags["cloud_provider"] = cloudProvider
 		}
 	} // ENV_CLOUD_PROVIDER
+
+	if cloudMetaURLStr, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_URL"]; ok {
+		var cloudMetaURL map[string]string
+		err := json.Unmarshal([]byte(cloudMetaURLStr), &cloudMetaURL)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_URL: %s, ignore", err)
+		} else {
+			ipt.CloudMetaURL = cloudMetaURL
+			l.Debugf("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
+		}
+	}
 }
 
 func defaultInput() *Input {

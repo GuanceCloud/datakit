@@ -63,8 +63,8 @@ func TestInput_setup(t *testing.T) {
 		{
 			name: "real = false and deprecated = nil",
 			conf: `
-			enable_cloud_host_tags_as_global_election = false
-            enable_cloud_host_tags_as_global_host = false
+			enable_cloud_host_tags_as_global_election_tags = false
+            enable_cloud_host_tags_as_global_host_tags = false
 			`,
 			wantElection: false,
 			wantHost:     false,
@@ -81,8 +81,8 @@ func TestInput_setup(t *testing.T) {
 		{
 			name: "real = false and deprecated = false",
 			conf: `
-			enable_cloud_host_tags_as_global_election = false
-            enable_cloud_host_tags_as_global_host = false
+			enable_cloud_host_tags_as_global_election_tags = false
+            enable_cloud_host_tags_as_global_host_tags = false
 			enable_cloud_host_tags_global_election = false
             enable_cloud_host_tags_global_host = false
 			`,
