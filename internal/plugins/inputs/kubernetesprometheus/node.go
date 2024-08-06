@@ -136,7 +136,7 @@ func (n *Node) runProm(ctx context.Context, key string, item *corev1.Node) {
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
-			klog.Warnf("node %s has unexpected url target %v", key, ins.Target)
+			klog.Warnf("node %s has unexpected url, err %s", key, err)
 			continue
 		}
 

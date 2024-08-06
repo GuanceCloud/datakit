@@ -13,6 +13,7 @@ import (
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
@@ -235,4 +236,8 @@ func workerInc(role Role, key string) {
 func workerDec(role Role, key string) {
 	_ = workerCounter.Add(-1)
 	forkedWorkerGauge.WithLabelValues(string(role), key).Dec()
+}
+
+func mergeTags(remote string) map[string]string {
+	return inputs.MergeTags(nil, nil, remote)
 }

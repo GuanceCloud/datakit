@@ -6,6 +6,7 @@
 package kubernetesprometheus
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -146,7 +147,13 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 		newIns.Target.Scheme = res
 	}
 	if _, res := s.matches(ins.Target.Port); res != "" {
-		newIns.Target.Port = res
+		// The port is integer
+		if _, err := strconv.Atoi(res); err == nil {
+			newIns.Target.Port = res
+		} else {
+			// The port is string, convert to endpoints port
+			newIns.Target.Port = fmt.Sprintf("__kubernetes_endpoints_port_%s_number", res)
+		}
 	}
 	if _, res := s.matches(ins.Target.Path); res != "" {
 		newIns.Target.Path = res

@@ -45,8 +45,12 @@ const (
        node_name        = "__kubernetes_node_name"
     
    [inputs.kubernetesprometheus.instances.auth]
-     bearer_token_file = "/var/run/secret/kubernetes.io/serviceaccount/token"
+     bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
      [inputs.kubernetesprometheus.instances.auth.tls_config]
        insecure_skip_verify = true
+	ca_certs = []
+	cert     = ""
+	cert_key = ""
+
 `
 )

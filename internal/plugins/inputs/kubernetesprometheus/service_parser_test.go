@@ -139,7 +139,7 @@ func TestTransForService(t *testing.T) {
 		Target: Target{
 			Scheme:  "__kubernetes_service_annotation_prometheus.io/scheme",
 			Address: "__kubernetes_endpoints_address_ip",
-			Port:    "__kubernetes_service_port_metrics_port",
+			Port:    "__kubernetes_service_port_metrics_targetport",
 			Path:    "__kubernetes_service_annotation_prometheus.io/path",
 			Params:  "name=hello&name2=world",
 		},
@@ -179,8 +179,8 @@ func TestTransForService(t *testing.T) {
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Name: "metrics",
-					Port: 9090,
+					Name:       "metrics",
+					TargetPort: intstr.FromString("http-metrics"),
 				},
 			},
 		},
@@ -194,7 +194,7 @@ func TestTransForService(t *testing.T) {
 		Target: Target{
 			Scheme:  "https",
 			Address: "__kubernetes_endpoints_address_ip",
-			Port:    "9090",
+			Port:    "__kubernetes_endpoints_port_http-metrics_number",
 			Path:    "/metrics",
 			Params:  "name=hello&name2=world",
 		},

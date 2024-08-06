@@ -191,7 +191,7 @@ func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Serv
 				pr := newEndpointsParser(ep)
 				cfgs, err := pr.parsePromConfig(epIns)
 				if err != nil {
-					klog.Warnf("svc-ep %s has unexpected url target %v", key, ins.Target)
+					klog.Warnf("svc-ep %s has unexpected url, err %s", key, err)
 					continue
 				}
 

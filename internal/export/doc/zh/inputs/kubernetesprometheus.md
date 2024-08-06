@@ -100,9 +100,9 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus 采集器不添加任何默认标签，包括来自 Datakit 的 `election_tags` 和 `host_tags`，以及 `cluster_name_k8s`。
+    KubernetesPrometheus 采集器默认只添加 2 个标签，分别是 `"instance" = "IP:PORT"` 和 `"host" = "IP"`。
 
-    所有标签都需要手动添加。
+    来自 Datakit 的 `election_tags`、`host_tags` 和 `cluster_name_k8s` 标签都不添加。
 <!-- markdownlint-enable -->
 
 ### 权限和验证 {#input-config-auth}

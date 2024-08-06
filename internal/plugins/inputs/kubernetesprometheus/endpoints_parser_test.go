@@ -212,6 +212,7 @@ func TestParseEndpoints(t *testing.T) {
 			measurement: "nginx",
 			tags: map[string]string{
 				"instance":      "172.16.10.10:9090",
+				"host":          "172.16.10.10",
 				"pod_name":      "nginx-123",
 				"pod_namespace": "nginx-ns",
 			},
@@ -221,6 +222,7 @@ func TestParseEndpoints(t *testing.T) {
 			measurement: "nginx",
 			tags: map[string]string{
 				"instance":      "172.16.10.12:9090",
+				"host":          "172.16.10.12",
 				"pod_name":      "nginx-456",
 				"pod_namespace": "nginx-ns",
 			},
