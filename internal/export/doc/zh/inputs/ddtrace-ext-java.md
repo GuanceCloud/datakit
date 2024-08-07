@@ -34,6 +34,8 @@
 
 DDTrace 最低版本支持： [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
 
+> 注意：该功能由于太占用内存无法控制，在 [v1.34.2](ddtrace-ext-changelog.md#cl-1.34.2-guance-fix) 移除。
+
 ## 链路数据中添加 HTTP Header 信息 {#trace_header}
 
 链路详情中会将请求和响应的头部信息放到标签中。默认为关闭状态，如需开启，则启动时添加参数 `-Ddd.trace.headers.enabled=true`, 开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
