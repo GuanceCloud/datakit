@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -107,7 +108,7 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 
 		if span.TraceIdHigh != 0 {
 			spanKV = spanKV.Add(itrace.FieldTraceID,
-				fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow)), false, false)
+				toTraceIDString(uint64(span.TraceIdHigh), uint64(span.TraceIdLow)), false, false)
 		} else {
 			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(uint64(span.TraceIdLow), 16), false, false)
 		}
@@ -173,6 +174,16 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	}
 
 	return dktrace
+}
+
+func toTraceIDString(traceIDHigh, traceIDLow uint64) string {
+	highStr := strconv.FormatUint(traceIDHigh, 16)
+	highStr = strings.Repeat("0", 16-len(highStr)) + highStr
+
+	lowStr := strconv.FormatUint(traceIDLow, 16)
+	lowStr = strings.Repeat("0", 16-len(lowStr)) + lowStr
+
+	return highStr + lowStr
 }
 
 func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[uint64]bool, spanIDs map[uint64]bool) {

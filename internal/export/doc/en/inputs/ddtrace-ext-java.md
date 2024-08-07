@@ -34,6 +34,8 @@ Since getting `response body` causes damage to `response`, the encoding adjustme
 
 DDTrace supported version: [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
 
+> Note: This function was removed in [v1.34.2](ddtrace-ext-changelog.md#cl-1.34.2-guance-fix) because it took up too much memory and was uncontrollable.
+
 ## Tracing Header {#trace_header}
 
 The link information will put the header information of the request and response into the tag.The default state is off. If it needs to be turned on, add the parameter `-Ddd.trace.headers.enabled=true`  during startup.

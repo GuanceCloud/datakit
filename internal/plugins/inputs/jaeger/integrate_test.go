@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +18,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
@@ -537,4 +540,12 @@ func (cs *caseSpec) portsOK(r *testutils.RemoteInfo) error {
 		}
 	}
 	return nil
+}
+
+func Test_toTraceIDString(t *testing.T) {
+	t.Logf("max trace_id =%s", toTraceIDString(math.MaxUint64, math.MaxUint64))
+	t.Logf("int32 trace_id =%s", toTraceIDString(math.MaxUint32, math.MaxUint32))
+	assert.Equal(t, len(toTraceIDString(9999, 9999)), 32, "mast len 32")
+	assert.Equal(t, len(toTraceIDString(9999, 0o0000)), 32, "mast len 32")
+	assert.Equal(t, len(toTraceIDString(math.MaxUint64, math.MaxUint64)), 32, "mast len 32")
 }
