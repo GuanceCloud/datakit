@@ -29,7 +29,7 @@ const (
 	ProtoGRPC
 	ProtoMySQL
 	ProtoRedis
-
+	ProtoAMQP
 	ProtoPgsql
 )
 
@@ -72,6 +72,8 @@ func (p L7Protocol) StringLower() string {
 		return "mysql"
 	case ProtoRedis:
 		return "redis"
+	case ProtoAMQP:
+		return "amqp"
 	case ProtoPgsql:
 		return "postgresql"
 	default:
@@ -91,6 +93,8 @@ func (p L7Protocol) String() string {
 		return "MySQL"
 	case ProtoRedis:
 		return "Redis"
+	case ProtoAMQP:
+		return "AMQP"
 	case ProtoPgsql:
 		return "PostgreSQL"
 	default:
@@ -111,6 +115,8 @@ func ProtocalNum(p string) L7Protocol {
 		return ProtoMySQL
 	case "redis":
 		return ProtoRedis
+	case "amqp":
+		return ProtoAMQP
 	case "postgresql":
 		return ProtoPgsql
 	default:
@@ -118,7 +124,7 @@ func ProtocalNum(p string) L7Protocol {
 	}
 }
 
-var AllProtos = []L7Protocol{ProtoHTTP, ProtoHTTP2, ProtoGRPC, ProtoMySQL, ProtoRedis, ProtoPgsql}
+var AllProtos = []L7Protocol{ProtoHTTP, ProtoHTTP2, ProtoGRPC, ProtoMySQL, ProtoRedis, ProtoPgsql, ProtoAMQP}
 
 type ProtoMeta struct {
 	TraceID      spanid.ID128
@@ -183,6 +189,8 @@ func Init() {
 	_protoSet.RegisterDetector(HTTPProtoDetect)
 	// HTTP2 and gRPC
 	_protoSet.RegisterDetector(H2ProtoDetect)
+
+	_protoSet.RegisterDetector(AMQPProtoDetect)
 
 	_protoSet.RegisterDetector(RedisProtoDetect)
 

@@ -63,7 +63,15 @@ const (
 
 	FieldMysqlStatusCode = "mysql_status_code"
 	FieldMysqlErrMsg     = "mysql_err_msg"
-	FiledMysqlComment    = "mysql_comment"
+	FieldMysqlComment    = "mysql_comment"
+
+	FieldAMQPReqMethod  = "amqp_req_method"
+	FieldAMQPRespMethod = "amqp_resp_method"
+	FieldAMQPClass      = "amqp_class"
+	FieldAMQPQueue      = "amqp_queue"
+	FieldAMQPExchange   = "amqp_exchange"
+	FieldAMQPRoutingKey = "amqp_routing_key"
+	FieldAMQPVhost      = "amqp_vhost"
 
 	FieldPgsqlComment     = "pgsql_comment"
 	FieldPgsqlAffectedRow = "pgsql_affected_row"
