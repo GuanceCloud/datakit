@@ -49,6 +49,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 	default:
 		resp.Header().Set("Content-Type", "application/json")
 		resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
+		resp.WriteHeader(http.StatusOK)
 		resp.Write([]byte(`{}`)) // nolint: errcheck,gosec
 	}
 }
@@ -93,15 +94,25 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 }
 
 // TODO:.
-func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unused,deadcode
+func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	log.Infof("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-// TODO:.
-func handleDDStats(resp http.ResponseWriter, req *http.Request) {
-	log.Infof("### %s unsupported yet", req.URL.Path)
-	resp.WriteHeader(http.StatusNotFound)
+func (ipt *Input) handleDDProxy(resp http.ResponseWriter, req *http.Request) {
+	bts, err := io.ReadAll(req.Body)
+	defer req.Body.Close() //nolint
+	if err != nil {
+		log.Warnf("read body err=%v", err)
+		resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ipt.om != nil {
+		ipt.om.parseTelemetryRequest(req.Header, bts)
+	}
+
+	resp.WriteHeader(http.StatusOK)
 }
 
 func parseDDTraces(param *itrace.TraceParameters) error {

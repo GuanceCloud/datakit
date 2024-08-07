@@ -356,6 +356,7 @@ require (
 	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db
 	github.com/google/gopacket v0.0.0-00010101000000-000000000000
 	github.com/grafana/pyroscope/ebpf v0.2.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/ibmdb/go_ibm_db v0.4.4
 	github.com/jackc/pgx/v5 v5.5.1
 	github.com/mattn/go-oci8 v0.1.1
@@ -375,7 +376,6 @@ require (
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
