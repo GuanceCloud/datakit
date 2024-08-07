@@ -66,11 +66,17 @@ const sampleCfg = `
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = false
 
-  ## TLS configuration.
-  tls_open = false
-  # tls_ca = "/tmp/ca.crt"
-  # tls_cert = "/tmp/peer.crt"
-  # tls_key = "/tmp/peer.key"
+  ## TLS config
+  # insecure_skip_verify = true
+  ## Following ca_certs/cert/cert_key are optional, if insecure_skip_verify = true.
+  # ca_certs = ["/opt/tls/ca.crt"]
+  # cert = "/opt/tls/client.root.crt"
+  # cert_key = "/opt/tls/client.root.key"
+  ## we can encode these file content in base64 format:
+  # ca_certs_base64 = ["LONG_BASE64_STRING......"]
+  # cert_base64 = "LONG_BASE64_STRING......"
+  # cert_key_base64 = "LONG_BASE64_STRING......"
+  # server_name = "your-SNI-name"
 
   ## Set to 'true' to enable election.
   election = true

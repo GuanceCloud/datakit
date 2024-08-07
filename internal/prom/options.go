@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 type option struct {
@@ -35,6 +36,7 @@ type option struct {
 	certFile           string
 	keyFile            string
 	insecureSkipVerify bool
+	tlsClientConfig    *dknet.TLSClientConfig
 
 	tagsIgnore  []string // do not keep these tags in scraped prom data
 	tagsRename  *RenameTags
@@ -129,6 +131,10 @@ func WithUDSPath(str string) PromOption       { return func(opt *option) { opt.u
 func WithCacertFiles(arr []string) PromOption { return func(opt *option) { opt.cacertFiles = arr } }
 func WithCertFile(str string) PromOption      { return func(opt *option) { opt.certFile = str } }
 func WithKeyFile(str string) PromOption       { return func(opt *option) { opt.keyFile = str } }
+func WithTLSClientConfig(t *dknet.TLSClientConfig) PromOption {
+	return func(opt *option) { opt.tlsClientConfig = t }
+}
+
 func WithInsecureSkipVerify(b bool) PromOption {
 	return func(opt *option) { opt.insecureSkipVerify = b }
 }
