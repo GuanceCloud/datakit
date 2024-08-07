@@ -23,6 +23,8 @@ import (
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -64,11 +66,12 @@ type optionMock struct {
 	output                 string
 	maxFileSize            int64
 
-	tlsOpen     bool
-	udsPath     string
-	cacertFiles []string
-	certFile    string
-	keyFile     string
+	tlsOpen         bool
+	udsPath         string
+	cacertFiles     []string
+	certFile        string
+	keyFile         string
+	tlsClientConfig *dknet.TLSClientConfig
 
 	tagsIgnore  []string // do not keep these tags in scraped prom data
 	tagsRename  *RenameTags
@@ -348,6 +351,129 @@ func Test_BearerToken(t *testing.T) {
 			assert.Contains(t, authHeader[0], "Bearer")
 		}
 	}
+}
+
+func Test_TLS_new(t *testing.T) {
+	t.Run("enable-tls", func(t *testing.T) {
+		in := &optionMock{
+			tlsOpen: true,
+		}
+		opts := createOpts(in)
+		p, err := NewProm(opts...)
+
+		assert.NoError(t, err)
+		transport, ok := p.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, true)
+	})
+
+	t.Run("tls with ca", func(t *testing.T) {
+		f, err := os.CreateTemp(t.TempDir(), "ca.crt")
+		assert.NoError(t, err)
+		_, err = f.WriteString(caContent)
+		assert.NoError(t, err)
+		caFile := f.Name()
+		defer os.Remove(caFile) // nolint:errcheck
+
+		in := &optionMock{
+			tlsOpen:     true,
+			cacertFiles: []string{caFile},
+		}
+		opts := createOpts(in)
+		p, err := NewProm(opts...)
+
+		assert.NoError(t, err)
+		transport, ok := p.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, transport.TLSClientConfig.InsecureSkipVerify, false)
+	})
+
+	t.Run("tls with non", func(t *testing.T) {
+		p, err := NewProm()
+
+		assert.NoError(t, err)
+		transport, ok := p.client.Transport.(*http.Transport)
+		assert.True(t, ok)
+		assert.Equal(t, true, transport.TLSClientConfig == nil)
+	})
+
+	t.Run("TLSClientConfig's ca_file 2nd priority", func(t *testing.T) {
+		f, err := os.CreateTemp(t.TempDir(), "ca.crt")
+		assert.NoError(t, err)
+		_, err = f.WriteString(caContent)
+		assert.NoError(t, err)
+		caFile := "error_file"
+
+		tlsClientConfig := &dknet.TLSClientConfig{
+			CaCerts: []string{f.Name()},
+		}
+
+		defer os.Remove(caFile) // nolint:errcheck
+
+		in := &optionMock{
+			tlsOpen:         true,
+			cacertFiles:     []string{caFile},
+			tlsClientConfig: tlsClientConfig,
+		}
+		opts := createOpts(in)
+		_, err = NewProm(opts...)
+
+		assert.NotEqual(t, nil, err)
+	})
+
+	t.Run("TLSClientConfig's ca_base64 1st priority", func(t *testing.T) {
+		f, err := os.CreateTemp(t.TempDir(), "ca.crt")
+		assert.NoError(t, err)
+		_, err = f.WriteString(caContent)
+		assert.NoError(t, err)
+		caFile := "error_file"
+
+		tlsClientConfig := &dknet.TLSClientConfig{
+			CaCerts:       []string{"error_file"},
+			CaCertsBase64: []string{"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNxRENDQVpBQ0NRQzI3VVpIZzhBL0NqQU5CZ2txaGtpRzl3MEJBUXNGQURBV01SUXdFZ1lEVlFRRERBdDAKYjI1NVltRnBMbU52YlRBZUZ3MHlNVEV4TWpVd01UVTNNekJhRncwek5UQTRNRFF3TVRVM016QmFNQll4RkRBUwpCZ05WQkFNTUMzUnZibmxpWVdrdVkyOXRNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDCkFRRUFveldOTUtFZVZWS1JnNVF1T1B2OWJtdUdPU2hSV2FNeG15TG5menZWNXRTL09kZzYzakVlY0UzSy9ISGEKT1VyVHdIS2wyTlNmd2ZVWlBmQ2YxZ1ZZSEJ6b3pYNjZYWFhZUitxVjJhZWcrR3NNZytvOGZvSDhtbUJMOWNXKwpmdmJwTk52OWs5RzRXMHpYOVlkV21YdDhLSEtyNUtUaFNVcTQ2S044cVVDVVBxSUJuUE1LZkRKdUVqTE1QdXhpCmhsaWVob2VIWTMyWWNnbExLU1NBWU1vczJTV1VBL0Q4MXd5ZlpLZUg4S1F1N2xQS2RDRVhLTEpCUzQrSHhVRngKZ3dEVjg0bStIOHY5YmY4UEllS3JVR216U3VDWVVDeHJReW9pYUlhd0I2aVk3QkpBUWVhcUVyK1c2YlM5QlUyZgpwNktIRzh5RUhEZnozZ0Z1TlIzdkNMekdEUUlEQVFBQk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQThEaUp5Cm82QkhWVHVtQWJCdjkrUTBGc1hLUVJIMVlWd1I3c3BITGRiemJxSmFkZ2hUR1ByWEd6d1lCYUdpTFRISGFMWFgKS3NiZGM4VC9DN3BSSVZYYzlKYngxRXpDUUZsYURCazg5b2tBRy9jV2NicjBQNXNNREo5NlVyYXBCbzJQWUtOcQpRdlNRaFNqdktUVkIxOXd3U29EN3piT3FJVFhXUUtjdjFkMTB5ZDNYNVEyUENvbWpNTXVoV0tBT3RKdkl2RXJ1Ci8zV2lEcFlnR0d6L1hOMVlSRm5OdlJzWEVWYTZUMFE3bE9pLzdMZnYrTjk2UjY0M1p2NWZjeUFGTUdJaVEwbmEKdmZxZS9GQjA1R2w4OXgrQmI3eHRpOGJ6QWxzRnkxYnllSWZGS1UzR212YjhJTlJKeUg1d1JXVnUyOXBvWGwxTgpnL3BBamdnY3M4enk1R3hSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0="},
+		}
+
+		defer os.Remove(caFile) // nolint:errcheck
+
+		in := &optionMock{
+			tlsOpen:         true,
+			cacertFiles:     []string{caFile},
+			tlsClientConfig: tlsClientConfig,
+		}
+		opts := createOpts(in)
+		_, err = NewProm(opts...)
+
+		assert.NotEqual(t, nil, err)
+	})
+
+	t.Run("TLSClientConfig's ca_base64 error", func(t *testing.T) {
+		f, err := os.CreateTemp(t.TempDir(), "ca.crt")
+		assert.NoError(t, err)
+		_, err = f.WriteString(caContent)
+		assert.NoError(t, err)
+		caFile := "error_file"
+
+		tlsClientConfig := &dknet.TLSClientConfig{
+			CaCerts:       []string{"error_file"},
+			CaCertsBase64: []string{"ERRORLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNxRENDQVpBQ0NRQzI3VVpIZzhBL0NqQU5CZ2txaGtpRzl3MEJBUXNGQURBV01SUXdFZ1lEVlFRRERBdDAKYjI1NVltRnBMbU52YlRBZUZ3MHlNVEV4TWpVd01UVTNNekJhRncwek5UQTRNRFF3TVRVM016QmFNQll4RkRBUwpCZ05WQkFNTUMzUnZibmxpWVdrdVkyOXRNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDCkFRRUFveldOTUtFZVZWS1JnNVF1T1B2OWJtdUdPU2hSV2FNeG15TG5menZWNXRTL09kZzYzakVlY0UzSy9ISGEKT1VyVHdIS2wyTlNmd2ZVWlBmQ2YxZ1ZZSEJ6b3pYNjZYWFhZUitxVjJhZWcrR3NNZytvOGZvSDhtbUJMOWNXKwpmdmJwTk52OWs5RzRXMHpYOVlkV21YdDhLSEtyNUtUaFNVcTQ2S044cVVDVVBxSUJuUE1LZkRKdUVqTE1QdXhpCmhsaWVob2VIWTMyWWNnbExLU1NBWU1vczJTV1VBL0Q4MXd5ZlpLZUg4S1F1N2xQS2RDRVhLTEpCUzQrSHhVRngKZ3dEVjg0bStIOHY5YmY4UEllS3JVR216U3VDWVVDeHJReW9pYUlhd0I2aVk3QkpBUWVhcUVyK1c2YlM5QlUyZgpwNktIRzh5RUhEZnozZ0Z1TlIzdkNMekdEUUlEQVFBQk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQThEaUp5Cm82QkhWVHVtQWJCdjkrUTBGc1hLUVJIMVlWd1I3c3BITGRiemJxSmFkZ2hUR1ByWEd6d1lCYUdpTFRISGFMWFgKS3NiZGM4VC9DN3BSSVZYYzlKYngxRXpDUUZsYURCazg5b2tBRy9jV2NicjBQNXNNREo5NlVyYXBCbzJQWUtOcQpRdlNRaFNqdktUVkIxOXd3U29EN3piT3FJVFhXUUtjdjFkMTB5ZDNYNVEyUENvbWpNTXVoV0tBT3RKdkl2RXJ1Ci8zV2lEcFlnR0d6L1hOMVlSRm5OdlJzWEVWYTZUMFE3bE9pLzdMZnYrTjk2UjY0M1p2NWZjeUFGTUdJaVEwbmEKdmZxZS9GQjA1R2w4OXgrQmI3eHRpOGJ6QWxzRnkxYnllSWZGS1UzR212YjhJTlJKeUg1d1JXVnUyOXBvWGwxTgpnL3BBamdnY3M4enk1R3hSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0="},
+		}
+
+		defer os.Remove(caFile) // nolint:errcheck
+
+		in := &optionMock{
+			tlsOpen:         true,
+			cacertFiles:     []string{caFile},
+			tlsClientConfig: tlsClientConfig,
+		}
+		opts := createOpts(in)
+		_, err = NewProm(opts...)
+
+		if err != nil {
+			return
+		}
+
+		t.Errorf("want error, but err == nil")
+	})
 }
 
 func Test_TLS(t *testing.T) {

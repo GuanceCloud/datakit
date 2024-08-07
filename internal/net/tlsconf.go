@@ -98,13 +98,18 @@ func loadCertificate(config *tls.Config, certFile, keyFile string) error {
 
 // MergeTLSConfig merge TLS config info. insecureSkipVerify default to false.
 func MergeTLSConfig(t *TLSClientConfig,
-	cacertFile,
+	cacertFiles []string,
 	certFile,
 	keyFile string,
 	tlsOpen,
 	insecureSkipVerify bool,
 ) *TLSClientConfig {
 	if t != nil {
+		// Because ipt.InsecureSkipVerify is priority ipt.TLSClientConfig.InsecureSkipVerify
+		if insecureSkipVerify {
+			t.InsecureSkipVerify = true
+		}
+
 		return t
 	}
 
@@ -112,18 +117,104 @@ func MergeTLSConfig(t *TLSClientConfig,
 		return nil
 	}
 
-	caCerts := []string{}
-	if cacertFile != "" {
-		caCerts = append(caCerts, cacertFile)
+	newCacertFiles := make([]string, 0)
+	for _, s := range cacertFiles {
+		if s != "" {
+			newCacertFiles = append(newCacertFiles, s)
+		}
 	}
-	insecure := insecureSkipVerify || cacertFile == ""
+	insecure := insecureSkipVerify || len(newCacertFiles) == 0
 
 	return &TLSClientConfig{
-		CaCerts:            caCerts,
+		CaCerts:            newCacertFiles,
 		Cert:               certFile,
 		CertKey:            keyFile,
 		InsecureSkipVerify: insecure,
 	}
+}
+
+// Base64ToTLSFiles returns TLS files from base64.
+//
+// Example: used by redis-cli.
+//
+//	if ipt.TLSClientConfig != nil && (ipt.TLSClientConfig.CertBase64 != "" || ipt.TLSClientConfig.CertKeyBase64 != "") {
+//		   caCerts, cert, certKey, err := ipt.TLSClientConfig.Base64ToTLSFiles()
+//		   if err != nil {
+//		   	   l.Errorf("Collect: %s", err)
+//		   	   return
+//		   }
+//		   ipt.TLSClientConfig.CaCerts = caCerts
+//		   ipt.TLSClientConfig.Cert = cert
+//		   ipt.TLSClientConfig.CertKey = certKey
+//		   for _, caCert := range caCerts {
+//		   	   defer os.Remove(caCert) // nolint:errcheck
+//		   }
+//		   defer os.Remove(cert)    // nolint:errcheck
+//		   defer os.Remove(certKey) // nolint:errcheck
+//	}
+func (c *TLSClientConfig) Base64ToTLSFiles() (caCerts []string, cert, certKey string, err error) {
+	if c == nil {
+		return []string{}, "", "", fmt.Errorf("TLSClientConfig is nil")
+	}
+
+	if c.Cert != "" || c.CertKey != "" {
+		return []string{}, "", "", fmt.Errorf("TLSClientConfig Cert or CertKey is not nil")
+	}
+
+	if c.CertBase64 == "" || c.CertKeyBase64 == "" {
+		return []string{}, "", "", fmt.Errorf("TLSClientConfig CertBase64 or CertKeyBase64 is nil")
+	}
+
+	for _, p := range c.CaCertsBase64 {
+		if b, err := base64.StdEncoding.DecodeString(p); err != nil {
+			return []string{}, "", "", err
+		} else {
+			caFile, err := createFile(b, "ca.crt")
+			if err != nil {
+				return []string{}, "", "", err
+			}
+			caCerts = append(caCerts, caFile)
+		}
+	}
+
+	if b, err := base64.StdEncoding.DecodeString(c.CertBase64); err != nil {
+		return []string{}, "", "", err
+	} else {
+		cert, err = createFile(b, "cert.crt")
+		if err != nil {
+			return []string{}, "", "", err
+		}
+	}
+
+	if b, err := base64.StdEncoding.DecodeString(c.CertKeyBase64); err != nil {
+		return []string{}, "", "", err
+	} else {
+		certKey, err = createFile(b, "cert.key")
+		if err != nil {
+			return []string{}, "", "", err
+		}
+	}
+
+	return caCerts, cert, certKey, nil
+}
+
+func createFile(b []byte, fileName string) (string, error) {
+	f, err := os.CreateTemp("", "temp_*"+fileName)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = f.Write(b)
+	if err != nil {
+		return "", err
+	}
+
+	err = f.Chmod(0o666)
+	if err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
 }
 
 // TLSConfigWithBase64 returns a tls.Config, may be nil without error if TLS is not configured.
@@ -135,6 +226,10 @@ func (c *TLSClientConfig) TLSConfigWithBase64() (*tls.Config, error) {
 	//     * peer certificate authorities,
 	//     * disabled security, or
 	//     * an SNI server name.
+
+	if c == nil {
+		return nil, nil
+	}
 
 	var err error
 

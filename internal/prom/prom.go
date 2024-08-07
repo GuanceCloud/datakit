@@ -27,7 +27,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
-	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 type Rule struct {
@@ -266,22 +266,12 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 }
 
 func loadTLSConfig(opt *option) (*tls.Config, error) {
-	if !opt.tlsOpen {
-		return nil, nil
-	}
+	tc := dknet.MergeTLSConfig(opt.tlsClientConfig,
+		opt.cacertFiles,
+		opt.certFile,
+		opt.keyFile,
+		opt.tlsOpen,
+		false)
 
-	insecureSkipVerify := opt.insecureSkipVerify || len(opt.cacertFiles) == 0
-
-	tc := &dnet.TLSClientConfig{
-		CaCerts:            opt.cacertFiles,
-		Cert:               opt.certFile,
-		CertKey:            opt.keyFile,
-		InsecureSkipVerify: insecureSkipVerify,
-	}
-
-	tlsConfig, err := tc.TLSConfig()
-	if err != nil {
-		return nil, err
-	}
-	return tlsConfig, nil
+	return tc.TLSConfigWithBase64()
 }

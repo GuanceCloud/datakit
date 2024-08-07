@@ -22,7 +22,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -71,7 +70,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 			},
 		}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -110,7 +109,7 @@ some_info{info1="data1"} 0
 
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -158,7 +157,7 @@ promhttp_metric_handler_errors_total{cause="encoding",ignore_me="some"} 0
 		inp.URLs = []string{srv.URL}
 		inp.TagsIgnore = []string{"ignore_me"}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -196,7 +195,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 			},
 		}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -234,7 +233,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 			Service: "as-logging",
 		}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -270,7 +269,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementName = "some"
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -305,7 +304,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementPrefix = "some_"
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -346,7 +345,7 @@ promtcp_metric_handler_errors_total{cause="encoding"} 0
 			},
 		}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -381,7 +380,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		inp.URLs = []string{srv.URL}
 		inp.DisableInstanceTag = true
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
 		assert.NoError(t, err)
@@ -401,9 +400,9 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 	t.Run("ignore-tag-kv", func(t *T.T) {
 		body := `# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
 # TYPE promhttp_metric_handler_errors_total counter
-promhttp_metric_handler_errors_total{cause="encoding-1",some="foo-1"} 1
-promhttp_metric_handler_errors_total{cause="encoding-2",some="foo-2"} 2
-promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 3
+promhttp_metric_handler_errors_total{cause="encoding-1",some="foo-1"} 0
+promhttp_metric_handler_errors_total{cause="encoding-2",some="foo-2"} 0
+promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 0
 `
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, body)
@@ -420,28 +419,33 @@ promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 3
 			"some":  {"foo-1", "foo-3"},           // keep `foo-2'
 		}
 
-		inp.Init()
+		inp.tryInit()
 
 		pts, err := inp.collectFormSource(inp.URLs[0])
-		require.NoError(t, err)
-		require.NotEmpty(t, pts)
+		assert.NoError(t, err)
+
+		if len(pts) == 0 {
+			t.Errorf("got nil pts error.")
+		}
 
 		for _, pt := range pts {
 			causeKV := pt.Get("cause")
 			if causeKV != nil {
 				causeValue := causeKV.(string)
-
-				assert.NotEqual(t, "encoding-1", causeValue)
-				assert.NotEqual(t, "encoding-2", causeValue)
+				if causeValue == "encoding-1" || causeValue == "encoding-2" {
+					t.Errorf("got error KV %s:%s", "cause", causeValue)
+				}
 			}
 
 			someKV := pt.Get("some")
 			if someKV != nil {
 				someValue := someKV.(string)
-
-				assert.NotEqualf(t, "foo-1", someValue, "point: %s", pt.Pretty())
-				assert.NotEqualf(t, "foo-3", someValue, "point: %s", pt.Pretty())
+				if someValue == "foo-1" || someValue == "foo-3" {
+					t.Errorf("got error KV %s:%s", "some", someValue)
+				}
 			}
+
+			t.Logf("%s", pt.Pretty())
 		}
 	})
 }
@@ -495,7 +499,7 @@ func TestInputBatch(t *T.T) {
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -554,7 +558,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -612,7 +616,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -666,7 +670,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -724,7 +728,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -782,7 +786,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -838,7 +842,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -893,7 +897,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -954,7 +958,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -1009,7 +1013,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -1029,9 +1033,9 @@ some_info{info1="data1"} 0
 	t.Run("ignore-tag-kv", func(t *T.T) {
 		body := `# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
 		# TYPE promhttp_metric_handler_errors_total counter
-		promhttp_metric_handler_errors_total{cause="encoding-1",some="foo-1"} 1
-		promhttp_metric_handler_errors_total{cause="encoding-2",some="foo-2"} 2
-		promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 3
+		promhttp_metric_handler_errors_total{cause="encoding-1",some="foo-1"} 0
+		promhttp_metric_handler_errors_total{cause="encoding-2",some="foo-2"} 0
+		promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 0
 		`
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, body)
@@ -1045,7 +1049,7 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.IgnoreTagKV = map[string][]string{
 			"cause": {"encoding-1", "encoding-2"}, // keep `encoding-3'
-			"some":  {"foo-3", "foo-1"},           // keep `foo-2'
+			"some":  {"foo-1", "foo-3"},           // keep `foo-2'
 		}
 
 		inp.StreamSize = 1
@@ -1068,7 +1072,7 @@ some_info{info1="data1"} 0
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
+		inp.tryInit()
 		_, err := inp.collectFormSource(inp.URLs[0])
 		close(ptCh)
 		assert.NoError(t, err)
@@ -1184,8 +1188,8 @@ func TestBatchParser(t *T.T) {
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
-		err := inp.doCollect()
+		inp.tryInit()
+		err := inp.collect()
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1297,8 +1301,8 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 			ptCh <- pts
 			return nil
 		}
-		inp.Init()
-		err := inp.doCollect()
+		inp.tryInit()
+		err := inp.collect()
 		close(ptCh)
 		assert.NoError(t, err)
 		wg.Wait()
@@ -1377,6 +1381,7 @@ func TestLargeBatch(t *T.T) {
 			}
 		}()
 
+		inp.tryInit()
 		err := inp.collect()
 
 		runtime.ReadMemStats(&mem)
@@ -1430,6 +1435,7 @@ func TestLargeNoBatch(t *T.T) {
 			}
 		}()
 
+		inp.tryInit()
 		err := inp.collect()
 
 		runtime.ReadMemStats(&mem)
@@ -1480,6 +1486,7 @@ func TestLargeFileBatch(t *T.T) {
 			}
 		}()
 
+		inp.tryInit()
 		err := inp.collect()
 		runtime.ReadMemStats(&mem)
 		t.Logf("Alloc      = %v MiB", mem.Alloc/1024/1024)

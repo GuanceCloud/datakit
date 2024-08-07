@@ -19,7 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -58,11 +58,12 @@ type Input struct {
 	Output                 string       `toml:"output"`
 	MaxFileSize            int64        `toml:"max_file_size"`
 
-	TLSOpen    bool   `toml:"tls_open"`
+	TLSOpen    bool   `toml:"tls_open"` // Deprecated
 	UDSPath    string `toml:"uds_path"`
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
+	CacertFile string `toml:"tls_ca"`   // Deprecated
+	CertFile   string `toml:"tls_cert"` // Deprecated
+	KeyFile    string `toml:"tls_key"`  // Deprecated
+	*dknet.TLSClientConfig
 
 	TagsIgnore  []string            `toml:"tags_ignore"`
 	TagsRename  *iprom.RenameTags   `toml:"tags_rename"`
@@ -133,6 +134,7 @@ func (i *Input) Run() {
 		if i.pause {
 			i.l.Debug("prom paused")
 		} else {
+			i.tryInit()
 			if err := i.collect(); err != nil {
 				i.l.Warn(err)
 			}
@@ -155,65 +157,72 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) collect() error {
-	if !i.isInitialized {
-		// Callback func.
-		if i.StreamSize > 0 {
-			i.callbackFunc = func(pts []*point.Point) error {
-				// Append tags to points
-				for _, v := range i.urlTags[i.currentURL] {
-					for _, pt := range pts {
-						pt.AddTag(v.key, v.value)
-					}
-				}
+func (i *Input) tryInit() {
+	if i.isInitialized {
+		return
+	}
 
-				if len(pts) < 1 {
-					return nil
-				}
+	if err := i.Init(); err != nil {
+		i.l.Errorf("Init %s", err)
+		return
+	}
 
-				if i.AsLogging != nil && i.AsLogging.Enable {
-					// Feed measurement as logging.
-					for _, pt := range pts {
-						// We need to feed each point separately because
-						// each point might have different measurement name.
-						if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
-							dkio.WithCollectCost(time.Since(i.startTime)),
-							dkio.WithElection(i.Election),
-							dkio.WithInputName(pt.Name()),
-							dkio.WithBlocking(true)); err != nil {
-							i.Feeder.FeedLastError(err.Error(),
-								metrics.WithLastErrorInput(inputName),
-								metrics.WithLastErrorSource(inputName+"/"+i.Source),
-							)
-							i.l.Errorf("feed logging: %s", err)
-						}
-					}
-				} else if err := i.Feeder.FeedV2(point.Metric, pts,
-					dkio.WithCollectCost(time.Since(i.startTime)),
-					dkio.WithElection(i.Election),
-					dkio.WithInputName(inputName+"/"+i.Source),
-					dkio.WithBlocking(true)); err != nil {
-					i.Feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(inputName),
-						metrics.WithLastErrorSource(inputName+"/"+i.Source),
-					)
-					i.l.Errorf("feed measurement: %s", err)
+	// Callback func.
+	if i.StreamSize > 0 {
+		i.callbackFunc = func(pts []*point.Point) error {
+			// Append tags to points
+			for _, v := range i.urlTags[i.currentURL] {
+				for _, pt := range pts {
+					pt.AddTag(v.key, v.value)
 				}
-				i.FeedUpMetric(i.currentURL)
+			}
+
+			if len(pts) < 1 {
 				return nil
 			}
-		}
 
-		if err := i.Init(); err != nil {
-			return err
+			if i.AsLogging != nil && i.AsLogging.Enable {
+				// Feed measurement as logging.
+				for _, pt := range pts {
+					// We need to feed each point separately because
+					// each point might have different measurement name.
+					if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+						dkio.WithCollectCost(time.Since(i.startTime)),
+						dkio.WithElection(i.Election),
+						dkio.WithInputName(pt.Name()),
+						dkio.WithBlocking(true)); err != nil {
+						i.Feeder.FeedLastError(err.Error(),
+							metrics.WithLastErrorInput(inputName),
+							metrics.WithLastErrorSource(inputName+"/"+i.Source),
+						)
+						i.l.Errorf("feed logging: %s", err)
+					}
+				}
+			} else if err := i.Feeder.FeedV2(point.Metric, pts,
+				dkio.WithCollectCost(time.Since(i.startTime)),
+				dkio.WithElection(i.Election),
+				dkio.WithInputName(inputName+"/"+i.Source),
+				dkio.WithBlocking(true)); err != nil {
+				i.Feeder.FeedLastError(err.Error(),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorSource(inputName+"/"+i.Source),
+				)
+				i.l.Errorf("feed measurement: %s", err)
+			}
+			i.FeedUpMetric(i.currentURL)
+			return nil
 		}
 	}
 
-	i.startTime = time.Now()
-	return i.doCollect()
+	i.isInitialized = true
 }
 
-func (i *Input) doCollect() error {
+func (i *Input) collect() error {
+	if !i.isInitialized {
+		return fmt.Errorf("un initialized")
+	}
+
+	i.startTime = time.Now()
 	i.l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -238,7 +247,7 @@ func (i *Input) doCollect() error {
 
 		// Try testing the connect
 		for _, u := range i.urls {
-			if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
+			if err := dknet.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
 				i.l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
 			}
 		}
@@ -396,9 +405,11 @@ func (i *Input) Resume() error {
 func (i *Input) Init() error {
 	i.l = logger.SLogger(inputName + "/" + i.Source)
 
-	if i.URL != "" {
+	if i.URL != "" && len(i.URLs) == 0 {
 		i.URLs = append(i.URLs, i.URL)
 	}
+
+	i.urls = make([]*url.URL, 0)
 
 	for _, u := range i.URLs {
 		uu, err := url.Parse(u)
@@ -452,6 +463,7 @@ func (i *Input) Init() error {
 		iprom.WithCacertFiles([]string{i.CacertFile}),
 		iprom.WithCertFile(i.CertFile),
 		iprom.WithKeyFile(i.KeyFile),
+		iprom.WithTLSClientConfig(i.TLSClientConfig),
 		iprom.WithTagsIgnore(i.TagsIgnore),
 		iprom.WithTagsRename(i.TagsRename),
 		iprom.WithAsLogging(i.AsLogging),
