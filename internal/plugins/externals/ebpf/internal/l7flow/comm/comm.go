@@ -65,6 +65,15 @@ const (
 	FieldMysqlErrMsg     = "mysql_err_msg"
 	FiledMysqlComment    = "mysql_comment"
 
+	FieldPgsqlComment     = "pgsql_comment"
+	FieldPgsqlAffectedRow = "pgsql_affected_row"
+	FieldPgsqlStatusCode  = "pgsql_status_code"
+	FieldPgsqlErrMsg      = "pgsql_err_msg"
+	FieldPgsqlMsg         = "pgsql_msg"
+	FieldPgsqlStatus      = "pgsql_status"
+	FieldPgsqlReqType     = "pgsql_request_type"
+	FieldPgsqlRespType    = "pgsql_response_type"
+
 	FieldResourceType = "resource_type"
 	FieldStatusMsg    = "status_msg"
 	FieldErrMsg       = "err_msg"
@@ -72,6 +81,7 @@ const (
 	FieldStatusCode   = "status_code"
 
 	FieldStatus    = "status"
+	FieldStatusI   = "status_mode"
 	FieldOperation = "operation"
 	FieldResource  = "resource"
 
