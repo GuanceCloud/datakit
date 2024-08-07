@@ -102,37 +102,43 @@ The address of the following files can be downloaded through wget and other down
 === "Windows 32 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
 === "Windows 64 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
 === "Linux X86 32 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
 === "Linux X86 64 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 bit"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 After downloading, you should have a few files as below (`<OS-ARCH>` here refers to the platform-specific installation package):
@@ -145,6 +151,10 @@ After downloading, you should have a few files as below (`<OS-ARCH>` here refers
 Copy these files to the corresponding machine (via USB flash drive or scp and other commands).
 
 #### Installation {#simple-install}
+
+> If you are performing an offline install of the lite version of Datakit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
+
+
 <!-- markdownlint-disable MD046 -->
 === "Linux"
 
@@ -164,6 +174,9 @@ Copy these files to the corresponding machine (via USB flash drive or scp and ot
     ```
 <!-- markdownlint-enable -->
 #### Upgrade {#simple-upgrade}
+
+> If you are performing an offline upgrade of the lite version of Datakit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
+
 <!-- markdownlint-disable MD046 -->
 === "Linux"
 
@@ -245,6 +258,7 @@ wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
 wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{ .Version }}
 wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
 
 # Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
