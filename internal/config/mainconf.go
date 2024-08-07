@@ -133,6 +133,7 @@ func DefaultConfig() *Config {
 
 		Election: &election.ElectionCfg{
 			Enable:             false,
+			NodeWhitelist:      []string{},
 			EnableNamespaceTag: false,
 			Namespace:          "default",
 			Tags:               map[string]string{},

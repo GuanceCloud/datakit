@@ -394,6 +394,13 @@ func (c *Config) loadElectionEnvs() {
 
 	c.Election.Enable = true
 
+	if s := datakit.GetEnv("ENV_ELECTION_NODE_WHITELIST"); s != "" {
+		err := json.Unmarshal([]byte(s), &c.Election.NodeWhitelist)
+		if err != nil {
+			c.Election.NodeWhitelist = strings.Split(s, ",")
+		}
+	}
+
 	// default election namespace is `default`
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Election.Namespace = v

@@ -7,8 +7,9 @@ package election
 
 // ElectionCfg defined election configure in datakit.conf.
 type ElectionCfg struct {
-	Enable             bool `toml:"enable"`
-	EnableNamespaceTag bool `toml:"enable_namespace_tag"`
+	Enable             bool     `toml:"enable"`
+	NodeWhitelist      []string `toml:"node_whitelist"`
+	EnableNamespaceTag bool     `toml:"enable_namespace_tag"`
 
 	Namespace string            `toml:"namespace"`
 	Tags      map[string]string `toml:"tags"`

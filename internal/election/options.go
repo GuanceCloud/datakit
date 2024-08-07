@@ -8,6 +8,7 @@ package election
 type option struct {
 	enabled       bool
 	namespace, id string
+	nodeWhitelist []string
 	puller        Puller
 	mode          electionMode
 }
@@ -17,6 +18,12 @@ type ElectionOption func(opt *option)
 func WithElectionEnabled(on bool) ElectionOption {
 	return func(opt *option) {
 		opt.enabled = on
+	}
+}
+
+func WithElectionWhitelist(whitelist []string) ElectionOption {
+	return func(opt *option) {
+		opt.nodeWhitelist = whitelist
 	}
 }
 
