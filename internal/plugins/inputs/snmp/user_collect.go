@@ -312,7 +312,7 @@ func samePrefixLong(x, y string) int {
 	arrY := strings.Split(y, ".")
 
 	l := len(arrX)
-	if l < len(arrY) {
+	if l > len(arrY) {
 		l = len(arrY)
 	}
 
