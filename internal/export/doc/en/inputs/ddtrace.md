@@ -253,6 +253,34 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
   more_tag = "some_other_value"
 ```
 
+## APMTelemetry {#apm_telemetry}
+
+[:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+
+This information can be viewed in the Guance Cloud central infrastructure, and the presented data is helpful for troubleshooting issues related to startup commands and referenced third-party library versions.
+It also includes host information, service information, and the number of spans created and ended.
+
+There may be significant differences in data due to different languages and versions.
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- tag
+
+{{$m.TagsMarkdownTable}}
+
+- metric list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}
+
 ### Add a Business Tag to your Code {#add-tags}
 
 Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:

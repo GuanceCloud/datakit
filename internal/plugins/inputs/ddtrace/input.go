@@ -103,16 +103,16 @@ const (
 )
 
 var (
-	log                = logger.DefaultSLogger(inputName)
-	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	info, stats        = "/info", "/v0.6/stats"
-	afterGatherRun     itrace.AfterGatherHandler
-	tags               map[string]string
-	wkpool             *workerpool.WorkerPool
-	localCache         *storage.Storage
-	traceBase          = 10
-	spanBase           = 10
-	delMessage         bool
+	log                 = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5  = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	stats, apmTelemetry = "/v0.6/stats", "/telemetry/proxy/api/v2/apmtelemetry"
+	afterGatherRun      itrace.AfterGatherHandler
+	tags                map[string]string
+	wkpool              *workerpool.WorkerPool
+	localCache          *storage.Storage
+	traceBase           = 10
+	spanBase            = 10
+	delMessage          bool
 )
 
 type Input struct {
@@ -137,6 +137,7 @@ type Input struct {
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 	Tagger  datakit.GlobalTagger
+	om      *Manager
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -146,7 +147,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}, &Telemetry{}}
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -290,10 +291,9 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
-		httpapi.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
-		httpapi.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
 		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)
-		httpapi.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
+		ipt.OMInitAndRunning()
+		httpapi.RegHTTPHandler(http.MethodPost, apmTelemetry, ipt.handleDDProxy)
 	}
 	log.Infof("### %s agent is running...", inputName)
 }

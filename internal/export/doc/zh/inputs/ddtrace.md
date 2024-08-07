@@ -251,6 +251,34 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
   more_tag = "some_other_value"
 ```
 
+## APMTelemetry {#apm_telemetry}
+
+[:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+
+DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息，比如启动配置、心跳、加载的探针列表等信息。可在观测云 基础设施 -> 资源目录 中查看。展示的数据对于排查启动命令和引用的三方库版本问题有帮助。其中还包括主机信息、服务信息、产生的 Span 数信息等。
+
+语言不同和版本不同数据可能会有很大的差异，以实际收到的数据为准。
+
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签（String 类型）
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表（非 String 类型，或者长 String 类型）
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}
+
 ### 固定提取 tag {#add-tags}
 
 从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，黑名单功能废弃，并且不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取。
