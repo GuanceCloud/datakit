@@ -157,6 +157,7 @@ func TestUpgradeMainConfig(t *T.T) {
 				c.Election = &election.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
+					NodeWhitelist:      []string{},
 					EnableNamespaceTag: true,
 					Tags: map[string]string{
 						"tag1": "val1",
@@ -187,6 +188,7 @@ func TestUpgradeMainConfig(t *T.T) {
 				c.Election = &election.ElectionCfg{
 					Namespace:          "ns-abc",
 					Enable:             true,
+					NodeWhitelist:      []string{},
 					EnableNamespaceTag: true,
 					Tags: map[string]string{
 						"tag1": "val1",

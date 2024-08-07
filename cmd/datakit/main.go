@@ -297,6 +297,7 @@ func doRun() error {
 	if config.Cfg.Dataway != nil {
 		electionsOpts := []election.ElectionOption{
 			election.WithElectionEnabled(config.Cfg.Election.Enable),
+			election.WithElectionWhitelist(config.Cfg.Election.NodeWhitelist),
 			election.WithID(config.Cfg.Hostname),
 			election.WithNamespace(config.Cfg.Election.Namespace),
 		}

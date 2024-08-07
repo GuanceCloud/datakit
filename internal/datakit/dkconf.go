@@ -288,10 +288,14 @@ ulimit = 64000
   # Enable election
   enable = false
 
+  # Election whitelist
+  # NOTE: Empty to disable whitelist
+  node_whitelist = []
+
   # Election namespace.
   # NOTE: for single workspace, there can be multiple election namespace.
   namespace = "default"
-
+  
   # If enabled, every data point will add a tag with election_namespace = <your-election-namespace>
   enable_namespace_tag = false
 

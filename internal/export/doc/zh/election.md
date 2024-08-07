@@ -142,6 +142,43 @@ Elected default::defeat|host-abc
     Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md#env-common)。
 <!-- markdownlint-enable -->
 
+## 选举白名单 {#election-whitelist}
+
+<!-- markdownlint-disable MD046 -->
+=== "*datakit.conf*"
+
+    对于独立主机安装，选举白名单通过 `datakit.conf` 文件进行配置：
+
+    ```conf
+    [election]
+    enable = false
+    enable_namespace_tag = false
+    namespace = "default"
+    node_whitelist = ["host-name-1", "host-name-2", "..."]
+
+    [election.tags]
+    ```
+
+    #### 参数：
+
+    - `enable`：开启或关闭选举过程。
+    - `node_whitelist`：列出允许参与选举的节点。
+        - **注意**：如果 `node_whitelist` 为空，则所有节点都可以参与。
+    - `namespace`：指定用于选举操作的 Kubernetes 命名空间。
+
+=== "Kubernetes"
+
+    参见[这里](datakit-daemonset-deploy.md#env-elect)
+<!-- markdownlint-enable -->
+
+## 监控选举指标 {#datakit-monitor}
+
+- Datakit 将提供反映选举状态的指标：
+    - **disabled**：没有活跃的选举。
+    - **success**：选举成功完成。
+    - **defeat**：选举未成功。
+    - **banned**：未列在白名单中的节点被阻止参与。
+
 ## 支持选举的采集列表 {#inputs}
 
 目前支持选举的采集器列表如下：

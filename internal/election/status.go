@@ -15,6 +15,8 @@ func (e electionStatus) String() string {
 		return "success"
 	case statusFail:
 		return "defeat"
+	case statusBanned:
+		return "banned"
 	default:
 		return "unknown" // should not been here
 	}
@@ -24,4 +26,5 @@ const (
 	statusDisabled electionStatus = iota
 	statusSuccess
 	statusFail
+	statusBanned
 )

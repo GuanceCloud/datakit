@@ -114,6 +114,44 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 
     See [here](datakit-daemonset-deploy.md#env-elect) for the configuration of elections in Kubernetes and [here](datakit-daemonset-deploy.md#env-common) for the setting of global tags.
 <!-- markdownlint-enable -->
+
+## Election Whitelist {#election-whitelist}
+
+<!-- markdownlint-disable MD046 -->
+=== "`datakit.conf`"
+
+    For standalone host installations, the election whitelist is configured through the `datakit.conf` file:
+
+    ```conf
+    [election]
+    enable = false
+    enable_namespace_tag = false
+    namespace = "default"
+    node_whitelist = ["host-name-1", "host-name-2", "..."]
+
+    [election.tags]
+    ```
+
+    #### Parameters
+
+    - `enable`: Toggles the election process on or off.
+    - `node_whitelist`: Lists nodes permitted for election participation.
+        - **Note**: Leaving `node_whitelist` empty allows all nodes to participate.
+    - `namespace`: Specifies the Kubernetes namespace for election operations.
+
+=== "Kubernetes"
+
+    See [here](datakit-daemonset-deploy.md#env-elect)
+<!-- markdownlint-enable -->
+
+## Monitor Election Metrics {#datakit-monitor}
+
+- Datakit will provide metrics reflecting the election status:
+    - **disabled**: No active elections.
+    - **success**: The election completed successfully.
+    - **defeat**: The election was unsuccessful.
+    - **banned**: Nodes not in the whitelist are prevented from participating.
+
 ## Collection List Supporting Election {#inputs}
 
 The list of collectors currently supporting elections is as follows:

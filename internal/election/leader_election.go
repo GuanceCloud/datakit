@@ -87,7 +87,7 @@ func (x *leaderElection) runOnce() int {
 		elecIntv, err = x.keepalive()
 	case statusFail:
 		elecIntv, err = x.tryElection()
-	case statusDisabled: // pass
+	case statusDisabled, statusBanned: // pass
 		return electionIntervalDefault
 	}
 

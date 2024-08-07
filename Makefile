@@ -61,7 +61,6 @@ VERSION                     ?= $(shell git describe --always --tags)
 DATAWAY_URL                 ?= "not-set"
 GIT_BRANCH                  ?= $(shell git rev-parse --abbrev-ref HEAD)
 DATAKIT_EBPF_ARCHS          ?= linux/arm64,linux/amd64
-IGN_EBPF_INSTALL_ERR        ?= 0
 RACE_DETECTION              ?= "off"
 PKGEBPF                     ?= false
 DLEBPF                      ?= false
@@ -181,7 +180,7 @@ define build_docker_image
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		echo 'publishing to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
+			-t $(2)/datakit/datakit:$(VERSION) . --push; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push ; \
 		sudo docker buildx build --platform $(1) \
@@ -191,7 +190,12 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
+			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit-elinker:$(VERSION) \
+			-t $(2)/dataflux/datakit-elinker:$(VERSION) \
+			-t $(2)/dataflux-prev/datakit-elinker:$(VERSION) \
+			-f Dockerfile_elinker . --push; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) \
 			-t $(2)/dataflux/logfwd:$(VERSION) \
@@ -202,11 +206,14 @@ endef
 define build_uos_image
   echo 'publishing to $(2)...'; \
 	sudo docker buildx build --platform linux/amd64 \
-	-t $(2)/uos-dataflux/datakit:$(VERSION) \
-	-f Dockerfile.uos . --push --build-arg IGN_EBPF_INSTALL_ERR=$(IGN_EBPF_INSTALL_ERR); \
+		-t $(2)/uos-dataflux/datakit:$(VERSION) \
+		-f Dockerfile.uos . --push; \
 	sudo docker buildx build --platform linux/amd64 \
-	-t $(2)/uos-dataflux/logfwd:$(VERSION) \
-	-f Dockerfile_logfwd.uos . --push;
+		-t $(2)/uos-dataflux/datakit-elinker:$(VERSION) \
+		-f Dockerfile_elinker.uos . --push; \
+	sudo docker buildx build --platform linux/amd64 \
+		-t $(2)/uos-dataflux/logfwd:$(VERSION) \
+		-f Dockerfile_logfwd.uos . --push;
 endef
 
 define build_k8s_charts

@@ -45,6 +45,20 @@ func Start(opts ...ElectionOption) {
 		return
 	}
 
+	isBanned := len(opt.nodeWhitelist) != 0
+	for _, v := range opt.nodeWhitelist {
+		if v == opt.id {
+			isBanned = false
+		}
+	}
+
+	if isBanned {
+		status := statusBanned
+		electionStatusVec.WithLabelValues(CurrentElected, opt.id, opt.namespace, status.String()).Set(float64(status))
+		log.Info("node is not whitelisted.")
+		return
+	}
+
 	var electionInstance Election
 
 	switch opt.mode {
