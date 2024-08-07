@@ -224,11 +224,13 @@ func (ipt *Input) getBigData(ctxKey context.Context, db int) (string, error) {
 		args = append(args, "-a", ipt.Password)
 	}
 
-	if ipt.TLSOpen {
+	if ipt.TLSClientConfig != nil {
 		args = append(args, "--tls")
-		args = append(args, "--cacert", ipt.CacertFile)
-		args = append(args, "--cert", ipt.CertFile)
-		args = append(args, "--key", ipt.KeyFile)
+		args = append(args, "--cert", ipt.TLSClientConfig.Cert)
+		args = append(args, "--key", ipt.TLSClientConfig.CertKey)
+		if len(ipt.TLSClientConfig.CaCerts) > 0 {
+			args = append(args, "--cacert", ipt.TLSClientConfig.CaCerts[0])
+		}
 	}
 
 	//nolint:gosec

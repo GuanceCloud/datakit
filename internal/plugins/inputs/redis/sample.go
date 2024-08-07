@@ -11,14 +11,18 @@ const (
   host = "localhost"
   port = 6379
 
-  ## If tls_open = true, redis-cli version must up 6.0+
-  ## Otherwise, bigkey and hotkey will not be collect
-  ## TLS configuration.
-  tls_open = false
-  # tls_ca = "/opt/ca.crt"
-  # tls_cert = "/opt/peer.crt"
-  # tls_key = "/opt/peer.key"
-  # insecure_skip_verify = false
+  ## TLS connection config, redis-cli version must up 6.0+
+  ## These tls configuration files should be the same as the ones used on the server. 
+  ## See also: https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/
+  # insecure_skip_verify = true
+  # ca_certs = ["/opt/tls/ca.crt"]
+  # cert = "/opt/tls/redis.crt"
+  # cert_key = "/opt/tls/redis.key"
+  ## we can encode these file content in base64 format:
+  # ca_certs_base64 = ["LONG_STING......"]
+  # cert_base64 = "LONG_STING......"
+  # cert_key_base64 = "LONG_STING......"
+  # server_name = "your-SNI-name"
 
   # unix_socket_path = "/var/run/redis/redis.sock"
   ## Configure multiple dbs and configure dbs, and the dbs will also be placed in the collection list.
