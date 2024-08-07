@@ -9,8 +9,10 @@ package tomcat
 import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jolokia"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -29,7 +31,7 @@ type tomcatlog struct {
 }
 
 type Input struct {
-	inputs.JolokiaAgent
+	jolokia.JolokiaAgent
 	Log  *tomcatlog        `toml:"log"`
 	Tags map[string]string `toml:"tags"`
 }
@@ -101,7 +103,7 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
-		JolokiaAgent: inputs.JolokiaAgent{
+		JolokiaAgent: jolokia.JolokiaAgent{
 			SemStop: cliutils.NewSem(),
 			Tagger:  datakit.DefaultGlobalTagger(),
 		},

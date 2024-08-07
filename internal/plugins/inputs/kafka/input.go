@@ -11,10 +11,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jolokia"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -26,7 +28,7 @@ const (
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	inputs.JolokiaAgent
+	jolokia.JolokiaAgent
 	Log  *kafkalog         `toml:"log"`
 	Tags map[string]string `toml:"tags"`
 	tail *tailer.Tailer
@@ -141,7 +143,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			JolokiaAgent: inputs.JolokiaAgent{
+			JolokiaAgent: jolokia.JolokiaAgent{
 				SemStop: cliutils.NewSem(),
 			},
 		}
