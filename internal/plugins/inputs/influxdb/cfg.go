@@ -22,13 +22,18 @@ const sampleConfig = `
   ## Set true to enable election
   election = true
 
-  ## (Optional) TLS connection config
+  ## TLS config
   # [inputs.influxdb.tlsconf]
-  # ca_certs = ["/path/to/ca.pem"]
-  # cert = "/path/to/cert.pem"
-  # cert_key = "/path/to/key.pem"
-  ## Use TLS but skip chain & host verification
-  # insecure_skip_verify = false
+    # insecure_skip_verify = true
+    ## Following ca_certs/cert/cert_key are optional, if insecure_skip_verify = true.
+    # ca_certs = ["/opt/tls/ca.crt"]
+    # cert = "/opt/tls/client.root.crt"
+    # cert_key = "/opt/tls/client.root.key"
+    ## we can encode these file content in base64 format:
+    # ca_certs_base64 = ["LONG_BASE64_STRING......"]
+    # cert_base64 = "LONG_BASE64_STRING......"
+    # cert_key_base64 = "LONG_BASE64_STRING......"
+    # server_name = "your-SNI-name"
 
   # [inputs.influxdb.log]
   # files = []
