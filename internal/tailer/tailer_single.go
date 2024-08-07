@@ -404,12 +404,13 @@ func (t *Single) process(mode Mode, lines [][]byte) {
 			t.log.Debugf("decode '%s' error: %s", t.opt.characterEncoding, err)
 		}
 
-		text = t.multiline(multiline.TrimRightSpace(text))
-		if len(text) == 0 {
+		text = removeAnsiEscapeCodes(text, t.opt.removeAnsiEscapeCodes)
+
+		finalText := t.multiline(multiline.TrimRightSpace(text))
+		if len(finalText) == 0 {
 			continue
 		}
 
-		finalText := removeAnsiEscapeCodes(text, t.opt.removeAnsiEscapeCodes)
 		pending = append(pending, finalText)
 	}
 
