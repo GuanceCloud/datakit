@@ -10,6 +10,7 @@ package dialtesting
 
 import (
 	"testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,7 @@ func TestInternalNetwork(t *testing.T) {
 
 	dialer = newDialer(task, ipt)
 	go func() {
+		time.Sleep(100 * time.Millisecond)
 		task.CurStatus = dialtesting.StatusStop
 		dialer.updateCh <- task
 	}()
