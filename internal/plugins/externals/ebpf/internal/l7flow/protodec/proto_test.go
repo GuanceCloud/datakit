@@ -433,7 +433,7 @@ func TestParseRequest(t *testing.T) {
 				"\x63\x69\x74\x69\x65\x73\x28\x6e\x61\x6d\x65\x2c\x20\x70\x6f\x70\x75\x6c\x61\x74\x69" +
 				"\x6f\x6e\x29\x20\x56\x41\x4c\x55\x45\x53\x28\x3f\x2c\x20\x3f\x29\x3b",
 			expectedPacketType: packetRequest,
-			expectedResource:   "INSERT INTO cities(name, population) VALUES(?, ?);",
+			expectedResource:   "INSERT INTO cities ( name, population ) VALUES ( ? )",
 		},
 	}
 

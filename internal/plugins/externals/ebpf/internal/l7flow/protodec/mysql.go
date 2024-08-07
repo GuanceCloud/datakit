@@ -562,7 +562,7 @@ func (m *mysqlInfo) decodeRequestString(payload []byte) error {
 	comment, command, clean := trimCommentGetFirst(payload, 8)
 
 	var resource []byte
-	if output, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", string(clean)); err != nil && output != nil {
+	if output, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", string(clean)); err == nil && output != nil {
 		o := []byte(output.Query)
 		validLen := utf8ValidLength(o)
 		resource = o[:validLen]
