@@ -8,7 +8,6 @@ package influxdb
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -150,26 +149,20 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
-func (ipt *Input) Run() {
+func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
-
 	l.Infof("influxdb input started")
-
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	var tlsCfg *tls.Config
+}
 
-	if ipt.TLSConf != nil {
-		var err error
-		tlsCfg, err = ipt.TLSConf.TLSConfig()
-		if err != nil {
-			l.Errorf("TLSConfig: %s", err)
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-			)
-			return
-		}
-	} else {
-		tlsCfg = nil
+func (ipt *Input) tryInit() {
+	tlsCfg, err := ipt.TLSConf.TLSConfigWithBase64()
+	if err != nil {
+		l.Errorf("TLSConfig: %s", err)
+		ipt.feeder.FeedLastError(err.Error(),
+			metrics.WithLastErrorInput(inputName),
+		)
+		return
 	}
 
 	ipt.client = &http.Client{
@@ -179,12 +172,17 @@ func (ipt *Input) Run() {
 		},
 		Timeout: ipt.Timeout.Duration,
 	}
+}
+
+func (ipt *Input) Run() {
+	ipt.setup()
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 
 	defer tick.Stop()
 	for {
 		if !ipt.pause {
+			ipt.tryInit()
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
@@ -243,6 +241,10 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Collect() error {
+	if ipt.client == nil {
+		return fmt.Errorf("ipt.client is nil, un initialized")
+	}
+
 	ts := time.Now()
 
 	req, err := http.NewRequest("GET", ipt.URL, nil)
