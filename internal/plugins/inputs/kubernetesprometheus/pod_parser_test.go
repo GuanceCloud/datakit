@@ -217,6 +217,7 @@ func TestParsePod(t *testing.T) {
 		measurement: "nginx",
 		tags: map[string]string{
 			"instance":      "172.16.10.10:9090",
+			"host":          "172.16.10.10",
 			"pod_name":      "nginx-123",
 			"pod_namespace": "nginx-ns",
 		},

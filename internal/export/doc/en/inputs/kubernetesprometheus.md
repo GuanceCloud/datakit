@@ -104,9 +104,9 @@ Using the configuration example provided:
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-  KubernetesPrometheus collector does not add any default tags, including `election_tags` and `host_tags` from Datakit, as well as `cluster_name_k8s`.
+    KubernetesPrometheus collector only adds 2 tags by default, `"instance" = "IP:PORT"` and `"host" = "IP"`.
 
-  All tags need to be added manually.
+    The `election_tags`, `host_tags` and `cluster_name_k8s` tags from Datakit are not added.
 <!-- markdownlint-enable -->
 
 ### Permissions and Authentication {#input-config-auth}

@@ -138,7 +138,7 @@ func (e *Endpoints) runProm(ctx context.Context, key string, item *corev1.Endpoi
 
 		cfgs, err := pr.parsePromConfig(ins)
 		if err != nil {
-			klog.Warnf("endpoints %s has unexpected url target %v", key, ins.Target)
+			klog.Warnf("endpoints %s has unexpected url, err %s", key, err)
 			continue
 		}
 		interval := ins.Interval

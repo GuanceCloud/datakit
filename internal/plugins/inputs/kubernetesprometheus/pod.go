@@ -136,7 +136,7 @@ func (p *Pod) runProm(ctx context.Context, key string, item *corev1.Pod) {
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
-			klog.Warnf("pod %s has unexpected url target %v", key, ins.Target)
+			klog.Warnf("pod %s has unexpected url, err %s", key, err)
 			continue
 		}
 

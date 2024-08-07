@@ -181,6 +181,7 @@ func TestParseNode(t *testing.T) {
 		measurement: "node",
 		tags: map[string]string{
 			"instance": "172.16.10.10:10250",
+			"host":     "172.16.10.10",
 			"hostname": "node-hostname",
 		},
 	}

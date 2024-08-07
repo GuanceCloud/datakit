@@ -116,9 +116,9 @@ func (p *nodeParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 		return nil, err
 	}
 
-	tags := map[string]string{
-		"instance": u.Host,
-	}
+	tags := mergeTags(u.String())
+	tags["instance"] = u.Host
+
 	for k, v := range ins.Tags {
 		value := v
 		if matched, res := p.matches(v); matched && res != "" {
