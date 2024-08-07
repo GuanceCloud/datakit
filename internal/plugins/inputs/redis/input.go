@@ -9,6 +9,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -52,19 +54,21 @@ type redislog struct {
 }
 
 type Input struct {
-	Username           string        `toml:"username"`
-	Host               string        `toml:"host"`
-	UnixSocketPath     string        `toml:"unix_socket_path"`
-	Password           string        `toml:"password"`
-	Timeout            string        `toml:"connect_timeout"`
-	Service            string        `toml:"service"`
-	Addr               string        `toml:"-"`
-	Port               int           `toml:"port"`
-	TLSOpen            bool          `toml:"tls_open"`
-	CacertFile         string        `toml:"tls_ca"`
-	CertFile           string        `toml:"tls_cert"`
-	KeyFile            string        `toml:"tls_key"`
-	InsecureSkipVerify bool          `toml:"insecure_skip_verify"`
+	Username       string `toml:"username"`
+	Host           string `toml:"host"`
+	UnixSocketPath string `toml:"unix_socket_path"`
+	Password       string `toml:"password"`
+	Timeout        string `toml:"connect_timeout"`
+	Service        string `toml:"service"`
+	Addr           string `toml:"-"`
+	Port           int    `toml:"port"`
+	*dknet.TLSClientConfig
+	TLSOpen            bool   `toml:"tls_open"`             // Deprecated
+	CacertFile         string `toml:"tls_ca"`               // Deprecated (use TLSConf.CaCerts)
+	CertFile           string `toml:"tls_cert"`             // Deprecated (use TLSConf.Cert)
+	KeyFile            string `toml:"tls_key"`              // Deprecated (use TLSConf.CertKey)
+	InsecureSkipVerify bool   `toml:"insecure_skip_verify"` // Deprecated (use TLSConf.InsecureSkipVerify)
+
 	DB                 int           `toml:"db"`
 	SocketTimeout      int           `toml:"socket_timeout"`
 	SlowlogMaxLen      int           `toml:"slowlog-max-len"`
@@ -142,28 +146,28 @@ func (ipt *Input) initCfg() error {
 
 	ipt.Addr = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
 
-	var client *redis.Client
-	if ipt.TLSOpen {
-		tlsConfig, err := tlsConfig(ipt.CacertFile, ipt.CertFile, ipt.KeyFile, ipt.InsecureSkipVerify)
-		if err != nil {
-			return err
-		}
+	ipt.TLSClientConfig = dknet.MergeTLSConfig(
+		ipt.TLSClientConfig,
+		[]string{ipt.CacertFile},
+		ipt.CertFile,
+		ipt.KeyFile,
+		ipt.TLSOpen,
+		ipt.InsecureSkipVerify,
+	)
 
-		client = redis.NewClient(&redis.Options{
-			Addr:      ipt.Addr,
-			TLSConfig: tlsConfig,
-			Username:  ipt.Username,
-			Password:  ipt.Password, // no password set
-			DB:        ipt.DB,       // use default DB
-		})
-	} else {
-		client = redis.NewClient(&redis.Options{
-			Addr:     ipt.Addr,
-			Username: ipt.Username,
-			Password: ipt.Password, // no password set
-			DB:       ipt.DB,       // use default DB
-		})
+	tlsCfg, err := ipt.TLSClientConfig.TLSConfigWithBase64()
+	if err != nil {
+		return err
 	}
+
+	client := redis.NewClient(&redis.Options{
+		Addr:      ipt.Addr,
+		TLSConfig: tlsCfg,
+		Username:  ipt.Username,
+		Password:  ipt.Password, // no password set
+		DB:        ipt.DB,       // use default DB
+	})
+
 	if ipt.SlowlogMaxLen == 0 {
 		ipt.SlowlogMaxLen = 128
 	}
@@ -414,6 +418,24 @@ func (ipt *Input) RunPipeline() {
 
 func (ipt *Input) Run() {
 	ipt.setup()
+
+	if ipt.TLSClientConfig != nil && (ipt.TLSClientConfig.CertBase64 != "" || ipt.TLSClientConfig.CertKeyBase64 != "") {
+		caCerts, cert, certKey, err := ipt.TLSClientConfig.Base64ToTLSFiles()
+		if err != nil {
+			l.Errorf("Collect: %s", err)
+			return
+		}
+
+		ipt.TLSClientConfig.CaCerts = caCerts
+		ipt.TLSClientConfig.Cert = cert
+		ipt.TLSClientConfig.CertKey = certKey
+
+		for _, caCert := range caCerts {
+			defer os.Remove(caCert) // nolint:errcheck
+		}
+		defer os.Remove(cert)    // nolint:errcheck
+		defer os.Remove(certKey) // nolint:errcheck
+	}
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()

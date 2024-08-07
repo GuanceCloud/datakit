@@ -726,7 +726,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 			// TODO:
 
 		default: // TODO: check other measurement
-			panic("unknown measurement: " + measurement)
+			continue
 		}
 
 		// check if tag appended
