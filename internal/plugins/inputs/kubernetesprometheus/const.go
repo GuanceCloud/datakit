@@ -42,6 +42,8 @@ const (
      measurement        = "kubernetes_node_metrics"
      job_as_measurement = false
      [inputs.kubernetesprometheus.instances.custom.tags]
+       instance         = "__kubernetes_mate_instance"
+       host             = "__kubernetes_mate_host"
        node_name        = "__kubernetes_node_name"
     
    [inputs.kubernetesprometheus.instances.auth]

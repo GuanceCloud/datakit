@@ -36,6 +36,8 @@ Below is a basic configuration example that implements Prometheus data collectio
     measurement        = "pod-nginx"
     job_as_measurement = false
     [inputs.kubernetesprometheus.instances.custom.tags]
+      instance         = "__kubernetes_mate_instance"
+      host             = "__kubernetes_mate_host"
       pod_name         = "__kubernetes_pod_name"
       pod_namespace    = "__kubernetes_pod_namespace"
 
@@ -104,9 +106,9 @@ Using the configuration example provided:
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus collector only adds 2 tags by default, `"instance" = "IP:PORT"` and `"host" = "IP"`.
+    KubernetesPrometheus collector does not add any default tags, including `election_tags` and `host_tags` from Datakit, as well as `cluster_name_k8s`.
 
-    The `election_tags`, `host_tags` and `cluster_name_k8s` tags from Datakit are not added.
+    All tags need to be added manually.
 <!-- markdownlint-enable -->
 
 ### Permissions and Authentication {#input-config-auth}
@@ -134,7 +136,18 @@ This step is necessary because the value of this label is not fixed and can vary
 
 Placeholders are primarily used for selecting `annotations` and `labels`, and are also used for configuring ports. For example, if a Pod has a container named nginx with a port named `metrics`, you can specify it as `__kubernetes_pod_container_nginx_port_metrics_number` when collecting data from that port.
 
-Below are the placeholders supported by various resources (`node`, `pod`, `service`, `endpoints`).
+Below are the global placeholders and placeholders supported by various resources (`node`, `pod`, `service`, `endpoints`).
+
+### Global Placeholders {#placeholders-global}
+
+Global placeholders are common across all Roles and are often used to specify certain special tags.
+
+<!-- markdownlint-disable MD049 -->
+| Name                       | Description                                                                                                                | Usage Scope                                                                      |
+| -----------                | -----------                                                                                                                | -----                                                                            |
+| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
+| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
+<!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}
 

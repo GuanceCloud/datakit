@@ -172,8 +172,7 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 			}
 			measurement := newElems[4]
 
-			tags := mergeTags(u.String())
-			tags["instance"] = u.Host
+			tags := map[string]string{}
 
 			if len(tagKeys)+len(oldElems) != len(newElems) {
 				return nil, fmt.Errorf("unexpected tags length %d-%d", len(tagKeys), len(newElems)-len(oldElems))
@@ -181,6 +180,19 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 
 			for idx, k := range tagKeys {
 				tags[k] = newElems[idx+len(oldElems)]
+			}
+
+			for k, v := range tags {
+				switch v {
+				case MateInstanceTag:
+					tags[k] = u.Host
+				case MateHostTag:
+					if host := splitHost(u.Host); host != "" {
+						tags[k] = host
+					}
+				default:
+					// nil
+				}
 			}
 
 			configs = append(configs, &basePromConfig{

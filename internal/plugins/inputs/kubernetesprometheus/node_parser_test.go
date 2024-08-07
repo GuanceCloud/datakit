@@ -142,6 +142,8 @@ func TestParseNode(t *testing.T) {
 		Custom: Custom{
 			Measurement: "__kubernetes_node_label_app",
 			Tags: map[string]string{
+				"instance": "__kubernetes_mate_instance",
+				"host":     "__kubernetes_mate_host",
 				"hostname": "__kubernetes_node_address_Hostname",
 			},
 		},

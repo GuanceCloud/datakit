@@ -7,13 +7,13 @@ package kubernetesprometheus
 
 import (
 	"context"
+	"net"
 	"net/url"
 	"regexp"
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 )
@@ -30,6 +30,11 @@ const (
 const matchedScrape = "true"
 
 var supportedRoles = []Role{RoleNode, RoleService, RoleEndpoints, RolePod}
+
+const (
+	MateInstanceTag = "__kubernetes_mate_instance"
+	MateHostTag     = "__kubernetes_mate_host"
+)
 
 type (
 	Instance struct {
@@ -238,6 +243,24 @@ func workerDec(role Role, key string) {
 	forkedWorkerGauge.WithLabelValues(string(role), key).Dec()
 }
 
-func mergeTags(remote string) map[string]string {
-	return inputs.MergeTags(nil, nil, remote)
+func splitHost(remote string) string {
+	host := remote
+
+	// try get 'host' tag from remote URL.
+	if u, err := url.Parse(remote); err == nil && u.Host != "" { // like scheme://host:[port]/...
+		host = u.Host
+		if ip, _, err := net.SplitHostPort(u.Host); err == nil {
+			host = ip
+		}
+	} else { // not URL, only IP:Port
+		if ip, _, err := net.SplitHostPort(remote); err == nil {
+			host = ip
+		}
+	}
+
+	if host == "localhost" || net.ParseIP(host).IsLoopback() {
+		return ""
+	}
+
+	return host
 }
