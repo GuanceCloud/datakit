@@ -3,7 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package inputs
+// Package jolokia implement Jolokia-based JVM metrics collector.
+package jolokia
 
 import (
 	"bytes"
@@ -26,10 +27,12 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // --------------------------------------------------------------------
@@ -249,7 +252,7 @@ func (j *JolokiaAgent) getKafkaVersionAndUptime(client *Client) (version string,
 
 	// 添加 MBean 请求
 	mbeanURL := buildURL(requestURL, "/kafka.server:type=app-info")
-	l.Debugf("getVersionAndUptime mbeanURL: %s", mbeanURL)
+	j.L.Debugf("getVersionAndUptime mbeanURL: %s", mbeanURL)
 
 	req, err := http.NewRequest("GET", mbeanURL, nil)
 	if err != nil {
@@ -265,7 +268,7 @@ func (j *JolokiaAgent) getKafkaVersionAndUptime(client *Client) (version string,
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			l.Errorf("Failed to close response body: %v", err)
+			j.L.Errorf("Failed to close response body: %v", err)
 		}
 	}(resp.Body)
 
@@ -318,15 +321,15 @@ func (j *JolokiaAgent) collectCustomerObjectMeasurement(client *Client) ([]*poin
 	if err == nil {
 		host = h
 	} else {
-		l.Errorf("failed to split host and port: %s", err)
+		j.L.Errorf("failed to split host and port: %s", err)
 	}
 	version, uptime, err := j.getKafkaVersionAndUptime(client)
 	if err != nil {
-		l.Errorf("failed to get kafka version and uptime: %s", err)
+		j.L.Errorf("failed to get kafka version and uptime: %s", err)
 		return []*point.Point{}, nil
 	}
 
-	l.Debugf("kafka version:%s,uptime:%d", version, uptime)
+	j.L.Debugf("kafka version:%s,uptime:%d", version, uptime)
 
 	fields := map[string]interface{}{
 		"display_name": host,
@@ -345,10 +348,10 @@ func (j *JolokiaAgent) collectCustomerObjectMeasurement(client *Client) ([]*poin
 		fields:   fields,
 		election: j.Election,
 	}
-	l.Debugf("pts: %s", Copt.Point().LineProto())
+	j.L.Debugf("pts: %s", Copt.Point().LineProto())
 	CoPts = append(CoPts, Copt.Point())
 	if len(CoPts) > 0 {
-		l.Debugf("pts: %s", CoPts[0].LineProto())
+		j.L.Debugf("pts: %s", CoPts[0].LineProto())
 		return CoPts, nil
 	}
 	return []*point.Point{}, nil
@@ -394,8 +397,8 @@ func (m *JolokiaCustomerObject) Point() *point.Point {
 		opts...)
 }
 
-func (*JolokiaMeasurement) Info() *MeasurementInfo {
-	return &MeasurementInfo{}
+func (*JolokiaMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{}
 }
 
 type upMeasurement struct {
@@ -418,23 +421,23 @@ func (m *upMeasurement) Point() *point.Point {
 		opts...)
 }
 
-func (m *upMeasurement) Info() *MeasurementInfo { //nolint:funlen
-	return &MeasurementInfo{
+func (m *upMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
+	return &inputs.MeasurementInfo{
 		Name: "collector",
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"up": &FieldInfo{
-				DataType: Int,
-				Type:     Gauge,
-				Unit:     SizeByte,
+			"up": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
 				Desc:     "",
 			},
 		},
 		Tags: map[string]interface{}{
-			"job": &TagInfo{
+			"job": &inputs.TagInfo{
 				Desc: "Server name",
 			},
-			"instance": &TagInfo{
+			"instance": &inputs.TagInfo{
 				Desc: "Server addr",
 			},
 		},
@@ -532,9 +535,9 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 			}
 
 			if j.Election {
-				tag = MergeTagsWrapper(tag, j.Tagger.ElectionTags(), j.Tags, hostURL)
+				tag = inputs.MergeTagsWrapper(tag, j.Tagger.ElectionTags(), j.Tags, hostURL)
 			} else {
-				tag = MergeTagsWrapper(tag, j.Tagger.HostTags(), j.Tags, hostURL)
+				tag = inputs.MergeTagsWrapper(tag, j.Tagger.HostTags(), j.Tags, hostURL)
 			}
 
 			metric := &JolokiaMeasurement{
@@ -1435,7 +1438,7 @@ func makeReadResponses(jresponses []jolokiaResponse) []ReadResponse {
 					if s, ok := attr.(string); ok {
 						rrequest.Attributes[i] = s
 					} else {
-						l.Warnf("attr expect to be string, go %s", reflect.TypeOf(attr).String())
+						log.Warnf("attr expect to be string, go %s", reflect.TypeOf(attr).String())
 					}
 				}
 			}
@@ -1488,7 +1491,7 @@ func (j *JolokiaAgent) buildUpPoints(client *Client) ([]*point.Point, error) {
 		port = p
 	} else {
 		host = uu.Host
-		l.Errorf("failed to split host and port: %s", err)
+		j.L.Errorf("failed to split host and port: %s", err)
 	}
 
 	tags := map[string]string{
@@ -1505,7 +1508,7 @@ func (j *JolokiaAgent) buildUpPoints(client *Client) ([]*point.Point, error) {
 		fields:   fields,
 		election: j.Election,
 	}
-	l.Debugf("pts: %s", Copt.Point().LineProto())
+
 	CoPts = append(CoPts, Copt.Point())
 	if len(CoPts) > 0 {
 		for k, v := range j.Tags {

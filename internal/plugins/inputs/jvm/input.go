@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jolokia"
 )
 
 const (
@@ -113,7 +114,7 @@ var JvmTypeMap = map[string]string{
 }
 
 type Input struct {
-	inputs.JolokiaAgent
+	jolokia.JolokiaAgent
 	Tags map[string]string `toml:"tags"`
 }
 
