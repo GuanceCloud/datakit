@@ -113,15 +113,23 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 		return nil, err
 	}
 
-	tags := mergeTags(u.String())
-	tags["instance"] = u.Host
+	tags := map[string]string{}
 
 	for k, v := range ins.Tags {
-		value := v
-		if matched, res := p.matches(v); matched && res != "" {
-			value = res
+		switch v {
+		case MateInstanceTag:
+			tags[k] = u.Host
+		case MateHostTag:
+			if host := splitHost(u.Host); host != "" {
+				tags[k] = host
+			}
+		default:
+			if matched, res := p.matches(v); matched && res != "" {
+				tags[k] = res
+			} else {
+				tags[k] = v
+			}
 		}
-		tags[k] = value
 	}
 
 	measurement := ins.Measurement

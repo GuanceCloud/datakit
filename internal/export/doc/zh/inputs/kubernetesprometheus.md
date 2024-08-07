@@ -35,6 +35,8 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
     measurement        = "pod-nginx"
     job_as_measurement = false
     [inputs.kubernetesprometheus.instances.custom.tags]
+      instance         = "__kubernetes_mate_instance"
+      host             = "__kubernetes_mate_host"
       pod_name         = "__kubernetes_pod_name"
       pod_namespace    = "__kubernetes_pod_namespace"
 
@@ -100,9 +102,9 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus 采集器默认只添加 2 个标签，分别是 `"instance" = "IP:PORT"` 和 `"host" = "IP"`。
+    KubernetesPrometheus 采集器不添加任何默认标签，包括来自 Datakit 的 `election_tags` 和 `host_tags`，以及 `cluster_name_k8s`。
 
-    来自 Datakit 的 `election_tags`、`host_tags` 和 `cluster_name_k8s` 标签都不添加。
+    所有标签都需要手动添加。
 <!-- markdownlint-enable -->
 
 ### 权限和验证 {#input-config-auth}
@@ -130,7 +132,18 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 
 占位符更多用在 `annotation` 和 `label` 的选择上，另外配置 port 也用到占位符。例如，Pod 有个容器叫 nginx，该容器有个 port 叫 `metrics`，现在采集这个端口，可以写成 `__kubernetes_pod_container_nginx_port_metrics_number`。
 
-以下是各类资源（`node`、`pod`、`service`、`endpoints`）支持的占位符。
+以下是全局占位符和各类资源（`node`、`pod`、`service`、`endpoints`）支持的占位符。
+
+### 全局占位符 {#placeholders-global}
+
+全局占位符是所有 Role 通用，多用来指定一些特殊标签。
+
+<!-- markdownlint-disable MD049 -->
+| Name                       | Description                                                           | 使用范围                                                                  |
+| -----------                | -----------                                                           | -----                                                                     |
+| __kubernetes_mate_instance | 采集目标的 instance，即 `IP:PORT`                                     | 仅支持在 custom.tags 使用，例如 `instance = "__kubernetes_mate_instance"` |
+| __kubernetes_mate_host     | 采集目标的 host，即 `IP`。如果该值是 `localhost` 或环回地址将不再添加 | 仅支持在 custom.tags 使用，例如 `host = "__kubernetes_mate_host"`         |
+<!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}
 

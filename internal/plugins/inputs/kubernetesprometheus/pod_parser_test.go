@@ -173,6 +173,8 @@ func TestParsePod(t *testing.T) {
 		Custom: Custom{
 			Measurement: "__kubernetes_pod_label_app",
 			Tags: map[string]string{
+				"instance":      "__kubernetes_mate_instance",
+				"host":          "__kubernetes_mate_host",
 				"pod_name":      "__kubernetes_pod_name",
 				"pod_namespace": "__kubernetes_pod_namespace",
 			},
