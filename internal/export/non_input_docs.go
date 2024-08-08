@@ -91,30 +91,30 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_MAX_IDLE_CONNS",
 			Type:    doc.Int,
-			Desc:    "Set DataWay HTTP connection pool size([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))",
-			DescZh:  "设置 DataWay HTTP 连接池大小（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）",
+			Desc:    "Set DataWay HTTP connection pool size [:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)",
+			DescZh:  "设置 DataWay HTTP 连接池大小 [:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_IDLE_TIMEOUT",
 			Type:    doc.TimeDuration,
 			Default: `90s`,
-			Desc:    "Set DataWay HTTP Keep-Alive timeout([:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0))",
-			DescZh:  "设置 DataWay HTTP Keep-Alive 时长（[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)）",
+			Desc:    "Set DataWay HTTP Keep-Alive timeout [:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)",
+			DescZh:  "设置 DataWay HTTP Keep-Alive 时长 [:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)",
 		},
 		{
 			ENVName: "ENV_DATAWAY_MAX_RETRY_COUNT",
 			Type:    doc.Int,
 			Default: `4`,
-			Desc:    "Specify at most how many times the data sending operation will be performed when encounter failures([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))",
-			DescZh:  "指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10([:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0))",
+			Desc:    "Specify at most how many times the data sending operation will be performed when encounter failures [:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)",
+			DescZh:  "指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10 [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)",
 		},
 		{
 			ENVName: "ENV_DATAWAY_RETRY_DELAY",
 			Type:    doc.TimeDuration,
 			Default: `200ms`,
-			Desc:    `The interval between two data sending retry, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"([:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0))`,
-			DescZh:  `数据发送失败时，两次重试之间的时间间隔（[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)）`,
+			Desc:    `The interval between two data sending retry, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" [:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)`,
+			DescZh:  `数据发送失败时，两次重试之间的时间间隔 [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)`,
 		},
 		{
 			ENVName: "ENV_DATAWAY_MAX_RAW_BODY_SIZE",
@@ -134,8 +134,8 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_TLS_INSECURE",
 			Type:    doc.Boolean,
-			Desc:    "Enable self-signed TLS certificate on Dataway[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
-			DescZh:  "允许对应的 Dataway 上的证书是自签证书[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			Desc:    "Enable self-signed TLS certificate on Dataway [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "允许对应的 Dataway 上的证书是自签证书 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 	}
 
@@ -181,12 +181,50 @@ func envPprof() []*inputs.ENVInfo {
 func envElect() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_ENABLE_ELECTION", Type: doc.Boolean, Default: "-", Desc: "If you want to open the [election](election.md), it will not be opened by default. If you want to open it, you can give any non-empty string value to the environment variable.", DescZh: "开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可"},
-		{ENVName: "ENV_NAMESPACE", Type: doc.String, Default: "default", Desc: "The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.", DescZh: "Datakit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。"},
-		{ENVName: "ENV_ENABLE_ELECTION_NAMESPACE_TAG", Type: doc.Boolean, Default: "-", Desc: "When this option is turned on, all election classes are collected with an extra tag of `election_namespace=<your-election-namespace>`, which may result in some timeline growth. ([:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7))", DescZh: "开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长（[:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)）"},
-		{ENVName: "ENV_GLOBAL_ELECTION_TAGS", Type: doc.List, Example: "tag1=val,tag2=val2", Desc: "Tags are elected globally, and multiple tags are divided by English commas. ENV_GLOBAL_ENV_TAGS will be discarded.", DescZh: "全局选举 tag，多个 tag 之间以英文逗号分割。ENV_GLOBAL_ENV_TAGS 将被弃用"},
-		{ENVName: "ENV_CLUSTER_NAME_K8S", Type: doc.String, Default: "default", Desc: "The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to [global election tags](election.md#global-tags), the key is `cluster_name_k8s` and the value is the environment variable. ([:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8))", DescZh: "Datakit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值。（[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)）"},
-		{ENVName: "ENV_ELECTION_NODE_WHITELIST", Type: doc.List, Default: "[]", Desc: "List of node names that are allowed to participate in elections.", DescZh: "允许参加选举的节点名称列表。"},
+		{
+			ENVName: "ENV_ENABLE_ELECTION",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "If you want to open the [election](election.md), it will not be opened by default. If you want to open it, you can give any non-empty string value to the environment variable.",
+			DescZh:  "开启[选举](election.md)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可",
+		},
+		{
+			ENVName: "ENV_NAMESPACE",
+			Type:    doc.String,
+			Default: "default",
+			Desc:    "The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.",
+			DescZh:  "Datakit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。",
+		},
+		{
+			ENVName: "ENV_ENABLE_ELECTION_NAMESPACE_TAG",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "When this option is turned on, all election classes are collected with an extra tag of `election_namespace=<your-election-namespace>`, which may result in some timeline growth [:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)",
+			DescZh:  "开启该选项后，所有选举类的采集均会带上 `election_namespace=<your-election-namespace>` 的额外 tag，这可能会导致一些时间线的增长 [:octicons-tag-24: Version-1.4.7](changelog.md#cl-1.4.7)",
+		},
+
+		{
+			ENVName: "ENV_GLOBAL_ELECTION_TAGS",
+			Type:    doc.List,
+			Example: "tag1=val,tag2=val2",
+			Desc:    "Tags are elected globally, and multiple tags are divided by English commas. ENV_GLOBAL_ENV_TAGS will be discarded.",
+			DescZh:  "全局选举 tag，多个 tag 之间以英文逗号分割。ENV_GLOBAL_ENV_TAGS 将被弃用",
+		},
+
+		{
+			ENVName: "ENV_CLUSTER_NAME_K8S",
+			Type:    doc.String,
+			Default: "default",
+			Desc:    "The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to [global election tags](election.md#global-tags), the key is `cluster_name_k8s` and the value is the environment variable [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
+			DescZh:  "Datakit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值 [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
+		},
+		{
+			ENVName: "ENV_ELECTION_NODE_WHITELIST",
+			Type:    doc.List,
+			Default: "[]",
+			Desc:    "List of node names that are allowed to participate in elections [:octicons-tag-24: Version-1.35.0](changelog.md#cl-1.35.0)",
+			DescZh:  "允许参加选举的节点名称列表 [:octicons-tag-24: Version-1.35.0](changelog.md#cl-1.35.0)",
+		},
 	}
 
 	for idx := range infos {
@@ -225,40 +263,40 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			ENVName: "ENV_HTTP_TIMEOUT",
 			Type:    doc.TimeDuration,
 			Default: "30s",
-			Desc:    "Setting the 9529 HTTP API Server Timeout [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).",
-			DescZh:  "设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)。",
+			Desc:    "Setting the 9529 HTTP API Server Timeout [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
+			DescZh:  "设置 9529 HTTP API 服务端超时时间 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_CLOSE_IDLE_CONNECTION",
 			Type:    doc.Boolean,
 			Default: "-",
-			Desc:    "If turned on, the 9529 HTTP server actively closes idle connections (idle time equal to `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental).",
-			DescZh:  "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)。",
+			Desc:    "If turned on, the 9529 HTTP server actively closes idle connections(idle time equal to `ENV_HTTP_TIMEOUT`) [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
+			DescZh:  "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_ENABLE_TLS",
 			Type:    doc.Boolean,
 			Default: "-",
-			Desc:    "Enable Datakit 9529 HTTPS[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
-			DescZh:  "开启 Datakit 9529 HTTPS[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+			Desc:    "Enable Datakit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "开启 Datakit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_TLS_CRT",
 			Type:    doc.String,
 			Default: "-",
-			Desc:    "Set Datakit HTTP Server's TLS cert path[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
-			DescZh:  "配置 Datakit HTTP Server 上的 TLS cert 路径[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+			Desc:    "Set Datakit HTTP Server's TLS cert path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "配置 Datakit HTTP Server 上的 TLS cert 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_TLS_KEY",
 			Type:    doc.String,
 			Default: "-",
-			Desc:    "Set Datakit HTTP Server's TLS key path[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0).",
-			DescZh:  "配置 Datakit HTTP Server 上的 TLS key 路径[:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)。",
+			Desc:    "Set Datakit HTTP Server's TLS key path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "配置 Datakit HTTP Server 上的 TLS key 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
@@ -348,7 +386,7 @@ func envSinker() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{ENVName: "ENV_SINKER_GLOBAL_CUSTOMER_KEYS", Type: doc.String, Desc: "Sinker Global Customer Key list, keys are split with `,`", DescZh: "指定 Sinker 分流的自定义字段列表，各个 Key 之间以英文逗号分割"},
-		{ENVName: "ENV_DATAWAY_ENABLE_SINKER", Type: doc.Boolean, Default: "-", Desc: "Enable DataWay Sinker ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)).", DescZh: "开启 DataWay 发送数据时的 Sinker 功能（[:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)），该功能需新版本 Dataway 才能生效"},
+		{ENVName: "ENV_DATAWAY_ENABLE_SINKER", Type: doc.Boolean, Default: "-", Desc: "Enable DataWay Sinker [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)", DescZh: "开启 DataWay 发送数据时的 Sinker 功能。该功能需新版本 Dataway 才能生效 [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)"},
 	}
 
 	for idx := range infos {
@@ -362,10 +400,10 @@ func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{ENVName: "ENV_IO_FILTERS", Type: doc.JSON, Desc: "Add [row protocol filter](datakit-filter)", DescZh: "添加[行协议过滤器](datakit-filter.md)"},
-		{ENVName: "ENV_IO_FLUSH_INTERVAL", Type: doc.TimeDuration, Default: "10s", Desc: "IO channel capacity([:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0))", DescZh: "IO 发送时间频率"},
-		{ENVName: "ENV_IO_FEED_CHAN_SIZE", Type: doc.Int, Default: "1", Desc: "IO transmission time frequency", DescZh: "IO 发送队列长度（[:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)）"},
-		{ENVName: "ENV_IO_FEED_GLOBAL_BLOCKING", Type: doc.Int, Default: "-", Desc: "Set blocking mode on busy uploading(especially fot time-series and dial-testing points)", DescZh: "IO 发送的阻塞模式，目前只针对时序数据和拨测数据，其它类数据默认都是非阻塞的（[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)）"},
-		{ENVName: "ENV_IO_FLUSH_WORKERS", Type: doc.Int, Default: "`cpu_core * 2 + 1`", Desc: "IO flush workers([:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9))", DescZh: "IO 发送 worker 数（[:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)）"},
+		{ENVName: "ENV_IO_FLUSH_INTERVAL", Type: doc.TimeDuration, Default: "10s", Desc: "IO channel capacity [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送时间频率 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
+		{ENVName: "ENV_IO_FEED_CHAN_SIZE", Type: doc.Int, Default: "1", Desc: "IO transmission time frequency [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送队列长度 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
+		{ENVName: "ENV_IO_FEED_GLOBAL_BLOCKING", Type: doc.Int, Default: "-", Desc: "Set blocking mode on busy uploading(especially fot time-series and dial-testing points) [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)", DescZh: "IO 发送的阻塞模式，目前只针对时序数据和拨测数据，其它类数据默认都是非阻塞的 [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)"},
+		{ENVName: "ENV_IO_FLUSH_WORKERS", Type: doc.Int, Default: "`cpu_core * 2 + 1`", Desc: "IO flush workers [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)", DescZh: "IO 发送 worker 数 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)"},
 		{ENVName: "ENV_IO_MAX_CACHE_COUNT", Type: doc.Int, Default: "1000", Desc: "Send buffer size", DescZh: "发送 buffer（点数）大小"},
 		{ENVName: "ENV_IO_ENABLE_CACHE", Type: doc.Boolean, Default: "false", Desc: "Whether to open the disk cache that failed to send", DescZh: "是否开启发送失败的磁盘缓存"},
 		{ENVName: "ENV_IO_CACHE_ALL", Type: doc.Boolean, Default: "false", Desc: "Cache failed data points of all categories", DescZh: "是否 cache 所有发送失败的数据"},

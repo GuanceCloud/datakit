@@ -32,6 +32,7 @@ DKSpan
 DaemonSet
 DataDog
 Datakit
+Datakits
 Dataway
 DialTesting
 Distro

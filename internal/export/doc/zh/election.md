@@ -99,14 +99,19 @@ Elected default::defeat|host-abc
 其中：
 
 - `default` 表示当前 Datakit 参与选举的命名空间，同上
-- `defeat` 表示当前 Datakit 开启了，但选举失败
+- `defeat` 表示当前 Datakit 开启了，但选举失败。除此之外，还有如下几种可能的状态：
+
+    - **disabled**：未开启选举功能
+    - **success**：选举成功完成
+    - **banned**：选举功能已开启，但自己未列在选举允许的白名单中 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0)
+
 - `host-abc` 表示当前命名空间被选上的 Datakit 所在主机名
 
 ### 选举原理 {#how}
 
 以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 Datakit、2 个 MySQL 实例，且 Datakit 都开启了选举（DaemonSet 模式下，每个 Datakit 的配置都是一样的）以及 MySQL 采集器：
 
-- 一旦某个 Datakit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 Datakit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 Datakit 出于待命状态。
+- 一旦某个 Datakit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 Datakit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 Datakit 处于待命状态。
 - 观测云中心会判断当前选上的 Datakit 是否正常，如果异常，则强行踢掉该 Datakit，其它待命状态的 Datakit 将替代它
 - 未开启选举的 Datakit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
 - 选举的范围是「工作空间+命名空间」级别的，单个「工作空间+命名空间」中，一次最多只能有一个 Datakit 被选上
@@ -129,7 +134,7 @@ Elected default::defeat|host-abc
 
     如果原始数据上就带有了这里的 tag，则以原始数据中带有的 tag 为准，此处不会覆盖。
 
-    如果没有开启选举，则选举采集器采集到的数据中，均会带上 *datakit.conf* 中配置的 `global_host_tags`（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
+    如果没有开启选举，则选举采集器采集到的数据中，均会带上 *datakit.conf* 中配置的 `global_host_tags`（跟非选举类采集器一样）：[:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8)
 
     ```toml
     [global_host_tags]
@@ -144,40 +149,24 @@ Elected default::defeat|host-abc
 
 ## 选举白名单 {#election-whitelist}
 
+[:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0)
+
 <!-- markdownlint-disable MD046 -->
 === "*datakit.conf*"
 
     对于独立主机安装，选举白名单通过 `datakit.conf` 文件进行配置：
 
-    ```conf
+    ```toml
     [election]
-    enable = false
-    enable_namespace_tag = false
-    namespace = "default"
-    node_whitelist = ["host-name-1", "host-name-2", "..."]
 
-    [election.tags]
+      # 白名单列表，如果列表为空，则所有主机/node 皆可参与选举
+      node_whitelist = ["host-name-1", "host-name-2", "..."]
     ```
-
-    #### 参数：
-
-    - `enable`：开启或关闭选举过程。
-    - `node_whitelist`：列出允许参与选举的节点。
-        - **注意**：如果 `node_whitelist` 为空，则所有节点都可以参与。
-    - `namespace`：指定用于选举操作的 Kubernetes 命名空间。
 
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
 <!-- markdownlint-enable -->
-
-## 监控选举指标 {#datakit-monitor}
-
-- Datakit 将提供反映选举状态的指标：
-    - **disabled**：没有活跃的选举。
-    - **success**：选举成功完成。
-    - **defeat**：选举未成功。
-    - **banned**：未列在白名单中的节点被阻止参与。
 
 ## 支持选举的采集列表 {#inputs}
 

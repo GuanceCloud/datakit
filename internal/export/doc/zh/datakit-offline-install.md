@@ -102,37 +102,43 @@
 === "Windows 32 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
 === "Windows 64 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
 === "Linux X86 32 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
 === "Linux X86 64 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 位"
 
     - [`Installer`](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [`DataKit`](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 
@@ -146,6 +152,8 @@
 将这些文件拷贝到对应机器上（通过 U 盘或 scp 等命令）。
 
 #### 安装 {#simple-install}
+
+> 如果是离线安装 lite 版本的 Datakit，需指定带 `_lite` 后缀的安装包，比如 `datakit_lite-linux-amd64-{{.Version}}.tar.gz`。
 
 <!-- markdownlint-disable MD046 -->
 === "Linux"
@@ -167,6 +175,8 @@
 <!-- markdownlint-enable -->
 
 #### 升级 {#simple-upgrade}
+
+> 如果是离线升级 lite 版本的 Datakit，需指定带 `_lite` 后缀的安装包，比如 `datakit_lite-linux-amd64-{{.Version}}.tar.gz`。
 
 <!-- markdownlint-disable MD046 -->
 === "Linux"
@@ -248,6 +258,7 @@ wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
 wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{.Version}}
 wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
 
 # 下载其它工具包：sources 是开启 RUM sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载
