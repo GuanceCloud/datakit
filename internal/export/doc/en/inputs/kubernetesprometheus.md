@@ -1,7 +1,6 @@
 # Datakit KubernetesPrometheus Collector Documentation
 
-[:octicons-tag-24: Version-1.34.0](changelog.md#cl-1.34.0)
-[:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.34.0](changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
 ## Overview {#overview}
 

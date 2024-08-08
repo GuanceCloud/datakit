@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.35.0 (August 7, 2024) {#cl-1.35.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.35.0-new}
+
+- Added [Election Whitelist](election.md#election-whitelist) support, facilitating the specification of particular hosts on which Datakit participates in elections (#2261)
+
+### Bug Fixes {#cl-1.35.0-fix}
+
+- Fixed the process collector's association with container IDs on CentOS (#2338)
+- Fixed the issue with the multi-line log merge bug (#2336)
+- Fixed Jaeger trace ID length (#2329)
+- Other bug fixes (#2343)
+
+### Feature Enhancements {#cl-1.35.0-opt}
+
+- The `up` measurement now supports the automatic addition of custom tags from collector's configure (#2334)
+- The cloud-meta synchronization for host object collection supports specifying a meta address, facilitating private cloud deployment environments (#2331)
+- The DDTrace collector now supports collecting basic information of traced services and upload them to the resource object(`CO::`) with `class:traceing_service` (#2307)
+- In the dial-testing collection data, the dial-node's name `node_name` has been added (#2324)
+- In the Kubernetes-Prometheus metrics collection, add tag placeholder `__kubernetes_mate_instance` and `__kubernetes_mate_host` (#2341)[^2341]
+- Optimized TLS configurations for multiple collectors (#2225/#2204/#2192/#2342)
+- The eBPF tracing plugin has added PostgreSQL and AMQP protocol recognition (#2315/#2311)
+
+[^2341]: If the service in k8s(for example) is restarted, the corresponding `instance` and `host` may all change, resulting in the doubling of the corresponding time series.
+
+---
+
 ## 1.34.0(2024/07/24) {#cl-1.34.0}
 
 This release is an iterative update with the following main changes:
