@@ -176,13 +176,13 @@ func (ipt *Input) tryInit() {
 
 func (ipt *Input) Run() {
 	ipt.setup()
+	ipt.tryInit()
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 
 	defer tick.Stop()
 	for {
 		if !ipt.pause {
-			ipt.tryInit()
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
