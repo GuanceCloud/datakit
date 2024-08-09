@@ -18,15 +18,15 @@ func (docMeasurement) Info() *inputs.MeasurementInfo {
 		Name: metricName,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"system_time":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the current offset between the NTP clock and system clock."},
-			"last_offset":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the estimated local offset on the last clock update."},
-			"rms_offset":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is a long-term average of the offset value."},
+			"system_time":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is the current offset between the NTP clock and system clock."},
+			"last_offset":     &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is the estimated local offset on the last clock update."},
+			"rms_offset":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is a long-term average of the offset value."},
 			"frequency":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This is the rate by which the system clock would be wrong if *chronyd* was not correcting it."},
 			"residual_freq":   &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This shows the residual frequency for the currently selected reference source."},
 			"skew":            &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PartPerMillion, Desc: "This is the estimated error bound on the frequency."},
-			"root_delay":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the total of the network path delays to the stratum-1 computer from which the computer is ultimately synchronized."},
-			"root_dispersion": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the total dispersion accumulated through all the computers back to the stratum-1 computer from which the computer is ultimately synchronized."},
-			"update_interval": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec, Desc: "This is the interval between the last two clock updates."},
+			"root_delay":      &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is the total of the network path delays to the stratum-1 computer from which the computer is ultimately synchronized."},
+			"root_dispersion": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is the total dispersion accumulated through all the computers back to the stratum-1 computer from which the computer is ultimately synchronized."},
+			"update_interval": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "This is the interval between the last two clock updates."},
 		},
 
 		Tags: map[string]interface{}{
