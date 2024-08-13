@@ -631,18 +631,27 @@ func (di *deviceInfo) getUserDiscoveryPoints(item *snmputil.Item, ip string, tn 
 		return nil
 	}
 
-	snmpPacket, err := di.Session.Get(item.OIDs)
-	if err != nil {
-		l.Debugf("get snmp: failed: %v", err)
-		return nil
-	}
-
 	var points []*point.Point
 
-	for _, snmpPDU := range snmpPacket.Variables {
-		snmpIndex := getSnmpIndex(snmpPDU.Name)
-		pts := di.makeDiscoveryPoint(snmpPDU, ip, tn, item, snmpIndex)
-		points = append(points, pts...)
+	// In github.com/gosnmp/gosnmp, have MaxOids (60).
+	// So item.OIDs[i:end] will get max gosnmp.MaxOids (60) strings.
+	for i := 0; i < len(item.OIDs); i += gosnmp.MaxOids {
+		end := i + gosnmp.MaxOids
+		if end > len(item.OIDs) {
+			end = len(item.OIDs)
+		}
+
+		snmpPacket, err := di.Session.Get(item.OIDs[i:end])
+		if err != nil {
+			l.Debugf("get snmp: failed: %v", err)
+			return nil
+		}
+
+		for _, snmpPDU := range snmpPacket.Variables {
+			snmpIndex := getSnmpIndex(snmpPDU.Name)
+			pts := di.makeDiscoveryPoint(snmpPDU, ip, tn, item, snmpIndex)
+			points = append(points, pts...)
+		}
 	}
 
 	return points
