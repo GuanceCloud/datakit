@@ -596,6 +596,7 @@ const SQLSlow = `SELECT
 	sa.EXACT_MATCHING_SIGNATURE,
 	sa.FORCE_MATCHING_SIGNATURE,
 	sa.LAST_ACTIVE_TIME,
+	to_char(sa.LAST_ACTIVE_TIME, 'yyyy-mm-dd hh24:mi:ss') LAST_ACTIVE_TIME_STR,
 	sa.TYPECHECK_MEM,
 	sa.IO_CELL_OFFLOAD_ELIGIBLE_BYTES,
 	sa.IO_INTERCONNECT_BYTES,
@@ -685,6 +686,7 @@ type slowQueryRowDB struct {
 	EXACT_MATCHING_SIGNATURE       sql.NullString  `db:"EXACT_MATCHING_SIGNATURE"`
 	FORCE_MATCHING_SIGNATURE       sql.NullString  `db:"FORCE_MATCHING_SIGNATURE"`
 	LAST_ACTIVE_TIME               sql.NullString  `db:"LAST_ACTIVE_TIME"`
+	LAST_ACTIVE_TIME_STR           sql.NullString  `db:"LAST_ACTIVE_TIME_STR"`
 	TYPECHECK_MEM                  sql.NullString  `db:"TYPECHECK_MEM"`
 	IO_CELL_OFFLOAD_ELIGIBLE_BYTES sql.NullString  `db:"IO_CELL_OFFLOAD_ELIGIBLE_BYTES"`
 	IO_INTERCONNECT_BYTES          sql.NullString  `db:"IO_INTERCONNECT_BYTES"`
@@ -717,11 +719,11 @@ type slowQueryRowDB struct {
 	USERNAME                       sql.NullString  `db:"USERNAME"`
 }
 
-const SQLQueryMaxActive = `SELECT MAX(LAST_ACTIVE_TIME) FROM V$SQLAREA`
+const SQLQueryMaxActive = `SELECT to_char(MAX(LAST_ACTIVE_TIME), 'yyyy-mm-dd hh24:mi:ss') MAX_LAST_ACTIVE_TIME FROM V$SQLAREA`
 
 //nolint:stylecheck
 type maxQueryRowDB struct {
-	MAX_LAST_ACTIVE_TIME sql.NullString `db:"MAX(LAST_ACTIVE_TIME)"`
+	MAX_LAST_ACTIVE_TIME sql.NullString `db:"MAX_LAST_ACTIVE_TIME"`
 }
 
 func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Point, err error) {
@@ -736,7 +738,7 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 		}
 
 		for _, r := range rows {
-			ipt.lastActiveTime = getOracleTimeString(r.MAX_LAST_ACTIVE_TIME.String)
+			ipt.lastActiveTime = r.MAX_LAST_ACTIVE_TIME.String
 		}
 
 		l.Debugf("m.lastActiveTime =%s", ipt.lastActiveTime)
@@ -772,7 +774,7 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 			continue
 		}
 		if gotlastActiveTime.After(savedLastActiveTime) {
-			ipt.lastActiveTime = getOracleTimeString(r.LAST_ACTIVE_TIME.String) // update saved.
+			ipt.lastActiveTime = r.LAST_ACTIVE_TIME_STR.String // update saved.
 		}
 
 		mRes := make(map[string]interface{}, 78)
@@ -967,19 +969,6 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	}
 
 	return err
-}
-
-func getOracleTimeString(in string) string {
-	t, err := dateparse.ParseAny(in)
-	out := ""
-	if err != nil {
-		l.Warnf("parse date(%s) error: %s", in, err.Error())
-		out = strings.ReplaceAll(in, "T", " ")
-		out = strings.ReplaceAll(out, "Z", "")
-	} else {
-		out = t.Format(("2006-01-02 15:04:05"))
-	}
-	return out
 }
 
 func obfuscateSQL(text string) (string, error) {
