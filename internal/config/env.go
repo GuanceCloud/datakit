@@ -616,6 +616,25 @@ func (c *Config) loadHTTPAPIEnvs() {
 	}
 }
 
+func (c *Config) setNodenameAsHostname() {
+	for _, x := range []string{
+		"ENV_K8S_NODE_NAME",
+		"NODE_NAME", // Deprecated
+	} {
+		if v := datakit.GetEnv(x); v != "" {
+			c.Hostname = v
+			datakit.DatakitHostName = c.Hostname
+			break
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_K8S_CLUSTER_NODE_NAME"); v != "" {
+		l.Infof("ENV_K8S_CLUSTER_NODE_NAME set to %s", v)
+		c.Hostname = v
+		datakit.DatakitHostName = c.Hostname
+	}
+}
+
 //nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IO == nil {
@@ -658,16 +677,7 @@ func (c *Config) LoadEnvs() error {
 	c.loadDatawayEnvs()
 	c.loadPointPoolEnvs()
 
-	for _, x := range []string{
-		"ENV_K8S_NODE_NAME",
-		"NODE_NAME", // Deprecated
-	} {
-		if v := datakit.GetEnv(x); v != "" {
-			c.Hostname = v
-			datakit.DatakitHostName = c.Hostname
-			break
-		}
-	}
+	c.setNodenameAsHostname()
 
 	// Don't Add to ElectionTags.
 	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {

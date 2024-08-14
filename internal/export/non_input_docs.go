@@ -45,6 +45,13 @@ func envCommon() []*inputs.ENVInfo {
 		{ENVName: "ENV_ENABLE_INPUTS :fontawesome-solid-x:", Type: doc.List, Desc: "Same as ENV_DEFAULT_ENABLED_INPUTS, to be scrapped", DescZh: "同 ENV_DEFAULT_ENABLED_INPUTS，将废弃"},
 		{ENVName: "ENV_GLOBAL_HOST_TAGS", Type: doc.List, Example: `tag1=val,tag2=val2`, Desc: "Global tag, multiple tags are divided by English commas. The old `ENV_GLOBAL_TAGS` will be discarded", DescZh: "全局 tag，多个 tag 之间以英文逗号分割"},
 		{ENVName: "ENV_GLOBAL_TAGS :fontawesome-solid-x:", Type: doc.List, Desc: "Same as ENV_GLOBAL_HOST-TAGS, to be scrapped", DescZh: "同 ENV_GLOBAL_HOST_TAGS，将废弃"},
+
+		{
+			ENVName: "ENV_K8S_CLUSTER_NODE_NAME",
+			Type:    doc.String,
+			Desc:    "If we got same node-name among multiple k8s cluster, we can add a prefix based on origin node-name via this ENV",
+			DescZh:  "如果多个 k8s cluster 中存在同名的 node-name，可以通过该环境变量在原 node-name 上加一个前缀来区分",
+		},
 	}
 
 	for idx := range infos {

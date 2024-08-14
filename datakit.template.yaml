@@ -152,6 +152,9 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
 
+        #- name: ENV_K8S_CLUSTER_NODE_NAME
+        #  value: cluster_a_$(ENV_K8S_NODE_NAME)
+
         - name: ENV_DATAWAY
           value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
         - name: ENV_CLUSTER_NAME_K8S

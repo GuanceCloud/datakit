@@ -508,6 +508,35 @@ func TestLoadEnv(t *testing.T) {
 				return cfg
 			}(),
 		},
+
+		{
+			name: "test-k8s-node-name",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME": "node1",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Hostname = "node1"
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-k8s-cluster-node-name",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME":         "node1",
+				"ENV_K8S_CLUSTER_NODE_NAME": "testing-env-node1",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Hostname = "testing-env-node1"
+
+				return cfg
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
