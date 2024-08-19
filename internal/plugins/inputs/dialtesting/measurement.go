@@ -35,6 +35,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"method":             &inputs.TagInfo{Desc: "HTTP method, such as `GET`"},
 			"owner":              &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 			"datakit_version":    &inputs.TagInfo{Desc: "The DataKit version"},
+			"tags_info":          &inputs.TagInfo{Desc: "The tags of the task"},
 		},
 		Fields: map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
@@ -134,6 +135,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
 			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			"tags_info":       &inputs.TagInfo{Desc: "The tags of the task"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -201,6 +203,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
 			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			"tags_info":       &inputs.TagInfo{Desc: "The tags of the task"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
@@ -322,6 +325,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
 			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			"tags_info":       &inputs.TagInfo{Desc: "The tags of the task"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{

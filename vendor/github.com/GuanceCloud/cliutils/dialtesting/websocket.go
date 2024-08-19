@@ -51,22 +51,24 @@ type WebsocketAdvanceOption struct {
 }
 
 type WebsocketTask struct {
-	URL              string                  `json:"url"`
-	Message          string                  `json:"message"`
-	SuccessWhen      []*WebsocketSuccess     `json:"success_when"`
-	AdvanceOptions   *WebsocketAdvanceOption `json:"advance_options,omitempty"`
-	SuccessWhenLogic string                  `json:"success_when_logic"`
-	ExternalID       string                  `json:"external_id"`
-	Name             string                  `json:"name"`
-	AK               string                  `json:"access_key"`
-	PostURL          string                  `json:"post_url"`
-	CurStatus        string                  `json:"status"`
-	Frequency        string                  `json:"frequency"`
-	Region           string                  `json:"region"`
-	OwnerExternalID  string                  `json:"owner_external_id"`
-	Tags             map[string]string       `json:"tags,omitempty"`
-	Labels           []string                `json:"labels,omitempty"`
-	UpdateTime       int64                   `json:"update_time,omitempty"`
+	URL               string                  `json:"url"`
+	Message           string                  `json:"message"`
+	SuccessWhen       []*WebsocketSuccess     `json:"success_when"`
+	AdvanceOptions    *WebsocketAdvanceOption `json:"advance_options,omitempty"`
+	SuccessWhenLogic  string                  `json:"success_when_logic"`
+	ExternalID        string                  `json:"external_id"`
+	Name              string                  `json:"name"`
+	AK                string                  `json:"access_key"`
+	PostURL           string                  `json:"post_url"`
+	CurStatus         string                  `json:"status"`
+	Frequency         string                  `json:"frequency"`
+	Region            string                  `json:"region"`
+	OwnerExternalID   string                  `json:"owner_external_id"`
+	Tags              map[string]string       `json:"tags,omitempty"`
+	Labels            []string                `json:"labels,omitempty"`
+	UpdateTime        int64                   `json:"update_time,omitempty"`
+	WorkspaceLanguage string                  `json:"workspace_language,omitempty"`
+	TagsInfo          string                  `json:"tags_info,omitempty"`
 
 	reqCost         time.Duration
 	reqDNSCost      time.Duration
@@ -479,4 +481,15 @@ func (t *WebsocketTask) GetHostName() (string, error) {
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func (t *WebsocketTask) GetWorkspaceLanguage() string {
+	if t.WorkspaceLanguage == "en" {
+		return "en"
+	}
+	return "zh"
+}
+
+func (t *WebsocketTask) GetTagsInfo() string {
+	return t.TagsInfo
 }

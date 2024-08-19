@@ -89,7 +89,8 @@ type Input struct {
 	cli                  *http.Client  // class string
 	taskExecTimeInterval time.Duration
 
-	regionName string
+	regionName   string
+	regionNameEn string
 
 	curTasks    sync.Map
 	pos         int64 // current largest-task-update-time
@@ -367,6 +368,10 @@ func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		regionName = ipt.regionName
 	}
 
+	if t.GetWorkspaceLanguage() == "en" && ipt.regionNameEn != "" {
+		regionName = ipt.regionNameEn
+	}
+
 	switch t.Class() {
 	case dt.ClassHTTP:
 	case dt.ClassHeadless:
@@ -478,13 +483,18 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 					}
 
 				case string:
-					if v_ != "name" && v_ != "status" {
-						ipt.Tags[k] = v_
-					} else {
-						l.Debugf("ignore tag %s:%s from region info", k, v_)
-					}
-					if k == "name" && len(v_) > 0 {
-						ipt.regionName = v_
+					if len(v_) > 0 {
+						if k != "name" && k != "status" && k != "name_en" {
+							ipt.Tags[k] = v_
+						} else {
+							l.Debugf("ignore tag %s:%s from region info", k, v_)
+						}
+						if k == "name" {
+							ipt.regionName = v_
+						} else if k == "name_en" {
+							ipt.regionNameEn = v_
+						}
+
 					}
 				default:
 					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())

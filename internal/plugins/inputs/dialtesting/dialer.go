@@ -78,11 +78,19 @@ func newDialer(t dt.Task, ipt *Input) *dialer {
 		info = (&websocketMeasurement{}).Info()
 	}
 
+	tags := make(map[string]string)
+	for k, v := range ipt.Tags {
+		tags[k] = v
+	}
+	if t.GetTagsInfo() != "" {
+		tags["tags_info"] = t.GetTagsInfo()
+	}
+
 	return &dialer{
 		task:                 t,
 		updateCh:             make(chan dt.Task),
 		initTime:             time.Now(),
-		tags:                 ipt.Tags,
+		tags:                 tags,
 		measurementInfo:      info,
 		class:                t.Class(),
 		taskExecTimeInterval: ipt.taskExecTimeInterval,
@@ -225,6 +233,10 @@ func (d *dialer) run() error {
 				d.stop()
 				l.Info("task %s stopped", d.task.ID())
 				return nil
+			}
+			// update regionName
+			if t.GetWorkspaceLanguage() == "en" && d.ipt.regionNameEn != "" {
+				d.regionName = d.ipt.regionNameEn
 			}
 
 			if err := d.checkInternalNetwork(); err != nil {

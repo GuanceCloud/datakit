@@ -26,23 +26,25 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID       string             `json:"external_id"`
-	Name             string             `json:"name"`
-	AK               string             `json:"access_key"`
-	Method           string             `json:"method"`
-	URL              string             `json:"url"`
-	PostURL          string             `json:"post_url"`
-	CurStatus        string             `json:"status"`
-	Frequency        string             `json:"frequency"`
-	Region           string             `json:"region"` // 冗余进来，便于调试
-	OwnerExternalID  string             `json:"owner_external_id"`
-	SuccessWhenLogic string             `json:"success_when_logic"`
-	SuccessWhen      []*HTTPSuccess     `json:"success_when"`
-	Tags             map[string]string  `json:"tags,omitempty"`
-	Labels           []string           `json:"labels,omitempty"`
-	AdvanceOptions   *HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime       int64              `json:"update_time,omitempty"`
-	Option           map[string]string
+	ExternalID        string             `json:"external_id"`
+	Name              string             `json:"name"`
+	AK                string             `json:"access_key"`
+	Method            string             `json:"method"`
+	URL               string             `json:"url"`
+	PostURL           string             `json:"post_url"`
+	CurStatus         string             `json:"status"`
+	Frequency         string             `json:"frequency"`
+	Region            string             `json:"region"` // 冗余进来，便于调试
+	OwnerExternalID   string             `json:"owner_external_id"`
+	SuccessWhenLogic  string             `json:"success_when_logic"`
+	SuccessWhen       []*HTTPSuccess     `json:"success_when"`
+	Tags              map[string]string  `json:"tags,omitempty"`
+	Labels            []string           `json:"labels,omitempty"`
+	WorkspaceLanguage string             `json:"workspace_language,omitempty"`
+	TagsInfo          string             `json:"tags_info,omitempty"`
+	AdvanceOptions    *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime        int64              `json:"update_time,omitempty"`
+	Option            map[string]string
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -647,4 +649,15 @@ func (t *HTTPTask) init(debug bool) error {
 
 func (t *HTTPTask) GetHostName() (string, error) {
 	return getHostName(t.URL)
+}
+
+func (t *HTTPTask) GetWorkspaceLanguage() string {
+	if t.WorkspaceLanguage == "en" {
+		return "en"
+	}
+	return "zh"
+}
+
+func (t *HTTPTask) GetTagsInfo() string {
+	return t.TagsInfo
 }

@@ -37,7 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.21-0.20240724044511-a592422e3402
+# github.com/GuanceCloud/cliutils v1.1.21-0.20240820061659-b3501c0f2e71
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting

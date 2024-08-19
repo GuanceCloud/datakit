@@ -32,25 +32,27 @@ type TCPSuccess struct {
 }
 
 type TCPTask struct {
-	Host             string            `json:"host"`
-	Port             string            `json:"port"`
-	Message          string            `json:"message"`
-	Timeout          string            `json:"timeout"`
-	EnableTraceroute bool              `json:"enable_traceroute"`
-	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen      []*TCPSuccess     `json:"success_when"`
-	SuccessWhenLogic string            `json:"success_when_logic"`
-	ExternalID       string            `json:"external_id"`
-	Name             string            `json:"name"`
-	AK               string            `json:"access_key"`
-	PostURL          string            `json:"post_url"`
-	CurStatus        string            `json:"status"`
-	Frequency        string            `json:"frequency"`
-	Region           string            `json:"region"`
-	OwnerExternalID  string            `json:"owner_external_id"`
-	Tags             map[string]string `json:"tags,omitempty"`
-	Labels           []string          `json:"labels,omitempty"`
-	UpdateTime       int64             `json:"update_time,omitempty"`
+	Host              string            `json:"host"`
+	Port              string            `json:"port"`
+	Message           string            `json:"message"`
+	Timeout           string            `json:"timeout"`
+	EnableTraceroute  bool              `json:"enable_traceroute"`
+	TracerouteConfig  *TracerouteOption `json:"traceroute_config"`
+	SuccessWhen       []*TCPSuccess     `json:"success_when"`
+	SuccessWhenLogic  string            `json:"success_when_logic"`
+	ExternalID        string            `json:"external_id"`
+	Name              string            `json:"name"`
+	AK                string            `json:"access_key"`
+	PostURL           string            `json:"post_url"`
+	CurStatus         string            `json:"status"`
+	Frequency         string            `json:"frequency"`
+	Region            string            `json:"region"`
+	OwnerExternalID   string            `json:"owner_external_id"`
+	Tags              map[string]string `json:"tags,omitempty"`
+	Labels            []string          `json:"labels,omitempty"`
+	UpdateTime        int64             `json:"update_time,omitempty"`
+	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
+	TagsInfo          string            `json:"tags_info,omitempty"`
 
 	reqCost         time.Duration
 	reqDNSCost      time.Duration
@@ -432,4 +434,15 @@ func (t *TCPTask) AccessKey() string {
 
 func (t *TCPTask) GetHostName() (string, error) {
 	return t.Host, nil
+}
+
+func (t *TCPTask) GetWorkspaceLanguage() string {
+	if t.WorkspaceLanguage == "en" {
+		return "en"
+	}
+	return "zh"
+}
+
+func (t *TCPTask) GetTagsInfo() string {
+	return t.TagsInfo
 }
