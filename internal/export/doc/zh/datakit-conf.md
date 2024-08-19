@@ -274,6 +274,7 @@ $ systemctl status datakit
     - 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 和 windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
     - CPU 使用率控制目前不支持这些 windows 操作系统： Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 和 Windows XP。
     - 非 root 用户改资源限制配置时，必须重装 service。
+    - CPU 核心数限制会影响 Datakit 部分子模块的 worker 数配置（一般是 CPU 核心数的整数倍）。比如数据上传 worker 就是 CPU 核心数 * 2。而单个上传 worker 会占用默认 10MB 的内存用于数据发送，故 CPU 核心数如果开放较多，会影响 Datakit 整体内存的占用
 
 ???+ tip
 
