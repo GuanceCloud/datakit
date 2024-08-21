@@ -367,6 +367,20 @@ When the k8s node name is different from its corresponding host name, the k8s no
                 apiVersion: v1
                 fieldPath: spec.nodeName
 ```
+
+#### ENV_K8s_CLUSTER_NODE_NAME {#env-rename-node}
+
+[:octicons-tag-24: Version-1.36.0](changelog.md#1.36.0)
+
+When multiple clusters share a workspace and contain nodes with identical names, the `ENV_K8S_CLUSTER_NODE_NAME` environment variable can be used to manually customize the collected node name. During deployment, add a new configuration section **after** the `ENV_K8S_NODE_NAME` section in your `datakit.yaml` file:
+
+```yaml
+- name: ENV_K8S_CLUSTER_NODE_NAME
+  value: cluster_a_$(ENV_K8S_NODE_NAME) # Ensure that ENV_K8S_NODE_NAME is defined beforehand
+```
+
+This configuration appends `cluster_a_` to the original hostname, effectively creating a unique identifier for nodes in this cluster. As a result, the `host` tag associated with metrics such as logs, processes, CPU usage, and memory will also be prefixed with `cluster_a_`, enabling better data organization and filtering.
+
 <!-- markdownlint-disable MD013 -->
 ### Individual Collector-specific Environment Variable {#inputs-envs}
 <!-- markdownlint-enable -->

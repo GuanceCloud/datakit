@@ -448,7 +448,7 @@ func (ipt *Input) Run() {
 				err := ipt.feeder.FeedV2(point.Logging, loggingCollectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithInputName(loggingFeedName),
 				)
 				loggingCollectCache = loggingCollectCache[:0]
 				if err != nil {

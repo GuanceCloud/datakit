@@ -408,6 +408,19 @@ spec:
                 fieldPath: spec.nodeName
 ```
 
+#### ENV_K8S_CLUSTER_NODE_NAME {#env-rename-node}
+
+[:octicons-tag-24: Version-1.36.0](changelog.md#1.36.0)
+
+如果不同集群存在同名 Node，且这些集群的数据都打到**同一个工作空间**，可以通过 `ENV_K8S_CLUSTER_NODE_NAME` 来手动修改**采集到的 Node 名称**。在部署时，*datakit.yaml* 中位于 `ENV_K8S_NODE_NAME` **后面**新增一个配置段：
+
+```yaml
+- name: ENV_K8S_CLUSTER_NODE_NAME
+  value: cluster_a_$(ENV_K8S_NODE_NAME) # 注意，此处引用的 ENV_K8S_NODE_NAME 必须在前面已有定义
+```
+
+这样之后，该集群获取到的主机名（主机对象列表）会多一个 `cluster_a_` 的前缀，除此之外，主机日志/进程/CPU/Mem 等指标集上，`host` 这个 tag 的值也都多了这个前缀。
+
 ### 各个采集器专用环境变量 {#inputs-envs}
 
 部分采集器支持外部注入环境变量，以调整采集器自身的默认配置。具体参见各个具体的采集器文档。

@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.36.0 (2024/08/21) {#cl-1.36.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.36.0-new}
+
+- Added new Pipeline functions: `pt_kvs_set`, `pt_kvs_get`, `pt_kvs_del`, `pt_kvs_keys`, and `hash` (#2353)
+- Added support for custom labels and English node names in the dial-testing collector (#2365)
+
+### Bug Fixes {#cl-1.36.0-fix}
+
+- Fixed a memory leak issue in the eBPF collector (#2352)
+- Fixed an issue where Kubernetes Events were collected repeatedly when receiving Deleted data (#2363)
+- Fixed an issue where the target label in Service/Endpoints was not found in the KubernetesPrometheus collector (#2349)
+    - Note: we must update *datakit.yaml* to fix the bug.
+
+### Improvements {#cl-1.36.0-opt}
+
+- Optimized the time filtering condition for slow logs in the Oracle collector (#2360)
+- Optimized the collection method for the `postgresql_size` metric in the PostgreSQL collector (#2350)
+- Enhanced the response information of the dial-testing debugging API (#2347)
+- Improved the Pipeline's handling of the `status` field in logging data, now supporting any custom log level (#2371)
+- Added fields to identify client/server IP and port, as well as connection-side information, in BPF network logs (#2357)
+- TCP Socket log collection now supports multi-line configuration (#2364)
+- When deploying Kubernetes, if there are nodes with the same name, we can now differentiate the `host` field value by [adding a prefix/suffix](datakit-daemonset-deploy.md#env-rename-node) (#2361)
+- By default, collectors now use global-blocking-policy when feeding data to mitigate (note that this can only mitigate, **not prevent**) the drop of time-series data due to queue blocking (#2370)
+    - The display of monitor information has been adjusted: 1) it will show the blocking duration(P90) on feeding of collectors; 2) it will display the number of data points collected per collection for each collector(P90), to more clearly show the collection volume of a specific collector.
+
+---
+
 ## 1.35.0 (August 7, 2024) {#cl-1.35.0}
 
 This release is an iterative update with the following main changes:

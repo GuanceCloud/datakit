@@ -203,7 +203,8 @@ func (ipt *Input) FeedCoByErr(err error) {
 	ipt.setIptErrCOMsg(err.Error())
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
-	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
+	if err := ipt.feeder.FeedV2(gcPoint.CustomObject,
+		pts,
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {

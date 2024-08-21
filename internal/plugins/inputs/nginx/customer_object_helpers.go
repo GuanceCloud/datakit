@@ -183,7 +183,7 @@ func (ipt *Input) FeedCoByErr(err error) {
 		dkio.WithInputName(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
-			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorInput(customObjectFeedName),
 			metrics.WithLastErrorCategory(gcPoint.CustomObject),
 		)
 		l.Errorf("feed : %s", err)

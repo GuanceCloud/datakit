@@ -93,6 +93,7 @@ default_time(time, "+0")
 
 	inputName            = `sqlserver`
 	customObjectFeedName = inputName + "/CO"
+	loggingFeedName      = inputName + "/L"
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
 
