@@ -9,8 +9,8 @@ import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 
 // IOConf configure io module in datakit.conf.
 type IOConf struct {
-	FeedChanSize   int  `toml:"feed_chan_size"`
-	GlobalBlocking bool `toml:"global_blocking"`
+	FeedChanSize             int  `toml:"feed_chan_size"`
+	GlobalBlockingDeprecated bool `toml:"global_blocking"`
 
 	MaxCacheCount                  int `toml:"max_cache_count"`
 	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`

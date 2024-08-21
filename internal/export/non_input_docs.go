@@ -409,7 +409,6 @@ func envIO() []*inputs.ENVInfo {
 		{ENVName: "ENV_IO_FILTERS", Type: doc.JSON, Desc: "Add [row protocol filter](datakit-filter)", DescZh: "添加[行协议过滤器](datakit-filter.md)"},
 		{ENVName: "ENV_IO_FLUSH_INTERVAL", Type: doc.TimeDuration, Default: "10s", Desc: "IO channel capacity [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送时间频率 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
 		{ENVName: "ENV_IO_FEED_CHAN_SIZE", Type: doc.Int, Default: "1", Desc: "IO transmission time frequency [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送队列长度 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
-		{ENVName: "ENV_IO_FEED_GLOBAL_BLOCKING", Type: doc.Int, Default: "-", Desc: "Set blocking mode on busy uploading(especially fot time-series and dial-testing points) [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)", DescZh: "IO 发送的阻塞模式，目前只针对时序数据和拨测数据，其它类数据默认都是非阻塞的 [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)"},
 		{ENVName: "ENV_IO_FLUSH_WORKERS", Type: doc.Int, Default: "`cpu_core * 2 + 1`", Desc: "IO flush workers [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)", DescZh: "IO 发送 worker 数 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)"},
 		{ENVName: "ENV_IO_MAX_CACHE_COUNT", Type: doc.Int, Default: "1000", Desc: "Send buffer size", DescZh: "发送 buffer（点数）大小"},
 		{ENVName: "ENV_IO_ENABLE_CACHE", Type: doc.Boolean, Default: "false", Desc: "Whether to open the disk cache that failed to send", DescZh: "是否开启发送失败的磁盘缓存"},

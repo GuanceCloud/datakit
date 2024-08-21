@@ -521,10 +521,6 @@ func (c *Config) loadIOEnvs() {
 		}
 	}
 
-	if v := datakit.GetEnv("ENV_IO_FEED_GLOBAL_BLOCKING"); v != "" {
-		c.IO.GlobalBlocking = true
-	}
-
 	if v := datakit.GetEnv("ENV_IO_CACHE_CLEAN_INTERVAL"); v != "" {
 		du, err := time.ParseDuration(v)
 		if err != nil {

@@ -174,7 +174,7 @@ func (j *JolokiaAgent) Gather() error {
 				if err := j.Feeder.FeedV2(point.CustomObject, pts,
 					dkio.WithCollectCost(time.Since(time.Now())),
 					dkio.WithElection(j.Election),
-					dkio.WithInputName(j.PluginName)); err != nil {
+					dkio.WithInputName(j.PluginName+"/CO")); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 

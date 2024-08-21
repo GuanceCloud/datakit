@@ -6,10 +6,10 @@
 package monitor
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/dustin/go-humanize"
 	"github.com/gdamore/tcell/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rivo/tview"
@@ -128,7 +128,8 @@ func (app *monitorAPP) renderFilterStatsTable(mfs map[string]*dto.MetricFamily) 
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
 		t := time.Unix(int64(lastPull.Metric[0].GetGauge().GetValue()), 0)
-		table.SetCell(row, 1, tview.NewTableCell(humanize.RelTime(t, time.Now(), "ago", "")).
+		since := fmt.Sprintf("%s ago", app.now.Sub(t))
+		table.SetCell(row, 1, tview.NewTableCell(since).
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 	}
 }

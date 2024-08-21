@@ -79,39 +79,16 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 
 	ioChanLen.WithLabelValues(data.cat.String()).Set(float64(len(ch)))
 
-	if data.blocking {
-		select {
-		case ch <- data:
-			feedCost.WithLabelValues(
-				data.cat.String(),
-				data.input,
-			).Observe(float64(time.Since(start)) / float64(time.Second))
-			return nil
-		case <-datakit.Exit.Wait():
-			log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)
-			return fmt.Errorf("feed on global exit")
-		}
-	} else {
-		select {
-		case ch <- data:
-			return nil
-
-		case <-datakit.Exit.Wait():
-			log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)
-			return fmt.Errorf("feed on global exit")
-
-		default:
-			feedDropPoints.WithLabelValues(
-				data.cat.String(),
-				data.input,
-			).Add(float64(len(data.pts)))
-
-			// points should put back to pool, or leaked as dirty point.
-			datakit.PutbackPoints(data.pts...)
-
-			log.Warnf("io busy, %d (%s/%s) points dropped", len(data.pts), data.input, data.cat)
-			return ErrIOBusy
-		}
+	select {
+	case ch <- data:
+		feedCost.WithLabelValues(
+			data.cat.String(),
+			data.input,
+		).Observe(float64(time.Since(start)) / float64(time.Second))
+		return nil
+	case <-datakit.Exit.Wait():
+		log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)
+		return fmt.Errorf("feed on global exit")
 	}
 }
 

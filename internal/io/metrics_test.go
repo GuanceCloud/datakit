@@ -59,8 +59,6 @@ func TestInputFeedMetrics(t *T.T) {
 		assert.NoError(t, err)
 		t.Logf("\n%s", metrics.MetricFamily2Text(mfs))
 
-		assert.Equal(t, 100.0, metrics.GetMetricOnLabels(mfs,
-			"datakit_io_feed_point_total", cat.String(), t.Name()).GetCounter().GetValue())
 		assert.Equal(t, 1.0, metrics.GetMetricOnLabels(mfs,
 			"datakit_io_feed_total", cat.String(), t.Name()).GetCounter().GetValue())
 		assert.Equal(t, float64(1.0), metrics.GetMetricOnLabels(mfs,
@@ -125,45 +123,6 @@ func TestFeedMetrics(t *T.T) {
 			dkmetrics.LastErrVec.Reset()
 			inputsFeedVec.Reset()
 			inputsLastFeedVec.Reset()
-		})
-	})
-}
-
-func TestDropPtsMetric(t *T.T) {
-	t.Run(`metric-drop-pts-metric`, func(t *T.T) {
-		reg := prometheus.NewRegistry()
-		reg.MustRegister(Metrics()...)
-
-		var (
-			dwf = NewDatawayOutput(-1) // -1 cap make chanel blocking
-			r   = point.NewRander()
-		)
-
-		npts := 100
-
-		fo := GetFeedOption()
-		fo.input = "metric-drop-pts-metric"
-		fo.cat = point.Metric
-		fo.pts = r.Rand(npts)
-		fo.blocking = false
-
-		assert.ErrorIs(t, dwf.Write(fo), ErrIOBusy)
-
-		mfs, err := reg.Gather()
-		require.NoError(t, err)
-
-		m := metrics.GetMetricOnLabels(mfs,
-			`datakit_io_feed_drop_point_total`,
-			point.Metric.String(),
-			`metric-drop-pts-metric`,
-		)
-
-		assert.Equalf(t, float64(npts),
-			m.GetCounter().GetValue(),
-			"metrics:\n%s", metrics.MetricFamily2Text(mfs))
-
-		t.Cleanup(func() {
-			feedDropPoints.Reset()
 		})
 	})
 }

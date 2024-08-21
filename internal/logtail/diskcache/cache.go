@@ -104,7 +104,6 @@ func Start(opts ...Option) error {
 								IgnoreStatus:          cfg.IgnoreStatus,
 								ScriptMap:             map[string]string{cfg.Source: cfg.Pipeline},
 							}),
-							dkio.WithBlocking(cfg.Blocking),
 						); err != nil {
 							l.Warnf("feed %d pts failed: %w", len(pts), err)
 						}

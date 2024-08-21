@@ -30,7 +30,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 var (
-	inputName   = `nginx`
+	inputName            = `nginx`
+	customObjectFeedName = inputName + "/CO"
+
 	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second * 10
 	maxInterval = time.Second * 30

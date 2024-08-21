@@ -26,13 +26,6 @@ This API is used to upload(`POST`) various data (`category`) to DataKit. The URL
 - Default value: -
 - Description: Currently only supports `metric,logging,rum,object,custom_object,keyevent`, for example `metric`, the URL should be written as `/v1/write/metric`
 
-**`noblocking`** [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
-
-- Type: bool
-- Required: N
-- Default value: false
-- Description: For time series data (`/v1/write/metric`), older versions would discard data points when the IO queue was full. The new version defaults to using a blocking mode to receive data points. If you wish to keep the behavior of the old version, you can set this parameter to true.
-
 **`dry`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - Type: bool

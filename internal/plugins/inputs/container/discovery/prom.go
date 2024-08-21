@@ -83,7 +83,7 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 					dkio.WithCollectCost(time.Since(p.lastTime)),
 					dkio.WithElection(defaultPromElection),
 					dkio.WithInputName(pt.Name()),
-					dkio.WithBlocking(true))
+				)
 				if err != nil {
 					klog.Warnf("failed to feed prom logging: %s, ignored", err)
 				}
@@ -93,7 +93,7 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 				dkio.WithCollectCost(time.Since(p.lastTime)),
 				dkio.WithElection(defaultPromElection),
 				dkio.WithInputName(p.conf.Source),
-				dkio.WithBlocking(true))
+			)
 			if err != nil {
 				klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 			}

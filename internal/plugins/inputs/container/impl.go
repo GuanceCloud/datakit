@@ -134,7 +134,6 @@ func (ipt *Input) collectMetric(collectors []Collector, opts ...option.CollectOp
 					return nil
 				}
 				return ipt.Feeder.FeedV2(point.Metric, pts,
-					dkio.WithBlocking(true),
 					dkio.WithElection(c.Election()),
 					dkio.WithInputName(c.Name()+"-metric"))
 			}
@@ -162,7 +161,6 @@ func (ipt *Input) collectObject(collectors []Collector, opts ...option.CollectOp
 					return nil
 				}
 				return ipt.Feeder.FeedV2(point.Object, pts,
-					dkio.WithBlocking(true),
 					dkio.WithElection(c.Election()),
 					dkio.WithInputName(c.Name()+"-object"))
 			}
@@ -186,7 +184,6 @@ func (ipt *Input) collectLogging(collectors []Collector) {
 				return nil
 			}
 			return ipt.Feeder.FeedV2(point.Logging, pts,
-				dkio.WithBlocking(true),
 				dkio.WithElection(c.Election()),
 				dkio.WithInputName(c.Name()+"-logging"))
 		}

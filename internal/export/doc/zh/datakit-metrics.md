@@ -69,10 +69,7 @@ datakit_cpu_usage 4.9920266849857144
 |COUNTER|`datakit_filter_point_dropped_total`|`category,filters,source`|Dropped points of filters|
 |SUMMARY|`datakit_filter_pull_latency_seconds`|`status`|Filter pull(remote) latency|
 |SUMMARY|`datakit_filter_latency_seconds`|`category,filters,source`|Filter latency of these filters|
-|COUNTER|`datakit_io_flush_total`|`category`|IO flush total|
 |GAUGE|`datakit_io_queue_points`|`category`|IO module queued(cached) points|
-|COUNTER|`datakit_error_total`|`source,category`|Total errors, only count on error source, not include error message|
-|COUNTER|`datakit_io_feed_point_total`|`name,category`|Input feed point total|
 |COUNTER|`datakit_io_input_filter_point_total`|`name,category`|Input filtered point total|
 |COUNTER|`datakit_io_feed_total`|`name,category`|Input feed total|
 |GAUGE|`datakit_io_last_feed_timestamp_seconds`|`name,category`|Input last feed time(according to Datakit local time)|
@@ -80,8 +77,10 @@ datakit_cpu_usage 4.9920266849857144
 |GAUGE|`datakit_io_chan_usage`|`category`|IO channel usage(length of the channel)|
 |GAUGE|`datakit_io_chan_capacity`|`category`|IO channel capacity|
 |SUMMARY|`datakit_io_feed_cost_seconds`|`category,from`|IO feed waiting(on block mode) seconds|
-|COUNTER|`datakit_io_feed_drop_point_total`|`category,from`|IO feed drop(on non-block mode) points|
+|SUMMARY|`datakit_io_feed_point`|`name,category`|Input feed point|
 |GAUGE|`datakit_io_flush_workers`|`category`|IO flush workers|
+|COUNTER|`datakit_io_flush_total`|`category`|IO flush total|
+|COUNTER|`datakit_error_total`|`source,category`|Total errors, only count on error source, not include error message|
 |GAUGE|`datakit_goroutines`|`N/A`|Goroutine count within Datakit|
 |GAUGE|`datakit_heap_alloc_bytes`|`N/A`|Datakit memory heap bytes|
 |GAUGE|`datakit_sys_alloc_bytes`|`N/A`|Datakit memory system bytes|

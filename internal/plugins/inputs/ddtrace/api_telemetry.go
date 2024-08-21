@@ -14,10 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type Telemetry struct {
@@ -202,7 +203,11 @@ func (ipt *Input) OMInitAndRunning() {
 		for {
 			select {
 			case ob := <-ipt.om.OBChan:
-				err := ipt.feeder.Feed("tracing_service", point.CustomObject, []*point.Point{ob.toPoint()})
+				err := ipt.feeder.FeedV2(
+					point.CustomObject,
+					[]*point.Point{ob.toPoint()},
+					dkio.WithInputName(customObjectFeedName),
+				)
 				if err != nil {
 					log.Errorf("feed err=%v", err)
 				}

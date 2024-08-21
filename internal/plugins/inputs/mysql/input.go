@@ -20,7 +20,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	gcPoint "github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sql-driver/mysql"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -41,9 +41,11 @@ const (
 )
 
 var (
-	inputName   = "mysql"
-	catalogName = "db"
-	l           = logger.DefaultSLogger("mysql")
+	inputName            = "mysql"
+	customObjectFeedName = inputName + "/CO"
+	loggingFeedName      = inputName + "/L"
+	catalogName          = "db"
+	l                    = logger.DefaultSLogger("mysql")
 )
 
 type TLS struct {
@@ -122,7 +124,7 @@ type Input struct {
 
 	// response   []map[string]interface{}
 	tail       *tailer.Tailer
-	collectors []func() ([]*gcPoint.Point, error)
+	collectors []func() ([]*point.Point, error)
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -388,130 +390,130 @@ func (ipt *Input) initDBConnect() error {
 }
 
 // mysql.
-func (ipt *Input) metricCollectMysql() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysql() ([]*point.Point, error) {
 	if err := ipt.collectMysql(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysql()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_replication.
-func (ipt *Input) metricCollectMysqlReplication() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlReplication() ([]*point.Point, error) {
 	if err := ipt.collectMysqlReplication(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlReplication()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_schema.
-func (ipt *Input) metricCollectMysqlSchema() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlSchema() ([]*point.Point, error) {
 	if err := ipt.collectMysqlSchema(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlSchema()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_table_schema.
-func (ipt *Input) metricCollectMysqlTableSschema() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlTableSschema() ([]*point.Point, error) {
 	if err := ipt.collectMysqlTableSchema(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlTableSchema()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_user_status.
-func (ipt *Input) metricCollectMysqlUserStatus() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlUserStatus() ([]*point.Point, error) {
 	if err := ipt.collectMysqlUserStatus(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlUserStatus()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_custom_queries.
-func (ipt *Input) metricCollectMysqlCustomQueries() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlCustomQueries() ([]*point.Point, error) {
 	if err := ipt.collectMysqlCustomQueries(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlCustomQueries()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_innodb.
-func (ipt *Input) metricCollectMysqlInnodb() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlInnodb() ([]*point.Point, error) {
 	if err := ipt.collectMysqlInnodb(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	pts, err := ipt.buildMysqlInnodb()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_metric.
-func (ipt *Input) metricCollectMysqlDbmMetric() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlDbmMetric() ([]*point.Point, error) {
 	if err := ipt.collectMysqlDbmMetric(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlDbmMetric()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
 // mysql_dbm_sample.
-func (ipt *Input) metricCollectMysqlDbmSample() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlDbmSample() ([]*point.Point, error) {
 	if err := ipt.collectMysqlDbmSample(); err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 
 	pts, err := ipt.buildMysqlDbmSample()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
 
-func (ipt *Input) metricCollectMysqlCustomerObject() ([]*gcPoint.Point, error) {
+func (ipt *Input) metricCollectMysqlCustomerObject() ([]*point.Point, error) {
 	ipt.setIptCOStatus()
 	if err := ipt.collectMysqlCustomerObject(); err != nil {
 		ipt.setIptErrCOStatus()
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	pts, err := ipt.buildMysqlCustomerObject()
 	if err != nil {
-		return []*gcPoint.Point{}, err
+		return []*point.Point{}, err
 	}
 	return pts, nil
 }
@@ -528,13 +530,13 @@ func (ipt *Input) handleLastError() {
 	}
 }
 
-func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
+func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 	if err := ipt.initDBConnect(); err != nil {
-		return map[gcPoint.Category][]*gcPoint.Point{}, err
+		return map[point.Category][]*point.Point{}, err
 	}
 
 	if len(ipt.collectors) == 0 {
-		ipt.collectors = []func() ([]*gcPoint.Point, error){
+		ipt.collectors = []func() ([]*point.Point, error){
 			ipt.metricCollectMysql,              // mysql
 			ipt.metricCollectMysqlReplication,   // mysql_replication
 			ipt.metricCollectMysqlSchema,        // mysql_schema
@@ -546,7 +548,10 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 
 	ipt.start = time.Now()
 
-	var ptsMetric, ptsLoggingMetric, ptsLoggingSample, ptsCustomerObject []*gcPoint.Point
+	var ptsMetric,
+		ptsLoggingMetric,
+		ptsLoggingSample,
+		ptsCustomerObject []*point.Point
 
 	for idx, f := range ipt.collectors {
 		l.Debugf("collecting %d(%v)...", idx, f)
@@ -634,7 +639,7 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 			l.Errorf("mysql dmb collect error: %v", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorCategory(gcPoint.Metric),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 		}
 	}
@@ -645,13 +650,13 @@ func (ipt *Input) Collect() (map[gcPoint.Category][]*gcPoint.Point, error) {
 	}
 	ptsCustomerObject = append(ptsCustomerObject, pts...)
 
-	mpts := make(map[gcPoint.Category][]*gcPoint.Point)
-	mpts[gcPoint.Metric] = ptsMetric
+	mpts := make(map[point.Category][]*point.Point)
+	mpts[point.Metric] = ptsMetric
 
 	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
-	mpts[gcPoint.Logging] = ptsLoggingMetric
+	mpts[point.Logging] = ptsLoggingMetric
 
-	mpts[gcPoint.CustomObject] = ptsCustomerObject
+	mpts[point.CustomObject] = ptsCustomerObject
 	return mpts, nil
 }
 
@@ -676,7 +681,7 @@ func (ipt *Input) RunPipeline() {
 		l.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
-			metrics.WithLastErrorCategory(gcPoint.Metric),
+			metrics.WithLastErrorCategory(point.Metric),
 		)
 		return
 	}
@@ -701,14 +706,14 @@ func (ipt *Input) Run() {
 			ipt.setInptErrCOMsg(err.Error())
 			ipt.setIptErrCOStatus()
 			pts := ipt.getCoPointByColErr()
-			if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-				dkio.WithCollectCost(time.Since(ipt.start)),
+			if err := ipt.feeder.FeedV2(point.CustomObject,
+				pts,
 				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(inputName),
+				dkio.WithInputName(customObjectFeedName),
 			); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorCategory(gcPoint.CustomObject),
+					metrics.WithLastErrorCategory(point.CustomObject),
 				)
 				l.Errorf("feed : %s", err)
 			}
@@ -716,7 +721,7 @@ func (ipt *Input) Run() {
 			l.Warnf("init config error: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorCategory(gcPoint.Metric),
+				metrics.WithLastErrorCategory(point.Metric),
 			)
 		} else {
 			break
@@ -756,20 +761,29 @@ func (ipt *Input) Run() {
 				l.Warnf("i.Collect failed: %v", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorCategory(gcPoint.Metric),
+					metrics.WithLastErrorCategory(point.Metric),
 				)
 			}
 
 			for category, pts := range mpts {
 				if len(pts) > 0 {
+					feedName := inputName
+
+					switch category { // nolint: exhaustive
+					case point.CustomObject:
+						feedName = customObjectFeedName // use specific CO-suffix feed name.
+					case point.Logging:
+						feedName = loggingFeedName // use specific L-suffix feed name.
+					}
+
 					if err := ipt.feeder.FeedV2(category, pts,
 						dkio.WithCollectCost(time.Since(ipt.start)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName),
+						dkio.WithInputName(feedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
-							metrics.WithLastErrorCategory(gcPoint.Metric),
+							metrics.WithLastErrorCategory(point.Metric),
 						)
 						l.Errorf("feed : %s", err)
 					}

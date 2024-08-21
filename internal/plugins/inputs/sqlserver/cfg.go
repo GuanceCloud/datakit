@@ -91,9 +91,10 @@ grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
 default_time(time, "+0")
 `
 
-	inputName   = `sqlserver`
-	catalogName = "db"
-	l           = logger.DefaultSLogger(inputName)
+	inputName            = `sqlserver`
+	customObjectFeedName = inputName + "/CO"
+	catalogName          = "db"
+	l                    = logger.DefaultSLogger(inputName)
 
 	collectCache        []*point.Point
 	loggingCollectCache []*point.Point

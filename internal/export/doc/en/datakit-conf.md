@@ -86,16 +86,16 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
 
 Datakit allows you to configure global tags for all collected data. Global tags are divided into two categories:
 
-- Host-based Global Tags: Collected data is bound to the current host, such as CPU/memory metrics.
-- Election-based Global Tags: Collected data comes from a common (remote) entity, such as MySQL/Redis, which generally participates in elections. Therefore, these data will not carry tags related to the current host.
+- Global Host Tags(GET): Collected data is bound to the current host, such as CPU/memory metrics.
+- Global Election Tags(GET): Collected data comes from a common (remote) entity, such as MySQL/Redis, which generally participates in elections. Therefore, these data will not carry tags related to the current host.
 
 ```toml
-[global_host_tags] # These are referred to as 'Global Host Tags': GHT
+[global_host_tags] # These are referred to as 'Global Host Tags'
   ip   = "__datakit_ip"
   host = "__datakit_hostname"
 
 [election]
-  [election.tags] # These are referred to as 'Global Election Tags': GET
+  [election.tags] # These are referred to as 'Global Election Tags'
     project = "my-project"
     cluster = "my-cluster"
 ```
@@ -107,12 +107,12 @@ When adding global tags, there are several points to note:
     1. `__datakit_ip/$datakit_ip`: The tag value will be set to the first primary network card IP obtained by DataKit.
     1. `__datakit_hostname/$datakit_hostname`: The tag value will be set to the hostname of DataKit.
 
-2. Due to [DataKit Data Transmission Protocol restrictions](apis.md#lineproto-limitation), do not include any metrics (Field) fields in the global tags, as this will lead to data processing failure due to protocol violation. For specific details, refer to the field list of the specific collector. Of course, do not add too many tags, and there are also restrictions on the length of each tag's Key and Value.
-3. If the collected data already contains a tag with the same name, DataKit will not append the configured global tag.
-4. Even if there is no configuration in GET, DataKit will still attempt to add a tag of `host=__datakit_hostname` to all data.
-5. These two types of global tags (GHT/GET) can intersect, such as setting a tag of `project = "my-project"` in both.
-6. When no election is enabled, GET follows all tags in GHT (which has at least a `host` tag).
-7. Election-based collectors default to appending GET, and non-election-based collectors default to appending GHT.
+1. Due to [DataKit Data Transmission Protocol restrictions](apis.md#lineproto-limitation), do not include any metrics (Field) fields in the global tags, as this will lead to data processing failure due to protocol violation. For specific details, refer to the field list of the specific collector. Of course, do not add too many tags, and there are also restrictions on the length of each tag's Key and Value.
+1. If the collected data already contains a tag with the same name, DataKit will not append the configured global tag.
+1. Even if no configuration is specified in GHT, Datakit will still add a `host=__datakit_hostname` tag to GHT. This is because `host` is currently the default field for data connection. Therefore, all collected data, including logs, CPU, and memory metrics, will include the `host` tag.
+1. These two types of global tags (GHT/GET) can intersect, such as setting a tag of `project = "my-project"` in both.
+1. When no election is enabled, GET follows all tags in GHT (which has at least a `host` tag).
+1. Election-based collectors default to appending GET, and non-election-based collectors default to appending GHT.
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip "How to distinguish between election and non-election collectors?"

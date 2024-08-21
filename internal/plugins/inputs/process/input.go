@@ -413,7 +413,7 @@ func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, 
 
 	if err := ipt.feeder.FeedV2(point.Object, collectCache,
 		dkio.WithCollectCost(time.Since(tn)),
-		dkio.WithInputName(inputName+"/object"),
+		dkio.WithInputName(objectFeedName),
 	); err != nil {
 		l.Errorf("Feed object err :%s", err.Error())
 		ipt.lastErr = err

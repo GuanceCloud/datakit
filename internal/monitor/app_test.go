@@ -6,9 +6,15 @@
 package monitor
 
 import (
+	"bytes"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	T "testing"
+	"time"
+
+	"github.com/prometheus/common/expfmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestApp(t *T.T) {
@@ -23,6 +29,85 @@ func TestApp(t *T.T) {
 		t.Cleanup(func() {
 			ts.Close()
 		})
+	})
+}
+
+func Test_metricWithLabel(t *T.T) {
+	t.Run("not-exist-summary", func(t *T.T) {
+		var psr expfmt.TextParser
+
+		mfs, err := psr.TextToMetricFamilies(bytes.NewBuffer([]byte(
+			`# HELP datakit_io_feed_cost_seconds IO feed waiting(on block mode) seconds
+# TYPE datakit_io_feed_cost_seconds summary
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.5"} 2.8325e-05
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.9"} 3.3917e-05
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.99"} 7.7388e-05
+datakit_io_feed_cost_seconds_sum{category="custom_object",from="mysql"} 0.0046492780000000015
+datakit_io_feed_cost_seconds_count{category="custom_object",from="mysql"} 193
+`)))
+		assert.NoError(t, err)
+
+		feedSum := metricWithLabel(mfs["datakit_io_feed_cost_seconds"], "not-exist", "not-exist").GetSummary()
+		assert.Nil(t, feedSum)
+		t.Logf("sum: %+#v", time.Duration(feedSum.GetSampleSum()/float64(feedSum.GetSampleCount())*float64(time.Second)).String())
+	})
+
+	t.Run("get-summary-with-quantile", func(t *T.T) {
+		var psr expfmt.TextParser
+
+		mfs, err := psr.TextToMetricFamilies(bytes.NewBuffer([]byte(
+			`# HELP datakit_io_feed_cost_seconds IO feed waiting(on block mode) seconds
+# TYPE datakit_io_feed_cost_seconds summary
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.5"} 2.8325e-05
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.9"} 3.3917e-05
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.99"} 7.7388e-05
+datakit_io_feed_cost_seconds_sum{category="custom_object",from="mysql"} 0.0046492780000000015
+datakit_io_feed_cost_seconds_count{category="custom_object",from="mysql"} 193
+`)))
+		assert.NoError(t, err)
+
+		feedSum := metricWithLabel(mfs["datakit_io_feed_cost_seconds"], "custom_object", "mysql").GetSummary()
+		assert.NotNil(t, feedSum)
+
+		t.Logf("sum: %+#v", time.Duration(feedSum.GetSampleSum()/float64(feedSum.GetSampleCount())*float64(time.Second)).String())
+
+		p90 := feedSum.GetQuantile()[1]
+		t.Logf("p90: %f", p90.GetValue())
+
+		for idx, q := range feedSum.GetQuantile() {
+			t.Logf("%d: %f", idx, q.GetValue())
+		}
+	})
+
+	t.Run("get-summary-with-nan-quantile", func(t *T.T) {
+		var psr expfmt.TextParser
+
+		mfs, err := psr.TextToMetricFamilies(bytes.NewBuffer([]byte(
+			`# HELP datakit_io_feed_cost_seconds IO feed waiting(on block mode) seconds
+# TYPE datakit_io_feed_cost_seconds summary
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.5"} NaN
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.9"} NaN
+datakit_io_feed_cost_seconds{category="custom_object",from="mysql",quantile="0.99"} NaN
+datakit_io_feed_cost_seconds_sum{category="custom_object",from="mysql"} 0.0046492780000000015
+datakit_io_feed_cost_seconds_count{category="custom_object",from="mysql"} 193
+`)))
+		assert.NoError(t, err)
+
+		feedSum := metricWithLabel(mfs["datakit_io_feed_cost_seconds"], "custom_object", "mysql").GetSummary()
+		assert.NotNil(t, feedSum)
+
+		t.Logf("sum: %+#v", time.Duration(feedSum.GetSampleSum()/float64(feedSum.GetSampleCount())*float64(time.Second)).String())
+
+		p90 := feedSum.GetQuantile()[1]
+		t.Logf("p90: %f", p90.GetValue())
+		t.Logf("p90: %s", time.Duration(p90.GetValue()*float64(time.Second)))
+		t.Logf("p90: %s", time.Duration(p90.GetValue()*float64(time.Second)).String())
+
+		assert.True(t, math.IsNaN(p90.GetValue()))
+
+		for idx, q := range feedSum.GetQuantile() {
+			t.Logf("%d: %f", idx, q.GetValue())
+		}
 	})
 }
 

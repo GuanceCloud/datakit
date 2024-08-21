@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	inputName = "host_processes"
-	category  = "host"
+	inputName      = "host_processes"
+	objectFeedName = inputName + "/O"
+	category       = "host"
 
 	sampleConfig = `
 [[inputs.host_processes]]
