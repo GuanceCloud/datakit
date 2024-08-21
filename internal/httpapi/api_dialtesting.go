@@ -114,11 +114,10 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 	if err := defDialtestingMock.debugRun(t); err != nil {
-		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
+		l.Warnf("[%s] %s", tid, err.Error())
 	}
 
-	_, fields := defDialtestingMock.getResults(t)
+	tags, fields := defDialtestingMock.getResults(t)
 
 	failReason, ok := fields["fail_reason"].(string)
 	if ok {
@@ -126,6 +125,10 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	}
 	if taskType == dt.ClassTCP || taskType == dt.ClassICMP {
 		traceroute, _ = fields["traceroute"].(string)
+	}
+
+	for k, v := range tags {
+		fields[k] = v
 	}
 
 	return &dialtestingDebugResponse{
