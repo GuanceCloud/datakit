@@ -16,7 +16,73 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
 1. KubernetesPrometheus 会访问该地址，将数据进行解析和添加标签
 1. 如果该 Pod 发生更新或删除，KubernetesPrometheus 采集器会终止对该 Pod 的采集，再根据具体情况判断是否开启新采集
 
-以下是一份最基础的配置，它实现了对此类 Pods 的 Prometheus 数据采集，并添加标签：
+
+### 配置说明 {#input-config-added}
+
+- 以下是一份最基础的配置，它只有 2 个配置项——选择自发现的目标是 Pod，和指定目标 Port。它实现了对所有 Pods 的 Prometheus 数据采集，即使它们并没有 export Prometheus 数据：
+
+```yaml
+[[inputs.kubernetesprometheus.instances]]
+  role       = "pod"
+  port       = "__kubernetes_pod_container_nginx_port_metrics_number"
+```
+
+- 对上面的配置进行补充，不再采集所有 Pods，而是按照 Namespace 和 Selector 指定某一类 Pod。如配置所示，现在只采集 Namespace 是 `middleware` 且存在 Label 是 `app=nginx` 的 Pods：
+
+```yaml
+[[inputs.kubernetesprometheus.instances]]
+  role       = "pod"
+  namespaces = ["middleware"]
+  selector   = "app=nginx"
+
+  port       = "__kubernetes_pod_container_nginx_port_metrics_number"
+```
+
+- 再次对配置进行补充，这次要添加一些标签。标签值是动态的，根据目标 Pod 的属性取值。此处添加了 4 个标签：
+
+```yaml
+[[inputs.kubernetesprometheus.instances]]
+  role       = "pod"
+  namespaces = ["middleware"]
+  selector   = "app=nginx"
+
+  port       = "__kubernetes_pod_container_nginx_port_metrics_number"
+
+  [inputs.kubernetesprometheus.instances.custom]
+    [inputs.kubernetesprometheus.instances.custom.tags]
+      instance         = "__kubernetes_mate_instance"
+      host             = "__kubernetes_mate_host"
+      pod_name         = "__kubernetes_pod_name"
+      pod_namespace    = "__kubernetes_pod_namespace"
+```
+
+- 如果目标 Pod 的 Prometheus 服务是 https 协议，还需要额外配置认证证书，这些证书已经提前挂载进 Datakit 容器中：
+
+```yaml
+[[inputs.kubernetesprometheus.instances]]
+  role       = "pod"
+  namespaces = ["middleware"]
+  selector   = "app=nginx"
+
+  scheme     = "https"
+  port       = "__kubernetes_pod_container_nginx_port_metrics_number"
+
+  [inputs.kubernetesprometheus.instances.custom]
+    [inputs.kubernetesprometheus.instances.custom.tags]
+      instance         = "__kubernetes_mate_instance"
+      host             = "__kubernetes_mate_host"
+      pod_name         = "__kubernetes_pod_name"
+      pod_namespace    = "__kubernetes_pod_namespace"
+
+  [inputs.kubernetesprometheus.instances.auth]
+    [inputs.kubernetesprometheus.instances.auth.tls_config]
+      insecure_skip_verify = false
+      ca_certs = ["/opt/nginx/ca.crt"]
+      cert     = "/opt/nginx/peer.crt"
+      cert_key = "/opt/nginx/peer.key"
+```
+
+- 最后，这是一份完整的配置，它包含了所有的配置项：
 
 ```yaml
 [[inputs.kubernetesprometheus.instances]]
@@ -25,7 +91,7 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
   selector   = "app=nginx"
 
   scrape     = "true"
-  scheme     = "http"
+  scheme     = "https"
   port       = "__kubernetes_pod_container_nginx_port_metrics_number"
   path       = "/metrics"
   params     = ""
@@ -43,11 +109,12 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
   [inputs.kubernetesprometheus.instances.auth]
     bearer_token_file      = "/var/run/secrets/kubernetes.io/serviceaccount/token"
     [inputs.kubernetesprometheus.instances.auth.tls_config]
-      insecure_skip_verify = true
-      ca_certs = []
-      cert     = ""
-      cert_key = ""
+      insecure_skip_verify = false
+      ca_certs = ["/opt/nginx/ca.crt"]
+      cert     = "/opt/nginx/peer.crt"
+      cert_key = "/opt/nginx/peer.key"
 ```
+
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
@@ -185,16 +252,19 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 Service 资源没有 IP 属性，所以使用跟它对应的 Endpoints Address IP 属性（存在多个），JSONPath 是 Endpoints `.subsets[*].addresses[*].ip`。
 
 <!-- markdownlint-disable MD049 -->
-| Name                                      | Description                                                                                                    | 对应的 JSONPath                                                           |
-| -----------                               | -----------                                                                                                    | -----                                                                     |
-| __kubernetes_service_name                 | Service 名称                                                                                                   | .metadata.name                                                            |
-| __kubernetes_service_namespace            | Service 命名空间                                                                                               | .metadata.namespace                                                       |
-| __kubernetes_service_label_%s             | Service 标签                                                                                                   | .metadata.labels['%s']                                                    |
-| __kubernetes_service_annotation_%s        | Service 注解                                                                                                   | .metadata.annotations['%s']                                               |
-| __kubernetes_service_port_%s_port         | 指定 port（基本用不到，大部分场景都使用 targetPort）                                                            | .spec.ports[*].port ("name" equal "%s")                                   |
-| __kubernetes_service_port_%s_targetport   | 指定 targetPort                                                                                                | .spec.ports[*].targetPort ("name" equal "%s")                             |
-| __kubernetes_service_target_pod_name      | Service 中没有 target，这是指向对应 endpoints 的 targetRef。如果是 Pod 类型，取它的 `name` 字段，否则为空      | Endpoints: .subsets[*].addresses[*].targetRef.name ("kind" is "Pod")      |
-| __kubernetes_service_target_pod_namespace | Service 中没有 target，这是指向对应 endpoints 的 targetRef。如果是 Pod 类型，取它的 `namespace` 字段，否则为空 | Endpoints: .subsets[*].addresses[*].targetRef.namespace ("kind" is "Pod") |
+| Name                                      | Description                                                                         | 对应的 JSONPath                                         |
+| -----------                               | -----------                                                                         | -----                                                   |
+| __kubernetes_service_name                 | Service 名称                                                                        | .metadata.name                                          |
+| __kubernetes_service_namespace            | Service 命名空间                                                                    | .metadata.namespace                                     |
+| __kubernetes_service_label_%s             | Service 标签                                                                        | .metadata.labels['%s']                                  |
+| __kubernetes_service_annotation_%s        | Service 注解                                                                        | .metadata.annotations['%s']                             |
+| __kubernetes_service_port_%s_port         | 指定 port（基本用不到，大部分场景都使用 targetPort）                                | .spec.ports[*].port ("name" equal "%s")                 |
+| __kubernetes_service_port_%s_targetport   | 指定 targetPort                                                                     | .spec.ports[*].targetPort ("name" equal "%s")           |
+| __kubernetes_service_target_kind          | Service 中没有 target，这是指向对应 endpoints 的 targetRef，取它的 `kind` 字段      | Endpoints: .subsets[*].addresses[*].targetRef.kind      |
+| __kubernetes_service_target_name          | Service 中没有 target，这是指向对应 endpoints 的 targetRef，取它的 `name` 字段      | Endpoints: .subsets[*].addresses[*].targetRef.name      |
+| __kubernetes_service_target_namespace     | Service 中没有 target，这是指向对应 endpoints 的 targetRef，取它的 `namespace` 字段 | Endpoints: .subsets[*].addresses[*].targetRef.namespace |
+| __kubernetes_service_target_pod_name      | Deprecated, 请使用 `__kubernetes_service_target_name`                               | Endpoints: .subsets[*].addresses[*].targetRef.name      |
+| __kubernetes_service_target_pod_namespace | Deprecated, 请使用 `__kubernetes_service_target_namespace`                          | Endpoints: .subsets[*].addresses[*].targetRef.namespace |
 <!-- markdownlint-enable -->
 
 ### Endpoints Role {#placeholders-endpoints}
@@ -202,16 +272,19 @@ Service 资源没有 IP 属性，所以使用跟它对应的 Endpoints Address I
 此类资源的采集地址是 Address IP（存在多个），对应 JSONPath 是 `.subsets[*].addresses[*].ip`。
 
 <!-- markdownlint-disable MD049 -->
-| Name                                                | Description                                                       | 对应的 JSONPath                                                |
-| -----------                                         | -----------                                                       | -----                                                          |
-| __kubernetes_endpoints_name                         | Endpoints 名称                                                    | .metadata.name                                                 |
-| __kubernetes_endpoints_namespace                    | Endpoints 命名空间                                                | .metadata.namespace                                            |
-| __kubernetes_endpoints_label_%s                     | Endpoints 标签                                                    | .metadata.labels['%s']                                         |
-| __kubernetes_endpoints_annotation_%s                | Endpoints 注解                                                    | .metadata.annotations['%s']                                    |
-| __kubernetes_endpoints_address_node_name            | Endpoints Address 的 Node 名称                                    | .subsets[*].addresses[*].nodeName                              |
-| __kubernetes_endpoints_address_target_pod_name      | 如果 targetRef 是 Pod 类型，取它的 `name` 字段，否则为空          | .subsets[*].addresses[*].targetRef.name ("kind" is "Pod")      |
-| __kubernetes_endpoints_address_target_pod_namespace | 如果 targetRef 是 Pod 类型，取它的 `namespace` 字段，否则为空     | .subsets[*].addresses[*].targetRef.namespace ("kind" is "Pod") |
-| __kubernetes_endpoints_port_%s_number               | 指定 port 名称，例如 `__kubernetes_endpoints_port_metrics_number` | .subsets[*].ports[*].port ("name" equal "%s")                  |
+| Name                                                | Description                                                          | 对应的 JSONPath                               |
+| -----------                                         | -----------                                                          | -----                                         |
+| __kubernetes_endpoints_name                         | Endpoints 名称                                                       | .metadata.name                                |
+| __kubernetes_endpoints_namespace                    | Endpoints 命名空间                                                   | .metadata.namespace                           |
+| __kubernetes_endpoints_label_%s                     | Endpoints 标签                                                       | .metadata.labels['%s']                        |
+| __kubernetes_endpoints_annotation_%s                | Endpoints 注解                                                       | .metadata.annotations['%s']                   |
+| __kubernetes_endpoints_address_node_name            | Endpoints Address 的 Node 名称                                       | .subsets[*].addresses[*].nodeName             |
+| __kubernetes_endpoints_address_target_kind          | targetRef 的 `kind` 字段                                             | .subsets[*].addresses[*].targetRef.kind       |
+| __kubernetes_endpoints_address_target_name          | targetRef 的 `name` 字段                                             | .subsets[*].addresses[*].targetRef.name       |
+| __kubernetes_endpoints_address_target_namespace     | targetRef 的 `namespace` 字段                                        | .subsets[*].addresses[*].targetRef.namespace  |
+| __kubernetes_endpoints_address_target_pod_name      | Deprecated, 请使用 `__kubernetes_endpoints_address_target_name`      | .subsets[*].addresses[*].targetRef.name       |
+| __kubernetes_endpoints_address_target_pod_namespace | Deprecated, 请使用 `__kubernetes_endpoints_address_target_namespace` | .subsets[*].addresses[*].targetRef.namespace  |
+| __kubernetes_endpoints_port_%s_number               | 指定 port 名称，例如 `__kubernetes_endpoints_port_metrics_number`    | .subsets[*].ports[*].port ("name" equal "%s") |
 <!-- markdownlint-enable -->
 
 ## 实际案例 {#example}
@@ -294,8 +367,8 @@ data:
             job_as_measurement = false
             [inputs.kubernetesprometheus.instances.custom.tags]
               svc_name      = "__kubernetes_service_name"
-              pod_name      = "__kubernetes_service_target_pod_name"
-              pod_namespace = "__kubernetes_service_target_pod_namespace"
+              pod_name      = "__kubernetes_service_target_name"
+              pod_namespace = "__kubernetes_service_target_namespace"
 ```
 
 1. 在 Datakit yaml 中应用 `kubernetesprometheus.conf` 文件

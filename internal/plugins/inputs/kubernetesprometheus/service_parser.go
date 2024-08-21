@@ -88,13 +88,33 @@ var ServiceValueFroms = []struct {
 		},
 	},
 
-	// trans to endpoints
+	// convert to endpoints
+	{
+		key: newKeyMatcher("__kubernetes_service_target_kind"),
+		fn: func(_ *corev1.Service, _ []string) string {
+			return "__kubernetes_endpoints_address_target_kind"
+		},
+	},
+	{
+		key: newKeyMatcher("__kubernetes_service_target_name"),
+		fn: func(_ *corev1.Service, _ []string) string {
+			return "__kubernetes_endpoints_address_target_name"
+		},
+	},
+	{
+		key: newKeyMatcher("__kubernetes_service_target_namespace"),
+		fn: func(_ *corev1.Service, _ []string) string {
+			return "__kubernetes_endpoints_address_target_namespace"
+		},
+	},
+	// deprecated, use __kubernetes_service_target_name
 	{
 		key: newKeyMatcher("__kubernetes_service_target_pod_name"),
 		fn: func(_ *corev1.Service, _ []string) string {
 			return "__kubernetes_endpoints_address_target_pod_name"
 		},
 	},
+	// deprecated, use __kubernetes_service_target_namespace
 	{
 		key: newKeyMatcher("__kubernetes_service_target_pod_namespace"),
 		fn: func(_ *corev1.Service, _ []string) string {

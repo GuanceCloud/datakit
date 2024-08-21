@@ -89,6 +89,18 @@ func TestEndpointsMeta(t *testing.T) {
 		matched, res = pr.matchAddress(obj, "__kubernetes_endpoints_address_target_pod_namespace")
 		assert.Equal(t, true, matched)
 		assert.Equal(t, "nginx-ns", res)
+
+		matched, res = pr.matchAddress(obj, "__kubernetes_endpoints_address_target_kind")
+		assert.Equal(t, true, matched)
+		assert.Equal(t, "Pod", res)
+
+		matched, res = pr.matchAddress(obj, "__kubernetes_endpoints_address_target_name")
+		assert.Equal(t, true, matched)
+		assert.Equal(t, "nginx-123", res)
+
+		matched, res = pr.matchAddress(obj, "__kubernetes_endpoints_address_target_namespace")
+		assert.Equal(t, true, matched)
+		assert.Equal(t, "nginx-ns", res)
 	})
 
 	t.Run("endpoints-port", func(t *testing.T) {
