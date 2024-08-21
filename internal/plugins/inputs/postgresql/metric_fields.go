@@ -67,18 +67,29 @@ WHERE %s
 	{
 		name: "size metrics",
 		query: `
-SELECT
-	N.nspname AS schema,
-	relname AS table,
-	pg_table_size(C.oid) as table_size,
-	pg_indexes_size(C.oid) as index_size,
-	pg_total_relation_size(C.oid) as total_size
-FROM pg_class C
-LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-WHERE nspname NOT IN ('pg_catalog', 'information_schema') AND
-	nspname !~ '^pg_toast' AND
-	relkind = 'r' AND
-	%s
+	SELECT current_database() as db,
+       s.schemaname as schema, s.table, s.partition_of,
+       s.relpages, s.reltuples, s.relallvisible,
+       s.relation_size + s.toast_size as table_size,
+       s.relation_size,
+       s.index_size,
+       s.toast_size,
+       s.relation_size + s.index_size + s.toast_size as total_size
+FROM
+    (SELECT
+      N.nspname as schemaname,
+      relname as table,
+      I.inhparent::regclass AS partition_of,
+      C.relpages, C.reltuples, C.relallvisible,
+      pg_relation_size(C.oid) as relation_size,
+      CASE WHEN C.relhasindex THEN pg_indexes_size(C.oid) ELSE 0 END as index_size,
+      CASE WHEN C.reltoastrelid > 0 THEN pg_relation_size(C.reltoastrelid) ELSE 0 END as toast_size
+    FROM pg_class C
+    LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+    LEFT JOIN pg_inherits I ON (I.inhrelid = C.oid)
+    WHERE NOT (nspname = ANY('{{pg_catalog,information_schema}}')) AND
+      relkind = 'r' AND
+	%s LIMIT 300) as s
 		`,
 		schemaField:     "nspname",
 		measurementInfo: sizeMeasurement{}.Info(),
@@ -335,7 +346,7 @@ func (m sizeMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "The total disk space used by the specified table. Includes TOAST, free space map, and visibility map. Excludes indexes.",
+				Desc:     "The total disk space used by the specified table with TOAST data. Free space map and visibility map are not included.",
 			},
 			"index_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
