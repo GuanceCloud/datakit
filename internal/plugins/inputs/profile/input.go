@@ -675,7 +675,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	metricName := inputName + "/" + resolveLang(metadata.formValue, metadata.tags).String()
 	if sendErr == nil && resp.StatusCode/100 == 2 {
 		dkio.InputsFeedVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
-		dkio.InputsFeedPtsVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
+		dkio.InputsFeedPtsVec().WithLabelValues(metricName, point.Profiling.String()).Observe(float64(1))
 		dkio.InputsLastFeedVec().WithLabelValues(metricName, point.Profiling.String()).Set(float64(time.Now().Unix()))
 		dkio.InputsCollectLatencyVec().WithLabelValues(metricName, point.Profiling.String()).Observe(reqCost.Seconds())
 	} else {

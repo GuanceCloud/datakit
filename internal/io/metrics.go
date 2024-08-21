@@ -15,12 +15,11 @@ import (
 
 var (
 	inputsFeedVec,
-	inputsFeedPtsVec,
-	feedDropPoints,
 	flushVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
 	feedCost,
+	inputsFeedPtsVec,
 	inputsCollectLatencyVec *prometheus.SummaryVec
 
 	queuePtsVec,
@@ -34,7 +33,7 @@ func InputsFeedVec() *prometheus.CounterVec {
 	return inputsFeedVec
 }
 
-func InputsFeedPtsVec() *prometheus.CounterVec {
+func InputsFeedPtsVec() *prometheus.SummaryVec {
 	return inputsFeedPtsVec
 }
 
@@ -66,17 +65,22 @@ func metricsSetup() {
 		},
 	)
 
-	feedDropPoints = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	inputsFeedPtsVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "io",
-			Name:      "feed_drop_point_total",
-			Help:      "IO feed drop(on non-block mode) points",
-		},
+			Name:      "feed_point",
+			Help:      "Input feed point",
 
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
 		[]string{
+			"name",
 			"category",
-			"from",
 		},
 	)
 
@@ -110,19 +114,6 @@ func metricsSetup() {
 		[]string{
 			"category",
 		})
-
-	inputsFeedPtsVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "feed_point_total",
-			Help:      "Input feed point total",
-		},
-		[]string{
-			"name",
-			"category",
-		},
-	)
 
 	inputsFilteredPtsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -228,7 +219,6 @@ func Metrics() []prometheus.Collector {
 		flushVec,
 		flushWorkersVec,
 		feedCost,
-		feedDropPoints,
 	}
 }
 

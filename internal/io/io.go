@@ -36,7 +36,6 @@ type dkIO struct {
 
 	cacheSizeGB        int
 	cacheCleanInterval time.Duration
-	globalBlocking,
 	enableCache,
 	cacheAll bool
 

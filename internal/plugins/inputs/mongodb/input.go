@@ -31,9 +31,10 @@ import (
 var _ inputs.ElectionInput = &Input{}
 
 var (
-	catalogName  = "db"
-	inputName    = "mongodb"
-	sampleConfig = `
+	catalogName          = "db"
+	inputName            = "mongodb"
+	customObjectFeedName = inputName + "/CO"
+	sampleConfig         = `
 [[inputs.mongodb]]
   ## Gathering interval
   interval = "10s"

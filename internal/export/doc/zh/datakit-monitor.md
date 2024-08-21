@@ -61,7 +61,8 @@ DataKit 基本 Monitor 页面信息如下图所示：
     - `Input`: 指采集器名称。某些情况下，这个名称是采集器自定义的（比如日志采集器/Prom 采集器）
     - `Cat`：指该采集器所采集的数据类型（M(指标)/L(日志)/O(对象)...）
     - `Feeds`：指该采集器自启动以来更新数据（采集）的次数
-    - `TotalPts`：采集的总的行协议点数
+    - `P90Lat`：指该采集器在上报数据点时的阻塞时长（P90），如果时间越长，表示当前数据发送越慢 [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
+    - `P90Pts`：采集器采集的点数（P90）[:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
     - `Filtered`：被黑名单筛选掉的点数
     - `Last Feed`：最后一次更新数据（采集）的时间（相对当前时间）
     - `Avg Cost`：平均每次采集消耗

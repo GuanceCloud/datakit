@@ -29,8 +29,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName = "nsq"
-	catalog   = "nsq"
+	inputName            = "nsq"
+	customObjectFeedName = inputName + "/CO"
+	catalog              = "nsq"
 
 	nsqdStatsPattern = "%s/stats?format=json"
 	lookupdPattern   = "%s/nodes"

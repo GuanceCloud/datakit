@@ -162,7 +162,7 @@ func (w *worker) runConsumer() {
 						metrics.ErrCountVec.WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
 					} else {
 						dkio.InputsFeedVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
-						dkio.InputsFeedPtsVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Inc()
+						dkio.InputsFeedPtsVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Observe(float64(1))
 						dkio.InputsLastFeedVec().WithLabelValues(inputName, pt.DynamicDWCategory.String()).Set(float64(time.Now().Unix()))
 						w.updateFailInfo(job.url, false)
 						workerSendPointsGauge.WithLabelValues(job.regionName, job.class, "ok").Add(1)

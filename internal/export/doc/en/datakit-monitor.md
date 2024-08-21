@@ -57,7 +57,8 @@ The information of each UI block in the above figure is:
     - `Input`: Refer to the collector name. In some cases, this name is collector-specific (such as Log Collector/Prom Collector)
     - `Cat`: Refer to the type of data collected by the collector (M (metrics)/L (logs)/O (objects...)
     - `Feeds`: Total updates(collects) since Datakit started
-    - `TotalPts`: Total points collected of the collector
+    - `P90Lat`: Feed latency(blocked on queue) time(p90). The longer the duration, the slower the upload workers [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
+    - `P90Pts`: Points(P90) collected of the collector [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
     - `Last Feed`: Time of last update(collect), relative to current time
     - `Avg Cost`: Average cost of each collect
     - `Errors`: Collect error count(if no error, empty here)

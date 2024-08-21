@@ -32,11 +32,12 @@ import (
 )
 
 var (
-	inputName                        = "postgresql"
-	catalogName                      = "db"
-	l                                = logger.DefaultSLogger(inputName)
-	_           inputs.ElectionInput = (*Input)(nil)
-	kvMatcher                        = regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+	inputName                                 = "postgresql"
+	customObjectFeedName                      = inputName + "/CO"
+	catalogName                               = "db"
+	l                                         = logger.DefaultSLogger(inputName)
+	_                    inputs.ElectionInput = (*Input)(nil)
+	kvMatcher                                 = regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 )
 
 const (

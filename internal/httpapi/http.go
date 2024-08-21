@@ -205,9 +205,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", rawHTTPWraper(reqLimiter, apiGetDatakitStats)) // Deprecated, use /metrics
-
-	router.GET("/stats/:type", rawHTTPWraper(reqLimiter, apiGetDatakitStatsByType))
 	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
 	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
 

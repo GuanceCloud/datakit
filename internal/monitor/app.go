@@ -23,7 +23,7 @@ import (
 var (
 	l = logger.DefaultSLogger("monitor")
 
-	inputsFeedCols   = strings.Split(`Input|Cat|Feeds|TotalPts|Filtered|LastFeed|AvgCost|Errors`, "|")
+	inputsFeedCols   = strings.Split(`Input|Cat|Feeds|P90Lat|P90Pts|Filtered|LastFeed|AvgCost|Errors`, "|")
 	plStatsCols      = strings.Split("Script|Cat|Namespace|TotalPts|DropPts|ErrPts|PLUpdate|AvgCost", "|")
 	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")
 	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
@@ -83,6 +83,11 @@ type monitorAPP struct {
 	refresh       time.Duration
 
 	url string
+
+	// If now not set, we refresh now each loop.
+	// For replay exist metrics, now will be specified by bug report time.
+	now          time.Time
+	specifiedNow bool
 
 	proxy                   string
 	onlyInputs, onlyModules []string

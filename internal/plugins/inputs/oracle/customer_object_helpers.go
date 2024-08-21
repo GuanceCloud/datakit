@@ -140,7 +140,7 @@ func (ipt *Input) FeedCoPts() {
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
 		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(inputName),
+		dkio.WithInputName(customObjectFeedName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
@@ -157,7 +157,7 @@ func (ipt *Input) FeedCoByErr(err error) {
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
 		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(inputName),
+		dkio.WithInputName(customObjectFeedName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

@@ -7,10 +7,10 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/dustin/go-humanize"
 	"github.com/gdamore/tcell/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rivo/tview"
@@ -38,11 +38,12 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 	}
 
 	feedTotal := mfs["datakit_io_feed_total"]
-	ptsTotal := mfs["datakit_io_feed_point_total"]
+	ptsSum := mfs["datakit_io_feed_point"]
 	lastFeed := mfs["datakit_io_last_feed_timestamp_seconds"]
 	cost := mfs["datakit_input_collect_latency_seconds"]
 	ptsFilter := mfs["datakit_io_input_filter_point_total"]
 	errCount := mfs["datakit_error_total"]
+	feedCost := mfs["datakit_io_feed_cost_seconds"]
 
 	if feedTotal == nil {
 		app.inputsStatTable.SetTitle("[red]In[white]puts Info(no data collected)")
@@ -95,32 +96,50 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 			continue
 		}
 
+		// Input
 		table.SetCell(row, 0,
 			tview.NewTableCell(inputName).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
+		// Cat
 		table.SetCell(row, 1,
 			tview.NewTableCell(point.CatString(cat).Alias() /* metric -> M */).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 
 		col := 2
 
+		// Feeds
 		table.SetCell(row, col, tview.NewTableCell(number(m.GetCounter().GetValue())).
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		col++
 
-		if ptsTotal != nil {
-			x := metricWithLabel(ptsTotal, cat, inputName)
-			if x == nil {
-				table.SetCell(row, col, tview.NewTableCell("-").
-					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+		// P90Lat
+		feedSum := metricWithLabel(feedCost, cat, inputName).GetSummary()
+		feedLat := "-"
+		if feedSum != nil {
+			q := feedSum.GetQuantile()[1] // p90
+			if v := q.GetValue(); math.IsNaN(v) {
+				feedLat = "NaN"
 			} else {
-				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
-					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+				feedLat = time.Duration(v * float64(time.Second)).String()
 			}
+		}
+		table.SetCell(row, col, tview.NewTableCell(feedLat).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		col++
+
+		// P90Pts
+		if ptsSum != nil {
+			x := metricWithLabel(ptsSum, cat, inputName)
+			p90pts := "-"
+			if x != nil {
+				p90pts = number(x.GetSummary().GetQuantile()[1].GetValue())
+			}
+			table.SetCell(row, col, tview.NewTableCell(p90pts).
+				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 		}
 		col++
 
+		// Filtered
 		table.SetCell(row, col, tview.NewTableCell("-").
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 		if ptsFilter != nil {
@@ -132,20 +151,22 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		}
 		col++
 
-		now := time.Now()
+		// LastFeed
 		if lastFeed != nil {
 			x := metricWithLabel(lastFeed, cat, inputName)
 			if x == nil {
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				since := humanize.RelTime(time.Unix(int64(x.GetGauge().GetValue()), 0), now, "ago", "")
+				since := fmt.Sprintf("%s ago", app.now.Sub(time.Unix(int64(x.GetGauge().GetValue()), 0)))
+
 				table.SetCell(row, col, tview.NewTableCell(since).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		}
 		col++
 
+		// AvgCost
 		if cost != nil {
 			x := metricWithLabel(cost, cat, inputName)
 			if x == nil {
@@ -161,6 +182,7 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		}
 		col++
 
+		// Errors
 		if errCount != nil {
 			errcnt := 0.0
 			for _, em := range errCount.Metric {

@@ -488,7 +488,6 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IO.FlushWorkers = 1
 				cfg.IO.CacheCleanInterval = "100s"
 				cfg.IO.CacheAll = true
-				cfg.IO.GlobalBlocking = true
 
 				return cfg
 			}(),

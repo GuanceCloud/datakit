@@ -33,8 +33,9 @@ var (
 )
 
 const (
-	inputName    = "ddtrace"
-	sampleConfig = `
+	inputName            = "ddtrace"
+	customObjectFeedName = inputName + "/CO"
+	sampleConfig         = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -223,7 +224,6 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithIOBlockingMode(true),
 			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)

@@ -128,38 +128,3 @@ func TestRunpl(t *T.T) {
 		})
 	}
 }
-
-func Test_forceBlocking(t *T.T) {
-	t.Run(`basic`, func(t *T.T) {
-		x := dkIO{}
-		fo := GetFeedOption()
-		fo.input = "some"
-		fo.cat = point.Logging
-		opt := x.forceBlocking(fo)
-		assert.True(t, opt.blocking)
-
-		fo = GetFeedOption()
-		fo.input = "some"
-		fo.cat = point.RUM
-		opt = x.forceBlocking(fo)
-		assert.True(t, opt.blocking)
-	})
-
-	t.Run(`global-blocking`, func(t *T.T) {
-		x := dkIO{
-			globalBlocking: true,
-		}
-
-		fo := GetFeedOption()
-		fo.input = "some"
-		fo.cat = point.Metric
-		opt := x.forceBlocking(fo)
-		assert.True(t, opt.blocking)
-
-		fo = GetFeedOption()
-		fo.input = "some"
-		fo.cat = point.DynamicDWCategory
-		opt = x.forceBlocking(fo)
-		assert.True(t, opt.blocking)
-	})
-}

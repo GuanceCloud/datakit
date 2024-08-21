@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/dustin/go-humanize"
 	"github.com/gdamore/tcell/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rivo/tview"
@@ -44,7 +43,6 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 	}
 
 	row := 1
-	now := time.Now()
 	for _, m := range totalPts.Metric {
 		lps := m.GetLabel()
 		var cat, name, ns string
@@ -111,7 +109,7 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				since := humanize.RelTime(time.Unix(int64(x.GetGauge().GetValue()), 0), now, "ago", "")
+				since := fmt.Sprintf("%s ago", app.now.Sub(time.Unix(int64(x.GetGauge().GetValue()), 0)))
 				table.SetCell(row, col, tview.NewTableCell(since).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}

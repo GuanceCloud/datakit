@@ -321,9 +321,10 @@ func mapHealthStatusToCode(s string) int {
 }
 
 var (
-	inputName   = "elasticsearch"
-	catalogName = "db"
-	l           = logger.DefaultSLogger("elasticsearch")
+	inputName            = "elasticsearch"
+	customObjectFeedName = inputName + "/CO"
+	catalogName          = "db"
+	l                    = logger.DefaultSLogger("elasticsearch")
 )
 
 func (*Input) Catalog() string {

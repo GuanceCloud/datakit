@@ -5,11 +5,17 @@
 
 package monitor
 
+import "time"
+
 func (app *monitorAPP) render() {
 	app.anyErrorPrompt.Clear()
 	if app.anyError != nil {
 		app.renderAnyError()
 		goto end
+	}
+
+	if !app.specifiedNow {
+		app.now = time.Now()
 	}
 
 	app.basicInfoTable.Clear()

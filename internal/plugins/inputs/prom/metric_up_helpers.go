@@ -93,7 +93,7 @@ func (i *Input) FeedUpMetric(server string) {
 			dkio.WithCollectCost(time.Since(i.startTime)),
 			dkio.WithElection(i.Election),
 			dkio.WithInputName(inputName+"/"+i.Source),
-			dkio.WithBlocking(true)); err != nil {
+		); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorSource(inputName+"/"+i.Source),

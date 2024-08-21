@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	inputName   = "apache"
-	minInterval = time.Second
-	maxInterval = time.Second * 30
+	inputName            = "apache"
+	customObjectFeedName = inputName + "/CO"
+	minInterval          = time.Second
+	maxInterval          = time.Second * 30
 
 	//nolint:lll
 	sample = `

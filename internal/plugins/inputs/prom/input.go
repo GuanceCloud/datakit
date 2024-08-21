@@ -190,7 +190,7 @@ func (i *Input) tryInit() {
 						dkio.WithCollectCost(time.Since(i.startTime)),
 						dkio.WithElection(i.Election),
 						dkio.WithInputName(pt.Name()),
-						dkio.WithBlocking(true)); err != nil {
+					); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
 							metrics.WithLastErrorSource(inputName+"/"+i.Source),
@@ -202,7 +202,7 @@ func (i *Input) tryInit() {
 				dkio.WithCollectCost(time.Since(i.startTime)),
 				dkio.WithElection(i.Election),
 				dkio.WithInputName(inputName+"/"+i.Source),
-				dkio.WithBlocking(true)); err != nil {
+			); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorSource(inputName+"/"+i.Source),
@@ -286,7 +286,7 @@ func (i *Input) collectFormURLs() error {
 						dkio.WithCollectCost(time.Since(i.startTime)),
 						dkio.WithElection(i.Election),
 						dkio.WithInputName(pt.Name()),
-						dkio.WithBlocking(true)); err != nil {
+					); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
 							metrics.WithLastErrorSource(inputName+"/"+i.Source),
@@ -298,7 +298,7 @@ func (i *Input) collectFormURLs() error {
 				dkio.WithCollectCost(time.Since(i.startTime)),
 				dkio.WithElection(i.Election),
 				dkio.WithInputName(inputName+"/"+i.Source),
-				dkio.WithBlocking(true)); err != nil {
+			); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorSource(inputName+"/"+i.Source),

@@ -225,7 +225,6 @@ func startIO() {
 		dkio.WithCacheAll(c.CacheAll),
 		dkio.WithFlushWorkers(c.FlushWorkers),
 		dkio.WithRecorder(config.Cfg.Recorder),
-		dkio.WithGlobalBlocking(c.GlobalBlocking),
 		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
 	}
 

@@ -194,7 +194,6 @@ func (ipt *Input) RegHTTPHandler() {
 		afterGather = itrace.NewAfterGather(
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
-			itrace.WithIOBlockingMode(true),
 			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
 			itrace.WithFeeder(ipt.feeder),
 		)

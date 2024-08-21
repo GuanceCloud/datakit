@@ -33,7 +33,8 @@
         "valueSort": "asc",
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "multiple": true
+        "multiple": true,
+        "includeStar": true
       },
       {
         "name": "elected_id",
@@ -55,7 +56,8 @@
         "valueSort": "asc",
         "hide": 0,
         "isHiddenAsterisk": 0,
-        "multiple": true
+        "multiple": true,
+        "includeStar": true
       }
     ],
     "charts": [
@@ -1371,14 +1373,7 @@
         "extend": {
           "settings": {
             "alias": [],
-            "units": [
-              {
-                "key": "derivative(last(datakit_io_feed_point_total))",
-                "name": "derivative(last(datakit_io_feed_point_total))",
-                "unit": "",
-                "units": []
-              }
-            ],
+            "units": [],
             "colors": [],
             "levels": [],
             "slimit": 100,
@@ -1390,6 +1385,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -1400,6 +1396,7 @@
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
             "aliasVersion": 2,
+            "connectNulls": true,
             "legendValues": [
               "last",
               "avg",
@@ -1437,13 +1434,13 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "fixedGroupByTime": null
         },
         "group": {
           "name": "Collectors(Inputs)"
         },
-        "name": "Collected points",
+        "name": "Collected points(P90)",
         "pos": {
           "h": 14,
           "w": 6,
@@ -1459,12 +1456,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`datakit_io_feed_point_total`) AS `points`) { `host` = '#{host}' } BY `category`, `name`, `host`\")",
+              "q": "M::`dk`:(last(`datakit_io_feed_point`) AS `points`) { `host` = '#{host}' and `quantile` = '0.9' } BY `category`, `name`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "points",
-              "field": "datakit_io_feed_point_total",
+              "field": "datakit_io_feed_point",
               "fillNum": null,
               "filters": [
                 {
@@ -1474,6 +1471,15 @@
                   "type": "",
                   "logic": "and",
                   "value": "#{host}",
+                  "values": []
+                },
+                {
+                  "id": "3464ffc0-5f88-11ef-a8b6-cdc46a8e3f6b",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.9",
                   "values": []
                 }
               ],
@@ -1488,12 +1494,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
             },
@@ -4190,9 +4191,10 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "titleDesc": "",
+            "titleDesc": "CPU usage can larger than 100%",
             "globalUnit": [],
             "isSampling": true,
             "compareType": [
@@ -4201,6 +4203,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -4240,7 +4243,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true
+          "isRefresh": false
         },
         "group": {
           "name": "Overview"
@@ -4584,8 +4587,8 @@
             "alias": [],
             "units": [
               {
-                "key": "Elected Date",
-                "name": "Elected Date",
+                "key": "Elected date",
+                "name": "Elected date",
                 "unit": "",
                 "units": [
                   "timeStamp",
@@ -4619,7 +4622,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false,
+          "isRefresh": true,
           "fixedGroupByTime": null
         },
         "group": {
@@ -4641,11 +4644,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_election_status`) AS `Elected Date`) { `status` = 'success' } BY `namespace`, `host`",
+              "q": "M::`dk`:(last(`datakit_election_status`) AS `Elected date`) { `status` = 'success' } BY `namespace`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "Elected Date",
+              "alias": "Elected date",
               "field": "datakit_election_status",
               "filters": [
                 {
@@ -7683,127 +7686,6 @@
         "extend": {
           "settings": {
             "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 100,
-            "density": "medium",
-            "showLine": false,
-            "unitType": "global",
-            "chartType": "areaLine",
-            "fixedTime": "",
-            "isPercent": false,
-            "openStack": false,
-            "precision": "2",
-            "showLabel": false,
-            "showTitle": true,
-            "stackType": "time",
-            "titleDesc": "Default only drop metric points",
-            "globalUnit": [],
-            "isSampling": true,
-            "compareType": [],
-            "openCompare": false,
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null,
-            "connectNulls": true,
-            "legendValues": [
-              "min",
-              "max",
-              "avg"
-            ],
-            "timeInterval": "auto",
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "legendPostion": "bottom",
-            "maxPointCount": 360,
-            "sorderByOrder": "desc",
-            "xAxisShowType": "time",
-            "isTimeInterval": true,
-            "changeWorkspace": false,
-            "currentChartType": "sequence",
-            "showFieldMapping": false,
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "weekCompare": "rgba(213,217,226,0.25)",
-              "monthCompare": "rgba(213,217,226,0.12)"
-            },
-            "onlyShowGroupName": false,
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "A"
-          },
-          "fixedTime": "",
-          "isRefresh": false,
-          "fixedGroupByTime": null
-        },
-        "group": {
-          "name": "Collectors(Inputs)"
-        },
-        "name": "Feed drop",
-        "pos": {
-          "h": 14,
-          "w": 6,
-          "x": 0,
-          "y": 14
-        },
-        "type": "sequence",
-        "queries": [
-          {
-            "name": "",
-            "type": "sequence",
-            "unit": "",
-            "color": "",
-            "qtype": "dql",
-            "query": {
-              "q": "M::`dk`:(avg(`datakit_io_feed_drop_point_total`) AS `drop`) { `host` = '#{host}' } BY `host`, `category`, `from`",
-              "code": "A",
-              "fill": null,
-              "type": "simple",
-              "alias": "drop",
-              "field": "datakit_io_feed_drop_point_total",
-              "fillNum": null,
-              "filters": [
-                {
-                  "id": "90b104f0-0b55-11ee-b529-4df829524caa",
-                  "op": "=",
-                  "name": "host",
-                  "logic": "and",
-                  "value": "#{host}"
-                }
-              ],
-              "groupBy": [
-                "host",
-                "category",
-                "from"
-              ],
-              "labelOp": "",
-              "funcList": [],
-              "fieldFunc": "avg",
-              "fieldType": "float",
-              "namespace": "metric",
-              "dataSource": "dk",
-              "queryFuncs": [],
-              "withLabels": [],
-              "groupByTime": ""
-            },
-            "datasource": "dataflux"
-          }
-        ]
-      },
-      {
-        "extend": {
-          "settings": {
-            "alias": [],
             "units": [
               {
                 "key": "derivative(last(datakit_io_feed_point_total))",
@@ -8339,9 +8221,13 @@
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
             "connectNulls": true,
-            "legendValues": "",
+            "legendValues": [
+              "max",
+              "min",
+              "avg"
+            ],
             "timeInterval": "auto",
-            "legendPostion": "none",
+            "legendPostion": "bottom",
             "maxPointCount": null,
             "sorderByOrder": "desc",
             "xAxisShowType": "time",
@@ -8489,19 +8375,173 @@
             "datasource": "dataflux"
           }
         ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [
+              "last",
+              "avg",
+              "min"
+            ],
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Collectors(Inputs)"
+        },
+        "name": "Feed total",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 0,
+          "y": 14
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(last(`datakit_io_feed_total`) AS `points`) { `host` = '#{host}' } BY `category`, `name`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "points",
+              "field": "datakit_io_feed_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "c2574660-0cdd-11ef-8b8f-9389928954cf",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "category",
+                "name",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
       }
     ],
     "groups": [
-      "Overview",
-      "Goroutine",
-      "Collectors(Inputs)",
-      "Pipeline",
-      "Filter",
-      "Dataway",
-      "HTTP-API(Datakit as server)",
-      "HTTP request(Datakit as client)",
-      "Disk cache",
-      "Point pool"
+      {
+        "name": "Overview",
+        "extend": {}
+      },
+      {
+        "name": "Goroutine",
+        "extend": {}
+      },
+      {
+        "name": "Collectors(Inputs)",
+        "extend": {}
+      },
+      {
+        "name": "Pipeline",
+        "extend": {}
+      },
+      {
+        "name": "Filter",
+        "extend": {}
+      },
+      {
+        "name": "Dataway",
+        "extend": {}
+      },
+      {
+        "name": "HTTP-API(Datakit as server)",
+        "extend": {}
+      },
+      {
+        "name": "HTTP request(Datakit as client)",
+        "extend": {}
+      },
+      {
+        "name": "Disk cache",
+        "extend": {}
+      },
+      {
+        "name": "Point pool",
+        "extend": {}
+      }
     ],
     "type": "template"
   }

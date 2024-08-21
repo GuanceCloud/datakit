@@ -94,3 +94,12 @@ func WithDumMetrics(on bool) APPOption {
 		app.dumpMetrics = on
 	}
 }
+
+func WithTimestampMS(ts int64) APPOption {
+	return func(app *monitorAPP) {
+		if ts > 0 {
+			app.now = time.Unix(0, ts*int64(time.Millisecond))
+			app.specifiedNow = true
+		}
+	}
+}

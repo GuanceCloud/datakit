@@ -37,10 +37,11 @@ const (
 )
 
 var (
-	inputName                        = "redis"
-	catalogName                      = "db"
-	l                                = logger.DefaultSLogger("redis")
-	_           inputs.ElectionInput = (*Input)(nil)
+	inputName                                 = "redis"
+	customObjectFeedName                      = inputName + "/CO"
+	catalogName                               = "db"
+	l                                         = logger.DefaultSLogger("redis")
+	_                    inputs.ElectionInput = (*Input)(nil)
 )
 
 type redislog struct {
@@ -267,7 +268,7 @@ func (ipt *Input) Collect() error {
 				if err := ipt.feeder.FeedV2(point.CustomObject, pts,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName)); err != nil {
+					dkio.WithInputName(customObjectFeedName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.CustomObject),

@@ -30,10 +30,12 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	maxInterval = 15 * time.Minute
-	minInterval = 10 * time.Second
-	inputName   = "oracle"
-	catalogName = "db"
+	maxInterval          = 15 * time.Minute
+	minInterval          = 10 * time.Second
+	inputName            = "oracle"
+	customObjectFeedName = inputName + "/CO"
+	loggingFeedName      = inputName + "/L"
+	catalogName          = "db"
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -278,13 +280,20 @@ func (ipt *Input) Run() {
 					metrics.WithLastErrorCategory(point.Metric),
 				)
 			}
+
 			ipt.FeedCoPts()
+
 			for category, pts := range mpts {
+				feedName := inputName
+				if category == point.Logging {
+					feedName = loggingFeedName
+				}
+
 				if len(pts) > 0 {
 					if err := ipt.feeder.FeedV2(category, pts,
 						dkio.WithCollectCost(time.Since(ipt.start)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName),
+						dkio.WithInputName(feedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

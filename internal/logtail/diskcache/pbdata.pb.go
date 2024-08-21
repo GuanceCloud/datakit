@@ -33,7 +33,7 @@ type PBConfig struct {
 
 	Source                string   `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	Pipeline              string   `protobuf:"bytes,2,opt,name=pipeline,proto3" json:"pipeline,omitempty"`
-	Blocking              bool     `protobuf:"varint,3,opt,name=blocking,proto3" json:"blocking,omitempty"`
+	BlockingDeprecated    bool     `protobuf:"varint,3,opt,name=blocking,proto3" json:"blocking,omitempty"`
 	DisableAddStatusField bool     `protobuf:"varint,4,opt,name=disable_add_status_field,json=disableAddStatusField,proto3" json:"disable_add_status_field,omitempty"`
 	IgnoreStatus          []string `protobuf:"bytes,5,rep,name=ignore_status,json=ignoreStatus,proto3" json:"ignore_status,omitempty"`
 }
@@ -86,7 +86,7 @@ func (x *PBConfig) GetPipeline() string {
 
 func (x *PBConfig) GetBlocking() bool {
 	if x != nil {
-		return x.Blocking
+		return x.BlockingDeprecated
 	}
 	return false
 }

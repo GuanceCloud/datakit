@@ -23,11 +23,12 @@ import (
 )
 
 var (
-	inputName   = `rabbitmq`
-	l           = logger.DefaultSLogger(inputName)
-	minInterval = time.Second
-	maxInterval = time.Second * 30
-	sample      = `
+	inputName            = `rabbitmq`
+	customObjectFeedName = inputName + "/CO"
+	l                    = logger.DefaultSLogger(inputName)
+	minInterval          = time.Second
+	maxInterval          = time.Second * 30
+	sample               = `
 [[inputs.rabbitmq]]
   # rabbitmq url ,required
   url = "http://localhost:15672"

@@ -43,12 +43,6 @@ func WithRetry(interval time.Duration) Option {
 	}
 }
 
-func WithIOBlockingMode(block bool) Option {
-	return func(aga *AfterGather) {
-		aga.ioBlockingMode = block
-	}
-}
-
 func WithPointOptions(opts ...point.Option) Option {
 	return func(aga *AfterGather) {
 		aga.pointOptions = append(aga.pointOptions, opts...)
@@ -63,12 +57,11 @@ func WithFeeder(feeder dkio.Feeder) Option {
 
 type AfterGather struct {
 	sync.Mutex
-	log            *logger.Logger
-	filters        []FilterFunc
-	retry          time.Duration
-	ioBlockingMode bool
-	pointOptions   []point.Option
-	feeder         dkio.Feeder
+	log          *logger.Logger
+	filters      []FilterFunc
+	retry        time.Duration
+	pointOptions []point.Option
+	feeder       dkio.Feeder
 }
 
 // AppendFilter will append new filters into AfterGather structure
@@ -128,7 +121,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	IO_FEED_RETRY:
 		if err = aga.feeder.FeedV2(point.Tracing, pts,
 			dkio.WithCollectCost(time.Since(start)),
-			dkio.WithBlocking(aga.ioBlockingMode),
 			dkio.WithInputName(inputName)); err != nil {
 			if aga.retry > 0 && errors.Is(err, dkio.ErrIOBusy) {
 				time.Sleep(aga.retry)
