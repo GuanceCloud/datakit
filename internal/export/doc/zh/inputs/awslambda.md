@@ -11,7 +11,6 @@ monitor   :
 ---
 
 <!-- markdownlint-disable MD025 -->
-
 # AWSLambda
 <!-- markdownlint-enable -->
 
@@ -55,15 +54,6 @@ AWS Lambda 采集器是通过 `aws-extension` 的方式采集 AWS Lambda 的指�
 
 ## 指标 {#metric}
 
-以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
@@ -78,13 +68,7 @@ AWS Lambda 采集器是通过 `aws-extension` 的方式采集 AWS Lambda 的指�
 
 {{ end }}
 
-## 日志 {#logging}
-
-| 字段名  | 字段值   | 说明                                     |
-| ------- | -------- | ---------------------------------------- |
-| message | 日志内容 | 根据 AWS 配置，可能为 JSON 或者 string。 |
-
-### 采集器支持
+### 采集器支持 {#input}
 
 - OpenTelemetry
 - statsd
