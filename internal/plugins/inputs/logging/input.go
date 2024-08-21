@@ -71,7 +71,7 @@ const (
 
   ## If file is inactive, it is ignored.
   ## time units are "ms", "s", "m", "h"
-  ignore_dead_log = "1h"
+  ignore_dead_log = "12h"
 
   ## Read file from beginning.
   from_beginning = false
@@ -169,13 +169,9 @@ func (ipt *Input) Run() {
 	if ipt.MultilineMatch != "" {
 		multilinePatterns = []string{ipt.MultilineMatch}
 	} else if ipt.AutoMultilineDetection {
-		if len(ipt.AutoMultilineExtraPatterns) != 0 {
-			multilinePatterns = ipt.AutoMultilineExtraPatterns
-			l.Infof("source %s automatic-multiline on, patterns %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
-		} else {
-			multilinePatterns = multiline.GlobalPatterns
-			l.Infof("source %s automatic-multiline on, use default patterns", ipt.Source)
-		}
+		multilinePatterns = ipt.AutoMultilineExtraPatterns
+		multilinePatterns = append(multilinePatterns, multiline.GlobalPatterns...)
+		l.Debugf("source %s automatic-multiline on, patterns %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
 	}
 	opts = append(opts, tailer.WithMultilinePatterns(multilinePatterns))
 
@@ -187,9 +183,8 @@ func (ipt *Input) Run() {
 			ipt.process = append(ipt.process, tailerL)
 		}
 	} else {
-		// 互斥：只有当logFile为空，socket不为空才开启socket采集日志
 		if len(ipt.Sockets) != 0 {
-			socker, err := tailer.NewWithOpt(opts...)
+			socker, err := tailer.NewSocketLogWithOptions(opts...)
 			if err != nil {
 				l.Error(err)
 			} else {

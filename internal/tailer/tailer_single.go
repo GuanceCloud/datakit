@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/textparser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
@@ -31,10 +32,7 @@ import (
 
 const (
 	defaultSleepDuration = time.Second
-	readBuffSize         = 1024 * 4   // 4 KiB
-	maxReadSize          = 1024 * 128 // 128 KiB
-
-	checkInterval = time.Second * 5
+	checkInterval        = time.Second * 5
 )
 
 type Single struct {
@@ -47,14 +45,12 @@ type Single struct {
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
+	reader  reader.Reader
 
-	buffer     buffer
+	readTime   time.Time
+	readLines  int64
+	offset     int64
 	flushScore int
-
-	readTime  time.Time
-	readBuff  []byte
-	readLines int64
-	offset    int64
 
 	partialContentBuff bytes.Buffer
 
@@ -74,8 +70,6 @@ func NewTailerSingle(filename string, opts ...Option) (*Single, error) {
 		opt:      c,
 		filepath: filename,
 		filename: filepath.Base(filename),
-		buffer:   buffer{},
-		readBuff: make([]byte, readBuffSize),
 	}
 	t.tags = t.buildTags(t.opt.globalTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
@@ -110,6 +104,8 @@ func (t *Single) setup() error {
 		t.log.Warnf("openfile err: %s", err)
 		return err
 	}
+
+	t.reader = reader.NewReader(t.file)
 	t.inode = openfile.FileInode(t.filepath)
 	t.recordKey = openfile.FileKey(t.filepath)
 
@@ -231,6 +227,7 @@ func (t *Single) reopen() error {
 	}
 
 	t.offset = ret
+	t.reader = reader.NewReader(t.file)
 	t.inode = openfile.FileInode(t.filepath)
 	t.recordKey = openfile.FileKey(t.filepath)
 
@@ -283,7 +280,7 @@ func (t *Single) forwardMessage() {
 		}
 
 		if err := t.collectOnce(); err != nil {
-			if !errors.Is(err, errReadEmpty) {
+			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			}
 			t.wait()
@@ -318,7 +315,7 @@ func (t *Single) collectToEOF() {
 	t.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
 	for {
 		if err := t.collectOnce(); err != nil {
-			if !errors.Is(err, errReadEmpty) {
+			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("read to EOF err: %s", err)
 			}
 			break
@@ -326,36 +323,19 @@ func (t *Single) collectToEOF() {
 	}
 }
 
-var errReadEmpty = errors.New("read 0")
-
 func (t *Single) collectOnce() error {
-	lines, readNum, err := t.collectLines()
+	lines, readNum, err := t.reader.ReadLines()
 	if err != nil {
 		return err
-	}
-
-	if readNum == 0 {
-		return errReadEmpty
 	}
 
 	t.readTime = time.Now()
 	t.process(t.opt.mode, lines)
 	t.offset += int64(readNum)
 
-	return nil
-}
-
-func (t *Single) collectLines() ([][]byte, int, error) {
-	var readNum int
-	var err error
-
-	t.buffer.buf, readNum, err = t.read()
-	if err != nil {
-		return nil, 0, err
-	}
-
 	t.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
-	return t.buffer.split(), readNum, nil
+
+	return nil
 }
 
 func (t *Single) process(mode Mode, lines [][]byte) {
@@ -487,16 +467,6 @@ func (t *Single) feedToIO(pending [][]byte) {
 	); err != nil {
 		t.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
 	}
-}
-
-func (t *Single) read() ([]byte, int, error) {
-	n, err := t.file.Read(t.readBuff)
-	if err != nil && err != io.EOF {
-		// an unexpected error occurred, stop the tailor
-		t.log.Warnf("Unexpected error occurred while reading file: %s", err)
-		return nil, 0, err
-	}
-	return t.readBuff[:n], n, nil
 }
 
 func (t *Single) wait() {

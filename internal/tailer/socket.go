@@ -7,77 +7,168 @@
 package tailer
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
-const (
-	// 32Mb is max Logging Point field len.
-	maxReadBufferLen = 1024 * 1024 * 32
-)
+var socketGoroutine = datakit.G("socketLog")
 
-var (
-	socketGoroutine = datakit.G("socketLog")
+type SocketLogger struct {
+	opt *option
 
-	l = logger.DefaultSLogger("socketLog")
-)
+	servers []server
+	tags    map[string]string
 
-type server struct {
-	addr string       // udpConns's or tcpListeners's  key
-	lis  net.Listener // tcp listener
-	conn net.Conn     // udp.Conn
+	cancel context.CancelFunc
+	log    *logger.Logger
 }
 
-type socketLogger struct {
-	// 存放连接，释放连接使用
-	tcpListeners    map[string]net.Listener
-	udpConns        map[string]net.Conn
-	socketBufferLen int // read buffer lens
-	tags            map[string]string
-	// 配置
-	opt  *option
-	stop chan struct{}
-
-	servers []*server
-	feeder  dkio.Feeder
-	ptCache chan *point.Point
-
-	log *logger.Logger
-}
-
-func NewWithOpt(opts ...Option) (sl *socketLogger, err error) {
-	l = logger.SLogger("socketLog")
-
+func NewSocketLogWithOptions(opts ...Option) (*SocketLogger, error) {
 	c := defaultOption()
 	for _, opt := range opts {
 		opt(c)
 	}
 
-	sl = &socketLogger{
-		tcpListeners:    make(map[string]net.Listener),
-		udpConns:        make(map[string]net.Conn),
-		socketBufferLen: maxReadSize,
-		opt:             c,
-		stop:            make(chan struct{}, 1),
-		ptCache:         make(chan *point.Point, 100),
-		tags:            buildTags(c.globalTags),
-		log:             logger.SLogger("socketLog/" + c.source),
+	sk := &SocketLogger{
+		opt: c,
+	}
+	sk.tags = buildTags(sk.opt.globalTags)
+	sk.log = logger.SLogger("socketLog/" + sk.opt.source)
+
+	if err := sk.setup(); err != nil {
+		sk.closeServers()
+		return nil, err
 	}
 
-	return sl, nil
+	return sk, nil
+}
+
+func (sk *SocketLogger) setup() error {
+	if len(sk.opt.sockets) == 0 {
+		sk.log.Warnf("logging sockets is empty")
+		return nil
+	}
+
+	if _, err := multiline.New(sk.opt.multilinePatterns,
+		multiline.WithMaxLifeDuration(sk.opt.maxMultilineLifeDuration)); err != nil {
+		sk.log.Warn(err)
+		return err
+	}
+	if err := sk.makeServer(); err != nil {
+		sk.log.Warn(err)
+		return err
+	}
+
+	return nil
+}
+
+func (sk *SocketLogger) makeServer() error {
+	for _, socket := range sk.opt.sockets {
+		u, err := url.Parse(socket)
+		if err != nil {
+			return fmt.Errorf("error socket config err=%w", err)
+		}
+
+		scheme := u.Scheme
+		address := u.Host
+
+		sk.log.Debugf("check logging socket Scheme=%s listenerAddr=%s", scheme, address)
+
+		// default use TCP
+		if scheme == "" {
+			scheme = "tcp"
+		}
+
+		switch scheme {
+		case "tcp", "tcp4", "tcp6":
+			srv, err := newTCPServer(scheme, address, sk.opt)
+			if err != nil {
+				return fmt.Errorf("%s-socket listen port error: %w", scheme, err)
+			}
+			sk.servers = append(sk.servers, srv)
+
+		case "udp", "udp4", "udp6":
+			srv, err := newUDPServer(scheme, address)
+			if err != nil {
+				return fmt.Errorf("%s-socket listen port error: %w", scheme, err)
+			}
+			sk.servers = append(sk.servers, srv)
+
+		default:
+			return fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
+		}
+	}
+
+	return nil
+}
+
+func (sk *SocketLogger) Start() {
+	if len(sk.servers) == 0 {
+		return
+	}
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	sk.cancel = cancel
+
+	for _, srv := range sk.servers {
+		func(s server) {
+			socketGoroutine.Go(func(_ context.Context) error {
+				if err := s.forwardMessage(ctx, sk.feed); err != nil {
+					sk.log.Warn(err)
+				}
+				return nil
+			})
+		}(srv)
+	}
+}
+
+func (sk *SocketLogger) feed(pending [][]byte) {
+	pts := []*point.Point{}
+	for _, cnt := range pending {
+		if len(cnt) == 0 {
+			continue
+		}
+		fields := map[string]interface{}{
+			"message_length":      len(cnt),
+			pipeline.FieldMessage: string(cnt),
+			pipeline.FieldStatus:  pipeline.DefaultStatus,
+		}
+
+		pt := point.NewPointV2(
+			sk.opt.source,
+			append(point.NewTags(sk.tags), point.NewKVs(fields)...),
+			point.DefaultLoggingOptions()...,
+		)
+		pts = append(pts, pt)
+	}
+
+	if len(pts) == 0 {
+		return
+	}
+
+	if err := sk.opt.feeder.FeedV2(point.Logging, pts,
+		dkio.WithInputName("socketLog/"+sk.opt.source),
+		dkio.WithPipelineOption(&manager.Option{
+			DisableAddStatusField: sk.opt.disableAddStatusField,
+			IgnoreStatus:          sk.opt.ignoreStatus,
+			ScriptMap:             map[string]string{sk.opt.source: sk.opt.pipeline},
+		}),
+	); err != nil {
+		sk.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
+	}
 }
 
 func buildTags(globalTags map[string]string) map[string]string {
@@ -91,226 +182,157 @@ func buildTags(globalTags map[string]string) map[string]string {
 	return tags
 }
 
-func (sl *socketLogger) Start() {
-	if len(sl.opt.sockets) == 0 {
-		sl.log.Warnf("logging sockets is empty")
-		return
+func (sk *SocketLogger) Close() {
+	if sk.cancel != nil {
+		sk.cancel()
 	}
-
-	if sl.feeder == nil {
-		sl.feeder = dkio.DefaultFeeder()
-	}
-
-	for _, socket := range sl.opt.sockets {
-		s, err := mkServer(socket)
-		if err != nil {
-			l.Error(err)
-			return
-		}
-		sl.servers = append(sl.servers, s)
-	}
-	// 配置无误之后 开始accept.
-	sl.toReceive()
-	sl.feedV2()
+	sk.closeServers()
 }
 
-func mkServer(socket string) (s *server, err error) {
-	s = &server{addr: socket}
-	socketURL, err := url.Parse(socket)
+func (sk *SocketLogger) closeServers() {
+	for _, srv := range sk.servers {
+		if err := srv.close(); err != nil {
+			sk.log.Warnf("closing connect fail %s", err)
+		}
+	}
+}
+
+type server interface {
+	forwardMessage(context.Context, func([][]byte)) error
+	close() error
+}
+
+type tcpServer struct {
+	listener net.Listener
+	opt      *option
+}
+
+func newTCPServer(scheme, address string, opt *option) (*tcpServer, error) {
+	listener, err := net.Listen(scheme, address)
 	if err != nil {
-		return nil, fmt.Errorf("error socket config err=%w", err)
+		return nil, err
 	}
-
-	network := socketURL.Scheme
-	listenAddr := socketURL.Host
-
-	l.Debugf("check logging socket Scheme=%s listenerAddr=%s", network, listenAddr)
-
-	switch network {
-	case "", "tcp", "tcp4", "tcp6": // default use TCP
-		listener, err := net.Listen(network, listenAddr)
-		if err != nil {
-			return nil, fmt.Errorf("socket listen port error:%w", err)
-		}
-		s.lis = listener
-
-	case "udp", "udp4", "udp6":
-		udpAddr, err := net.ResolveUDPAddr(network, listenAddr)
-		if err != nil {
-			return nil, fmt.Errorf("resolve UDP addr error:%w", err)
-		}
-		conn, err := net.ListenUDP(network, udpAddr)
-		if err != nil {
-			return nil, fmt.Errorf(" net.ListenUDP error:%w", err)
-		}
-		s.conn = conn
-
-	default:
-		return nil, fmt.Errorf("socket config like this: socket=[tcp://127.0.0.1:9540] , and please check your logging.conf")
-	}
-
-	return s, err
+	return &tcpServer{listener, opt}, nil
 }
 
-// toReceive: 根据listen或udp.conn 开始接收数据.
-func (sl *socketLogger) toReceive() {
-	if sl.servers == nil || len(sl.servers) == 0 {
-		return
-	}
-	for _, s := range sl.servers {
-		if s.lis != nil {
-			sl.tcpListeners[s.addr] = s.lis
-			l.Infof("TCP port:%s start to accept", s.addr)
-
-			func(lis net.Listener) {
-				socketGoroutine.Go(func(ctx context.Context) error {
-					sl.accept(lis)
-					return nil
-				})
-			}(s.lis)
-		}
-		if s.conn != nil {
-			sl.udpConns[s.addr] = s.conn
-			l.Infof("UDP port:%s start to accept", s.addr)
-
-			func(conn net.Conn) {
-				socketGoroutine.Go(func(ctx context.Context) error {
-					sl.doSocketUDP(conn)
-					return nil
-				})
-			}(s.conn)
-		}
-	}
+func (s *tcpServer) close() error {
+	return s.listener.Close()
 }
 
-func (sl *socketLogger) accept(listener net.Listener) {
+func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) error {
 	for {
-		conn, err := listener.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
-				l.Infof("tcp conn is close")
-				return
+				return err
 			}
-			sl.log.Warnf("Error accepting:%s", err.Error())
 			continue
 		}
+
 		socketLogConnect.WithLabelValues("tcp", "ok").Add(1)
-		socketGoroutine.Go(func(ctx context.Context) error {
-			sl.doSocketV2(conn)
+		socketGoroutine.Go(func(_ context.Context) error {
+			defer conn.Close() // nolint
+			rd := reader.NewReader(conn)
+
+			// must not error
+			mult, _ := multiline.New(s.opt.multilinePatterns,
+				multiline.WithMaxLifeDuration(s.opt.maxMultilineLifeDuration))
+
+			for {
+				select {
+				case <-datakit.Exit.Wait():
+					return nil
+				case <-ctx.Done():
+					return nil
+				default:
+					// next
+				}
+
+				lines, _, err := rd.ReadLines()
+				if err != nil {
+					break
+				}
+
+				var pending [][]byte
+
+				for _, line := range lines {
+					if len(line) == 0 {
+						continue
+					}
+					if mult != nil {
+						text, _ := mult.ProcessLine(multiline.TrimRightSpace(line))
+						if len(text) == 0 {
+							continue
+						}
+						pending = append(pending, text)
+					} else {
+						pending = append(pending, line)
+					}
+				}
+
+				socketLogCount.WithLabelValues("tcp").Add(1)
+				socketLogLength.WithLabelValues("tcp").Observe(float64(len(pending)))
+				feed(pending)
+			}
 			return nil
 		})
 	}
 }
 
-func (sl *socketLogger) doSocketUDP(conn net.Conn) {
-	data := make([]byte, sl.socketBufferLen)
-	for {
-		n, err := conn.Read(data)
-		// see:$GOROOT/src/io/io.go:83
-		if err != nil && n == 0 {
-			l.Errorf("err not nil err=%v", err)
-			return
-		}
-		socketLogConnect.WithLabelValues("udp", "ok").Add(1)
-		l.Debugf("data len =%d", n)
-		pipDate := bytes.Split(data[:n], []byte{'\n'})
-		for _, s := range pipDate {
-			if len(s) > 0 {
-				sl.makeAndFeedPoint("udp", s)
-			}
-		}
-	}
+type udpServer struct {
+	conn net.Conn
 }
 
-func (sl *socketLogger) doSocketV2(conn net.Conn) {
-	defer conn.Close() //nolint
-	reader := bufio.NewReaderSize(conn, sl.socketBufferLen)
-	cacheBts := make([]byte, 0)
-	for {
-		bts, full, err := reader.ReadLine()
-		if err != nil {
-			l.Warnf("readline err=%v", err)
-			socketLogConnect.WithLabelValues("tcp", "eof").Add(1)
-			break
-		}
-		if full {
-			cacheBts = append(cacheBts, bts...)
-			if len(cacheBts) >= maxReadBufferLen {
-				sl.makeAndFeedPoint("tcp", cacheBts)
-				cacheBts = cacheBts[:0]
-			}
-			continue
-		}
-		if len(bts) == 0 {
-			continue
-		}
-		l.Debugf("readline len=%d", len(bts))
-		if len(cacheBts) > 0 {
-			bts = append(cacheBts, bts...)
-			cacheBts = cacheBts[:0]
-		}
-		sl.makeAndFeedPoint("tcp", bts)
+func newUDPServer(scheme, address string) (*udpServer, error) {
+	udpAddr, err := net.ResolveUDPAddr(scheme, address)
+	if err != nil {
+		return nil, fmt.Errorf("resolve UDP addr error:%w", err)
 	}
+
+	conn, err := net.ListenUDP(scheme, udpAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &udpServer{conn}, nil
 }
 
-func (sl *socketLogger) makeAndFeedPoint(network string, line []byte) {
-	fields := map[string]interface{}{pipeline.FieldMessage: string(line), pipeline.FieldStatus: pipeline.DefaultStatus}
-
-	pt := point.NewPointV2(sl.opt.source,
-		append(point.NewTags(sl.tags), point.NewKVs(fields)...),
-		point.WithTime(time.Now()))
-	socketLogCount.WithLabelValues(network).Add(1)
-	socketLogLength.WithLabelValues(network).Observe(float64(len(line)))
-	sl.ptCache <- pt
+func (s *udpServer) close() error {
+	return s.conn.Close()
 }
 
-func (sl *socketLogger) feedV2() {
-	opts := []dkio.FeedOption{
-		dkio.WithInputName("socklogging/" + sl.opt.source),
-	}
-	if sl.opt.pipeline != "" {
-		opts = append(opts, dkio.WithPipelineOption(&plmanager.Option{
-			DisableAddStatusField: sl.opt.disableAddStatusField,
-			IgnoreStatus:          sl.opt.ignoreStatus,
-			ScriptMap:             map[string]string{sl.opt.source: sl.opt.pipeline},
-		}))
-	}
-	ticker := time.NewTicker(time.Second * 5)
-	pts := make([]*point.Point, 0)
-	sendAndReset := func() {
-		if err := sl.feeder.FeedV2(point.Logging, pts, opts...,
-		); err != nil {
-			l.Error(err)
-		}
-		// 发送成功与否，重置数组，否则内存会一直涨。
-		pts = pts[:0]
-	}
+func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) error {
+	defer s.conn.Close() // nolint
+	rd := reader.NewReader(s.conn, reader.DisablePreviousBlock())
 
 	for {
 		select {
-		case <-ticker.C:
-			if len(pts) != 0 {
-				sendAndReset()
-			}
-		case pt := <-sl.ptCache:
-			pts = append(pts, pt)
-			if len(pts) >= 100 {
-				sendAndReset()
-			}
-		case <-sl.stop:
-			return
+		case <-datakit.Exit.Wait():
+			return nil
+		case <-ctx.Done():
+			return nil
+		default:
+			// next
 		}
-	}
-}
 
-func (sl *socketLogger) Close() {
-	sl.stop <- struct{}{}
-	for _, listener := range sl.tcpListeners {
-		err := listener.Close()
-		sl.log.Infof("close tcp port err=%v", err)
-	}
-	for _, listener := range sl.udpConns {
-		err := listener.Close()
-		sl.log.Infof("close udp port err=%v", err)
+		lines, _, err := rd.ReadLines()
+		if err != nil {
+			if errors.Is(err, reader.ErrReadEmpty) {
+				continue
+			}
+			return err
+		}
+
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+
+		if len(lines) == 0 {
+			continue
+		}
+
+		socketLogCount.WithLabelValues("udp").Add(1)
+		socketLogLength.WithLabelValues("udp").Observe(float64(len(lines)))
+		feed(lines)
 	}
 }
