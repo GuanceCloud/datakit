@@ -20,7 +20,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/perf"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
@@ -72,7 +71,9 @@ var (
 type (
 	CLayer7Http      C.struct_layer7_http
 	CHTTPReqFinished C.struct_http_req_finished
-	CL7Buffer        C.struct_netwrk_data
+	CNetEventComm    C.struct_net_event_comm
+	CNetEvents       C.struct_network_events
+	CUniID           C.struct_id_generator
 
 	ConnectionInfoC dknetflow.ConnectionInfoC
 
@@ -104,8 +105,8 @@ type (
 	}
 )
 
-func readMeta(buf *CL7Buffer, dst *comm.ConnectionInfo) {
-	conn := buf.meta.conn
+func readMeta(buf *CNetEventComm, dst *comm.ConnectionInfo) {
+	conn := buf.meta.sk_inf.conn
 
 	// TODO: record thread name
 	//
@@ -116,6 +117,7 @@ func readMeta(buf *CL7Buffer, dst *comm.ConnectionInfo) {
 	cmdCpy = bytes.TrimSpace(cmdCpy)
 	taskComm := string(cmdCpy)
 
+	// 暂时屏蔽 uds，其 ip port 为 0； ebpf 暂时不采集此类 socket
 	dst.Saddr = (*(*[4]uint32)(unsafe.Pointer(&conn.saddr))) //nolint:gosec
 	dst.Daddr = (*(*[4]uint32)(unsafe.Pointer(&conn.daddr))) //nolint:gosec
 	dst.Sport = uint32(conn.sport)
@@ -166,7 +168,7 @@ var (
 	}
 )
 
-type perferEventHandle func(record *perf.Record, perfmap *manager.PerfMap,
+type perferEventHandle func(CPU int, data []byte, perfmap *manager.PerfMap,
 	manager *manager.Manager)
 
 func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*ebpf.Map,
@@ -243,6 +245,12 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 			},
 			{
 				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+					EBPFFuncName: "kprobe__sched_getaffinity",
+					UID:          "kprobe_sched_getaffinity_apiflow",
+				},
+			},
+			{
+				ProbeIdentificationPair: manager.ProbeIdentificationPair{
 					EBPFFuncName: "tracepoint__sys_enter_sendfile64",
 				},
 			},
@@ -255,12 +263,12 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 		PerfMaps: []*manager.PerfMap{
 			{
 				Map: manager.Map{
-					Name: "mp_upload_netwrk_data",
+					Name: "mp_upload_netwrk_events",
 				},
 				PerfMapOptions: manager.PerfMapOptions{
-					// pagesize ~= 4k,
-					PerfRingBufferSize: 8 * 1024 * os.Getpagesize(),
-					RecordHandler:      bufHandler,
+					// 1k * pagesize ~= 1k * 4k,
+					PerfRingBufferSize: 1024 * os.Getpagesize(),
+					DataHandler:        bufHandler,
 					LostHandler: func(CPU int, count uint64, perfMap *manager.PerfMap, manager *manager.Manager) {
 						log.Warnf("lost %d events on cpu %d\n", count, CPU)
 					},
@@ -418,6 +426,8 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.Cons
 	if err != nil {
 		return err
 	}
+
+	newKpFlushTrigger(ctx)
 
 	if err := bpfManger.Start(); err != nil {
 		log.Error(err)

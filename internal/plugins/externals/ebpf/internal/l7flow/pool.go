@@ -88,16 +88,14 @@ func putNetwrkData(data *comm.NetwrkData) {
 
 func resetNetwrkData(data *comm.NetwrkData) *comm.NetwrkData {
 	data.Conn = comm.ConnectionInfo{}
-	data.ConnUniID = comm.ConnUniID{}
-
-	data.ActSize = 0
+	data.FnCallSize = 0
+	data.CaptureSize = 0
 	data.TCPSeq = 0
-	data.Thread[0] = 0
-	data.Thread[1] = 0
+	data.Thread = [2]int32{}
 	data.TS = 0
-	data.Fn = 0
 	data.TSTail = 0
 	data.Index = 0
+	data.Fn = 0
 	data.Payload = data.Payload[:0]
 
 	return data

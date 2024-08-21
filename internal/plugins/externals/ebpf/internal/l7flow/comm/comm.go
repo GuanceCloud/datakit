@@ -46,6 +46,7 @@ const (
 	DirectionIncoming = "incoming"
 	DirectionUnknown  = "unknown"
 
+	FieldPid          = "pid"
 	FieldUserThread   = "tid_usr"
 	FieldKernelThread = "tid"
 	FieldKernelTime   = "ktime"
@@ -191,30 +192,25 @@ func FnInOut(fn FnID) NICDirection {
 	}
 }
 
-type ConnUniID struct {
-	SkPtr uint64 `json:"sk_ptr"`
-	Ktime uint32 `json:"ktime"`
-	Rand  uint32 `json:"rand"`
-}
 type NetwrkData struct {
-	Conn      ConnectionInfo `json:"conn"`
-	ConnUniID ConnUniID      `json:"conn_uni_id"`
-	ActSize   int            `json:"act_size"`
-	TCPSeq    uint32         `json:"tcp_seq"`
-	Thread    [2]int32       `json:"thread"`
-	TS        uint64         `json:"ts"`
-	TSTail    uint64         `json:"ts_tail"`
-	Index     uint32         `json:"index"`
-	Fn        FnID           `json:"fn_id"`
-	Payload   []byte         `json:"payload"`
+	Conn        ConnectionInfo `json:"conn"`
+	CaptureSize int            `json:"act_size"`
+	FnCallSize  int            `json:"fn_call_size"`
+	TCPSeq      uint32         `json:"tcp_seq"`
+	Thread      [2]int32       `json:"thread"`
+	TS          uint64         `json:"ts"`
+	TSTail      uint64         `json:"ts_tail"`
+	Index       uint64         `json:"index"`
+	Fn          FnID           `json:"fn_id"`
+	Payload     []byte         `json:"payload"`
 }
 
 func (d NetwrkData) String() string {
 	str := fmt.Sprintf("\tconn %s\n", d.Conn.String())
-	str += fmt.Sprintf("\nptr: %x, thread %d, user thread %d, idx %d\n",
-		d.ConnUniID, d.Thread[0], d.Thread[1], d.Index)
+	str += fmt.Sprintf("\nthread %d, user thread %d, idx %d\n",
+		d.Thread[0], d.Thread[1], d.Index)
 	str += fmt.Sprintf("\tfn %s, size %d, tcp seq: %d\n", d.Fn.String(),
-		d.ActSize, d.TCPSeq)
+		d.CaptureSize, d.TCPSeq)
 
 	ts := d.TS
 	tsNano := ts % uint64(time.Second)
@@ -259,14 +255,14 @@ type ThreadTrace struct {
 	sync.RWMutex
 
 	// only for incoming requests
-	Threads map[int32]*ThrEntry
+	Threads map[uint64]*ThrEntry
 
 	lastTS uint64
 
 	delCount int
 }
 
-func (thrTr *ThreadTrace) Insert(d Direcion, thrID2 [2]int32, ts0_1 uint64) (id int64) {
+func (thrTr *ThreadTrace) Insert(d Direcion, pid int32, thrID2 [2]int32, ts0_1 uint64) (id int64) {
 	switch d { //nolint:exhaustive
 	case DIn:
 	default:
@@ -280,6 +276,8 @@ func (thrTr *ThreadTrace) Insert(d Direcion, thrID2 [2]int32, ts0_1 uint64) (id 
 		thrID = thrID2[0]
 	}
 
+	ptid := uint64(pid)<<32 | uint64(thrID)
+
 	thrTr.Lock()
 	defer thrTr.Unlock()
 
@@ -288,7 +286,7 @@ func (thrTr *ThreadTrace) Insert(d Direcion, thrID2 [2]int32, ts0_1 uint64) (id 
 	}
 
 	if thrTr.Threads == nil {
-		thrTr.Threads = make(map[int32]*ThrEntry)
+		thrTr.Threads = make(map[uint64]*ThrEntry)
 	}
 
 	id = randInnerID()
@@ -297,10 +295,10 @@ func (thrTr *ThreadTrace) Insert(d Direcion, thrID2 [2]int32, ts0_1 uint64) (id 
 		innerID: id,
 	}
 
-	if tailTr, ok := thrTr.Threads[thrID]; ok {
+	if tailTr, ok := thrTr.Threads[ptid]; ok {
 		if ts0_1 >= tailTr.ts {
 			insertEntry.prv = tailTr
-			thrTr.Threads[thrID] = insertEntry
+			thrTr.Threads[ptid] = insertEntry
 			return
 		}
 
@@ -314,12 +312,12 @@ func (thrTr *ThreadTrace) Insert(d Direcion, thrID2 [2]int32, ts0_1 uint64) (id 
 			return
 		}
 	} else {
-		thrTr.Threads[thrID] = insertEntry
+		thrTr.Threads[ptid] = insertEntry
 	}
 	return id
 }
 
-func (thrTr *ThreadTrace) GetInnerID(thrID2 [2]int32, ts uint64) int64 {
+func (thrTr *ThreadTrace) GetInnerID(pid int32, thrID2 [2]int32, ts uint64) int64 {
 	thrTr.RLock()
 	defer thrTr.RUnlock()
 
@@ -329,8 +327,9 @@ func (thrTr *ThreadTrace) GetInnerID(thrID2 [2]int32, ts uint64) int64 {
 	} else {
 		thrID = thrID2[0]
 	}
+	ptid := uint64(pid)<<32 | uint64(thrID)
 
-	if tailTr, ok := thrTr.Threads[thrID]; ok {
+	if tailTr, ok := thrTr.Threads[ptid]; ok {
 		if ts >= tailTr.ts {
 			return tailTr.innerID
 		}
@@ -350,7 +349,7 @@ func (thrTr *ThreadTrace) Cleanup() {
 	defer thrTr.Unlock()
 
 	lastTS := thrTr.lastTS
-	var del []int32
+	var del []uint64
 	for k, v := range thrTr.Threads {
 		if v == nil {
 			continue
@@ -374,7 +373,7 @@ func (thrTr *ThreadTrace) Cleanup() {
 
 	thrTr.delCount += len(del)
 	if thrTr.delCount > 1e3 && thrTr.delCount >= len(thrTr.Threads) {
-		mp := make(map[int32]*ThrEntry)
+		mp := make(map[uint64]*ThrEntry)
 		for k, v := range thrTr.Threads {
 			mp[k] = v
 		}

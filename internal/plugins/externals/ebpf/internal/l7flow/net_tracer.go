@@ -5,14 +5,13 @@ package l7flow
 
 import (
 	"context"
-	"math"
 	"strconv"
+	"sync"
 	"time"
 	"unsafe"
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/cilium/ebpf/perf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
@@ -21,15 +20,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 )
 
-type ProcNetworkTrace struct {
-	Pid int
-
-	// 对于该进程， ingress 请求抵达时，后续的网络请求都应该继承此生成的 innter trace id
+type NetTrace struct {
+	// 对于每个进程， ingress 请求抵达时，后续的网络请求都应该继承此生成的 innter trace id
 	ESpanLinkDuration time.Duration
 
 	// (kernel) sock ptr and random id ==> network flow pipe
-	ConnMap         map[comm.ConnUniID]*FlowPipe
-	delConnMapCount int
+	ConnMap       map[CUniID]*FlowPipe
+	ConnMapClosed map[CUniID]*FlowPipe
+
+	ConnAndClosedDelCount [2]int
 
 	threadInnerID comm.ThreadTrace
 
@@ -39,44 +38,73 @@ type ProcNetworkTrace struct {
 	allowESPan bool
 }
 
-func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
+func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.NetwrkData,
 	aggPool map[protodec.L7Protocol]protodec.AggPool, allowTrace bool,
 	protoLi map[protodec.L7Protocol]struct{},
 ) {
 	if netTrace.ConnMap == nil {
-		netTrace.ConnMap = make(map[comm.ConnUniID]*FlowPipe)
+		netTrace.ConnMap = make(map[CUniID]*FlowPipe)
 	}
 
-	ptr := data.ConnUniID
+	var pipe *FlowPipe
+	var inClosedMap bool
 
-	pipe, ok := netTrace.ConnMap[ptr]
-	if !ok {
-		pipe = &FlowPipe{
-			Conn: data.Conn,
-			sort: netdata{prvDataPos: 0},
+	// check in closed map first
+	if p, ok := netTrace.ConnMapClosed[uniID]; ok {
+		pipe = p
+		inClosedMap = true
+	}
+
+	if pipe == nil {
+		var ok bool
+		pipe, ok = netTrace.ConnMap[uniID]
+		if !ok {
+			pipe = &FlowPipe{
+				Conn: data.Conn,
+				sort: dataQueue{prvDataPos: 0},
+			}
+			netTrace.ConnMap[uniID] = pipe
 		}
-		netTrace.ConnMap[ptr] = pipe
 	}
 
-	dataLi := pipe.sort.Queue(data)
-	defer func(datli []*comm.NetwrkData) {
-		for _, v := range dataLi {
-			putNetwrkData(v)
+	pipe.lastTime = tn
+
+	// check conn close
+	if data.Fn == comm.FnSysClose {
+		pipe.connClosed = true
+
+		delete(netTrace.ConnMap, uniID)
+		netTrace.ConnMapClosed[uniID] = pipe
+		inClosedMap = true
+	}
+
+	var dataLi []*comm.NetwrkData
+	if pipe.detecTimes < 64 || pipe.Decoder != nil {
+		dataLi = pipe.sort.Queue(data)
+	} else {
+		pipe.sort.li = nil
+	}
+
+	defer func(li []*comm.NetwrkData) {
+		for _, d := range li {
+			putNetwrkData(d)
 		}
 	}(dataLi)
 
 	var connClose bool
 	for _, d := range dataLi {
+		if d.Fn == comm.FnSysClose {
+			connClose = true
+			continue
+		}
+
 		txRx := comm.FnInOut(d.Fn)
 		if txRx == comm.NICDUnknown {
-			if d.Fn == comm.FnSysClose {
-				connClose = true
-			}
 			continue
 		}
 
 		if pipe.Proto == protodec.ProtoUnknown {
-			if proto, dec, ok := protodec.ProtoDetector(d.Payload, d.ActSize); ok {
+			if proto, dec, ok := protodec.ProtoDetector(d.Payload, d.CaptureSize); ok {
 				pipe.Proto = proto
 				if _, ok := protoLi[pipe.Proto]; !ok && pipe.Proto != protodec.ProtoHTTP {
 					continue
@@ -93,7 +121,7 @@ func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
 			}
 		}
 
-		if pipe.Decoder != nil && d.ActSize > 0 {
+		if pipe.Decoder != nil && d.CaptureSize > 0 {
 			pipe.Decoder.Decode(txRx, d, time.Now().UnixNano(), &netTrace.threadInnerID)
 		}
 	}
@@ -103,15 +131,12 @@ func (netTrace *ProcNetworkTrace) StreamHandle(data *comm.NetwrkData,
 		if pipe.Decoder != nil {
 			pipe.Decoder.ConnClose()
 		}
-		delete(netTrace.ConnMap, ptr)
-		netTrace.delConnMapCount++
-		if netTrace.delConnMapCount >= 1e3 {
-			mp := make(map[comm.ConnUniID]*FlowPipe)
-			for k, v := range netTrace.ConnMap {
-				mp[k] = v
-			}
-			netTrace.ConnMap = mp
-			netTrace.delConnMapCount = 0
+		if inClosedMap {
+			netTrace.ConnAndClosedDelCount[1]++
+			delete(netTrace.ConnMapClosed, uniID)
+		} else {
+			netTrace.ConnAndClosedDelCount[0]++
+			delete(netTrace.ConnMap, uniID)
 		}
 	}
 
@@ -139,15 +164,16 @@ type FlowPipe struct {
 	Proto      protodec.L7Protocol
 	detecTimes int
 
-	sort netdata
+	sort dataQueue
+
+	lastTime int64
 
 	connClosed bool
 }
 
-type PidWatcher struct {
-	pidMap  map[int]*ProcNetworkTrace
-	ch      chan *comm.NetwrkData
-	aggPool map[protodec.L7Protocol]protodec.AggPool
+type ConnWatcher struct {
+	netracer *NetTrace
+	aggPool  map[protodec.L7Protocol]protodec.AggPool
 
 	procFilter *tracing.ProcessFilter
 
@@ -158,64 +184,98 @@ type PidWatcher struct {
 	enableTrace   bool
 
 	enabledProto map[protodec.L7Protocol]struct{}
+
+	sync.Mutex
 }
 
-func (p *PidWatcher) start(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 5)
+func (watcher *ConnWatcher) handle(tn int64, uniID CUniID, netdata *comm.NetwrkData) {
+	watcher.Lock()
+	defer watcher.Unlock()
+
+	pid := int(netdata.Conn.Pid)
+
+	nettracer := watcher.netracer
+	if nettracer == nil {
+		return
+	}
+
+	if watcher.enableTrace && watcher.procFilter != nil {
+		nettracer.allowESPan = false
+		if v, ok := watcher.procFilter.GetProcInfo(pid); ok {
+			nettracer.allowESPan = v.AllowTrace
+			netdata.Conn.ProcessName = v.Name
+			netdata.Conn.ServiceName = v.Service
+		}
+	}
+
+	nettracer.StreamHandle(tn, uniID, netdata, watcher.aggPool, watcher.enableTrace, watcher.enabledProto)
+}
+
+func (watcher *ConnWatcher) start(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 10)
 	tickerClean := time.NewTicker(time.Minute * 5)
+	tickerCheck := time.NewTicker(time.Minute * 2)
 
 	for {
 		select {
-		case netdata := <-p.ch:
-			pid := int(netdata.Conn.Pid)
-			var nettracer *ProcNetworkTrace
-			if v, ok := p.pidMap[pid]; !ok {
-				if p.pidMap == nil {
-					p.pidMap = make(map[int]*ProcNetworkTrace)
-				}
-				nettracer = &ProcNetworkTrace{
-					Pid:     pid,
-					ConnMap: make(map[comm.ConnUniID]*FlowPipe),
-				}
-				p.pidMap[pid] = nettracer
-			} else {
-				nettracer = v
-			}
-			if p.enableTrace && p.procFilter != nil {
-				nettracer.allowESPan = false
-				if v, ok := p.procFilter.GetProcInfo(pid); ok {
-					nettracer.allowESPan = v.AllowTrace
-					netdata.Conn.ProcessName = v.Name
-					netdata.Conn.ServiceName = v.Service
+		case <-tickerCheck.C:
+			watcher.Lock()
+			groupTime := time.Now().UnixNano()
+			for uniID, pipe := range watcher.netracer.ConnMap {
+				if groupTime-pipe.lastTime > int64(time.Minute)*3 {
+					delete(watcher.netracer.ConnMap, uniID)
+					watcher.netracer.ConnAndClosedDelCount[0]++
 				}
 			}
-			nettracer.StreamHandle(netdata, p.aggPool, p.enableTrace, p.enabledProto)
 
-		case <-tickerClean.C:
-			for _, v := range p.pidMap {
-				v.threadInnerID.Cleanup()
-			}
-		case <-ticker.C:
-			for _, v := range p.pidMap {
-				for _, pt := range v.ptsPrv {
-					setInnerID(pt, &v.threadInnerID)
+			for uniID, pipe := range watcher.netracer.ConnMapClosed {
+				if groupTime-pipe.lastTime > int64(time.Minute) {
+					delete(watcher.netracer.ConnMapClosed, uniID)
+					watcher.netracer.ConnAndClosedDelCount[1]++
 				}
-				if err := feed(p.tracePostURL, v.ptsPrv, false); err != nil {
+			}
+
+			if watcher.netracer.ConnAndClosedDelCount[0] > 160_000 {
+				watcher.netracer.ConnAndClosedDelCount[0] = 0
+				connMap := make(map[CUniID]*FlowPipe)
+				for k, v := range watcher.netracer.ConnMap {
+					connMap[k] = v
+				}
+			}
+
+			if watcher.netracer.ConnAndClosedDelCount[1] > 160_000 {
+				watcher.netracer.ConnAndClosedDelCount[1] = 0
+				connMap := make(map[CUniID]*FlowPipe)
+				for k, v := range watcher.netracer.ConnMapClosed {
+					connMap[k] = v
+				}
+			}
+
+			watcher.Unlock()
+		case <-tickerClean.C:
+			watcher.Lock()
+			if tracer := watcher.netracer; tracer != nil {
+				tracer.threadInnerID.Cleanup()
+			}
+			watcher.Unlock()
+		case <-ticker.C:
+			watcher.Lock()
+			if tracer := watcher.netracer; tracer != nil {
+				for _, pt := range tracer.ptsPrv {
+					setInnerID(pt, &tracer.threadInnerID)
+				}
+				if err := feed(watcher.tracePostURL, tracer.ptsPrv, false); err != nil {
 					log.Error(err)
 				}
 				// feed("http://0.0.0.0:9529/v1/write/logging?input=ebpf-net%2Fespan", v.ptsPrv, false)
-				v.ptsPrv = v.ptsCur
-				v.ptsCur = nil
+				tracer.ptsPrv = tracer.ptsCur
+				tracer.ptsCur = nil
 			}
-
+			watcher.Unlock()
 		case <-ctx.Done():
 			return
 		}
 	}
-}
-
-func (p *PidWatcher) Handle(v *comm.NetwrkData) {
-	p.ch <- v
 }
 
 func setInnerID(pt *point.Point, threadInnerID *comm.ThreadTrace) {
@@ -241,14 +301,22 @@ func setInnerID(pt *point.Point, threadInnerID *comm.ThreadTrace) {
 			ktime = uint64(v)
 		}
 	}
-	id := threadInnerID.GetInnerID(tid, ktime)
+	var pid int32
+	if v := pt.Get(comm.FieldPid); v != nil {
+		if v, ok := v.(int64); ok {
+			pid = int32(v)
+		}
+	}
+	id := threadInnerID.GetInnerID(pid, tid, ktime)
 	pt.Add(spanid.ThrTraceID, id)
 }
 
-func newPidMap(ctx context.Context, cfg *pidMapConfig) *PidWatcher {
-	p := &PidWatcher{
-		pidMap:        make(map[int]*ProcNetworkTrace),
-		ch:            make(chan *comm.NetwrkData, 32),
+func newConnWatcher(ctx context.Context, cfg *connWatcherConfig) *ConnWatcher {
+	p := &ConnWatcher{
+		netracer: &NetTrace{
+			ConnMap:       make(map[CUniID]*FlowPipe),
+			ConnMapClosed: make(map[CUniID]*FlowPipe),
+		},
 		aggPool:       cfg.aggPool,
 		procFilter:    cfg.procFilter,
 		tags:          cfg.tags,
@@ -263,7 +331,7 @@ func newPidMap(ctx context.Context, cfg *pidMapConfig) *PidWatcher {
 }
 
 type Tracer struct {
-	pidMap [5]*PidWatcher
+	connWatcher *ConnWatcher
 
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 
@@ -295,57 +363,57 @@ func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (tracer *Tracer) PerfEventHandle(record *perf.Record,
+func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager,
 ) {
-	bufferC := (*CL7Buffer)(unsafe.Pointer(&record.RawSample[0])) //nolint:gosec
+	events := (*CNetEvents)(unsafe.Pointer(&data[0])) //nolint:gosec
 
-	actLen := int(bufferC.meta.act_size)
-	bufLen := int(bufferC.meta.buf_len)
+	eventsNum := int(events.pos.num)
+	// eventsLen := int(events.pos.len)
 
-	if bufLen > 0 {
-		if bufLen > PayloadBufSize {
-			bufLen = PayloadBufSize
+	hdrSize := unsafe.Sizeof(CNetEventComm{}) // nolint:gosec
+
+	pos := int(unsafe.Sizeof(events.pos)) // nolint:gosec
+
+	groupTime := time.Now().UnixNano()
+
+	for i := 0; i < eventsNum; i++ {
+		commHdr := *(*CNetEventComm)(unsafe.Pointer(&data[pos])) //nolint:gosec
+		pos += int(hdrSize)
+
+		netdata := getNetwrkData(int(commHdr.len))
+
+		readMeta(&commHdr, &netdata.Conn)
+
+		if int(commHdr.len) > 0 {
+			v := unsafe.Slice((*byte)(unsafe.Pointer(&data[pos])), int(commHdr.len)) //nolint:gosec
+			netdata.Payload = append(netdata.Payload, v...)
+
+			pos += int(commHdr.len)
 		}
-		if actLen > 0 && actLen > bufLen {
-			actLen = bufLen
+
+		pid := int(netdata.Conn.Pid)
+		if pid == selfPid {
+			return
 		}
+
+		netdata.Fn = comm.FnID(commHdr.meta.func_id)
+
+		netdata.CaptureSize = int(commHdr.len)
+		netdata.FnCallSize = int(commHdr.meta.original_size)
+		netdata.TCPSeq = uint32(commHdr.meta.tcp_seq)
+		netdata.Thread = [2]int32{int32(commHdr.meta.tid_utid >> 32), (int32(commHdr.meta.tid_utid))}
+		netdata.TS = uint64(commHdr.meta.ts)
+		netdata.TSTail = uint64(commHdr.meta.ts_tail)
+		netdata.Index = uint64(commHdr.meta.sk_inf.index)
+
+		// log.Info(netdata.String())
+
+		tracer.connWatcher.handle(groupTime, CUniID(commHdr.meta.sk_inf.uni_id), netdata)
 	}
-
-	// 需要使 actLen 不会在后续发生改变，否则内存池会出问题
-	netdata := getNetwrkData(actLen)
-
-	readMeta(bufferC, &netdata.Conn)
-
-	if bufLen > 0 && actLen > 0 {
-		b := (*[PayloadBufSize]byte)(unsafe.Pointer(&bufferC.payload)) //nolint:gosec
-		netdata.Payload = append(netdata.Payload, b[:actLen]...)
-	}
-
-	pid := int(netdata.Conn.Pid)
-	if pid == selfPid {
-		return
-	}
-
-	netdata.ConnUniID.Ktime = uint32(bufferC.meta.uni_id.ktime)
-	netdata.ConnUniID.SkPtr = uint64(bufferC.meta.uni_id.sk)
-	netdata.ConnUniID.Rand = uint32(bufferC.meta.uni_id.prandom)
-
-	netdata.Fn = comm.FnID(bufferC.meta.func_id)
-
-	netdata.ActSize = actLen
-	netdata.TCPSeq = uint32(bufferC.meta.tcp_seq)
-	netdata.Thread = [2]int32{int32(bufferC.meta.tid_utid >> 32), (int32(bufferC.meta.tid_utid))}
-	netdata.TS = uint64(bufferC.meta.ts)
-	netdata.TSTail = uint64(bufferC.meta.ts_tail)
-	netdata.Index = uint32(bufferC.meta.index)
-
-	// log.Info(netdata.String())
-
-	tracer.pidMap[pid%5].Handle(netdata)
 }
 
-type pidMapConfig struct {
+type connWatcherConfig struct {
 	apiTracerConfig
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 }
@@ -355,18 +423,13 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		return nil
 	}
 
-	mps := [5]*PidWatcher{}
-
 	aggP := protodec.NewProtoAggregators()
-	for i := 0; i < 5; i++ {
-		mps[i] = newPidMap(ctx, &pidMapConfig{
-			apiTracerConfig: *cfg,
-			aggPool:         aggP,
-		})
-	}
 
 	return &Tracer{
-		pidMap:        mps,
+		connWatcher: newConnWatcher(ctx, &connWatcherConfig{
+			apiTracerConfig: *cfg,
+			aggPool:         aggP,
+		}),
 		aggPool:       aggP,
 		tags:          cfg.tags,
 		k8sInfo:       cfg.k8sNetInfo,
@@ -374,73 +437,6 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		tracePostURL:  cfg.tracePostURL,
 		enableTrace:   cfg.enableTrace,
 	}
-}
-
-type netdata struct {
-	li []*comm.NetwrkData
-	// 从 1 开始索引，如果值为 0，视为发生翻转
-	prvDataPos uint32
-}
-
-func (n *netdata) Queue(data *comm.NetwrkData) []*comm.NetwrkData {
-	var val []*comm.NetwrkData
-	if data == nil {
-		return val
-	}
-
-	lenQ := len(n.li)
-	switch lenQ {
-	case 0:
-		if n.prvDataPos+1 == data.Index {
-			n.prvDataPos = data.Index
-			return []*comm.NetwrkData{data}
-		} else {
-			n.li = append(n.li, data)
-		}
-	default:
-		for i := 0; i < lenQ; i++ {
-			if idxLess(data.Index, n.li[i].Index) {
-				n.li = append(n.li, nil)
-				copy(n.li[i+1:], n.li[i:])
-				n.li[i] = data
-				break
-			}
-			if i+1 == lenQ {
-				n.li = append(n.li, data)
-				break
-			}
-		}
-	}
-
-	// try flush cache
-	i := 0
-	for ; i < len(n.li); i++ {
-		cur := n.li[i].Index
-		if cur == n.prvDataPos+1 {
-			val = append(val, n.li[i])
-			n.prvDataPos = cur
-		} else {
-			break
-		}
-	}
-
-	// clean cache
-	if i >= len(n.li) {
-		n.li = n.li[:0]
-	} else if i > 0 {
-		copy(n.li, n.li[i:])
-		n.li = n.li[:len(n.li)-i]
-	}
-
-	// 可能存在数据丢失情况
-	if len(n.li) >= 1024 && len(val) == 0 {
-		x := 128
-		val = append(val, n.li[:x]...)
-		n.li = n.li[x:]
-		n.prvDataPos = val[x-1].Index
-	}
-
-	return val
 }
 
 func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Point {
@@ -506,7 +502,7 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		} else {
 			v.KVs = v.KVs.Add("service", conn.ServiceName, false, true)
 		}
-		v.KVs = v.KVs.Add("pid", strconv.Itoa(int(conn.Pid)), false, true)
+		v.KVs = v.KVs.Add(comm.FieldPid, strconv.Itoa(int(conn.Pid)), false, true)
 
 		// conn info
 		isV6 := !netflow.ConnAddrIsIPv4(conn.Meta)
@@ -529,13 +525,4 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		pts = append(pts, pt)
 	}
 	return pts
-}
-
-func idxLess(l, r uint32) bool {
-	// 可能发生回绕现象，预留窗口应与 buffer 长度相近
-	if l > math.MaxUint32-1025 && r <= 1025 {
-		return true
-	}
-
-	return l < r
 }

@@ -152,8 +152,8 @@ type ProtoData struct {
 }
 
 type threadTrace interface {
-	Insert(d comm.Direcion, thrID [2]int32, ts0_1 uint64) (id int64)
-	GetInnerID(thrID [2]int32, ts uint64) int64
+	Insert(d comm.Direcion, pid int32, thrID [2]int32, ts0_1 uint64) (id int64)
+	GetInnerID(pid int32, thrID [2]int32, ts uint64) int64
 }
 
 type ProtoDecPipe interface {

@@ -14,7 +14,7 @@ import (
 )
 
 type multiStream struct {
-	uniid   comm.ConnUniID
+	conn    comm.ConnectionInfo
 	netdata []comm.NetwrkData
 }
 
@@ -35,7 +35,7 @@ func TestJsonDump(t *testing.T) {
 		json.Unmarshal(d[i], &n)
 		var find bool
 		for _, v := range cases {
-			if v.uniid == n.ConnUniID {
+			if v.conn == n.Conn {
 				v.netdata = append(v.netdata, n)
 				find = true
 				break
@@ -44,7 +44,7 @@ func TestJsonDump(t *testing.T) {
 		if !find {
 			cases = append(cases, &multiStream{
 				netdata: []comm.NetwrkData{n},
-				uniid:   n.ConnUniID,
+				conn:    n.Conn,
 			})
 		}
 	}
@@ -55,7 +55,7 @@ func TestJsonDump(t *testing.T) {
 		t.Run(strconv.FormatInt(int64(i), 10), func(t *testing.T) {
 			for _, data := range oneCase.netdata {
 				if impl == nil {
-					_, impl, _ = MysqlProtoDetect(data.Payload, data.ActSize)
+					_, impl, _ = MysqlProtoDetect(data.Payload, data.CaptureSize)
 				}
 				if impl != nil {
 					impl.Decode(comm.FnInOut(data.Fn), &data, 0, nil)

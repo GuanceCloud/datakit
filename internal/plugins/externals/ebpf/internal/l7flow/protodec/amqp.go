@@ -96,7 +96,7 @@ func (dec *amqpDecPipe) decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		inf.readyToExport = true
 		inf.ts = ts
 
-		inf.reqBytes += data.ActSize
+		inf.reqBytes += data.FnCallSize
 
 		if dec.direction == comm.DUnknown {
 			switch txRx { //nolint:exhaustive
@@ -196,7 +196,8 @@ func (dec *amqpDecPipe) decode(txRx comm.NICDirection, data *comm.NetwrkData,
 			inf.ts = ts
 
 			if dec.direction == comm.DIn {
-				inf.meta.InnerID = thrTr.Insert(dec.direction, data.Thread, data.TSTail)
+				inf.meta.InnerID = thrTr.Insert(dec.direction, int32(data.Conn.Pid),
+					data.Thread, data.TSTail)
 			}
 
 			inf.meta.ReqTCPSeq = data.TCPSeq
@@ -232,16 +233,16 @@ func (dec *amqpDecPipe) decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		case comm.DIn:
 			switch txRx { //nolint:exhaustive
 			case comm.NICDIngress:
-				dec.inf.reqBytes += data.ActSize
+				dec.inf.reqBytes += data.FnCallSize
 			case comm.NICDEgress:
-				dec.inf.respBytes += data.ActSize
+				dec.inf.respBytes += data.FnCallSize
 			}
 		case comm.DOut:
 			switch txRx { //nolint:exhaustive
 			case comm.NICDIngress:
-				dec.inf.respBytes += data.ActSize
+				dec.inf.respBytes += data.FnCallSize
 			case comm.NICDEgress:
-				dec.inf.reqBytes += data.ActSize
+				dec.inf.reqBytes += data.FnCallSize
 			}
 		}
 

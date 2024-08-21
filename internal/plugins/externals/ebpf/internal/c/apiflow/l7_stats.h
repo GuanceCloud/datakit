@@ -6,12 +6,14 @@
 
 enum
 {
-#define L7_BUFFER_LEFT_SHIFT 12
-    L7_BUFFER_SIZE = (1 << L7_BUFFER_LEFT_SHIFT), // 2^10
-#define L7_BUFFER_SIZE L7_BUFFER_SIZE
-#define IOVEC_LEFT_SHIFT 11
+#define L7_BUFFER_LEFT_SHIFT 11
 
-    BUF_IOVEC_LEN = (1 << IOVEC_LEFT_SHIFT),
+    L7_BUFFER_SIZE = (1 << (L7_BUFFER_LEFT_SHIFT)), // 2^10
+#define L7_BUFFER_SIZE L7_BUFFER_SIZE
+
+#define IOVEC_LEFT_SHIFT 10
+
+    BUF_IOVEC_LEN = (1 << (IOVEC_LEFT_SHIFT)),
 #define BUF_IOVEC_LEN BUF_IOVEC_LEN
 };
 
@@ -58,12 +60,22 @@ typedef struct pidtid
 } pidtid_t;
 
 // 由于数据乱序上传，我们需要使用一个唯一值标示连接
-typedef struct conn_uni_id
+// cpu id | ktime | id(auto increment)
+typedef struct id_generator
 {
-    __u64 sk;
-    __u32 ktime;
-    __u32 prandom;
-} conn_uni_id_t;
+    __u8 init;
+    __u8 _pad;
+    __u16 cpu_id;
+    __u32 id;
+    __u64 ktime;
+} id_generator_t;
+
+typedef struct sk_inf
+{
+    id_generator_t uni_id;
+    __u64 index;
+    conn_inf_t conn;
+} sk_inf_t;
 
 typedef struct netdata_meta
 {
@@ -72,18 +84,15 @@ typedef struct netdata_meta
     __u64 tid_utid;
     __u8 comm[KERNEL_TASK_COMM_LEN];
 
-    conn_uni_id_t uni_id;
+    sk_inf_t sk_inf;
 
-    struct connection_info conn;
     __u32 tcp_seq;
 
     __u16 _pad0;
     __u16 func_id;
 
-    __s32 fd;
-    __s32 buf_len;
-    __s32 act_size;
-    __u32 index;
+    __s32 original_size;
+    __s32 capture_size;
 } netdata_meta_t;
 
 // TODO: 考虑暂存此对象减少上报次数
@@ -91,7 +100,72 @@ typedef struct netwrk_data
 {
     netdata_meta_t meta;
     __u8 payload[L7_BUFFER_SIZE];
-} netwrk_data_t;
+} net_data_t;
+
+typedef struct event_rec
+{
+    __u32 num;
+    __u32 len;
+} event_rec_t;
+
+enum
+{
+    L7_EVENT_SIZE = (L7_BUFFER_SIZE * 2 - sizeof(event_rec_t)),
+#define L7_EVENT_SIZE L7_EVENT_SIZE
+};
+
+typedef struct network_events
+{
+    event_rec_t pos;
+    __u8 payload[L7_EVENT_SIZE];
+} network_events_t;
+
+typedef enum
+{
+    BUF_DIV8 = L7_BUFFER_SIZE / 8,
+#define BUF_DIV8 BUF_DIV8
+
+    BUF_DIV4 = L7_BUFFER_SIZE / 4,
+#define BUF_DIV4 BUF_DIV4
+
+    BUF_DIV2 = L7_BUFFER_SIZE / 2,
+#define BUF_DIV2 BUF_DIV2
+
+    BUF_DIV1 = L7_BUFFER_SIZE,
+#define BUF_DIV1 BUF_DIV1
+} buf_div_t;
+
+typedef struct net_event_comm
+{
+    __u32 idx;
+    __u32 len;
+
+    netdata_meta_t meta;
+} net_event_comm_t;
+
+typedef struct
+{
+    net_event_comm_t event_comm;
+    __u8 payload[BUF_DIV8];
+} net_event_div8_t;
+
+typedef struct
+{
+    net_event_comm_t event_comm;
+    __u8 payload[BUF_DIV4];
+} net_event_div4_t;
+
+typedef struct
+{
+    net_event_comm_t event_comm;
+    __u8 payload[BUF_DIV2];
+} net_event_div2_t;
+
+typedef struct
+{
+    net_event_comm_t event_comm;
+    __u8 payload[BUF_DIV1];
+} net_event_div1_t;
 
 typedef struct ssl_read_args
 {
