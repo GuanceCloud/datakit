@@ -15,7 +15,7 @@ type metricMeasurement struct{}
 //nolint:lll
 func (*metricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: inputName + "-metric",
 		Type: "metric",
 		Fields: map[string]interface{}{
 			metrics.MaxMemoryUsedMetric: &inputs.FieldInfo{
@@ -83,10 +83,10 @@ type logMeasurement struct{}
 
 //nolint:lll
 func (*logMeasurement) Info() *inputs.MeasurementInfo {
-	tags := measurementTags()
+	tags := map[string]interface{}{}
 	tags[AWSLogFrom] = &inputs.TagInfo{Desc: "log sources, currently only function are supported"}
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: inputName + "-logging",
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log message."},

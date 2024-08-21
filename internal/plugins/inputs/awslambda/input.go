@@ -62,6 +62,10 @@ func (ipt *Input) Catalog() string {
 }
 
 func (ipt *Input) Run() {
+	if os.Getenv(EnvLambdaFunctionName) == "" {
+		l.Warn("the current environment is not aws lambda, awslambda input exit.")
+		return
+	}
 	l.Info("awslambda input started")
 
 	if err := ipt.setup(); err != nil {
