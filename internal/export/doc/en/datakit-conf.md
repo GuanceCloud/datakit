@@ -275,6 +275,7 @@ $ systemctl status datakit
     - resource limit only supports CPU usage and memory usage (mem + swap) controls, and only supports Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating systems.
     - CPU usage controls is not supported in these windows systems: Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 and Windows XP.
     - When adjusting resource limit as a non-root user, it is essential to reinstall the service.
+    - The CPU core count directly influences the configuration of worker threads in certain Datakit submodules. These worker threads, which handle specific tasks like data uploads, are typically set to a quantity that is a multiple of the total CPU cores. For instance, the data upload worker is commonly configured to be twice the number of CPU cores. Given that each individual upload worker consumes a default of 10MB of memory for data transmission, allocating a substantial number of CPU cores can lead to a significant increase in Datakit's overall memory footprint.
 
 ???+ tip
 
