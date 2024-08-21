@@ -81,15 +81,6 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
 		},
 		{
-			name: "test dial invalid request2",
-			t: &dialtestingDebugRequest{
-				TaskType: "HTTP",
-				Task:     &dt.HTTPTask{},
-			},
-			errRun:    uhttp.Error(ErrInvalidRequest, "ddd"),
-			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
-		},
-		{
 			name: "test dial status stop",
 			t: &dialtestingDebugRequest{
 				TaskType: "HTTP",

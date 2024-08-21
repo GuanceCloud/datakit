@@ -138,7 +138,7 @@ The public fields of dialing test tasks are defined as follows:
 | `success_when`       | object | Y        | See below for details                                                                             |
 | `advance_options`    | object | N        | See below for details                                                                             |
 | `post_url`           | string | N        | Send the dialing test result to the workspace pointed by the Token, and if it is not filled in, send it to the workspace where the current DataKit is located |
-| `tags_info`           | string | N        | Custom tags, such as `[{"name": "tag1"}, {"name": "tag2"}]` |
+| `tags_info`           | string | N        | Custom tags, such as `t1,t2` |
 | `workspace_language`  | string | N        | Workspace language, such as `zh`，`en` |
 
 #### HTTP Dial Test {#http}

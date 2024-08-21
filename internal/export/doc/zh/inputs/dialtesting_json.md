@@ -149,7 +149,7 @@ monitor   :
 | `success_when`       | object | Y        | 详见下文                                                                             |
 | `advance_options`    | object | N        | 详见下文                                                                             |
 | `post_url`           | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
-| `tags_info`           | string | N        | 拨测任务自定义标签，如： `[{"name": "tag1"}, {"name": "tag2"}]` |
+| `tags_info`           | string | N        | 拨测任务自定义标签，如： `t1,t2` |
 | `workspace_language`  | string | N        | 当前工作空间语言，如：`zh`，`en` |
 
 #### HTTP 拨测 {#http}
