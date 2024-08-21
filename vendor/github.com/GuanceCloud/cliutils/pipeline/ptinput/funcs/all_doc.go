@@ -10,6 +10,7 @@ import (
 )
 
 type PLDoc struct {
+	Language        string              `json:"language"`
 	Doc             string              `json:"doc"`
 	Prototype       string              `json:"prototype"`
 	Description     string              `json:"description"`
@@ -32,7 +33,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"cidr()":                   &cidrMarkdown,
 	"cover()":                  &coverMarkdown,
 	"datetime()":               &datetimeMarkdown,
-	"decode":                   &decodeMarkdown,
+	"decode()":                 &decodeMarkdown,
 	"default_time()":           &defaultTimeMarkdown,
 	"drop()":                   &dropMarkdown,
 	"drop_key()":               &dropKeyMarkdown,
@@ -59,7 +60,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"replace()":                &replaceMarkdown,
 	"set_measurement()":        &setMeasurementMarkdown,
 	"set_tag()":                &setTagMarkdown,
-	"sql_cover":                &sqlCoverMarkdown,
+	"sql_cover()":              &sqlCoverMarkdown,
 	"strfmt()":                 &strfmtMarkdown,
 	"trim()":                   &trimMarkdown,
 	"uppercase()":              &uppercaseMarkdown,
@@ -83,6 +84,11 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"gjson()":                  &gjsonMarkdown,
 	"point_window()":           &pointWinodoeMarkdown,
 	"window_hit()":             &winHitMarkdown,
+	"pt_kvs_set()":             FnPtKvsSet.Doc[0],
+	"pt_kvs_get()":             FnPtKvsGet.Doc[0],
+	"pt_kvs_del()":             FnPtKvsDel.Doc[0],
+	"pt_kvs_keys()":            FnPtKvsKeys.Doc[0],
+	"hash()":                   FnHash.Doc[0],
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -99,7 +105,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"cidr()":                   &cidrMarkdownEN,
 	"cover()":                  &coverMarkdownEN,
 	"datetime()":               &datetimeMarkdownEN,
-	"decode":                   &decodeMarkdownEN,
+	"decode()":                 &decodeMarkdownEN,
 	"default_time()":           &defaultTimeMarkdownEN,
 	"drop()":                   &dropMarkdownEN,
 	"drop_key()":               &dropKeyMarkdownEN,
@@ -126,7 +132,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"replace()":                &replaceMarkdownEN,
 	"set_measurement()":        &setMeasurementMarkdownEN,
 	"set_tag()":                &setTagMarkdownEN,
-	"sql_cover":                &sqlCoverMarkdownEN,
+	"sql_cover()":              &sqlCoverMarkdownEN,
 	"strfmt()":                 &strfmtMarkdownEN,
 	"trim()":                   &trimMarkdownEN,
 	"uppercase()":              &uppercaseMarkdownEN,
@@ -150,6 +156,11 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"gjson()":                  &gjsonMarkdownEN,
 	"point_window()":           &pointWinodoeMarkdownEN,
 	"window_hit()":             &winHitMarkdownEN,
+	"pt_kvs_set()":             FnPtKvsSet.Doc[1],
+	"pt_kvs_get()":             FnPtKvsGet.Doc[1],
+	"pt_kvs_del()":             FnPtKvsDel.Doc[1],
+	"pt_kvs_keys()":            FnPtKvsKeys.Doc[1],
+	"hash()":                   FnHash.Doc[1],
 }
 
 // embed docs.
@@ -349,12 +360,13 @@ var (
 )
 
 const (
+	langTagEnUS = "en-US"
 	langTagZhCN = "zh-CN"
 )
 
 const (
 	cEncodeDecode    = "编解码"
-	cMeasurementOp   = "行协议操作"
+	cPointOp         = "Point 操作"
 	cRegExp          = "RegExp"
 	cGrok            = "Grok"
 	cJSON            = "JSON"
@@ -365,7 +377,7 @@ const (
 	cStringOp        = "字符串操作"
 	cDesensitization = "脱敏"
 	cSample          = "采样"
-	ea               = "聚合"
+	cAgg             = "聚合"
 	cOther           = "其他"
 )
 
@@ -379,19 +391,19 @@ var (
 	addKeyMarkdown = PLDoc{
 		Doc: docAddKey, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	aggCreateMarkdown = PLDoc{
 		Doc: docAggCreate, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {ea},
+			langTagZhCN: {cAgg},
 		},
 	}
 	aggMetricMarkdown = PLDoc{
 		Doc: docAggMetric, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {ea},
+			langTagZhCN: {cAgg},
 		},
 	}
 
@@ -464,31 +476,31 @@ var (
 	defaultTimeMarkdown = PLDoc{
 		Doc: docDefaultTime, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cTimeOp, cMeasurementOp},
+			langTagZhCN: {cTimeOp, cPointOp},
 		},
 	}
 	getKeyMarkdown = PLDoc{
 		Doc: docGetKey, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	dropKeyMarkdown = PLDoc{
 		Doc: docDropKey, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	dropMarkdown = PLDoc{
 		Doc: docDrop, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	dropOriginDataMarkdown = PLDoc{
 		Doc: docDropOriginData, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	durationPrecisionMarkdown = PLDoc{
@@ -590,7 +602,7 @@ var (
 	renameMarkdown = PLDoc{
 		Doc: docRename, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	replaceMarkdown = PLDoc{
@@ -609,13 +621,13 @@ var (
 	setMeasurementMarkdown = PLDoc{
 		Doc: docSetMeasurement, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	setTagMarkdown = PLDoc{
 		Doc: docSetTag, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cMeasurementOp},
+			langTagZhCN: {cPointOp},
 		},
 	}
 	sqlCoverMarkdown = PLDoc{
@@ -724,7 +736,7 @@ var (
 	ptNameMarkdown = PLDoc{
 		Doc: docPtName,
 		FnCategory: map[string][]string{
-			langTagZhCN: {cOther},
+			langTagZhCN: {cPointOp},
 		},
 	}
 
@@ -759,14 +771,14 @@ var (
 	pointWinodoeMarkdown = PLDoc{
 		Doc: docPointWindow,
 		FnCategory: map[string][]string{
-			langTagZhCN: {eOther},
+			langTagZhCN: {cOther},
 		},
 	}
 
 	winHitMarkdown = PLDoc{
 		Doc: docWindowHit,
 		FnCategory: map[string][]string{
-			langTagZhCN: {eOther},
+			langTagZhCN: {cOther},
 		},
 	}
 )

@@ -10,6 +10,6 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/token"
 )
 
-func NewRunError(ctx *Context, err string, pos token.LnColPos) *errchain.PlError {
+func NewRunError(ctx *Task, err string, pos token.LnColPos) *errchain.PlError {
 	return errchain.NewErr(ctx.name, pos, err)
 }

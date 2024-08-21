@@ -11,11 +11,11 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ExitChecking(ctx *runtime.Context, node *ast.CallExpr) *errchain.PlError {
+func ExitChecking(ctx *runtime.Task, node *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func Exit(ctx *runtime.Context, node *ast.CallExpr) *errchain.PlError {
+func Exit(ctx *runtime.Task, node *ast.CallExpr) *errchain.PlError {
 	ctx.SetExit()
 	return nil
 }

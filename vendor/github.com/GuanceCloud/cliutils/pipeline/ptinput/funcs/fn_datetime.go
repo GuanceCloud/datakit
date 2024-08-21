@@ -17,8 +17,8 @@ import (
 	conv "github.com/spf13/cast"
 )
 
-func DateTimeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func DateTimeChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"key", "precision", "fmt", "tz",
 	}, 3); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -58,7 +58,7 @@ func DateTimeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DateTime(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 3 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 3 or 4 args", funcExpr.Name), funcExpr.NamePos)
@@ -73,7 +73,7 @@ func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		precision = funcExpr.Param[1].StringLiteral.Val
+		precision = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param `precision` expect StringLiteral, got %s",
@@ -82,7 +82,7 @@ func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		fmts = funcExpr.Param[2].StringLiteral.Val
+		fmts = funcExpr.Param[2].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param `fmt` expect StringLiteral, got %s",
@@ -112,7 +112,7 @@ func DateTime(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	var tz string
 	if funcExpr.Param[3] != nil {
 		if funcExpr.Param[3].NodeType == ast.TypeStringLiteral {
-			tz = funcExpr.Param[3].StringLiteral.Val
+			tz = funcExpr.Param[3].StringLiteral().Val
 		} else {
 			return runtime.NewRunError(ctx, fmt.Sprintf(
 				"param `tz` expect StringLiteral, got %s",

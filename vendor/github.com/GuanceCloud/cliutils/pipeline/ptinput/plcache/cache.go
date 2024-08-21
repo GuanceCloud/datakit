@@ -40,7 +40,7 @@ type Cache struct {
 	stopChannel chan struct{}
 }
 
-// NewCache returns a Cache
+// NewCache returns a Cache.
 func NewCache(interval time.Duration, numSlots int) (*Cache, error) {
 	if interval <= 0 || numSlots <= 0 {
 		return nil, ErrArg

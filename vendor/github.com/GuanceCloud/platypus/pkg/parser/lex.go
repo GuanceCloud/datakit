@@ -248,7 +248,6 @@ func lexStatements(l *Lexer) stateFn {
 	switch r := l.next(); {
 	case r == ',':
 		l.emit(COMMA)
-		return lexSpace
 
 	case isSpaceNotEOL(r):
 		return lexSpaceNotEOL
@@ -259,16 +258,13 @@ func lexStatements(l *Lexer) stateFn {
 			l.emit(MUL_EQ)
 		} else {
 			l.emit(MUL)
-			return lexSpace
 		}
-
 	case r == '/':
 		if t := l.peek(); t == '=' {
 			l.next()
 			l.emit(DIV_EQ)
 		} else {
 			l.emit(DIV)
-			return lexSpace
 		}
 	case r == '%':
 		if t := l.peek(); t == '=' {
@@ -276,7 +272,6 @@ func lexStatements(l *Lexer) stateFn {
 			l.emit(MOD_EQ)
 		} else {
 			l.emit(MOD)
-			return lexSpace
 		}
 	case r == '+':
 		if t := l.peek(); t == '=' {
@@ -284,7 +279,6 @@ func lexStatements(l *Lexer) stateFn {
 			l.emit(ADD_EQ)
 		} else {
 			l.emit(ADD)
-			return lexSpace
 		}
 
 	case r == '-':
@@ -293,12 +287,10 @@ func lexStatements(l *Lexer) stateFn {
 			l.emit(SUB_EQ)
 		} else {
 			l.emit(SUB)
-			return lexSpace
 		}
 
 	// case r == '^':
 	// 	l.emit(XOR)
-	// 	return lexSpace
 
 	case r == '=':
 		if t := l.peek(); t == '=' {
@@ -307,11 +299,9 @@ func lexStatements(l *Lexer) stateFn {
 		} else {
 			l.emit(EQ)
 		}
-		return lexSpace
 
 	case r == ':':
 		l.emit(COLON)
-		return lexSpace
 
 	case r == ';':
 		l.emit(SEMICOLON)
@@ -330,7 +320,6 @@ func lexStatements(l *Lexer) stateFn {
 			// TODO: add bit-or operator
 			return l.errorf("unexpected character `%q' after `!'", r)
 		}
-		return lexSpace
 
 	case r == '&':
 		if t := l.peek(); t == '&' {
@@ -340,7 +329,6 @@ func lexStatements(l *Lexer) stateFn {
 			// TODO: add bit-and operator
 			return l.errorf("unexpected character `%q' after `!'", r)
 		}
-		return lexSpace
 
 	case r == '!':
 		switch nr := l.peek(); {
@@ -350,7 +338,6 @@ func lexStatements(l *Lexer) stateFn {
 		default:
 			l.emit(NOT)
 		}
-		return lexSpace
 
 	case r == '<':
 		if t := l.peek(); t == '=' {
@@ -359,7 +346,6 @@ func lexStatements(l *Lexer) stateFn {
 		} else {
 			l.emit(LT)
 		}
-		return lexSpace
 
 	case r == '>':
 		if t := l.peek(); t == '=' {
@@ -368,7 +354,6 @@ func lexStatements(l *Lexer) stateFn {
 		} else {
 			l.emit(GT)
 		}
-		return lexSpace
 
 	case isDigit(r) || (r == '.' && isDigit(l.peek())):
 		l.backup()
@@ -413,7 +398,6 @@ func lexStatements(l *Lexer) stateFn {
 	case r == '(':
 		l.emit(LEFT_PAREN)
 		l.parenDepth++
-		return lexSpace
 
 	case r == ')':
 		l.emit(RIGHT_PAREN)
@@ -426,7 +410,6 @@ func lexStatements(l *Lexer) stateFn {
 	case r == '{':
 		l.emit(LEFT_BRACE)
 		l.braceDepth++
-		return lexSpace
 
 	case r == '}':
 		l.emit(RIGHT_BRACE)
@@ -438,7 +421,6 @@ func lexStatements(l *Lexer) stateFn {
 	case r == '[':
 		l.bracketDepth++
 		l.emit(LEFT_BRACKET)
-		return lexSpace
 
 	case r == ']':
 		l.bracketDepth--
@@ -486,15 +468,6 @@ __goon:
 		}
 	}
 
-	return lexStatements
-}
-
-func lexSpace(l *Lexer) stateFn {
-	for isSpace(l.peek()) {
-		l.next()
-	}
-
-	l.ignore()
 	return lexStatements
 }
 
@@ -749,7 +722,6 @@ func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
 func isUTF8(r rune) bool         { return utf8.RuneLen(r) > 1 }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }
-func isSpace(r rune) bool        { return r == ' ' || r == '\t' || r == '\n' || r == '\r' }
 func isSpaceNotEOL(r rune) bool  { return r == ' ' || r == '\t' || r == '\r' }
 
 func isEOL(r rune) bool { return r == '\r' || r == '\n' }

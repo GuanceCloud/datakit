@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func AddPatternChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AddPatternChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -23,7 +23,7 @@ func AddPatternChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.
 	var name, pattern string
 	switch funcExpr.Param[0].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		name = funcExpr.Param[0].StringLiteral.Val
+		name = funcExpr.Param[0].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("expect StringLiteral, got %s",
 			funcExpr.Param[0].NodeType), funcExpr.NamePos)
@@ -31,7 +31,7 @@ func AddPatternChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		pattern = funcExpr.Param[1].StringLiteral.Val
+		pattern = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("expect StringLiteral, got %s",
 			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
@@ -45,6 +45,6 @@ func AddPatternChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.
 	return nil
 }
 
-func AddPattern(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AddPattern(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }

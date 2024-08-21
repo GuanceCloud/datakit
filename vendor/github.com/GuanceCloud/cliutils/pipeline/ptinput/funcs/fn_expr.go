@@ -11,12 +11,12 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ExprChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ExprChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	l.Debugf("warning: expr() is disabled")
 	return nil
 }
 
-func Expr(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Expr(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	l.Debugf("warning: expr() is disabled")
 	return nil
 }

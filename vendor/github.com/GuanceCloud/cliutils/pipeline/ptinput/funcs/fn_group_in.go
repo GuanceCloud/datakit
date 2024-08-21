@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func GroupInChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GroupInChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 3 or 4 args", funcExpr.Name), funcExpr.NamePos)
@@ -36,7 +36,7 @@ func GroupInChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	return nil
 }
 
-func GroupIn(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GroupIn(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return runtime.NewRunError(ctx, fmt.Sprintf("func %s expected 3 or 4 args", funcExpr.Name),
 			funcExpr.NamePos)
@@ -56,15 +56,15 @@ func GroupIn(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	var set []any
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeIdentifier:
-		if v, err := ctx.GetKey(funcExpr.Param[1].Identifier.Name); err == nil &&
+		if v, err := ctx.GetKey(funcExpr.Param[1].Identifier().Name); err == nil &&
 			v.DType == ast.List {
 			if v, ok := v.Value.([]any); ok {
 				set = v
 			}
 		}
-	case ast.TypeListInitExpr:
+	case ast.TypeListLiteral:
 		if v, dtype, err := runtime.RunListInitExpr(ctx,
-			funcExpr.Param[1].ListInitExpr); err == nil && dtype == ast.List {
+			funcExpr.Param[1].ListLiteral()); err == nil && dtype == ast.List {
 			if v, ok := v.([]any); ok {
 				set = v
 			}
@@ -79,16 +79,16 @@ func GroupIn(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 		switch value.NodeType { //nolint:exhaustive
 		case ast.TypeIntegerLiteral:
-			val = value.IntegerLiteral.Val
+			val = value.IntegerLiteral().Val
 			dtype = ast.Int
 		case ast.TypeFloatLiteral:
-			val = value.FloatLiteral.Val
+			val = value.FloatLiteral().Val
 			dtype = ast.Float
 		case ast.TypeStringLiteral:
-			val = value.StringLiteral.Val
+			val = value.StringLiteral().Val
 			dtype = ast.String
 		case ast.TypeBoolLiteral:
-			val = value.BoolLiteral.Val
+			val = value.BoolLiteral().Val
 			dtype = ast.String
 		default:
 			return nil

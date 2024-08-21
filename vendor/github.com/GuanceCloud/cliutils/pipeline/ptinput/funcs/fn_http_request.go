@@ -26,8 +26,8 @@ var defaultTransport http.RoundTripper = &http.Transport{
 	ExpectContinueTimeout: 1 * time.Second,
 }
 
-func HTTPRequestChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func HTTPRequestChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"method", "url", "headers", "body",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -36,7 +36,7 @@ func HTTPRequestChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain
 	return nil
 }
 
-func HTTPRequest(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func HTTPRequest(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	// Acquire params
 	method, methodType, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {

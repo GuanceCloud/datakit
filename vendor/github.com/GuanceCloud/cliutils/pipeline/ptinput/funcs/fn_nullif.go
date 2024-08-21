@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func NullIfChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func NullIfChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf("func %s expected 2 args", funcExpr.Name),
 			funcExpr.NamePos)
@@ -27,7 +27,7 @@ func NullIfChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func NullIf(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func NullIf(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 2 args", funcExpr.Name), funcExpr.NamePos)

@@ -144,7 +144,7 @@ func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt
 	plpt.SetCache(script.cache)
 	plpt.SetPtWinPool(script.ptWindow)
 
-	err := plengine.RunScriptWithRMapIn(script.proc, plpt, signal)
+	err := script.proc.Run(plpt, signal)
 	if err != nil {
 		stats.WriteMetric(script.tags, 1, 0, 1, time.Since(startTime))
 		return err

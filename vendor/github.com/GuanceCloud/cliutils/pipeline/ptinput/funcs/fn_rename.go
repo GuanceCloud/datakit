@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func RenameChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func RenameChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -33,7 +33,7 @@ func RenameChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func Rename(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Rename(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 2 args", funcExpr.Name), funcExpr.NamePos)

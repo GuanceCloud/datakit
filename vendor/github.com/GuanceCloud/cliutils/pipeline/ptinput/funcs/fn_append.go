@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func doAppendChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func doAppendChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, "func %s expects 2 args", funcExpr.NamePos)
 	}
@@ -34,11 +34,11 @@ func doAppendChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func AppendChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AppendChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return doAppendChecking(ctx, funcExpr)
 }
 
-func Append(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Append(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if errR := doAppendChecking(ctx, funcExpr); errR != nil {
 		return errR
 	}

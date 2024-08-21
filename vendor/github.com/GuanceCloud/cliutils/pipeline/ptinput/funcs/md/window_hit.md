@@ -1,4 +1,4 @@
-### `window_hit` {fn-window-hit}
+### `window_hit()` {fn-window-hit}
 
 函数原型： `fn window_hit()`
 

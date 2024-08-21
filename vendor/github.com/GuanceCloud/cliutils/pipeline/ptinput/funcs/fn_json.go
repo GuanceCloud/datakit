@@ -17,8 +17,8 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func JSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func JSONChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"input", "json_path", "newkey",
 		"trim_space", "delete_after_extract",
 	}, 2); err != nil {
@@ -63,7 +63,7 @@ func JSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 	if funcExpr.Param[4] != nil {
 		switch funcExpr.Param[4].NodeType { //nolint:exhaustive
 		case ast.TypeBoolLiteral:
-			if funcExpr.Param[4].BoolLiteral.Val == lastIdxExpr {
+			if funcExpr.Param[4].BoolLiteral().Val == lastIdxExpr {
 				return runtime.NewRunError(ctx, "does not support deleting elements in the list",
 					funcExpr.Param[4].StartPos())
 			}
@@ -76,7 +76,7 @@ func JSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 	return nil
 }
 
-func JSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func JSON(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var jpath *ast.Node
 
 	srcKey, err := getKeyName(funcExpr.Param[0])
@@ -115,7 +115,7 @@ func JSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[4] != nil {
 		switch funcExpr.Param[4].NodeType { //nolint:exhaustive
 		case ast.TypeBoolLiteral:
-			deleteAfterExtract = funcExpr.Param[4].BoolLiteral.Val
+			deleteAfterExtract = funcExpr.Param[4].BoolLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("expect BoolLiteral, got %s",
 				funcExpr.Param[3].NodeType), funcExpr.Param[4].StartPos())
@@ -132,7 +132,7 @@ func JSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[3] != nil {
 		switch funcExpr.Param[3].NodeType { //nolint:exhaustive
 		case ast.TypeBoolLiteral:
-			trimSpace = funcExpr.Param[3].BoolLiteral.Val
+			trimSpace = funcExpr.Param[3].BoolLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("expect BoolLiteral, got %s",
 				funcExpr.Param[3].NodeType), funcExpr.Param[3].StartPos())
@@ -202,20 +202,20 @@ func jsonGet(val any, node *ast.Node, deleteAfter bool) (any, error) {
 	switch node.NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
 		return getByIdentifier(val, &ast.Identifier{
-			Name: node.StringLiteral.Val,
+			Name: node.StringLiteral().Val,
 		}, deleteAfter)
 	case ast.TypeAttrExpr:
-		return getByAttr(val, node.AttrExpr, deleteAfter)
+		return getByAttr(val, node.AttrExpr(), deleteAfter)
 
 	case ast.TypeIdentifier:
-		return getByIdentifier(val, node.Identifier, deleteAfter)
+		return getByIdentifier(val, node.Identifier(), deleteAfter)
 
 	case ast.TypeIndexExpr:
-		child, err := getByIdentifier(val, node.IndexExpr.Obj, false)
+		child, err := getByIdentifier(val, node.IndexExpr().Obj, false)
 		if err != nil {
 			return nil, err
 		}
-		return getByIndex(child, node.IndexExpr, 0, deleteAfter)
+		return getByIndex(child, node.IndexExpr(), 0, deleteAfter)
 	default:
 		return nil, fmt.Errorf("json unsupport get from %s", node.NodeType)
 	}
@@ -268,9 +268,9 @@ func getByIndex(val any, i *ast.IndexExpr, dimension int, deleteAfter bool) (any
 
 		switch i.Index[dimension].NodeType { //nolint:exhaustive
 		case ast.TypeIntegerLiteral:
-			index = int(i.Index[dimension].IntegerLiteral.Val)
+			index = int(i.Index[dimension].IntegerLiteral().Val)
 		case ast.TypeFloatLiteral:
-			index = int(i.Index[dimension].FloatLiteral.Val)
+			index = int(i.Index[dimension].FloatLiteral().Val)
 
 		default:
 			return nil, fmt.Errorf("index value is not int")
@@ -298,7 +298,7 @@ func getByIndex(val any, i *ast.IndexExpr, dimension int, deleteAfter bool) (any
 func lastIsIndex(expr *ast.Node) (bool, error) {
 	switch expr.NodeType { //nolint:exhaustive
 	case ast.TypeAttrExpr:
-		return lastIsIndex(expr.AttrExpr.Attr)
+		return lastIsIndex(expr.AttrExpr().Attr)
 	case ast.TypeIdentifier:
 		return false, nil
 	case ast.TypeIndexExpr:

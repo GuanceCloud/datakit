@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ParseDurationChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ParseDurationChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -26,7 +26,7 @@ func ParseDurationChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errcha
 	return nil
 }
 
-func ParseDuration(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ParseDuration(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		l.Debugf("parse_duration(): invalid param")
 

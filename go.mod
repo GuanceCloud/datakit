@@ -9,7 +9,7 @@ require (
 	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.4
-	github.com/GuanceCloud/platypus v0.2.9
+	github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee
 	github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
@@ -349,7 +349,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.21-0.20240820061659-b3501c0f2e71
+	github.com/GuanceCloud/cliutils v1.1.21-0.20240821062850-3079bb7ed98d
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0

@@ -11,8 +11,8 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ValueTypeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func ValueTypeChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"val",
 	}, 1); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -21,7 +21,7 @@ func ValueTypeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func ValueType(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ValueType(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if _, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0]); err != nil {
 		ctx.Regs.ReturnAppend("", ast.String)
 		return nil

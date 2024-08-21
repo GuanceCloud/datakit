@@ -59,8 +59,8 @@ func (c *reCache) get(p string) (*regexp.Regexp, bool) {
 	return nil, false
 }
 
-func KVSplitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func KVSplitChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"key", "field_split_pattern", "value_split_pattern",
 		"trim_key", "trim_value", "include_keys", "prefix",
 	}, 1); err != nil {
@@ -75,7 +75,7 @@ func KVSplitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	if funcExpr.Param[1] != nil {
 		switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			p := funcExpr.Param[1].StringLiteral.Val
+			p := funcExpr.Param[1].StringLiteral().Val
 			if err := _regexpCache.set(p); err != nil {
 				return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[1].StartPos())
 			}
@@ -89,7 +89,7 @@ func KVSplitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	if funcExpr.Param[2] != nil {
 		switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			p := funcExpr.Param[2].StringLiteral.Val
+			p := funcExpr.Param[2].StringLiteral().Val
 			if err := _regexpCache.set(p); err != nil {
 				return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[2].StartPos())
 			}
@@ -119,7 +119,7 @@ func KVSplitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 
 	if funcExpr.Param[5] != nil {
 		switch funcExpr.Param[5].NodeType { //nolint:exhaustive
-		case ast.TypeListInitExpr, ast.TypeIdentifier:
+		case ast.TypeListLiteral, ast.TypeIdentifier:
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("param include_keys expect ListInitExpr or Identifier, got %s",
 				funcExpr.Param[5].NodeType), funcExpr.NamePos)
@@ -137,7 +137,7 @@ func KVSplitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	return nil
 }
 
-func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func KVSplit(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	key, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
@@ -155,7 +155,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[1] != nil {
 		switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			p := funcExpr.Param[1].StringLiteral.Val
+			p := funcExpr.Param[1].StringLiteral().Val
 			var ok bool
 
 			fieldSplit, ok = _regexpCache.get(p)
@@ -173,7 +173,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[2] != nil {
 		switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			p := funcExpr.Param[2].StringLiteral.Val
+			p := funcExpr.Param[2].StringLiteral().Val
 
 			var ok bool
 
@@ -193,7 +193,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[3] != nil {
 		switch funcExpr.Param[3].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			trimKey = funcExpr.Param[3].StringLiteral.Val
+			trimKey = funcExpr.Param[3].StringLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("param trim_key expect StringLiteral, got %s",
 				funcExpr.Param[3].NodeType), funcExpr.NamePos)
@@ -203,7 +203,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[4] != nil {
 		switch funcExpr.Param[4].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			trimValue = funcExpr.Param[4].StringLiteral.Val
+			trimValue = funcExpr.Param[4].StringLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("param trim_value expect StringLiteral, got %s",
 				funcExpr.Param[4].NodeType), funcExpr.NamePos)
@@ -213,7 +213,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	var includeKeys []string
 	if funcExpr.Param[5] != nil {
 		switch funcExpr.Param[5].NodeType { //nolint:exhaustive
-		case ast.TypeListInitExpr, ast.TypeIdentifier:
+		case ast.TypeListLiteral, ast.TypeIdentifier:
 			v, dt, err := runtime.RunStmt(ctx, funcExpr.Param[5])
 			if err != nil {
 				return err
@@ -246,7 +246,7 @@ func KVSplit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	if funcExpr.Param[6] != nil {
 		switch funcExpr.Param[6].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			prefix = funcExpr.Param[6].StringLiteral.Val
+			prefix = funcExpr.Param[6].StringLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("param prefix expect StringLiteral, got %s",
 				funcExpr.Param[6].NodeType), funcExpr.NamePos)

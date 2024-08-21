@@ -16,8 +16,8 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func AggCreateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func AggCreateChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"bucket", "on_interval", "on_count",
 		"keep_value", "const_tags", "category",
 	}, 1); err != nil {
@@ -36,7 +36,7 @@ func AggCreateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	if arg := funcExpr.Param[1]; arg != nil {
 		switch arg.NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			ts := arg.StringLiteral.Val
+			ts := arg.StringLiteral().Val
 			if v, err := time.ParseDuration(ts); err != nil {
 				return runtime.NewRunError(ctx, fmt.Sprintf("parse on_interval: %s", err.Error()),
 					arg.StartPos())
@@ -53,7 +53,7 @@ func AggCreateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	if arg := funcExpr.Param[2]; arg != nil {
 		switch arg.NodeType { //nolint:exhaustive
 		case ast.TypeIntegerLiteral:
-			count = int(arg.IntegerLiteral.Val)
+			count = int(arg.IntegerLiteral().Val)
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("param `on_count` expect IntegerLiteral, got %s",
 				arg.NodeType), arg.StartPos())
@@ -77,7 +77,7 @@ func AggCreateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AggCreate(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	pt, err := getPoint(ctx.InData())
 	if err != nil {
 		return nil
@@ -106,7 +106,7 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
-	bukName := funcExpr.Param[0].StringLiteral.Val
+	bukName := funcExpr.Param[0].StringLiteral().Val
 	if _, ok := buks.GetBucket(ptCat, bukName); ok {
 		return nil
 	}
@@ -116,15 +116,15 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	keepValue := false
 
 	if arg := funcExpr.Param[1]; arg != nil {
-		interval, _ = time.ParseDuration(arg.StringLiteral.Val)
+		interval, _ = time.ParseDuration(arg.StringLiteral().Val)
 	}
 
 	if arg := funcExpr.Param[2]; arg != nil {
-		count = int(arg.IntegerLiteral.Val)
+		count = int(arg.IntegerLiteral().Val)
 	}
 
 	if arg := funcExpr.Param[3]; arg != nil {
-		keepValue = arg.BoolLiteral.Val
+		keepValue = arg.BoolLiteral().Val
 	}
 
 	constTags := map[string]string{}
@@ -145,8 +145,8 @@ func AggCreate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func AggAddMetricChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func AggAddMetricChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"bucket", "new_field", "agg_fn",
 		"agg_by", "agg_field", "category",
 	}, 5); err != nil {
@@ -180,11 +180,11 @@ func AggAddMetricChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchai
 	var tags []string
 	arg4 := funcExpr.Param[3]
 	switch arg4.NodeType { //nolint:exhaustive
-	case ast.TypeListInitExpr:
-		for _, v := range arg4.ListInitExpr.List {
+	case ast.TypeListLiteral:
+		for _, v := range arg4.ListLiteral().List {
 			switch v.NodeType { //nolint:exhaustive
 			case ast.TypeStringLiteral:
-				tags = append(tags, v.StringLiteral.Val)
+				tags = append(tags, v.StringLiteral().Val)
 			default:
 				return runtime.NewRunError(ctx, fmt.Sprintf("agg_by elem expect StringLiteral, got %s",
 					arg4.NodeType), arg4.StartPos())
@@ -212,7 +212,7 @@ func AggAddMetricChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchai
 	return nil
 }
 
-func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AggAddMetric(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	pt, err := getPoint(ctx.InData())
 	if err != nil {
 		return nil
@@ -223,9 +223,9 @@ func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 		return nil
 	}
 
-	bukName := funcExpr.Param[0].StringLiteral.Val
-	newField := funcExpr.Param[1].StringLiteral.Val
-	aggFn := funcExpr.Param[2].StringLiteral.Val
+	bukName := funcExpr.Param[0].StringLiteral().Val
+	newField := funcExpr.Param[1].StringLiteral().Val
+	aggFn := funcExpr.Param[2].StringLiteral().Val
 
 	aggBy, ok := funcExpr.PrivateData.([]string)
 	if !ok {
@@ -267,7 +267,7 @@ func AggAddMetric(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 		return nil
 	}
 
-	aggField := funcExpr.Param[4].StringLiteral.Val
+	aggField := funcExpr.Param[4].StringLiteral().Val
 
 	fieldValue, err := ctx.GetKey(aggField)
 	if err != nil {

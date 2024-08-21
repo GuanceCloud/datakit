@@ -192,7 +192,7 @@ func (g *filterRuntime) runNetFilterDrop(stmts ast.Stmts, elem netElem) bool {
 func (g *filterRuntime) _runStmt(node *ast.Node, elem netElem) (ast.DType, any, error) {
 	switch node.NodeType { //nolint:exhaustive
 	case ast.TypeConditionalExpr:
-		expr := node.ConditionalExpr
+		expr := node.ConditionalExpr()
 		typL, valL, err := g._runStmt(expr.LHS, elem)
 		if err != nil {
 			return ast.Invalid, nil, err
@@ -276,14 +276,14 @@ func (g *filterRuntime) _runStmt(node *ast.Node, elem netElem) (ast.DType, any, 
 
 		return ast.Bool, false, nil
 	case ast.TypeUnaryExpr:
-		expr := node.UnaryExpr
+		expr := node.UnaryExpr()
 		_, val, err := g._runStmt(expr.RHS, elem)
 		if err != nil {
 			return ast.Invalid, nil, err
 		}
 		return ast.Bool, !val.(bool), nil
 	case ast.TypeCallExpr:
-		expr := node.CallExpr
+		expr := node.CallExpr()
 
 		if g.fnG == nil {
 			return ast.Invalid, nil, fmt.Errorf("no function group")
@@ -300,17 +300,17 @@ func (g *filterRuntime) _runStmt(node *ast.Node, elem netElem) (ast.DType, any, 
 		}
 		return fnD.ret, fnD.fn(p...), nil
 	case ast.TypeParenExpr:
-		return g._runStmt(node.ParenExpr.Param, elem)
+		return g._runStmt(node.ParenExpr().Param, elem)
 	case ast.TypeIdentifier:
-		expr := node.Identifier
+		expr := node.Identifier()
 		dtyp, val := elem.get(expr.Name)
 		return dtyp, val, nil
 	case ast.TypeStringLiteral:
-		return ast.String, node.StringLiteral.Val, nil
+		return ast.String, node.StringLiteral().Val, nil
 	case ast.TypeIntegerLiteral:
-		return ast.Int, node.IntegerLiteral.Val, nil
+		return ast.Int, node.IntegerLiteral().Val, nil
 	case ast.TypeBoolLiteral:
-		return ast.Bool, node.BoolLiteral.Val, nil
+		return ast.Bool, node.BoolLiteral().Val, nil
 	default:
 		return ast.Invalid, nil, fmt.Errorf("unsupport type: %s", node.NodeType)
 	}
@@ -319,7 +319,7 @@ func (g *filterRuntime) _runStmt(node *ast.Node, elem netElem) (ast.DType, any, 
 func (g *filterRuntime) _checkStmt(node *ast.Node, elem netElem) (ast.DType, error) {
 	switch node.NodeType { //nolint:exhaustive
 	case ast.TypeConditionalExpr:
-		expr := node.ConditionalExpr
+		expr := node.ConditionalExpr()
 		switch expr.Op { //nolint:exhaustive
 		case ast.AND, ast.OR,
 			ast.EQEQ, ast.NEQ,
@@ -361,7 +361,7 @@ func (g *filterRuntime) _checkStmt(node *ast.Node, elem netElem) (ast.DType, err
 		}
 		return ast.Bool, nil
 	case ast.TypeUnaryExpr:
-		expr := node.UnaryExpr
+		expr := node.UnaryExpr()
 		if expr.Op != ast.NOT {
 			return ast.Invalid, fmt.Errorf("%d%d: unsupport operator: %s", expr.OpPos.Ln, expr.OpPos.Col, expr.Op)
 		}
@@ -374,7 +374,7 @@ func (g *filterRuntime) _checkStmt(node *ast.Node, elem netElem) (ast.DType, err
 		}
 		return ast.Bool, nil
 	case ast.TypeCallExpr:
-		expr := node.CallExpr
+		expr := node.CallExpr()
 		if g.fnG == nil {
 			return ast.Invalid, fmt.Errorf("%d%d: unsupport function: %s", expr.NamePos.Ln, expr.NamePos.Col, expr.Name)
 		}
@@ -406,9 +406,9 @@ func (g *filterRuntime) _checkStmt(node *ast.Node, elem netElem) (ast.DType, err
 		}
 		return fnD.ret, nil
 	case ast.TypeParenExpr:
-		return g._checkStmt(node.ParenExpr.Param, elem)
+		return g._checkStmt(node.ParenExpr().Param, elem)
 	case ast.TypeIdentifier:
-		expr := node.Identifier
+		expr := node.Identifier()
 		if v, _ := elem.get(expr.Name); v != ast.Invalid {
 			switch v { //nolint:exhaustive
 			case ast.Int, ast.Bool, ast.String:

@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func DropkeyChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DropkeyChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -26,7 +26,7 @@ func DropkeyChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	return nil
 }
 
-func Dropkey(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Dropkey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)

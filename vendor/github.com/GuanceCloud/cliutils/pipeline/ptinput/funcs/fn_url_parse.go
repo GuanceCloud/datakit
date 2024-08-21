@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func URLParseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func URLParseChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -27,7 +27,7 @@ func URLParseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func URLParse(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func URLParse(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)

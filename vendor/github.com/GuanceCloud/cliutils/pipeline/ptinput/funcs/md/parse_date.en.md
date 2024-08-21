@@ -21,11 +21,11 @@ Function parameters:
 Example:
 
 ```python
-parse_date(aa, "2021", "May", "12", "10", "10", "34", "", "Asia/Shanghai") # Result aa=1620785434000000000
+parse_date(aa, "2021", "May", "12", "10", "10", "34", zone="Asia/Shanghai") # Result aa=1620785434000000000
 
-parse_date(aa, "2021", "12", "12", "10", "10", "34", "", "Asia/Shanghai") # result aa=1639275034000000000
+parse_date(aa, "2021", "12", "12", "10", "10", "34", zone="Asia/Shanghai") # result aa=1639275034000000000
 
-parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai") # Result aa=1639275034000000100
+parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", zone="Asia/Shanghai") # Result aa=1639275034000000100
 
-parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") result aa=1581473434000000000
+parse_date(aa, "20", "February", "12", "10", "10", "34", zone="+8") result aa=1581473434000000000
 ```

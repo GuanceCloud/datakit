@@ -22,11 +22,11 @@ func getKeyName(node *ast.Node) (string, error) {
 
 	switch node.NodeType { //nolint:exhaustive
 	case ast.TypeIdentifier:
-		key = node.Identifier.Name
+		key = node.Identifier().Name
 	case ast.TypeAttrExpr:
-		key = node.AttrExpr.String()
+		key = node.AttrExpr().String()
 	case ast.TypeStringLiteral:
-		key = node.StringLiteral.Val
+		key = node.StringLiteral().Val
 	default:
 		return "", fmt.Errorf("expect StringLiteral or Identifier or AttrExpr, got %s",
 			node.NodeType)
@@ -172,59 +172,6 @@ func doCast(result interface{}, tInfo string) (interface{}, ast.DType) {
 	}
 
 	return nil, ast.Nil
-}
-
-func reindexFuncArgs(fnStmt *ast.CallExpr, keyList []string, reqParm int) error {
-	// reqParm >= 1, if < 0, no optional args
-	args := fnStmt.Param
-
-	if reqParm < 0 || reqParm > len(keyList) {
-		reqParm = len(keyList)
-	}
-
-	if len(args) > len(keyList) {
-		return fmt.Errorf("the number of parameters does not match")
-	}
-
-	beforPosArg := true
-
-	kMap := map[string]int{}
-	for k, v := range keyList {
-		kMap[v] = k
-	}
-
-	ret := make([]*ast.Node, len(keyList))
-
-	for idx, arg := range args {
-		if arg.NodeType == ast.TypeAssignmentExpr {
-			if beforPosArg {
-				beforPosArg = false
-			}
-			kname, err := getKeyName(arg.AssignmentExpr.LHS)
-			if err != nil {
-				return err
-			}
-			kIndex, ok := kMap[kname]
-			if !ok {
-				return fmt.Errorf("argument %s does not exist", kname)
-			}
-			ret[kIndex] = arg.AssignmentExpr.RHS
-		} else {
-			if !beforPosArg {
-				return fmt.Errorf("positional arguments cannot follow keyword arguments")
-			}
-			ret[idx] = arg
-		}
-	}
-
-	for i := 0; i < reqParm; i++ {
-		if v := ret[i]; v == nil {
-			return fmt.Errorf("parameter %s is required", keyList[i])
-		}
-	}
-
-	fnStmt.Param = ret
-	return nil
 }
 
 func getPoint(in any) (ptinput.PlInputPt, error) {

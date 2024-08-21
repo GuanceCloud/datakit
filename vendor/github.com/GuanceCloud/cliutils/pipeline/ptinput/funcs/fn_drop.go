@@ -11,11 +11,11 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func DropChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DropChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func Drop(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Drop(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err := markPtDrop(ctx.InData()); err != nil {
 		l.Debug(err)
 	}

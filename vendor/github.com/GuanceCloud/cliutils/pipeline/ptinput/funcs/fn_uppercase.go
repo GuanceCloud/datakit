@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func UppercaseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func UppercaseChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -26,7 +26,7 @@ func UppercaseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func Uppercase(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Uppercase(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 args", funcExpr.Name), funcExpr.NamePos)

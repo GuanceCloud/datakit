@@ -1,4 +1,4 @@
-### `point_window` {fn-point-window}
+### `point_window()` {fn-point-window}
 
 Function prototype: `fn point_window(before: int, after: int, stream_tags = ["filepath", "host"])`
 

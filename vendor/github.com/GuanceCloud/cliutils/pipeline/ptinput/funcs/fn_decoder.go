@@ -45,7 +45,7 @@ func NewDecoder(enc string) (*Decoder, error) {
 	return &Decoder{decoder: decoder}, nil
 }
 
-func Decode(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Decode(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var codeType string
 
 	key, err := getKeyName(funcExpr.Param[0])
@@ -71,7 +71,7 @@ func Decode(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 		codeType = keyVal
 	case ast.TypeStringLiteral:
-		codeType = funcExpr.Param[1].StringLiteral.Val
+		codeType = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"expect AttrExpr, Identifier or StringLiteral, got %s",
@@ -99,7 +99,7 @@ func Decode(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func DecodeChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DecodeChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 2", funcExpr.Name), funcExpr.NamePos)

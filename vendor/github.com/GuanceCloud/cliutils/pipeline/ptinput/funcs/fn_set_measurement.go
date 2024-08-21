@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func SetMeasurementChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func SetMeasurementChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 && len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 1 or 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -34,7 +34,7 @@ func SetMeasurementChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errch
 	return nil
 }
 
-func SetMeasurement(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func SetMeasurement(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 && len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 1 or 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -52,7 +52,7 @@ func SetMeasurement(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 
 	if len(funcExpr.Param) == 2 &&
 		funcExpr.Param[1].NodeType == ast.TypeBoolLiteral {
-		if funcExpr.Param[1].BoolLiteral.Val {
+		if funcExpr.Param[1].BoolLiteral().Val {
 			switch funcExpr.Param[0].NodeType { //nolint:exhaustive
 			case ast.TypeIdentifier, ast.TypeAttrExpr:
 				if key, err := getKeyName(funcExpr.Param[0]); err == nil {

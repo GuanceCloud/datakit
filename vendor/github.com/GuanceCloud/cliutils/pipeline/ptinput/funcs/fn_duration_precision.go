@@ -17,11 +17,11 @@ import (
 	"github.com/spf13/cast"
 )
 
-func DurationPrecisionChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DurationPrecisionChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func DurationPrecision(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DurationPrecision(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 3 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 3 args", funcExpr.Name), funcExpr.NamePos)
@@ -48,7 +48,7 @@ func DurationPrecision(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 		var err error
 		switch funcExpr.Param[i].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			if oldNew[i-1], err = precision(funcExpr.Param[i].StringLiteral.Val); err != nil {
+			if oldNew[i-1], err = precision(funcExpr.Param[i].StringLiteral().Val); err != nil {
 				l.Debug(err)
 				return nil
 			}

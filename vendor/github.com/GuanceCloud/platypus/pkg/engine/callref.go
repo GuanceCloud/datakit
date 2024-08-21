@@ -149,5 +149,5 @@ func getParamRefScript(expr *ast.CallExpr) (string, error) {
 		return "", fmt.Errorf("param type expects StringLiteral got `%s`", expr.Param[0].NodeType)
 	}
 
-	return expr.Param[0].StringLiteral.Val, nil
+	return expr.Param[0].StringLiteral().Val, nil
 }

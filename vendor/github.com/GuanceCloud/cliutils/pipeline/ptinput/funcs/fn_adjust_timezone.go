@@ -18,7 +18,7 @@ import (
 
 const defaultMinuteDelta = int64(2)
 
-func AdjustTimezoneChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AdjustTimezoneChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 1 arg", funcExpr.Name),
@@ -32,7 +32,7 @@ func AdjustTimezoneChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errch
 	return nil
 }
 
-func AdjustTimezone(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func AdjustTimezone(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	key, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
@@ -43,9 +43,9 @@ func AdjustTimezone(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	if len(funcExpr.Param) == 2 {
 		switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 		case ast.TypeFloatLiteral:
-			minuteAllow = int64(funcExpr.Param[1].FloatLiteral.Val)
+			minuteAllow = int64(funcExpr.Param[1].FloatLiteral().Val)
 		case ast.TypeIntegerLiteral:
-			minuteAllow = funcExpr.Param[1].IntegerLiteral.Val
+			minuteAllow = funcExpr.Param[1].IntegerLiteral().Val
 		default:
 		}
 	}

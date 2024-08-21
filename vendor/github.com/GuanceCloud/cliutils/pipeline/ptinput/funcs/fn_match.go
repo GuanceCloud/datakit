@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func MatchChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func MatchChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -28,7 +28,7 @@ func MatchChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	}
 
 	// 预先编译正则表达式
-	re, err := regexp.Compile(param0.StringLiteral.Val)
+	re, err := regexp.Compile(param0.StringLiteral().Val)
 	if err != nil {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func match: regexp compile failed: %s", err.Error()), param0.StartPos())
@@ -44,7 +44,7 @@ func MatchChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func Match(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Match(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		err := fmt.Errorf("func %s expects 2 args", funcExpr.Name)
 		l.Debug(err)

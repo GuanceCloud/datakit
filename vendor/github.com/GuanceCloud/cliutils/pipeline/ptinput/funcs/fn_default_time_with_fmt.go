@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func DefaultTimeWithFmtChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DefaultTimeWithFmtChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected more than 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -50,7 +50,7 @@ func DefaultTimeWithFmtChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *e
 	return nil
 }
 
-func DefaultTimeWithFmt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DefaultTimeWithFmt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var err error
 	var goTimeFmt string
 	var tz string
@@ -69,7 +69,7 @@ func DefaultTimeWithFmt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		goTimeFmt = funcExpr.Param[1].StringLiteral.Val
+		goTimeFmt = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param key expect StringLiteral, got %s",
@@ -79,7 +79,7 @@ func DefaultTimeWithFmt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.
 	if len(funcExpr.Param) > 2 {
 		switch funcExpr.Param[2].NodeType { //nolint:exhaustive
 		case ast.TypeStringLiteral:
-			tz = funcExpr.Param[2].StringLiteral.Val
+			tz = funcExpr.Param[2].StringLiteral().Val
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf(
 				"param key expect StringLiteral, got %s",

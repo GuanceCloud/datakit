@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func SampleChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func SampleChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -31,7 +31,7 @@ func SampleChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func Sample(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Sample(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -41,7 +41,7 @@ func Sample(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch funcExpr.Param[0].NodeType { //nolint:exhaustive
 	case ast.TypeArithmeticExpr:
-		res, dtype, err := runtime.RunArithmeticExpr(ctx, funcExpr.Param[0].ArithmeticExpr)
+		res, dtype, err := runtime.RunArithmeticExpr(ctx, funcExpr.Param[0].ArithmeticExpr())
 		if err != nil {
 			return err
 		}
@@ -58,9 +58,9 @@ func Sample(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		probability = p
 
 	case ast.TypeFloatLiteral:
-		probability = funcExpr.Param[0].FloatLiteral.Val
+		probability = funcExpr.Param[0].FloatLiteral().Val
 	case ast.TypeIntegerLiteral:
-		probability = float64(funcExpr.Param[0].IntegerLiteral.Val)
+		probability = float64(funcExpr.Param[0].IntegerLiteral().Val)
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"expect NumberLiteral or ArithmeticExpr, got %s", funcExpr.Param[0].NodeType),

@@ -17,7 +17,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ConvTraceIDW3C2DDChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ConvTraceIDW3C2DDChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -30,7 +30,7 @@ func ConvTraceIDW3C2DDChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *er
 	return nil
 }
 
-func ConvTraceIDW3C2DD(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ConvTraceIDW3C2DD(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)

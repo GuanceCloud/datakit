@@ -13,15 +13,15 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func TimestampChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	err := reindexFuncArgs(funcExpr, []string{"precision"}, 0)
+func TimestampChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	err := normalizeFuncArgsDeprecated(funcExpr, []string{"precision"}, 0)
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
 	return nil
 }
 
-func Timestamp(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Timestamp(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var precision string
 	if funcExpr.Param[0] != nil {
 		v, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])

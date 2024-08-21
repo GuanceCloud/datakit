@@ -16,8 +16,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func MQueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	err := reindexFuncArgs(funcExpr, []string{"table_name", "keys", "values"}, 3)
+func MQueryReferTableChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	err := normalizeFuncArgsDeprecated(funcExpr, []string{"table_name", "keys", "values"}, 3)
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
@@ -27,8 +27,8 @@ func MQueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *err
 	}
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeListInitExpr:
-		for _, v := range funcExpr.Param[1].ListInitExpr.List {
+	case ast.TypeListLiteral:
+		for _, v := range funcExpr.Param[1].ListLiteral().List {
 			switch v.NodeType { //nolint:exhaustive
 			case ast.TypeStringLiteral, ast.TypeIdentifier, ast.TypeAttrExpr:
 			default:
@@ -45,8 +45,8 @@ func MQueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *err
 	}
 
 	switch funcExpr.Param[2].NodeType { //nolint:exhaustive
-	case ast.TypeListInitExpr:
-		for _, v := range funcExpr.Param[2].ListInitExpr.List {
+	case ast.TypeListLiteral:
+		for _, v := range funcExpr.Param[2].ListLiteral().List {
 			switch v.NodeType { //nolint:exhaustive
 			case ast.TypeIdentifier, ast.TypeAttrExpr,
 				ast.TypeStringLiteral, ast.TypeBoolLiteral,
@@ -68,7 +68,7 @@ func MQueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *err
 	return nil
 }
 
-func MQueryReferTableMulti(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func MQueryReferTableMulti(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var tableName string
 
 	tname, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0])
@@ -85,11 +85,11 @@ func MQueryReferTableMulti(ctx *runtime.Context, funcExpr *ast.CallExpr) *errcha
 	var colName []string
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeListInitExpr:
-		for _, v := range funcExpr.Param[1].ListInitExpr.List {
+	case ast.TypeListLiteral:
+		for _, v := range funcExpr.Param[1].ListLiteral().List {
 			switch v.NodeType { //nolint:exhaustive
 			case ast.TypeStringLiteral:
-				colName = append(colName, v.StringLiteral.Val)
+				colName = append(colName, v.StringLiteral().Val)
 			case ast.TypeIdentifier, ast.TypeAttrExpr:
 				key, _ := getKeyName(v)
 				val, err := ctx.GetKey(key)
@@ -127,17 +127,17 @@ func MQueryReferTableMulti(ctx *runtime.Context, funcExpr *ast.CallExpr) *errcha
 
 	var colValue []any
 	switch funcExpr.Param[2].NodeType { //nolint:exhaustive
-	case ast.TypeListInitExpr:
-		for _, v := range funcExpr.Param[2].ListInitExpr.List {
+	case ast.TypeListLiteral:
+		for _, v := range funcExpr.Param[2].ListLiteral().List {
 			switch v.NodeType { //nolint:exhaustive
 			case ast.TypeStringLiteral:
-				colValue = append(colValue, v.StringLiteral.Val)
+				colValue = append(colValue, v.StringLiteral().Val)
 			case ast.TypeFloatLiteral:
-				colValue = append(colValue, v.FloatLiteral.Val)
+				colValue = append(colValue, v.FloatLiteral().Val)
 			case ast.TypeIntegerLiteral:
-				colValue = append(colValue, v.IntegerLiteral.Val)
+				colValue = append(colValue, v.IntegerLiteral().Val)
 			case ast.TypeBoolLiteral:
-				colValue = append(colValue, v.BoolLiteral.Val)
+				colValue = append(colValue, v.BoolLiteral().Val)
 			case ast.TypeIdentifier, ast.TypeAttrExpr:
 				key, _ := getKeyName(v)
 				val, err := ctx.GetKey(key)

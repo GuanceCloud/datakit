@@ -52,7 +52,7 @@ func normalizeStatus(status string) string {
 
 	if s, ok := statusMap[status]; ok {
 		status = s
-	} else {
+	} else if status == "" {
 		status = DefaultStatus
 	}
 
