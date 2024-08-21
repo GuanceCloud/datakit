@@ -76,18 +76,47 @@ var (
 			fn:  func(item *corev1.EndpointAddress, _ []string) string { return item.IP },
 		},
 		{
-			key: newKeyMatcher("__kubernetes_endpoints_address_target_pod_name"),
+			key: newKeyMatcher("__kubernetes_endpoints_address_target_kind"),
 			fn: func(item *corev1.EndpointAddress, _ []string) string {
-				if item.TargetRef != nil && item.TargetRef.Kind == "Pod" {
+				if item.TargetRef != nil {
+					return item.TargetRef.Kind
+				}
+				return ""
+			},
+		},
+		{
+			key: newKeyMatcher("__kubernetes_endpoints_address_target_name"),
+			fn: func(item *corev1.EndpointAddress, _ []string) string {
+				if item.TargetRef != nil {
 					return item.TargetRef.Name
 				}
 				return ""
 			},
 		},
 		{
+			key: newKeyMatcher("__kubernetes_endpoints_address_target_namespace"),
+			fn: func(item *corev1.EndpointAddress, _ []string) string {
+				if item.TargetRef != nil {
+					return item.TargetRef.Namespace
+				}
+				return ""
+			},
+		},
+		// deprecated, use __kubernetes_endpoints_address_target_name
+		{
+			key: newKeyMatcher("__kubernetes_endpoints_address_target_pod_name"),
+			fn: func(item *corev1.EndpointAddress, _ []string) string {
+				if item.TargetRef != nil {
+					return item.TargetRef.Name
+				}
+				return ""
+			},
+		},
+		// deprecated, use __kubernetes_endpoints_address_target_namespace
+		{
 			key: newKeyMatcher("__kubernetes_endpoints_address_target_pod_namespace"),
 			fn: func(item *corev1.EndpointAddress, _ []string) string {
-				if item.TargetRef != nil && item.TargetRef.Kind == "Pod" {
+				if item.TargetRef != nil {
 					return item.TargetRef.Namespace
 				}
 				return ""

@@ -26,7 +26,6 @@ var (
 const (
 	example = `
 [inputs.kubernetesprometheus]
-
   [[inputs.kubernetesprometheus.instances]]
     role       = "node"
     namespaces = []
