@@ -85,7 +85,7 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 	//nolint:exhaustive
 	switch event.Type {
-	case kubewatch.Bookmark:
+	case kubewatch.Bookmark, kubewatch.Deleted:
 		// Bookmark events are silently ignored.
 		return nil
 	default:
