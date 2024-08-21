@@ -214,7 +214,28 @@ func buildCommTags(k *PMeta, v *PValue, conns *TCPConns) map[string]string {
 		DPort:     uint32(k.DstPort),
 		Transport: "tcp",
 	}, tags)
-	delete(tags, "direction")
+
+	switch v.tcpInfo.direction {
+	case directionOutgoing, directionUnknown:
+		if v.tcpInfo.direction == directionUnknown {
+			tags["conn_side"] = "unknown"
+		} else {
+			tags["conn_side"] = "client"
+		}
+		tags["client_ip"] = tags["src_ip"]
+		tags["client_port"] = tags["src_port"]
+		tags["server_ip"] = tags["dst_ip"]
+		tags["server_port"] = tags["dst_port"]
+	case directionIncoming:
+		tags["conn_side"] = "server"
+
+		tags["client_ip"] = tags["dst_ip"]
+		tags["client_port"] = tags["dst_port"]
+		tags["server_ip"] = tags["src_ip"]
+		tags["server_port"] = tags["src_port"]
+	}
+
+	tags["direction"] = v.tcpInfo.direction.String()
 
 	return tags
 }
@@ -227,7 +248,6 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	// tags
 	kvs = kvs.Add("trace_id", elem.TraceID, true, true)
 	kvs = kvs.Add("parent_id", elem.ParentID, true, true)
-	kvs = kvs.Add("direction", elem.Direction, true, true)
 	kvs = kvs.Add("l7_proto", "http", true, true)
 	kvs = kvs.Add("http_path", elem.Path, true, true)
 	kvs = kvs.Add("http_status_code", elem.StatusCode, false, true)
@@ -328,7 +348,6 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 	tags map[string]string, v *PValue,
 ) (point.KVs, int64, bool, error) {
 	kvs := point.NewTags(tags)
-	kvs = kvs.Add("direction", v.tcpInfo.direction.String(), true, true)
 	kvs = kvs.Add("l7_proto", v.tcpInfo.l7proto.String(), true, true)
 	kvs = kvs.Add("chunk_id", chunk.ChunkID, false, true)
 	kvs = kvs.Add("tx_seq_min", chunk.txSeq[0], false, true)
@@ -393,7 +412,6 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	// tags
 	kvs = kvs.Add("trace_id", elem.TraceID, true, true)
 	kvs = kvs.Add("parent_id", elem.ParentID, true, true)
-	kvs = kvs.Add("direction", elem.Direction, true, true)
 	kvs = kvs.Add("l7_proto", "http2", true, true)
 	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
 		elem.reqSeq), 10), true, true)

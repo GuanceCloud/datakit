@@ -179,6 +179,11 @@ func (bpfl4 *BPFL4Log) Info() *inputs.MeasurementInfo {
 		Name: "bpf_net_l4_log",
 		Tags: map[string]interface{}{
 			"host":          inputs.TagInfo{Desc: "Host name"},
+			"client_ip":     inputs.TagInfo{Desc: "The IP address of the client"},
+			"client_port":   inputs.TagInfo{Desc: "Client port"},
+			"server_ip":     inputs.TagInfo{Desc: "The IP address of the server"},
+			"server_port":   inputs.TagInfo{Desc: "Server port"},
+			"conn_side":     inputs.TagInfo{Desc: "The side of the connection: client/server/unknown"},
 			"src_ip":        inputs.TagInfo{Desc: "The IP address of the collected local network interface"},
 			"src_port":      inputs.TagInfo{Desc: "Local port"},
 			"dst_ip":        inputs.TagInfo{Desc: "The IP address of the foreign network interface"},
@@ -235,6 +240,11 @@ func (bpfl7 *BPFL7Log) Info() *inputs.MeasurementInfo {
 		Name: "bpf_net_l7_log",
 		Tags: map[string]interface{}{
 			"host":          inputs.TagInfo{Desc: "Host name"},
+			"client_ip":     inputs.TagInfo{Desc: "The IP address of the client"},
+			"client_port":   inputs.TagInfo{Desc: "Client port"},
+			"server_ip":     inputs.TagInfo{Desc: "The IP address of the server"},
+			"server_port":   inputs.TagInfo{Desc: "Server port"},
+			"conn_side":     inputs.TagInfo{Desc: "The side of the connection: client/server/unknown"},
 			"src_ip":        inputs.TagInfo{Desc: "The IP address of the collected local network interface"},
 			"src_port":      inputs.TagInfo{Desc: "Local port"},
 			"dst_ip":        inputs.TagInfo{Desc: "The IP address of the foreign network interface"},
