@@ -45,24 +45,26 @@ type ICMPSuccess struct {
 }
 
 type ICMPTask struct {
-	Host             string            `json:"host"`
-	PacketCount      int               `json:"packet_count"`
-	Timeout          string            `json:"timeout"`
-	EnableTraceroute bool              `json:"enable_traceroute"`
-	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen      []*ICMPSuccess    `json:"success_when"`
-	SuccessWhenLogic string            `json:"success_when_logic"`
-	ExternalID       string            `json:"external_id"`
-	Name             string            `json:"name"`
-	AK               string            `json:"access_key"`
-	PostURL          string            `json:"post_url"`
-	CurStatus        string            `json:"status"`
-	Frequency        string            `json:"frequency"`
-	Region           string            `json:"region"`
-	OwnerExternalID  string            `json:"owner_external_id"`
-	Tags             map[string]string `json:"tags,omitempty"`
-	Labels           []string          `json:"labels,omitempty"`
-	UpdateTime       int64             `json:"update_time,omitempty"`
+	Host              string            `json:"host"`
+	PacketCount       int               `json:"packet_count"`
+	Timeout           string            `json:"timeout"`
+	EnableTraceroute  bool              `json:"enable_traceroute"`
+	TracerouteConfig  *TracerouteOption `json:"traceroute_config"`
+	SuccessWhen       []*ICMPSuccess    `json:"success_when"`
+	SuccessWhenLogic  string            `json:"success_when_logic"`
+	ExternalID        string            `json:"external_id"`
+	Name              string            `json:"name"`
+	AK                string            `json:"access_key"`
+	PostURL           string            `json:"post_url"`
+	CurStatus         string            `json:"status"`
+	Frequency         string            `json:"frequency"`
+	Region            string            `json:"region"`
+	OwnerExternalID   string            `json:"owner_external_id"`
+	Tags              map[string]string `json:"tags,omitempty"`
+	Labels            []string          `json:"labels,omitempty"`
+	UpdateTime        int64             `json:"update_time,omitempty"`
+	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
+	TagsInfo          string            `json:"tags_info,omitempty"`
 
 	packetLossPercent float64
 	avgRoundTripTime  float64 // us
@@ -495,4 +497,15 @@ func (t *ICMPTask) CheckSum(data []byte) (rt uint16) {
 
 func (t *ICMPTask) GetHostName() (string, error) {
 	return t.Host, nil
+}
+
+func (t *ICMPTask) GetWorkspaceLanguage() string {
+	if t.WorkspaceLanguage == "en" {
+		return "en"
+	}
+	return "zh"
+}
+
+func (t *ICMPTask) GetTagsInfo() string {
+	return t.TagsInfo
 }

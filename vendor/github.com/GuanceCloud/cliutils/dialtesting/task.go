@@ -46,6 +46,8 @@ type Task interface {
 	SetOwnerExternalID(string)
 	GetLineData() string
 	GetHostName() (string, error)
+	GetWorkspaceLanguage() string
+	GetTagsInfo() string
 
 	SetRegionID(string)
 	SetAk(string)
