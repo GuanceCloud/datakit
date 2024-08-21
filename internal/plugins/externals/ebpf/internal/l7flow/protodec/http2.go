@@ -126,7 +126,7 @@ func (dec *h2DecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 					}
 
 					if dec.direction == comm.DIn {
-						elem.meta.InnerID = thrTr.Insert(dec.direction, data.Thread, data.TSTail)
+						elem.meta.InnerID = thrTr.Insert(dec.direction, int32(data.Conn.Pid), data.Thread, data.TSTail)
 					}
 
 				case l4log.H2HdrPath:

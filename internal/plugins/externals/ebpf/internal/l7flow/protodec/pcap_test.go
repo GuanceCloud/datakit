@@ -73,7 +73,7 @@ func TestRedisProto(t *testing.T) {
 			var impl ProtoDecPipe
 			for _, c := range cases {
 				netdata := c[1].(*comm.NetwrkData)
-				_, impl, _ = RedisProtoDetect(netdata.Payload, netdata.ActSize)
+				_, impl, _ = RedisProtoDetect(netdata.Payload, netdata.CaptureSize)
 				if impl != nil {
 					break
 				}
@@ -189,7 +189,7 @@ func TestMySQLProto(t *testing.T) {
 			var impl ProtoDecPipe
 			for _, c := range cases {
 				netdata := c[1].(*comm.NetwrkData)
-				_, impl, _ = MysqlProtoDetect(netdata.Payload, netdata.ActSize)
+				_, impl, _ = MysqlProtoDetect(netdata.Payload, netdata.CaptureSize)
 				if impl != nil {
 					break
 				}
@@ -310,9 +310,9 @@ func (s *netStream) Get(localIP, foreignIP net.IP, localPort, foreignPort uint16
 
 func wrapPacket(buf []byte, dir comm.NICDirection, tcpSeq, sPort, dPort uint32) *comm.NetwrkData {
 	netdata := &comm.NetwrkData{
-		ActSize: len(buf),
-		Payload: buf,
-		TCPSeq:  tcpSeq,
+		CaptureSize: len(buf),
+		Payload:     buf,
+		TCPSeq:      tcpSeq,
 		Conn: comm.ConnectionInfo{
 			Sport: sPort,
 			Dport: dPort,

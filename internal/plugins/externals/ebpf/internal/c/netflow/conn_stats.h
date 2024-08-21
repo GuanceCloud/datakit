@@ -49,7 +49,7 @@ enum ConnLayerP
 };
 
 // key of bpf map conn_stats
-struct connection_info
+typedef struct connection_info
 {
     __be32 saddr[4]; // src ip address； Use the last element to store the IPv4 address
     __be32 daddr[4]; // dst ip address
@@ -58,7 +58,7 @@ struct connection_info
     __u32 pid;
     __u32 netns; // network namespace
     __u32 meta;  // first byte: 0x0000|IPv4 or 0x0001|IPv6; second byte 0x0000|TCP or 0x0100|UDP; ...
-};
+} conn_inf_t;
 
 struct connection_stats
 {

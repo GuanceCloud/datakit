@@ -44,95 +44,100 @@ enum
     HTTP_METHOD_TRACE
 };
 
-static __always_inline void fill_conn_uni_id(conn_uni_id_t *id, void *sk, __u64 k_time)
+static __always_inline void get_uni_id(id_generator_t *dst)
 {
-    id->ktime = (__u32)k_time;
-    id->sk = (__u64)sk;
-    id->prandom = bpf_get_prandom_u32();
+    __u32 index = 0;
+    id_generator_t *val = NULL;
+    val = (id_generator_t *)bpf_map_lookup_elem(&mp_uni_id_per_cpu, &index);
+    if (val == NULL)
+    {
+        return;
+    }
+
+    // initialize
+    if (val->init == 0)
+    {
+        __u16 cpu_id = (__u16)bpf_get_smp_processor_id();
+        val->cpu_id = cpu_id;
+        val->init = 1;
+    }
+
+    __u64 ktime = bpf_ktime_get_ns();
+    val->ktime = ktime;
+
+    val->id++;
+
+    __builtin_memcpy(dst, val, sizeof(id_generator_t));
 }
 
-static __always_inline void get_conn_uni_id(void *sk, __u64 pid_tgid, conn_uni_id_t *dst)
+static __always_inline __u8 get_sk_inf(void *sk, sk_inf_t *dst, __u8 force)
 {
-    conn_uni_id_t *id = NULL;
-    id = bpf_map_lookup_elem(&mp_conn_uni_id, &sk);
-    if (id == NULL)
+    sk_inf_t *inf = NULL;
+
+    inf = (sk_inf_t *)bpf_map_lookup_elem(&mp_sk_inf, &sk);
+    if (inf == NULL)
     {
-        __u64 k_time = bpf_ktime_get_ns();
-        fill_conn_uni_id(dst, sk, k_time);
-        bpf_map_update_elem(&mp_conn_uni_id, &sk, dst, BPF_NOEXIST);
-        id = bpf_map_lookup_elem(&mp_conn_uni_id, &sk);
-        if (id != NULL)
+        if (force != 0)
         {
-            __builtin_memcpy(dst, id, sizeof(conn_uni_id_t));
+            sk_inf_t i = {0};
+            i.index = 1;
+            get_uni_id(&i.uni_id);
+            __u64 pid_tgid = bpf_get_current_pid_tgid();
+
+            if (read_connection_info(sk, &i.conn, pid_tgid, CONN_L4_TCP) != 0)
+            {
+                return 0;
+            }
+
+            // May fail due to exceeding the upper limit of the number of elements
+            bpf_map_update_elem(&mp_sk_inf, &sk, &i, BPF_NOEXIST);
+
+            inf = (sk_inf_t *)bpf_map_lookup_elem(&mp_sk_inf, &sk);
         }
     }
-    else
+
+    if (inf != NULL)
     {
-        __builtin_memcpy(dst, id, sizeof(conn_uni_id_t));
+        __builtin_memcpy(dst, inf, sizeof(sk_inf_t));
+        __sync_fetch_and_add(&inf->index, 1);
+        return 1;
     }
+
+    return 0;
 }
 
-static __always_inline void del_conn_uni_id(void *sk)
+static __always_inline void del_sk_inf(void *sk)
 {
-    bpf_map_delete_elem(&mp_conn_uni_id, &sk);
-}
-
-static __always_inline __u32
-get_sock_buf_index(void *sk)
-{
-    __u32 i = 0;
-    __u32 *idx = bpf_map_lookup_elem(&mp_sock_buf_index, &sk);
-    if (idx == NULL)
-    {
-        bpf_map_update_elem(&mp_sock_buf_index, &sk, &i, BPF_NOEXIST);
-        __u32 *idx = bpf_map_lookup_elem(&mp_sock_buf_index, &sk);
-        if (idx != NULL)
-        {
-            i = *idx;
-        }
-    }
-    else
-    {
-        i = *idx;
-    }
-    i += 1;
-    bpf_map_update_elem(&mp_sock_buf_index, &sk, &i, BPF_ANY);
-    return i;
-}
-
-static __always_inline void del_sock_buf_index(void *sk)
-{
-    bpf_map_delete_elem(&mp_sock_buf_index, &sk);
+    bpf_map_delete_elem(&mp_sk_inf, &sk);
 }
 
 // args: syscall_rw_arg_t, syscall_rw_v_arg_t; dst: netwrk_data_t
-#define read_net_meta(args, pid_tgid, dst)                             \
-    do                                                                 \
-    {                                                                  \
-        __u64 ts = bpf_ktime_get_ns();                                 \
-        if (!conn_info_from_skt(args->skt, &dst->meta.conn, pid_tgid)) \
-        {                                                              \
-            goto cleanup;                                              \
-        }                                                              \
-                                                                       \
-        struct sock *sk = NULL;                                        \
-        enum sock_type sktype = 0;                                     \
-        get_sock_from_skt(args->skt, &sk, &sktype);                    \
-        get_conn_uni_id(sk, pid_tgid, &dst->meta.uni_id);              \
-        dst->meta.index = get_sock_buf_index(sk);                      \
-        dst->meta.ts = args->ts;                                       \
-        dst->meta.ts_tail = ts;                                        \
-        dst->meta.tid_utid = pid_tgid << 32;                           \
-        dst->meta.tcp_seq = args->tcp_seq;                             \
-        dst->meta.func_id = fn;                                        \
-        dst->meta.fd = args->fd;                                       \
-        dst->meta.act_size = ctx->ret;                                 \
-                                                                       \
-        __u64 *goid = bpf_map_lookup_elem(&bmap_tid2goid, &pid_tgid);  \
-        if (goid != NULL)                                              \
-        {                                                              \
-            dst->meta.tid_utid |= *goid;                               \
-        }                                                              \
+#define read_net_meta(args, pid_tgid, dst)                            \
+    do                                                                \
+    {                                                                 \
+        __u64 ts = bpf_ktime_get_ns();                                \
+        struct sock *sk = NULL;                                       \
+        if (!get_sk_with_typ(args->skt, &sk, SOCK_STREAM))            \
+        {                                                             \
+            goto cleanup;                                             \
+        };                                                            \
+        __u8 found = get_sk_inf(sk, &dst->meta.sk_inf, 1);            \
+        if (found == 0)                                               \
+        {                                                             \
+            goto cleanup;                                             \
+        }                                                             \
+        dst->meta.ts = args->ts;                                      \
+        dst->meta.ts_tail = ts;                                       \
+        dst->meta.tid_utid = pid_tgid << 32;                          \
+        dst->meta.tcp_seq = args->tcp_seq;                            \
+        dst->meta.func_id = fn;                                       \
+        dst->meta.original_size = ctx->ret;                           \
+                                                                      \
+        __u64 *goid = bpf_map_lookup_elem(&bmap_tid2goid, &pid_tgid); \
+        if (goid != NULL)                                             \
+        {                                                             \
+            dst->meta.tid_utid |= *goid;                              \
+        }                                                             \
     } while (0)
 
 static __always_inline bool proto_filter(__u64 pid_tgid, void *sock_ptr)
@@ -216,7 +221,7 @@ struct buf_iovec
     __u8 data[BUF_IOVEC_LEN];
 };
 
-static __always_inline void read_network_data_from_vec(netwrk_data_t *dst, struct iovec *vec,
+static __always_inline void read_network_data_from_vec(net_data_t *dst, struct iovec *vec,
                                                        __u64 vlen, __s64 len_or_errno)
 {
     if (len_or_errno <= 0)
@@ -263,10 +268,10 @@ static __always_inline void read_network_data_from_vec(netwrk_data_t *dst, struc
         }
     }
 
-    dst->meta.buf_len = offset;
+    dst->meta.capture_size = offset;
 }
 
-static __always_inline void read_netwrk_data(netwrk_data_t *dst, __u8 *buf, __s64 len_or_errno)
+static __always_inline void read_netwrk_data(net_data_t *dst, __u8 *buf, __s64 len_or_errno)
 {
     if (len_or_errno <= 0)
     {
@@ -282,7 +287,7 @@ static __always_inline void read_netwrk_data(netwrk_data_t *dst, __u8 *buf, __s6
         len_or_errno = len_or_errno & (sizeof(dst->payload) - 1);
     }
     bpf_probe_read(&dst->payload, len_or_errno, buf);
-    dst->meta.buf_len = len_or_errno;
+    dst->meta.capture_size = len_or_errno;
 }
 
 static __always_inline struct socket *get_socket_from_fd(
@@ -336,10 +341,7 @@ static __always_inline struct socket *get_socket_from_fd(
     struct socket *skt = NULL;
     offset = load_offset_file_private_data();
 
-    bpf_probe_read(
-        &skt, sizeof(skt),
-        (__u8 *)skfile +
-            offset); // bpf_probe_read(&skt, sizeof(skt), &skfile->private_data);
+    bpf_probe_read(&skt, sizeof(skt), (__u8 *)skfile + offset); // bpf_probe_read(&skt, sizeof(skt), &skfile->private_data);
     if (skt == NULL)
     {
         return NULL;
@@ -359,9 +361,9 @@ static __always_inline struct socket *get_socket_from_fd(
     return skt;
 }
 
-static __always_inline int get_sock_from_skt(struct socket *skt,
-                                             struct sock **sk,
-                                             enum sock_type *sktype)
+static __always_inline int get_sk(struct socket *skt,
+                                  struct sock **sk,
+                                  enum sock_type *sktype)
 {
     __u64 offset_socket_sk = load_offset_socket_sk();
 
@@ -385,27 +387,16 @@ static __always_inline void init_ssl_sockfd(void *ssl_ctx, __u32 fd)
     bpf_map_update_elem(&bpfmap_ssl_ctx_sockfd, &ssl_ctx, &fd, BPF_ANY);
 }
 
-static __always_inline bool conn_info_from_skt(
-    struct socket *skt, struct connection_info *conn, __u64 pid_tgid)
+static __always_inline bool get_sk_with_typ(struct socket *skt, struct sock **sk_ptr, enum sock_type sk_type)
 {
-    struct sock *sk = NULL;
-    enum sock_type sktype = 0;
+    enum sock_type typ = 0;
 
-    if (get_sock_from_skt(skt, &sk, &sktype) != 0)
+    if (get_sk(skt, sk_ptr, &typ) != 0 || typ != sk_type)
     {
         return false;
     }
 
-    // tcp only
-    switch (sktype)
-    {
-    case SOCK_STREAM:
-        break;
-    default:
-        return false;
-    }
-
-    if (read_connection_info(sk, conn, pid_tgid, CONN_L4_TCP) != 0)
+    if (*sk_ptr == NULL)
     {
         return false;
     }
@@ -413,10 +404,10 @@ static __always_inline bool conn_info_from_skt(
     return true;
 }
 
-static __always_inline netwrk_data_t *get_netwrk_data_percpu()
+static __always_inline net_data_t *get_net_data_percpu()
 {
     __s32 index = 0;
-    netwrk_data_t *data = bpf_map_lookup_elem(&mp_netwrk_data_pool, &index);
+    net_data_t *data = bpf_map_lookup_elem(&mp_network_data, &index);
     if (data == NULL)
     {
         return NULL;
@@ -425,6 +416,115 @@ static __always_inline netwrk_data_t *get_netwrk_data_percpu()
     bpf_get_current_comm(&data->meta.comm, KERNEL_TASK_COMM_LEN);
 
     return data;
+}
+
+static __always_inline int buf_copy_thr_bprobe(void *dst, const int max_size_base2, int size, void *src)
+{
+    if (size <= 0)
+    {
+        return 0;
+    }
+    if (size >= max_size_base2)
+    {
+        size = max_size_base2;
+    }
+    else
+    {
+        size &= (max_size_base2 - 1);
+    }
+
+    bpf_probe_read(dst, size, src);
+    return size;
+}
+
+#define write_net_event(ctx, cpu, data, typ)                                                                             \
+    do                                                                                                                   \
+    {                                                                                                                    \
+        __s32 index = 0;                                                                                                 \
+        network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);                                      \
+        if (events == NULL)                                                                                              \
+        {                                                                                                                \
+            return;                                                                                                      \
+        }                                                                                                                \
+                                                                                                                         \
+        if (sizeof(typ) > L7_EVENT_SIZE - events->pos.len)                                                               \
+        {                                                                                                                \
+            bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));                 \
+            events->pos.len = 0;                                                                                         \
+            events->pos.num = 0;                                                                                         \
+        }                                                                                                                \
+                                                                                                                         \
+        if (sizeof(typ) + events->pos.len <= L7_EVENT_SIZE)                                                              \
+        {                                                                                                                \
+            typ *elem = (typ *)((__u8 *)(events->payload) + events->pos.len);                                            \
+                                                                                                                         \
+            events->pos.num += 1;                                                                                        \
+            elem->event_comm.idx = events->pos.num;                                                                      \
+                                                                                                                         \
+            bpf_probe_read(&elem->event_comm.meta, sizeof(data->meta), &data->meta);                                     \
+            events->pos.len += sizeof(elem->event_comm);                                                                 \
+                                                                                                                         \
+            int capture_size = data->meta.capture_size;                                                                  \
+            if (capture_size < 0)                                                                                        \
+            {                                                                                                            \
+                capture_size = 0;                                                                                        \
+            }                                                                                                            \
+            if (capture_size > 0)                                                                                        \
+            {                                                                                                            \
+                capture_size = buf_copy_thr_bprobe(&elem->payload, sizeof(elem->payload), capture_size, &data->payload); \
+            }                                                                                                            \
+                                                                                                                         \
+            events->pos.len += capture_size;                                                                             \
+            elem->event_comm.len = capture_size;                                                                         \
+        }                                                                                                                \
+    } while (0);
+
+static __always_inline void try_upload_net_events(void *ctx, net_data_t *data)
+{
+    __u64 cpu = bpf_get_smp_processor_id();
+
+    s32 capture_size = 0;
+    capture_size = data->meta.capture_size;
+
+    if (capture_size <= BUF_DIV8)
+    {
+        write_net_event(ctx, cpu, data, net_event_div8_t);
+    }
+    else if (capture_size <= BUF_DIV4)
+    {
+        write_net_event(ctx, cpu, data, net_event_div4_t);
+    }
+    else if (capture_size <= BUF_DIV2)
+    {
+        write_net_event(ctx, cpu, data, net_event_div2_t);
+    }
+    else if (capture_size <= BUF_DIV1)
+    {
+        write_net_event(ctx, cpu, data, net_event_div1_t);
+    }
+    else
+    {
+#ifdef __DKE_DEBUG_RW_V__
+        bpf_printk("act_size %d\n", capture_size);
+#endif
+        // something wrong
+    }
+}
+
+static __always_inline void flush_net_events(void *ctx)
+{
+    __s32 index = 0;
+    network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);
+    if (events == NULL || events->pos.num == 0)
+    {
+        return;
+    }
+
+    __u64 cpu = bpf_get_smp_processor_id();
+
+    bpf_perf_event_output(ctx, &mp_network_events, cpu, events, sizeof(network_events_t));
+    events->pos.len = 0;
+    events->pos.num = 0;
 }
 
 static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map, enum MSG_RW rw)
@@ -451,9 +551,8 @@ static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map
     };
 
     struct sock *sk = NULL;
-    enum sock_type sktype = 0;
 
-    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    if (!get_sk_with_typ(skt, &sk, SOCK_STREAM))
     {
         return false;
     }
@@ -520,9 +619,8 @@ static __always_inline bool put_rw_v_args(tp_syscall_rw_v_args_t *ctx, void *bpf
     };
 
     struct sock *sk = NULL;
-    enum sock_type sktype = 0;
 
-    if (get_sock_from_skt(skt, &sk, &sktype) != 0 || sktype != SOCK_STREAM)
+    if (!get_sk_with_typ(skt, &sk, SOCK_STREAM))
     {
         return false;
     }
@@ -580,7 +678,7 @@ static __always_inline void read_rw_data(tp_syscall_exit_args_t *ctx, void *bpf_
         goto cleanup;
     }
 
-    netwrk_data_t *dst = get_netwrk_data_percpu();
+    net_data_t *dst = get_net_data_percpu();
     if (dst == NULL)
     {
         goto cleanup;
@@ -590,12 +688,11 @@ static __always_inline void read_rw_data(tp_syscall_exit_args_t *ctx, void *bpf_
 
     read_netwrk_data(dst, rw_args->buf, ctx->ret);
 
-    __u64 cpu = bpf_get_smp_processor_id();
-    bpf_perf_event_output(ctx, &mp_upload_netwrk_data, cpu, dst, sizeof(netwrk_data_t));
+    try_upload_net_events(ctx, dst);
 
 #ifdef __DKE_DEBUG_RW__
-    bpf_printk("act len: %d %d\n", dst->meta.act_size, ctx->ret);
-    bpf_printk("fn: %d, len %d, data: %s\n", fn, dst->meta.buf_len, dst->payload);
+    bpf_printk("cap len: %d %d\n", dst->meta.capture_size, ctx->ret);
+    bpf_printk("fn: %d, len %d, data: %s\n", fn, dst->meta.original_size, dst->payload);
 #endif
 
 cleanup:
@@ -623,21 +720,21 @@ static __always_inline void read_rw_v_data(tp_syscall_exit_args_t *ctx, void *bp
         goto cleanup;
     }
 
-    netwrk_data_t *dst = get_netwrk_data_percpu();
+    net_data_t *dst = get_net_data_percpu();
     if (dst == NULL)
     {
         goto cleanup;
     }
 
     read_net_meta(rwv_args, pid_tgid, dst);
+
     read_network_data_from_vec(dst, rwv_args->vec, vlen, ctx->ret);
 
-    __u64 cpu = bpf_get_smp_processor_id();
-    bpf_perf_event_output(ctx, &mp_upload_netwrk_data, cpu, dst, sizeof(netwrk_data_t));
+    try_upload_net_events(ctx, dst);
 
 #ifdef __DKE_DEBUG_RW_V__
-    bpf_printk("act len: %d %d\n", dst->meta.act_size, ctx->ret);
-    bpf_printk("fn: %d, len %d, data: %s\n", fn, dst->meta.buf_len, dst->payload);
+    bpf_printk("cap len: %d %d\n", dst->meta.capture_size, ctx->ret);
+    bpf_printk("fn: %d, len %d, data: %s\n", fn, dst->meta.original_size, dst->payload);
 #endif
 
 cleanup:

@@ -102,7 +102,7 @@ struct bpf_map_def
 	char namespace[BUF_SIZE_MAP_NS];
 };
 
-#define BPF_PERCPU_MAP(map_name, value_type)               \
+#define BPF_PERCPU_ARRAY(map_name, value_type)             \
 	struct bpf_map_def SEC("maps/" #map_name) map_name = { \
 		.type = BPF_MAP_TYPE_PERCPU_ARRAY,                 \
 		.key_size = sizeof(__u32),                         \

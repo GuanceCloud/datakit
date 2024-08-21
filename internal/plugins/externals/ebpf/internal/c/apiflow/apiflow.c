@@ -93,35 +93,35 @@ FN_KPROBE(tcp_close)
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
 
-    conn_uni_id_t uni_id = {0};
-    get_conn_uni_id(sk, pid_tgid, &uni_id);
-    del_conn_uni_id(sk);
-    __u32 index = get_sock_buf_index(sk);
-    del_sock_buf_index(sk);
     if (sk == NULL)
     {
         return 0;
     }
 
-    netwrk_data_t *dst = get_netwrk_data_percpu();
-    if (dst != NULL)
+    net_data_t *dst = get_net_data_percpu();
+    if (dst == NULL)
     {
-        if (read_connection_info(sk, &dst->meta.conn, pid_tgid, CONN_L4_TCP) == 0)
-        {
-            dst->meta.index = index;
-            dst->meta.func_id = P_SYSCALL_CLOSE;
-            dst->meta.tid_utid = pid_tgid << 32;
-            __u64 *goid = bpf_map_lookup_elem(&bmap_tid2goid, &pid_tgid);
-            if (goid != NULL)
-            {
-                dst->meta.tid_utid |= *goid;
-            }
-
-            __builtin_memcpy(&dst->meta.uni_id, &uni_id, sizeof(conn_uni_id_t));
-            __u64 cpu = bpf_get_smp_processor_id();
-            bpf_perf_event_output(ctx, &mp_upload_netwrk_data, cpu, dst, sizeof(netwrk_data_t));
-        }
+        return 0;
     }
+
+    __u8 found = 0;
+    found = get_sk_inf(sk, &dst->meta.sk_inf, 0);
+    if (found == 0)
+    {
+        return 0;
+    }
+
+    del_sk_inf(sk);
+
+    dst->meta.func_id = P_SYSCALL_CLOSE;
+    dst->meta.tid_utid = pid_tgid << 32;
+    __u64 *goid = bpf_map_lookup_elem(&bmap_tid2goid, &pid_tgid);
+    if (goid != NULL)
+    {
+        dst->meta.tid_utid |= *goid;
+    }
+
+    try_upload_net_events(ctx, dst);
 
     clean_protocol_filter(pid_tgid, sk);
 
@@ -160,6 +160,26 @@ FN_UPROBE(SSL_write)
 
 FN_UPROBE(SSL_shutdown)
 {
+    return 0;
+}
+
+FN_KPROBE(sched_getaffinity)
+{
+    __u64 cpu = bpf_get_smp_processor_id();
+    __s32 index = 0;
+    network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);
+    if (events == NULL)
+    {
+        return 0;
+    }
+
+    if (events->pos.num > 0)
+    {
+        bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
+        events->pos.len = 0;
+        events->pos.num = 0;
+    }
+
     return 0;
 }
 

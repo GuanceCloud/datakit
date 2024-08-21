@@ -334,7 +334,7 @@ func ListContainersAndHostNetNS(ctrLi []cruntime.ContainerRuntime, allowLo bool,
 			for _, c := range ctrs {
 				nsH, err := netns.GetFromPid(c.Pid)
 				if err != nil {
-					log.Error("get netns from pid: %w", err)
+					log.Errorf("get netns from pid: %w", err)
 					continue
 				}
 				nsHStr := NSInode(nsH)

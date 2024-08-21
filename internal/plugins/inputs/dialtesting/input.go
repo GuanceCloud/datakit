@@ -494,7 +494,6 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 						} else if k == "name_en" {
 							ipt.regionNameEn = v_
 						}
-
 					}
 				default:
 					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())

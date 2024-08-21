@@ -436,7 +436,8 @@ func (dec *mysqlDecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		}
 
 		if dec.direction == comm.DIn {
-			inf.meta.InnerID = thrTr.Insert(dec.direction, data.Thread, data.TSTail)
+			inf.meta.InnerID = thrTr.Insert(dec.direction, int32(data.Conn.Pid),
+				data.Thread, data.TSTail)
 		}
 
 		inf.meta.ReqTCPSeq = firstSeq
@@ -476,16 +477,16 @@ func (dec *mysqlDecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 	case comm.DIn:
 		switch txRx { //nolint:exhaustive
 		case comm.NICDIngress:
-			inf.reqBytes += data.ActSize
+			inf.reqBytes += data.CaptureSize
 		case comm.NICDEgress:
-			inf.respBytes += data.ActSize
+			inf.respBytes += data.CaptureSize
 		}
 	case comm.DOut:
 		switch txRx { //nolint:exhaustive
 		case comm.NICDIngress:
-			inf.respBytes += data.ActSize
+			inf.respBytes += data.CaptureSize
 		case comm.NICDEgress:
-			inf.reqBytes += data.ActSize
+			inf.reqBytes += data.CaptureSize
 		}
 	}
 
