@@ -237,7 +237,12 @@ func (d *dialer) run() error {
 			// update regionName
 			if t.GetWorkspaceLanguage() == "en" && d.ipt.regionNameEn != "" {
 				d.regionName = d.ipt.regionNameEn
+			} else {
+				d.regionName = d.ipt.regionName
 			}
+
+			// update tags_info
+			d.tags["tags_info"] = t.GetTagsInfo()
 
 			if err := d.checkInternalNetwork(); err != nil {
 				return err
