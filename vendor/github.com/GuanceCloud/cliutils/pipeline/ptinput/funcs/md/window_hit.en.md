@@ -1,4 +1,4 @@
-### `window_hit` {fn-window-hit}
+### `window_hit()` {fn-window-hit}
 
 Function prototype: `fn window_hit()`
 

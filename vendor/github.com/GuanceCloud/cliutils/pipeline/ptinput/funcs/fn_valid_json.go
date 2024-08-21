@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ValidJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ValidJSONChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -22,7 +22,7 @@ func ValidJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func ValidJSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ValidJSON(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	val, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err

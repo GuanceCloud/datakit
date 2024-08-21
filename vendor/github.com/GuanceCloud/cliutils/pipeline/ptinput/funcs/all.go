@@ -8,6 +8,7 @@ package funcs
 
 import (
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 )
 
@@ -15,6 +16,30 @@ var l = logger.DefaultSLogger("pl-funcs")
 
 func InitLog() {
 	l = logger.SLogger("pl-funcs")
+}
+
+type Function struct {
+	Name string
+	Args []*Param
+
+	// todo: check return type
+	// Return []ast.DType
+
+	Call  runtime.FuncCall
+	Check runtime.FuncCheck
+
+	Doc [2]*PLDoc // zh, en
+
+	Deprecated bool
+}
+
+type Param struct {
+	Name string
+	Type []ast.DType
+
+	DefaultVal func() (any, ast.DType)
+	Optional   bool
+	VariableP  bool
 }
 
 var FuncsMap = map[string]runtime.FuncCall{
@@ -84,6 +109,11 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"gjson":                  GJSON,
 	"point_window":           PtWindow,
 	"window_hit":             PtWindowHit,
+	"pt_kvs_set":             FnPtKvsSet.Call,
+	"pt_kvs_get":             FnPtKvsGet.Call,
+	"pt_kvs_del":             FnPtKvsDel.Call,
+	"pt_kvs_keys":            FnPtKvsKeys.Call,
+	"hash":                   FnHash.Call,
 
 	// disable
 	"json_all": JSONAll,
@@ -156,6 +186,13 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"gjson":                  GJSONChecking,
 	"point_window":           PtWindowChecking,
 	"window_hit":             PtWindowHitChecking,
+
+	"pt_kvs_set":  FnPtKvsSet.Check,
+	"pt_kvs_get":  FnPtKvsGet.Check,
+	"pt_kvs_del":  FnPtKvsDel.Check,
+	"pt_kvs_keys": FnPtKvsKeys.Check,
+	"hash":        FnHash.Check,
+
 	// disable
 	"json_all": JSONAllChecking,
 }

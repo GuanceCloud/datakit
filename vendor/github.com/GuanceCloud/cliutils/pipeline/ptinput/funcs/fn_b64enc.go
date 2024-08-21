@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func B64encChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func B64encChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -28,7 +28,7 @@ func B64encChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func B64enc(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func B64enc(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)

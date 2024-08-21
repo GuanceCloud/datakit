@@ -13,8 +13,8 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func ParseIntChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func ParseIntChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"val", "base",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -23,7 +23,7 @@ func ParseIntChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func ParseInt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ParseInt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	val, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err
@@ -61,8 +61,8 @@ func ParseInt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func FormatIntChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func FormatIntChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"val", "base",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -71,7 +71,7 @@ func FormatIntChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func FormatInt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func FormatInt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	val, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err

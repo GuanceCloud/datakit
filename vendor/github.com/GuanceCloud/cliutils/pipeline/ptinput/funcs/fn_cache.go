@@ -9,7 +9,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func CacheGetChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CacheGetChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 arg", funcExpr.Name), funcExpr.NamePos)
@@ -17,7 +17,7 @@ func CacheGetChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func CacheGet(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CacheGet(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	val, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err
@@ -51,8 +51,8 @@ func CacheGet(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func CacheSetChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func CacheSetChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"key", "value", "exp",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -61,7 +61,7 @@ func CacheSetChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func CacheSet(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CacheSet(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	key, keyType, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err

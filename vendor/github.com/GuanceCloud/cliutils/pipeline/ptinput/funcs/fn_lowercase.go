@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func LowercaseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func LowercaseChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -28,7 +28,7 @@ func LowercaseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func Lowercase(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Lowercase(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1 args", funcExpr.Name), funcExpr.NamePos)

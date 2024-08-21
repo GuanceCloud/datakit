@@ -18,8 +18,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func CreatePointChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func CreatePointChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"name", "tags", "fields",
 		"ts", "category", "after_use",
 	}, 3); err != nil {
@@ -45,7 +45,7 @@ func CreatePointChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain
 	return nil
 }
 
-func CreatePoint(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CreatePoint(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var ptName string
 	var ptTags map[string]string
 	ptFields := map[string]any{}
@@ -154,7 +154,7 @@ func CreatePoint(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError
 	if arg := funcExpr.Param[5]; arg != nil {
 		if refCall, ok := funcExpr.PrivateData.(*ast.CallExpr); ok {
 			if srcipt, ok := refCall.PrivateData.(*runtime.Script); ok {
-				if err := runtime.RunScriptWithRMapIn(srcipt, plpt, ctx.Signal()); err != nil {
+				if err := srcipt.Run(plpt, ctx.Signal()); err != nil {
 					return err.ChainAppend(ctx.Name(), funcExpr.NamePos)
 				}
 			}

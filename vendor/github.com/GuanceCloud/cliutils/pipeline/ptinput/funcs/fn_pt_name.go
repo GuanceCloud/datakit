@@ -8,7 +8,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func PtNameChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtNameChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) > 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' can have at most one parameter", funcExpr.Name), funcExpr.NamePos)
@@ -17,7 +17,7 @@ func PtNameChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func PtName(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtName(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) == 1 {
 		if val, _, err := runtime.RunStmt(ctx, funcExpr.Param[0]); err == nil {
 			if val, ok := val.(string); ok {

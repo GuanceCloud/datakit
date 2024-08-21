@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func QueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	err := reindexFuncArgs(funcExpr, []string{"table_name", "key", "value"}, 3)
+func QueryReferTableChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	err := normalizeFuncArgsDeprecated(funcExpr, []string{"table_name", "key", "value"}, 3)
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
@@ -65,7 +65,7 @@ func QueryReferTableChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errc
 	return nil
 }
 
-func QueryReferTable(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func QueryReferTable(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var tableName string
 
 	tname, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0])
@@ -81,7 +81,7 @@ func QueryReferTable(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 	var colName string
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		colName = funcExpr.Param[1].StringLiteral.Val
+		colName = funcExpr.Param[1].StringLiteral().Val
 	case ast.TypeIdentifier, ast.TypeAttrExpr:
 		key, _ := getKeyName(funcExpr.Param[1])
 		val, err := ctx.GetKey(key)
@@ -112,13 +112,13 @@ func QueryReferTable(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlE
 			colValue = val.Value
 		}
 	case ast.TypeStringLiteral:
-		colValue = funcExpr.Param[2].StringLiteral.Val
+		colValue = funcExpr.Param[2].StringLiteral().Val
 	case ast.TypeIntegerLiteral:
-		colValue = funcExpr.Param[2].IntegerLiteral.Val
+		colValue = funcExpr.Param[2].IntegerLiteral().Val
 	case ast.TypeFloatLiteral:
-		colValue = funcExpr.Param[2].FloatLiteral.Val
+		colValue = funcExpr.Param[2].FloatLiteral().Val
 	case ast.TypeBoolLiteral:
-		colValue = funcExpr.Param[2].BoolLiteral.Val
+		colValue = funcExpr.Param[2].BoolLiteral().Val
 	}
 
 	// TODO: pos param 4: selected([]string)

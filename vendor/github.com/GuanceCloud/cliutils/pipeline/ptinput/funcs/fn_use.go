@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func UseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func UseChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -30,7 +30,7 @@ func UseChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError
 	return nil
 }
 
-func Use(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Use(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -43,11 +43,11 @@ func Use(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 			if s, ok := funcExpr.PrivateData.(*runtime.Script); ok {
 				refScript = s
 			} else {
-				l.Debugf("unknown error: %s", funcExpr.Param[0].StringLiteral.Val)
+				l.Debugf("unknown error: %s", funcExpr.Param[0].StringLiteral().Val)
 				return nil
 			}
 		} else {
-			l.Debugf("script not found: %s", funcExpr.Param[0].StringLiteral.Val)
+			l.Debugf("script not found: %s", funcExpr.Param[0].StringLiteral().Val)
 			return nil
 		}
 	default:
@@ -56,7 +56,7 @@ func Use(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 			funcExpr.Param[0].NodeType), funcExpr.Param[0].StartPos())
 	}
 
-	if err := runtime.RefRunScript(ctx, refScript); err != nil {
+	if err := refScript.RefRun(ctx); err != nil {
 		return err.ChainAppend(ctx.Name(), funcExpr.NamePos)
 	}
 	return nil

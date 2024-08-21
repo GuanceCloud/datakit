@@ -30,7 +30,7 @@ var geoDefaultVal = "unknown"
 // 	ipdbInstance = instance
 // }
 
-func GeoIPChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GeoIPChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -43,7 +43,7 @@ func GeoIPChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func GeoIP(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GeoIP(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 1 args", funcExpr.Name), funcExpr.NamePos)

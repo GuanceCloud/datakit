@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func CastChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CastChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -25,11 +25,11 @@ func CastChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		switch funcExpr.Param[1].StringLiteral.Val {
+		switch funcExpr.Param[1].StringLiteral().Val {
 		case "bool", "int", "float", "str", "string":
 		default:
 			return runtime.NewRunError(ctx, fmt.Sprintf("unsupported data type: %s",
-				funcExpr.Param[1].StringLiteral.Val), funcExpr.Param[1].StartPos())
+				funcExpr.Param[1].StringLiteral().Val), funcExpr.Param[1].StartPos())
 		}
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("param type expect StringLiteral, got `%s'",
@@ -38,7 +38,7 @@ func CastChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 	return nil
 }
 
-func Cast(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Cast(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -53,7 +53,7 @@ func Cast(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		castType = funcExpr.Param[1].StringLiteral.Val
+		castType = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("param type expect StringLiteral, got `%s'",
 			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())

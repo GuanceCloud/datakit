@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func SQLCoverChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func SQLCoverChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 1 args", funcExpr.Name), funcExpr.NamePos)
@@ -26,7 +26,7 @@ func SQLCoverChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func SQLCover(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func SQLCover(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	o := obfuscate.NewObfuscator(obfuscate.Config{})
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(

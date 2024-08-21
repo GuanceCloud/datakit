@@ -13,7 +13,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func LenChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func LenChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expected 1", funcExpr.Name), funcExpr.NamePos)
@@ -21,7 +21,7 @@ func LenChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError
 	return nil
 }
 
-func Len(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Len(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	val, dtype, err := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if err != nil {
 		return err

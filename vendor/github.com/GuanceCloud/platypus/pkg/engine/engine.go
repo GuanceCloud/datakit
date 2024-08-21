@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
-	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/parser"
 )
 
@@ -35,8 +34,7 @@ func ParseScript(scripts map[string]string,
 			Ast:      stmts,
 		}
 
-		if err := CheckScript(p, check); err != nil {
-			// TODO
+		if err := p.Check(check); err != nil {
 			retErrMap[name] = err
 			continue
 		}
@@ -49,22 +47,6 @@ func ParseScript(scripts map[string]string,
 	}
 
 	return retMap, retErrMap
-}
-
-func RunScriptWithoutMapIn(proc *plruntime.Script, data plruntime.InputWithoutMap, signal plruntime.Signal) *errchain.PlError {
-	return plruntime.RunScriptWithoutMapIn(proc, data, signal)
-}
-
-func RunScriptWithRMapIn(proc *plruntime.Script, data plruntime.InputWithRMap, signal plruntime.Signal) *errchain.PlError {
-	return plruntime.RunScriptWithRMapIn(proc, data, signal)
-}
-
-func RunScriptRef(ctx *plruntime.Context, proc *plruntime.Script) *errchain.PlError {
-	return plruntime.RefRunScript(ctx, proc)
-}
-
-func CheckScript(proc *plruntime.Script, funcsCheck map[string]plruntime.FuncCheck) *errchain.PlError {
-	return plruntime.CheckScript(proc, funcsCheck)
 }
 
 func ReadPlScriptFromDir(dirPath string) (map[string]string, map[string]string, error) {

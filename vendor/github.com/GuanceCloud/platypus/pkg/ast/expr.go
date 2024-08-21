@@ -126,17 +126,17 @@ func (e *NilLiteral) String() string {
 	return "nil"
 }
 
-type MapInitExpr struct {
+type MapLiteral struct {
 	KeyValeList [][2]*Node // key,value list
 	LBrace      token.LnColPos
 	RBrace      token.LnColPos
 }
 
-func (e *MapInitExpr) IsExpr() bool {
+func (e *MapLiteral) IsExpr() bool {
 	return true
 }
 
-func (e *MapInitExpr) String() string {
+func (e *MapLiteral) String() string {
 	v := "{"
 	for i, item := range e.KeyValeList {
 		if i == 0 {
@@ -148,17 +148,17 @@ func (e *MapInitExpr) String() string {
 	return v + "}"
 }
 
-type ListInitExpr struct {
+type ListLiteral struct {
 	List     []*Node
 	LBracket token.LnColPos
 	RBracket token.LnColPos
 }
 
-func (e *ListInitExpr) IsExpr() bool {
+func (e *ListLiteral) IsExpr() bool {
 	return true
 }
 
-func (e *ListInitExpr) String() string {
+func (e *ListLiteral) String() string {
 	arr := []string{}
 	for _, x := range e.List {
 		arr = append(arr, x.String())
@@ -292,7 +292,8 @@ type CallExpr struct {
 
 	Name string
 
-	Param []*Node
+	Param           []*Node
+	ParamNormalized []*Node
 
 	PrivateData interface{}
 

@@ -11,12 +11,12 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func JSONAllChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func JSONAllChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	l.Debugf("warning: json_all() is disabled")
 	return nil
 }
 
-func JSONAll(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func JSONAll(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	l.Debugf("warning: json_all() is disabled")
 	return nil
 }

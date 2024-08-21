@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func DeleteMapItemChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{"src", "key"}, 2); err != nil {
+func DeleteMapItemChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{"src", "key"}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
 
@@ -36,11 +36,11 @@ func DeleteMapItemChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errcha
 	return nil
 }
 
-func DeleteMapItem(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DeleteMapItem(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	var keyName string
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		keyName = funcExpr.Param[1].StringLiteral.Val
+		keyName = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("param key expect StringLiteral, got %s",
 			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
@@ -48,7 +48,7 @@ func DeleteMapItem(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 
 	switch funcExpr.Param[0].NodeType { //nolint:exhaustive
 	case ast.TypeIndexExpr:
-		indexExprDel(ctx, funcExpr.Param[0].IndexExpr, keyName)
+		indexExprDel(ctx, funcExpr.Param[0].IndexExpr(), keyName)
 		return nil
 	case ast.TypeIdentifier:
 		key, err := getKeyName(funcExpr.Param[0])
@@ -78,7 +78,7 @@ func DeleteMapItem(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func indexExprDel(ctx *runtime.Context, expr *ast.IndexExpr, keyDel string) {
+func indexExprDel(ctx *runtime.Task, expr *ast.IndexExpr, keyDel string) {
 	key := expr.Obj.Name
 
 	varb, err := ctx.GetKey(key)
@@ -106,7 +106,7 @@ func indexExprDel(ctx *runtime.Context, expr *ast.IndexExpr, keyDel string) {
 	searchListAndMap(ctx, varb.Value, expr.Index, keyDel)
 }
 
-func searchListAndMap(ctx *runtime.Context, obj any, index []*ast.Node, keyDel string) {
+func searchListAndMap(ctx *runtime.Task, obj any, index []*ast.Node, keyDel string) {
 	cur := obj
 
 	for _, i := range index {

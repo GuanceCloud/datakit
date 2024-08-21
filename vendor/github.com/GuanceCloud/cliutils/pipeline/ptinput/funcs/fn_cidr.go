@@ -15,7 +15,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func CIDRChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CIDRChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -38,7 +38,7 @@ func CIDRChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErro
 	return nil
 }
 
-func CIDR(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CIDR(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		err := fmt.Errorf("func %s expects 2 args", funcExpr.Name)
 		l.Debug(err)
@@ -83,9 +83,9 @@ func CIDRContains(ipAddr, prefix string) (bool, error) {
 	return network.Contains(ip), nil
 }
 
-func getStr(ctx *runtime.Context, node *ast.Node) (string, error) {
+func getStr(ctx *runtime.Task, node *ast.Node) (string, error) {
 	if node.NodeType == ast.TypeStringLiteral {
-		return node.StringLiteral.Val, nil
+		return node.StringLiteral().Val, nil
 	}
 
 	keyName, err := getKeyName(node)

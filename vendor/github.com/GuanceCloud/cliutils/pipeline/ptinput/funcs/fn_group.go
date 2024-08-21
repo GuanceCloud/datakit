@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func GroupChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GroupChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 3 or 4 args", funcExpr.Name), funcExpr.NamePos)
@@ -33,8 +33,8 @@ func GroupChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	}
 
 	var set []*ast.Node
-	if funcExpr.Param[1].NodeType == ast.TypeListInitExpr {
-		set = funcExpr.Param[1].ListInitExpr.List
+	if funcExpr.Param[1].NodeType == ast.TypeListLiteral {
+		set = funcExpr.Param[1].ListLiteral().List
 	}
 
 	if len(set) != 2 {
@@ -45,9 +45,9 @@ func GroupChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 
 	switch set[0].NodeType { //nolint:exhaustive
 	case ast.TypeFloatLiteral:
-		start = set[0].FloatLiteral.Val
+		start = set[0].FloatLiteral().Val
 	case ast.TypeIntegerLiteral:
-		start = float64(set[0].IntegerLiteral.Val)
+		start = float64(set[0].IntegerLiteral().Val)
 
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
@@ -56,9 +56,9 @@ func GroupChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 
 	switch set[1].NodeType { //nolint:exhaustive
 	case ast.TypeFloatLiteral:
-		end = set[1].FloatLiteral.Val
+		end = set[1].FloatLiteral().Val
 	case ast.TypeIntegerLiteral:
-		end = float64(set[1].IntegerLiteral.Val)
+		end = float64(set[1].IntegerLiteral().Val)
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"range value `%v' is not expected", set), set[1].StartPos())
@@ -72,7 +72,7 @@ func GroupChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func Group(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Group(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expected 3 or 4 args", funcExpr.Name), funcExpr.NamePos)
@@ -92,8 +92,8 @@ func Group(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	var start, end float64
 
 	var set []*ast.Node
-	if funcExpr.Param[1].NodeType == ast.TypeListInitExpr {
-		set = funcExpr.Param[1].ListInitExpr.List
+	if funcExpr.Param[1].NodeType == ast.TypeListLiteral {
+		set = funcExpr.Param[1].ListLiteral().List
 	}
 
 	if len(set) != 2 {
@@ -103,9 +103,9 @@ func Group(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch set[0].NodeType { //nolint:exhaustive
 	case ast.TypeIntegerLiteral:
-		start = float64(set[0].IntegerLiteral.Val)
+		start = float64(set[0].IntegerLiteral().Val)
 	case ast.TypeFloatLiteral:
-		start = set[0].FloatLiteral.Val
+		start = set[0].FloatLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("range value `%v' is not expected", set),
 			funcExpr.Param[1].StartPos())
@@ -113,9 +113,9 @@ func Group(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch set[1].NodeType { //nolint:exhaustive
 	case ast.TypeIntegerLiteral:
-		end = float64(set[1].IntegerLiteral.Val)
+		end = float64(set[1].IntegerLiteral().Val)
 	case ast.TypeFloatLiteral:
-		end = set[1].FloatLiteral.Val
+		end = set[1].FloatLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("range value `%v' is not expected", set),
 			funcExpr.Param[1].StartPos())
@@ -134,16 +134,16 @@ func Group(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 		switch value.NodeType { //nolint:exhaustive
 		case ast.TypeFloatLiteral:
-			val = value.FloatLiteral.Val
+			val = value.FloatLiteral().Val
 			dtype = ast.Float
 		case ast.TypeIntegerLiteral:
-			val = value.IntegerLiteral.Val
+			val = value.IntegerLiteral().Val
 			dtype = ast.Int
 		case ast.TypeStringLiteral:
-			val = value.StringLiteral.Val
+			val = value.StringLiteral().Val
 			dtype = ast.String
 		case ast.TypeBoolLiteral:
-			val = value.BoolLiteral.Val
+			val = value.BoolLiteral().Val
 			dtype = ast.String
 		default:
 			l.Debugf("unknown group elements: %s", value.NodeType)

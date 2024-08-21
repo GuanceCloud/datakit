@@ -11,11 +11,11 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func DropOriginDataChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DropOriginDataChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func DropOriginData(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func DropOriginData(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	deletePtKey(ctx.InData(), "message")
 	return nil
 }

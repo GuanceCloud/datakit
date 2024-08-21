@@ -27,8 +27,9 @@ const (
 	TypeBoolLiteral
 	TypeNilLiteral
 
-	TypeListInitExpr
-	TypeMapInitExpr
+	TypeListLiteral
+	TypeMapLiteral
+
 	TypeInExpr
 
 	TypeParenExpr
@@ -70,10 +71,10 @@ func (t NodeType) String() string {
 		return "BoolLiteral"
 	case TypeNilLiteral:
 		return "NilLiteral"
-	case TypeListInitExpr:
-		return "ListInitExpr"
-	case TypeMapInitExpr:
-		return "MapInitExpr"
+	case TypeListLiteral:
+		return "ListLiteral"
+	case TypeMapLiteral:
+		return "MapLiteral"
 	case TypeParenExpr:
 		return "ParenExpr"
 	case TypeAttrExpr:
@@ -134,324 +135,322 @@ func (e Stmts) String() string {
 	return strings.Join(arr, "\n")
 }
 
+type AstNode interface {
+	String() string
+}
+
 type Node struct {
 	// node type
 	NodeType NodeType
-
-	// expr
-	Identifier *Identifier
-
-	StringLiteral  *StringLiteral
-	IntegerLiteral *IntegerLiteral
-	FloatLiteral   *FloatLiteral
-	BoolLiteral    *BoolLiteral
-	NilLiteral     *NilLiteral
-
-	ListInitExpr *ListInitExpr
-	MapInitExpr  *MapInitExpr
-
-	ParenExpr *ParenExpr
-
-	AttrExpr  *AttrExpr
-	IndexExpr *IndexExpr
-	InExpr    *InExpr
-
-	UnaryExpr       *UnaryExpr
-	ArithmeticExpr  *ArithmeticExpr
-	ConditionalExpr *ConditionalExpr
-	AssignmentExpr  *AssignmentExpr
-
-	CallExpr *CallExpr
-
-	// stmt
-	BlockStmt *BlockStmt
-
-	IfelseStmt   *IfelseStmt
-	ForStmt      *ForStmt
-	ForInStmt    *ForInStmt
-	ContinueStmt *ContinueStmt
-	BreakStmt    *BreakStmt
+	elem     AstNode
 }
 
-func (node *Node) String() string {
-	switch node.NodeType { //nolint:exhaustive
-	case TypeIdentifier:
-		return node.Identifier.String()
-	case TypeStringLiteral:
-		return node.StringLiteral.String()
-	case TypeIntegerLiteral:
-		return node.IntegerLiteral.String()
-	case TypeFloatLiteral:
-		return node.FloatLiteral.String()
-	case TypeBoolLiteral:
-		return node.BoolLiteral.String()
-	case TypeNilLiteral:
-		return node.NilLiteral.String()
-	case TypeListInitExpr:
-		return node.ListInitExpr.String()
-	case TypeMapInitExpr:
-		return node.MapInitExpr.String()
-	case TypeParenExpr:
-		return node.ParenExpr.String()
-	case TypeAttrExpr:
-		return node.AttrExpr.String()
-	case TypeIndexExpr:
-		return node.IndexExpr.String()
-	case TypeUnaryExpr:
-		return node.UnaryExpr.String()
-	case TypeArithmeticExpr:
-		return node.ArithmeticExpr.String()
-	case TypeConditionalExpr:
-		return node.ConditionalExpr.String()
-	case TypeAssignmentExpr:
-		return node.AssignmentExpr.String()
-	case TypeCallExpr:
-		return node.CallExpr.String()
-	case TypeIfelseStmt:
-		return node.IfelseStmt.String()
-	case TypeForStmt:
-		return node.ForStmt.String()
-	case TypeForInStmt:
-		return node.ForInStmt.String()
-	case TypeContinueStmt:
-		return node.ContinueStmt.String()
-	case TypeBreakStmt:
-		return node.BreakStmt.String()
-	case TypeInExpr:
-		return node.InExpr.String()
+func (n *Node) String() string {
+	if n.elem != nil {
+		return n.elem.String()
 	}
-	return "node conv to string failed"
+	return n.NodeType.String()
+}
+
+func (n *Node) Identifier() *Identifier {
+	return n.elem.(*Identifier)
+}
+func (n *Node) StringLiteral() *StringLiteral {
+	return n.elem.(*StringLiteral)
+}
+func (n *Node) IntegerLiteral() *IntegerLiteral {
+	return n.elem.(*IntegerLiteral)
+}
+func (n *Node) FloatLiteral() *FloatLiteral {
+	return n.elem.(*FloatLiteral)
+}
+func (n *Node) BoolLiteral() *BoolLiteral {
+	return n.elem.(*BoolLiteral)
+}
+func (n *Node) NilLiteral() *NilLiteral {
+	return n.elem.(*NilLiteral)
+}
+func (n *Node) ListLiteral() *ListLiteral {
+	return n.elem.(*ListLiteral)
+}
+func (n *Node) MapLiteral() *MapLiteral {
+	return n.elem.(*MapLiteral)
+}
+func (n *Node) ParenExpr() *ParenExpr {
+	return n.elem.(*ParenExpr)
+}
+func (n *Node) AttrExpr() *AttrExpr {
+	return n.elem.(*AttrExpr)
+}
+func (n *Node) IndexExpr() *IndexExpr {
+	return n.elem.(*IndexExpr)
+}
+func (n *Node) InExpr() *InExpr {
+	return n.elem.(*InExpr)
+}
+func (n *Node) UnaryExpr() *UnaryExpr {
+	return n.elem.(*UnaryExpr)
+}
+func (n *Node) ArithmeticExpr() *ArithmeticExpr {
+	return n.elem.(*ArithmeticExpr)
+}
+func (n *Node) ConditionalExpr() *ConditionalExpr {
+	return n.elem.(*ConditionalExpr)
+}
+func (n *Node) AssignmentExpr() *AssignmentExpr {
+	return n.elem.(*AssignmentExpr)
+}
+func (n *Node) CallExpr() *CallExpr {
+	return n.elem.(*CallExpr)
+}
+func (n *Node) BlockStmt() *BlockStmt {
+	return n.elem.(*BlockStmt)
+}
+func (n *Node) IfelseStmt() *IfelseStmt {
+	return n.elem.(*IfelseStmt)
+}
+func (n *Node) ForStmt() *ForStmt {
+	return n.elem.(*ForStmt)
+}
+func (n *Node) ForInStmt() *ForInStmt {
+	return n.elem.(*ForInStmt)
+}
+func (n *Node) ContinueStmt() *ContinueStmt {
+	return n.elem.(*ContinueStmt)
+}
+func (n *Node) BreakStmt() *BreakStmt {
+	return n.elem.(*BreakStmt)
+}
+
+func (n *Node) StartPos() token.LnColPos {
+	return NodeStartPos(n)
 }
 
 func WrapIdentifier(node *Identifier) *Node {
 	return &Node{
-		NodeType:   TypeIdentifier,
-		Identifier: node,
+		NodeType: TypeIdentifier,
+		elem:     node,
 	}
 }
 
 func WrapStringLiteral(node *StringLiteral) *Node {
 	return &Node{
-		NodeType:      TypeStringLiteral,
-		StringLiteral: node,
+		NodeType: TypeStringLiteral,
+		elem:     node,
 	}
 }
 
 func WrapIntegerLiteral(node *IntegerLiteral) *Node {
 	return &Node{
-		NodeType:       TypeIntegerLiteral,
-		IntegerLiteral: node,
+		NodeType: TypeIntegerLiteral,
+		elem:     node,
 	}
 }
 
 func WrapFloatLiteral(node *FloatLiteral) *Node {
 	return &Node{
-		NodeType:     TypeFloatLiteral,
-		FloatLiteral: node,
+		NodeType: TypeFloatLiteral,
+		elem:     node,
 	}
 }
 
 func WrapBoolLiteral(node *BoolLiteral) *Node {
 	return &Node{
-		NodeType:    TypeBoolLiteral,
-		BoolLiteral: node,
+		NodeType: TypeBoolLiteral,
+		elem:     node,
 	}
 }
 
 func WrapNilLiteral(node *NilLiteral) *Node {
 	return &Node{
-		NodeType:   TypeNilLiteral,
-		NilLiteral: node,
+		NodeType: TypeNilLiteral,
+		elem:     node,
 	}
 }
 
-func WrapListInitExpr(node *ListInitExpr) *Node {
+func WrapListInitExpr(node *ListLiteral) *Node {
 	return &Node{
-		NodeType:     TypeListInitExpr,
-		ListInitExpr: node,
+		NodeType: TypeListLiteral,
+		elem:     node,
 	}
 }
 
-func WrapMapInitExpr(node *MapInitExpr) *Node {
+func WrapMapLiteral(node *MapLiteral) *Node {
 	return &Node{
-		NodeType:    TypeMapInitExpr,
-		MapInitExpr: node,
+		NodeType: TypeMapLiteral,
+		elem:     node,
 	}
 }
 
 func WrapParenExpr(node *ParenExpr) *Node {
 	return &Node{
-		NodeType:  TypeParenExpr,
-		ParenExpr: node,
+		NodeType: TypeParenExpr,
+		elem:     node,
 	}
 }
 
 func WrapAttrExpr(node *AttrExpr) *Node {
 	return &Node{
 		NodeType: TypeAttrExpr,
-		AttrExpr: node,
+		elem:     node,
 	}
 }
 
 func WrapIndexExpr(node *IndexExpr) *Node {
 	return &Node{
-		NodeType:  TypeIndexExpr,
-		IndexExpr: node,
+		NodeType: TypeIndexExpr,
+		elem:     node,
 	}
 }
 
 func WrapArithmeticExpr(node *ArithmeticExpr) *Node {
 	return &Node{
-		NodeType:       TypeArithmeticExpr,
-		ArithmeticExpr: node,
+		NodeType: TypeArithmeticExpr,
+		elem:     node,
 	}
 }
 
 func WrapConditionExpr(node *ConditionalExpr) *Node {
 	return &Node{
-		NodeType:        TypeConditionalExpr,
-		ConditionalExpr: node,
+		NodeType: TypeConditionalExpr,
+		elem:     node,
 	}
 }
 
 func WrapInExpr(node *InExpr) *Node {
 	return &Node{
 		NodeType: TypeInExpr,
-		InExpr:   node,
+		elem:     node,
 	}
 }
 
 func WrapUnaryExpr(node *UnaryExpr) *Node {
 	return &Node{
-		NodeType:  TypeUnaryExpr,
-		UnaryExpr: node,
+		NodeType: TypeUnaryExpr,
+		elem:     node,
 	}
 }
 
 func WrapAssignmentStmt(node *AssignmentExpr) *Node {
 	return &Node{
-		NodeType:       TypeAssignmentExpr,
-		AssignmentExpr: node,
+		NodeType: TypeAssignmentExpr,
+		elem:     node,
 	}
 }
 
 func WrapCallExpr(node *CallExpr) *Node {
 	return &Node{
 		NodeType: TypeCallExpr,
-		CallExpr: node,
+		elem:     node,
 	}
 }
 
 func WrapIfelseStmt(node *IfelseStmt) *Node {
 	return &Node{
-		NodeType:   TypeIfelseStmt,
-		IfelseStmt: node,
+		NodeType: TypeIfelseStmt,
+		elem:     node,
 	}
 }
 
 func WrapForStmt(node *ForStmt) *Node {
 	return &Node{
 		NodeType: TypeForStmt,
-		ForStmt:  node,
+		elem:     node,
 	}
 }
 
 func WrapForInStmt(node *ForInStmt) *Node {
 	return &Node{
-		NodeType:  TypeForInStmt,
-		ForInStmt: node,
+		NodeType: TypeForInStmt,
+		elem:     node,
 	}
 }
 
 func WrapContinueStmt(node *ContinueStmt) *Node {
 	return &Node{
-		NodeType:     TypeContinueStmt,
-		ContinueStmt: node,
+		NodeType: TypeContinueStmt,
+		elem:     node,
 	}
 }
 
 func WrapBreakStmt(node *BreakStmt) *Node {
 	return &Node{
-		NodeType:  TypeBreakStmt,
-		BreakStmt: node,
+		NodeType: TypeBreakStmt,
+		elem:     node,
 	}
 }
 
 func WrapeBlockStmt(node *BlockStmt) *Node {
 	return &Node{
-		NodeType:  TypeBlockStmt,
-		BlockStmt: node,
+		NodeType: TypeBlockStmt,
+		elem:     node,
 	}
 }
 
-func (node *Node) StartPos() token.LnColPos {
-	return NodeStartPos(node)
-}
-
 func NodeStartPos(node *Node) token.LnColPos {
-	if node == nil {
+	if node == nil || node.elem == nil {
 		return token.InvalidLnColPos
 	}
 	switch node.NodeType {
 	case TypeInvalid:
 		return token.InvalidLnColPos
 	case TypeIdentifier:
-		return node.Identifier.Start
+		return node.Identifier().Start
 	case TypeStringLiteral:
-		return node.StringLiteral.Start
+		return node.StringLiteral().Start
 	case TypeIntegerLiteral:
-		return node.IntegerLiteral.Start
+		return node.IntegerLiteral().Start
 	case TypeFloatLiteral:
-		return node.FloatLiteral.Start
+		return node.FloatLiteral().Start
 	case TypeBoolLiteral:
-		return node.BoolLiteral.Start
+		return node.BoolLiteral().Start
 	case TypeNilLiteral:
-		return node.NilLiteral.Start
+		return node.NilLiteral().Start
 
-	case TypeListInitExpr:
-		return node.ListInitExpr.LBracket
-	case TypeMapInitExpr:
-		return node.MapInitExpr.LBrace
+	case TypeListLiteral:
+		return node.ListLiteral().LBracket
+	case TypeMapLiteral:
+		return node.MapLiteral().LBrace
 
 	case TypeParenExpr:
-		return node.ParenExpr.LParen
+		return node.ParenExpr().LParen
 
 	case TypeAttrExpr:
-		return node.AttrExpr.Start
+		return node.AttrExpr().Start
 
 	case TypeIndexExpr:
-		return node.IndexExpr.Obj.Start
+		return node.IndexExpr().Obj.Start
 
 	case TypeUnaryExpr:
-		return node.UnaryExpr.OpPos
+		return node.UnaryExpr().OpPos
 	case TypeArithmeticExpr:
-		return node.ArithmeticExpr.LHS.StartPos()
+		return node.ArithmeticExpr().LHS.StartPos()
 	case TypeConditionalExpr:
-		return node.ConditionalExpr.LHS.StartPos()
+		return node.ConditionalExpr().LHS.StartPos()
 	case TypeAssignmentExpr:
-		return node.AssignmentExpr.LHS.StartPos()
+		return node.AssignmentExpr().LHS.StartPos()
 
 	case TypeCallExpr:
-		return node.CallExpr.NamePos
+		return node.CallExpr().NamePos
 
 	case TypeBlockStmt:
-		return node.BlockStmt.LBracePos
+		return node.BlockStmt().LBracePos
 
 	case TypeIfelseStmt:
-		if len(node.IfelseStmt.IfList) > 0 {
-			return node.IfelseStmt.IfList[0].Start
+		if len(node.IfelseStmt().IfList) > 0 {
+			return node.IfelseStmt().IfList[0].Start
 		} else {
 			return token.InvalidLnColPos
 		}
 
 	case TypeForStmt:
-		return node.ForStmt.ForPos
+		return node.ForStmt().ForPos
 	case TypeForInStmt:
-		return node.ForInStmt.ForPos
+		return node.ForInStmt().ForPos
 	case TypeContinueStmt:
-		return node.ContinueStmt.Start
+		return node.ContinueStmt().Start
 	case TypeBreakStmt:
-		return node.BreakStmt.Start
+		return node.BreakStmt().Start
 	}
 	return token.InvalidLnColPos
 }

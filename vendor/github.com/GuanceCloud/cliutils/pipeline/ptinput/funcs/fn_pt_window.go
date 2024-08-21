@@ -10,9 +10,9 @@ var (
 	defaultStreamTags = []string{"filepath", "host"}
 )
 
-func PtWindowChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtWindowChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	// fn pt_window(before, after, stream_tags := ["filepath", "host"])
-	if err := reindexFuncArgs(funcExpr, []string{
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"before", "after", "stream_tags",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -21,7 +21,7 @@ func PtWindowChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.Pl
 	return nil
 }
 
-func PtWindow(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtWindow(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	before, vtype, errP := runtime.RunStmt(ctx, funcExpr.Param[0])
 	if errP != nil {
 		return errP
@@ -90,11 +90,11 @@ func PtWindow(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func PtWindowHitChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtWindowHitChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func PtWindowHit(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func PtWindowHit(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	pt, err := getPoint(ctx.InData())
 	if err != nil {
 		return nil

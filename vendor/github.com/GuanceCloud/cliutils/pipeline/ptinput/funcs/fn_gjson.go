@@ -15,8 +15,8 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func GJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func GJSONChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"input", "json_path", "key_name",
 	}, 2); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -49,7 +49,7 @@ func GJSONChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func GJSON(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func GJSON(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	srcKey, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())

@@ -19,7 +19,7 @@ type ContextCheck struct {
 	continuestmt bool
 }
 
-func RunStmtsCheck(ctx *Context, ctxCheck *ContextCheck, nodes ast.Stmts) *errchain.PlError {
+func RunStmtsCheck(ctx *Task, ctxCheck *ContextCheck, nodes ast.Stmts) *errchain.PlError {
 	for _, node := range nodes {
 		if err := RunStmtCheck(ctx, ctxCheck, node); err != nil {
 			return err
@@ -28,7 +28,7 @@ func RunStmtsCheck(ctx *Context, ctxCheck *ContextCheck, nodes ast.Stmts) *errch
 	return nil
 }
 
-func RunStmtCheck(ctx *Context, ctxCheck *ContextCheck, node *ast.Node) *errchain.PlError {
+func RunStmtCheck(ctx *Task, ctxCheck *ContextCheck, node *ast.Node) *errchain.PlError {
 	if node == nil {
 		return nil
 	}
@@ -47,47 +47,47 @@ func RunStmtCheck(ctx *Context, ctxCheck *ContextCheck, node *ast.Node) *errchai
 		// skip
 	case ast.TypeNilLiteral:
 		// skip
-	case ast.TypeListInitExpr:
-		return RunListInitExprCheck(ctx, ctxCheck, node.ListInitExpr)
-	case ast.TypeMapInitExpr:
-		return RunMapInitExprCheck(ctx, ctxCheck, node.MapInitExpr)
+	case ast.TypeListLiteral:
+		return RunListInitExprCheck(ctx, ctxCheck, node.ListLiteral())
+	case ast.TypeMapLiteral:
+		return RunMapInitExprCheck(ctx, ctxCheck, node.MapLiteral())
 
 	case ast.TypeParenExpr:
-		return RunParenExprCheck(ctx, ctxCheck, node.ParenExpr)
+		return RunParenExprCheck(ctx, ctxCheck, node.ParenExpr())
 
 	case ast.TypeAttrExpr:
-		return RunAttrExprCheck(ctx, ctxCheck, node.AttrExpr)
+		return RunAttrExprCheck(ctx, ctxCheck, node.AttrExpr())
 	case ast.TypeIndexExpr:
-		return RunIndexExprGetCheck(ctx, ctxCheck, node.IndexExpr)
+		return RunIndexExprGetCheck(ctx, ctxCheck, node.IndexExpr())
 
 	case ast.TypeArithmeticExpr:
-		return RunArithmeticExprCheck(ctx, ctxCheck, node.ArithmeticExpr)
+		return RunArithmeticExprCheck(ctx, ctxCheck, node.ArithmeticExpr())
 	case ast.TypeConditionalExpr:
-		return RunConditionExprCheck(ctx, ctxCheck, node.ConditionalExpr)
+		return RunConditionExprCheck(ctx, ctxCheck, node.ConditionalExpr())
 	case ast.TypeUnaryExpr:
-		return RunUnaryExprCheck(ctx, ctxCheck, node.UnaryExpr)
+		return RunUnaryExprCheck(ctx, ctxCheck, node.UnaryExpr())
 	case ast.TypeAssignmentExpr:
-		return RunAssignmentExprCheck(ctx, ctxCheck, node.AssignmentExpr)
+		return RunAssignmentExprCheck(ctx, ctxCheck, node.AssignmentExpr())
 
 	case ast.TypeCallExpr:
-		return RunCallExprCheck(ctx, ctxCheck, node.CallExpr)
+		return RunCallExprCheck(ctx, ctxCheck, node.CallExpr())
 
 	case ast.TypeIfelseStmt:
-		return RunIfElseStmtCheck(ctx, ctxCheck, node.IfelseStmt)
+		return RunIfElseStmtCheck(ctx, ctxCheck, node.IfelseStmt())
 	case ast.TypeForStmt:
-		return RunForStmtCheck(ctx, ctxCheck, node.ForStmt)
+		return RunForStmtCheck(ctx, ctxCheck, node.ForStmt())
 	case ast.TypeForInStmt:
-		return RunForInStmtCheck(ctx, ctxCheck, node.ForInStmt)
+		return RunForInStmtCheck(ctx, ctxCheck, node.ForInStmt())
 	case ast.TypeContinueStmt:
-		return RunContinueStmtCheck(ctx, ctxCheck, node.ContinueStmt)
+		return RunContinueStmtCheck(ctx, ctxCheck, node.ContinueStmt())
 	case ast.TypeBreakStmt:
-		return RunBreakStmtCheck(ctx, ctxCheck, node.BreakStmt)
+		return RunBreakStmtCheck(ctx, ctxCheck, node.BreakStmt())
 	}
 
 	return nil
 }
 
-func RunListInitExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.ListInitExpr) *errchain.PlError {
+func RunListInitExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.ListLiteral) *errchain.PlError {
 	for _, v := range expr.List {
 		if err := RunStmtCheck(ctx, ctxCheck, v); err != nil {
 			return err.ChainAppend(ctx.name, expr.LBracket)
@@ -96,12 +96,12 @@ func RunListInitExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.ListIn
 	return nil
 }
 
-func RunMapInitExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.MapInitExpr) *errchain.PlError {
+func RunMapInitExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.MapLiteral) *errchain.PlError {
 	for _, v := range expr.KeyValeList {
 		switch v[0].NodeType { //nolint:exhaustive
 		case ast.TypeFloatLiteral, ast.TypeIntegerLiteral,
 			ast.TypeBoolLiteral, ast.TypeNilLiteral,
-			ast.TypeListInitExpr, ast.TypeMapInitExpr:
+			ast.TypeListLiteral, ast.TypeMapLiteral:
 			return NewRunError(ctx, "map key expect string",
 				ast.NodeStartPos(v[0]))
 		default:
@@ -116,11 +116,11 @@ func RunMapInitExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.MapInit
 	return nil
 }
 
-func RunParenExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.ParenExpr) *errchain.PlError {
+func RunParenExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.ParenExpr) *errchain.PlError {
 	return RunStmtCheck(ctx, ctxCheck, expr.Param)
 }
 
-func RunAttrExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.AttrExpr) *errchain.PlError {
+func RunAttrExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.AttrExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.Obj); err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func RunAttrExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.AttrExpr) 
 	return nil
 }
 
-func RunArithmeticExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.ArithmeticExpr) *errchain.PlError {
+func RunArithmeticExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.ArithmeticExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.LHS); err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func RunArithmeticExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.Arit
 	return nil
 }
 
-func RunConditionExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.ConditionalExpr) *errchain.PlError {
+func RunConditionExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.ConditionalExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.LHS); err != nil {
 		return err
 	}
@@ -155,14 +155,14 @@ func RunConditionExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.Condi
 	return nil
 }
 
-func RunUnaryExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.UnaryExpr) *errchain.PlError {
+func RunUnaryExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.UnaryExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.RHS); err != nil {
 		return err
 	}
 	return nil
 }
 
-func RunIndexExprGetCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.IndexExpr) *errchain.PlError {
+func RunIndexExprGetCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.IndexExpr) *errchain.PlError {
 	for _, v := range expr.Index {
 		if err := RunStmtCheck(ctx, ctxCheck, v); err != nil {
 			return err
@@ -171,7 +171,7 @@ func RunIndexExprGetCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.IndexE
 	return nil
 }
 
-func RunCallExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.CallExpr) *errchain.PlError {
+func RunCallExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.CallExpr) *errchain.PlError {
 	_, ok := ctx.GetFuncCall(expr.Name)
 	if !ok {
 		return NewRunError(ctx, fmt.Sprintf(
@@ -191,7 +191,7 @@ func RunCallExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.CallExpr) 
 	return funcCheck(ctx, expr)
 }
 
-func RunAssignmentExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.AssignmentExpr) *errchain.PlError {
+func RunAssignmentExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.AssignmentExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.RHS); err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func RunAssignmentExprCheck(ctx *Context, ctxCheck *ContextCheck, expr *ast.Assi
 	return nil
 }
 
-func RunIfElseStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.IfelseStmt) *errchain.PlError {
+func RunIfElseStmtCheck(ctx *Task, ctxCheck *ContextCheck, stmt *ast.IfelseStmt) *errchain.PlError {
 	ctx.StackEnterNew()
 	defer ctx.StackExitCur()
 
@@ -230,7 +230,7 @@ func RunIfElseStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.IfelseSt
 	return nil
 }
 
-func RunForStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.ForStmt) *errchain.PlError {
+func RunForStmtCheck(ctx *Task, ctxCheck *ContextCheck, stmt *ast.ForStmt) *errchain.PlError {
 	ctx.StackEnterNew()
 	defer ctx.StackExitCur()
 
@@ -268,7 +268,7 @@ func RunForStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.ForStmt) *e
 	return nil
 }
 
-func RunForInStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.ForInStmt) *errchain.PlError {
+func RunForInStmtCheck(ctx *Task, ctxCheck *ContextCheck, stmt *ast.ForInStmt) *errchain.PlError {
 	ctx.StackEnterNew()
 	defer ctx.StackExitCur()
 
@@ -303,7 +303,7 @@ func RunForInStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.ForInStmt
 	return nil
 }
 
-func RunBreakStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.BreakStmt) *errchain.PlError {
+func RunBreakStmtCheck(ctx *Task, ctxCheck *ContextCheck, stmt *ast.BreakStmt) *errchain.PlError {
 	if len(ctxCheck.forstmt) == 0 {
 		return NewRunError(ctx, "break not in loop", stmt.Start)
 	}
@@ -311,7 +311,7 @@ func RunBreakStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.BreakStmt
 	return nil
 }
 
-func RunContinueStmtCheck(ctx *Context, ctxCheck *ContextCheck, stmt *ast.ContinueStmt) *errchain.PlError {
+func RunContinueStmtCheck(ctx *Task, ctxCheck *ContextCheck, stmt *ast.ContinueStmt) *errchain.PlError {
 	if len(ctxCheck.forstmt) == 0 {
 		return NewRunError(ctx, "continue not in loop", stmt.Start)
 	}

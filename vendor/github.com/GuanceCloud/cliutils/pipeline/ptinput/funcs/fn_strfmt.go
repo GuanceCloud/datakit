@@ -14,7 +14,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func StrfmtChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func StrfmtChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) < 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func `%s' expects more than 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -31,7 +31,7 @@ func StrfmtChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlEr
 	return nil
 }
 
-func Strfmt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Strfmt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	outdata := make([]interface{}, 0)
 
 	if len(funcExpr.Param) < 2 {
@@ -48,7 +48,7 @@ func Strfmt(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeStringLiteral:
-		fmts = funcExpr.Param[1].StringLiteral.Val
+		fmts = funcExpr.Param[1].StringLiteral().Val
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param fmt expect StringLiteral, got `%s'",

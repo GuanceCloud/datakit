@@ -206,12 +206,8 @@ var (
 )
 
 const (
-	langTagEnUS = "en-US"
-)
-
-const (
 	eEncodeDecode    = "Encode/Decode"
-	eMeasurementOp   = "Point"
+	ePointOp         = "Point Operations"
 	eRegExp          = "RegExp"
 	eGrok            = "Grok"
 	eJSON            = "JSON"
@@ -236,7 +232,7 @@ var (
 	addKeyMarkdownEN = PLDoc{
 		Doc: docAddKeyEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	addPatternMarkdownEN = PLDoc{
@@ -323,31 +319,31 @@ var (
 	defaultTimeMarkdownEN = PLDoc{
 		Doc: docDefaultTimeEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eTimeOp, eMeasurementOp},
+			langTagEnUS: {eTimeOp, ePointOp},
 		},
 	}
 	getKeyMarkdownEN = PLDoc{
 		Doc: docGetKeyEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	dropKeyMarkdownEN = PLDoc{
 		Doc: docDropKeyEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	dropMarkdownEN = PLDoc{
 		Doc: docDropEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	dropOriginDataMarkdownEN = PLDoc{
 		Doc: docDropOriginDataEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	durationPrecisionMarkdownEN = PLDoc{
@@ -449,7 +445,7 @@ var (
 	renameMarkdownEN = PLDoc{
 		Doc: docRenameEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	replaceMarkdownEN = PLDoc{
@@ -468,13 +464,13 @@ var (
 	setMeasurementMarkdownEN = PLDoc{
 		Doc: docSetMeasurementEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	setTagMarkdownEN = PLDoc{
 		Doc: docSetTagEN, Deprecated: false,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eMeasurementOp},
+			langTagEnUS: {ePointOp},
 		},
 	}
 	sqlCoverMarkdownEN = PLDoc{
@@ -584,7 +580,7 @@ var (
 	ptNameMarkdownEN = PLDoc{
 		Doc: docPtNameEN,
 		FnCategory: map[string][]string{
-			langTagEnUS: {eOther},
+			langTagEnUS: {ePointOp},
 		},
 	}
 

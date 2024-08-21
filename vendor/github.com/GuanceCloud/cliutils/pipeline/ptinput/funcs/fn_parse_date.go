@@ -16,8 +16,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-func ParseDateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
-	if err := reindexFuncArgs(funcExpr, []string{
+func ParseDateChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	if err := normalizeFuncArgsDeprecated(funcExpr, []string{
 		"key", "yy", "MM", "dd", "hh", "mm", "ss", "ms", "us", "ns", "zone",
 	}, 0); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
@@ -25,7 +25,7 @@ func ParseDateChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.P
 	return nil
 }
 
-func ParseDate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func ParseDate(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	now := time.Now()
 	var key string
 
@@ -131,7 +131,7 @@ func ParseDate(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 	return nil
 }
 
-func getArgStr(ctx *runtime.Context, node *ast.Node) string {
+func getArgStr(ctx *runtime.Task, node *ast.Node) string {
 	if node == nil {
 		return ""
 	}
@@ -144,7 +144,7 @@ func getArgStr(ctx *runtime.Context, node *ast.Node) string {
 	return ""
 }
 
-func getArgStrConv2Int(ctx *runtime.Context, node *ast.Node) int64 {
+func getArgStrConv2Int(ctx *runtime.Task, node *ast.Node) int64 {
 	str := getArgStr(ctx, node)
 	if str == "" {
 		return DefaultInt

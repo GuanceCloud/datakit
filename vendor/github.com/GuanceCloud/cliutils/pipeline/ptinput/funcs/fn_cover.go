@@ -16,7 +16,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 )
 
-func CoverChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func CoverChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -26,13 +26,13 @@ func CoverChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
 
-	if funcExpr.Param[1].NodeType != ast.TypeListInitExpr {
+	if funcExpr.Param[1].NodeType != ast.TypeListLiteral {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param range expects ListInitExpr, got %s", funcExpr.Param[1].NodeType),
 			funcExpr.Param[1].StartPos())
 	}
 
-	set := funcExpr.Param[1].ListInitExpr
+	set := funcExpr.Param[1].ListLiteral()
 
 	if len(set.List) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
@@ -49,7 +49,7 @@ func CoverChecking(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlErr
 	return nil
 }
 
-func Cover(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
+func Cover(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"func %s expects 2 args", funcExpr.Name), funcExpr.NamePos)
@@ -60,11 +60,11 @@ func Cover(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
 
-	if funcExpr.Param[1].NodeType != ast.TypeListInitExpr {
+	if funcExpr.Param[1].NodeType != ast.TypeListLiteral {
 		return nil
 	}
 
-	set := funcExpr.Param[1].ListInitExpr
+	set := funcExpr.Param[1].ListLiteral()
 
 	var start, end int
 
@@ -76,9 +76,9 @@ func Cover(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch set.List[0].NodeType { //nolint:exhaustive
 	case ast.TypeIntegerLiteral:
-		start = int(set.List[0].IntegerLiteral.Val)
+		start = int(set.List[0].IntegerLiteral().Val)
 	case ast.TypeFloatLiteral:
-		start = int(set.List[0].FloatLiteral.Val)
+		start = int(set.List[0].FloatLiteral().Val)
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"range value `%v' is not expected", set),
@@ -87,9 +87,9 @@ func Cover(ctx *runtime.Context, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	switch set.List[1].NodeType { //nolint:exhaustive
 	case ast.TypeIntegerLiteral:
-		end = int(set.List[1].IntegerLiteral.Val)
+		end = int(set.List[1].IntegerLiteral().Val)
 	case ast.TypeFloatLiteral:
-		end = int(set.List[1].FloatLiteral.Val)
+		end = int(set.List[1].FloatLiteral().Val)
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"range value `%v' is not expected", set),
