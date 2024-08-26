@@ -127,6 +127,7 @@ func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 			"durable":       inputs.NewTagInfo("If set when creating a new exchange, the exchange will be marked as durable. Durable exchanges remain active when a server restarts. Non-durable exchanges (transient exchanges) are purged if/when a server restarts."),
 			"auto_delete":   inputs.NewTagInfo("If set, the exchange is deleted when all queues have finished using it"),
 			"host":          inputs.NewTagInfo("Hostname of RabbitMQ running on."),
+			"cluster_name":  inputs.NewTagInfo("RabbitMQ cluster name"),
 		},
 	}
 }

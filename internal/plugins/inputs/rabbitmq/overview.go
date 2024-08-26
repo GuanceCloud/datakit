@@ -28,12 +28,14 @@ func getOverview(n *Input) {
 	}
 	tags := map[string]string{
 		"url":              n.URL,
-		"cluster_name":     overview.ClusterName,
 		"rabbitmq_version": overview.Version,
 	}
 	if n.host != "" {
 		tags["host"] = n.host
 	}
+
+	n.Tags["cluster_name"] = overview.ClusterName
+
 	for k, v := range n.Tags {
 		tags[k] = v
 	}

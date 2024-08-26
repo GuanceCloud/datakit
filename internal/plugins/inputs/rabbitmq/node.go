@@ -104,9 +104,10 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"url":       inputs.NewTagInfo("RabbitMQ url"),
-			"node_name": inputs.NewTagInfo("RabbitMQ node name"),
-			"host":      inputs.NewTagInfo("Hostname of RabbitMQ running on."),
+			"url":          inputs.NewTagInfo("RabbitMQ url"),
+			"node_name":    inputs.NewTagInfo("RabbitMQ node name"),
+			"cluster_name": inputs.NewTagInfo("RabbitMQ cluster name"),
+			"host":         inputs.NewTagInfo("Hostname of RabbitMQ running on."),
 		},
 	}
 }
