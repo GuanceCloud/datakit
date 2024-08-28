@@ -539,6 +539,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&commandMeasurement{},
 		&dbMeasurement{},
 		&infoMeasurement{},
+		&replicaMeasurement{},
 		&latencyMeasurement{},
 		&slowlogMeasurement{},
 	}
@@ -569,6 +570,7 @@ func (ipt *Input) Resume() error {
 func defaultInput() *Input {
 	getClientFieldMap()
 	getInfoFieldMap()
+	getReplicaFieldMap()
 	getClusterFieldMap()
 
 	return &Input{

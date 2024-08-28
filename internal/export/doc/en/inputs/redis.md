@@ -42,7 +42,7 @@ Already tested version:
 
 - Redis version v5.0+
 
-When collecting data under the master-slave architecture, please configure the host information of the slave node for data collection, and you can get the metric information related to the master-slave.
+When collecting data under the master-slave architecture, please configure the host information of the slave node or master node for data collection, and you can get the different metric information related to the master-slave.
 
 Create Monitor User (**optional**)
 

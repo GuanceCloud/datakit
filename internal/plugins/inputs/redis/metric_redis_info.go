@@ -358,15 +358,27 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 
 		val = strings.TrimSuffix(val, "%")
 
+		tagsToAdd := map[string]string{
+			"redis_version":    "unknown",
+			"role":             "unknown",
+			"redis_build_id":   "unknown",
+			"redis_mode":       "unknown",
+			"os":               "unknown",
+			"maxmemory_policy": "unknown",
+			"run_id":           "unknown",
+			"process_id":       "unknown",
+		}
+
+		if defaultValue, exists := tagsToAdd[key]; exists {
+			if val == "" {
+				val = defaultValue
+			}
+			kvs = kvs.AddTag(key, val)
+			m.tags[key] = val
+		}
+
 		float, err := strconv.ParseFloat(val, 64)
 		if err != nil {
-			if key == "redis_version" {
-				if val == "" {
-					val = "unknown"
-				}
-				kvs = kvs.AddTag("redis_version", val)
-				m.tags["redis_version"] = val
-			}
 			continue
 		}
 
