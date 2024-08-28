@@ -45,8 +45,9 @@ func TestInput_parseReplicData(t *testing.T) {
 				list: mockReplicaData01,
 			},
 			want: []string{
-				"redis_replica,foo=bar,host=HOST,slave_addr=127.0.0.1:6379,slave_id=1 repl_delay=10",
-				"redis_replica,foo=bar,host=HOST,slave_addr=127.0.0.1:6380,slave_id=0 repl_delay=10",
+				"redis_replica,foo=bar,host=HOST master_repl_offset=4056",
+				"redis_replica,foo=bar,host=HOST,slave_addr=127.0.0.1:6379,slave_id=1,slave_state=online slave_lag=0,slave_offset=4046",
+				"redis_replica,foo=bar,host=HOST,slave_addr=127.0.0.1:6380,slave_id=0,slave_state=online slave_lag=0,slave_offset=4046",
 			},
 			wantErr: false,
 		},
@@ -62,9 +63,11 @@ func TestInput_parseReplicData(t *testing.T) {
 				list: mockReplicaData01,
 			},
 			want: []string{
-				"redis_replica,election=TRUE,foo=bar,slave_addr=127.0.0.1:6379,slave_id=1 repl_delay=10",
-				"redis_replica,election=TRUE,foo=bar,slave_addr=127.0.0.1:6380,slave_id=0 repl_delay=10",
+				"redis_replica,election=TRUE,foo=bar master_repl_offset=4056",
+				"redis_replica,election=TRUE,foo=bar,slave_addr=127.0.0.1:6379,slave_id=1,slave_state=online slave_lag=0,slave_offset=4046",
+				"redis_replica,election=TRUE,foo=bar,slave_addr=127.0.0.1:6380,slave_id=0,slave_state=online slave_lag=0,slave_offset=4046",
 			},
+
 			wantErr: false,
 		},
 		{
@@ -78,7 +81,9 @@ func TestInput_parseReplicData(t *testing.T) {
 			args: args{
 				list: mockReplicaData02,
 			},
-			want:    []string{},
+			want: []string{
+				"redis_replica,foo=bar,host=HOST master_repl_offset=0",
+			},
 			wantErr: false,
 		},
 	}
