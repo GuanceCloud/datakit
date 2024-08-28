@@ -42,6 +42,9 @@ func (*Input) Terminate()                              { /* TODO */ }
 func (ipt *Input) Run() {
 	klog = logger.SLogger("kubernetesprometheus")
 
+	tick := time.NewTicker(time.Second * 10)
+	defer tick.Stop()
+
 	for {
 		// enable nodeLocal model or election success
 		if ipt.NodeLocal || !ipt.pause.Load() {
@@ -70,7 +73,8 @@ func (ipt *Input) Run() {
 				ipt.stop()
 				ipt.runOnce = sync.Once{} // reset runOnce
 			}
-		default:
+
+		case <-tick.C:
 			// next
 		}
 	}
