@@ -40,14 +40,15 @@ var (
 )
 
 type Input struct {
-	MatchedProcessNames []string          `toml:"process_name,omitempty"`
-	ObjectInterval      datakit.Duration  `toml:"object_interval,omitempty"`
-	RunTime             datakit.Duration  `toml:"min_run_time,omitempty"`
-	OpenMetric          bool              `toml:"open_metric,omitempty"`
-	OpenFiles           bool              `toml:"enable_open_files,omitempty"`
-	ListenPorts         bool              `toml:"enable_listen_ports,omitempty"`
-	MetricInterval      datakit.Duration  `toml:"metric_interval,omitempty"`
-	Tags                map[string]string `toml:"tags"`
+	MatchedProcessNames []string         `toml:"process_name,omitempty"`
+	ObjectInterval      datakit.Duration `toml:"object_interval,omitempty"`
+	RunTime             datakit.Duration `toml:"min_run_time,omitempty"`
+
+	OpenMetric  bool `toml:"open_metric,omitempty"`
+	ListenPorts bool `toml:"enable_listen_ports,omitempty"`
+
+	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
+	Tags           map[string]string `toml:"tags"`
 
 	// pipeline on process object removed
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
@@ -302,12 +303,12 @@ func (ipt *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (us
 		fields["threads"] = Threads
 	}
 
-	if runtime.GOOS == "linux" && ipt.OpenFiles {
-		openFiles, err := ps.OpenFiles()
+	if runtime.GOOS == "linux" {
+		openFiles, err := ps.NumFDs()
 		if err != nil {
 			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
 		} else {
-			fields["open_files"] = len(openFiles)
+			fields["open_files"] = openFiles
 		}
 	}
 
