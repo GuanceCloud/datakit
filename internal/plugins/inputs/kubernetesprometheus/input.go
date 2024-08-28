@@ -9,6 +9,8 @@ package kubernetesprometheus
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -19,13 +21,15 @@ import (
 )
 
 type Input struct {
+	NodeLocal bool `toml:"node_local"`
 	InstanceManager
 
 	chPause chan bool
-	pause   bool
+	pause   *atomic.Bool
 	feeder  dkio.Feeder
+	cancel  context.CancelFunc
 
-	cancel context.CancelFunc
+	runOnce sync.Once
 }
 
 func (*Input) SampleConfig() string                    { return example }
@@ -39,12 +43,17 @@ func (ipt *Input) Run() {
 	klog = logger.SLogger("kubernetesprometheus")
 
 	for {
-		if !ipt.pause {
-			if err := ipt.start(); err != nil {
-				klog.Warn(err)
-			}
-		} else {
-			ipt.stop()
+		// enable nodeLocal model or election success
+		if ipt.NodeLocal || !ipt.pause.Load() {
+			ipt.runOnce.Do(
+				func() {
+					managerGo.Go(func(_ context.Context) error {
+						if err := ipt.start(); err != nil {
+							klog.Warn(err)
+						}
+						return nil
+					})
+				})
 		}
 
 		select {
@@ -53,8 +62,16 @@ func (ipt *Input) Run() {
 			klog.Info("exit")
 			return
 
-		case ipt.pause = <-ipt.chPause:
-			// nil
+		case pause := <-ipt.chPause:
+			ipt.pause.Store(pause)
+
+			// disable nodeLocal model and election defeat
+			if !ipt.NodeLocal && pause {
+				ipt.stop()
+				ipt.runOnce = sync.Once{} // reset runOnce
+			}
+		default:
+			// next
 		}
 	}
 }
@@ -67,8 +84,19 @@ func (ipt *Input) start() error {
 		return err
 	}
 
+	nodeName, err := getLocalNodeName()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	ipt.cancel = cancel
+
+	if ipt.NodeLocal {
+		ctx = withNodeName(ctx, nodeName)
+		ctx = withNodeLocal(ctx, ipt.NodeLocal)
+	}
+	ctx = withPause(ctx, ipt.pause)
 
 	ipt.InstanceManager.Run(ctx, apiClient.Clientset, apiClient.InformerFactory, ipt.feeder)
 
@@ -76,12 +104,14 @@ func (ipt *Input) start() error {
 	apiClient.InformerFactory.WaitForCacheSync(ctx.Done())
 
 	<-ctx.Done()
+	klog.Info("end")
 	return nil
 }
 
 func (ipt *Input) stop() {
-	ipt.cancel()
-	klog.Info("stop")
+	if ipt.cancel != nil {
+		ipt.cancel()
+	}
 }
 
 func (ipt *Input) Pause() error {
@@ -108,8 +138,10 @@ func init() { //nolint:gochecknoinits
 	setupMetrics()
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			chPause: make(chan bool, inputs.ElectionPauseChannelLength),
-			feeder:  dkio.DefaultFeeder(),
+			NodeLocal: true,
+			chPause:   make(chan bool, inputs.ElectionPauseChannelLength),
+			pause:     &atomic.Bool{},
+			feeder:    dkio.DefaultFeeder(),
 		}
 	})
 }

@@ -115,6 +115,16 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
       cert_key = "/opt/nginx/peer.key"
 ```
 
+此外还有一类全局配置，它是最顶层的配置，主要负责一些功能开启或关闭，例如此处的 `node_local`：
+
+```yaml
+[inputs.kubernetesprometheus]
+  node_local = true  # 是否开启 NodeLocal 模式，将采集分散到各个节点
+ 
+  [[inputs.kubernetesprometheus.instances]]
+  # ..other
+```
+
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 

@@ -24,8 +24,7 @@ type Node struct {
 	store    cache.Store
 
 	instances []*Instance
-	scraper   *scraper
-	keys      map[string]string
+	scrape    *scrapeWorker
 	feeder    dkio.Feeder
 }
 
@@ -40,14 +39,15 @@ func NewNode(informerFactory informers.SharedInformerFactory, instances []*Insta
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scraper:   newScraper(),
-		keys:      make(map[string]string),
+		scrape:    newScrapeWorker(RoleNode),
 		feeder:    feeder,
 	}, nil
 }
 
 func (n *Node) Run(ctx context.Context) {
 	defer n.queue.ShutDown()
+
+	n.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	n.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -61,10 +61,11 @@ func (n *Node) Run(ctx context.Context) {
 		},
 	})
 
-	go func() {
+	managerGo.Go(func(_ context.Context) error {
 		for n.process(ctx) {
 		}
-	}()
+		return nil
+	})
 
 	<-ctx.Done()
 }
@@ -93,7 +94,7 @@ func (n *Node) process(ctx context.Context) bool {
 
 	if !exists {
 		klog.Infof("deleted Node %s", key)
-		n.terminateProms(key)
+		n.terminateScrape(key)
 		return true
 	}
 
@@ -103,19 +104,23 @@ func (n *Node) process(ctx context.Context) bool {
 		return true
 	}
 
-	info, exists := n.keys[key]
-	if exists && info == joinNodeInfo(node) {
+	nodeName, exists := nodeNameFrom(ctx)
+	if exists && node.Name != nodeName {
+		return true
+	}
+
+	if n.scrape.matchesKey(key, nodeFeature(node)) {
 		return true
 	}
 
 	klog.Infof("found node %s", key)
 
-	n.terminateProms(key)
-	n.runProm(ctx, key, node)
+	n.terminateScrape(key)
+	n.startScrape(ctx, key, node)
 	return true
 }
 
-func (n *Node) runProm(ctx context.Context, key string, item *corev1.Node) {
+func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 	if shouldSkipNode(item) {
 		return
 	}
@@ -132,7 +137,7 @@ func (n *Node) runProm(ctx context.Context, key string, item *corev1.Node) {
 
 		// record key
 		klog.Infof("added Node %s", key)
-		n.keys[key] = joinNodeInfo(item)
+		n.scrape.registerKey(key, nodeFeature(item))
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -154,23 +159,21 @@ func (n *Node) runProm(ctx context.Context, key string, item *corev1.Node) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		workerInc(RoleNode, key)
-		workerGo.Go(func(_ context.Context) error {
-			defer func() {
-				workerDec(RoleNode, key)
-			}()
-			n.scraper.runProm(ctx, key, urlstr, interval, opts)
-			return nil
-		})
+		prom, err := newPromTarget(ctx, urlstr, interval, false /* not use election */, opts)
+		if err != nil {
+			klog.Warnf("fail new prom %s for %s", urlstr, err)
+			continue
+		}
+
+		n.scrape.registerTarget(key, prom)
 	}
 }
 
-func (n *Node) terminateProms(key string) {
-	n.scraper.terminateProms(key)
-	delete(n.keys, key)
+func (n *Node) terminateScrape(key string) {
+	n.scrape.terminate(key)
 }
 
-func joinNodeInfo(item *corev1.Node) string {
+func nodeFeature(item *corev1.Node) string {
 	internalIP := ""
 	for _, address := range item.Status.Addresses {
 		if address.Type == corev1.NodeInternalIP {
@@ -181,9 +184,6 @@ func joinNodeInfo(item *corev1.Node) string {
 }
 
 func shouldSkipNode(item *corev1.Node) bool {
-	if maxedOutClients() {
-		return true
-	}
 	for _, address := range item.Status.Addresses {
 		if address.Type == corev1.NodeInternalIP && address.Address == "" {
 			return true

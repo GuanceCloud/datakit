@@ -7,11 +7,11 @@ package kubernetesprometheus
 
 import (
 	"context"
-	"net"
-	"net/url"
 	"regexp"
+	"sync/atomic"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"k8s.io/client-go/informers"
@@ -74,6 +74,8 @@ type (
 		urlstr      string
 		measurement string
 		tags        map[string]string
+		// Only used on Endpoints.
+		nodeName string
 	}
 )
 
@@ -204,63 +206,48 @@ func (k keyMatcher) matches(str string) (matched bool, args []string) {
 	return false, nil
 }
 
-func buildURLWithParams(scheme, address, port, path, params string) (*url.URL, error) {
-	u := &url.URL{
-		Scheme: scheme,
-		Host:   address + ":" + port,
-		Path:   path,
+func maxConcurrent(nodeLocal bool) int {
+	if nodeLocal {
+		return datakit.AvailableCPUs + 1
 	}
-	if params != "" {
-		query, err := url.ParseQuery(params)
-		if err != nil {
-			return nil, err
-		} else {
-			u.RawQuery = query.Encode()
-		}
-	}
-
-	if _, err := url.Parse(u.String()); err != nil {
-		return nil, err
-	}
-	return u, nil
+	return datakit.AvailableCPUs*3 + 1
 }
 
-func maxedOutClients() bool {
-	if x := workerCounter.Load(); x >= maxWorkerNum {
-		klog.Warnf("maxed out clients %s > %d, cannot create prom collection", x, maxWorkerNum)
-		return true
-	}
-	return false
+type ctxKey int
+
+const (
+	ctxKeyNodeName ctxKey = iota + 1
+	ctxKeyNodeLocal
+	ctxKeyPause
+)
+
+func withNodeName(ctx context.Context, nodeName string) context.Context {
+	return context.WithValue(ctx, ctxKeyNodeName, nodeName)
 }
 
-func workerInc(role Role, key string) {
-	_ = workerCounter.Add(1)
-	forkedWorkerGauge.WithLabelValues(string(role), key).Inc()
+func withNodeLocal(ctx context.Context, nodeLocal bool) context.Context {
+	return context.WithValue(ctx, ctxKeyNodeLocal, nodeLocal)
 }
 
-func workerDec(role Role, key string) {
-	_ = workerCounter.Add(-1)
-	forkedWorkerGauge.WithLabelValues(string(role), key).Dec()
+func withPause(ctx context.Context, pause *atomic.Bool) context.Context {
+	return context.WithValue(ctx, ctxKeyPause, pause)
 }
 
-func splitHost(remote string) string {
-	host := remote
+func nodeNameFrom(ctx context.Context) (string, bool) {
+	nodeName, ok := ctx.Value(ctxKeyNodeName).(string)
+	return nodeName, ok
+}
 
-	// try get 'host' tag from remote URL.
-	if u, err := url.Parse(remote); err == nil && u.Host != "" { // like scheme://host:[port]/...
-		host = u.Host
-		if ip, _, err := net.SplitHostPort(u.Host); err == nil {
-			host = ip
-		}
-	} else { // not URL, only IP:Port
-		if ip, _, err := net.SplitHostPort(remote); err == nil {
-			host = ip
-		}
+func nodeLocalFrom(ctx context.Context) bool {
+	nodeLocal, ok := ctx.Value(ctxKeyNodeLocal).(bool)
+	return nodeLocal && ok
+}
+
+func pauseFrom(ctx context.Context) (bool, bool) {
+	pause, ok := ctx.Value(ctxKeyPause).(*atomic.Bool)
+	if !ok {
+		return false, false
 	}
-
-	if host == "localhost" || net.ParseIP(host).IsLoopback() {
-		return ""
-	}
-
-	return host
+	p := pause.Load()
+	return p, true
 }

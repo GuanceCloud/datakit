@@ -26,8 +26,7 @@ type Endpoints struct {
 	store    cache.Store
 
 	instances []*Instance
-	scraper   *scraper
-	keys      map[string]string
+	scrape    *scrapeWorker
 	feeder    dkio.Feeder
 }
 
@@ -42,14 +41,15 @@ func NewEndpoints(informerFactory informers.SharedInformerFactory, instances []*
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scraper:   newScraper(),
-		keys:      make(map[string]string),
+		scrape:    newScrapeWorker(RoleEndpoints),
 		feeder:    feeder,
 	}, nil
 }
 
 func (e *Endpoints) Run(ctx context.Context) {
 	defer e.queue.ShutDown()
+
+	e.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	e.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -63,10 +63,11 @@ func (e *Endpoints) Run(ctx context.Context) {
 		},
 	})
 
-	go func() {
+	managerGo.Go(func(_ context.Context) error {
 		for e.process(ctx) {
 		}
-	}()
+		return nil
+	})
 
 	<-ctx.Done()
 }
@@ -95,7 +96,7 @@ func (e *Endpoints) process(ctx context.Context) bool {
 
 	if !exists {
 		klog.Infof("deleted Endpoints %s", key)
-		e.terminateProms(key)
+		e.terminateScrape(key)
 		return true
 	}
 
@@ -105,22 +106,23 @@ func (e *Endpoints) process(ctx context.Context) bool {
 		return true
 	}
 
-	info, exists := e.keys[key]
-	if exists && info == joinEndpointsInfo(ep) {
+	if e.scrape.matchesKey(key, endpointsFeature(ep)) {
 		return true
 	}
 
 	klog.Infof("found endpoints %s", key)
 
-	e.terminateProms(key)
-	e.runProm(ctx, key, ep)
+	e.terminateScrape(key)
+	e.startScrape(ctx, key, ep)
 	return true
 }
 
-func (e *Endpoints) runProm(ctx context.Context, key string, item *corev1.Endpoints) {
+func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.Endpoints) {
 	if shouldSkipEndpoints(item) {
 		return
 	}
+
+	nodeName, nodeNameExists := nodeNameFrom(ctx)
 
 	for _, ins := range e.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
@@ -134,7 +136,7 @@ func (e *Endpoints) runProm(ctx context.Context, key string, item *corev1.Endpoi
 
 		// record key
 		klog.Infof("added Endpoints %s", key)
-		e.keys[key] = joinEndpointsInfo(item)
+		e.scrape.registerKey(key, endpointsFeature(item))
 
 		cfgs, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -144,6 +146,10 @@ func (e *Endpoints) runProm(ctx context.Context, key string, item *corev1.Endpoi
 		interval := ins.Interval
 
 		for _, cfg := range cfgs {
+			if nodeNameExists && cfg.nodeName != "" && cfg.nodeName != nodeName {
+				continue
+			}
+
 			opts := buildPromOptions(
 				RoleEndpoints, key, e.feeder,
 				iprom.WithMeasurementName(cfg.measurement),
@@ -156,26 +162,24 @@ func (e *Endpoints) runProm(ctx context.Context, key string, item *corev1.Endpoi
 			}
 
 			urlstr := cfg.urlstr
+			election := cfg.nodeName == ""
 
-			workerInc(RoleEndpoints, key)
-			workerGo.Go(func(_ context.Context) error {
-				defer func() {
-					workerInc(RoleEndpoints, key)
-				}()
+			prom, err := newPromTarget(ctx, urlstr, interval, election, opts)
+			if err != nil {
+				klog.Warnf("fail new prom %s for %s", urlstr, err)
+				continue
+			}
 
-				e.scraper.runProm(ctx, key, urlstr, interval, opts)
-				return nil
-			})
+			e.scrape.registerTarget(key, prom)
 		}
 	}
 }
 
-func (e *Endpoints) terminateProms(key string) {
-	e.scraper.terminateProms(key)
-	delete(e.keys, key)
+func (e *Endpoints) terminateScrape(key string) {
+	e.scrape.terminate(key)
 }
 
-func joinEndpointsInfo(item *corev1.Endpoints) string {
+func endpointsFeature(item *corev1.Endpoints) string {
 	var ips []string
 	for _, sub := range item.Subsets {
 		for _, address := range sub.Addresses {
@@ -186,5 +190,5 @@ func joinEndpointsInfo(item *corev1.Endpoints) string {
 }
 
 func shouldSkipEndpoints(item *corev1.Endpoints) bool {
-	return maxedOutClients() || len(item.Subsets) == 0 || len(item.Subsets[0].Addresses) == 0
+	return len(item.Subsets) == 0 || len(item.Subsets[0].Addresses) == 0
 }

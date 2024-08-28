@@ -6,26 +6,23 @@
 package kubernetesprometheus
 
 import (
-	"sync/atomic"
-
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
 	inputName = "kubernetesprometheus"
-	klog      = logger.DefaultSLogger("inputName")
+	klog      = logger.DefaultSLogger(inputName)
 
 	managerGo = datakit.G("kubernetesprometheus_manager")
 	workerGo  = datakit.G("kubernetesprometheus_worker")
-
-	workerCounter = atomic.Int64{}
-	maxWorkerNum  = int64(1000)
 )
 
 const (
 	example = `
 [inputs.kubernetesprometheus]
+  node_local = true
+
   [[inputs.kubernetesprometheus.instances]]
     role       = "node"
     namespaces = []

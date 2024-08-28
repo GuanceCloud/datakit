@@ -168,7 +168,7 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 	var configs []*basePromConfig
 
 	for _, set := range p.item.Subsets {
-		for addressIdx := range set.Addresses {
+		for addressIdx, address := range set.Addresses {
 			// length 5
 			oldElems := []string{ins.Scheme, ins.Address, ins.Port, ins.Path, ins.Measurement}
 			newElems := deepCopySlice(oldElems)
@@ -224,10 +224,16 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 				}
 			}
 
+			nodeName := ""
+			if address.NodeName != nil {
+				nodeName = *address.NodeName
+			}
+
 			configs = append(configs, &basePromConfig{
 				urlstr:      u.String(),
 				measurement: measurement,
 				tags:        tags,
+				nodeName:    nodeName,
 			})
 		}
 	}

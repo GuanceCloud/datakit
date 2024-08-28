@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	collectPtsCounter *prometheus.CounterVec
-	forkedWorkerGauge *prometheus.GaugeVec
+	collectPtsCounter  *prometheus.CounterVec
+	scrapeTargetNumber *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -29,12 +29,12 @@ func setupMetrics() {
 		},
 	)
 
-	forkedWorkerGauge = prometheus.NewGaugeVec(
+	scrapeTargetNumber = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "input_kubernetesprometheus",
-			Name:      "forked_worker_number",
-			Help:      "The number of the worker",
+			Name:      "resource_target_number",
+			Help:      "The number of the target",
 		},
 		[]string{
 			"role",
@@ -44,6 +44,6 @@ func setupMetrics() {
 
 	metrics.MustRegister(
 		collectPtsCounter,
-		forkedWorkerGauge,
+		scrapeTargetNumber,
 	)
 }

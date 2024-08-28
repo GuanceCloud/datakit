@@ -11,43 +11,61 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
-func runPromCollect(ctx context.Context, interval time.Duration, urlstr string, opts []iprom.PromOption) error {
-	pm, err := iprom.NewProm(opts...)
+type promTarget struct {
+	urlstr string
+	pm     *iprom.Prom
+
+	shouldScrape func() bool
+	lastTime     time.Time
+}
+
+func newPromTarget(ctx context.Context, urlstr string, interval time.Duration, election bool, opts []iprom.PromOption) (*promTarget, error) {
+	var err error
+	p := promTarget{urlstr: urlstr}
+
+	p.pm, err = iprom.NewProm(opts...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	tick := time.NewTicker(interval)
-	defer tick.Stop()
-
-	for {
-		if _, err := pm.CollectFromHTTPV2(urlstr); err != nil {
-			klog.Warn(err)
-		} else {
-			klog.Debugf("collect once %s", urlstr)
+	p.shouldScrape = func() bool {
+		if election {
+			paused, exists := pauseFrom(ctx)
+			if exists && paused {
+				return false
+			}
 		}
 
-		select {
-		case <-datakit.Exit.Wait():
-			klog.Infof("prom %s exit", urlstr)
-			return nil
-
-		case <-ctx.Done():
-			klog.Debugf("prom %s stop", urlstr)
-			return nil
-
-		case <-tick.C:
-			// next
+		if p.lastTime.IsZero() {
+			p.lastTime = time.Now()
+			return true
 		}
+		if time.Since(p.lastTime) < interval {
+			return false
+		}
+
+		return true
 	}
+
+	return &p, nil
+}
+
+func (p *promTarget) url() string { return p.urlstr }
+func (p *promTarget) scrape() error {
+	if !p.shouldScrape() {
+		return nil
+	}
+	_, err := p.pm.CollectFromHTTPV2(p.urlstr)
+	return err
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.PromOption) []iprom.PromOption {
+	name := string(role) + "::" + key
+
 	callbackFn := func(pts []*point.Point) error {
 		if len(pts) == 0 {
 			return nil
@@ -56,7 +74,7 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.P
 		if err := feeder.FeedV2(
 			point.Metric,
 			pts,
-			dkio.WithInputName(inputName),
+			dkio.WithInputName(name),
 			dkio.DisableGlobalTags(true),
 			dkio.WithElection(true),
 		); err != nil {
@@ -69,7 +87,7 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.P
 
 	res := []iprom.PromOption{
 		iprom.WithLogger(klog), // WithLogger must in the first
-		iprom.WithSource(string(role) + "/" + key),
+		iprom.WithSource(name),
 		iprom.WithMaxBatchCallback(1, callbackFn),
 	}
 	res = append(res, opts...)
