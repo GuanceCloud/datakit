@@ -29,9 +29,7 @@ type Service struct {
 	store     cache.Store
 
 	instances []*Instance
-	scraper   *scraper
-	keys      map[string]string
-	runners   map[string]context.CancelFunc
+	scrape    *scrapeWorker
 	feeder    dkio.Feeder
 }
 
@@ -52,15 +50,15 @@ func NewService(
 		store:     informer.Informer().GetStore(),
 
 		instances: instances,
-		scraper:   newScraper(),
-		keys:      make(map[string]string),
-		runners:   make(map[string]context.CancelFunc),
+		scrape:    newScrapeWorker(RoleService),
 		feeder:    feeder,
 	}, nil
 }
 
 func (s *Service) Run(ctx context.Context) {
 	defer s.queue.ShutDown()
+
+	s.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	s.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -74,10 +72,11 @@ func (s *Service) Run(ctx context.Context) {
 		},
 	})
 
-	go func() {
+	managerGo.Go(func(_ context.Context) error {
 		for s.process(ctx) {
 		}
-	}()
+		return nil
+	})
 
 	<-ctx.Done()
 }
@@ -106,7 +105,7 @@ func (s *Service) process(ctx context.Context) bool {
 
 	if !exists {
 		klog.Infof("deleted Service %s", key)
-		s.terminateRunner(key)
+		s.terminateScrape(key)
 		return true
 	}
 
@@ -116,22 +115,24 @@ func (s *Service) process(ctx context.Context) bool {
 		return true
 	}
 
-	info, exists := s.keys[key]
-	if exists && info == joinServiceInfo(svc) {
+	if s.scrape.matchesKey(key, serviceFeature(svc)) {
 		return true
 	}
 
 	klog.Infof("found service %s", key)
 
-	s.terminateRunner(key)
-	s.startRunner(ctx, key, svc)
+	s.terminateScrape(key)
+	s.startScrape(ctx, key, svc)
 	return true
 }
 
-func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Service) {
+func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Service) {
 	if shouldSkipService(item) {
 		return
 	}
+
+	nodeName, nodeNameExist := nodeNameFrom(ctx)
+	svcFeature := serviceFeature(item)
 
 	for _, ins := range s.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
@@ -145,29 +146,27 @@ func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Serv
 
 		// record key
 		klog.Infof("added Service %s", key)
-		s.keys[key] = joinServiceInfo(item)
-
-		ctx, cancel := context.WithCancel(ctx)
-		s.runners[key] = cancel
+		s.scrape.registerKey(key, svcFeature)
 
 		epIns := pr.transToEndpointsInstance(ins)
-
 		interval := ins.Interval
 
 		managerGo.Go(func(_ context.Context) error {
-			tick := time.NewTicker(time.Second * 10)
+			tick := time.NewTicker(time.Second * 20)
 			defer tick.Stop()
 
-			var epInfo string
+			var oldEndpointsFeature string
 
 			for {
 				select {
 				case <-datakit.Exit.Wait():
 					klog.Info("svc-ep prom exit")
 					return nil
+
 				case <-ctx.Done():
 					klog.Info("svc-ep return")
 					return nil
+
 				case <-tick.C:
 					// next
 				}
@@ -179,14 +178,15 @@ func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Serv
 					continue
 				}
 
-				info := joinEndpointsInfo(ep)
-				if epInfo == info {
+				newEndpointsFeature := endpointsFeature(ep)
+				if newEndpointsFeature == oldEndpointsFeature {
 					// no change
 					continue
 				}
-				// set epInfo
-				epInfo = info
-				s.scraper.terminateProms(key)
+				// reset oldEndpointsFeature
+				oldEndpointsFeature = newEndpointsFeature
+				s.scrape.terminate(key)
+				s.scrape.registerKey(key, svcFeature)
 
 				pr := newEndpointsParser(ep)
 				cfgs, err := pr.parsePromConfig(epIns)
@@ -196,6 +196,10 @@ func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Serv
 				}
 
 				for _, cfg := range cfgs {
+					if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
+						continue
+					}
+
 					opts := buildPromOptions(
 						RoleService, key, s.feeder,
 						iprom.WithMeasurementName(cfg.measurement),
@@ -208,35 +212,29 @@ func (s *Service) startRunner(ctx context.Context, key string, item *corev1.Serv
 					}
 
 					urlstr := cfg.urlstr
+					election := cfg.nodeName == ""
 
-					workerInc(RoleService, key)
-					workerGo.Go(func(_ context.Context) error {
-						defer func() {
-							workerDec(RoleService, key)
-						}()
+					prom, err := newPromTarget(ctx, urlstr, interval, election, opts)
+					if err != nil {
+						klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
+						continue
+					}
 
-						s.scraper.runProm(ctx, key, urlstr, interval, opts)
-						return nil
-					})
+					s.scrape.registerTarget(key, prom)
 				}
 			}
 		})
 	}
 }
 
-func (s *Service) terminateRunner(key string) {
-	if cancel, exist := s.runners[key]; exist {
-		cancel()
-		delete(s.runners, key)
-	}
-	s.scraper.terminateProms(key)
-	delete(s.keys, key)
+func (s *Service) terminateScrape(key string) {
+	s.scrape.terminate(key)
 }
 
-func joinServiceInfo(item *corev1.Service) string {
+func serviceFeature(item *corev1.Service) string {
 	return item.Spec.ClusterIP
 }
 
 func shouldSkipService(_ *corev1.Service) bool {
-	return maxedOutClients()
+	return false
 }

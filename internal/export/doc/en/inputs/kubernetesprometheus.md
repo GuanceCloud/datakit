@@ -114,6 +114,16 @@ A brief description of how this collector operates helps in better understanding
       cert_key = "/opt/nginx/peer.key"
 ```
 
+Additionally, there is a type of global configuration, which is the highest-level configuration, mainly responsible for enabling or disabling certain features, such as `node_local` here:
+
+```yaml
+[inputs.kubernetesprometheus]
+  node_local = true  # Whether to enable NodeLocal mode, distributing the collection across nodes
+
+  [[inputs.kubernetesprometheus.instances]]
+  # ..other
+```
+
 ```markdown
 <!-- markdownlint-disable MD046 -->
 ???+ attention

@@ -24,8 +24,7 @@ type Pod struct {
 	store    cache.Store
 
 	instances []*Instance
-	scraper   *scraper
-	keys      map[string]string
+	scrape    *scrapeWorker
 	feeder    dkio.Feeder
 }
 
@@ -40,14 +39,15 @@ func NewPod(informerFactory informers.SharedInformerFactory, instances []*Instan
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scraper:   newScraper(),
-		keys:      make(map[string]string),
+		scrape:    newScrapeWorker(RolePod),
 		feeder:    feeder,
 	}, nil
 }
 
 func (p *Pod) Run(ctx context.Context) {
 	defer p.queue.ShutDown()
+
+	p.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	p.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -61,10 +61,11 @@ func (p *Pod) Run(ctx context.Context) {
 		},
 	})
 
-	go func() {
+	managerGo.Go(func(_ context.Context) error {
 		for p.process(ctx) {
 		}
-	}()
+		return nil
+	})
 
 	<-ctx.Done()
 }
@@ -93,7 +94,7 @@ func (p *Pod) process(ctx context.Context) bool {
 
 	if !exists {
 		klog.Infof("deleted Pod %s", key)
-		p.terminateProms(key)
+		p.terminateScrape(key)
 		return true
 	}
 
@@ -103,19 +104,23 @@ func (p *Pod) process(ctx context.Context) bool {
 		return true
 	}
 
-	info, exists := p.keys[key]
-	if exists && info == joinPodInfo(pod) {
+	nodeName, exists := nodeNameFrom(ctx)
+	if exists && pod.Spec.NodeName != nodeName {
+		return true
+	}
+
+	if p.scrape.matchesKey(key, podFeature(pod)) {
 		return true
 	}
 
 	klog.Infof("found pod %s", key)
 
-	p.terminateProms(key)
-	p.runProm(ctx, key, pod)
+	p.terminateScrape(key)
+	p.startScrape(ctx, key, pod)
 	return true
 }
 
-func (p *Pod) runProm(ctx context.Context, key string, item *corev1.Pod) {
+func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 	if shouldSkipPod(item) {
 		return
 	}
@@ -132,7 +137,7 @@ func (p *Pod) runProm(ctx context.Context, key string, item *corev1.Pod) {
 
 		// record key
 		klog.Infof("added Pod %s", key)
-		p.keys[key] = joinPodInfo(item)
+		p.scrape.registerKey(key, podFeature(item))
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -154,27 +159,24 @@ func (p *Pod) runProm(ctx context.Context, key string, item *corev1.Pod) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		workerInc(RolePod, key)
-		workerGo.Go(func(_ context.Context) error {
-			defer func() {
-				workerInc(RolePod, key)
-			}()
+		prom, err := newPromTarget(ctx, urlstr, interval, false /* not use election */, opts)
+		if err != nil {
+			klog.Warnf("fail new prom %s for %s", urlstr, err)
+			continue
+		}
 
-			p.scraper.runProm(ctx, key, urlstr, interval, opts)
-			return nil
-		})
+		p.scrape.registerTarget(key, prom)
 	}
 }
 
-func (p *Pod) terminateProms(key string) {
-	p.scraper.terminateProms(key)
-	delete(p.keys, key)
+func (p *Pod) terminateScrape(key string) {
+	p.scrape.terminate(key)
 }
 
-func joinPodInfo(item *corev1.Pod) string {
+func podFeature(item *corev1.Pod) string {
 	return item.Status.HostIP + ":" + item.Status.PodIP
 }
 
 func shouldSkipPod(item *corev1.Pod) bool {
-	return maxedOutClients() || item.Status.PodIP == "" || item.Status.Phase != corev1.PodRunning
+	return item.Status.PodIP == "" || item.Status.Phase != corev1.PodRunning
 }
