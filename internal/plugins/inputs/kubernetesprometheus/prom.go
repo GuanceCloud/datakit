@@ -59,6 +59,7 @@ func (p *promTarget) scrape() error {
 	if !p.shouldScrape() {
 		return nil
 	}
+	p.lastTime = time.Now()
 	_, err := p.pm.CollectFromHTTPV2(p.urlstr)
 	return err
 }
