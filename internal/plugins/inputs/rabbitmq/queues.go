@@ -28,6 +28,7 @@ func getQueues(n *Input) {
 			"url":        n.URL,
 			"queue_name": queue.Name,
 			"node_name":  queue.Node,
+			"vhost":      queue.Vhost,
 		}
 		if n.host != "" {
 			tags["host"] = n.host
@@ -135,10 +136,11 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"url":        inputs.NewTagInfo("RabbitMQ host URL"),
-			"node_name":  inputs.NewTagInfo("RabbitMQ node name"),
-			"queue_name": inputs.NewTagInfo("RabbitMQ queue name"),
-			"host":       inputs.NewTagInfo("Hostname of RabbitMQ running on."),
+			"url":          inputs.NewTagInfo("RabbitMQ host URL"),
+			"node_name":    inputs.NewTagInfo("RabbitMQ node name"),
+			"queue_name":   inputs.NewTagInfo("RabbitMQ queue name"),
+			"cluster_name": inputs.NewTagInfo("RabbitMQ cluster name"),
+			"host":         inputs.NewTagInfo("Hostname of RabbitMQ running on."),
 		},
 	}
 }
