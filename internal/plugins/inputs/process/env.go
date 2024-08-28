@@ -19,7 +19,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{FieldName: "OpenMetric", Type: doc.Boolean, Default: `false`, Desc: "Enable process metric collecting", DescZh: "开启进程指标采集"},
-		{FieldName: "MatchedProcessNames", ENVName: "PROCESS_NAME", Type: doc.List, Example: "`\".*datakit.*\", \"guance\"`", Desc: "Whitelist of process", DescZh: "进程名白名单"},
+		{FieldName: "MatchedProcessNames", ENVName: "PROCESS_NAME", Type: doc.List, Example: "`.*datakit.*,guance`", Desc: "Whitelist of process", DescZh: "进程名白名单"},
 		{FieldName: "RunTime", ENVName: "MIN_RUN_TIME", Type: doc.TimeDuration, Default: `10m`, Desc: "Process minimal run time", DescZh: "进程最短运行时间"},
 		{FieldName: "ListenPorts", ENVName: "ENABLE_LISTEN_PORTS", Type: doc.Boolean, Default: `false`, Desc: "Enable listen ports tag", DescZh: "启用监听端口标签"},
 		{FieldName: "Tags"},

@@ -1,5 +1,5 @@
 ---
-title     : 'awslambda'
+title     : 'AWS Lambda Extention'
 summary   : 'Extend data collection through awslambda'
 __int_icon      : 'icon/awslambda'
 dashboard :
@@ -22,7 +22,7 @@ monitor   :
 
 [:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-The AWS Lambda collector collects AWS Lambda metrics and logs through the `aws-extension`.
+The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda extension.
 
 ## Installation {#installation}
 

@@ -20,7 +20,7 @@ monitor   :
 
 ---
 
-[:octicons-tag-24: Version-1.37.0](../changelog.md#cl-1.37.0)
+[:octicons-tag-24: Version-1.37.0](../datakit/changelog.md#cl-1.37.0)
 
 ---
 

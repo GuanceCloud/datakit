@@ -141,6 +141,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 			"queue_name":   inputs.NewTagInfo("RabbitMQ queue name"),
 			"cluster_name": inputs.NewTagInfo("RabbitMQ cluster name"),
 			"host":         inputs.NewTagInfo("Hostname of RabbitMQ running on."),
+			"vhost":        inputs.NewTagInfo("RabbitMQ queue virtual hosts"),
 		},
 	}
 }

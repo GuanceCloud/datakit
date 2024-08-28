@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.37.0 (2024/08/28) {#cl-1.37.0}
+
+This is an iterative release with the following updates:
+
+### New Features {#cl-1.37.0-new}
+
+- **Zabbix Data Integration:** Added a [new collector](../integrations/zabbix_exporter.md) to support importing data from Zabbix, enabling unified management and analysis of multiple data sources.
+
+### Improvements {#cl-1.37.0-opt}
+
+- **Process Collector Optimization:** The process collector now supports collecting open file descriptor counts by default, providing more comprehensive data for system performance monitoring.
+- **RabbitMQ Tag Completion:** Completed the RabbitMQ tag to ensure more accurate and complete data collection.
+- **Kubernetes-Prometheus Performance Optimization:** Optimized the performance of Kubernetes-Prometheus to improve data collection efficiency.
+- **Redis Metric Enrichment:** Added more metrics for Redis collection to help users gain deeper insights into Redis's operating status.
+
+---
+
 ## 1.36.0 (2024/08/21) {#cl-1.36.0}
 
 This release is an iterative update with the following main changes:

@@ -1,5 +1,5 @@
 ---
-title     : 'awslambda'
+title     : 'AWS Lambda Extention'
 summary   : '通过 awslambda 扩展采集数据'
 __int_icon      : 'icon/awslambda'
 dashboard :
@@ -22,7 +22,7 @@ monitor   :
 
 [:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-AWS Lambda 采集器是通过 `aws-extension` 的方式采集 AWS Lambda 的指标与日志。
+AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda 的指标与日志。
 
 ## 安装 {#installation}
 
