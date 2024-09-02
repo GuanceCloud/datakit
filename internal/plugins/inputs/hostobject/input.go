@@ -169,20 +169,24 @@ func (ipt *Input) collect() error {
 
 	l.Debugf("messageData len: %d", len(messageData))
 
-	kvs = kvs.Add("message", string(messageData), false, true)
-	kvs = kvs.Add("start_time", message.Host.HostMeta.BootTime*1000, false, true)
-	kvs = kvs.Add("datakit_ver", datakit.Version, false, true)
-	kvs = kvs.Add("cpu_usage", message.Host.cpuPercent, false, true)
-	kvs = kvs.Add("mem_used_percent", message.Host.Mem.usedPercent, false, true)
-	kvs = kvs.Add("load", message.Host.load5, false, true)
-	kvs = kvs.Add("disk_used_percent", message.Host.diskUsedPercent, false, true)
-	kvs = kvs.Add("diskio_read_bytes_per_sec", message.Host.diskIOReadBytesPerSec, false, true)
-	kvs = kvs.Add("diskio_write_bytes_per_sec", message.Host.diskIOWriteBytesPerSec, false, true)
-	kvs = kvs.Add("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec, false, true)
-	kvs = kvs.Add("net_send_bytes_per_sec", message.Host.netSendBytesPerSec, false, true)
-	kvs = kvs.Add("logging_level", message.Host.loggingLevel, false, true)
-	kvs = kvs.Add("name", message.Host.HostMeta.HostName, true, true)
-	kvs = kvs.Add("os", message.Host.HostMeta.OS, true, true)
+	kvs = kvs.Add("message", string(messageData), false, true).
+		Add("start_time", message.Host.HostMeta.BootTime*1000, false, true).
+		Add("datakit_ver", datakit.Version, false, true).
+		Add("cpu_usage", message.Host.cpuPercent, false, true).
+		Add("mem_used_percent", message.Host.Mem.usedPercent, false, true).
+		Add("load", message.Host.load5, false, true).
+		Add("disk_used_percent", message.Host.diskUsedPercent, false, true).
+		Add("diskio_read_bytes_per_sec", message.Host.diskIOReadBytesPerSec, false, true).
+		Add("diskio_write_bytes_per_sec", message.Host.diskIOWriteBytesPerSec, false, true).
+		Add("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec, false, true).
+		Add("net_send_bytes_per_sec", message.Host.netSendBytesPerSec, false, true).
+		Add("logging_level", message.Host.loggingLevel, false, true).
+		AddTag("name", message.Host.HostMeta.HostName).
+		AddTag("os", message.Host.HostMeta.OS).
+		Add("num_cpu", len(message.Host.CPU), false, false).
+		AddTag("unicast_ip", message.Config.IP).
+		Add("disk_total", message.Host.getDiskTotal(), false, true).
+		AddTag("arch", message.Host.HostMeta.Arch)
 
 	if !datakit.IsTestMode {
 		kvs = kvs.Add("Scheck", message.Collectors[0].Version, false, true)
