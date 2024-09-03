@@ -11,6 +11,7 @@ package dialtesting
 import (
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -276,10 +277,9 @@ func (d *dialer) feedIO() error {
 		l.Warn("get invalid url, ignored")
 		return err
 	}
-
-	u.Path += datakit.Logging // `/v1/write/logging`
-
+	u.Path = path.Join(u.Path, datakit.Logging) // `/v1/write/logging`
 	urlStr := u.String()
+
 	switch d.task.Class() {
 	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket:
 		d.category = urlStr

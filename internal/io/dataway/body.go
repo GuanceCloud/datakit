@@ -89,11 +89,6 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 	enc := point.GetEncoder(encOpts...)
 
 	defer func() {
-		buildBodyCostVec.WithLabelValues(
-			w.category.String(),
-			w.httpEncoding.String(),
-		).Observe(float64(time.Since(start)) / float64(time.Second))
-
 		point.PutEncoder(enc)
 	}()
 
@@ -153,6 +148,11 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 		}
 
 		w.body.npts = nptsArr[w.parts]
+
+		buildBodyCostVec.WithLabelValues(
+			w.category.String(),
+			w.httpEncoding.String(),
+		).Observe(float64(time.Since(start)) / float64(time.Second))
 
 		buildBodyBatchBytesVec.WithLabelValues(
 			w.category.String(),
