@@ -116,6 +116,15 @@ type (
 	}
 )
 
+func (h *HostInfo) getDiskTotal() uint64 {
+	total := uint64(0)
+	for _, disk := range h.Disk {
+		total += disk.Total
+	}
+
+	return total
+}
+
 var collectorStatHist []*io.CollectorStatus
 
 func getHostMeta() (*HostMetaInfo, error) {
