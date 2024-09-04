@@ -14,6 +14,7 @@
 | 5044               | TCP         | Beats 数据接入                | N/A                                       |
 | 6343               | UDP         | NetFlow sflow5 默认端口       | N/A                                       |
 | 8125               | UDP         | StatsD 数据接入               | N/A                                       |
+| 9109               | UDP/TCP     | Graphite 数据接入             | N/A                                       |
 | 9529               | HTTP        | Datakit HTTP 服务            |                                           |
 | 9530               | TCP         | Socket（TCP）日志接入          | N/A                                       |
 | 9531               | TCP         | DCA Server                   | N/A                                       |
