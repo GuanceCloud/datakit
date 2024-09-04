@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.38.0 (September 4, 2024) {#cl-1.38.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.38.0-new}
+
+- Added Graphite data ingestion (#2337)
+<!-- - Profiling collector now supports real-time metric extraction from profiling files (#2335) -->
+
+### Bug Fixes {#cl-1.38.0-fix}
+
+- Fixed an issue with eBPF network data aggregation (#2395)
+- Resolved a crash issue with the DDTrace telemetry interface (#2387)
+- Addressed a data collection issue with Jaeger UDP binary format (#2375)
+- Resolved an issue with the URL format for data sent by the dial-testing collector (#2374)
+
+### Feature Enhancements {#cl-1.38.0-opt}
+
+- Added collection of multiple fields (`num_cpu/unicast_ip/disk_total/arch`) in the host object (#2362)
+- Other optimizations and fixes (#2376/#2354/#2393)
+
+### Compatibility Adjustments {#cl-1.38.0-brk}
+
+- Adjusted the execution priority of Pipelines (#2386)
+
+    In previous versions, for a specific `source`, such as `nginx`:
+
+    1. If users specified a matching *nginx.p* on the page
+    1. And if users also set a default Pipeline (*default.p*) at the same time
+
+    Then the Nginx logs would **not** be processed by *nginx.p* but by *default.p*. This setting was not reasonable. The adjusted priority is as follows (priority decreasing):
+
+    1. The Pipeline specified for `source` on the observation cloud page
+    1. The Pipeline specified for `source` in the collector
+    1. The `source` value can find the corresponding Pipeline (for example, if the `source` is the log of `my-app`, a *my-app.p* can be found in the Pipeline's storage directory)
+    1. Finally, use *default.p*
+
+    This adjustment ensures that all data can be processed by Pipelines, at least processed by *default.p*.
+
+---
+
 ## 1.37.0 (2024/08/28) {#cl-1.37.0}
 
 This is an iterative release with the following updates:
