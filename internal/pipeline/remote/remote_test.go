@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
@@ -147,25 +148,25 @@ func (mock *pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, er
 	return mock.readDirResult, nil
 }
 
-func (mock *pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plRelation map[string]map[string]string,
-	defaultPl map[string]string, updateTime int64, relationUpdateAt int64, err error,
+func (mock *pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles, plRelation map[point.Category]map[string]string,
+	defaultPl map[point.Category]string, updateTime int64, relationUpdateAt int64, err error,
 ) {
 	if mock.errPullPipeline != nil {
 		return nil, nil, nil, 0, 0, mock.errPullPipeline
 	}
 
-	return map[string]map[string]string{
-			"logging": {
+	return map[point.Category]map[string]string{
+			point.Logging: {
 				"123.p": "text123",
 				"456.p": "text456",
 			},
-		}, map[string]map[string]string{
-			"logging": {
+		}, map[point.Category]map[string]string{
+			point.Logging: {
 				"123": "123.p",
 				"234": "123.p",
 			},
-		}, map[string]string{
-			"logging": "123.p",
+		}, map[point.Category]string{
+			point.Logging: "123.p",
 		}, mock.pullPipelineUpdateTime, relationUpdateAt, nil
 }
 
@@ -233,8 +234,11 @@ func TestPullMain(t *testing.T) {
 			mock.isFileExist = tc.fileExist
 			mock.errReadFile = tc.failedReadFile
 
-			err := pullMain(tc.urls, mock)
+			fn, err := pullMain(tc.urls, mock)
 			assert.Equal(t, tc.expectError, err, "pullMain found error: %v", err)
+			if fn != nil {
+				_ = fn()
+			}
 		})
 	}
 }
@@ -372,7 +376,7 @@ func TestDoPull(t *testing.T) {
 func TestDumpFiles(t *testing.T) {
 	cases := []struct {
 		name                  string
-		files                 map[string]map[string]string
+		files                 map[point.Category]map[string]string
 		readDir               []fs.FileInfo
 		failedReadDir         error
 		failedWriteTarFromMap error
@@ -380,8 +384,8 @@ func TestDumpFiles(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			files: map[string]map[string]string{
-				"logging": {
+			files: map[point.Category]map[string]string{
+				point.Logging: {
 					"123.p": "text123",
 					"456.p": "text456",
 				},
@@ -395,8 +399,8 @@ func TestDumpFiles(t *testing.T) {
 		{
 			name:                  "WriteTarFromMap_fail",
 			failedWriteTarFromMap: errGeneral,
-			files: map[string]map[string]string{
-				"logging": {
+			files: map[point.Category]map[string]string{
+				point.Logging: {
 					"123.p": "text123",
 					"456.p": "text456",
 				},
@@ -640,23 +644,23 @@ func TestConvertContentMapToThreeMap(t *testing.T) {
 func TestConvertThreeMapToContentMap(t *testing.T) {
 	cases := []struct {
 		name      string
-		in        map[string]map[string]string
-		inDefault map[string]string
+		in        map[point.Category]map[string]string
+		inDefault map[point.Category]string
 		expect    map[string]string
 	}{
 		{
 			name: "normal",
-			in: map[string]map[string]string{
-				"logging": {
+			in: map[point.Category]map[string]string{
+				point.Logging: {
 					"123.p":  "text123",
 					"1234.p": "text1234",
 				},
-				"metric": {
+				point.Metric: {
 					"456.p": "text456",
 				},
 			},
-			inDefault: map[string]string{
-				"logging": "123.p",
+			inDefault: map[point.Category]string{
+				point.Logging: "123.p",
 			},
 			expect: map[string]string{
 				"logging/123.p":                 "text123",
@@ -667,12 +671,12 @@ func TestConvertThreeMapToContentMap(t *testing.T) {
 		},
 		{
 			name: "normal1",
-			in: map[string]map[string]string{
-				"logging": {
+			in: map[point.Category]map[string]string{
+				point.Logging: {
 					"123.p":  "text123",
 					"1234.p": "text1234",
 				},
-				"metric": {
+				point.Metric: {
 					"456.p": "text456",
 				},
 			},
@@ -684,16 +688,16 @@ func TestConvertThreeMapToContentMap(t *testing.T) {
 		},
 		{
 			name: "normal2",
-			in: map[string]map[string]string{
-				"logging": {
+			in: map[point.Category]map[string]string{
+				point.Logging: {
 					"123.p":  "text123",
 					"1234.p": "text1234",
 				},
-				"metric": {
+				point.Metric: {
 					"456.p": "text456",
 				},
 			},
-			inDefault: map[string]string{},
+			inDefault: map[point.Category]string{},
 			expect: map[string]string{
 				"logging/123.p":                 "text123",
 				"logging/1234.p":                "text1234",

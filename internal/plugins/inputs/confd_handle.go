@@ -8,6 +8,7 @@ package inputs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -24,7 +25,7 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 		case <-ctx.Done():
 			tip := "confd handleInput timeout"
 			l.Error(tip)
-			errs = append(errs, fmt.Errorf(tip))
+			errs = append(errs, errors.New(tip))
 			return errs
 
 		default:
@@ -48,9 +49,9 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 			case 3:
 				l.Info("before set pipelines")
 
-				if managerWkr, ok := plval.GetManager(); ok && managerWkr != nil {
-					plmanager.LoadScripts2StoreFromPlStructPath(managerWkr,
-						plmanager.ConfdScriptNS, datakit.ConfdPipelineDir, nil)
+				if m, ok := plval.GetManager(); ok && m != nil {
+					m.LoadScriptsFromWorkspace(plmanager.NSConfd,
+						datakit.ConfdPipelineDir, nil)
 				}
 			}
 		}

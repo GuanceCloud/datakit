@@ -349,7 +349,7 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.21-0.20240821062850-3079bb7ed98d
+	github.com/GuanceCloud/cliutils v1.1.21-0.20240904042137-2a87297900d6
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0

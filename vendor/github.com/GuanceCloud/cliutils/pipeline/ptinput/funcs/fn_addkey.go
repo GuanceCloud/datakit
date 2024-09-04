@@ -55,10 +55,7 @@ func AddKey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if errRun != nil {
 		return errRun.ChainAppend(ctx.Name(), funcExpr.NamePos)
 	}
-	if err := addKey2PtWithVal(ctx.InData(), key, val, dtype, ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, val, dtype, ptinput.KindPtDefault)
 
 	return nil
 }

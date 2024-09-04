@@ -44,9 +44,8 @@ func URLDecode(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	if v, err := UrldecodeHandle(cont); err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
-	} else if err := addKey2PtWithVal(ctx.InData(), key, v, ast.String, ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
+	} else {
+		addKey2PtWithVal(ctx.InData(), key, v, ast.String, ptinput.KindPtDefault)
 	}
 
 	return nil

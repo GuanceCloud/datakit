@@ -71,6 +71,7 @@ func AllCategories() []Category {
 		Security,
 		Profiling,
 		DynamicDWCategory,
+		DialTesting,
 	}
 }
 
@@ -89,6 +90,7 @@ const (
 	RUM
 	Security
 	Profiling
+	DialTesting
 
 	SUnknownCategory   = "unknown"
 	SDynamicDWCategory = "dynamic_dw" // NOTE: not used
@@ -103,6 +105,7 @@ const (
 	SRUM               = "rum"
 	SSecurity          = "security"
 	SProfiling         = "profiling"
+	SDialTesting       = "dialtesting"
 
 	URLUnknownCategory   = "/v1/write/unknown"
 	URLDynamicDWCategory = "/v1/write/dynamic_dw" // NOTE: not used
@@ -117,6 +120,7 @@ const (
 	URLRUM               = "/v1/write/rum"
 	URLSecurity          = "/v1/write/security"
 	URLProfiling         = "/v1/write/profiling"
+	URLDialTesting       = "/v1/write/dialtesting" // NOTE: not used
 
 	CUnknown   = "UNKNOWN"
 	CDynamicDW = "DYNAMIC_DW"
@@ -130,6 +134,7 @@ const (
 	CR         = "R"
 	CS         = "S"
 	CP         = "P"
+	CDT        = "DT"
 )
 
 var (
@@ -147,6 +152,8 @@ var (
 		Security:     URLSecurity,
 		Profiling:    URLProfiling,
 
+		DialTesting: URLDialTesting,
+
 		DynamicDWCategory: URLDynamicDWCategory,
 
 		UnknownCategory: URLUnknownCategory,
@@ -163,6 +170,7 @@ var (
 		RUM:               CR,
 		Security:          CS,
 		Profiling:         CP,
+		DialTesting:       CDT,
 		UnknownCategory:   CUnknown,
 		DynamicDWCategory: CDynamicDW,
 	}
@@ -179,6 +187,7 @@ var (
 		RUM:               SRUM,
 		Security:          SSecurity,
 		Profiling:         SProfiling,
+		DialTesting:       SDialTesting,
 		UnknownCategory:   SUnknownCategory,
 		DynamicDWCategory: SDynamicDWCategory,
 	}

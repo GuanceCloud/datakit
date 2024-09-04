@@ -6,6 +6,7 @@
 package manager
 
 import (
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -15,40 +16,42 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-var l = logger.DefaultSLogger("pl-script")
+var log = logger.DefaultSLogger("pl-script")
 
 const (
-	DefaultScriptNS = "default" // 内置 pl script， 优先级最低
-	GitRepoScriptNS = "gitrepo" // git 管理的 pl script
-	ConfdScriptNS   = "confd"   // confd 管理的 pl script
-	RemoteScriptNS  = "remote"  // remote pl script，优先级最高
+	NSDefault = "default" // 内置 pl script， 优先级最低
+	NSGitRepo = "gitrepo" // git 管理的 pl script
+	NSConfd   = "confd"   // confd 管理的 pl script
+	NSRemote  = "remote"  // remote pl script，优先级最高
 )
 
-var plScriptNSSearchOrder = [4]string{
-	RemoteScriptNS, // 优先级最高的 ns
-	ConfdScriptNS,
-	GitRepoScriptNS,
-	DefaultScriptNS,
+var nsSearchOrder = [4]string{
+	NSRemote, // 优先级最高的 ns
+	NSConfd,
+	NSGitRepo,
+	NSDefault,
 }
 
 func InitLog() {
-	l = logger.SLogger("pl-script")
+	log = logger.SLogger("pl-script")
 }
 
-func InitStore(center *Manager, installDir string, tags map[string]string) {
+func InitStore(manager *Manager, installDir string, tags map[string]string) {
 	stats.InitLog()
-	LoadDefaultScripts2Store(center, installDir, tags)
+
+	plPath := filepath.Join(installDir, "pipeline")
+	manager.LoadScriptsFromWorkspace(NSDefault, plPath, tags)
 }
 
 func NSFindPriority(ns string) int {
 	switch ns {
-	case DefaultScriptNS:
+	case NSDefault:
 		return 0 // lowest priority
-	case GitRepoScriptNS:
+	case NSGitRepo:
 		return 1
-	case ConfdScriptNS:
+	case NSConfd:
 		return 2
-	case RemoteScriptNS:
+	case NSRemote:
 		return 3
 	default:
 		return -1
@@ -59,6 +62,8 @@ type ScriptStore struct {
 	category point.Category
 
 	storage scriptStorage
+
+	defultScript string
 
 	index     map[string]*PlScript
 	indexLock sync.RWMutex
@@ -76,15 +81,27 @@ func NewScriptStore(category point.Category, cfg ManagerCfg) *ScriptStore {
 		category: category,
 		storage: scriptStorage{
 			scripts: map[string]map[string]*PlScript{
-				RemoteScriptNS:  {},
-				ConfdScriptNS:   {},
-				GitRepoScriptNS: {},
-				DefaultScriptNS: {},
+				NSRemote:  {},
+				NSConfd:   {},
+				NSGitRepo: {},
+				NSDefault: {},
 			},
 		},
 		index: map[string]*PlScript{},
 		cfg:   cfg,
 	}
+}
+
+func (store *ScriptStore) SetDefaultScript(name string) {
+	store.indexLock.Lock()
+	defer store.indexLock.Unlock()
+	store.defultScript = name
+}
+
+func (store *ScriptStore) GetDefaultScript() string {
+	store.indexLock.RLock()
+	defer store.indexLock.RUnlock()
+	return store.defultScript
 }
 
 func (store *ScriptStore) IndexGet(name string) (*PlScript, bool) {
@@ -96,14 +113,24 @@ func (store *ScriptStore) IndexGet(name string) (*PlScript, bool) {
 	return nil, false
 }
 
+func (store *ScriptStore) IndexDefault() (*PlScript, bool) {
+	store.indexLock.RLock()
+	defer store.indexLock.RUnlock()
+
+	if v, ok := store.index[store.defultScript]; ok {
+		return v, ok
+	}
+	return nil, false
+}
+
 func (store *ScriptStore) Count() int {
 	store.storage.RLock()
 	defer store.storage.RUnlock()
 
-	return len(store.storage.scripts[RemoteScriptNS]) +
-		len(store.storage.scripts[ConfdScriptNS]) +
-		len(store.storage.scripts[GitRepoScriptNS]) +
-		len(store.storage.scripts[DefaultScriptNS])
+	return len(store.storage.scripts[NSRemote]) +
+		len(store.storage.scripts[NSConfd]) +
+		len(store.storage.scripts[NSGitRepo]) +
+		len(store.storage.scripts[NSDefault])
 }
 
 func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
@@ -184,7 +211,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		return
 	}
 
-	if nsCur > len(plScriptNSSearchOrder) {
+	if nsCur > len(nsSearchOrder) {
 		return
 	}
 
@@ -202,7 +229,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		return
 	}
 
-	for _, v := range plScriptNSSearchOrder[len(plScriptNSSearchOrder)-nsCur:] {
+	for _, v := range nsSearchOrder[len(nsSearchOrder)-nsCur:] {
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.indexStore(s)
@@ -235,7 +262,7 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 }
 
 func (store *ScriptStore) UpdateScriptsWithNS(ns string,
-	namedScript, scriptPath, scriptTags map[string]string,
+	namedScript, scriptTags map[string]string,
 ) map[string]error {
 	store.storage.Lock()
 	defer store.storage.Unlock()
@@ -245,7 +272,7 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string,
 	}
 
 	aggBuk := plmap.NewAggBuks(store.cfg.upFn, store.cfg.gTags)
-	retScripts, retErr := NewScripts(namedScript, scriptPath, scriptTags, ns, store.category,
+	retScripts, retErr := NewScripts(namedScript, scriptTags, ns, store.category,
 		aggBuk)
 
 	for name, err := range retErr {
@@ -331,29 +358,4 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string,
 		return retErr
 	}
 	return nil
-}
-
-func (store *ScriptStore) LoadDotPScript2Store(ns, dirPath string, scriptTags map[string]string, filePath []string) {
-	if len(filePath) > 0 {
-		namedScript := map[string]string{}
-		scriptPath := map[string]string{}
-		for _, fp := range filePath {
-			if name, script, err := ReadPlScriptFromFile(fp); err != nil {
-				l.Error(err)
-			} else {
-				scriptPath[name] = fp
-				namedScript[name] = script
-			}
-		}
-		if err := store.UpdateScriptsWithNS(ns, namedScript, scriptTags, scriptPath); err != nil {
-			l.Error(err)
-		}
-	}
-
-	if dirPath != "" {
-		namedScript, filePath := ReadPlScriptFromDir(dirPath)
-		if err := store.UpdateScriptsWithNS(ns, namedScript, scriptTags, filePath); err != nil {
-			l.Error(err)
-		}
-	}
 }

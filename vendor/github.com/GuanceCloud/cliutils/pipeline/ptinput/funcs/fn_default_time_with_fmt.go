@@ -106,10 +106,7 @@ func DefaultTimeWithFmt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlE
 			timeStr, goTimeFmt, tz, err)
 		return nil
 	} else {
-		if err := addKey2PtWithVal(ctx.InData(), key, t.UnixNano(), ast.Int, ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-			return nil
-		}
+		_ = addKey2PtWithVal(ctx.InData(), key, t.UnixNano(), ast.Int, ptinput.KindPtDefault)
 		return nil
 	}
 }

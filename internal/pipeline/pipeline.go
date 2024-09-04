@@ -46,7 +46,7 @@ func InitPipeline(cfg *plval.PipelineCfg, upFn plmap.UploadFunc, gTags map[strin
 }
 
 func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*plmap.AggBuckets) (*plmanager.PlScript, error) {
-	name, script, err := plmanager.ReadPlScriptFromFile(path)
+	name, script, err := plmanager.ReadScript(path)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*pl
 }
 
 func NewPlScriptSimple(category point.Category, name, script string, buks ...*plmap.AggBuckets) (*plmanager.PlScript, error) {
-	scs, errs := plmanager.NewScripts(map[string]string{name: script}, map[string]string{}, nil, "", category, buks...)
+	scs, errs := plmanager.NewScripts(map[string]string{name: script}, nil, "", category, buks...)
 
 	if v, ok := errs[name]; ok {
 		return nil, v
@@ -68,10 +68,9 @@ func NewPlScriptSimple(category point.Category, name, script string, buks ...*pl
 	return nil, fmt.Errorf("unknown error")
 }
 
-func NewPipelineMulti(category point.Category, scripts map[string]string,
-	scriptPath map[string]string, buks *plmap.AggBuckets,
+func NewPipelineMulti(category point.Category, scripts map[string]string, buks *plmap.AggBuckets,
 ) (map[string]*plmanager.PlScript, map[string]error) {
-	return plmanager.NewScripts(scripts, scriptPath, nil, "", category, buks)
+	return plmanager.NewScripts(scripts, nil, "", category, buks)
 }
 
 type Pipeline struct {

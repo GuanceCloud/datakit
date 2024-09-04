@@ -98,11 +98,10 @@ func TestRunpl(t *T.T) {
 			if !ok {
 				t.Error("!ok")
 			}
-			manager.LoadScripts(m, manager.RemoteScriptNS,
+			m.LoadScripts(manager.NSRemote,
 				map[point.Category]map[string]string{
 					point.Logging: {"a.p": "add_key('a', 1)"},
-				},
-				nil, nil)
+				}, nil)
 			if _, ok := m.QueryScript(point.Logging, "a.p"); !ok {
 				t.Error("!ok")
 			}

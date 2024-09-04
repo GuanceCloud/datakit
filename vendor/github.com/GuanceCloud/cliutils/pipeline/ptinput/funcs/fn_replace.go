@@ -87,11 +87,7 @@ func Replace(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	newCont := reg.ReplaceAllString(cont, dz)
-	if err := addKey2PtWithVal(ctx.InData(), key, newCont, ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, newCont, ast.String, ptinput.KindPtDefault)
 
 	return nil
 }

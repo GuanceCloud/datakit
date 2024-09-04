@@ -497,9 +497,9 @@ func getPipelineData() {
 	// Update pipeline script.
 	l.Debug("before set pipelines from confd ")
 
-	if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
-		manager.LoadScripts2StoreFromPlStructPath(
-			managerwkr, manager.ConfdScriptNS, datakit.ConfdPipelineDir, nil)
+	if m, ok := plval.GetManager(); ok && m != nil {
+		m.LoadScriptsFromWorkspace(
+			manager.NSConfd, datakit.ConfdPipelineDir, nil)
 	}
 }
 

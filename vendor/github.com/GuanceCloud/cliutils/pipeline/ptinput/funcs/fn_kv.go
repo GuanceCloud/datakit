@@ -260,9 +260,7 @@ func KVSplit(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	for k, v := range result {
-		if err := addKey2PtWithVal(ctx.InData(), k, v, ast.String, ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-		}
+		_ = addKey2PtWithVal(ctx.InData(), k, v, ast.String, ptinput.KindPtDefault)
 	}
 
 	ctx.Regs.ReturnAppend(true, ast.Bool)

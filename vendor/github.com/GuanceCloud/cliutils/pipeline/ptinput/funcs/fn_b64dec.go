@@ -61,10 +61,6 @@ func B64dec(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
 	}
-	if err := addKey2PtWithVal(ctx.InData(), key, string(res), ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, string(res), ast.String, ptinput.KindPtDefault)
 	return nil
 }

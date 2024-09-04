@@ -71,10 +71,8 @@ func DurationPrecision(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlEr
 			tValue *= 10
 		}
 	}
-	if err := addKey2PtWithVal(ctx.InData(), key, tValue, ast.Int,
-		ptinput.KindPtDefault); err != nil {
-		return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, tValue, ast.Int,
+		ptinput.KindPtDefault)
 	return nil
 }
 

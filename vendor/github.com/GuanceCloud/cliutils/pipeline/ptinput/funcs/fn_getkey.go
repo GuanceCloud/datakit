@@ -27,9 +27,6 @@ func GetkeyChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError
 }
 
 func Getkey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
-	if funcExpr == nil {
-		return runtime.NewRunError(ctx, "unreachable", funcExpr.NamePos)
-	}
 	if len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf("func %s expected 1 args",
 			funcExpr.Name), funcExpr.NamePos)

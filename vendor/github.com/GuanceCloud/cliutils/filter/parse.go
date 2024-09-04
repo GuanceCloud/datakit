@@ -44,8 +44,6 @@ type parser struct {
 }
 
 func GetConds(input string) (WhereConditions, error) {
-	log.Debugf("parse %s", input)
-
 	var err error
 	p := newParser(input)
 	defer parserPool.Put(p)

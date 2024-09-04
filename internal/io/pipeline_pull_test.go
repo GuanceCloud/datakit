@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,8 +32,8 @@ func TestPullPipeline(t *testing.T) {
 		RelationTS int64
 		Pipelines  *pullPipelineReturn
 		Expect     *struct {
-			mFiles, plRelation map[string]map[string]string
-			defaultPl          map[string]string
+			mFiles, plRelation map[point.Category]map[string]string
+			defaultPl          map[point.Category]string
 			updateTime         int64
 			relationUpdateTime int64
 		}
@@ -44,10 +45,12 @@ func TestPullPipeline(t *testing.T) {
 				UpdateTime: 1641796675,
 				Pipelines: []*pipelineUnit{
 					{
+						Category:   point.SLogging,
 						Name:       "123.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text1")),
 					},
 					{
+						Category:   point.SLogging,
 						Name:       "456.p",
 						Base64Text: base64.StdEncoding.EncodeToString([]byte("text2")),
 						AsDefault:  true,
@@ -55,35 +58,37 @@ func TestPullPipeline(t *testing.T) {
 				},
 				Relation: []*pipelineRelation{
 					{
-						Source: "a1",
-						Name:   "abc",
+						Category: point.SLogging,
+						Source:   "a1",
+						Name:     "abc",
 					},
 					{
-						Source: "a2",
-						Name:   "abc",
+						Category: point.SLogging,
+						Source:   "a2",
+						Name:     "abc",
 					},
 				},
 			},
 			Expect: &struct {
-				mFiles, plRelation map[string]map[string]string
-				defaultPl          map[string]string
+				mFiles, plRelation map[point.Category]map[string]string
+				defaultPl          map[point.Category]string
 				updateTime         int64
 				relationUpdateTime int64
 			}{
-				mFiles: map[string]map[string]string{
-					"": {
+				mFiles: map[point.Category]map[string]string{
+					point.Logging: {
 						"123.p": "text1",
 						"456.p": "text2",
 					},
 				},
-				plRelation: map[string]map[string]string{
-					"": {
+				plRelation: map[point.Category]map[string]string{
+					point.Logging: {
 						"a1": "abc",
 						"a2": "abc",
 					},
 				},
-				defaultPl: map[string]string{
-					"": "456.p",
+				defaultPl: map[point.Category]string{
+					point.Logging: "456.p",
 				},
 				updateTime: 1641796675,
 			},
@@ -95,14 +100,14 @@ func TestPullPipeline(t *testing.T) {
 				UpdateTime: -1,
 			},
 			Expect: &struct {
-				mFiles, plRelation map[string]map[string]string
-				defaultPl          map[string]string
+				mFiles, plRelation map[point.Category]map[string]string
+				defaultPl          map[point.Category]string
 				updateTime         int64
 				relationUpdateTime int64
 			}{
-				mFiles:     map[string]map[string]string{},
-				plRelation: map[string]map[string]string{},
-				defaultPl:  map[string]string{},
+				mFiles:     map[point.Category]map[string]string{},
+				plRelation: map[point.Category]map[string]string{},
+				defaultPl:  map[point.Category]string{},
 				updateTime: -1,
 			},
 		},
@@ -132,8 +137,8 @@ func TestParsePipelinePullStruct(t *testing.T) {
 		name      string
 		pipelines *pullPipelineReturn
 		expect    *struct {
-			mfiles, relation   map[string]map[string]string
-			defaultPl          map[string]string
+			mfiles, relation   map[point.Category]map[string]string
+			defaultPl          map[point.Category]string
 			updateTime         int64
 			relationUpdateTime int64
 			err                error
@@ -163,39 +168,41 @@ func TestParsePipelinePullStruct(t *testing.T) {
 				},
 				Relation: []*pipelineRelation{
 					{
-						Source: "a1",
-						Name:   "abc",
+						Category: point.SLogging,
+						Source:   "a1",
+						Name:     "abc",
 					},
 					{
-						Source: "a2",
-						Name:   "abc",
+						Category: point.SLogging,
+						Source:   "a2",
+						Name:     "abc",
 					},
 				},
 			},
 			expect: &struct {
-				mfiles, relation   map[string]map[string]string
-				defaultPl          map[string]string
+				mfiles, relation   map[point.Category]map[string]string
+				defaultPl          map[point.Category]string
 				updateTime         int64
 				relationUpdateTime int64
 				err                error
 			}{
-				mfiles: map[string]map[string]string{
-					"logging": {
+				mfiles: map[point.Category]map[string]string{
+					point.Logging: {
 						"123.p":  "text123",
 						"1234.p": "text1234",
 					},
-					"metric": {
+					point.Metric: {
 						"456.p": "text456",
 					},
 				},
-				relation: map[string]map[string]string{
-					"": {
+				relation: map[point.Category]map[string]string{
+					point.Logging: {
 						"a1": "abc",
 						"a2": "abc",
 					},
 				},
-				defaultPl: map[string]string{
-					"logging": "1234.p",
+				defaultPl: map[point.Category]string{
+					point.Logging: "1234.p",
 				},
 				updateTime: 1653020819,
 			},
@@ -223,22 +230,22 @@ func TestParsePipelinePullStruct(t *testing.T) {
 				},
 			},
 			expect: &struct {
-				mfiles, relation   map[string]map[string]string
-				defaultPl          map[string]string
+				mfiles, relation   map[point.Category]map[string]string
+				defaultPl          map[point.Category]string
 				updateTime         int64
 				relationUpdateTime int64
 				err                error
 			}{
-				mfiles: map[string]map[string]string{
-					"logging": {
+				mfiles: map[point.Category]map[string]string{
+					point.Logging: {
 						"123.p": "text1234",
 					},
-					"metric": {
+					point.Metric: {
 						"456.p": "text456",
 					},
 				},
-				relation:   map[string]map[string]string{},
-				defaultPl:  map[string]string{},
+				relation:   map[point.Category]map[string]string{},
+				defaultPl:  map[point.Category]string{},
 				updateTime: 1653020819,
 			},
 		},

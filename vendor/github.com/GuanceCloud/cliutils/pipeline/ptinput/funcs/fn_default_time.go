@@ -68,11 +68,8 @@ func DefaultTime(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 
 	if nanots, err := TimestampHandle(cont, tz); err != nil {
 		usePointTime(ctx, key, err)
-		return nil
-	} else if err := addKey2PtWithVal(ctx.InData(), key, nanots,
-		ast.Int, ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
+	} else {
+		addKey2PtWithVal(ctx.InData(), key, nanots, ast.Int, ptinput.KindPtDefault)
 	}
 
 	return nil

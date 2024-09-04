@@ -234,7 +234,7 @@ func GetPipelinePath(category point.Category, pipeLineName string) (string, erro
 	}
 
 	{
-		files := plmanager.SearchPlFilePathFromPlStructPath(datakit.GitReposRepoFullPath)
+		files := plmanager.SearchWorkspaceScripts(datakit.GitReposRepoFullPath)
 		if f, ok := files[category]; ok {
 			if plPath, ok := f[pipeLineName]; ok {
 				if _, err := os.Stat(plPath); err != nil {
@@ -246,7 +246,7 @@ func GetPipelinePath(category point.Category, pipeLineName string) (string, erro
 		}
 	}
 
-	files := plmanager.SearchPlFilePathFromPlStructPath(datakit.PipelineDir)
+	files := plmanager.SearchWorkspaceScripts(datakit.PipelineDir)
 	if f, ok := files[category]; ok {
 		if plPath, ok := f[pipeLineName]; ok {
 			if _, err := os.Stat(plPath); err != nil {

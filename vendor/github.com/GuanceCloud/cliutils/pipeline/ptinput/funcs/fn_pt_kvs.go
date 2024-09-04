@@ -185,12 +185,12 @@ func ptKvsSet(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain.
 	}
 
 	if asTag {
-		if err := pt.SetTag(name, val, getValDtype(val)); err != nil {
+		if ok := pt.SetTag(name, val, getValDtype(val)); !ok {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil
 		}
 	} else {
-		if err := pt.Set(name, val, getValDtype(val)); err != nil {
+		if ok := pt.Set(name, val, getValDtype(val)); !ok {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil
 		}

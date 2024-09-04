@@ -54,13 +54,8 @@ func ConvTraceIDW3C2DD(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlEr
 
 	if ddTraceID, err := convTraceW3CToDD(w3cTraceID); err != nil {
 		l.Debug(err)
-		return nil
 	} else {
-		if err := addKey2PtWithVal(ctx.InData(), key, ddTraceID, ast.String,
-			ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-			return nil
-		}
+		addKey2PtWithVal(ctx.InData(), key, ddTraceID, ast.String, ptinput.KindPtDefault)
 	}
 	return nil
 }

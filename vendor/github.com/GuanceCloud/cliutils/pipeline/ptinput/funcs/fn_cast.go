@@ -66,11 +66,6 @@ func Cast(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	val, dtype := doCast(v.Value, castType)
-	if err = addKey2PtWithVal(ctx.InData(), key, val, dtype,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
-
+	_ = addKey2PtWithVal(ctx.InData(), key, val, dtype, ptinput.KindPtDefault)
 	return nil
 }

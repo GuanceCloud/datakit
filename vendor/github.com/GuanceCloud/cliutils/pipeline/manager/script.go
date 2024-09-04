@@ -30,26 +30,22 @@ type Option struct {
 }
 
 type PlScript struct {
-	name     string // script name
-	filePath string
-	script   string // script content
+	name   string // script name
+	script string // script content
+	ns     string // script 所属 namespace
 
-	ns       string // script 所属 namespace
-	category point.Category
-
-	proc *plruntime.Script
-
-	plBuks *plmap.AggBuckets
-
+	proc     *plruntime.Script
+	plBuks   *plmap.AggBuckets
 	ptWindow *ptwindow.WindowPool
+	cache    *plcache.Cache
 
+	tags     map[string]string
 	updateTS int64
 
-	tags  map[string]string
-	cache *plcache.Cache
+	category point.Category
 }
 
-func NewScripts(scripts, scriptPath, scriptTags map[string]string, ns string, cat point.Category,
+func NewScripts(scripts, scriptTags map[string]string, ns string, cat point.Category,
 	buks ...*plmap.AggBuckets,
 ) (map[string]*PlScript, map[string]error) {
 	var plbuks *plmap.AggBuckets
@@ -57,19 +53,9 @@ func NewScripts(scripts, scriptPath, scriptTags map[string]string, ns string, ca
 		plbuks = buks[0]
 	}
 
-	switch cat {
-	case point.Metric:
+	switch cat { //nolint:exhaustive
 	case point.MetricDeprecated:
 		cat = point.Metric
-	case point.Network:
-	case point.KeyEvent:
-	case point.Object:
-	case point.CustomObject:
-	case point.Tracing:
-	case point.RUM:
-	case point.Security:
-	case point.Logging:
-	case point.Profiling:
 	case point.UnknownCategory, point.DynamicDWCategory:
 		retErr := map[string]error{}
 		for k := range scripts {
@@ -77,15 +63,12 @@ func NewScripts(scripts, scriptPath, scriptTags map[string]string, ns string, ca
 		}
 		return nil, retErr
 	}
+
 	ret, retErr := plengine.ParseScript(scripts, funcs.FuncsMap, funcs.FuncsCheckMap)
 
 	retScipt := map[string]*PlScript{}
 
 	for name, ng := range ret {
-		var sPath string
-		if len(scriptPath) > 0 {
-			sPath = scriptPath[name]
-		}
 		cache, _ := plcache.NewCache(time.Second, 100)
 		ptWin := ptwindow.NewManager()
 
@@ -106,7 +89,6 @@ func NewScripts(scripts, scriptPath, scriptTags map[string]string, ns string, ca
 		retScipt[name] = &PlScript{
 			script:   scripts[name],
 			name:     name,
-			filePath: sPath,
 			ns:       ns,
 			category: cat,
 			proc:     ng,
@@ -157,7 +139,6 @@ func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt
 		if opt != nil {
 			disable = opt.DisableAddStatusField
 			ignore = opt.IgnoreStatus
-			// spiltLen = opt.MaxFieldValLen
 		}
 
 		ProcLoggingStatus(plpt, disable, ignore)
@@ -180,10 +161,6 @@ func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt
 
 func (script *PlScript) Name() string {
 	return script.name
-}
-
-func (script PlScript) FilePath() string {
-	return script.filePath
 }
 
 func (script *PlScript) Category() point.Category {

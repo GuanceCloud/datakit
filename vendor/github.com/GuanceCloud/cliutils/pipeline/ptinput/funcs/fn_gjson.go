@@ -28,10 +28,6 @@ func GJSONChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError 
 
 	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
 	case ast.TypeIdentifier, ast.TypeStringLiteral:
-		var err error
-		if err != nil {
-			return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[1].StartPos())
-		}
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf("expect AttrExpr, IndexExpr or Identifier, got %s",
 			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos())
@@ -103,10 +99,6 @@ func GJSON(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	}
 
-	if err := addKey2PtWithVal(ctx.InData(), targetKey, v, dtype, ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
-
+	_ = addKey2PtWithVal(ctx.InData(), targetKey, v, dtype, ptinput.KindPtDefault)
 	return nil
 }

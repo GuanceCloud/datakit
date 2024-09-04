@@ -51,11 +51,7 @@ func SQLCover(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		l.Debug(err)
 		return nil
 	}
-	if err := addKey2PtWithVal(ctx.InData(), key, v, ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, v, ast.String, ptinput.KindPtDefault)
 
 	return nil
 }

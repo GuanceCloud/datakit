@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,11 +53,15 @@ type pipelineRemoteConfig struct {
 func StartPipelineRemote(urls []string) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
-		g := datakit.G("pipeline_remote")
-
-		g.Go(func(ctx context.Context) error {
-			return pullMain(urls, &pipelineRemoteImpl{})
-		})
+		if runner, err := pullMain(urls, &pipelineRemoteImpl{}); err != nil {
+			l.Error(err)
+			return
+		} else if runner != nil {
+			g := datakit.G("pipeline_remote")
+			g.Go(func(ctx context.Context) error {
+				return runner()
+			})
+		}
 	})
 }
 
@@ -75,8 +78,8 @@ type IPipelineRemote interface {
 	ReadFile(filename string) ([]byte, error)
 	WriteFile(filename string, data []byte, perm fs.FileMode) error
 	ReadDir(dirname string) ([]fs.FileInfo, error)
-	PullPipeline(int64, int64) (mFiles map[string]map[string]string, plRelation map[string]map[string]string,
-		defaultPl map[string]string, updateTime int64, relationTS int64, err error)
+	PullPipeline(int64, int64) (mFiles map[point.Category]map[string]string, plRelation map[point.Category]map[string]string,
+		defaultPl map[point.Category]string, updateTime int64, relationTS int64, err error)
 	GetTickerDurationAndBreak() (time.Duration, bool)
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
@@ -126,8 +129,8 @@ func (*pipelineRemoteImpl) ReadDir(dirname string) ([]fs.FileInfo, error) {
 }
 
 func (*pipelineRemoteImpl) PullPipeline(ts, relationTS int64) (
-	map[string]map[string]string, map[string]map[string]string,
-	map[string]string, int64, int64, error,
+	map[point.Category]map[string]string, map[point.Category]map[string]string,
+	map[point.Category]string, int64, int64, error,
 ) {
 	return io.PullPipeline(ts, relationTS)
 }
@@ -159,11 +162,11 @@ func (*pipelineRemoteImpl) WriteTarFromMap(data map[string]string, dest string) 
 
 //------------------------------------------------------------------------------
 
-func pullMain(urls []string, ipr IPipelineRemote) error {
+func pullMain(urls []string, ipr IPipelineRemote) (func() error, error) {
 	l.Info("start")
 
 	if len(urls) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
@@ -173,30 +176,40 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	td, isReturn := ipr.GetTickerDurationAndBreak()
 	l.Infof("duration: %s", td.String())
 
-	tick := time.NewTicker(td)
-	defer tick.Stop()
-
+	// first run
 	var err error
-
-	for {
-		err = doPull(pathConfig, pathRelation, urls[0], ipr)
-		if err != nil {
-			l.Warnf("doPull: %s, ignored", err.Error())
-		}
-
-		if isReturn {
-			return nil
-		}
-
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("exit")
-			return nil
-
-		case <-tick.C:
-			l.Debug("triggered")
-		}
+	err = doPull(pathConfig, pathRelation, urls[0], ipr)
+	if err != nil {
+		l.Warnf("doPull: %s, ignored", err.Error())
 	}
+	if isReturn {
+		return nil, nil
+	}
+
+	return func() error {
+		tick := time.NewTicker(td)
+		defer tick.Stop()
+
+		for {
+			err = doPull(pathConfig, pathRelation, urls[0], ipr)
+			if err != nil {
+				l.Warnf("doPull: %s, ignored", err.Error())
+			}
+
+			if isReturn {
+				return nil
+			}
+
+			select {
+			case <-datakit.Exit.Wait():
+				l.Info("exit")
+				return nil
+
+			case <-tick.C:
+				l.Debug("triggered")
+			}
+		}
+	}, nil
 }
 
 func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error {
@@ -225,12 +238,17 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 	}
 
 	if localTS == updateTime || updateTime <= 0 {
-		l.Debugf("already up to date: %d", updateTime)
+		l.Debugf("pipeline already up to date: %d", updateTime)
 	} else {
 		if updateTime == deleteAll {
 			l.Debug("deleteAll")
 
-			spRelation.UpdateDefaultPl(nil)
+			// cleanup default pipeline
+			managerWkr.UpdateDefaultScript(nil)
+			if m, ok := plval.GetManager(); ok && m != nil {
+				// cleanup all remote scripts
+				m.LoadScripts(plmanager.NSRemote, nil, nil)
+			}
 
 			// remove lcoal files
 			if err := removeLocalRemote(ipr); err != nil {
@@ -248,7 +266,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 			l.Debug("dumpFiles succeeded")
 
 			loadContentPipeline(mFiles)
-			spRelation.UpdateDefaultPl(defaultPl)
+			managerWkr.UpdateDefaultScript(defaultPl)
 
 			err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 			if err != nil {
@@ -292,17 +310,12 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	managerWkr, ok := plval.GetManager()
-	if !ok || managerWkr == nil {
-		return nil
-	}
-
-	// cleanup all scripts
-	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, nil, nil, nil)
 	return nil
 }
 
-func dumpFiles(mFiles map[string]map[string]string, defaultPl map[string]string, ipr IPipelineRemote) error {
+func dumpFiles(mFiles map[point.Category]map[string]string,
+	defaultPl map[point.Category]string, ipr IPipelineRemote,
+) error {
 	l.Debugf("dumpFiles: %#v", mFiles)
 	// remove lcoal files
 	if err := removeLocalRemote(ipr); err != nil {
@@ -320,15 +333,35 @@ type relationInfo struct {
 	Relation map[string]map[string]string `json:"relation"`
 }
 
-func dumpRelation(path string, relation map[string]map[string]string) error {
+func dumpRelation(path string, relation map[point.Category]map[string]string) error {
+	rl := map[string]map[string]string{}
+	for c, r := range relation {
+		rl[c.String()] = r
+	}
+
 	if body, err := json.Marshal(&relationInfo{
-		Relation: relation,
+		Relation: rl,
 	}); err != nil {
 		return err
 	} else {
-		if err := ioutil.WriteFile(path, body, os.ModePerm); err != nil {
+		if err := os.WriteFile(path, body, os.ModePerm); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ipr IPipelineRemote) error {
+	cf := pipelineRemoteConfig{
+		SiteURL:    siteURL,
+		UpdateTime: latestTime,
+	}
+	bys, err := ipr.Marshal(cf)
+	if err != nil {
+		return err
+	}
+	if err := ipr.WriteFile(pathConfig, bys, os.ModePerm); err != nil {
+		return err
 	}
 	return nil
 }
@@ -363,21 +396,6 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 	return cf.UpdateTime, nil
 }
 
-func updatePipelineRemoteConfig(pathConfig, siteURL string, latestTime int64, ipr IPipelineRemote) error {
-	cf := pipelineRemoteConfig{
-		SiteURL:    siteURL,
-		UpdateTime: latestTime,
-	}
-	bys, err := ipr.Marshal(cf)
-	if err != nil {
-		return err
-	}
-	if err := ipr.WriteFile(pathConfig, bys, os.ModePerm); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ConvertContentMapToThreeMap more info see test case.
 func ConvertContentMapToThreeMap(in map[string]string) map[string]map[string]string {
 	out := make(map[string]map[string]string)
@@ -400,16 +418,22 @@ func ConvertContentMapToThreeMap(in map[string]string) map[string]map[string]str
 }
 
 // more info see test case.
-func convertThreeMapToContentMap(in map[string]map[string]string, defaultPl map[string]string) map[string]string {
+func convertThreeMapToContentMap(in map[point.Category]map[string]string,
+	defaultPl map[point.Category]string,
+) map[string]string {
 	out := make(map[string]string)
 	for category, mVal := range in {
 		for name, content := range mVal {
-			out[filepath.Join(category, name)] = content
+			out[filepath.Join(category.String(), name)] = content
 		}
 	}
 
 	if defaultPl != nil {
-		if v, err := json.Marshal(defaultPl); err != nil {
+		df := map[string]string{}
+		for cat, name := range defaultPl {
+			df[cat.String()] = name
+		}
+		if v, err := json.Marshal(df); err != nil {
 			l.Error(err)
 		} else {
 			out[pipelineRemoteDefaultScriptFile] = string(v)
@@ -419,7 +443,7 @@ func convertThreeMapToContentMap(in map[string]map[string]string, defaultPl map[
 	return out
 }
 
-func loadContentPipeline(in map[string]map[string]string) {
+func loadContentPipeline(in map[point.Category]map[string]string) {
 	managerWkr, ok := plval.GetManager()
 	if !ok || managerWkr == nil {
 		return
@@ -427,9 +451,8 @@ func loadContentPipeline(in map[string]map[string]string) {
 
 	inS := map[point.Category]map[string]string{}
 
-	for categoryShort, val := range in {
-		cat := point.CatString(categoryShort)
+	for cat, val := range in {
 		inS[cat] = val
 	}
-	plmanager.LoadScripts(managerWkr, plmanager.RemoteScriptNS, inS, nil, nil)
+	managerWkr.LoadScripts(plmanager.NSRemote, inS, nil)
 }

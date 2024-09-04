@@ -61,11 +61,7 @@ func Strfmt(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	strfmt := fmt.Sprintf(fmts, outdata...)
-	if err := addKey2PtWithVal(ctx.InData(), key, strfmt, ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, strfmt, ast.String, ptinput.KindPtDefault)
 
 	return nil
 }

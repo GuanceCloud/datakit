@@ -229,10 +229,10 @@ func pointTime(in any) int64 {
 	}
 }
 
-func addKey2PtWithVal(in any, key string, value any, dtype ast.DType, kind ptinput.KeyKind) error {
+func addKey2PtWithVal(in any, key string, value any, dtype ast.DType, kind ptinput.KeyKind) bool {
 	pt, err := getPoint(in)
 	if err != nil {
-		return err
+		return false
 	}
 
 	if key == "_" {

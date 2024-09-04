@@ -8,7 +8,6 @@ package pipeline
 
 import (
 	"github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/manager/relation"
 	"github.com/GuanceCloud/cliutils/pipeline/offload"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/geoip"
@@ -21,8 +20,6 @@ import (
 func InitLog() {
 	// pipeline scripts manager
 	manager.InitLog()
-	// scripts relation
-	relation.InitLog()
 
 	// pipeline offload
 	offload.InitLog()

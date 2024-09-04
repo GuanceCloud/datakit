@@ -69,10 +69,7 @@ func GeoIP(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	} else {
 		for k, v := range dic {
-			if err := addKey2PtWithVal(ctx.InData(), k, v, ast.String, ptinput.KindPtDefault); err != nil {
-				l.Debug(err)
-				return nil
-			}
+			_ = addKey2PtWithVal(ctx.InData(), k, v, ast.String, ptinput.KindPtDefault)
 		}
 	}
 

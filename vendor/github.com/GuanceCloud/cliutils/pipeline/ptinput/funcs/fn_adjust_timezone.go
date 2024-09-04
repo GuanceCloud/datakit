@@ -67,10 +67,7 @@ func AdjustTimezone(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError
 	switch cont := logTS.Value.(type) {
 	case int64:
 		cont = detectTimezone(cont, time.Now().UnixNano(), minuteAllow)
-		if err := addKey2PtWithVal(ctx.InData(), key, cont, ast.Int, ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-			return nil
-		}
+		_ = addKey2PtWithVal(ctx.InData(), key, cont, ast.Int, ptinput.KindPtDefault)
 	default:
 		return runtime.NewRunError(ctx, fmt.Sprintf(
 			"param value expect int64, got `%s`", reflect.TypeOf(cont)),

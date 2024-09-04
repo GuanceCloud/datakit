@@ -7,6 +7,7 @@
 package ptinput
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -35,12 +36,12 @@ type PlInputPt interface {
 	SetPtName(m string)
 
 	Get(key string) (any, ast.DType, error)
-	GetWithIsTag(key string) (any, bool, bool)
-	Set(key string, value any, dtype ast.DType) error
+	Set(key string, value any, dtype ast.DType) bool
+
 	Delete(key string)
 	RenameKey(from, to string) error
 
-	SetTag(key string, value any, dtype ast.DType) error
+	SetTag(key string, value any, dtype ast.DType) bool
 
 	PtTime() time.Time
 
@@ -196,6 +197,8 @@ func (pt *PlPoint) Category() point.Category {
 	return pt.category
 }
 
+var ErrKeyNotExist = errors.New("key not exist")
+
 func (pt *PlPoint) Get(key string) (any, ast.DType, error) {
 	if v, ok := pt.tags[key]; ok {
 		return v, ast.String, nil
@@ -205,7 +208,7 @@ func (pt *PlPoint) Get(key string) (any, ast.DType, error) {
 		v, dtype := valueDtype(v)
 		return v, dtype, nil
 	}
-	return nil, ast.Invalid, fmt.Errorf("unsupported pt key type")
+	return nil, ast.Nil, ErrKeyNotExist
 }
 
 func (pt *PlPoint) GetWithIsTag(key string) (any, bool, bool) {
@@ -220,35 +223,35 @@ func (pt *PlPoint) GetWithIsTag(key string) (any, bool, bool) {
 	return nil, false, false
 }
 
-func (pt *PlPoint) Set(key string, value any, dtype ast.DType) error {
+func (pt *PlPoint) Set(key string, value any, dtype ast.DType) bool {
 	if _, ok := pt.tags[key]; ok { // is tag
 		if dtype == ast.Void || dtype == ast.Invalid {
 			delete(pt.tags, key)
-			return nil
+			return true
 		}
 		if v, err := plruntime.Conv2String(value, dtype); err == nil {
 			pt.tags[key] = v
-			return nil
+			return true
 		} else {
-			return err
+			return false
 		}
 	} else { // is field
 		switch dtype { //nolint:exhaustive
 		case ast.Nil, ast.Void, ast.Invalid:
 			pt.fields[key] = nil
-			return nil
+			return true
 		case ast.List, ast.Map:
 			if v, err := plruntime.Conv2String(value, dtype); err == nil {
 				pt.fields[key] = v
 			} else {
 				pt.fields[key] = nil
-				return nil
+				return true
 			}
 		default:
 			pt.fields[key] = value
 		}
 	}
-	return nil
+	return true
 }
 
 func (pt *PlPoint) Delete(key string) {
@@ -272,15 +275,15 @@ func (pt *PlPoint) RenameKey(from, to string) error {
 	return nil
 }
 
-func (pt *PlPoint) SetTag(key string, value any, dtype ast.DType) error {
+func (pt *PlPoint) SetTag(key string, value any, dtype ast.DType) bool {
 	delete(pt.fields, key)
 
 	if str, err := plruntime.Conv2String(value, dtype); err == nil {
 		pt.tags[key] = str
-		return nil
+		return true
 	} else {
 		pt.tags[key] = ""
-		return err
+		return false
 	}
 }
 
