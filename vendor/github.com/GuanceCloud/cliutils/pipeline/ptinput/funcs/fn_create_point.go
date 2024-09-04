@@ -186,6 +186,8 @@ func ptCategory(cat string) point.Category {
 		return point.CustomObject
 	case point.SSecurity, point.CS:
 		return point.Security
+	case point.SDialTesting, point.CDT:
+		return point.DialTesting
 	}
 	return point.UnknownCategory
 }

@@ -58,10 +58,6 @@ func B64enc(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		return nil
 	}
 	res := base64.StdEncoding.EncodeToString([]byte(cont))
-	if err := addKey2PtWithVal(ctx.InData(), key, res, ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, res, ast.String, ptinput.KindPtDefault)
 	return nil
 }

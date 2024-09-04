@@ -158,17 +158,12 @@ func JSON(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	default:
 		return nil
 	}
-	if err := addKey2PtWithVal(ctx.InData(), targetKey, v, dtype, ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
+	if ok := addKey2PtWithVal(ctx.InData(), targetKey, v, dtype, ptinput.KindPtDefault); !ok {
 		return nil
 	}
 
 	if deleteAfterExtract {
-		if err := addKey2PtWithVal(ctx.InData(), srcKey, dstS, ast.String,
-			ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-			return nil
-		}
+		_ = addKey2PtWithVal(ctx.InData(), srcKey, dstS, ast.String, ptinput.KindPtDefault)
 	}
 
 	return nil

@@ -129,17 +129,14 @@ func DateTime(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	}
 
 	if datetimeInnerFormat(fmts) {
-		if v, err := DateFormatHandle(&t, fmts); err != nil {
+		v, err := DateFormatHandle(&t, fmts)
+		if err != nil {
 			return runtime.NewRunError(ctx, err.Error(), funcExpr.NamePos)
-		} else if err := addKey2PtWithVal(ctx.InData(), key, v, ast.String,
-			ptinput.KindPtDefault); err != nil {
-			l.Debug(err)
-			return nil
 		}
-	} else if err := addKey2PtWithVal(ctx.InData(), key, timefmt.Format(t, fmts), ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
+		_ = addKey2PtWithVal(ctx.InData(), key, v, ast.String, ptinput.KindPtDefault)
+	} else {
+		_ = addKey2PtWithVal(ctx.InData(), key, timefmt.Format(t, fmts),
+			ast.String, ptinput.KindPtDefault)
 	}
 
 	return nil

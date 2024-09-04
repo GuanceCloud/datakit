@@ -64,11 +64,7 @@ func Trim(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		val = strings.Trim(cont, cutset)
 	}
 
-	if err = addKey2PtWithVal(ctx.InData(), key, val, ast.String,
-		ptinput.KindPtDefault); err != nil {
-		l.Debug(err)
-		return nil
-	}
+	_ = addKey2PtWithVal(ctx.InData(), key, val, ast.String, ptinput.KindPtDefault)
 
 	return nil
 }

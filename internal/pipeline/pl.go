@@ -10,7 +10,6 @@ import (
 	"time"
 
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/manager/relation"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
@@ -86,7 +85,7 @@ func RunPl(category point.Category, pts []*point.Point,
 		}
 
 		if v, ok := plval.GetOffload(); ok && v != nil &&
-			script.NS() == plmanager.RemoteScriptNS &&
+			script.NS() == plmanager.NSRemote &&
 			category == point.Logging {
 			ptsOffload = append(ptsOffload, pt)
 			continue
@@ -169,7 +168,7 @@ func searchScript(cat point.Category,
 	}
 
 	relat := center.GetScriptRelation()
-	scriptName, ok := relation.ScriptName(relat, cat, pt, scriptMap)
+	scriptName, ok := plmanager.ScriptName(relat, cat, pt, scriptMap)
 	if !ok {
 		return nil, false
 	}

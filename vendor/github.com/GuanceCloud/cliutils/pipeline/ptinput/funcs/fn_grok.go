@@ -113,8 +113,7 @@ func Grok(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 					continue
 				}
 			}
-			if err := addKey2PtWithVal(ctx.InData(), name, result[i], dtype, ptinput.KindPtDefault); err != nil {
-				l.Debug(err)
+			if ok := addKey2PtWithVal(ctx.InData(), name, result[i], dtype, ptinput.KindPtDefault); !ok {
 				ctx.Regs.ReturnAppend(false, ast.Bool)
 				return nil
 			}
@@ -126,8 +125,7 @@ func Grok(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 			return nil
 		}
 		for i, name := range grokRe.MatchNames() {
-			if err := addKey2PtWithVal(ctx.InData(), name, result[i], ast.String, ptinput.KindPtDefault); err != nil {
-				l.Debug(err)
+			if ok := addKey2PtWithVal(ctx.InData(), name, result[i], ast.String, ptinput.KindPtDefault); !ok {
 				ctx.Regs.ReturnAppend(false, ast.Bool)
 				return nil
 			}

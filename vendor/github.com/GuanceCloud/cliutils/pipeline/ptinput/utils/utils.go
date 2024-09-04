@@ -15,7 +15,7 @@ import (
 func PtCatOption(cat point.Category) []point.Option {
 	var opt []point.Option
 	switch cat {
-	case point.Logging:
+	case point.Logging, point.DialTesting:
 		opt = point.DefaultLoggingOptions()
 	case point.Tracing,
 		point.Network,
@@ -33,6 +33,7 @@ func PtCatOption(cat point.Category) []point.Option {
 	case point.DynamicDWCategory,
 		point.MetricDeprecated,
 		point.UnknownCategory: // pass
+
 	default:
 	}
 	return opt

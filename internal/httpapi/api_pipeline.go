@@ -244,7 +244,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 func parsePipeline(category point.Category, scriptName string,
 	scripts map[string]string, buks *plmap.AggBuckets,
 ) (*manager.PlScript, error) {
-	success, faild := pipeline.NewPipelineMulti(category, scripts, nil, buks)
+	success, faild := pipeline.NewPipelineMulti(category, scripts, buks)
 	if err, ok := faild[scriptName]; ok && err != nil {
 		return nil, err
 	}

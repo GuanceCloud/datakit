@@ -215,28 +215,24 @@ func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string
 	errs := map[string]map[string]error{}
 
 	{ // default
-		ns := manager.DefaultScriptNS
+		ns := manager.NSDefault
 		plPath := filepath.Join(datakit.InstallDir, "pipeline")
-		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
-		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category], nil)
+		scripts, _ := manager.ReadWorkspaceScripts(plPath)
+		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], nil)
 	}
 	{ // gitrepo
-		ns := manager.GitRepoScriptNS
+		ns := manager.NSGitRepo
 		plPath := filepath.Join(datakit.GitReposRepoFullPath, "pipeline")
-		scripts, scriptsPath := manager.ReadPlScriptFromPlStructPath(plPath)
-		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], scriptsPath[category], nil)
+		scripts, _ := manager.ReadWorkspaceScripts(plPath)
+		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], nil)
 	}
 	{ // remote
-		ns := manager.RemoteScriptNS
+		ns := manager.NSRemote
 		plPath := filepath.Join(datakit.PipelineRemoteDir, plremote.GetConentFileName())
 		if tarMap, err := targzutil.ReadTarToMap(plPath); err == nil {
 			allCategory := plremote.ConvertContentMapToThreeMap(tarMap)
 			scripts := allCategory[category.String()]
-			scriptsPath := map[string]string{}
-			for k := range scripts {
-				scriptsPath[k] = filepath.Join(plPath, category.String(), k)
-			}
-			errs[ns] = store.UpdateScriptsWithNS(ns, scripts, scriptsPath, nil)
+			errs[ns] = store.UpdateScriptsWithNS(ns, scripts, nil)
 		}
 	}
 

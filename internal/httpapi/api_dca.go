@@ -211,9 +211,8 @@ func ReloadDataKit(ctx context.Context) error {
 
 			case 3:
 				l.Info("before set pipelines")
-				if managerwkr, ok := plval.GetManager(); ok && managerwkr != nil {
-					manager.LoadScripts2StoreFromPlStructPath(managerwkr,
-						manager.GitRepoScriptNS,
+				if m, ok := plval.GetManager(); ok && m != nil {
+					m.LoadScriptsFromWorkspace(manager.NSGitRepo,
 						filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
 				}
 
@@ -895,7 +894,7 @@ func dcaTestPipelines(c *gin.Context) {
 
 	category := point.CatString(body.Category)
 
-	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil, nil)
+	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil)
 	if err, ok := errs[body.ScriptName]; ok && err != nil {
 		context.fail(dcaError{ErrorCode: "400", ErrorMsg: fmt.Sprintf("pipeline parse error: %s", err.Error())})
 		return
@@ -935,6 +934,7 @@ func dcaTestPipelines(c *gin.Context) {
 			point.RUM,
 			point.Security,
 			point.Tracing,
+			point.DialTesting,
 			point.UnknownCategory:
 
 			arr, err := dec.Decode([]byte(data))

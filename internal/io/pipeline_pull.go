@@ -8,11 +8,13 @@ package io
 import (
 	"encoding/base64"
 	"fmt"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 // PullPipeline returns name/text, updateTime, err.
-func PullPipeline(ts, relaTS int64) (mFiles, plRelation map[string]map[string]string,
-	defaultPl map[string]string, updateTime int64, relationTS int64, err error,
+func PullPipeline(ts, relaTS int64) (mFiles, plRelation map[point.Category]map[string]string,
+	defaultPl map[point.Category]string, updateTime int64, relationTS int64, err error,
 ) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -35,34 +37,36 @@ func PullPipeline(ts, relaTS int64) (mFiles, plRelation map[string]map[string]st
 }
 
 func parsePipelinePullStruct(pulledStruct *pullPipelineReturn) (
-	map[string]map[string]string, map[string]map[string]string,
-	map[string]string, int64, int64, error,
+	map[point.Category]map[string]string, map[point.Category]map[string]string,
+	map[point.Category]string, int64, int64, error,
 ) {
-	mFiles := make(map[string]map[string]string)
-	defaultPl := make(map[string]string)
+	mFiles := make(map[point.Category]map[string]string)
+	defaultPl := make(map[point.Category]string)
 	for _, v := range pulledStruct.Pipelines {
 		bys, err := base64.StdEncoding.DecodeString(v.Base64Text)
 		if err != nil {
 			return nil, nil, nil, 0, 0, err
 		}
 
+		cat := point.CatString(v.Category)
 		if v.AsDefault {
-			defaultPl[v.Category] = v.Name
+			defaultPl[cat] = v.Name
 		}
 
-		if val, ok := mFiles[v.Category]; ok {
+		if val, ok := mFiles[cat]; ok {
 			val[v.Name] = string(bys)
 		} else {
 			mf := make(map[string]string)
 			mf[v.Name] = string(bys)
-			mFiles[v.Category] = mf
+			mFiles[cat] = mf
 		}
 	}
 
-	plRelation := make(map[string]map[string]string)
+	plRelation := make(map[point.Category]map[string]string)
 	for _, v := range pulledStruct.Relation {
-		if m, ok := plRelation[v.Category]; !ok {
-			plRelation[v.Category] = map[string]string{
+		cat := point.CatString(v.Category)
+		if m, ok := plRelation[cat]; !ok {
+			plRelation[cat] = map[string]string{
 				v.Source: v.Name,
 			}
 		} else {

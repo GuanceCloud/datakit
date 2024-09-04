@@ -77,8 +77,10 @@ var (
 		"filter":     FILTER,
 		"identifier": IDENTIFIER,
 
-		"in":    IN,
-		"notin": NOT_IN,
+		"in": IN,
+
+		"notin":  NOT_IN, // deprecated
+		"not_in": NOT_IN, // same as notin
 
 		"limit":   LIMIT,
 		"link":    LINK,
@@ -480,8 +482,6 @@ func lexEscape(l *Lexer) stateFn {
 		return lexString
 	}
 
-	log.Debugf("n: %d, base: %d, max: %d", n, base, max)
-
 	var x uint32
 	for n > 0 {
 		d := uint32(digitVal(ch))
@@ -502,7 +502,6 @@ func lexEscape(l *Lexer) stateFn {
 		l.errorf("escape sequence is an invalid Unicode code point")
 	}
 
-	log.Debugf("get number %d", x)
 	return lexString
 }
 
@@ -545,8 +544,6 @@ func (l *Lexer) peek() rune {
 
 func (l *Lexer) emit(t ItemType) {
 	*l.itemp = Item{t, l.start, l.input[l.start:l.pos]}
-
-	// log.Debugf("emit: %+#v", l.itemp)
 
 	l.start = l.pos
 	l.scannedItem = true
