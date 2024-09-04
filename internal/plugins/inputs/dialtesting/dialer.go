@@ -108,8 +108,6 @@ func (d *dialer) getSendFailCount() int {
 }
 
 func (d *dialer) run() error {
-	var maskURL string
-
 	if err := d.task.Init(); err != nil {
 		l.Errorf(`task init error: %s`, err.Error())
 		return err
@@ -141,7 +139,6 @@ func (d *dialer) run() error {
 		if tokens, ok := params["token"]; ok {
 			// check token
 			if len(tokens) >= 1 {
-				maskURL = getMaskURL(parts.String())
 				if isValid, err := dialWorker.sender.checkToken(tokens[0], parts.Scheme, parts.Host); err != nil {
 					l.Warnf("check token error: %s", err.Error())
 				} else if !isValid {
@@ -170,7 +167,7 @@ func (d *dialer) run() error {
 
 	for {
 		failCount := d.getSendFailCount()
-		taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class, maskURL).Set(float64(failCount))
+		taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class).Set(float64(failCount))
 
 		// exceed max send fail count, sleep for MaxSendFailSleepTime
 		if failCount > MaxSendFailCount {
