@@ -6,9 +6,8 @@
 package dialtesting
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -44,9 +43,9 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "dialtesting",
 			Name:      "dataway_send_failed_number",
-			Help:      "The number of failed sending for each Dataway",
+			Help:      "The number of failed sending",
 		},
-		[]string{"region", "protocol", "dataway"},
+		[]string{"region", "protocol"},
 	)
 
 	taskPullCostSummary = prometheus.NewSummaryVec(

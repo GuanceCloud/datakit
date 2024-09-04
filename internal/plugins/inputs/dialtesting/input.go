@@ -21,7 +21,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,11 +38,10 @@ import (
 )
 
 var ( // type assertions
-	_             inputs.ReadEnv = (*Input)(nil)
-	_             inputs.InputV2 = (*Input)(nil)
-	g                            = datakit.G("inputs_dialtesting")
-	urlMaskRegexp                = regexp.MustCompile(`(token=tkn_[\w\d]{6})([\w\d]+)([\w\d]{6})`)
-	dialWorker    *worker
+	_          inputs.ReadEnv = (*Input)(nil)
+	_          inputs.InputV2 = (*Input)(nil)
+	g                         = datakit.G("inputs_dialtesting")
+	dialWorker *worker
 )
 
 var (
@@ -774,10 +772,6 @@ func (ipt *Input) stopAlltask() {
 		ipt.curTasks.Delete(key)
 		return true
 	})
-}
-
-func getMaskURL(url string) string {
-	return urlMaskRegexp.ReplaceAllString(url, `${1}******${3}`)
 }
 
 func defaultInput() *Input {
