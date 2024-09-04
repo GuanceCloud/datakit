@@ -84,6 +84,14 @@ func MyMemPercent() (float32, error) {
 	return self.MemoryPercent()
 }
 
+func MyMemStat() (*process.MemoryInfoStat, error) {
+	if self == nil {
+		return nil, errProcessInitFailed
+	}
+
+	return self.MemoryInfo()
+}
+
 func MyCPUPercent(du time.Duration) (float64, error) {
 	if self == nil {
 		return 0, errProcessInitFailed

@@ -47,6 +47,7 @@ type runtimeInfo struct {
 
 	gcPauseTotal uint64
 	gcNum        uint32
+	memStats     *process.MemoryInfoStat
 
 	ioCountersstats *process.IOCountersStat
 	numCtxSwitch    *process.NumCtxSwitchesStat
@@ -61,11 +62,14 @@ func getRuntimeInfo() *runtimeInfo {
 		usage = u
 	}
 
+	ms, _ := resourcelimit.MyMemStat()
+
 	return &runtimeInfo{
 		goroutines: runtime.NumGoroutine(),
 		heapAlloc:  m.HeapAlloc,
 		sys:        m.Sys,
 		cpuUsage:   usage,
+		memStats:   ms,
 
 		gcPauseTotal:    m.PauseTotalNs,
 		gcNum:           m.NumGC,
@@ -96,6 +100,12 @@ var (
 		"datakit_sys_alloc_bytes",
 		"Datakit memory system bytes",
 		nil, nil,
+	)
+
+	riMemStatDesc = p8s.NewDesc(
+		"datakit_mem_stat",
+		"Datakit memory system bytes",
+		[]string{"type"}, nil,
 	)
 
 	riCPUUsageDesc = p8s.NewDesc(
@@ -193,6 +203,16 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.goroutines))
 	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.heapAlloc))
 	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.sys))
+
+	if ri.memStats != nil {
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.RSS), "rss")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.VMS), "vms")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.HWM), "hwm")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Data), "data")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Stack), "stack")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Locked), "locked")
+	}
+
 	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.cpuUsage)
 
 	ch <- p8s.MustNewConstMetric(riOpenFilesDesc, p8s.GaugeValue, float64(datakit.OpenFiles()))

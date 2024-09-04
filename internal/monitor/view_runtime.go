@@ -24,6 +24,7 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 	goroutines := app.mfs["datakit_goroutines"]
 	heapAlloc := app.mfs["datakit_heap_alloc_bytes"]
 	sysAlloc := app.mfs["datakit_sys_alloc_bytes"]
+	memStat := app.mfs["datakit_mem_stat"]
 	cpuUsage := app.mfs["datakit_cpu_usage"]
 	gcSummary := app.mfs["datakit_gc_summary_seconds"]
 	openFiles := app.mfs["datakit_open_files"]
@@ -38,25 +39,47 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 		row++
 	}
 
+	var heap, sysMem float64
 	if heapAlloc != nil && len(heapAlloc.Metric) == 1 {
 		m := heapAlloc.Metric[0]
-		table.SetCell(row, 0,
-			tview.NewTableCell("Mem").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 1,
-			tview.NewTableCell(number(m.GetGauge().GetValue())).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-		row++
+		heap = m.GetGauge().GetValue()
 	}
 
 	if sysAlloc != nil && len(sysAlloc.Metric) == 1 {
 		m := sysAlloc.Metric[0]
-		table.SetCell(row, 0,
-			tview.NewTableCell("SysMem").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 1,
-			tview.NewTableCell(number(m.GetGauge().GetValue())).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
-		row++
+		sysMem = m.GetGauge().GetValue()
 	}
+
+	table.SetCell(row, 0,
+		tview.NewTableCell("Sys/Heap").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%s/%s", number(sysMem), number(heap))).
+			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
+	row++
+
+	var rss, vms float64
+	for _, m := range memStat.Metric {
+		lps := m.GetLabel()
+		if len(lps) != 1 {
+			continue
+		}
+
+		switch lps[0].GetValue() {
+		case "rss":
+			rss = m.GetGauge().GetValue()
+		case "vms":
+			vms = m.GetGauge().GetValue()
+		default: // pass
+		}
+	}
+
+	// only show RSS memory usage
+	table.SetCell(row, 0,
+		tview.NewTableCell("RSS/VMS").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%s/%s", number(rss), number(vms))).
+			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
+	row++
 
 	if cpuUsage != nil && len(cpuUsage.Metric) == 1 {
 		m := cpuUsage.Metric[0]

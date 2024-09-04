@@ -32,7 +32,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.Archs, "archs", "local", "os archs")
 	flag.StringVar(&build.AWSRegions, "aws-regions", "cn-north-1,cn-northwest-1", "aws regions")
 	flag.BoolVar(&build.EnableUploadAWS, "enable-upload-aws", false, "enable upload aws")
-	flag.StringVar(&raceDetection, "race", "off", "enable race deteciton")
+	flag.StringVar(&build.RaceDetection, "race", "off", "enable race deteciton")
 	flag.StringVar(&build.ReleaseType, "release", "", "build for local/testing/production")
 	flag.StringVar(&dwURL, "dataway-url", "", "set dataway URL(https://dataway.com/v1/write/logging?token=xxx) to push testing metrics")
 
@@ -80,7 +80,6 @@ var (
 	buildISP        = false
 	ut              = false
 	export          = false
-	raceDetection   = "off"
 	dwURL           = "not-set"
 
 	downloadSamples = false
