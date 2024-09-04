@@ -51,6 +51,9 @@ The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze J
 
 <!-- markdownlint-enable -->
 
+When using UDP protocol, pay attention to the data format in the protocol. By default, the protocol used for port 6831 is `Thrift CompactProtocol` format, while the protocol used for port 6832 is `Thrift Binary Protocol`.
+Jaeger uses the protocol from port 6831 by default.
+
 ### Configure Jaeger HTTP Agent {#config-http-agent}
 
 endpoint represents Jaeger HTTP Agent routing

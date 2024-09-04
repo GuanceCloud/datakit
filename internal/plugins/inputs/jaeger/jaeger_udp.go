@@ -19,17 +19,20 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func StartUDPAgent(udpConn *net.UDPConn, addr string, semStop *cliutils.Sem) error {
-	if udpConn == nil {
-		udpAddr, err := net.ResolveUDPAddr("udp", addr)
-		if err != nil {
-			return err
-		}
+const (
+	BinaryProtocol  = "binary"
+	CompactProtocol = "compact"
+)
 
-		udpConn, err = net.ListenUDP("udp", udpAddr)
-		if err != nil {
-			return err
-		}
+func StartUDPAgent(protocol string, addr string, semStop *cliutils.Sem) error {
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return err
+	}
+
+	udpConn, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		return err
 	}
 
 	log.Debugf("%s(UDP): listen on path: %s", inputName, addr)
@@ -68,7 +71,7 @@ func StartUDPAgent(udpConn *net.UDPConn, addr string, semStop *cliutils.Sem) err
 		log.Debugf("### read from udp server:%s %d bytes", addr, n)
 
 		param := &itrace.TraceParameters{Body: bytes.NewBuffer(buf[:n])}
-		if err = parseJaegerTraceUDP(param); err != nil {
+		if err = parseJaegerTraceUDP(protocol, param); err != nil {
 			log.Errorf("### parse jaeger trace from UDP failed: %s", err.Error())
 		}
 	}
@@ -80,17 +83,19 @@ func udpExit(udpConn *net.UDPConn) {
 	}
 }
 
-func parseJaegerTraceUDP(param *itrace.TraceParameters) error {
+func parseJaegerTraceUDP(protocol string, param *itrace.TraceParameters) error {
 	tmbuf := thrift.NewTMemoryBufferLen(param.Body.Len())
 	_, err := tmbuf.Write(param.Body.Bytes())
 	if err != nil {
 		return err
 	}
 
-	var (
-		tprot = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{}).GetProtocol(tmbuf)
-		ctx   = context.Background()
-	)
+	tprot := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{}).GetProtocol(tmbuf)
+	if protocol == "binary" {
+		tprot = thrift.NewTBinaryProtocolFactoryConf(&thrift.TConfiguration{}).GetProtocol(tmbuf)
+	}
+	ctx := context.Background()
+
 	if _, _, _, err = tprot.ReadMessageBegin(ctx); err != nil { //nolint:dogsled
 		return err
 	}
