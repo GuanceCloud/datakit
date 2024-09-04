@@ -338,11 +338,10 @@ func (cs *caseSpec) run() error {
 		}()
 
 	case AGENT_UDP:
-		conn, randPort, err := testutils.RandPortUDP()
+		_, randPort, err := testutils.RandPortUDP()
 		require.NoError(cs.t, err)
 		randPortStr = fmt.Sprintf("%d", randPort)
 		cs.ipt.Address = extIP + ":" + randPortStr
-		cs.ipt.udpListener = conn
 	}
 
 	shutdownFunc := func() {

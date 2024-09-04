@@ -8,12 +8,14 @@ package jaeger
 
 import (
 	"bytes"
+	"context"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
@@ -43,6 +45,7 @@ const (
 
   # Jaeger agent host:port address for UDP transport.
   # address = "127.0.0.1:6831"
+  # binary_address = "127.0.0.1:6832"
 
   ## ignore_tags will work as a blacklist to prevent tags send to data center.
   ## Every value in this list is a valid string of regular expression.
@@ -111,6 +114,7 @@ type Input struct {
 	CustomerTags     []string                     `toml:"customer_tags"` // deprecated
 	Endpoint         string                       `toml:"endpoint"`
 	Address          string                       `toml:"address"`
+	BinaryAddress    string                       `toml:"binary_address"`
 	IgnoreTags       []string                     `toml:"ignore_tags"`
 	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
@@ -120,10 +124,9 @@ type Input struct {
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
-	feeder      dkio.Feeder
-	semStop     *cliutils.Sem // start stop signal
-	Tagger      datakit.GlobalTagger
-	udpListener *net.UDPConn
+	feeder  dkio.Feeder
+	semStop *cliutils.Sem // start stop signal
+	Tagger  datakit.GlobalTagger
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -246,10 +249,22 @@ func (ipt *Input) Run() {
 	delMessage = ipt.DelMessage
 	if ipt.Address != "" {
 		log.Debugf("### %s UDP agent is starting...", inputName)
-		// itrace.StartTracingStatistic()
-		if err := StartUDPAgent(ipt.udpListener, ipt.Address, ipt.semStop); err != nil {
-			log.Errorf("### start %s UDP agent failed: %s", inputName, err.Error())
-		}
+		g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+		g.Go(func(ctx context.Context) error {
+			if err := StartUDPAgent(CompactProtocol, ipt.Address, ipt.semStop); err != nil {
+				log.Errorf("### start %s UDP agent failed: %s", inputName, err.Error())
+			}
+			return nil
+		})
+	}
+	if ipt.BinaryAddress != "" {
+		g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+		g.Go(func(ctx context.Context) error {
+			if err := StartUDPAgent(BinaryProtocol, ipt.BinaryAddress, ipt.semStop); err != nil {
+				log.Errorf("### start %s UDP agent failed: %s", inputName, err.Error())
+			}
+			return nil
+		})
 	}
 
 	log.Debugf("### %s agent is running...", inputName)
@@ -276,13 +291,6 @@ func (ipt *Input) exit() {
 			log.Error(err.Error())
 		}
 		log.Debug("### storage closed")
-	}
-
-	if ipt.udpListener != nil {
-		if err := ipt.udpListener.Close(); err != nil {
-			log.Errorf("UDP close error: %v", err)
-		}
-		ipt.udpListener = nil
 	}
 }
 
