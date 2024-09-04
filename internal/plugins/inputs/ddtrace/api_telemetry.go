@@ -22,6 +22,7 @@ import (
 )
 
 type Telemetry struct {
+	lock        sync.RWMutex
 	host        Host
 	application Application
 	traceTime   time.Time
@@ -32,10 +33,18 @@ type Telemetry struct {
 }
 
 func (ob *Telemetry) toPoint() *point.Point {
+	ob.lock.RLock()
+	defer ob.lock.RUnlock()
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(ob.traceTime))
 	kvs := append(point.NewTags(ob.tags), point.NewKVs(ob.fields)...)
 	return point.NewPointV2("tracing_service", kvs, opts...)
+}
+
+func (ob *Telemetry) setField(key string, val interface{}) {
+	ob.lock.Lock()
+	defer ob.lock.Unlock()
+	ob.fields[key] = val
 }
 
 func (ob *Telemetry) Info() *inputs.MeasurementInfo {
@@ -130,7 +139,7 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 			log.Errorf("err=%v", err)
 			return
 		}
-		ob.fields[string(requestType)] = string(bts)
+		ob.setField(string(requestType), string(bts))
 		ob.change = true
 	case RequestTypeAppHeartbeat,
 		RequestTypeDistributions:
@@ -158,12 +167,12 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 				for _, points := range series.Points {
 					m += points[1]
 				}
-				ob.fields[series.Metric+seriesTag] = m
+				ob.setField(series.Metric+seriesTag, m)
 			}
 		}
 		ob.change = true
 	case RequestTypeAppClosing:
-		ob.fields[string(requestType)] = "service closing"
+		ob.setField(string(requestType), "service closing")
 		ob.change = true
 	case RequestTypeMessageBatch:
 		bts, err := json.Marshal(payload)
