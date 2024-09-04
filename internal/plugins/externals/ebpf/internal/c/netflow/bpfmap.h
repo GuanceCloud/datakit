@@ -35,7 +35,7 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_inetbind") bpfmap_tmp_inetbind = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u64),
     .value_size = sizeof(__u16),
-    .max_entries = 65536,
+    .max_entries = 1024,
 };
 
 // map key: struct port_bind
@@ -53,6 +53,7 @@ struct bpf_map_def SEC("maps/bpfmap_udp_port_bind") bpfmap_udp_port_bind = {
     .value_size = sizeof(__u8),
     .max_entries = 65536,
 };
+
 struct udp_revcmsg_tmp
 {
     struct sock *sk;
@@ -63,7 +64,7 @@ struct bpf_map_def SEC("maps/bpf_map_tmp_udprecvmsg") bpf_map_tmp_udprecvmsg = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u64),
     .value_size = sizeof(struct udp_revcmsg_tmp),
-    .max_entries = 65536,
+    .max_entries = 1024,
 };
 
 // Temporarily store the pid_tgid(key, u64) and sockfd(value, u32) when sockfd_lookup_light is called.
@@ -71,7 +72,7 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_sockfdlookuplight") bpfmap_tmp_sockfdloo
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u64),
     .value_size = sizeof(__u32),
-    .max_entries = 65536,
+    .max_entries = 1024,
 };
 
 // key: struct pid_fd, value: struct sock pointer
@@ -94,39 +95,8 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_sendfile") bpfmap_tmp_sendfile = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(__u64),
     .value_size = sizeof(struct sock *),
-    .max_entries = 65536,
+    .max_entries = 1024,
 };
-
-// Remove conn from bpfmap_conn_stats.
-// In addition if it is a TCP conn, remove it from bpfmap_conn_tcp_stats.
-static __always_inline void remove_from_conn_map(struct connection_info conn_info, struct connection_closed_info *event)
-{
-    event->conn_info = conn_info;
-
-    __u32 tcp_or_udp = conn_info.meta & CONN_L4_MASK;
-    struct connection_tcp_stats *tcp_sts = NULL;
-
-    if (tcp_or_udp == CONN_L4_TCP)
-    {
-        __u32 pid = conn_info.pid;
-        conn_info.pid = 0;
-        tcp_sts = bpf_map_lookup_elem(&bpfmap_conn_tcp_stats, &conn_info);
-        if (tcp_sts != NULL)
-        {
-            event->conn_tcp_stats = *tcp_sts;
-            event->conn_tcp_stats.state_transitions |= (1 << TCP_CLOSE);
-        }
-        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
-        conn_info.pid = pid;
-    }
-
-    struct connection_stats *conn_sts = bpf_map_lookup_elem(&bpfmap_conn_stats, &conn_info);
-    if (conn_sts != NULL)
-    {
-        event->conn_stats = *conn_sts;
-    }
-    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
-}
 
 // key conn_info remove pid
 static __always_inline void update_tcp_stats(struct connection_info conn_info, struct connection_tcp_stats stats)
@@ -181,49 +151,39 @@ static __always_inline void send_conn_closed_event(struct pt_regs *ctx, struct c
     bpf_perf_event_output(ctx, &bpfmap_closed_event, cpu, &event, sizeof(event));
 }
 
-// param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
-// param count_typpe: packet count type, 1: init, 2:increment
-static __always_inline void update_conn_stats(struct connection_info *conn, size_t sent_bytes, size_t recv_bytes, u64 ts, int direction,
-                                              __u32 packets_out, __u32 packets_in, int count_type)
+static __always_inline int fill_conn_stats(struct connection_stats *dst, struct connection_info *conn, size_t sent_bytes, size_t recv_bytes,
+                                           u64 ts, int direction, __u32 packets_out, __u32 packets_in)
 {
-    struct connection_stats *val = NULL;
-
-    // initialize-if-no-exist the connection stat, and load it
-    struct connection_stats empty = {};
-    __builtin_memset(&empty, 0, sizeof(struct connection_stats));
-    bpf_map_update_elem(&bpfmap_conn_stats, conn, &empty, BPF_NOEXIST);
-    val = bpf_map_lookup_elem(&bpfmap_conn_stats, conn);
-
-    if (val == NULL)
+    if (dst == NULL)
     {
-        return;
+        return -1;
     }
 
     if (sent_bytes > 0)
     {
-        __sync_fetch_and_add(&val->sent_bytes, sent_bytes);
+        __sync_fetch_and_add(&dst->sent_bytes, sent_bytes);
     }
     if (recv_bytes > 0)
     {
-        __sync_fetch_and_add(&val->recv_bytes, recv_bytes);
+        __sync_fetch_and_add(&dst->recv_bytes, recv_bytes);
     }
     if ((conn->meta & CONN_L4_MASK) == CONN_L4_TCP)
     { // tcp three-way handshake
         if (recv_bytes == 0 && sent_bytes > 0)
         {
-            val->flags = (val->flags & ~CONN_SYNC_SENT_MASK) | CONN_SYNC_SENT;
+            dst->flags = (dst->flags & ~CONN_SYNC_SENT_MASK) | CONN_SYNC_SENT;
         }
         else if (sent_bytes == 0 && recv_bytes > 0)
         {
-            val->flags = (val->flags & ~CONN_SYNC_RCVD_MASK) | CONN_SYNC_RCVD;
+            dst->flags = (dst->flags & ~CONN_SYNC_RCVD_MASK) | CONN_SYNC_RCVD;
         }
         else if (sent_bytes > 0 && recv_bytes > 0)
         {
-            val->flags = (val->flags & ~CONN_ESTABLISHED_MASK) | CONN_ESTABLISHED;
+            dst->flags = (dst->flags & ~CONN_ESTABLISHED_MASK) | CONN_ESTABLISHED;
         }
     }
 
-    val->timestamp = ts;
+    dst->timestamp = ts;
 
     // direction
     if (direction == CONN_DIRECTION_AUTO)
@@ -240,14 +200,69 @@ static __always_inline void update_conn_stats(struct connection_info *conn, size
         {
             port_state = bpf_map_lookup_elem(&bpfmap_udp_port_bind, &bind);
         }
-        val->direction = (port_state != NULL) ? CONN_DIRECTION_INCOMING : CONN_DIRECTION_OUTGOING;
+        dst->direction = (port_state != NULL) ? CONN_DIRECTION_INCOMING : CONN_DIRECTION_OUTGOING;
     }
     else
     {
-        val->direction = direction;
+        dst->direction = direction;
     }
 
-    do_dnapt(conn, val->nat_daddr, &val->nat_dport);
+    do_dnapt(conn, dst->nat_daddr, &dst->nat_dport);
+
+    return 0;
+}
+
+// param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
+// param count_typpe: packet count type, 1: init, 2:increment
+static __always_inline int update_conn_stats(struct connection_info *conn, size_t sent_bytes, size_t recv_bytes, u64 ts, int direction,
+                                             __u32 packets_out, __u32 packets_in)
+{
+    struct connection_stats *val = NULL;
+
+    // initialize-if-no-exist the connection stat, and load it
+    struct connection_stats empty = {0};
+    bpf_map_update_elem(&bpfmap_conn_stats, conn, &empty, BPF_NOEXIST);
+    val = bpf_map_lookup_elem(&bpfmap_conn_stats, conn);
+
+    return fill_conn_stats(val, conn, sent_bytes, recv_bytes, ts, direction, packets_out, packets_in);
+}
+
+// Remove conn from bpfmap_conn_stats.
+// In addition if it is a TCP conn, remove it from bpfmap_conn_tcp_stats.
+static __always_inline void remove_from_conn_map(struct connection_info conn_info, struct connection_closed_info *event)
+{
+    event->conn_info = conn_info;
+
+    __u32 tcp_or_udp = conn_info.meta & CONN_L4_MASK;
+    struct connection_tcp_stats *tcp_sts = NULL;
+
+    if (tcp_or_udp == CONN_L4_TCP)
+    {
+        __u32 pid = conn_info.pid;
+        conn_info.pid = 0;
+        tcp_sts = bpf_map_lookup_elem(&bpfmap_conn_tcp_stats, &conn_info);
+        if (tcp_sts != NULL)
+        {
+            event->conn_tcp_stats = *tcp_sts;
+        }
+        event->conn_tcp_stats.state_transitions |= (1 << TCP_CLOSE);
+        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
+        conn_info.pid = pid;
+    }
+
+    update_conn_stats(&conn_info, 0, 0, 0, CONN_DIRECTION_AUTO, 0, 0);
+    struct connection_stats *conn_sts = bpf_map_lookup_elem(&bpfmap_conn_stats, &conn_info);
+    if (conn_sts != NULL)
+    {
+        event->conn_stats = *conn_sts;
+    }
+    else
+    {
+        __u64 ts = bpf_ktime_get_ns();
+        fill_conn_stats(&event->conn_stats, &conn_info, 0, 0, ts, CONN_DIRECTION_AUTO, 0, 0);
+    }
+
+    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
 }
 
 #endif // !__BPFMAP_H

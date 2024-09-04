@@ -111,7 +111,7 @@ int kretprobe__do_sendfile(struct pt_regs *ctx)
     {
         // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
         size_t sent = (size_t)PT_REGS_RC(ctx);
-        update_conn_stats(&conninf, sent, 0, ktime_ns, CONN_DIRECTION_AUTO, 0, 0, -1);
+        update_conn_stats(&conninf, sent, 0, ktime_ns, CONN_DIRECTION_AUTO, 0, 0);
     }
     bpf_map_delete_elem(&bpfmap_tmp_sendfile, &pid_tgid);
     return 0;
@@ -145,7 +145,7 @@ int kprobe__tcp_set_state(struct pt_regs *ctx)
     return 0;
 }
 
-//  port state listening (tcp)
+// port state listening (tcp)
 // func inet_csk_accept return null or sock pointer
 SEC("kretprobe/inet_csk_accept")
 int kretprobe__inet_csk_accept(struct pt_regs *ctx)
@@ -174,7 +174,7 @@ int kretprobe__inet_csk_accept(struct pt_regs *ctx)
     read_tcp_rtt(sk, &tcpstat);
     update_tcp_stats(conninf, tcpstat);
 
-    update_conn_stats(&conninf, 0, 0, ktime_ns, CONN_DIRECTION_INCOMING, 0, 0, 1);
+    update_conn_stats(&conninf, 0, 0, ktime_ns, CONN_DIRECTION_INCOMING, 0, 0);
 
     struct port_bind pb = {
         .netns = conninf.netns,
@@ -299,7 +299,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx)
         read_tcp_rtt(sk, &tcp_stats);
         update_tcp_stats(conn_info, tcp_stats);
 
-        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
+        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in);
     }
     else
     {
@@ -329,7 +329,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx)
         read_tcp_rtt(sk, &tcp_stats);
         update_tcp_stats(conn_info, tcp_stats);
 
-        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
+        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in);
     }
 
     return 0;
@@ -367,7 +367,7 @@ int kprobe__tcp_cleanup_buf(struct pt_regs *ctx)
     update_tcp_stats(conn_info, tcp_stats);
 
     __u64 ts = bpf_ktime_get_ns();
-    update_conn_stats(&conn_info, 0, copied, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
+    update_conn_stats(&conn_info, 0, copied, ts, CONN_DIRECTION_AUTO, packets_out, packets_in);
 
     return 0;
 }
@@ -408,7 +408,7 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
         swap_u16(&conninf.sport);
         swap_u16(&conninf.dport);
     }
-    update_conn_stats(&conninf, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+    update_conn_stats(&conninf, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0);
     // update_conn_pid(&conninf, pid_tgid, CONN_PID_APPEND);
     return 0;
 }
@@ -446,7 +446,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
             swap_u16(&conn.sport);
             swap_u16(&conn.dport);
         }
-        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0);
         // update_conn_pid(&conn, pid_tgid, CONN_PID_APPEND);
     }
     else
@@ -477,7 +477,7 @@ int kprobe__ip6_make_skb(struct pt_regs *ctx)
             swap_u16(&conn.sport);
             swap_u16(&conn.dport);
         }
-        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0);
         // update_conn_pid(&conn, pid_tgid, CONN_PID_APPEND);
     }
 
@@ -589,7 +589,7 @@ int kretprobe__udp_recvmsg(struct pt_regs *ctx)
         }
     }
 
-    update_conn_stats(&conn, 0, copied, ts, CONN_DIRECTION_AUTO, 0, 1, 2);
+    update_conn_stats(&conn, 0, copied, ts, CONN_DIRECTION_AUTO, 0, 1);
     return 0;
 }
 
