@@ -17,6 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_number(t *T.T) {
+	t.Run("1m", func(t *T.T) {
+		t.Logf("%s", number(1<<20))
+	})
+}
+
 func TestApp(t *T.T) {
 	t.Skip()
 	t.Run("app", func(t *T.T) {

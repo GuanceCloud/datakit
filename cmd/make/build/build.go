@@ -26,7 +26,6 @@ import (
 var (
 
 	// OSArches defined current supported release OS/Archs.
-
 	// Use `go tool dist list` to get golang supported os/archs.
 	OSArches = []string{ // supported os/arch list
 		// Linux
@@ -66,7 +65,7 @@ var (
 	AWSRegions      string
 	EnableUploadAWS bool
 	// build race-deteciton-enabled binary.
-	RaceDetection bool
+	RaceDetection string
 
 	// File pathh of main.go.
 	MainEntry string
@@ -85,6 +84,8 @@ var (
 	// all: release all inputs, include unchecked.
 	// checked: only release checked inputs.
 	InputsReleaseType string
+
+	optionOff = "off"
 
 	l = logger.DefaultSLogger("build")
 )
@@ -290,7 +291,7 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	}
 
 	// race-detection need cgo
-	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+	if RaceDetection != optionOff && runtime.GOOS == goos && runtime.GOARCH == goarch {
 		l.Infof("race deteciton enabled")
 		cmdArgs = []string{
 			"go", "build",
@@ -313,7 +314,7 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	}...)
 
 	var envs []string
-	if RaceDetection && runtime.GOOS == goos && runtime.GOARCH == goarch {
+	if RaceDetection != optionOff && runtime.GOOS == goos && runtime.GOARCH == goarch {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,

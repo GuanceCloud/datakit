@@ -187,17 +187,17 @@ func (app *monitorAPP) inputClicked(input string) func() bool {
 func number(i interface{}) string {
 	switch x := i.(type) {
 	case int:
-		return humanize.SI(float64(x), "")
+		return humanize.SIWithDigits(float64(x), 3, "")
 	case uint:
-		return humanize.SI(float64(x), "")
+		return humanize.SIWithDigits(float64(x), 3, "")
 	case int64:
-		return humanize.SI(float64(x), "")
+		return humanize.SIWithDigits(float64(x), 3, "")
 	case uint64:
-		return humanize.SI(float64(x), "")
+		return humanize.SIWithDigits(float64(x), 3, "")
 	case float32:
-		return humanize.SI(float64(x), "")
+		return humanize.SIWithDigits(float64(x), 3, "")
 	case float64:
-		return humanize.SI(x, "")
+		return humanize.SIWithDigits(x, 3, "")
 	default:
 		return ""
 	}
