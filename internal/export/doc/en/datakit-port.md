@@ -13,6 +13,7 @@ Datakit need to open several local ports to serve it's features, We may open the
 | 5044          | TCP             | Beats                          | N/A                                       |
 | 6343          | UDP             | NetFlow sflow5 default port    | N/A                                       |
 | 8125          | UDP             | StatsD                         | N/A                                       |
+| 9109          | UDP/TCP         | Graphite                       | N/A                                       |
 | 9529          | HTTP            | Datakit HTTP                   |                                           |
 | 9530          | TCP             | Logging on socket(TCP)         | N/A                                       |
 | 9531          | TCP             | DCA Server                     | N/A                                       |
