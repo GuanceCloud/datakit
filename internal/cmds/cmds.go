@@ -15,14 +15,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
+const OnlineBaseURL = "https://static.guance.com"
+
 var (
 	suggestions = []prompt.Suggest{
 		{Text: "exit", Description: "exit cmd"},
 		{Text: "Q", Description: "exit cmd"},
 		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
 	}
-
-	OnlineBaseURL = "https://static.guance.com"
 
 	l = logger.DefaultSLogger("cmds")
 	g = datakit.G("cmds")

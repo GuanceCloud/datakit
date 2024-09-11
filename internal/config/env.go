@@ -313,7 +313,6 @@ func (c *Config) loadDatawayEnvs() {
 
 	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
 		c.Dataway.HTTPProxy = v
-		c.Dataway.Proxy = true
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST"); v != "" {

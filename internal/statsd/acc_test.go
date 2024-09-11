@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,7 +114,7 @@ func TestAddFields(t *testing.T) {
 
 		acc.addFields(tc.name, tc.fields, tc.tags, time.Now())
 
-		tu.Assert(t, len(acc.points) == tc.expectPoint,
+		assert.Truef(t, len(acc.points) == tc.expectPoint,
 			"expect %d point, got %d: %+#v",
 			tc.expectPoint, len(acc.points), acc.points)
 

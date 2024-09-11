@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckIsVersion(t *testing.T) {
@@ -43,12 +43,12 @@ func TestCheckIsVersion(t *testing.T) {
 		t.Run(tc.ver, func(t *testing.T) {
 			err := checkIsNewVersion(ts.URL, tc.ver)
 			if tc.fail {
-				tu.NotOk(t, err, "expect err, not nil")
+				assert.Error(t, err)
 				t.Logf("expect err: %s", err)
 
 				return
 			} else {
-				tu.Ok(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}

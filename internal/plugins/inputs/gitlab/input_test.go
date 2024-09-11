@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -602,8 +601,8 @@ func TestGetPipelineTagsAndFields(t *testing.T) {
 			}
 			tags := getPipelineEventTags(pipeline)
 			fields := getPipelineEventFields(pipeline)
-			tu.Equals(t, tc.expectedTags, tags)
-			tu.Equals(t, tc.expectedFields, fields)
+			assert.Equal(t, tc.expectedTags, tags)
+			assert.Equal(t, tc.expectedFields, fields)
 		})
 	}
 }
@@ -677,8 +676,8 @@ func TestGetJobTagsAndFields(t *testing.T) {
 			}
 			tags := getJobEventTags(job)
 			fields := getJobEventFields(job)
-			tu.Equals(t, tc.expectedTags, tags)
-			tu.Equals(t, tc.expectedFields, fields)
+			assert.Equal(t, tc.expectedTags, tags)
+			assert.Equal(t, tc.expectedFields, fields)
 		})
 	}
 }

@@ -17,14 +17,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	humanize "github.com/dustin/go-humanize"
 )
 
-var (
-	CurDownloading string
-	l              = logger.DefaultSLogger("downloader")
-)
+var CurDownloading string
 
 type WriteCounter struct {
 	Total   uint64
@@ -57,8 +53,7 @@ func (wc *WriteCounter) PrintProgress() {
 func Extract(r io.Reader, to string) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
-		l.Error(err)
-		return err
+		return fmt.Errorf("gzip.NewReader: %w", err)
 	}
 
 	defer gzr.Close() //nolint:errcheck
@@ -72,8 +67,7 @@ func Extract(r io.Reader, to string) error {
 		}
 
 		if err != nil {
-			l.Error(err)
-			return err
+			return fmt.Errorf("tr.Next(): %w", err)
 		}
 
 		if hdr == nil {
@@ -86,45 +80,39 @@ func Extract(r io.Reader, to string) error {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
 				if err := os.MkdirAll(target, os.ModePerm); err != nil {
-					l.Error(err)
-					return err
+					return fmt.Errorf("MkdirAll: %w", err)
 				}
 			}
 
 		case tar.TypeReg:
 
 			if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
-				l.Error(err)
-				return err
+				return fmt.Errorf("MkdirAll: %w", err)
 			}
 
 			// TODO: lock file before extracting, to avoid `text file busy` error
 			f, err := os.OpenFile(filepath.Clean(target), os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
-				l.Error(err)
-				return err
+				return fmt.Errorf("OpenFile: %w", err)
 			}
 
 			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec
-				l.Error(err)
-				return err
+				return fmt.Errorf("io.Copy: %w", err)
 			}
 
 			if err := f.Close(); err != nil {
-				l.Warnf("f.Close(): %v, ignored", err)
+				return fmt.Errorf("on Close(): %w", err)
 			}
 
 		default:
-			l.Warnf("unexpected file %s", target)
+			return fmt.Errorf("unexpected file %s", target)
 		}
 	}
 }
 
 func Download(cli *http.Client, from, to string, progress, downloadOnly bool) error {
-	l.Debugf("Downloading %s => %s", from, to)
 	req, err := http.NewRequest("GET", from, nil)
 	if err != nil {
-		l.Error(err)
 		return err
 	}
 

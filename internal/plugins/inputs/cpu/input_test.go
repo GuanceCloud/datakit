@@ -11,8 +11,9 @@ import (
 	"runtime"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/shirou/gopsutil/cpu"
+	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -141,18 +142,18 @@ func TestCollect(t *testing.T) {
 	if err := i.collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 0 {
-		tu.Assert(t, 0 != len(i.collectCache), "")
+		assert.True(t, 0 != len(i.collectCache))
 	}
 
 	if err := i.collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 1 {
-		tu.Equals(t, 1, len(i.collectCache))
+		assert.Equal(t, 1, len(i.collectCache))
 	}
 
 	// tags
 	v := i.collectCache[0].GetTag("cpu")
-	tu.Equals(t, "cpu-total", v)
+	assert.Equal(t, "cpu-total", v)
 
 	// fields
 	fields := i.collectCache[0].Fields()
@@ -181,12 +182,12 @@ func TestCollect(t *testing.T) {
 		diffTotal = actTotal - total
 	}
 
-	tu.Assert(t, diffTotal < 0.1e-3, "usage_total")
+	assert.Truef(t, diffTotal < 0.1e-3, "usage_total")
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
 	t.Helper()
-	tu.Assert(t, expected == actual, mName+" expected: %f, got %f", expected, actual)
+	assert.Truef(t, expected == actual, mName+" expected: %f, got %f", expected, actual)
 }
 
 func TestSampleMeasurement(t *testing.T) {
@@ -201,7 +202,7 @@ func TestCoreTemp(t *testing.T) {
 	if _, err := CoreTemp(); err != nil {
 		switch runtime.GOOS {
 		case datakit.OSWindows, datakit.OSDarwin:
-			tu.NotOk(t, err, "CoreTemp: mac/windows should not ok")
+			assert.Errorf(t, err, "CoreTemp: mac/windows should not ok")
 		default:
 			// CI server may be no core temp
 			t.Logf("CoreTemp: %s, ignored", err)

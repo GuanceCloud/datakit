@@ -276,6 +276,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
 - `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
+- `DK_UPGRADE_LISTEN`: 指定升级服务绑定的 HTTP 地址（默认 `0.0.0.0:9542`）[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: 设置 Datakit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 
 ### DCA 相关 {#env-dca}
@@ -339,21 +340,21 @@ NAME1="value1" NAME2="value2"
 
 ### 其它安装选项 {#env-others}
 
-| 环境变量名                         | 取值示例                        | 说明                                                                                                      |
-|-------------------------------|-----------------------------|---------------------------------------------------------------------------------------------------------|
-| `DK_INSTALL_ONLY`             | `on`                        | 仅安装，不运行                                                                                                 |
-| `DK_HOSTNAME`                 | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                          |
-| `DK_UPGRADE`                  | `1`                         | 升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）                                                      |
-| `DK_UPGRADE_MANAGER`          | `on`                        | 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持             |
-| `DK_INSTALLER_BASE_URL`       | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`                                                    |
-| `DK_PROXY_TYPE`               | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                       |
-| `DK_NGINX_IP`                 | -                           | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者                      |
-| `DK_INSTALL_LOG`              | -                           | 设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端                                             |
-| `HTTPS_PROXY`                 | `IP:Port`                   | 通过 Datakit 代理安装                                                                                         |
-| `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`                        | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                   |
-| `DK_VERBOSE`                  | `on`                        | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
-| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
-| `DK_CRYPTO_AES_KEY_FILE`      | `/usr/local/datakit/enc4dk` | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                                                       |
+| 环境变量名                      | 取值示例                      | 说明                                                                                                                             |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------                        |
+| `DK_INSTALL_ONLY`               | `on`                          | 仅安装，不运行                                                                                                                   |
+| `DK_HOSTNAME`                   | `some-host-name`              | 支持安装阶段自定义配置主机名                                                                                                     |
+| `DK_UPGRADE`                    | `1`                           | 升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）                                                   |
+| `DK_UPGRADE_MANAGER`            | `on`                          | 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
+| `DK_INSTALLER_BASE_URL`         | `https://your-url`            | 可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`                                                             |
+| `DK_PROXY_TYPE`                 | -                             | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |
+| `DK_NGINX_IP`                   | -                             | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者  |
+| `DK_INSTALL_LOG`                | -                             | 设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端                                   |
+| `HTTPS_PROXY`                   | `IP:Port`                     | 通过 Datakit 代理安装                                                                                                            |
+| `DK_INSTALL_RUM_SYMBOL_TOOLS`   | `on`                          | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                               |
+| `DK_VERBOSE`                    | `on`                          | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
+| `DK_CRYPTO_AES_KEY`             | `0123456789abcdfg`            | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
+| `DK_CRYPTO_AES_KEY_FILE`        | `/usr/local/datakit/enc4dk`   | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                               |
 
 ## FAQ {#faq}
 

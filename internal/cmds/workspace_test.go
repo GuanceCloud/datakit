@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type Content struct {
@@ -57,14 +57,14 @@ func TestWorkspaceQuery(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		tu.Ok(t, err)
+		assert.NoError(t, err)
 		if err = json.Unmarshal(result, &tc.body); err != nil {
 			t.Errorf("json.Unmarshal:%s\n", err)
 		}
 		if tc.flag {
-			tu.Equals(t, tc.expect, tc.body)
+			assert.Equal(t, tc.expect, tc.body)
 		} else {
-			tu.Assert(t, tc.expect.Content[0].DataUsage.DataLogging != tc.body.Content[0].DataUsage.DataLogging,
+			assert.Truef(t, tc.expect.Content[0].DataUsage.DataLogging != tc.body.Content[0].DataUsage.DataLogging,
 				"epxect `%d', got `%d'", tc.expect.Content[0].DataUsage.DataLogging, tc.body.Content[0].DataUsage.DataLogging)
 		}
 		ts.Close()

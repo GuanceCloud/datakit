@@ -38,12 +38,7 @@ func tryLoadMainCfg() {
 	}
 }
 
-func getcli() *http.Client {
-	var proxy string
-	if config.Cfg.Dataway != nil {
-		proxy = config.Cfg.Dataway.HTTPProxy
-	}
-
+func GetHTTPClient(proxy string) *http.Client {
 	cliopt := &httpcli.Options{
 		// ignore SSL error
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint

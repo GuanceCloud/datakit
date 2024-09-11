@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMetaGet(t *testing.T) {
@@ -57,7 +57,7 @@ data`,
 
 		x := metaGet(ts.URL)
 
-		tu.Equals(t, tc.expect, x)
+		assert.Equal(t, tc.expect, x)
 
 		ts.Close()
 
@@ -72,9 +72,9 @@ data`,
 			t.Error(err)
 		}
 
-		tu.Equals(t, 1, len(pts))
+		assert.Equal(t, 1, len(pts))
 
-		tu.Equals(t, pt1.String(), pts[0].String())
+		assert.Equal(t, pt1.String(), pts[0].String())
 
 		t.Logf("pt: %s", pt1.String())
 	}

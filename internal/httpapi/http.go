@@ -205,20 +205,20 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/v1/ping", rawHTTPWraper(reqLimiter, apiPing))
-	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
+	router.GET("/v1/ping", RawHTTPWrapper(reqLimiter, apiPing))
+	router.POST("/v1/write/:category", RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
-	router.POST("/v1/query/raw", rawHTTPWraper(reqLimiter, apiQueryRaw, hs.dw))
+	router.POST("/v1/query/raw", RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))
 
-	router.POST("/v1/object/labels", rawHTTPWraper(reqLimiter, apiCreateOrUpdateObjectLabel, hs.dw))
-	router.DELETE("/v1/object/labels", rawHTTPWraper(reqLimiter, apiDeleteObjectLabel, hs.dw))
+	router.POST("/v1/object/labels", RawHTTPWrapper(reqLimiter, apiCreateOrUpdateObjectLabel, hs.dw))
+	router.DELETE("/v1/object/labels", RawHTTPWrapper(reqLimiter, apiDeleteObjectLabel, hs.dw))
 
-	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiPipelineDebugHandler))
+	router.POST("/v1/pipeline/debug", RawHTTPWrapper(reqLimiter, apiPipelineDebugHandler))
 
-	router.GET("/v1/workspace", rawHTTPWraper(reqLimiter, apiWorkspace, hs.dw))
+	router.GET("/v1/workspace", RawHTTPWrapper(reqLimiter, apiWorkspace, hs.dw))
 
-	router.POST("/v1/lasterror", rawHTTPWraper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
-	router.GET("/restart", rawHTTPWraper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
+	router.POST("/v1/lasterror", RawHTTPWrapper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
+	router.GET("/restart", RawHTTPWrapper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
 
 	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
 

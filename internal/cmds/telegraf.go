@@ -12,6 +12,7 @@ import (
 	"runtime"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
@@ -31,8 +32,13 @@ func installTelegraf(installDir string) error {
 	cp.Infof("Start downloading Telegraf...\n")
 	dl.CurDownloading = "telegraf"
 
-	cli := getcli()
+	proxy := ""
+	if config.Cfg.Dataway.HTTPProxy != "" {
+		proxy = config.Cfg.Dataway.HTTPProxy
+	}
+	cli := GetHTTPClient(proxy)
 
+	cp.Infof("Downloading %s => %s\n", url, installDir)
 	if err := dl.Download(cli, url, installDir, false, false); err != nil {
 		return err
 	}

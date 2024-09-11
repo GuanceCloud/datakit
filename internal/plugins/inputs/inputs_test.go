@@ -10,7 +10,6 @@ import (
 	"os"
 	T "testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +49,7 @@ func TestGetEnvs(t *T.T) {
 		envs := getEnvs()
 		for k, v := range tc.expect {
 			val, ok := envs[k]
-			tu.Assert(t, val == v && ok, fmt.Sprintf("%s <> %s && %v", v, val, ok))
+			assert.Truef(t, val == v && ok, fmt.Sprintf("%s <> %s && %v", v, val, ok))
 		}
 	}
 }

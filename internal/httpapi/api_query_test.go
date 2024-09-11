@@ -115,11 +115,11 @@ func (m *apiRawQueryMock) DQLQuery([]byte) (*http.Response, error) {
 func TestAPIRawQuery(t *T.T) {
 	router := gin.New()
 
-	router.POST("/ok", rawHTTPWraper(nil, apiQueryRaw, &apiRawQueryMock{}))
-	router.POST("/invalid/handler", rawHTTPWraper(nil, apiQueryRaw, apiRawQueryMock{}))
+	router.POST("/ok", RawHTTPWrapper(nil, apiQueryRaw, &apiRawQueryMock{}))
+	router.POST("/invalid/handler", RawHTTPWrapper(nil, apiQueryRaw, apiRawQueryMock{}))
 
 	var nilMock *apiRawQueryMock
-	router.POST("/nil/handler", rawHTTPWraper(nil, apiQueryRaw, nilMock))
+	router.POST("/nil/handler", RawHTTPWrapper(nil, apiQueryRaw, nilMock))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()

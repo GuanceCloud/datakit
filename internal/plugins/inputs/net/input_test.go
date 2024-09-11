@@ -10,8 +10,9 @@ import (
 	"runtime"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	psNet "github.com/shirou/gopsutil/net"
+	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -56,7 +57,7 @@ func TestCollect(t *testing.T) {
 			t.Errorf("Error collecting network statistics: %s", err)
 		}
 
-		tu.Assert(t, len(tc.i.collectCache) > 0, "no data collected")
+		assert.Truef(t, len(tc.i.collectCache) > 0, "no data collected")
 		for _, m := range tc.i.collectCache {
 			p := m.LineProto()
 			t.Logf(p)

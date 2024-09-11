@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -170,34 +170,34 @@ func parseAzureData() *azureMetaData {
 
 func TestAzure_InstanceID(t *testing.T) {
 	azureMetaData := parseAzureData()
-	tu.Assert(t, azureMetaData.Compute.InstanceID == "fb17b79a-599e-4530-8713-283be4a5bdf4", "Azure_InstanceID")
+	assert.Truef(t, azureMetaData.Compute.InstanceID == "fb17b79a-599e-4530-8713-283be4a5bdf4", "Azure_InstanceID")
 }
 
 func TestAzure_InstanceName(t *testing.T) {
 	azureMetaData := parseAzureData()
-	tu.Assert(t, azureMetaData.Compute.InstanceName == "azure-zy-test", "Azure_InstanceName")
+	assert.Truef(t, azureMetaData.Compute.InstanceName == "azure-zy-test", "Azure_InstanceName")
 }
 
 func TestAzure_InstanceType(t *testing.T) {
 	azureMetaData := parseAzureData()
-	tu.Assert(t, azureMetaData.Compute.InstanceType == "Standard_B1s", "Azure_InstanceType")
+	assert.Truef(t, azureMetaData.Compute.InstanceType == "Standard_B1s", "Azure_InstanceType")
 }
 
 func TestAzure_ZoneID(t *testing.T) {
 	azureMetaData := parseAzureData()
-	tu.Assert(t, azureMetaData.Compute.ZoneID == "1", "Azure_ZoneID")
+	assert.Truef(t, azureMetaData.Compute.ZoneID == "1", "Azure_ZoneID")
 }
 
 func TestAzure_Region(t *testing.T) {
 	azureMetaData := parseAzureData()
-	tu.Assert(t, azureMetaData.Compute.Region == "eastus", "Azure_Region")
+	assert.Truef(t, azureMetaData.Compute.Region == "eastus", "Azure_Region")
 }
 
 func TestAzure_PrivateIP(t *testing.T) {
 	ts := testGetAzure()
 	resp := metadataGetByHeader(az.baseURL + "/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2021-02-01")
 	defer ts.Close()
-	tu.Assert(t, string(resp) == "10.0.0.4", "Azure_PrivateIP")
+	assert.Truef(t, string(resp) == "10.0.0.4", "Azure_PrivateIP")
 }
 
 func TestAzure_InstanceChargeType(t *testing.T) {
@@ -211,12 +211,12 @@ func TestAzure_InstanceChargeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("marshal json failed: %s", err)
 	}
-	tu.Assert(t, model.AzureInstanceChargeType == "", "Azure_InstanceChargeType")
+	assert.Truef(t, model.AzureInstanceChargeType == "", "Azure_InstanceChargeType")
 }
 
 func TestAzure_WrongRouter(t *testing.T) {
 	ts := testGetAzure()
 	resp := metadataGetByHeader(az.baseURL + "/metadata/instance?api-version=2021-02-01/wrongCase")
 	defer ts.Close()
-	tu.Assert(t, string(resp) == "bad response", "Azure_WrongRouter")
+	assert.Truef(t, string(resp) == "bad response", "Azure_WrongRouter")
 }

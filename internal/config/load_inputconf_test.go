@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -233,11 +233,11 @@ percpu = false
 				t.Logf("doLoadConf: %s", err)
 			}
 
-			tu.Assert(t, len(tc.expectInputs) == len(ret), "expect %d inputs, got %d", len(tc.expectInputs), len(ret))
+			assert.Truef(t, len(tc.expectInputs) == len(ret), "expect %d inputs, got %d", len(tc.expectInputs), len(ret))
 
 			for k, arr := range tc.expectInputs {
 				for idx, i := range arr {
-					tu.Assert(t, eq(i, ret[k][idx]), "not equal: %v <> %v", i, ret[k][idx])
+					assert.Truef(t, eq(i, ret[k][idx]), "not equal: %v <> %v", i, ret[k][idx])
 				}
 			}
 

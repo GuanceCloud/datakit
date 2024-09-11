@@ -266,16 +266,18 @@ $ datakit debug --bug-report
 ...
 ```
 
+After successful execution, a zip file will be generated in the current directory, named in the format `info-<timestamp_in_milliseconds>.zip`.
+
 <!-- markdownlint-disable MD046 -->
 ???+ tip
+
+    - Ensure that bug reports are collected when Datakit is running, particularly when the issue is manifesting (e.g., high memory/CPU usage), with Datakit running metrics and profiles, we can get sufficient insight for identifying the root cause effectively.
 
     - By default, the command will collect profile data, which may have a certain performance impact on DataKit. You can disable the collection of profile data with the following command ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)):
     
     ```shell
     $ datakit debug --bug-report --disable-profile
     ```
-    
-    After successful execution, a zip file will be generated in the current directory, named in the format `info-<timestamp_in_milliseconds>.zip`.
     
     - If you have public internet access, you can directly upload the file to OSS to avoid the hassle of file copying ([:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)):
     

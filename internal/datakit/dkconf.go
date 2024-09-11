@@ -224,7 +224,8 @@ ulimit = 64000
   # The interval between two retry operation, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
   retry_delay = "1s"
 
-  # HTTP Proxy(IP:Port)
+  # HTTP Proxy
+  # Format: "http(s)://IP:Port"
   http_proxy = ""
 
   max_idle_conns   = 0       # limit idle TCP connections for HTTP request to Dataway

@@ -79,7 +79,10 @@ type (
 	Param string
 )
 
-func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
+// RawHTTPWrapper warp HTTP APIs that:
+//   - with prometheus metric export
+//   - with rate limit
+func RawHTTPWrapper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		status := "unknown"
@@ -102,13 +105,15 @@ func rawHTTPWraper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) 
 				status).Observe(float64(approximateRequestSize(c.Request)))
 		}()
 
-		if isBlocked(lmt, c.Writer, c.Request) {
-			uhttp.HttpErr(c, ErrReachLimit)
-			lmt.ExecOnLimitReached(c.Writer, c.Request)
-			status = http.StatusText(http.StatusTooManyRequests)
+		if lmt != nil {
+			if isBlocked(lmt, c.Writer, c.Request) {
+				uhttp.HttpErr(c, ErrReachLimit)
+				lmt.ExecOnLimitReached(c.Writer, c.Request)
+				status = http.StatusText(http.StatusTooManyRequests)
 
-			c.Abort()
-			return
+				c.Abort()
+				return
+			}
 		}
 
 		ctx, cancel := context.WithCancel(c.Request.Context())

@@ -27,8 +27,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
-	upgrader2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -48,8 +48,12 @@ var (
 	DataKitBaseURL = ""
 	DataKitVersion = ""
 	dataURL        = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
-	dkUpgraderURL  = "https://" + path.Join(DataKitBaseURL,
-		fmt.Sprintf("%s-%s-%s.tar.gz", upgrader.BuildBinName, runtime.GOOS, runtime.GOARCH))
+
+	dkUpgraderURL = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("%s-%s-%s.tar.gz",
+			upgrader.BuildBinName,
+			runtime.GOOS,
+			runtime.GOARCH))
 	datakitURL = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS,
@@ -65,8 +69,10 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
+
 	InstallerBaseURL = ""
-	l                = logger.DefaultSLogger("installer")
+
+	l = logger.DefaultSLogger("installer")
 
 	isLite  = false
 	liteReg = regexp.MustCompile(`Build Tag:\s*lite`)
@@ -82,22 +88,26 @@ var (
 	flagDownloadOnly,
 	flagInfo bool
 
-	flagUpgradeServIPWhiteList,
 	flagUserName,
 	flagInstallLog,
 	flagLite,
 	flagELinker,
 	flagSrc string
 
-	flagUpgradeManagerService,
+	flagUpgraderIPWhiteList,
+	flagUpgraderListen string
+	flagUpgraderEnabled,
 	flagInstallOnly int
 )
 
 //nolint:gochecknoinits,lll
 func init() {
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
-	flag.IntVar(&flagUpgradeManagerService, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
-	flag.StringVar(&flagUpgradeServIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
+
+	flag.IntVar(&flagUpgraderEnabled, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
+	flag.StringVar(&flagUpgraderIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
+	flag.StringVar(&flagUpgraderListen, "upgrade-listen", "0.0.0.0:9542", "set datakit upgrade HTTP server bind ip:port")
+
 	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
@@ -137,6 +147,7 @@ func init() {
 	// datakit HTTP flags
 	flag.IntVar(&installer.HTTPPort, "port", 9529, "datakit HTTP port")
 	flag.StringVar(&installer.HTTPListen, "listen", "localhost", "datakit HTTP listen")
+
 	flag.StringVar(&installer.HostName, "env_hostname", "", "host name")
 	flag.StringVar(&installer.IPDBType, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&installer.CloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
@@ -245,6 +256,7 @@ func downloadFiles(to string) error {
 		dkURL = datakitELinkerURL
 	}
 
+	cp.Infof("Downloading %s => %s\n", dkURL, to)
 	if err := dl.Download(cli, dkURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
@@ -252,16 +264,19 @@ func downloadFiles(to string) error {
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
+
+	cp.Infof("Downloading %s => %s\n", dataURL, to)
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
 
 	// We will not upgrade dk-upgrader default when upgrading Datakit except for setting flagUpgradeManagerService flag
-	if !flagDKUpgrade || (flagDKUpgrade && flagUpgradeManagerService == 1) || flagDownloadOnly {
+	if !flagDKUpgrade || (flagDKUpgrade && flagUpgraderEnabled == 1) || flagDownloadOnly {
 		if !flagDownloadOnly {
 			to = upgrader.InstallDir
 		}
 		dl.CurDownloading = upgrader.BuildBinName
+		cp.Infof("Downloading %s => %s\n", dkUpgraderURL, to)
 		if err := dl.Download(cli, dkUpgraderURL, to, true, flagDownloadOnly); err != nil {
 			l.Warnf("unable to download %s from [%s]: %s", upgrader.BuildBinName, dkUpgraderURL, err)
 		}
@@ -289,23 +304,23 @@ func applyFlags() {
 
 	// setup logging
 	if flagInstallLog == "stdout" {
-		l.Infof("Set log file to stdout")
+		cp.Infof("Set log file to stdout\n")
 
 		if err = logger.InitRoot(
 			&logger.Option{
 				Level: logger.DEBUG,
 				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT,
 			}); err != nil {
-			l.Errorf("Set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s\n", err.Error())
 		}
 	} else {
-		l.Infof("Set log file to %s", flagInstallLog)
+		cp.Infof("Set log file to %s\n", flagInstallLog)
 		if err = logger.InitRoot(&logger.Option{
 			Path:  flagInstallLog,
 			Level: logger.DEBUG,
 			Flags: logger.OPT_DEFAULT,
 		}); err != nil {
-			l.Errorf("Set root log faile: %s", err.Error())
+			cp.Errorf("Set root log faile: %s\n", err.Error())
 		}
 	}
 
@@ -329,7 +344,17 @@ func applyFlags() {
 				l.Fatalf("Open: %s", err)
 			}
 
-			if err := dl.Extract(fd, datakit.InstallDir); err != nil {
+			// default extract to /usr/local/datakit
+			destDir := datakit.InstallDir
+
+			switch {
+			// dk_upgrader should extract to dir /usr/local/dk_upgrader
+			case strings.HasPrefix(f, "dk_upgrader"): // e.g., dk_upgrader-linux-amd64.tar.gz
+				destDir = upgrader.InstallDir
+			default: // pass: others are datakit.tar.gz and data.tar.gz
+			}
+
+			if err := dl.Extract(fd, destDir); err != nil {
 				l.Fatalf("Extract: %s", err)
 			} else if err := fd.Close(); err != nil {
 				l.Warnf("Close: %s, ignored", err)
@@ -433,19 +458,24 @@ Data           : %s
 	} else {
 		switch svcStatus {
 		case service.StatusUnknown: // not installed
-			l.Infof("DataKit service maybe not installed")
+			cp.Infof("DataKit service maybe not installed\n")
 		case service.StatusStopped: // pass
-			l.Infof("DataKit service stopped")
+			cp.Infof("DataKit service stopped\n")
 		case service.StatusRunning:
-			l.Infof("Stopping running DataKit...")
+			cp.Infof("Stopping running DataKit...\n")
 			if err = service.Control(svc, "stop"); err != nil {
-				l.Warnf("stop service failed %s, ignored", err.Error())
+				cp.Warnf("stop service failed %s, ignored\n", err.Error())
 			}
 		}
 	}
 
-	if !flagDKUpgrade || flagUpgradeManagerService == 1 {
-		upgrader2.StopUpgradeService(userName)
+	cp.Infof("Stopping running DataKit...\n")
+	if err = service.Control(svc, "stop"); err != nil {
+		cp.Warnf("stop service failed %s, ignored\n", err.Error())
+	}
+
+	if !flagDKUpgrade || flagUpgraderEnabled == 1 {
+		upgrader.StopUpgradeService(userName)
 	}
 
 	applyFlags()
@@ -457,7 +487,7 @@ Data           : %s
 	if !flagOffline {
 		dlRetry := 5
 
-		l.Infof("Download installer...\n")
+		l.Infof("Download installer...")
 
 		for i := 0; i < dlRetry; i++ {
 			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
@@ -474,13 +504,6 @@ Data           : %s
 
 __downloadOK:
 	datakit.InitDirs()
-
-	upgrader2.InstallUpgradeService(userName,
-		flagDKUpgrade,
-		flagInstallOnly,
-		flagUpgradeManagerService,
-		flagUpgradeServIPWhiteList,
-		InstallerBaseURL)
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
@@ -522,12 +545,45 @@ __downloadOK:
 		l.Infof("Current datakit version is %q(NOT running)", DataKitVersion)
 	}
 
+	// After datakit setup/upgrade ok, it's time for dk-upgrader service.
+	installOrUpgradeDKUpgraderService()
+
 	if flagDKUpgrade {
 		l.Infof("Upgrade OK.")
 	} else {
 		l.Infof("Install OK.")
 	}
 	promptReferences()
+}
+
+func installOrUpgradeDKUpgraderService() {
+	var wlist []string
+	if len(flagUpgraderIPWhiteList) > 0 {
+		wlist = strings.Split(strings.TrimSpace(flagUpgraderIPWhiteList), ",")
+	}
+
+	// Apply options from exist datakit conf.
+	// During upgrade, we still able to re-install dk-upgrader service, at the
+	// time, we should reuse datakit's exist configures(such as datakit HTTP API host),
+	// not read these configures from installer args.
+	mc := config.Cfg
+
+	opts := []upgrader.UpgraderOpt{
+		upgrader.WithDKUpgrade(flagDKUpgrade),
+		upgrader.WithUpgradeService(flagUpgraderEnabled != 0),
+		upgrader.WithInstallOnly(flagInstallOnly != 0),
+		upgrader.WithListen(flagUpgraderListen),
+		upgrader.WithInstallUserName(mc.DatakitUser),
+		upgrader.WithIPWhiteList(wlist),
+		upgrader.WithInstallBaseURL(InstallerBaseURL),
+		upgrader.WithDatakitAPIListen(mc.HTTPAPI.Listen),
+		upgrader.WithProxy(mc.Dataway.HTTPProxy),
+		upgrader.WithDatakitAPIHTTPS(mc.HTTPAPI.HTTPSEnabled()),
+	}
+
+	if err := upgrader.InstallUpgradeService(opts...); err != nil {
+		cp.Warnf("upgrader service install/start failed: %s, ignored", err.Error())
+	}
 }
 
 // test if installed/upgraded to expected version.
@@ -541,7 +597,7 @@ func checkIsNewVersion(host, version string) error {
 
 		resp, err := http.Get(host + "/v1/ping")
 		if err != nil {
-			l.Errorf("http.Get: %s", err)
+			l.Warnf("get datakit current version failed: %s, %dth retrying...", err, i)
 			continue
 		}
 

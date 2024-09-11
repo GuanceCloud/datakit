@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -70,13 +70,13 @@ func TestGetMetric(t *testing.T) {
 	}
 
 	client, err := n.createHTTPClient()
-	tu.Ok(t, err)
+	assert.NoError(t, err)
 	n.client = client
 
 	m, err := n.getMetric()
-	tu.Ok(t, err)
+	assert.NoError(t, err)
 
-	tu.Assert(t, m != nil, "Measurement should not nil")
+	assert.Truef(t, m != nil, "Measurement should not nil")
 
 	p, err := m.LPPoint()
 	assert.NoError(t, err)

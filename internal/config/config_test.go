@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	bstoml "github.com/BurntSushi/toml"
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ func TestEmptyDir(t *testing.T) {
 		}
 	}()
 
-	tu.Assert(t, emptyDir(dirname) == true, "dir %s should be empty", dirname)
+	assert.Truef(t, emptyDir(dirname) == true, "dir %s should be empty", dirname)
 }
 
 func TestTomlSerialization(t *testing.T) {
@@ -57,9 +56,9 @@ func TestTomlSerialization(t *testing.T) {
 
 		err := toml.Unmarshal([]byte(tc.str), &x)
 		if tc.fail {
-			tu.NotOk(t, err, "")
+			assert.Error(t, err)
 		} else {
-			tu.Ok(t, err)
+			assert.NoError(t, err)
 		}
 
 		t.Logf("bstoml: %+#v", x)
@@ -102,11 +101,11 @@ func TestTomlParse2(t *testing.T) {
 	for _, tc := range cases {
 		_, err := toml.Parse([]byte(tc.s))
 		if tc.fail {
-			tu.NotOk(t, err, "")
+			assert.Error(t, err)
 			t.Log(err)
 			continue
 		} else {
-			tu.Ok(t, err)
+			assert.NoError(t, err)
 		}
 	}
 }

@@ -6,32 +6,24 @@
 package upgrader
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
 	"github.com/kardianos/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
-	"go.uber.org/atomic"
 	"gopkg.in/natefinch/lumberjack.v2"
 	net2 "k8s.io/apimachinery/pkg/util/net"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
 const (
@@ -40,18 +32,10 @@ const (
 	ExitStatusAlreadyRunning  = 120
 )
 
-const (
-	statusNoUpgrade = 0
-	statusUpgrading = 1
-)
-
 var (
-	GL = func() **logger.Logger {
-		l := logger.DefaultSLogger(ServiceName)
-		return &l
-	}()
-	PidFile       = filepath.Join(InstallDir, ServiceName+".pid")
-	UpgradeStatus = atomic.NewInt32(0)
+	l = logger.DefaultSLogger(ServiceName)
+
+	PidFile = filepath.Join(InstallDir, ServiceName+".pid")
 )
 
 const (
@@ -76,38 +60,34 @@ var optionalInstallDir = map[string]string{
 }
 
 var (
-	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
-	DefaultLogDir      = filepath.Join("/var/log", ServiceName)
-	MainConfigFile     = filepath.Join(InstallDir, "main.conf")
+	InstallDir     = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+	DefaultLogDir  = filepath.Join("/var/log", ServiceName)
+	MainConfigFile = filepath.Join(InstallDir, "main.conf")
+
 	defaultServiceOpts = map[string]interface{}{
 		"RestartSec":         10, // 重启间隔.
 		"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
 		"StartLimitBurst":    5,
 	}
-	DefaultProgram = NewProgram()
+
+	defaultServiceImpl = newProgram()
 )
 
-func L() *logger.Logger {
-	return *GL
+type serviceImpl struct {
+	entry func(*serviceImpl)
+	stop  chan struct{}
+	done  chan struct{}
 }
 
-type Runnable func(*Program)
-
-type Program struct {
-	Run          Runnable
-	NotifyToStop chan struct{}
-	StopWellDone chan struct{}
-}
-
-func NewProgram() *Program {
-	return &Program{
-		Run:          DoProgramRun,
-		NotifyToStop: make(chan struct{}),
-		StopWellDone: make(chan struct{}),
+func newProgram() *serviceImpl {
+	return &serviceImpl{
+		entry: entryFunc,
+		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 	}
 }
 
-func CreateDirs() error {
+func createDirs() error {
 	for _, dir := range []string{
 		InstallDir,
 		DefaultLogDir,
@@ -119,33 +99,34 @@ func CreateDirs() error {
 	return nil
 }
 
-func (p *Program) Start(s service.Service) error {
-	if p.Run == nil {
+func (p *serviceImpl) Start(s service.Service) error {
+	if p.entry == nil {
 		return fmt.Errorf("entry not set")
 	}
 
-	p.Run(p)
+	p.entry(p)
 	return nil
 }
 
-func (p *Program) Stop(s service.Service) error {
-	close(p.NotifyToStop)
+func (p *serviceImpl) Stop(s service.Service) error {
+	close(p.stop)
 
 	// We must wait here:
 	// On Windows, we stop datakit in services.msc, if datakit process do not
 	// echo to here, services.msc will complain the datakit process has been
 	// exit unexpected
-	<-p.StopWellDone
+	<-p.done
 	return nil
 }
 
 func NewDefaultService(username string, args []string) (service.Service, error) {
-	return NewService(DefaultProgram, username, args)
+	l = logger.SLogger(ServiceName)
+	return NewService(defaultServiceImpl, username, args)
 }
 
 func NewService(program service.Interface, username string, args []string) (service.Service, error) {
 	if program == nil {
-		program = DefaultProgram
+		program = defaultServiceImpl
 	}
 
 	executable := filepath.Join(InstallDir, BuildBinName)
@@ -175,75 +156,19 @@ func NewService(program service.Interface, username string, args []string) (serv
 	return svc, nil
 }
 
-func RunService(serv service.Service) error {
-	errch := make(chan error, 32) //nolint:gomnd
-	sLogger, err := serv.Logger(errch)
-	if err != nil {
-		return fmt.Errorf("unable to get service logger: %w", err)
-	}
-
-	if err := sLogger.Infof("%s set service logger ok, starting...", ServiceName); err != nil {
-		return err
-	}
-
-	if err := serv.Run(); err != nil {
-		if serr := sLogger.Errorf("start service failed: %s", err.Error()); serr != nil {
-			return serr
-		}
-		return err
-	}
-
-	if err := sLogger.Infof("%s service exited", ServiceName); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func DoProgramRun(p *Program) {
-	gin.DefaultErrorWriter = getGinErrLogger()
-	gin.SetMode(gin.ReleaseMode)
-	gin.DisableConsoleColor()
-	router := gin.New()
-	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: uhttp.GinLogFormatter,
-		Output:    getGinLog(),
-	}))
-	router.Use(gin.Recovery())
-
-	if len(Cfg.IPWhiteList) > 0 {
-		router.Use(getIPVerifyMiddleware())
-	}
-
-	v1 := router.Group("/v1")
-	{
-		v1.GET("/datakit/version", dkVersion)
-		v1.POST("/datakit/upgrade", upgrade)
-	}
-
-	serv := &http.Server{
-		Addr:    Cfg.Listen,
-		Handler: router,
-	}
-
-	httpServClosed := make(chan error, 4)
-	go func() {
-		if err := serv.ListenAndServe(); err != nil {
-			L().Infof("datakit manager server return: %s", err)
-			httpServClosed <- err
-		}
-	}()
+func entryFunc(p *serviceImpl) {
+	serv := startHTTPServer()
 
 	go func() {
 		select {
-		case <-p.NotifyToStop:
+		case <-p.stop:
 			if err := shutdownWithTimeout(serv, time.Second*5); err != nil {
-				L().Warnf("datakit upgrade service shutdown err: %s", err)
+				l.Warnf("datakit upgrade service shutdown err: %s", err)
 			}
-			close(p.StopWellDone)
+			close(p.done)
 
 		case err := <-httpServClosed:
-			L().Errorf("http server exit abnormal: %s", err)
+			l.Errorf("http server exit abnormal: %s", err)
 			os.Exit(HTTPServerExitNotExpected)
 		}
 	}()
@@ -264,7 +189,7 @@ func getIPVerifyMiddleware() gin.HandlerFunc {
 		// We use net.LookupHost func to check the ip validity
 		addrs, err := net.LookupHost(ip)
 		if err != nil {
-			L().Warnf("the IP [%s] in ip_whitelist setting is illegal: %s", ip, err)
+			l.Warnf("the IP [%s] in ip_whitelist setting is illegal: %s", ip, err)
 			continue
 		}
 
@@ -297,219 +222,8 @@ func shutdownWithTimeout(serv *http.Server, timeout time.Duration) error {
 	return nil
 }
 
-func fetchCurrentDKVersion() ([]byte, error) {
-	resp, err := http.Get("http://127.0.0.1:9529/v1/ping")
-	if err != nil {
-		return nil, fmt.Errorf("unable to query current Datakit version: %w", err)
-	}
-	defer resp.Body.Close() //nolint: errcheck
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read Datakit ping result")
-	}
-
-	return body, nil
-}
-
-func dkVersion(ctx *gin.Context) {
-	output, err := fetchCurrentDKVersion()
-	if err != nil {
-		errorResponse(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.Data(http.StatusOK, "application/json", output)
-}
-
-func errorResponse(ctx *gin.Context, code int, err error) {
-	ctx.JSON(code, map[string]interface{}{
-		"error": err.Error(),
-	})
-}
-
-func successResponse(ctx *gin.Context, data interface{}) {
-	ctx.JSON(http.StatusOK, data)
-}
-
-type PingInfo struct {
+type pingInfo struct {
 	Content httpapi.Ping `json:"content"`
-}
-
-func upgrade(ctx *gin.Context) {
-	L().Infof("receive request: %s", ctx.Request.URL.String())
-
-	if !UpgradeStatus.CompareAndSwap(statusNoUpgrade, statusUpgrading) {
-		errorResponse(ctx, http.StatusNotAcceptable, fmt.Errorf("upgrade is on going, please try later"))
-		return
-	}
-	defer UpgradeStatus.Store(statusNoUpgrade)
-
-	output, err := fetchCurrentDKVersion()
-	downloadURL := ""
-
-	var DKPingVer PingInfo
-	if err == nil {
-		if err := json.Unmarshal(output, &DKPingVer); err == nil {
-			L().Infof("VersionString: %s, Commit: %s", DKPingVer.Content.Version, DKPingVer.Content.Commit)
-		} else {
-			L().Warnf("unable to unmarshal json: %s", err)
-		}
-	} else {
-		L().Warnf("unable to check version info from command line: %s", err)
-	}
-
-	if Cfg.InstallerBaseURL != "" {
-		cmds.OnlineBaseURL = Cfg.InstallerBaseURL
-	}
-
-	versions, err := cmds.GetOnlineVersions()
-	if err != nil {
-		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to find newer Datakit version: %w", err))
-		return
-	}
-
-	upToDate := false
-	for _, v := range versions {
-		L().Infof("VersionString: %s, Commit: %s, ReleaseDate: %s", v.VersionString, v.Commit, v.ReleaseDate)
-		if v.DownloadURL != "" {
-			// only compare release commit hash
-			if v.Commit != DKPingVer.Content.Commit {
-				downloadURL = v.DownloadURL
-				break
-			} else {
-				upToDate = true
-			}
-		}
-	}
-	if downloadURL == "" {
-		if upToDate {
-			errorResponse(ctx, http.StatusNotModified, fmt.Errorf("already up to date"))
-		} else {
-			errorResponse(ctx, http.StatusNotModified, fmt.Errorf("unable to find newer Datakit version"))
-		}
-		return
-	}
-
-	scriptFile, err := saveUpgradeScript(downloadURL)
-	if scriptFile != "" {
-		defer os.Remove(scriptFile) // nolint:errcheck
-	}
-
-	if err != nil {
-		errorResponse(ctx, http.StatusInternalServerError, fmt.Errorf("unable to download upgrade script: %w", err))
-		return
-	}
-
-	if err := execUpdateCmd(scriptFile); err != nil {
-		errorResponse(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	successResponse(ctx, map[string]string{"msg": "success"})
-}
-
-func saveUpgradeScript(downloadURL string) (string, error) {
-	downloadURL = strings.TrimRight(downloadURL, "/ ")
-	scriptExt := ".sh"
-
-	if runtime.GOOS == datakit.OSWindows {
-		downloadURL = fmt.Sprintf("%s/install.ps1", downloadURL)
-		scriptExt = ".ps1"
-	} else {
-		downloadURL = fmt.Sprintf("%s/install.sh", downloadURL)
-	}
-
-	f, err := os.CreateTemp(datakit.InstallDir, fmt.Sprintf("tmp-dk-upgrader-*%s", scriptExt))
-	if err != nil {
-		return "", fmt.Errorf("unable to create Datakit temporary setup script file: %w", err)
-	}
-	defer f.Close() //nolint
-
-	fileABSPath, err := filepath.Abs(f.Name())
-	if err != nil {
-		return "", fmt.Errorf("unable to get setup file absolute path: %w", err)
-	}
-
-	if err := f.Truncate(0); err != nil {
-		return "", fmt.Errorf("unable to truncate DK setup temp file [%s]: %w", fileABSPath, err)
-	}
-
-	resp, err := http.Get(downloadURL) // nolint:gosec
-	if err != nil {
-		return "", fmt.Errorf("unable to download script file [%s]: %w", downloadURL, err)
-	}
-
-	if resp.StatusCode/100 != 2 {
-		return "", fmt.Errorf("request datakit upgrade script [%s] response error status [%s]", downloadURL, resp.Status)
-	}
-	defer resp.Body.Close() // nolint:errcheck
-
-	if _, err := io.Copy(f, resp.Body); err != nil {
-		return "", fmt.Errorf("unable to save datakit upgrade script[%s] to local file[%s]: %w", downloadURL, fileABSPath, err)
-	}
-	return fileABSPath, nil
-}
-
-func execUpdateCmd(scriptFile string) error {
-	shell := "bash"
-	args := []string{scriptFile}
-	if runtime.GOOS == datakit.OSWindows {
-		shell = "powershell"
-		// Powershell can not invoke a script at a path with blanks
-		// see: https://stackoverflow.com/questions/18537098/spaces-cause-split-in-path-with-powershell
-		args = []string{
-			"-c",
-			fmt.Sprintf(`Set-ExecutionPolicy Bypass -scope Process -Force;& "%s"`, scriptFile),
-		}
-	}
-
-	shellBin, err := exec.LookPath(shell)
-	if err != nil {
-		return fmt.Errorf("%s command not found: %w", shell, err)
-	}
-
-	stderr := &bytes.Buffer{}
-	stdout := &bytes.Buffer{}
-
-	cmd := exec.Command(shellBin, args...) // nolint:gosec
-	cmd.Stderr = stderr
-	cmd.Stdout = stdout
-
-	envs := os.Environ()
-	envs = append(envs, "DK_UPGRADE=1")
-
-	proxy := config.Cfg.Dataway.HTTPProxy
-	if proxy != "" {
-		envs = append(envs, "HTTPS_PROXY="+proxy)
-	}
-
-	if Cfg.InstallerBaseURL != "" {
-		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s", strings.TrimRight(cmds.CanonicalInstallBaseURL(Cfg.InstallerBaseURL), "/")))
-	}
-
-	cmd.Env = envs
-
-	L().Infof("run upgrade script envs: %s", strings.Join(cmd.Env, " \t "))
-
-	L().Infof("datakit manager will start execute upgrade cmd: %s", cmd.String())
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("unable to execute upgrade cmd[%s]: %w", cmd.String(), err)
-	}
-
-	err = cmd.Wait()
-	L().Infof("upgrade process stdout: %s", stdout.String())
-	L().Infof("upgrade process stderr: %s", stderr.String())
-	if err != nil {
-		var ee *exec.ExitError
-		if errors.As(err, &ee) {
-			return fmt.Errorf("upgrade process exit abnormal: %s, err: %w, stdout:%s, stderr: %s",
-				ee.ProcessState.String(), ee, stdout.String(), stderr.String())
-		}
-		return fmt.Errorf("upgrade process execute fail: %w, stdout:%s, stderr: %s", err, stdout.String(), stderr.String())
-	}
-
-	return nil
 }
 
 func getGinLog() io.Writer {

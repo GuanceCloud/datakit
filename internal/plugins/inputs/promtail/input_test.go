@@ -15,7 +15,6 @@ import (
 	"strings"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -292,7 +291,7 @@ func TestGetCustomTags(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			tu.Equals(t, tc.expected, getCustomTags(tc.req))
+			assert.Equal(t, tc.expected, getCustomTags(tc.req))
 		})
 	}
 }

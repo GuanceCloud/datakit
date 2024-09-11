@@ -14,7 +14,7 @@ import (
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type debugDialtestingMock struct{}
@@ -260,9 +260,9 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			res, err := apiDebugDialtestingHandler(w, req)
 
 			if err != nil {
-				tu.Equals(t, tc.errExpect, err)
+				assert.Equal(t, tc.errExpect, err)
 			} else {
-				tu.Equals(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
+				assert.Equal(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
 			}
 		})
 	}

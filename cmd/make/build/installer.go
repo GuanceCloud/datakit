@@ -50,7 +50,7 @@ func generateInstallScript() error {
 			return err
 		}
 
-		l.Infof("creating install script %s", v)
+		l.Infof("creating install script %s from %s", v, k)
 		if err := t.Execute(fd, x); err != nil {
 			return err
 		}

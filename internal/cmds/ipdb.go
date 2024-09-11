@@ -13,6 +13,7 @@ import (
 	"time"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
@@ -65,7 +66,14 @@ func InstallIPDB(baseURL string, ipdbType string) (*ipdbInfo, error) {
 		cp.Infof("Start downloading ipdb ...\n")
 
 		dl.CurDownloading = "ipdb"
-		cli := getcli()
+
+		proxy := ""
+		if config.Cfg.Dataway.HTTPProxy != "" {
+			proxy = config.Cfg.Dataway.HTTPProxy
+		}
+		cli := GetHTTPClient(proxy)
+
+		cp.Infof("Downloading %s => %s\n", ipdbURL, installDir)
 		if err := dl.Download(cli, ipdbURL, installDir, true, false); err != nil {
 			return nil, fmt.Errorf("download %s to %s failed: %w", ipdbURL, installDir, err)
 		}
