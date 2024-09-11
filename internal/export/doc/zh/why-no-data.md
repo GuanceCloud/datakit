@@ -253,7 +253,7 @@ Datakit 对一些复杂数据的处理设置了磁盘缓存机制，这些数据
 
 ### Dataway 缓存 {#iss-dataway-cache}
 
-Dataway 和观测云中心如果发生网络故障，Dataway 会缓存 Datakit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）
+Dataway 和观测云中心如果发生网络故障，Dataway 会缓存 Datakit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）。
 
 ### 账号问题 {#iss-workspace}
 
@@ -289,17 +289,19 @@ $ datakit debug --bug-report
 ...
 ```
 
+执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
+
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
+    - 请确保在 Datakit 运行期间来收集 bug report 信息，最好是问题出现的时候（比如较高的内存/CPU 使用）。在 Datakit 自身指标和 profile 数据的帮助下，我们能更快的定位一些疑难问题。
 
-    - 默认情况下，该命令会收集 profile 数据，这可能会对 DataKit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
+
+    - 默认情况下，该命令会收集 profile 数据，这可能会对 Datakit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
     
     ```shell
     $ datakit debug --bug-report --disable-profile
     ```
-    
-    执行成功后，在当前目录下生成一个 zip 文件，命名格式为 `info-<时间戳毫秒数>.zip`。
     
     - 如果有公网访问，可以直接将文件上传到 OSS，避免麻烦的文件拷贝（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
     

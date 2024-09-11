@@ -130,7 +130,7 @@ installer_file="installer-${os}-${arch}-{{.Version}}"
 printf "* Detect installer ${installer_file}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
-installer=/tmp/dk-installer
+installer=/tmp/dk-installer-{{.Version}}
 
 verbose_mode=
 if [ -n "$DK_VERBOSE" ]; then
@@ -184,6 +184,12 @@ upgrade_ip_whitelist=
 if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
 	upgrade_ip_whitelist=$DK_UPGRADE_IP_WHITELIST
 	printf "* Set upgrade_ip_whitelist => ${DK_UPGRADE_IP_WHITELIST} \n"
+fi
+
+upgrade_listen=0.0.0.0:9542
+if [ -n "$DK_UPGRADE_LISTEN" ]; then
+	upgrade_listen=$DK_UPGRADE_LISTEN
+	printf "* Set upgrade_listen => ${DK_UPGRADE_LISTEN} \n"
 fi
 
 def_inputs=
@@ -310,7 +316,7 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 		if [ -n "$DK_NGINX_IP" ]; then
 			proxy=$DK_NGINX_IP
 			if [ "$proxy" != "" ]; then
-				printf "\n* Set nginx proxy => $DK_NGINX_IP \n"
+				printf "* Set nginx proxy => $DK_NGINX_IP \n"
 
 				for i in $domain; do
 					updateHosts "$proxy" "$i"
@@ -345,7 +351,7 @@ if [ -n "$DK_LIMIT_DISABLED" ]; then
 	printf "* Set limit_disabled => ON \n"
 fi
 
-install_log=/var/log/datakit/install.log
+install_log=/var/log/datakit/install-{{.Version}}.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
 	printf "* Set install_log => $DK_INSTALL_LOG \n"
@@ -522,7 +528,7 @@ printf "* Apply all DK_* envs done.\n"
 # Try install...
 ##################
 # shellcheck disable=SC2059
-printf "\n* Downloading installer ${installer} from ${installer_url}\n"
+printf "* Downloading installer ${installer} from ${installer_url}\n"
 
 rm -rf $installer
 
@@ -539,12 +545,18 @@ chmod +x $installer
 
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
-	printf "\n* Upgrading DataKit...\n"
+	printf "* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log="$install_log" \
-		--upgrade --lite="${lite}" --elinker="${elinker}" --upgrade-manager="${upgrade_manager}" --upgrade-ip-whitelist="${upgrade_ip_whitelist}" --proxy="${proxy}" --installer_base_url="$installer_base_url"
+		--upgrade --lite="${lite}" \
+		--elinker="${elinker}" \
+		--upgrade-manager="${upgrade_manager}" \
+		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
+		--upgrade-listen="${upgrade_listen}" \
+		--proxy="${proxy}" \
+		--installer_base_url="$installer_base_url"
 else
-printf "\n* Installing DataKit...\n"
+printf "* Installing DataKit...\n"
 $sudo_cmd $installer \
 		--install-log="${install_log}" \
 		--install-only="${install_only}" \
@@ -605,6 +617,7 @@ $sudo_cmd $installer \
 		--crypto-aes_key="${crypto_aes_key}" \
 		--crypto-aes_key_file="${crypto_aes_key_file}" \
 		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
+		--upgrade-listen="${upgrade_listen}" \
 		--gin-log="${gin_log}"
 		fi
 rm -rf $installer

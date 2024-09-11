@@ -65,7 +65,6 @@ github.com/GuanceCloud/cliutils/pipeline/stats
 github.com/GuanceCloud/cliutils/pkg/hash
 github.com/GuanceCloud/cliutils/point
 github.com/GuanceCloud/cliutils/system/rtpanic
-github.com/GuanceCloud/cliutils/testutil
 github.com/GuanceCloud/cliutils/tracer
 # github.com/GuanceCloud/confd v0.1.101
 ## explicit; go 1.18

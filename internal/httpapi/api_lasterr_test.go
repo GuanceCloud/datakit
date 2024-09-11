@@ -33,7 +33,7 @@ func TestAPIPutLastError(t *T.T) {
 	router := gin.New()
 	m := &mockAPIPutLastError{}
 
-	router.POST("/", rawHTTPWraper(nil, apiPutLastError, m))
+	router.POST("/", RawHTTPWrapper(nil, apiPutLastError, m))
 
 	ts := httptest.NewServer(router)
 	time.Sleep(time.Second)

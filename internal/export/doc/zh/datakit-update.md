@@ -18,6 +18,7 @@ DataKit 支持手动更新和自动更新两种方式。
 > - 如果 DataKit < 1.2.0，请[直接使用更新命令](changelog.md#cl-1.2.0-break-changes)
 
 <!-- markdownlint-disable MD046 -->
+
 === "Linux/macOS"
 
     ``` shell
@@ -77,204 +78,118 @@ DataKit 支持手动更新和自动更新两种方式。
     ```
 <!-- markdownlint-enable -->
 
-## 自动更新 {#auto}
-
-在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
-
-> 注：目前自动更新只支持 Linux，且暂不支持代理模式。
-
-### 准备更新脚本 {#prepare}
-
-将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-upgrade.sh`（名称随意）
-
-```bash
-#!/usr/bin/env bash
-# Upgrade DataKit if new version available
-
-echo "Checking for available upgrade..."
-
-if [ ! -x /usr/local/datakit/datakit ]; then
-  echo "/usr/local/datakit/datakit cmd not found, has datakit been installed?" >&2
-  exit 1
-fi
-
-out_lines=()
-while IFS='' read -r line; do out_lines+=("$line"); done < <(/usr/local/datakit/datakit version)
-
-if [ ${#out_lines[@]} -lt 4 ]; then
-  echo "invalid version output" >&2
-  exit 1
-fi
-
-for ((i=0;i<${#out_lines[@]};i++))
-do
-  line="${out_lines[$i]}"
-  if [[ "$line" =~ Upgrade: ]] && [ $((i+1)) -lt ${#out_lines[@]} ]; then
-    cmd="${out_lines[$((i+1))]}"
-    break
-  fi
-done
-
-if [ -z "$cmd" ]; then
-  echo "already up-to-date!" >&2
-  exit 0
-fi
-
-if [[ "$cmd" =~ DK_UPGRADE ]]; then
-  if ! bash -c "$cmd"; then
-    echo "fail to upgrade" >&2
-    exit 2
-  fi
-else
-  printf "get invalid upgrade cmd: %s\n" "$cmd" >&2
-  exit 3
-fi
-
-echo "successfully upgrade!"
-```
-
-### 添加 crontab 任务 {#add-crontab}
-
-执行如下命令，进入 crontab 规则添加界面：
-
-```shell
-crontab -u root -e
-```
-
-添加如下规则：
-
-```shell
-# 意即每天凌晨尝试一下新版本更新
-0 0 * * * bash /path/to/datakit-upgrade.sh >>/var/log/datakit/auto-upgrade.log 2>&1
-```
-
-Tips: crontab 基本语法如下
-
-``` not-set
-*   *   *   *   *     <command to be execute>
-^   ^   ^   ^   ^
-|   |   |   |   |
-|   |   |   |   +----- day of week(0 - 6) (Sunday=0)
-|   |   |   +--------- month (1 - 12)   
-|   |   +------------- day of month (1 - 31)
-|   +----------------- hour (0 - 23)   
-+--------------------- minute (0 - 59)
-```
-
-执行如下命令确保 crontab 安装成功：
-
-```shell
-crontab -u root -l
-```
-
-确保 crontab 服务启动：
-
-```shell
-service crond restart
-```
-
-如果安装成功且有尝试更新，则在 `upgrade_log` 中能看到类似如下日志：
-
-``` log
-2021-05-10T09:49:06.083+0800 DEBUG ota-update datakit/main.go:201 get online version...
-2021-05-10T09:49:07.728+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.1.6-rc0-62-g7a1d0956/7a1d0956
-2021-05-10T09:49:07.728+0800 INFO ota-update datakit/main.go:224 Up to date(1.1.6-rc0-62-g7a1d0956)
-```
-
-如果确实发生了更新，会看到类似如下的更新日志：
-
-``` log
-2021-05-10T09:52:18.352+0800 DEBUG ota-update datakit/main.go:201 get online version...
-2021-05-10T09:52:18.391+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.0.1/7a1d0956
-2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
-...
-```
-
-## 远程更新 {#remote}
+## 远程更新服务 {#auto}
 
 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-如果有大批量的 Datakit 需要更新，可以通过 HTTP API 的方式来升级 Datakit。同时在安装或升级新版 Datakit 时，需设置环境变量 `DK_UPGRADE_MANAGER=1`，例如：
+> 注意：伺服服务不支持 k8s 中安装的 Datakit。
 
-```shell
-DK_UPGRADE=1 \
-  DK_UPGRADE_MANAGER=1 \
-  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
-```
-
-远程升级服务目前提供两个 API：
-
-- **查看当前 Datakit 版本及可用的升级版本**
-
-| API                                                   | 请求方式  |
-|-------------------------------------------------------|-------|
-| `http://<datakit-ip-or-host>:9542/v1/datakit/version` | `GET` |
-
-请求示例：
-
-```shell
-$ curl 'http://127.0.0.1:9542/v1/datakit/version'
-{
-    "Version": "1.5.7",
-    "Commit": "1a9xxxxxxx",
-    "Branch": "master",
-    "BuildAtUTC": "2023-03-29 07:03:35",
-    "GoVersion": "go version go1.18.3 darwin/arm64",
-    "Uploader": "someone",
-    "ReleasedInputs": "all",
-    "AvailableUpgrades": [
-        {
-            "version": "1.5.8",
-            "commit": "d8d2218354",
-            "date_utc": "2023-03-24 11:12:54",
-            "download_url": "https://static.guance.com/datakit/install.sh",
-            "version_type": "Online"
-        }
-    ]
-}
-```
-
-- **把当前 Datakit 升级到最新版本**
-
-| API                                                   | 请求方式 |
-| ---                                                   | ---      |
-| `http://<datakit-ip-or-host>:9542/v1/datakit/upgrade` | `POST`   |
-
-请求示例：
-
-```shell
-$ curl -X POST 'http://127.0.0.1:9542/v1/datakit/upgrade'
-{"msg":"success"}
-```
+在 Datakit 安装过程中，默认会安装一个远程更新的伺服服务，专用于升级 Datakit 版本。如果是较老的 Datakit 版本，则在 Datakit 升级命令中，可以额外指定参数来安装该伺服服务：
 
 <!-- markdownlint-disable MD046 -->
-???+ info
 
-    升级过程根据网络带宽情况，可能耗时较长，请耐心等待 API 返回。
-<!-- markdownlint-enable -->
+=== "公网安装"
 
-## 更新到指定版本 {#downgrade}
+    ```shell hl_lines="2"
+    DK_UPGRADE=1 \
+      DK_UPGRADE_MANAGER=1 \
+      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
 
-如果需要升级或回退到指定版本，可以通过如下命令进行操作：
+=== "离线更新"
 
-<!-- markdownlint-disable MD046 -->
-=== "Linux/macOS"
+    [:octicons-tag-24: Version-1.38.0](changelog.md#cl-1.38.0)
+
+    如果已经[线下同步了 Datakit 的安装包](datakit-offline-install.md#offline-advanced)，假定线下安装包地址是 `http://my.static.com/datakit`，则此处的升级命令是
+
+    ```shell hl_lines="3"
+    DK_UPGRADE=1 \
+      DK_UPGRADE_MANAGER=1 \
+      DK_INSTALLER_BASE_URL="http://my.static.com/datakit" \
+      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
+
+???+ attention
+
+    伺服服务默认会绑定在 `0.0.0.0:9542` 地址上，如果该地址被占用，可以额外指定：
+    
+    ```shell hl_lines="3"
+    DK_UPGRADE=1 \
+      DK_UPGRADE_MANAGER=1 \
+      DK_UPGRADE_LISTEN=0.0.0.0:19542 \
+      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    ```
+
+---
+
+由于伺服服务提供了 HTTP API，它有如下参数可选（[:octicons-tag-24: Version-1.38.0](changelog.md#cl-1.38.0)）：
+
+- **`version`**：将 Datakit 升级/降级到指定的版本号（如果是离线安装，需确保指定的版本是否已经同步）
+- **`force`**：如果当前 Datakit 尚未启动或行为异常，我们可以通过该参数强制升级它并且拉起服务
+
+我们可以手动调用其接口来实现远程更新，或者通过 DCA 来实现远程更新。
+
+=== "手动调用"
 
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "-1.2.3") }}
-    ```
-=== "Windows"
+    # 更新到最新 Datakit 版本
+    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade"
 
-    ```powershell
-{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-1.2.3") }}
+    {"msg":"success"}
+
+    # 更新到指定 Datakit 版本
+    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?version=3.4.5"
+
+    # 强制升级一个 Datakit 版本
+    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?force=1"
+    ```
+
+=== "DCA"
+
+    参见 [DCA 文档](../dca/index.md)。
+
+---
+
+???+ info
+
+    - 升级过程根据网络带宽情况，可能耗时较长（基本等同于手动调用 Datakit 升级命令），请耐心等待 API 返回。如果中途中断，**其行为是未定义的**。
+    - 升级过程中，如果指定版本不存在，请求会报错（`3.4.5` 这个版本不存在）：
+
+    ```json
+    {
+      "error_code": "datakit.upgradeFailed",
+      "message": "unable to download script file http://my.static.com/datakit/install-3.4.5.sh: resonse status: 404 Not Found"
+    }
+    ```
+
+    - 如果当前 Datakit 未启动，则会报错：
+
+    ```json
+    {
+      "error_code": "datakit.upgradeFailed",
+      "message": "get datakit version failed: unable to query current Datakit version: Get \"http://localhost:9529/v1/ping\": dial tcp localhost:9529 connect: connection refused)"
+    }
     ```
 <!-- markdownlint-enable -->
 
-上述命令中的 `<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
+## 离线更新 {#offline-upgrade}
 
-若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。
+参见[离线安装](datakit-offline-install.md)相关的章节。
 
-## 版本检测失败的处理 {#version-check-failed}
+## FAQ {#faq}
+
+### 更新和安装的差异 {#upgrade-vs-install}
+
+如果要升级较新版本的 Datakit，可以通过：
+
+- 重新安装
+- [执行升级命令](datakit-update.md#manual)
+
+在已经安装好 Datakit 的主机上，建议通过升级命令来升级到较新的版本，而不是重新安装。如果重新安装，所有 [*datakit.conf* 里面的配置](datakit-conf.md#maincfg-example)都会被重置为默认设置，比如全局 tag 配置、端口设置等等。这可能不是我们所期望的。
+
+不过，不管是重新安装，还是执行升级命令，所有采集相关的配置，都不会因此变更。
+
+### 版本检测失败的处理 {#version-check-failed}
 
 在 DataKit 安装/升级过程中，安装程序会对当前运行的 DataKit 版本进行检测，以确保当前运行的 DataKit 版本就是升级后的版本。
 
@@ -307,19 +222,23 @@ Golang Version: go version go1.18.3 linux/amd64
 ReleasedInputs: checked
 ```
 
-## 离线更新 {#offline-upgrade}
+### 更新到指定版本 {#downgrade}
 
-参见[离线安装](datakit-offline-install.md)相关的章节。
+如果需要升级或回退到指定版本，可以通过如下命令进行操作：
 
-## FAQ {#faq}
+<!-- markdownlint-disable MD046 -->
+=== "Linux/macOS"
 
-### 更新和安装的差异 {#upgrade-vs-install}
+    ```shell
+{{ InstallCmd 4 (.WithPlatform "unix") (.WithUpgrade true) (.WithVersion "-3.4.5") }}
+    ```
+=== "Windows"
 
-如果要升级较新版本的 Datakit，可以通过：
+    ```powershell
+{{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-3.4.5") }}
+    ```
+<!-- markdownlint-enable -->
 
-- 重新安装
-- [执行升级命令](datakit-update.md#manual)
+上述命令中的 `<版本号>`，可以从 [DataKit 的发布历史](changelog.md)页面找到。
 
-在已经安装好 Datakit 的主机上，建议通过升级命令来升级到较新的版本，而不是重新安装。如果重新安装，所有 [*datakit.conf* 里面的配置](datakit-conf.md#maincfg-example)都会被重置为默认设置，比如全局 tag 配置、端口设置等等。这可能不是我们所期望的。
-
-不过，不管是重新安装，还是执行升级命令，所有采集相关的配置，都不会因此变更。
+若要回退 DataKit 版本，目前只支持退回到 [1.2.0](changelog.md#cl-1.2.0) 以后的版本，之前的 rc 版本不建议回退。

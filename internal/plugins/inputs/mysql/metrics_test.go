@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockRows struct {
@@ -782,10 +782,10 @@ func TestGlobalVariablesMetrics(t *testing.T) {
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case uint64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(uint64))
+					assert.Truef(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(uint64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -1210,10 +1210,10 @@ ki4UgeoEPi/fhqe/34QrAq5sS/fksHTzGgQLqYclWn1a
 			for k, v := range tc.expect {
 				switch x := v.(type) {
 				case uint64:
-					tu.Assert(t, res[k] != nil, "key %s should not be nil", k)
-					tu.Equals(t, x, res[k].(uint64))
+					assert.Truef(t, res[k] != nil, "key %s should not be nil", k)
+					assert.Equal(t, x, res[k].(uint64))
 				case string:
-					tu.Equals(t, x, res[k].(string))
+					assert.Equal(t, x, res[k].(string))
 				default:
 					t.Logf("%s is type %s", k, reflect.TypeOf(v))
 				}
@@ -1342,7 +1342,7 @@ func TestBinlogMetrics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			res := binlogMetrics(tc.rows)
 
-			tu.Equals(t, tc.expect, res["Binlog_space_usage_bytes"].(uint64))
+			assert.Equal(t, tc.expect, res["Binlog_space_usage_bytes"].(uint64))
 		})
 	}
 }

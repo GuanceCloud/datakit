@@ -15,6 +15,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
@@ -135,6 +137,8 @@ func PackageeBPF() {
 
 			switch goarch {
 			case "amd64", "arm64":
+
+				cp.Infof("Downloading %s => %s\n", url, dir)
 				if err := downloader.Download(httpcli.Cli(nil), url, dir, false, false); err != nil {
 					l.Error(err)
 					NotifyFail(err.Error())

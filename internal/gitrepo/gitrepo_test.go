@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	T "testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +76,7 @@ func TestGetGitClonePathFromGitURL(t *T.T) {
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}
-			tu.Equals(t, tc.expect, repoName)
+			assert.Equal(t, tc.expect, repoName)
 		})
 	}
 
@@ -127,7 +126,7 @@ func TestIsUserNamePasswordAuth(t *T.T) {
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}
-			tu.Equals(t, tc.expect, isPassword)
+			assert.Equal(t, tc.expect, isPassword)
 		})
 	}
 }
@@ -220,8 +219,8 @@ func TestGetUserNamePasswordFromGitURL(t *T.T) {
 			mVal := map[string]string{
 				as.GitUserName: as.GitPassword,
 			}
-			tu.Equals(t, tc.expect, mVal)
-			tu.Equals(t, tc.expectAuth, as.Auth)
+			assert.Equal(t, tc.expect, mVal)
+			assert.Equal(t, tc.expectAuth, as.Auth)
 		})
 	}
 
@@ -281,7 +280,7 @@ func TestGetAuthMethod(t *T.T) {
 			if err != nil && !tc.shouldBeError {
 				t.Error(err)
 			}
-			tu.Equals(t, tc.expect, authM)
+			assert.Equal(t, tc.expect, authM)
 		})
 	}
 }

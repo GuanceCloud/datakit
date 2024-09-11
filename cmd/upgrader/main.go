@@ -14,24 +14,23 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/kardianos/service"
 	"github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 )
 
-func L() *logger.Logger {
-	return *upgrader.GL
-}
+var l = logger.DefaultSLogger("main")
 
 func isServiceRunning() (int, bool) {
 	cont, err := os.ReadFile(upgrader.PidFile)
 	if err != nil {
-		L().Infof("unable to open manager pid file[%s]: %s", upgrader.PidFile, err)
+		l.Infof("unable to open manager pid file[%s]: %s", upgrader.PidFile, err)
 		return 0, false
 	}
 
 	pid, err := strconv.ParseInt(strings.TrimSpace(string(cont)), 10, 32)
 	if err != nil {
-		L().Errorf("unable to resolve pid from [%s]", string(cont))
+		l.Errorf("unable to resolve pid from [%s]", string(cont))
 		return 0, false
 	}
 
@@ -54,12 +53,12 @@ func main() {
 
 	pid, ok := isServiceRunning()
 	if ok {
-		L().Errorf("service %s is already running, pid[%d]", upgrader.ServiceName, pid)
+		l.Errorf("service %s is already running, pid[%d]", upgrader.ServiceName, pid)
 		os.Exit(upgrader.ExitStatusAlreadyRunning)
 	}
 
 	if err := doRunService(); err != nil {
-		L().Errorf("unable to run datakit manager: %s", err)
+		l.Errorf("unable to run datakit manager: %s", err)
 		os.Exit(upgrader.ExitStatusUnableToRun)
 	}
 }
@@ -70,19 +69,44 @@ func doRunService() error {
 	}
 
 	if err := upgrader.Cfg.LoadMainTOML(upgrader.MainConfigFile); err != nil {
-		L().Warnf("unable to load main config file: %s", err)
+		l.Warnf("unable to load main config file: %s", err)
 	}
 	upgrader.Cfg.SetLogging()
 
-	*upgrader.GL = logger.SLogger(upgrader.ServiceName)
+	l = logger.SLogger("main")
 
 	serv, err := upgrader.NewDefaultService("", nil)
 	if err != nil {
 		return fmt.Errorf("unable to create service: %w", err)
 	}
 
-	if err := upgrader.RunService(serv); err != nil {
+	if err := runService(serv); err != nil {
 		return fmt.Errorf("unable to start service: %w", err)
 	}
+	return nil
+}
+
+func runService(serv service.Service) error {
+	errch := make(chan error, 32) //nolint:gomnd
+	sLogger, err := serv.Logger(errch)
+	if err != nil {
+		return fmt.Errorf("unable to get service logger: %w", err)
+	}
+
+	if err := sLogger.Infof("%s set service logger ok, starting...", upgrader.ServiceName); err != nil {
+		return err
+	}
+
+	if err := serv.Run(); err != nil {
+		if serr := sLogger.Errorf("start service failed: %s", err.Error()); serr != nil {
+			return serr
+		}
+		return err
+	}
+
+	if err := sLogger.Infof("%s service exited", upgrader.ServiceName); err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -18,21 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-var sampleConfig = `
-listen = "0.0.0.0:9542"
-ip_whitelist = []
-install_base_url = ""
-
-[logging]
-  log = "/var/log/dk_upgrader/log"
-  gin_log = "/var/log/dk_upgrader/gin.log"
-  gin_err_log = "/var/log/dk_upgrader/gin_err.log"
-  level = "info"
-  disable_color = false
-  rotate = 32
-`
-
-var Cfg = DefaultMainConfig()
+var Cfg = defaultMainConfig()
 
 type LoggerCfg struct {
 	*config.LoggerCfg
@@ -40,10 +26,89 @@ type LoggerCfg struct {
 }
 
 type MainConfig struct {
-	Listen           string     `toml:"listen"`
+	Listen string `toml:"listen"`
+	Proxy  string `toml:"proxy"`
+
+	DatakitAPIHTTPS  bool   `toml:"datakit_api_https"`
+	DatakitAPIListen string `toml:"datakit_api_listen"`
+
 	IPWhiteList      []string   `toml:"ip_whitelist"`
 	InstallerBaseURL string     `toml:"install_base_url"`
 	Logging          *LoggerCfg `toml:"logging"`
+	InstallDir       string     `toml:"install_dir"`
+	Username         string     `toml:"username"`
+
+	upgradeUpgraderService,
+	dkUpgrade,
+	installOnly bool
+}
+
+type UpgraderOpt func(*MainConfig)
+
+func WithProxy(proxy string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.Proxy = proxy
+	}
+}
+
+func WithUpgradeService(on bool) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.upgradeUpgraderService = on
+	}
+}
+
+func WithDKUpgrade(on bool) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.dkUpgrade = on
+	}
+}
+
+func WithInstallOnly(on bool) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.installOnly = on
+	}
+}
+
+func WithInstallUserName(name string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.Username = name
+	}
+}
+
+func WithListen(listen string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.Listen = listen
+	}
+}
+
+func WithDatakitAPIHTTPS(on bool) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.DatakitAPIHTTPS = on
+	}
+}
+
+func WithDatakitAPIListen(listen string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.DatakitAPIListen = listen
+	}
+}
+
+func WithIPWhiteList(list []string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.IPWhiteList = list
+	}
+}
+
+func WithInstallBaseURL(bu string) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.InstallerBaseURL = bu
+	}
+}
+
+func WithLoggingCfg(lc *LoggerCfg) UpgraderOpt {
+	return func(mc *MainConfig) {
+		mc.Logging = lc
+	}
 }
 
 func (c *MainConfig) LoadMainTOML(f string) error {
@@ -62,7 +127,7 @@ func (c *MainConfig) SetLogging() {
 
 	switch c.Logging.Log {
 	case "stdout", "":
-		L().Info("set log to stdout, rotate disabled")
+		l.Info("set log to stdout, rotate disabled")
 		lopt.Flags |= logger.OPT_STDOUT
 
 		if !c.Logging.DisableColor {
@@ -79,14 +144,14 @@ func (c *MainConfig) SetLogging() {
 	}
 
 	if err := logger.InitRoot(lopt); err != nil {
-		L().Errorf("set root log(options: %+#v) failed: %s", lopt, err.Error())
+		l.Errorf("set root log(options: %+#v) failed: %s", lopt, err.Error())
 		return
 	}
 
-	L().Infof("set root logger(options: %+#v)ok", lopt)
+	l.Infof("set root logger(options: %+#v)ok", lopt)
 }
 
-func (c *MainConfig) CreateCfgFile() error {
+func (c *MainConfig) createCfgFile() error {
 	f, err := os.OpenFile(MainConfigFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, datakit.ConfPerm)
 	if err != nil {
 		return fmt.Errorf("unable to open main config file[%s]: %w", MainConfigFile, err)
@@ -99,15 +164,7 @@ func (c *MainConfig) CreateCfgFile() error {
 	return nil
 }
 
-func DefaultMainConfig() *MainConfig {
-	var cfg MainConfig
-	_, err := bstoml.Decode(sampleConfig, &cfg)
-	if err == nil {
-		return &cfg
-	}
-
-	L().Warnf("unable to decode config sample: %s", err)
-
+func defaultMainConfig() *MainConfig {
 	conf := &MainConfig{
 		Listen:           "0.0.0.0:9542",
 		IPWhiteList:      []string{},
@@ -123,12 +180,14 @@ func DefaultMainConfig() *MainConfig {
 			},
 			GinErrLog: "/var/log/dk_upgrader/gin_err.log",
 		},
+
+		InstallDir: InstallDir,
 	}
 
 	if runtime.GOOS == datakit.OSWindows {
-		conf.Logging.LoggerCfg.Log = filepath.Join(InstallDir, "log")
-		conf.Logging.LoggerCfg.GinLog = filepath.Join(InstallDir, "gin.log")
-		conf.Logging.GinErrLog = filepath.Join(InstallDir, "gin_err.log")
+		conf.Logging.LoggerCfg.Log = filepath.Join(conf.InstallDir, "log")
+		conf.Logging.LoggerCfg.GinLog = filepath.Join(conf.InstallDir, "gin.log")
+		conf.Logging.GinErrLog = filepath.Join(conf.InstallDir, "gin_err.log")
 	}
 
 	return conf

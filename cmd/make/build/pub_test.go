@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddOSSFiles(t *testing.T) {
@@ -91,7 +91,7 @@ func TestAddOSSFiles(t *testing.T) {
 		t.Run(tc.id, func(t *testing.T) {
 			files := addOSSFiles(tc.ossPath, tc.files)
 			for k, v := range files {
-				tu.Equals(t, tc.expect[k], v)
+				assert.Equal(t, tc.expect[k], v)
 				t.Logf("%s -> %s", v, k)
 			}
 		})

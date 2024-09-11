@@ -33,8 +33,14 @@ var (
 	ErrUnknownRUMMeasurement  = newErr(errors.New("unknown RUM measurement"), http.StatusBadRequest)
 	ErrRUMAppIDNotInWhiteList = newErr(errors.New("RUM app_id not in the white list"), http.StatusForbidden)
 	ErrInvalidAPIHandler      = newErr(errors.New("invalid API handler"), http.StatusInternalServerError)
-	ErrPublicAccessDisabled   = newErr(errors.New("public access disabled"), http.StatusForbidden)
-	ErrReachLimit             = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
+
+	ErrUpgradeFailed           = newErr(errors.New("upgrade failed"), http.StatusInternalServerError) // misc errors during upgrade
+	ErrUpgradeGetVersionFailed = newErr(errors.New("datakit version failed"), http.StatusInternalServerError)
+	ErrIsUpgrading             = newErr(errors.New("upgrade is on going"), http.StatusNotAcceptable)
+	ErrDKVersionUptoDate       = newErr(errors.New("up to date"), http.StatusNotModified)
+
+	ErrPublicAccessDisabled = newErr(errors.New("public access disabled"), http.StatusForbidden)
+	ErrReachLimit           = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
 
 	ErrInvalidJSON = newErr(errors.New("invalid JSON"), http.StatusBadRequest)
 

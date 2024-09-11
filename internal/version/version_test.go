@@ -8,7 +8,7 @@ package version
 import (
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParse(t *testing.T) {
@@ -30,10 +30,10 @@ func TestParse(t *testing.T) {
 			vi := VerInfo{VersionString: tc.v}
 			err := vi.Parse()
 			if tc.fail {
-				tu.NotOk(t, err, "")
+				assert.Error(t, err)
 				return
 			} else {
-				tu.Ok(t, err)
+				assert.NoError(t, err)
 			}
 
 			t.Logf(vi.String())
@@ -206,29 +206,29 @@ func TestCompare(t *testing.T) {
 
 			err = v1.Parse()
 			if tc.fail {
-				tu.NotOk(t, err, "expect error, but got %+#v", v1)
+				assert.Errorf(t, err, "expect error, but got %+#v", v1)
 				t.Logf("expect error: %s", err)
 				return
 			} else {
-				tu.Ok(t, err)
+				assert.NoError(t, err)
 			}
 
 			err = v2.Parse()
 			if tc.fail {
-				tu.NotOk(t, err, "")
+				assert.Error(t, err)
 				t.Log(err)
 				return
 			} else {
-				tu.Ok(t, err)
+				assert.NoError(t, err)
 			}
 
 			if tc.newVersion {
-				tu.Assert(t, v1.Compare(v2) > 0, "%s should larger than %s", tc.v1, tc.v2)
+				assert.Truef(t, v1.Compare(v2) > 0, "%s should larger than %s", tc.v1, tc.v2)
 			} else {
 				if tc.sameVersion {
-					tu.Assert(t, v1.Compare(v2) == 0, "")
+					assert.True(t, v1.Compare(v2) == 0)
 				} else {
-					tu.Assert(t, v1.Compare(v2) < 0, "")
+					assert.True(t, v1.Compare(v2) < 0)
 				}
 			}
 		})

@@ -16,7 +16,6 @@ import (
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -26,19 +25,20 @@ func runVersionFlags(disableUpgradeInfo bool) error {
 	showVersion(ReleaseVersion)
 
 	if !disableUpgradeInfo {
-		vis, err := CheckNewVersion(ReleaseVersion)
+		vi, err := CheckNewVersion(ReleaseVersion)
 		if err != nil {
 			return err
 		}
 
-		for _, vi := range vis {
-			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
-				vi.versionType,
-				vi.NewVersion.VersionString,
-				vi.NewVersion.Commit,
-				vi.NewVersion.ReleaseDate)
-			cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS, vi.NewVersion.DownloadURL, config.Cfg.Dataway.HTTPProxy))
-		}
+		cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
+			vi.versionType,
+			vi.NewVersion.VersionString,
+			vi.NewVersion.Commit,
+			vi.NewVersion.ReleaseDate)
+
+		cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS,
+			vi.NewVersion.DownloadURL,
+			config.Cfg.Dataway.HTTPProxy))
 	}
 
 	return nil
@@ -81,8 +81,13 @@ func (vi *newVersionInfo) String() string {
 		getUpgradeCommand(runtime.GOOS, vi.NewVersion.DownloadURL, config.Cfg.Dataway.HTTPProxy))
 }
 
-func CheckNewVersion(curverStr string) (map[string]*newVersionInfo, error) {
-	vers, err := GetOnlineVersions()
+func CheckNewVersion(curverStr string) (*newVersionInfo, error) {
+	proxy := ""
+	if config.Cfg.Dataway.HTTPProxy != "" {
+		proxy = config.Cfg.Dataway.HTTPProxy
+	}
+
+	ver, err := GetOnlineVersions(OnlineBaseURL, proxy)
 	if err != nil {
 		return nil, fmt.Errorf("GetOnlineVersions: %w", err)
 	}
@@ -92,19 +97,18 @@ func CheckNewVersion(curverStr string) (map[string]*newVersionInfo, error) {
 		return nil, fmt.Errorf("getLocalVersion: %w", err)
 	}
 
-	vis := map[string]*newVersionInfo{}
+	var vis *newVersionInfo
 
-	for k, v := range vers {
-		l.Debugf("compare %s <=> %s", v, curver)
+	l.Debugf("compare %s <=> %s", ver, curver)
 
-		if version.IsNewVersion(v, curver, true) {
-			vis[k] = &newVersionInfo{
-				versionType: k,
-				upgrade:     true,
-				NewVersion:  v,
-			}
+	if version.IsNewVersion(ver, curver, true) {
+		vis = &newVersionInfo{
+			versionType: versionTypeOnline,
+			upgrade:     true,
+			NewVersion:  ver,
 		}
 	}
+
 	return vis, nil
 }
 
@@ -154,9 +158,10 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 	return v, nil
 }
 
-func getVersion(addr string) (*version.VerInfo, error) {
-	cli := getcli()
+func getVersionInfo(addr, proxy string) (*version.VerInfo, error) {
+	cli := GetHTTPClient(proxy)
 	cli.Timeout = time.Second * 5
+
 	urladdr := addr
 	if strings.HasSuffix(addr, "/") {
 		urladdr += "version"
@@ -213,26 +218,12 @@ func CanonicalInstallBaseURL(installBaseURL string) string {
 	return sb.String()
 }
 
-func GetOnlineVersions() (map[string]*version.VerInfo, error) {
-	res := map[string]*version.VerInfo{}
-
-	if v := datakit.GetEnv("DK_INSTALLER_BASE_URL"); v != "" {
-		cp.Warnf("setup base URL to %s\n", v)
-		OnlineBaseURL = v
+func GetOnlineVersions(baseURL, proxy string) (*version.VerInfo, error) {
+	vi, err := getVersionInfo(CanonicalInstallBaseURL(baseURL), proxy)
+	if err != nil {
+		return nil, fmt.Errorf("get version from %s failed: %w", baseURL, err)
 	}
+	l.Debugf("get %s version: %s", versionTypeOnline, vi)
 
-	versionInfos := map[string]string{
-		versionTypeOnline: CanonicalInstallBaseURL(OnlineBaseURL),
-	}
-
-	for k, v := range versionInfos {
-		vi, err := getVersion(v)
-		if err != nil {
-			return nil, fmt.Errorf("get version from %s failed: %w", v, err)
-		}
-		res[k] = vi
-		l.Debugf("get %s version: %s", k, vi)
-	}
-
-	return res, nil
+	return vi, nil
 }

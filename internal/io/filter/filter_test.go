@@ -10,10 +10,8 @@ import (
 	"testing"
 	"time"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/stretchr/testify/assert"
 )
 
 type pullMock struct{ pullCount int }
@@ -89,7 +87,7 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 			}
 
 			after, _ := f.doFilter(tc.category, pts)
-			tu.Assert(t, len(after) == tc.expectPts, "expect %d pts, got %d", tc.expectPts, len(after))
+			assert.Truef(t, len(after) == tc.expectPts, "expect %d pts, got %d", tc.expectPts, len(after))
 		})
 	}
 }
@@ -104,7 +102,7 @@ func TestPull(t *testing.T) {
 		<-f.tick.C
 	}
 
-	tu.Assert(t, f.pullInterval == time.Millisecond*time.Duration(round), "expect %ds, got %s", round, f.pullInterval)
+	assert.Truef(t, f.pullInterval == time.Millisecond*time.Duration(round), "expect %ds, got %s", round, f.pullInterval)
 }
 
 // go test -v -timeout 30s -run ^TestGetConds$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter

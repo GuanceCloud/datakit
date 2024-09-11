@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/pflag"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
 
 const (
@@ -80,20 +81,20 @@ func setENVVariables() {
 			curPath := strings.TrimRight(os.Getenv("PATH"), pathListSeparator) + pathListSeparator + envPATH
 			curPath = strings.Trim(curPath, pathListSeparator)
 			if err := os.Setenv("PATH", curPath); err != nil {
-				L().Errorf("unable to set PATH env variable: %s", err)
+				l.Errorf("unable to set PATH env variable: %s", err)
 			}
 		}
 	}
 
 	if *flagENVDatakitHome != "" {
 		if err := os.Setenv(ENVDatakitHome, strings.TrimSpace(*flagENVDatakitHome)); err != nil {
-			L().Warnf("unable to set %s envronment variable: %s", ENVDatakitHome, err)
+			l.Warnf("unable to set %s envronment variable: %s", ENVDatakitHome, err)
 		}
 	}
 
 	if *flagENVHomeDir != "" {
 		if err := os.Setenv(ENVDKUpgraderHome, strings.TrimSpace(*flagENVHomeDir)); err != nil {
-			L().Warnf("unable to set %s environment variable: %s", ENVDKUpgraderHome, err)
+			l.Warnf("unable to set %s environment variable: %s", ENVDKUpgraderHome, err)
 		}
 	}
 }
@@ -204,7 +205,7 @@ func stopDKUpgrader() error {
 		return nil
 	}
 
-	L().Info("stoping dk_upgrader...")
+	l.Info("stoping dk_upgrader...")
 	// 不能一直等待阻塞的 chan 或者 waitgroup到超时时间被强制 kill 时才退出
 	errChan := make(chan error, 1)
 
@@ -241,7 +242,7 @@ func startDKUpgrader() error {
 	}
 
 	if status == service.StatusRunning {
-		L().Info("dk_upgrader service is already running")
+		l.Info("dk_upgrader service is already running")
 		return nil
 	}
 
@@ -276,10 +277,10 @@ func uninstallDKUpgrader() error {
 	}
 
 	if err := service.Control(svc, "stop"); err != nil {
-		L().Warnf("unable to stop service: %s", err)
+		l.Warnf("unable to stop service: %s", err)
 	}
 
-	L().Info("uninstall dk_upgrader...")
+	l.Info("uninstall dk_upgrader...")
 	return service.Control(svc, "uninstall")
 }
 
@@ -289,7 +290,7 @@ func reinstallDKUpgrader() error {
 		return err
 	}
 
-	L().Info("re-install dk_upgrader...")
+	l.Info("re-install dk_upgrader...")
 	if err := service.Control(svc, "install"); err != nil {
 		return err
 	}
@@ -326,6 +327,7 @@ func dKUpgraderStatus() (string, error) {
 }
 
 func printHelp(w io.Writer) {
+	fmt.Fprintf(w, "\nVersion: %s/%s(%s)\n\n", git.Version, git.Commit, git.BuildAt)
 	fmt.Fprintf(w, "\nUsage:\n\n")
 
 	fmt.Fprintf(w, "\tdk_upgrader <command> [arguments]\n\n")

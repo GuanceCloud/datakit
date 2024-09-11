@@ -98,10 +98,18 @@ if ( ($x -ne $null) -and ($x -gt 0) ) {
 	Write-COutput green ("* Set upgrade_manager => ON" )
 }
 
+$upgrade_ip_whitelist = ""
 $x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
 if ($x -ne $null) {
 	$upgrade_ip_whitelist = $x
 	Write-COutput green ("* Set upgrade_ip_whitelist => $x" )
+}
+
+$upgrade_listen = "0.0.0.0:9542"
+$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_LISTEN")
+if ($x -ne $null) {
+	$upgrade_listen = $x
+	Write-COutput green ("* Set upgrade_listen => $x" )
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY")
@@ -265,7 +273,7 @@ if ($x -ne $null) {
 	Write-COutput green "* Set pprof_listen => $x"
 }
 
-$install_log="install.log"
+$install_log="install-{{.Version}}.log"
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALL_LOG")
 if ($x -ne $null) {
 	$install_log = $x
@@ -306,67 +314,67 @@ $confd_region=""
 $x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND")
 if ($x -ne $null) {
 	$confd_backend = $x
-	Write-COutput green "* set confd backend"
+	Write-COutput green "* Set confd backend"
 
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BASIC_AUTH")
 	if ($x -ne $null) {
 		$confd_basic_auth = $x
-		Write-COutput green "* set confd_basic_auth"
+		Write-COutput green "* Set confd_basic_auth"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CA_KEYS")
 	if ($x -ne $null) {
 		$confd_client_ca_keys = $x
-		Write-COutput green "* set confd_client_ca_keys"
+		Write-COutput green "* Set confd_client_ca_keys"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CERT")
 	if ($x -ne $null) {
 		$confd_client_cert = $x
-		Write-COutput green "* set confd_client_cert"
+		Write-COutput green "* Set confd_client_cert"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_KEY")
 	if ($x -ne $null) {
 		$confd_client_key = $x
-		Write-COutput green "* set confd_client_key"
+		Write-COutput green "* Set confd_client_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND_NODES")
 	if ($x -ne $null) {
 		$confd_backend_nodes = $x
-		Write-COutput green "* set confd_backend_nodes"
+		Write-COutput green "* Set confd_backend_nodes"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PASSWORD")
 	if ($x -ne $null) {
 		$confd_password = $x
-		Write-COutput green "* set confd_password"
+		Write-COutput green "* Set confd_password"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SCHEME")
 	if ($x -ne $null) {
 		$confd_scheme = $x
-		Write-COutput green "* set confd_scheme"
+		Write-COutput green "* Set confd_scheme"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SEPARATOR")
 	if ($x -ne $null) {
 		$confd_separator = $x
-		Write-COutput green "* set confd_separator"
+		Write-COutput green "* Set confd_separator"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_USERNAME")
 	if ($x -ne $null) {
 		$confd_username = $x
-		Write-COutput green "* set confd_username"
+		Write-COutput green "* Set confd_username"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ACCESS_KEY")
 	if ($x -ne $null) {
 		$confd_access_key = $x
-		Write-COutput green "* set confd_access_key"
+		Write-COutput green "* Set confd_access_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SECRET_KEY")
 	if ($x -ne $null) {
 		$confd_secret_key = $x
-		Write-COutput green "* set confd_secret_key"
+		Write-COutput green "* Set confd_secret_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CIRCLE_INTERVAL")
 	if ($x -ne $null) {
 		$confd_circle_interval = $x
-		Write-COutput green "* set confd_circle_interval"
+		Write-COutput green "* Set confd_circle_interval"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CONFD_NAMESPACE")
 	if ($x -ne $null) {
@@ -376,12 +384,12 @@ if ($x -ne $null) {
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PIPELINE_NAMESPACE")
 	if ($x -ne $null) {
 		$confd_pipeline_namespace = $x
-		Write-COutput green "* set confd_pipeline_namespace"
+		Write-COutput green "* Set confd_pipeline_namespace"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_REGION")
 	if ($x -ne $null) {
 		$confd_region = $x
-		Write-COutput green "* set confd_region"
+		Write-COutput green "* Set confd_region"
 	}
 }
 
@@ -509,8 +517,16 @@ if ([Environment]::Is64BitProcess -or [Environment]::Is64BitOperatingSystem -or 
 }
 
 $installer_url = "$installer_base_url/installer-windows-$arch-{{.Version}}.exe"
-$installer=".dk-installer.exe"
-$ps1_script=".install.ps1"
+
+# create temp dir
+$timestamp = Get-Date -UFormat "%Y%m%d%H%M%S"
+$randomNumber = Get-Random -Minimum 1000 -Maximum 9999
+$tempFolderName = "Temp_dk_installer_files_{0}_{1}" -f $timestamp, $randomNumber
+$tmpDir = Join-Path $env:TEMP $tempFolderName
+New-Item -ItemType Directory -Path $tmpDir -Force
+
+$installer=Join-Path $tmpDir ".dk-installer-{{.Version}}.exe"
+$ps1_script=Join-Path $tmpDir ".install-{{.Version}}.ps1"
 
 ##########################
 # try install...
@@ -533,8 +549,9 @@ if ($upgrade -ne $null) { # upgrade
 	$action = @(
 			"$installer",
 			"--upgrade",
-			"--upgrade-manager='${upgrade_manager}'", # for update DK upgrade service
+			"--upgrade-manager='${upgrade_manager}'",
 			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
+			"--upgrade-listen='${upgrade_listen}'",
 			"--install-log='${install_log}'",
 			"--proxy='${proxy}'",
 			"--lite='${lite}'",
@@ -596,6 +613,7 @@ if ($upgrade -ne $null) { # upgrade
 			"--ipdb-type='${ipdb_type}'",
 			"--pprof-listen='${pprof_listen}'",
 			"--upgrade-ip-whitelist='${upgrade_ip_whitelist}'",
+			"--upgrade-listen='${upgrade_listen}'",
 			"--enable-dataway-sinker='${enable_sinker}'",
 			"--crypto-aes_key='${crypto_aes_key}'",
 			"--crypto-aes_key_file='${crypto_aes_key_file}'",
@@ -603,13 +621,8 @@ if ($upgrade -ne $null) { # upgrade
 				)
 }
 
-Write-COutput green "* action: $action"
+Write-COutput green "* Action: $action"
 $action -join " " | Invoke-Expression
 
 # remove installer and the script.
-Remove-Item -Force -ErrorAction SilentlyContinue $installer
-if ($PSCommandPath) {
-	Remove-Item $PSCommandPath -Force
-} else {
-	Remove-Item $ps1_script -Force
-}
+Remove-Item $tmpDir -Recurse -Force

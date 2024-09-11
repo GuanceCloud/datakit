@@ -119,7 +119,6 @@ func TestLoadEnv(t *testing.T) {
 					URLs:                []string{"http://host1.org", "http://host2.com"},
 					MaxIdleConnsPerHost: 123,
 					HTTPProxy:           "http://1.2.3.4:1234",
-					Proxy:               true,
 					EnableHTTPTrace:     true,
 					IdleTimeout:         90 * time.Second,
 					HTTPTimeout:         30 * time.Second,

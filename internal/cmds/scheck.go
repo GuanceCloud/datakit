@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -40,7 +41,12 @@ func installScheck() error {
 	cp.Infof("Start downloading install script...\n")
 
 	verURL := BaseURL + "install.sh"
-	cli := getcli()
+
+	proxy := ""
+	if config.Cfg.Dataway.HTTPProxy != "" {
+		proxy = config.Cfg.Dataway.HTTPProxy
+	}
+	cli := GetHTTPClient(proxy)
 
 	req, err := http.NewRequest("GET", verURL, nil)
 	if err != nil {

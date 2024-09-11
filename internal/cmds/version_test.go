@@ -8,7 +8,6 @@ package cmds
 import (
 	T "testing"
 
-	"github.com/GuanceCloud/cliutils/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +44,7 @@ func TestCanonicalInstallBaseUrl(t *T.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *T.T) {
-			testutil.Equals(t, tc.expected, CanonicalInstallBaseURL(tc.param))
+			assert.Equal(t, tc.expected, CanonicalInstallBaseURL(tc.param))
 		})
 	}
 }

@@ -8,6 +8,8 @@ package cmds
 import (
 	"fmt"
 
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
@@ -31,9 +33,16 @@ func updateIPDB() error {
 	for idx, c := range allDB {
 		fmt.Printf("Start downloading %s...\n", c)
 		c = baseURL + c
-		cli := getcli()
+
+		proxy := ""
+		if config.Cfg.Dataway.HTTPProxy != "" {
+			proxy = config.Cfg.Dataway.HTTPProxy
+		}
+		cli := GetHTTPClient(proxy)
 
 		dl.CurDownloading = "ipdb"
+
+		cp.Infof("Downloading %s => %s\n", c, installDir+dbDir[idx])
 		if err := dl.Download(cli, c, installDir+dbDir[idx], true, false); err != nil {
 			return err
 		}

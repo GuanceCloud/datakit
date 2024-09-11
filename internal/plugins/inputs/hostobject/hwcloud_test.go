@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -127,43 +127,43 @@ func parseHwcloudNetData() *netWorkData {
 
 func TestHwcloud_InstanceID(t *testing.T) {
 	hwMetaData := parseHwcloudData()
-	tu.Assert(t, hwMetaData.InstanceID == "f36e1d55-7d27-4772-9a3e-9737cae3b3a7", "Hwcloud_InstanceID")
+	assert.Truef(t, hwMetaData.InstanceID == "f36e1d55-7d27-4772-9a3e-9737cae3b3a7", "Hwcloud_InstanceID")
 }
 
 func TestHwcloud_InstanceName(t *testing.T) {
 	hwMetaData := parseHwcloudData()
-	tu.Assert(t, hwMetaData.InstanceName == "ecs-b67f", "Hwcloud_InstanceName")
+	assert.Truef(t, hwMetaData.InstanceName == "ecs-b67f", "Hwcloud_InstanceName")
 }
 
 func TestHwcloud_InstanceNetworkType(t *testing.T) {
 	hwMetaData := parseHwcloudNetData()
-	tu.Assert(t, hwMetaData.NetWork[0].InstanceNetworkType == "ipv4_dhcp", "Hwcloud_InstanceNetworkType")
+	assert.Truef(t, hwMetaData.NetWork[0].InstanceNetworkType == "ipv4_dhcp", "Hwcloud_InstanceNetworkType")
 }
 
 func TestHwcloud_InstanceType(t *testing.T) {
 	hwMetaData := parseHwcloudData()
-	tu.Assert(t, hwMetaData.InstanceType == "s6.small.1", "Hwcloud_InstanceType")
+	assert.Truef(t, hwMetaData.InstanceType == "s6.small.1", "Hwcloud_InstanceType")
 }
 
 func TestHwcloud_Region(t *testing.T) {
 	hwMetaData := parseHwcloudData()
-	tu.Assert(t, hwMetaData.Region == "cn-east-3", "Hwcloud_Region")
+	assert.Truef(t, hwMetaData.Region == "cn-east-3", "Hwcloud_Region")
 }
 
 func TestHwcloud_PrivateIP(t *testing.T) {
 	hwMetaData := parseHwcloudNetData()
-	tu.Assert(t, hwMetaData.Links[0].PrivateIP == "192.168.0.199", "Hwcloud_PrivateIP")
+	assert.Truef(t, hwMetaData.Links[0].PrivateIP == "192.168.0.199", "Hwcloud_PrivateIP")
 }
 
 func TestHwcloud_ZoneID(t *testing.T) {
 	hwMetaData := parseHwcloudData()
-	tu.Assert(t, hwMetaData.ZoneID == "cn-east-3c", "Hwcloud_ZoneID")
+	assert.Truef(t, hwMetaData.ZoneID == "cn-east-3c", "Hwcloud_ZoneID")
 }
 
 func TestHwcloud_SecurityGroupID(t *testing.T) {
 	ts := testGetHwMeta()
 	resp := metaGet(ts.URL + "/latest/meta-data/security-groups")
-	tu.Assert(t, resp == "Sys-WebServer", "Hwcloud_SecurityGroupID")
+	assert.Truef(t, resp == "Sys-WebServer", "Hwcloud_SecurityGroupID")
 }
 
 func TestHwcloud_InstanceChargeType(t *testing.T) {
@@ -177,12 +177,12 @@ func TestHwcloud_InstanceChargeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("marshal json failed: %s", err)
 	}
-	tu.Assert(t, model.HwcloudInstanceChargeType == "", "Hwcloud_ChargeType")
+	assert.Truef(t, model.HwcloudInstanceChargeType == "", "Hwcloud_ChargeType")
 }
 
 func TestHwcloud_WrongRouter(t *testing.T) {
 	ts := testGetHwMeta()
 	resp := metadataGet(HwCloud.baseURL + "/openstack/latest/wrongCase")
 	defer ts.Close()
-	tu.Assert(t, string(resp) == "bad response", "Hwcloud_WrongRouter")
+	assert.Truef(t, string(resp) == "bad response", "Hwcloud_WrongRouter")
 }

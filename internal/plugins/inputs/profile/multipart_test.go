@@ -14,16 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPrefixMultipart(t *testing.T) {
 	buf := &bytes.Buffer{}
 
 	m, err := newMultipartPrepend(buf, "457e1c33abda2781595f0c5d78b750fa8105f9239b79b1c47744d8a008a9")
-	testutil.Ok(t, err)
-	testutil.Ok(t, m.Close())
-	testutil.Equals(t, "", buf.String())
+	assert.NoError(t, err)
+	assert.NoError(t, m.Close())
+	assert.Equal(t, "", buf.String())
 
 	file1, file2 := make([]byte, 1234), make([]byte, 2345)
 	timeStart := time.Now().Format(time.RFC3339Nano)
@@ -33,10 +33,10 @@ func TestPrefixMultipart(t *testing.T) {
 	var all, half []byte
 
 	_, err = rand.Read(file1)
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	_, err = rand.Read(file2)
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	// Generate a full multipart/form-data body
 	{
@@ -47,24 +47,24 @@ func TestPrefixMultipart(t *testing.T) {
 		boundary = w.Boundary()
 
 		err = w.WriteField("time_start", timeStart)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		f, err := w.CreateFormFile("file_1", "file_first")
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		_, err = f.Write(file1)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		err = w.WriteField("time_unix", timeUnix)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		f, err = w.CreateFormFile("file_2", "file_second")
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		_, err = f.Write(file2)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
-		testutil.Ok(t, w.Close())
+		assert.NoError(t, w.Close())
 
 		all = append([]byte(nil), buf.Bytes()...)
 	}
@@ -75,18 +75,18 @@ func TestPrefixMultipart(t *testing.T) {
 
 		w2 := multipart.NewWriter(buf)
 		err = w2.SetBoundary(boundary)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		err = w2.WriteField("time_unix", timeUnix)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		f, err := w2.CreateFormFile("file_2", "file_second")
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		_, err = f.Write(file2)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
-		testutil.Ok(t, w2.Close())
+		assert.NoError(t, w2.Close())
 
 		half = append([]byte(nil), buf.Bytes()...)
 	}
@@ -96,25 +96,25 @@ func TestPrefixMultipart(t *testing.T) {
 		buf.Reset()
 
 		mp, err := newMultipartPrepend(buf, boundary)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		err = mp.WriteField("time_start", timeStart)
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		f, err := mp.CreateFormFile("file_1", "file_first")
-		testutil.Ok(t, err)
+		assert.NoError(t, err)
 
 		_, err = f.Write(file1)
-		testutil.Ok(t, err)
-		testutil.Ok(t, mp.Close())
+		assert.NoError(t, err)
+		assert.NoError(t, mp.Close())
 	}
 
 	_, err = buf.Write(half)
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
 	fmt.Print(string(all))
 
-	testutil.Equals(t, true, bytes.Equal(all, buf.Bytes()))
+	assert.Equal(t, true, bytes.Equal(all, buf.Bytes()))
 }
 
 func TestGetBoundary(t *testing.T) {
@@ -126,7 +126,7 @@ func TestGetBoundary(t *testing.T) {
 	fmt.Println(w.FormDataContentType())
 	fmt.Println(boundary)
 
-	testutil.Ok(t, err)
+	assert.NoError(t, err)
 
-	testutil.Equals(t, w.Boundary(), boundary)
+	assert.Equal(t, w.Boundary(), boundary)
 }

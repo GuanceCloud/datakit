@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	tu "github.com/GuanceCloud/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -81,7 +81,7 @@ func TestGetMetric(t *testing.T) {
 				}
 			}
 
-			tu.Assert(t, len(tc.i.collectCache) > 0, "")
+			assert.True(t, len(tc.i.collectCache) > 0)
 		})
 	}
 }
