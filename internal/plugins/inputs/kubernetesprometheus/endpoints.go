@@ -26,7 +26,7 @@ type Endpoints struct {
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeWorker
+	scrape    *scrapeManager
 	feeder    dkio.Feeder
 }
 
@@ -41,7 +41,7 @@ func NewEndpoints(informerFactory informers.SharedInformerFactory, instances []*
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeWorker(RoleEndpoints),
+		scrape:    newScrapeManager(RoleEndpoints),
 		feeder:    feeder,
 	}, nil
 }
@@ -49,7 +49,7 @@ func NewEndpoints(informerFactory informers.SharedInformerFactory, instances []*
 func (e *Endpoints) Run(ctx context.Context) {
 	defer e.queue.ShutDown()
 
-	e.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
+	e.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	e.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -123,6 +123,7 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 	}
 
 	nodeName, nodeNameExists := nodeNameFrom(ctx)
+	feature := endpointsFeature(item)
 
 	for _, ins := range e.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
@@ -136,7 +137,6 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 
 		// record key
 		klog.Infof("added Endpoints %s", key)
-		e.scrape.registerKey(key, endpointsFeature(item))
 
 		cfgs, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -162,21 +162,23 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 			}
 
 			urlstr := cfg.urlstr
-			election := cfg.nodeName == ""
+			checkPausedFunc := func() bool {
+				return checkPaused(ctx, cfg.nodeName == "")
+			}
 
-			prom, err := newPromTarget(ctx, urlstr, interval, election, opts)
+			prom, err := newPromScraper(RoleEndpoints, key, urlstr, interval, checkPausedFunc, opts)
 			if err != nil {
 				klog.Warnf("fail new prom %s for %s", urlstr, err)
 				continue
 			}
 
-			e.scrape.registerTarget(key, prom)
+			e.scrape.registerScrape(key, feature, prom)
 		}
 	}
 }
 
 func (e *Endpoints) terminateScrape(key string) {
-	e.scrape.terminate(key)
+	e.scrape.terminateScrape(key)
 }
 
 func endpointsFeature(item *corev1.Endpoints) string {

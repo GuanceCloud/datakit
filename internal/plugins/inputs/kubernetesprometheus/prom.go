@@ -6,8 +6,8 @@
 package kubernetesprometheus
 
 import (
-	"context"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -15,57 +15,71 @@ import (
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
-type promTarget struct {
-	urlstr string
-	pm     *iprom.Prom
+type promScraper struct {
+	role, key string
+	urlstr    string
+	pm        *iprom.Prom
 
-	shouldScrape func() bool
-	lastTime     time.Time
+	checkPaused func() bool
+	terminated  atomic.Bool
+
+	interval time.Duration
+	lastTime time.Time
 }
 
-func newPromTarget(ctx context.Context, urlstr string, interval time.Duration, election bool, opts []iprom.PromOption) (*promTarget, error) {
+func newPromScraper(
+	role Role,
+	key string,
+	urlstr string,
+	interval time.Duration,
+	checkPaused func() bool,
+	opts []iprom.PromOption,
+) (*promScraper, error) {
 	var err error
-	p := promTarget{urlstr: urlstr}
+	p := promScraper{
+		role:        string(role),
+		key:         key,
+		urlstr:      urlstr,
+		checkPaused: checkPaused,
+		interval:    interval,
+	}
 
 	p.pm, err = iprom.NewProm(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	p.shouldScrape = func() bool {
-		if election {
-			paused, exists := pauseFrom(ctx)
-			if exists && paused {
-				return false
-			}
-		}
-
-		if p.lastTime.IsZero() {
-			p.lastTime = time.Now()
-			return true
-		}
-		if time.Since(p.lastTime) < interval {
-			return false
-		}
-
-		return true
-	}
-
 	return &p, nil
 }
 
-func (p *promTarget) url() string { return p.urlstr }
-func (p *promTarget) scrape() error {
-	if !p.shouldScrape() {
-		return nil
+func (p *promScraper) targetURL() string  { return p.urlstr }
+func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
+func (p *promScraper) markAsTerminated()  { p.terminated.Store(true) }
+
+func (p *promScraper) shouldScrape() bool {
+	if p.lastTime.IsZero() {
+		p.lastTime = time.Now()
+		return true
 	}
+	if time.Since(p.lastTime) < p.interval {
+		return false
+	}
+	if p.checkPaused != nil {
+		paused := p.checkPaused()
+		return !paused
+	}
+	return true
+}
+
+func (p *promScraper) scrape() error {
 	p.lastTime = time.Now()
 	_, err := p.pm.CollectFromHTTPV2(p.urlstr)
+	scrapeTargetCost.WithLabelValues(p.role, p.key, p.urlstr).Observe(float64(time.Since(p.lastTime)) / float64(time.Second))
 	return err
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.PromOption) []iprom.PromOption {
-	name := string(role) + "::" + key
+	name := string(role) + "/" + key
 
 	callbackFn := func(pts []*point.Point) error {
 		if len(pts) == 0 {

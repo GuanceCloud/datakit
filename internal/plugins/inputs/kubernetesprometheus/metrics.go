@@ -13,6 +13,8 @@ import (
 var (
 	collectPtsCounter  *prometheus.CounterVec
 	scrapeTargetNumber *prometheus.GaugeVec
+	scrapeTargetCost   *prometheus.SummaryVec
+	activeWorkerTasks  *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -42,8 +44,43 @@ func setupMetrics() {
 		},
 	)
 
+	scrapeTargetCost = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "input_kubernetesprometheus",
+			Name:      "resource_scrape_cost_seconds",
+			Help:      "The scrape cost in seconds",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{
+			"role",
+			"name",
+			"url",
+		},
+	)
+
+	activeWorkerTasks = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_kubernetesprometheus",
+			Name:      "worker_number",
+			Help:      "The number of the worker",
+		},
+		[]string{
+			"role",
+			"worker",
+		},
+	)
+
 	metrics.MustRegister(
 		collectPtsCounter,
 		scrapeTargetNumber,
+		scrapeTargetCost,
+		activeWorkerTasks,
 	)
 }

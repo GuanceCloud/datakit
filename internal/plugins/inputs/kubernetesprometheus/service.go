@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +28,8 @@ type Service struct {
 	store     cache.Store
 
 	instances []*Instance
-	scrape    *scrapeWorker
+	svcList   map[string]string // It is safe from race conditions
+	scrape    *scrapeManager
 	feeder    dkio.Feeder
 }
 
@@ -50,7 +50,8 @@ func NewService(
 		store:     informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeWorker(RoleService),
+		svcList:   make(map[string]string),
+		scrape:    newScrapeManager(RoleService),
 		feeder:    feeder,
 	}, nil
 }
@@ -58,7 +59,7 @@ func NewService(
 func (s *Service) Run(ctx context.Context) {
 	defer s.queue.ShutDown()
 
-	s.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
+	s.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	s.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -115,7 +116,7 @@ func (s *Service) process(ctx context.Context) bool {
 		return true
 	}
 
-	if s.scrape.matchesKey(key, serviceFeature(svc)) {
+	if feature, ok := s.svcList[key]; ok && feature == serviceFeature(svc) {
 		return true
 	}
 
@@ -131,7 +132,6 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 		return
 	}
 
-	nodeName, nodeNameExist := nodeNameFrom(ctx)
 	svcFeature := serviceFeature(item)
 
 	for _, ins := range s.instances {
@@ -146,89 +146,92 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 
 		// record key
 		klog.Infof("added Service %s", key)
-		s.scrape.registerKey(key, svcFeature)
+		s.svcList[key] = svcFeature
 
-		epIns := pr.transToEndpointsInstance(ins)
-		interval := ins.Interval
+		namespace := item.Namespace
+		name := item.Name
+		endpointsInstance := pr.transToEndpointsInstance(ins)
 
 		managerGo.Go(func(_ context.Context) error {
 			tick := time.NewTicker(time.Second * 20)
 			defer tick.Stop()
 
-			var oldEndpointsFeature string
-
 			for {
-				select {
-				case <-datakit.Exit.Wait():
-					klog.Info("svc-ep prom exit")
-					return nil
+				s.tryCreateScrapeForEndpoints(ctx, namespace, name, key, endpointsInstance)
 
+				select {
 				case <-ctx.Done():
-					klog.Info("svc-ep return")
+					klog.Info("svc-ep exit")
 					return nil
 
 				case <-tick.C:
 					// next
-				}
-
-				// Maybe the Service Name and Endpoint Name are not the same, so the Selector should be used here.
-				ep, err := s.clientset.CoreV1().Endpoints(item.Namespace).Get(context.Background(), item.Name, metav1.GetOptions{})
-				if err != nil {
-					klog.Warn("get endpoints fail %s", err)
-					continue
-				}
-
-				newEndpointsFeature := endpointsFeature(ep)
-				if newEndpointsFeature == oldEndpointsFeature {
-					// no change
-					continue
-				}
-				// reset oldEndpointsFeature
-				oldEndpointsFeature = newEndpointsFeature
-				s.scrape.terminate(key)
-				s.scrape.registerKey(key, svcFeature)
-
-				pr := newEndpointsParser(ep)
-				cfgs, err := pr.parsePromConfig(epIns)
-				if err != nil {
-					klog.Warnf("svc-ep %s has unexpected url, err %s", key, err)
-					continue
-				}
-
-				for _, cfg := range cfgs {
-					if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
-						continue
-					}
-
-					opts := buildPromOptions(
-						RoleService, key, s.feeder,
-						iprom.WithMeasurementName(cfg.measurement),
-						iprom.WithTags(cfg.tags))
-
-					if tlsOpts, err := buildPromOptionsWithAuth(&epIns.Auth); err != nil {
-						klog.Warnf("svc-ep %s has unexpected tls config %s", key, err)
-					} else {
-						opts = append(opts, tlsOpts...)
-					}
-
-					urlstr := cfg.urlstr
-					election := cfg.nodeName == ""
-
-					prom, err := newPromTarget(ctx, urlstr, interval, election, opts)
-					if err != nil {
-						klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
-						continue
-					}
-
-					s.scrape.registerTarget(key, prom)
 				}
 			}
 		})
 	}
 }
 
+func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, name string, key string, endpointsInstance *Instance) {
+	// Maybe the Service Name and Endpoint Name are not the same, so the Selector should be used here.
+	ep, err := s.clientset.CoreV1().Endpoints(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		klog.Warn("get endpoints fail %s", err)
+		return
+	}
+
+	endpointsFeature := endpointsFeature(ep)
+	if s.scrape.matchesKey(key, endpointsFeature) {
+		// no change
+		return
+	}
+
+	s.scrape.terminateScrape(key)
+
+	nodeName, nodeNameExist := nodeNameFrom(ctx)
+	interval := endpointsInstance.Interval
+
+	pr := newEndpointsParser(ep)
+	cfgs, err := pr.parsePromConfig(endpointsInstance)
+	if err != nil {
+		klog.Warnf("svc-ep %s has unexpected url, err %s", key, err)
+		return
+	}
+
+	for _, cfg := range cfgs {
+		if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
+			continue
+		}
+
+		opts := buildPromOptions(
+			RoleService, key, s.feeder,
+			iprom.WithMeasurementName(cfg.measurement),
+			iprom.WithTags(cfg.tags))
+
+		if tlsOpts, err := buildPromOptionsWithAuth(&endpointsInstance.Auth); err != nil {
+			klog.Warnf("svc-ep %s has unexpected tls config %s", key, err)
+		} else {
+			opts = append(opts, tlsOpts...)
+		}
+
+		urlstr := cfg.urlstr
+		checkPausedFunc := func() bool {
+			return checkPaused(ctx, cfg.nodeName == "")
+		}
+
+		prom, err := newPromScraper(RoleService, key, urlstr, interval, checkPausedFunc, opts)
+		if err != nil {
+			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
+			continue
+		}
+
+		s.scrape.registerScrape(key, endpointsFeature, prom)
+	}
+}
+
 func (s *Service) terminateScrape(key string) {
-	s.scrape.terminate(key)
+	delete(s.svcList, key)
+	s.scrape.terminateScrape(key)
 }
 
 func serviceFeature(item *corev1.Service) string {

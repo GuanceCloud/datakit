@@ -24,7 +24,7 @@ type Node struct {
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeWorker
+	scrape    *scrapeManager
 	feeder    dkio.Feeder
 }
 
@@ -39,7 +39,7 @@ func NewNode(informerFactory informers.SharedInformerFactory, instances []*Insta
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeWorker(RoleNode),
+		scrape:    newScrapeManager(RoleNode),
 		feeder:    feeder,
 	}, nil
 }
@@ -47,7 +47,7 @@ func NewNode(informerFactory informers.SharedInformerFactory, instances []*Insta
 func (n *Node) Run(ctx context.Context) {
 	defer n.queue.ShutDown()
 
-	n.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
+	n.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	n.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -125,6 +125,11 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 		return
 	}
 
+	feature := nodeFeature(item)
+	checkPausedFunc := func() bool {
+		return checkPaused(ctx, false /* not use election */)
+	}
+
 	for _, ins := range n.instances {
 		if !ins.validator.Matches("", item.Labels) {
 			continue
@@ -137,7 +142,6 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 
 		// record key
 		klog.Infof("added Node %s", key)
-		n.scrape.registerKey(key, nodeFeature(item))
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -159,18 +163,18 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		prom, err := newPromTarget(ctx, urlstr, interval, false /* not use election */, opts)
+		prom, err := newPromScraper(RoleNode, key, urlstr, interval, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", urlstr, err)
 			continue
 		}
 
-		n.scrape.registerTarget(key, prom)
+		n.scrape.registerScrape(key, feature, prom)
 	}
 }
 
 func (n *Node) terminateScrape(key string) {
-	n.scrape.terminate(key)
+	n.scrape.terminateScrape(key)
 }
 
 func nodeFeature(item *corev1.Node) string {

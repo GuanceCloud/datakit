@@ -24,7 +24,7 @@ type Pod struct {
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeWorker
+	scrape    *scrapeManager
 	feeder    dkio.Feeder
 }
 
@@ -39,7 +39,7 @@ func NewPod(informerFactory informers.SharedInformerFactory, instances []*Instan
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeWorker(RolePod),
+		scrape:    newScrapeManager(RolePod),
 		feeder:    feeder,
 	}, nil
 }
@@ -47,7 +47,7 @@ func NewPod(informerFactory informers.SharedInformerFactory, instances []*Instan
 func (p *Pod) Run(ctx context.Context) {
 	defer p.queue.ShutDown()
 
-	p.scrape.startWorker(ctx, maxConcurrent(nodeLocalFrom(ctx)))
+	p.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	p.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -125,6 +125,11 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 		return
 	}
 
+	feature := podFeature(item)
+	checkPausedFunc := func() bool {
+		return checkPaused(ctx, false /* not use election */)
+	}
+
 	for _, ins := range p.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
 			continue
@@ -137,7 +142,6 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 
 		// record key
 		klog.Infof("added Pod %s", key)
-		p.scrape.registerKey(key, podFeature(item))
 
 		cfg, err := pr.parsePromConfig(ins)
 		if err != nil {
@@ -159,18 +163,18 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		prom, err := newPromTarget(ctx, urlstr, interval, false /* not use election */, opts)
+		prom, err := newPromScraper(RolePod, key, urlstr, interval, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", urlstr, err)
 			continue
 		}
 
-		p.scrape.registerTarget(key, prom)
+		p.scrape.registerScrape(key, feature, prom)
 	}
 }
 
 func (p *Pod) terminateScrape(key string) {
-	p.scrape.terminate(key)
+	p.scrape.terminateScrape(key)
 }
 
 func podFeature(item *corev1.Pod) string {
