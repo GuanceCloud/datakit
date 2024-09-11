@@ -7,102 +7,60 @@ package kubernetesprometheus
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-const workInterval = time.Second * 5
+const scraperChanNum = 32
 
-type scrapeTarget interface {
-	url() string
+type scraper interface {
+	targetURL() string
+	shouldScrape() bool
 	scrape() error
+	isTerminated() bool
+	markAsTerminated()
 }
 
-type scrapeWorker struct {
-	role    Role
-	keys    map[string]string
-	targets map[string][]scrapeTarget
+type scrapeManager struct {
+	role     Role
+	keys     map[string]string
+	scrapers map[string][]scraper
 
-	targetChan chan scrapeTarget
-	mu         sync.Mutex
+	scraperChan chan scraper
+	mu          sync.Mutex
 }
 
-func newScrapeWorker(role Role) *scrapeWorker {
-	return &scrapeWorker{
-		role:    role,
-		keys:    make(map[string]string),
-		targets: make(map[string][]scrapeTarget),
+func newScrapeManager(role Role) *scrapeManager {
+	return &scrapeManager{
+		role:        role,
+		keys:        make(map[string]string),
+		scrapers:    make(map[string][]scraper),
+		scraperChan: make(chan scraper, scraperChanNum),
 	}
 }
 
-func (s *scrapeWorker) startWorker(ctx context.Context, workerNum int) {
-	if s.targetChan == nil {
-		s.targetChan = make(chan scrapeTarget, workerNum)
-	}
-
-	for i := 0; i < workerNum; i++ {
-		workerGo.Go(func(_ context.Context) error {
-			for target := range s.targetChan {
-				if err := target.scrape(); err != nil {
-					klog.Warn(err)
-				}
-			}
-			return nil
-		})
-	}
-
-	workerGo.Go(func(_ context.Context) error {
-		defer func() {
-			close(s.targetChan)
-			klog.Infof("role-%s worker exit", s.role)
-		}()
-
-		tick := time.NewTicker(workInterval)
-		defer tick.Stop()
-		klog.Infof("role-%s worker start", s.role)
-
-		for {
-			s.mu.Lock()
-			for _, targets := range s.targets {
-				for _, target := range targets {
-					select {
-					case <-datakit.Exit.Wait():
-						return nil
-
-					case <-ctx.Done():
-						return nil
-
-					default:
-						// next
-					}
-					s.targetChan <- target
-				}
-			}
-			s.mu.Unlock()
-
-			select {
-			case <-datakit.Exit.Wait():
-				return nil
-
-			case <-ctx.Done():
-				return nil
-
-			case <-tick.C:
-				// next
-			}
-		}
-	})
-}
-
-func (s *scrapeWorker) registerKey(key, feature string) {
+func (s *scrapeManager) registerScrape(key, feature string, sp scraper) {
 	s.mu.Lock()
-	s.keys[key] = feature
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.keys[key]; !ok {
+		s.keys[key] = feature
+	}
+
+	select {
+	case s.scraperChan <- sp:
+		s.scrapers[key] = append(s.scrapers[key], sp)
+	default:
+		klog.Warnf("manager channel is closed, register failed for key %s", key)
+		return
+	}
+
+	klog.Infof("added scraper url %s for %s, current len(%d)", sp.targetURL(), key, len(s.scrapers[key]))
+	scrapeTargetNumber.WithLabelValues(string(s.role), key).Add(1)
 }
 
-func (s *scrapeWorker) matchesKey(key, feature string) bool {
+func (s *scrapeManager) matchesKey(key, feature string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -110,25 +68,97 @@ func (s *scrapeWorker) matchesKey(key, feature string) bool {
 	return exists && f == feature
 }
 
-func (s *scrapeWorker) registerTarget(key string, target scrapeTarget) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.targets[key] = append(s.targets[key], target)
-	klog.Infof("added prom url %s for %s, current len(%d)", target.url(), key, len(s.targets[key]))
-	scrapeTargetNumber.WithLabelValues(string(s.role), key).Add(1)
-}
-
-func (s *scrapeWorker) terminate(key string) {
+func (s *scrapeManager) terminateScrape(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	delete(s.keys, key)
 
-	if _, ok := s.targets[key]; ok {
-		length := len(s.targets[key])
-		delete(s.targets, key)
-		klog.Infof("terminated prom len(%d) for key %s", length, key)
+	if _, ok := s.scrapers[key]; ok {
+		for _, sp := range s.scrapers[key] {
+			sp.markAsTerminated()
+		}
+
+		length := len(s.scrapers[key])
+		klog.Infof("terminated scraper len(%d) for key %s", length, key)
 		scrapeTargetNumber.WithLabelValues(string(s.role), key).Sub(float64(length))
+
+		delete(s.scrapers, key)
+	}
+}
+
+func (s *scrapeManager) run(ctx context.Context, workerNum int) {
+	managerGo.Go(func(_ context.Context) error {
+		<-ctx.Done()
+		s.stop()
+		klog.Infof("role-%s manager exit", s.role)
+		return nil
+	})
+
+	for i := 0; i < workerNum; i++ {
+		name := "worker-" + strconv.Itoa(i)
+		workerGo.Go(func(_ context.Context) error {
+			s.doWork(ctx, name)
+			return nil
+		})
+	}
+}
+
+func (s *scrapeManager) doWork(ctx context.Context, name string) {
+	var tasks []scraper
+	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case sp, ok := <-s.scraperChan:
+			if !ok {
+				return
+			}
+			tasks = append(tasks, sp)
+
+		case <-tick.C:
+			// next
+		}
+
+		removeIndex := []int{}
+		for idx, task := range tasks {
+			if task.isTerminated() {
+				removeIndex = append(removeIndex, idx)
+				continue
+			}
+			if task.shouldScrape() {
+				if err := task.scrape(); err != nil {
+					klog.Warnf("failed to scrape url %s, err %s", task.targetURL(), err)
+				}
+			}
+		}
+
+		if len(removeIndex) != 0 {
+			var newtasks []scraper
+			for _, rmIdx := range removeIndex {
+				for idx := range tasks {
+					if idx == rmIdx {
+						continue
+					}
+					newtasks = append(newtasks, tasks[idx])
+				}
+			}
+			tasks = newtasks
+		}
+
+		activeWorkerTasks.WithLabelValues(string(s.role), name).Set(float64(len(tasks)))
+	}
+}
+
+func (s *scrapeManager) stop() {
+	select {
+	case <-s.scraperChan:
+		// nil
+	default:
+		close(s.scraperChan)
 	}
 }

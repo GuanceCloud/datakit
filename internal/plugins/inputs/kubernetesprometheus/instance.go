@@ -251,3 +251,11 @@ func pauseFrom(ctx context.Context) (bool, bool) {
 	p := pause.Load()
 	return p, true
 }
+
+func checkPaused(ctx context.Context, election bool) bool {
+	if !election {
+		return false
+	}
+	paused, exists := pauseFrom(ctx)
+	return exists && paused
+}

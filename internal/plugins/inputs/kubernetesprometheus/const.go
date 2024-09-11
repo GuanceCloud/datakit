@@ -14,8 +14,10 @@ var (
 	inputName = "kubernetesprometheus"
 	klog      = logger.DefaultSLogger(inputName)
 
+	// Maximum: 1 (inputs.Run) + 4 * 2 (resource manager) + N (Services Number).
 	managerGo = datakit.G("kubernetesprometheus_manager")
-	workerGo  = datakit.G("kubernetesprometheus_worker")
+	// Maximum: 4 * maxConcurrent.
+	workerGo = datakit.G("kubernetesprometheus_worker")
 )
 
 const (
