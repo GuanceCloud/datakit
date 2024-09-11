@@ -28,7 +28,7 @@ LOCAL_ARCHS        = local
 DEFAULT_ARCHS      = all
 MAC_ARCHS          = darwin/amd64
 DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
-GOLINT_BINARY      = golangci-lint
+GOLINT_BINARY      ?= golangci-lint
 CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
 HL                 = \033[0;32m # high light
 NC                 = \033[0m    # no color
@@ -389,6 +389,7 @@ ut: deps
 		fi
 
 code_lint: deps copyright_check
+	@$(GOLINT_BINARY) --version
 ifeq ($(AUTO_FIX),on)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
 			$(GOLINT_BINARY) run --fix --allow-parallel-runners;

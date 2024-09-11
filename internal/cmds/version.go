@@ -30,15 +30,17 @@ func runVersionFlags(disableUpgradeInfo bool) error {
 			return err
 		}
 
-		cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
-			vi.versionType,
-			vi.NewVersion.VersionString,
-			vi.NewVersion.Commit,
-			vi.NewVersion.ReleaseDate)
+		if vi != nil {
+			cp.Infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n",
+				vi.versionType,
+				vi.NewVersion.VersionString,
+				vi.NewVersion.Commit,
+				vi.NewVersion.ReleaseDate)
 
-		cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS,
-			vi.NewVersion.DownloadURL,
-			config.Cfg.Dataway.HTTPProxy))
+			cp.Infof("%s\n", getUpgradeCommand(runtime.GOOS,
+				vi.NewVersion.DownloadURL,
+				config.Cfg.Dataway.HTTPProxy))
+		}
 	}
 
 	return nil

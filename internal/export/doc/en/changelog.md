@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.38.1 (2024/09/11) {#cl-1.38.1}
+
+This release is a hotfix release, fixed the following issues:
+
+- Fixed the tag errors for `inside_filepath` and `host_filepath` in container log collection (#2403).
+- Resolved an issue where the Kubernetes-Prometheus collector would malfunction under specific circumstances (#2396).
+- Various `dk_upgrader` issues were fixed (#2372):
+    - Fixed incorrect offline installation directory.
+    - During installation/upgrade, `dk_upgrader`'s own configuration now automatically aligns with Datakit's configuration (manual reconfiguration is no longer necessary), and DCA does not need to differentiate between offline and online upgrades.
+    - The installation phase can now inject ENV variables related to `dk_upgrader` without the need for additional manual configuration.
+    - The `dk_upgrader` HTTP API has been enhanced with new parameters to specify version numbers and enforce upgrades (this feature is not yet supported on the DCA side).
+
+---
+
 ## 1.38.0 (September 4, 2024) {#cl-1.38.0}
 
 This release is an iterative update with the following main changes:
