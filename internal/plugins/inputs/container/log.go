@@ -22,15 +22,19 @@ type logConfig struct {
 	Disable               bool              `json:"disable"`
 	Type                  string            `json:"type"`
 	Path                  string            `json:"path"`
-	HostFilePath          string            `json:"-"`
 	Source                string            `json:"source"`
 	Service               string            `json:"service"`
 	CharacterEncoding     string            `json:"character_encoding"`
 	Pipeline              string            `json:"pipeline"`
 	Multiline             string            `json:"multiline_match"`
 	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
-	MultilinePatterns     []string          `json:"-"`
 	Tags                  map[string]string `json:"tags"`
+
+	MultilinePatterns []string `json:"-"`
+
+	hostDir      string `json:"-"`
+	insideDir    string `json:"-"`
+	hostFilePath string `json:"-"`
 }
 
 type logConfigs []*logConfig
@@ -86,15 +90,9 @@ func (lc *logInstance) parseLogConfigs() error {
 
 			for vol, hostdir := range lc.volMounts {
 				if strings.HasPrefix(path, vol) {
-					file := strings.TrimPrefix(path, vol)
-					cfg.HostFilePath = filepath.Join(hostdir, filepath.Clean(file))
-
-					// add target fileapath
-					if cfg.Tags == nil {
-						cfg.Tags = make(map[string]string)
-					}
-					cfg.Tags["inside_filepath"] = path
-					cfg.Tags["host_filepath"] = cfg.HostFilePath
+					cfg.hostDir = hostdir
+					cfg.insideDir = vol
+					cfg.hostFilePath = joinHostFilepath(hostdir, vol, path)
 
 					foundHostPath = true
 				}
@@ -239,7 +237,7 @@ func (lc *logInstance) tags() map[string]string {
 
 const defaultContainerLogMountPoint = "/rootfs"
 
-func logsJoinRootfs(logs string) string {
+func joinLogsAtRootfs(logs string) string {
 	if !datakit.Docker && !config.IsKubernetes() {
 		return logs
 	}
@@ -247,4 +245,27 @@ func logsJoinRootfs(logs string) string {
 		return filepath.Join(v, logs)
 	}
 	return filepath.Join(defaultContainerLogMountPoint, logs)
+}
+
+func trimLogsFromRootfs(logs string) string {
+	if v := os.Getenv("HOST_ROOT"); v != "" {
+		return strings.TrimPrefix(logs, v)
+	}
+	return strings.TrimPrefix(logs, defaultContainerLogMountPoint)
+}
+
+func joinHostFilepath(hostDir, insideDir, insidePath string) string {
+	if hostDir == "" || insideDir == "" {
+		return insidePath
+	}
+	partialPath := strings.TrimPrefix(insidePath, insideDir)
+	return filepath.Join(hostDir, filepath.Clean(partialPath))
+}
+
+func joinInsideFilepath(hostDir, insideDir, hostPath string) string {
+	if hostDir == "" || insideDir == "" {
+		return hostPath
+	}
+	partialPath := strings.TrimPrefix(hostPath, hostDir)
+	return filepath.Join(insideDir, filepath.Clean(partialPath))
 }

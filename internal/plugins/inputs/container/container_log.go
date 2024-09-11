@@ -35,9 +35,9 @@ func (c *container) tailingLogs(ins *logInstance) {
 		}
 
 		path := cfg.Path
-		if cfg.HostFilePath != "" {
-			path = cfg.HostFilePath
-			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.HostFilePath)
+		if cfg.hostFilePath != "" {
+			path = cfg.hostFilePath
+			l.Infof("container log %s redirect to host path %s", cfg.Path, cfg.hostFilePath)
 		}
 
 		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
@@ -65,16 +65,16 @@ func (c *container) tailingLogs(ins *logInstance) {
 			opts = append(opts, tailer.WithTextParserMode(tailer.CriLogdMode))
 		}
 
-		path = logsJoinRootfs(path)
+		pathAtRootfs := joinLogsAtRootfs(path)
 
-		filelist, err := fileprovider.NewProvider().SearchFiles([]string{path}).Result()
+		filelist, err := fileprovider.NewProvider().SearchFiles([]string{pathAtRootfs}).Result()
 		if err != nil {
-			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, path, ins.containerName, err)
+			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, pathAtRootfs, ins.containerName, err)
 			continue
 		}
 
 		if len(filelist) == 0 {
-			l.Infof("container %s not found any log file for path %s, skip", ins.containerName, path)
+			l.Infof("container %s not found any log file for path %s, skip", ins.containerName, pathAtRootfs)
 			continue
 		}
 
@@ -85,7 +85,14 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 			l.Infof("add container log collection with path %s from source %s", file, cfg.Source)
 
-			tail, err := tailer.NewTailerSingle(file, opts...)
+			newOpts := opts
+			pathAtInside := trimLogsFromRootfs(file)
+			if insidePath := joinInsideFilepath(cfg.hostDir, cfg.insideDir, pathAtInside); insidePath != pathAtInside {
+				newOpts = append(newOpts, tailer.WithTag("inside_filepath", insidePath))
+				newOpts = append(newOpts, tailer.WithTag("host_filepath", file))
+			}
+
+			tail, err := tailer.NewTailerSingle(file, newOpts...)
 			if err != nil {
 				l.Errorf("failed to create container-log collection %s for %s, err: %s", file, ins.containerName, err)
 				continue
