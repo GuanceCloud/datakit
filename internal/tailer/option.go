@@ -149,6 +149,15 @@ func WithGlobalTags(m map[string]string) Option {
 	}
 }
 
+func WithTag(key, value string) Option {
+	return func(opt *option) {
+		if opt.globalTags == nil {
+			opt.globalTags = make(map[string]string)
+		}
+		opt.globalTags[key] = value
+	}
+}
+
 func WithDone(ch <-chan interface{}) Option {
 	return func(opt *option) { opt.setDone = true; opt.done = ch }
 }
