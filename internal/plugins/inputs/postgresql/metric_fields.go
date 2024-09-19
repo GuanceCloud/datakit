@@ -10,7 +10,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -109,20 +108,16 @@ WHERE %s
 }
 
 type inputMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	ts       time.Time
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *inputMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
+	opts := append(point.DefaultMetricOptions(), point.WithExtraTags(m.ipt.mergedTags))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

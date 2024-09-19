@@ -129,9 +129,9 @@ func getTrueData(mockFields map[string]interface{}) map[string]interface{} {
 }
 
 func TestCollect(t *testing.T) {
-	input := &Input{
-		version: &semver.Version{Major: 12},
-	}
+	input := defaultInput()
+
+	input.version = &semver.Version{Major: 12}
 	input.service = &MockCollectService{}
 	err := input.Collect()
 	if err != nil {

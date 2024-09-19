@@ -192,9 +192,10 @@ type Input struct {
 	Databases        []string          `toml:"databases"`
 	Interval         string            `toml:"interval"`
 	Tags             map[string]string `toml:"tags"`
-	Relations        []Relation        `toml:"relations"`
-	CustomQuery      []*customQuery    `toml:"custom_queries"`
-	Log              *postgresqllog    `toml:"log"`
+	mergedTags       map[string]string
+	Relations        []Relation     `toml:"relations"`
+	CustomQuery      []*customQuery `toml:"custom_queries"`
+	Log              *postgresqllog `toml:"log"`
 
 	Version            string
 	Uptime             int
@@ -832,11 +833,11 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inp
 			name = measurementInfo.Name
 		}
 		ms := &inputMeasurement{
-			name:     name,
-			fields:   fields,
-			tags:     tags,
-			ts:       time.Now(),
-			election: ipt.Election,
+			name:   name,
+			fields: fields,
+			tags:   tags,
+			ts:     time.Now(),
+			ipt:    ipt,
 		}
 		ipt.collectCache = append(ipt.collectCache, ms.Point())
 	}
@@ -911,6 +912,14 @@ func (ipt *Input) init() error {
 	}
 	ipt.Tags["server"] = tagAddress
 	ipt.Tags["db"] = dbName
+
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Address)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Address)
+	}
+
+	l.Infof("merged tags: %+#v", ipt.mergedTags)
 
 	// init query cache
 	ipt.metricQueryCache = map[string]*queryCacheItem{}

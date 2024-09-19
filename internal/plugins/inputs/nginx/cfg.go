@@ -65,6 +65,7 @@ type Input struct {
 	UsePlusAPI      bool              `toml:"use_plus_api"`
 	Log             *ngxlog           `toml:"log"`
 	Tags            map[string]string `toml:"tags"`
+	mergedTags      map[string]string
 
 	UpState int
 
