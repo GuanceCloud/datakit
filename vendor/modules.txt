@@ -106,7 +106,7 @@ github.com/GuanceCloud/platypus/pkg/engine/runtime
 github.com/GuanceCloud/platypus/pkg/errchain
 github.com/GuanceCloud/platypus/pkg/parser
 github.com/GuanceCloud/platypus/pkg/token
-# github.com/GuanceCloud/timeout v0.0.0-20230216045952-48442c6fb747
+# github.com/GuanceCloud/timeout v1.9.1
 ## explicit; go 1.15
 github.com/GuanceCloud/timeout
 # github.com/GuanceCloud/toml v1.2.5
