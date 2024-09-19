@@ -85,9 +85,9 @@ func New(opts ...Option) gin.HandlerFunc {
 			tw.FreeBuffer()
 			bufPool.Put(buffer)
 
-			c.Writer = w
-			t.response(c)
-			c.Writer = tw
+			cp := c.Copy()
+			cp.Writer = w
+			t.response(cp)
 		}
 	}
 }
