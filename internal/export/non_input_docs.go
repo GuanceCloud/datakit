@@ -149,15 +149,15 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_NTP_INTERVAL",
 			Type:    doc.String,
-			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
-			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
+			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_NTP_DIFF",
 			Type:    doc.String,
-			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
-			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
+			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
 		},
 	}
 
