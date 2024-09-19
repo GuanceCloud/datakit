@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -367,4 +368,70 @@ func (dw *Dataway) Pull(args string) ([]byte, error) {
 	}
 
 	return dw.eps[0].datakitPull(args)
+}
+
+type ntpResp struct {
+	TimestampSec int64 `json:"timestamp_sec"`
+}
+
+// TimeDiff implement ntp time sync interface.
+func (dw *Dataway) TimeDiff() int64 {
+	if d, err := dw.doTimeDiff(); err != nil {
+		log.Errorf("doTimeDiff: %s", err.Error())
+		return 0
+	} else {
+		return d
+	}
+}
+
+func (dw *Dataway) doTimeDiff() (int64, error) {
+	if len(dw.eps) == 0 {
+		return 0, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.NTPSync]
+	if !ok {
+		return 0, fmt.Errorf("url %s not available", datakit.NTPSync)
+	}
+
+	log.Debugf("NewRequest: %s", requrl)
+	req, err := http.NewRequest(http.MethodGet, requrl, nil)
+	if err != nil {
+		return 0, fmt.Errorf("http.NewRequest: %w", err)
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := ep.sendReq(req)
+	if err != nil {
+		return 0, fmt.Errorf("doSendReq: %w", err)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("io.readAll: %w", err)
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+	switch resp.StatusCode / 100 {
+	case 2:
+		log.Debugf("ntp ok")
+
+		var nr ntpResp
+
+		if err := json.Unmarshal(respBody, &nr); err != nil {
+			log.Errorf("Unmarshal: %s", string(respBody))
+
+			return 0, fmt.Errorf(`json.Unmarshal: %w`, err)
+		}
+
+		return nr.TimestampSec - time.Now().Unix(), nil
+
+	default:
+		return 0, fmt.Errorf("ntp failed(status: %d): %s", resp.StatusCode, string(respBody))
+	}
 }

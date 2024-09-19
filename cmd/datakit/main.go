@@ -30,6 +30,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
@@ -284,6 +285,13 @@ func doRun() error {
 	} // else datakit.AvailableCPUs default to 1
 
 	startIO()
+
+	// start NTP syncer on dataway.
+	if n := config.Cfg.Dataway.NTP; n != nil {
+		ntp.StartNTP(config.Cfg.Dataway,
+			n.Interval,
+			uint64(n.SyncOnDiff/time.Second))
+	}
 
 	checkutil.CheckConditionExit(func() bool {
 		if err := dnswatcher.StartWatch(); err != nil {

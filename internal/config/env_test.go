@@ -24,6 +24,21 @@ func TestLoadEnv(t *testing.T) {
 		expect *Config
 	}{
 		{
+			name: "test-dataway-ntp",
+			envs: map[string]string{
+				"ENV_DATAWAY_NTP_INTERVAL": "5m",
+				"ENV_DATAWAY_NTP_DIFF":     "30s",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Dataway.NTP.Interval = 5 * time.Minute
+				cfg.Dataway.NTP.SyncOnDiff = 30 * time.Second
+
+				return cfg
+			}(),
+		},
+		{
 			name: "test-recorder-envs",
 			envs: map[string]string{
 				"ENV_ENABLE_RECORDER":     "on",
@@ -115,21 +130,21 @@ func TestLoadEnv(t *testing.T) {
 				cfg := DefaultConfig()
 
 				cfg.Name = "testing-datakit"
-				cfg.Dataway = &dataway.Dataway{
-					URLs:                []string{"http://host1.org", "http://host2.com"},
-					MaxIdleConnsPerHost: 123,
-					HTTPProxy:           "http://1.2.3.4:1234",
-					EnableHTTPTrace:     true,
-					IdleTimeout:         90 * time.Second,
-					HTTPTimeout:         30 * time.Second,
-					ContentEncoding:     "v2",
-					MaxRetryCount:       dataway.DefaultRetryCount,
-					InsecureSkipVerify:  true,
-					RetryDelay:          dataway.DefaultRetryDelay,
-					MaxRawBodySize:      dataway.DefaultMaxRawBodySize,
-					GlobalCustomerKeys:  []string{},
-					GZip:                true,
-				}
+
+				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
+
+				cfg.Dataway.MaxIdleConnsPerHost = 123
+				cfg.Dataway.HTTPProxy = "http://1.2.3.4:1234"
+				cfg.Dataway.EnableHTTPTrace = true
+				cfg.Dataway.IdleTimeout = 90 * time.Second
+				cfg.Dataway.HTTPTimeout = 30 * time.Second
+				cfg.Dataway.ContentEncoding = "v2"
+				cfg.Dataway.MaxRetryCount = dataway.DefaultRetryCount
+				cfg.Dataway.InsecureSkipVerify = true
+				cfg.Dataway.RetryDelay = dataway.DefaultRetryDelay
+				cfg.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
+				cfg.Dataway.GlobalCustomerKeys = []string{}
+				cfg.Dataway.GZip = true
 
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
@@ -352,21 +367,19 @@ func TestLoadEnv(t *testing.T) {
 
 				cfg.ProtectMode = false
 
-				cfg.Dataway = &dataway.Dataway{
-					URLs:                []string{"http://host1.org", "http://host2.com"},
-					MaxIdleConnsPerHost: 0,
-					MaxIdleConns:        100,
-					EnableHTTPTrace:     true,
-					IdleTimeout:         100 * time.Second,
-					HTTPTimeout:         time.Minute,
-					GlobalCustomerKeys:  []string{"key1", "key2"},
-					MaxRetryCount:       8,
-					RetryDelay:          time.Second * 5,
-					MaxRawBodySize:      1024 * 32,
-					ContentEncoding:     "v2",
-					EnableSinker:        true,
-					GZip:                true,
-				}
+				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
+				cfg.Dataway.MaxIdleConnsPerHost = 0
+				cfg.Dataway.MaxIdleConns = 100
+				cfg.Dataway.EnableHTTPTrace = true
+				cfg.Dataway.IdleTimeout = 100 * time.Second
+				cfg.Dataway.HTTPTimeout = time.Minute
+				cfg.Dataway.GlobalCustomerKeys = []string{"key1", "key2"}
+				cfg.Dataway.MaxRetryCount = 8
+				cfg.Dataway.RetryDelay = time.Second * 5
+				cfg.Dataway.MaxRawBodySize = 1024 * 32
+				cfg.Dataway.ContentEncoding = "v2"
+				cfg.Dataway.EnableSinker = true
+				cfg.Dataway.GZip = true
 
 				return cfg
 			}(),
@@ -394,21 +407,19 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.Dataway = &dataway.Dataway{
-					URLs:                []string{"http://host1.org", "http://host2.com"},
-					MaxIdleConnsPerHost: 0,
-					MaxIdleConns:        100,
-					EnableHTTPTrace:     true,
-					IdleTimeout:         100 * time.Second,
-					HTTPTimeout:         time.Minute,
-					GlobalCustomerKeys:  []string{"key1", "key2"},
-					MaxRetryCount:       8,
-					RetryDelay:          time.Second * 5,
-					MaxRawBodySize:      dataway.MinimalRawBodySize,
-					ContentEncoding:     "v2",
-					EnableSinker:        true,
-					GZip:                true,
-				}
+				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
+				cfg.Dataway.MaxIdleConnsPerHost = 0
+				cfg.Dataway.MaxIdleConns = 100
+				cfg.Dataway.EnableHTTPTrace = true
+				cfg.Dataway.IdleTimeout = 100 * time.Second
+				cfg.Dataway.HTTPTimeout = time.Minute
+				cfg.Dataway.GlobalCustomerKeys = []string{"key1", "key2"}
+				cfg.Dataway.MaxRetryCount = 8
+				cfg.Dataway.RetryDelay = time.Second * 5
+				cfg.Dataway.MaxRawBodySize = dataway.MinimalRawBodySize
+				cfg.Dataway.ContentEncoding = "v2"
+				cfg.Dataway.EnableSinker = true
+				cfg.Dataway.GZip = true
 
 				return cfg
 			}(),
@@ -435,22 +446,20 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.Dataway = &dataway.Dataway{
-					URLs:                []string{"http://host1.org", "http://host2.com"},
-					MaxIdleConnsPerHost: 0,
-					MaxIdleConns:        100,
-					EnableHTTPTrace:     true,
-					IdleTimeout:         100 * time.Second,
-					HTTPTimeout:         time.Minute,
-					GlobalCustomerKeys:  []string{"key1", "key2"},
-					MaxRetryCount:       8,
-					RetryDelay:          time.Second * 5,
-					MaxRawBodySize:      1024 * 1024 * 32,
-					ContentEncoding:     "v2",
-					EnableSinker:        true,
-					GZip:                true,
-					InsecureSkipVerify:  true,
-				}
+				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
+				cfg.Dataway.MaxIdleConnsPerHost = 0
+				cfg.Dataway.MaxIdleConns = 100
+				cfg.Dataway.EnableHTTPTrace = true
+				cfg.Dataway.IdleTimeout = 100 * time.Second
+				cfg.Dataway.HTTPTimeout = time.Minute
+				cfg.Dataway.GlobalCustomerKeys = []string{"key1", "key2"}
+				cfg.Dataway.MaxRetryCount = 8
+				cfg.Dataway.RetryDelay = time.Second * 5
+				cfg.Dataway.MaxRawBodySize = 1024 * 1024 * 32
+				cfg.Dataway.ContentEncoding = "v2"
+				cfg.Dataway.EnableSinker = true
+				cfg.Dataway.GZip = true
+				cfg.Dataway.InsecureSkipVerify = true
 
 				return cfg
 			}(),

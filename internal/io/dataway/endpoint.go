@@ -183,7 +183,7 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 				api)
 		}
 
-		log.Infof("endpoint regist dataway API %q ok", api)
+		log.Infof("endpoint regist dataway API %q:%q ok", api, ep.categoryURL[api])
 	}
 
 	switch ep.scheme {
@@ -524,7 +524,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		maxRetry = DefaultRetryCount
 	}
 
-	log.Debugf("retry %q with delay %s on %d retrying", req.URL.String(), delay, maxRetry)
+	log.Debugf("retry %q with delay %s on %d retrying", req.URL.Path, delay, maxRetry)
 
 	if err := retry.Do(
 		func() error {

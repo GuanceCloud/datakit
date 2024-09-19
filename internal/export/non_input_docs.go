@@ -144,6 +144,21 @@ func envDataway() []*inputs.ENVInfo {
 			Desc:    "Enable self-signed TLS certificate on Dataway [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 			DescZh:  "允许对应的 Dataway 上的证书是自签证书 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
+
+		// NTP
+		{
+			ENVName: "ENV_DATAWAY_NTP_INTERVAL",
+			Type:    doc.String,
+			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_NTP_DIFF",
+			Type:    doc.String,
+			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.39.0)",
+		},
 	}
 
 	for idx := range infos {

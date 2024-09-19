@@ -384,6 +384,24 @@ func (c *Config) loadDatawayEnvs() {
 		c.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(v)
 		l.Infof("set global custom keys to %v", c.Dataway.GlobalCustomerKeys)
 	}
+
+	if c.Dataway.NTP != nil {
+		if v := datakit.GetEnv("ENV_DATAWAY_NTP_INTERVAL"); v != "" {
+			if du, err := time.ParseDuration(v); err == nil {
+				c.Dataway.NTP.Interval = du
+			} else {
+				l.Warnf("invalid ENV_DATAWAY_NTP_INTERVAL: %q: %s, ignored", v, err.Error())
+			}
+		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_NTP_DIFF"); v != "" {
+			if du, err := time.ParseDuration(v); err == nil {
+				c.Dataway.NTP.SyncOnDiff = du
+			} else {
+				l.Warnf("invalid ENV_DATAWAY_NTP_DIFF: %q: %s, ignored", v, err.Error())
+			}
+		}
+	}
 }
 
 func (c *Config) loadElectionEnvs() {
