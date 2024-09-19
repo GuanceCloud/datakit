@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -183,7 +184,7 @@ func (ipt *Input) collect() error {
 		Add("logging_level", message.Host.loggingLevel, false, true).
 		AddTag("name", message.Host.HostMeta.HostName).
 		AddTag("os", message.Host.HostMeta.OS).
-		Add("num_cpu", len(message.Host.CPU), false, false).
+		Add("num_cpu", runtime.NumCPU(), false, false).
 		AddTag("unicast_ip", message.Config.IP).
 		Add("disk_total", message.Host.getDiskTotal(), false, true).
 		AddTag("arch", message.Host.HostMeta.Arch)
