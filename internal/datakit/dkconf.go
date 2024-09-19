@@ -249,6 +249,15 @@ ulimit = 64000
   global_customer_keys = []
   enable_sinker        = false # disable sinker
 
+  # use dataway as NTP server
+  [dataway.ntp]
+    interval = "5m"  # sync dataway time each 5min
+
+    # if datakit local time and dataway time's ABS value reach the diff,
+    # datakit's soft time will update to the dataway time.
+    # NOTE: diff MUST larger than "1s"
+    diff     = "30s" 
+
 ################################################
 # Datakit logging configure
 ################################################

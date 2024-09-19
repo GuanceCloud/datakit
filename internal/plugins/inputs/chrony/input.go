@@ -28,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -230,7 +231,7 @@ func (ipt *Input) getData() ([]*getdatassh.SSHData, error) {
 }
 
 func (ipt *Input) getPts(data []*getdatassh.SSHData) error {
-	ts := time.Now()
+	ts := ntp.NTPTime()
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ts))
 

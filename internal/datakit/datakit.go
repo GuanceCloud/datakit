@@ -87,6 +87,7 @@ const (
 	ListDataWay       = "/v2/list/dataway"
 	TokenCheck        = "/v1/check/token"
 	UsageTrace        = "/v1/datakit/usage_trace"
+	NTPSync           = "/v1/ntp"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"

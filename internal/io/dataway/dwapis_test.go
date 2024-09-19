@@ -7,14 +7,48 @@ package dataway
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	T "testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNTP(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.NotEmpty(t, r.URL.Query().Get("token"))
+
+			n := ntpResp{
+				TimestampSec: time.Now().Unix(),
+			}
+			j, err := json.Marshal(n)
+			assert.NoError(t, err)
+
+			w.WriteHeader(200)
+			w.Write(j)
+		}))
+
+		dw := NewDefaultDataway()
+		dw.URLs[0] = fmt.Sprintf("%s?token=tkn_xxxxxxxx", ts.URL)
+		dw.NTP = &ntp{
+			Interval:   time.Second,
+			SyncOnDiff: time.Second,
+		}
+
+		assert.NoError(t, dw.Init())
+
+		diff, err := dw.doTimeDiff()
+
+		assert.NoErrorf(t, err, "dataway: %+#v", dw)
+
+		assert.Equal(t, int64(0), diff)
+	})
+}
 
 func TestDWAPIs(t *T.T) {
 	t.Run("apis-with-global-tags", func(t *T.T) {

@@ -60,6 +60,7 @@ var (
 		datakit.ProfilingUpload,
 		datakit.TokenCheck,
 		datakit.UsageTrace,
+		datakit.NTPSync,
 	}
 
 	AvailableDataways          = []string{}
@@ -78,7 +79,16 @@ func NewDefaultDataway() *Dataway {
 		GZip:               true,
 		MaxRetryCount:      DefaultRetryCount,
 		RetryDelay:         DefaultRetryDelay,
+		NTP: &ntp{
+			Interval:   time.Minute * 5,
+			SyncOnDiff: time.Second * 30,
+		},
 	}
+}
+
+type ntp struct {
+	Interval   time.Duration `toml:"interval"`
+	SyncOnDiff time.Duration `toml:"diff"`
 }
 
 type Dataway struct {
@@ -125,6 +135,8 @@ type Dataway struct {
 
 	globalTags                map[string]string
 	globalTagsHTTPHeaderValue string
+
+	NTP *ntp `toml:"ntp"`
 }
 
 type dwopt func(*Dataway)
