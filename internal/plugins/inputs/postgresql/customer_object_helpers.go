@@ -70,10 +70,10 @@ func (ipt *Input) getCoPointByColErr() []*gcPoint.Point {
 			"col_co_status": ipt.CollectCoStatus,
 		}
 		m := &customerObjectMeasurement{
-			name:     "database",
-			tags:     tags,
-			fields:   fields,
-			election: ipt.Election,
+			name:   "database",
+			tags:   tags,
+			fields: fields,
+			ipt:    ipt,
 		}
 		ipt.setIptLastCOInfo(m)
 		ms = append(ms, m)
@@ -170,10 +170,10 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 		"col_co_status": ipt.CollectCoStatus,
 	}
 	m := &customerObjectMeasurement{
-		name:     "database",
-		tags:     tags,
-		fields:   fields,
-		election: ipt.Election,
+		name:   "database",
+		tags:   tags,
+		fields: fields,
+		ipt:    ipt,
 	}
 	ipt.setIptLastCOInfo(m)
 	ms = append(ms, m)

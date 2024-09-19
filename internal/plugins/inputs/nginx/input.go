@@ -188,6 +188,14 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
+	}
+
+	l.Infof("merged tags: %+#v", ipt.mergedTags)
+
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")

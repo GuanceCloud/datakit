@@ -10,13 +10,11 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func (ipt *Input) setUpState() {
@@ -51,8 +49,7 @@ func (ipt *Input) getUpInstance() string {
 	return ipPort
 }
 
-func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
-	ms := []inputs.MeasurementV2{}
+func (ipt *Input) buildUpPoints() *point.Point {
 	tags := map[string]string{
 		"job":      ipt.getUpJob(),
 		"instance": ipt.getUpInstance(),
@@ -61,49 +58,28 @@ func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
 		"up": ipt.UpState,
 	}
 	m := &upMeasurement{
-		name:     "collector",
-		tags:     tags,
-		fields:   fields,
-		election: ipt.Election,
-	}
-	l.Debugf("build up %s points:%s", inputName, m.Point().LineProto())
-	ms = append(ms, m)
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement2(ms)
-		for k, v := range ipt.Tags {
-			for _, pt := range pts {
-				pt.AddTag(k, v)
-			}
-		}
-		return pts, nil
+		name:   "collector",
+		tags:   tags,
+		fields: fields,
+		ipt:    ipt,
 	}
 
-	return []*point.Point{}, nil
-}
-
-func getPointsFromMeasurement2(ms []inputs.MeasurementV2) []*point.Point {
-	pts := []*point.Point{}
-	for _, m := range ms {
-		pts = append(pts, m.Point())
-	}
-
-	return pts
+	return m.Point()
 }
 
 func (ipt *Input) FeedUpMetric() {
-	pts, _ := ipt.buildUpPoints()
-	if len(pts) > 0 {
-		l.Debug("feed up metric")
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(time.Now())),
-			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(inputName),
-		); err != nil {
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorCategory(point.Metric),
-			)
-			l.Errorf("feed : %s", err)
-		}
+	pt := ipt.buildUpPoints()
+
+	l.Debug("feed up metric")
+
+	if err := ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+		dkio.WithElection(ipt.Election),
+		dkio.WithInputName(inputName),
+	); err != nil {
+		ipt.feeder.FeedLastError(err.Error(),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorCategory(point.Metric),
+		)
+		l.Errorf("feed : %s", err)
 	}
 }

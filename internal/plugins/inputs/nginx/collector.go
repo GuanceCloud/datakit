@@ -105,7 +105,7 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 
 	kvs := make(point.KVs, 0, 9)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start))
+	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range ipt.Tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -176,7 +176,7 @@ func (ipt *Input) handVTSResponse(r io.Reader, port int) {
 func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse) {
 	kvs := make(point.KVs, 0, 12)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start))
+	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range vtsResp.tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -198,7 +198,7 @@ func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse) {
 	for k, v := range vtsResp.ServerZones {
 		kvs := make(point.KVs, 0, 13)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start))
+		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -223,7 +223,7 @@ func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse) {
 		for _, upstream := range upstreams {
 			kvs := make(point.KVs, 0, 14)
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ipt.start))
+			opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range vtsResp.tags {
 				kvs = kvs.MustAddTag(kk, vv)
@@ -249,7 +249,7 @@ func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse) {
 	for cacheName, cacheZone := range vtsResp.CacheZones {
 		kvs := make(point.KVs, 0, 17)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start))
+		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -341,7 +341,7 @@ func (ipt *Input) handlePlusAPIResponse(r io.Reader, plusAPIResp *NginxPlusAPIRe
 func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse) {
 	kvs := make(point.KVs, 0, 10)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start))
+	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range plusAPIResp.tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -358,7 +358,7 @@ func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse) {
 	for k, v := range plusAPIResp.Servers {
 		kvs := make(point.KVs, 0, 20)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start))
+		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -392,7 +392,7 @@ func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse) {
 		for _, upstream := range upstreams.Peers {
 			kvs := make(point.KVs, 0, 20)
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ipt.start))
+			opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range plusAPIResp.tags {
 				kvs = kvs.MustAddTag(kk, vv)
@@ -424,7 +424,7 @@ func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse) {
 	for k, v := range plusAPIResp.Caches {
 		kvs := make(point.KVs, 0, 15)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start))
+		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -450,7 +450,7 @@ func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse) {
 	for locationName, location := range plusAPIResp.Locations {
 		kvs := make(point.KVs, 0, 20)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start))
+		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)

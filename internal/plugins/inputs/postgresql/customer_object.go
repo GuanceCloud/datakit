@@ -7,29 +7,21 @@ package postgresql
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type customerObjectMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ipt    *Input
 }
 
 // Point implement MeasurementV2.
 func (m *customerObjectMeasurement) Point() *point.Point {
-	opts := point.DefaultObjectOptions()
-	if m.election {
-		opts = append(opts,
-			point.WithExtraTags(datakit.GlobalElectionTags()),
-		)
-		point.DefaultObjectOptions()
-	}
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
+		append(point.DefaultObjectOptions(), point.WithExtraTags(m.ipt.mergedTags))...)
 }
 
 //nolint:lll
