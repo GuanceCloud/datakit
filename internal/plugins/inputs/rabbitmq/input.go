@@ -193,7 +193,9 @@ type MetricFunc func(n *Input)
 
 func (ipt *Input) getMetric() {
 	ipt.start = time.Now()
-	getFunc := []MetricFunc{getOverview, getNode, getQueues, getExchange}
+	// get overview first, to get cluster name
+	getOverview(ipt)
+	getFunc := []MetricFunc{getNode, getQueues, getExchange}
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
 	for _, v := range getFunc {
 		func(gf MetricFunc) {
