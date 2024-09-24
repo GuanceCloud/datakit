@@ -1,7 +1,6 @@
-<!-- markdownlint-disable MD025 -->
-# OpenSSL 生成自签证书 {#self-signed-certificate-with-OpenSSL}
-<!-- markdownlint-enable -->
-
+---
+skip: 'not-searchable-on-index-page'
+title: 'OpenSSL 生成自签证书'
 ---
 
 本文介绍如何通过 OpenSSL cli 生成自签证书用于开启安全连接层(ssl)

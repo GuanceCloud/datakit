@@ -1,6 +1,9 @@
 ---
 title     : 'KafkaMQ'
 summary   : '通过 Kafka 收集已有的指标和日志数据'
+tags:
+  - '消息队列'
+  - '日志'
 __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 订阅 Kafka 中的数据
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

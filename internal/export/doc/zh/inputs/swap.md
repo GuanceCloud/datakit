@@ -1,6 +1,8 @@
 ---
 title     : 'Swap'
 summary   : '采集主机 swap 的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/swap'
 dashboard :
   - desc  : 'Swap'
@@ -8,14 +10,6 @@ dashboard :
 monitor   :
   - desc  : '主机检测库'
     path  : 'monitor/zh/host'
----
-
-<!-- markdownlint-disable MD025 -->
-# Swap
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

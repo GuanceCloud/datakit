@@ -1,6 +1,8 @@
 ---
 title     : 'RUM'
 summary   : '采集用户行为数据'
+tags:
+  - 'RUM'
 __int_icon      : 'icon/rum'
 dashboard :
   - desc  : '暂无'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# RUM
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

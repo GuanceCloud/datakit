@@ -1,6 +1,8 @@
 ---
 title     : '日志采集'
 summary   : '采集主机上的日志数据'
+tags:
+  - '日志'
 __int_icon      : 'icon/logging'
 dashboard :
   - desc  : '日志'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 文件采集
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

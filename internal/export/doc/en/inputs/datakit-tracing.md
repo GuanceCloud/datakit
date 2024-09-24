@@ -1,4 +1,7 @@
-# Datakit Tracing Overview
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Tracing Overview'
+---
 
 The third-party Tracing data currently supported by Datakit includes:
 
@@ -64,11 +67,11 @@ The tracer generation in the configuration file refers to the currently configur
     timeout = 1000
 ```
 
-- `customer_tags`: By default, Datakit only picks up the Tags it is interested in (that is, the fields other than message that can be seen in the observation cloud link details),
+- `customer_tags`: By default, Datakit only picks up the Tags it is interested in (that is, the fields other than message that can be seen in the Guance Cloud link details),
   If users are interested in other tags reported on the link, they can add a notification Datakit to this configuration to pick them up. This configuration takes precedence over  `[inputs.tracer.tags]`。
 - `keep_rare_resource`: If a link from a Resource has not been present within the last hour, the system considers it a rare link and reports it directly to the Data Center.
 - `omit_err_status`: By default, data is reported directly to the Data Center if there is a Span with Error status in the link, and Datakit can be told to ignore links with some HTTP Error Status (for example, 429 too many requests) if the user needs to ignore it.
-- `[inputs.tracer.close_resource]`: Users can configure this to close a Resource link with [span_type](datakit-tracing-struct) as Entry.
+- `[inputs.tracer.close_resource]`: Users can configure this to close a Resource link with [span_type](datakit-tracing-struct.md) as Entry.
 - `[inputs.tracer.sampler]`: Configure the global sampling rate for the current Datakit, [configuration sample](datakit-tracing.md#samplers).
 - `[inputs.tracer.tags]`: Configure Datakit Global Tags with a lower priority than `customer_tags` 。
 - `[inputs.tracer.threads]`: Configure the thread queue of the current Tracing Agent to control the CPU and Memory resources available during data processing.

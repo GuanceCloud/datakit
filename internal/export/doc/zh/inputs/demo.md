@@ -11,10 +11,6 @@ monitor:
     path: '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Demo 采集器
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

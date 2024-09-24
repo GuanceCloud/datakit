@@ -1,6 +1,8 @@
 ---
 title     : 'SQLServer'
 summary   : '采集 SQLServer 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# SQLServer
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

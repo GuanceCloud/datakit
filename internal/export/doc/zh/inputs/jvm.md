@@ -1,6 +1,8 @@
 ---
 title     : 'JVM'
 summary   : '采集 JVM 的指标数据'
+tags:
+  - 'JAVA'
 __int_icon      : 'icon/jvm'
 dashboard :
   - desc  : 'JVM'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# JVM
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

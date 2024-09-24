@@ -1,6 +1,8 @@
 ---
 title     : 'Doris'
 summary   : '采集 Doris 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/doris'
 dashboard :
   - desc  : 'Doris'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'Doris'
     path  : 'monitor/zh/doris'
----
-
-<!-- markdownlint-disable MD025 -->
-# Doris
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

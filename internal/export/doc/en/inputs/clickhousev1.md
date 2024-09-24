@@ -1,7 +1,9 @@
 ---
-title     : 'ClickHouse'
-summary   : 'Collect metrics of ClickHouse'
-__int_icon      : 'icon/clickhouse'
+title      : 'ClickHouse'
+summary    : 'Collect metrics of ClickHouse'
+__int_icon : 'icon/clickhouse'
+tags:
+  - 'DATA STORES'
 dashboard :
   - desc  : 'ClickHouse'
     path  : 'dashboard/en/clickhouse'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# ClickHouse
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

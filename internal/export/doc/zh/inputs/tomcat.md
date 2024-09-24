@@ -1,19 +1,16 @@
 ---
 title     : 'Tomcat'
 summary   : '采集 Tomcat 的指标数据'
-__int_icon      : 'icon/tomcat'
+tags:
+  - 'WEB SERVER'
+  - '中间件'
+__int_icon : 'icon/tomcat'
 dashboard :
   - desc  : 'Tomcat'
     path  : 'dashboard/zh/tomcat'
 monitor   :
   - desc  : 'Tomcat'
     path  : 'monitor/zh/tomcat'
----
-
-<!-- markdownlint-disable MD025 -->
-# Tomcat
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

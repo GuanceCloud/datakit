@@ -1,6 +1,8 @@
 ---
 title     : 'Promtail'
 summary   : '采集 Promtail 上报的日志数据'
+tags:
+  - '外部数据接入'
 __int_icon      : 'icon/promtail'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Promtail 数据接入
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

@@ -1,4 +1,6 @@
-# DataKit Performance Test of Log Collector
+---
+skip: 'not-searchable-on-index-page'
+title: 'DataKit Performance of Log Collector'
 ---
 
 ## Environment and Tools {#env-tools}

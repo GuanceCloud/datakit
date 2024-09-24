@@ -1,6 +1,8 @@
 ---
 title     : 'Promtail'
 summary   : 'Collect log data reported by Promtail'
+tags:
+  - 'THIRD PARTY'
 __int_icon      : 'icon/promtail'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Promtail Data Access
-<!-- markdownlint-enable -->
-
----
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 

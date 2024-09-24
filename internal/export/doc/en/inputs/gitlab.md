@@ -1,6 +1,9 @@
 ---
 title     : 'GitLab'
-summary   : 'Collect Gitlab metrics and logs'
+summary   : 'Collect GitLab metrics and logs'
+tags:
+  - 'GITLAB'
+  - 'CI/CD'
 __int_icon      : 'icon/gitlab'
 dashboard :
   - desc  : 'GitLab'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# GitLab
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

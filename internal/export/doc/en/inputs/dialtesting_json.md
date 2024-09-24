@@ -1,4 +1,16 @@
-# Defining Dialing Test Tasks Through Local JSON
+---
+title     : 'Customize Dialtesting'
+summary   : 'Customize your dialtesting task with local configurations'
+tags:
+  - 'TESTING'
+  - 'NETWORK'
+__int_icon      : 'icon/dialtesting'
+dashboard :
+  - desc  : '暂无'
+    path  : '-'
+monitor   :
+  - desc  : '暂无'
+    path  : '-'
 ---
 
 In some cases, you may not be able to connect to SAAS's dialing task service. In this case, we can define the dialing task through the local JSON file.

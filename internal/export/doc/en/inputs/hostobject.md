@@ -1,6 +1,8 @@
 ---
 title     : 'Host Object'
 summary   : 'Collect Basic Host Information'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/hostobject'
 dashboard :
   - desc  : 'N/A'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Host Object
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

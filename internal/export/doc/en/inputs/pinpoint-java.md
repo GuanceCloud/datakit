@@ -1,4 +1,13 @@
-# Java example
+---
+title     : 'PinPoint Java'
+summary   : 'Tracing Java applications with PinPoint'
+__int_icon: 'icon/pinpoint'
+tags      :
+  - 'PINPOINT'
+  - 'JAVA'
+  - 'APM'
+  - 'TRACING'
+---
 
 Pinpoint Java Agent [Download address](https://github.com/pinpoint-apm/pinpoint/releases){:target="_blank"}
 

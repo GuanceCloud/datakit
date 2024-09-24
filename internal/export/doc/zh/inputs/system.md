@@ -1,6 +1,8 @@
 ---
 title     : 'System'
 summary   : '采集主机系统相关的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/system'
 dashboard :
   - desc  : 'System'
@@ -8,14 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# System
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

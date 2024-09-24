@@ -1,6 +1,11 @@
-
-# Container Logs
-
+---
+title: 'Container Logs'
+summary: 'Collect container and Kubernetes log'
+tags:
+  - 'LOG'
+  - 'CONTAINER'
+  - 'KUBERNETES'
+__int_icon:    'icon/kubernetes/'  
 ---
 
 Datakit supports collecting Kubernetes and host container logs, which can be classified into the following two types based on the data source:
@@ -465,6 +470,6 @@ Note that the mounting directory for the emptyDir volume must be higher than the
 
 ## Extended Reading {#more-reading}
 
-- [Pipeline: Text Data Processing](../pipeline/pipeline/index.md)
+- [Pipeline: Text Data Processing](../pipeline/index.md)
 - [Overview of DataKit Log Collection](datakit-logging.md)
 Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.

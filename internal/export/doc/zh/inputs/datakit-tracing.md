@@ -1,5 +1,7 @@
-
-# Datakit Tracing 综述
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Tracing 综述'
+---
 
 目前 Datakit 支持的第三方 Tracing 数据包括：
 

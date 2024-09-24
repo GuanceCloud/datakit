@@ -1,8 +1,15 @@
-# Kubernetes Prometheus CRD Support
+---
+title     : 'Kubernetes Prometheus CRD'
+summary   : 'Collecting on Prometheus-Operator CRD'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
 
 ## Introduction {#intro}
 
-This document describes how to enable Datakit to support Prometheus-Operator CRD and capture corresponding metrics.
+This document describes how to enable Datakit to support Prometheus-Operator CRD and collecting corresponding metrics.
 
 ## Description {#description}
 

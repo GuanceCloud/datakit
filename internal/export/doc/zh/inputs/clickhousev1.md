@@ -1,18 +1,15 @@
 ---
-title     : 'ClickHouse'
-summary   : '采集 ClickHouse 的指标数据'
-__int_icon      : 'icon/clickhouse'
-dashboard :
-  - desc  : 'ClickHouse'
-    path  : 'dashboard/zh/clickhouse'
-monitor   :
-  - desc  : '暂无'
-    path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# ClickHouse
-<!-- markdownlint-enable -->
+title      : 'ClickHouse'
+summary    : '采集 ClickHouse 的指标数据'
+__int_icon : 'icon/clickhouse'
+tags:
+  - '数据库'
+dashboard  :
+  - desc   : 'ClickHouse'
+    path   : 'dashboard/zh/clickhouse'
+monitor    :
+  - desc   : '暂无'
+    path   : '-'
 ---
 
 {{.AvailableArchs}}

@@ -1,6 +1,11 @@
-
-# 指标暴露和自定义指标
-
+---
+title     : 'DDTrace JMX'
+summary   : 'DDTrace JMX 集成'
+tags      :
+  - 'DDTRACE'
+  - 'JAVA'
+  - '链路追踪'
+__int_icon: 'icon/ddtrace'
 ---
 
 ## JMXFetch {#ddtrace-jmxfetch}

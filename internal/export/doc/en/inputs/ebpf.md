@@ -1,6 +1,9 @@
 ---
 title     : 'eBPF'
 summary   : 'Collect Linux network data through eBPF'
+tags:
+  - 'EBPF'
+  - 'NETWORK'
 __int_icon      : 'icon/ebpf'
 dashboard :
   - desc  : 'N/A'
@@ -10,10 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# eBPF
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 
@@ -48,10 +47,10 @@ eBPF collector, collecting host network TCP, UDP connection information, Bash ex
 For DataKit before v1.5.6, you need to execute the installation command to install:
 
 - v1.2.13 ~ v1.2.18
-    - Install time [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
+    - Install time [specify environment variable](../datakit/datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="datakit-ebpf"`
     - After the DataKit is installed, manually install the eBPF collector: `datakit install --datakit-ebpf`
 - v1.2.19+
-    - [specify environment variable](datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
+    - [specify environment variable](../datakit/datakit-install.md#extra-envs)：`DK_INSTALL_EXTERNALS="ebpf"` when installing
     - After the DataKit is installed, manually install the eBPF collector: `datakit install --ebpf`
 - v1.5.6+
     - No manual installation required

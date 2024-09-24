@@ -1,6 +1,8 @@
 ---
-title     : 'IBM Db2'
-summary   : '采集 IBM Db2 的指标数据'
+title     : 'DB2'
+summary   : '采集 IBM DB2 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/db2'
 dashboard :
   - desc  : 'IBM Db2'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# IBM Db2
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

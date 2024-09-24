@@ -1,6 +1,8 @@
 ---
 title     : 'Graphite Exporter'
 summary   : 'Collect Graphite Exporter exposed by Graphite Exporter'
+tags:
+  - 'THIRD PARTY'
 __int_icon      : 'icon/graphite'
 dashboard :
   - desc  : 'N/A'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Graphite Exporter Data Collection
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

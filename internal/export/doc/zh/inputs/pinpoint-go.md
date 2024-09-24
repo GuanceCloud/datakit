@@ -1,4 +1,12 @@
-# Golang 示例
+---
+title     : 'PinPoint Golang'
+summary   : 'PinPoint Golang 集成'
+__int_icon: 'icon/pinpoint'
+tags      :
+  - 'PINPOINT'
+  - 'GOLANG'
+  - '链路追踪'
+---
 
 - [Pinpoint Golang Agent 代码仓库](https://github.com/pinpoint-apm/pinpoint-go-agent){:target="_blank"}
 - [Pinpoint Golang 代码示例](https://github.com/pinpoint-apm/pinpoint-go-agent/tree/main/example){:target="_blank"}

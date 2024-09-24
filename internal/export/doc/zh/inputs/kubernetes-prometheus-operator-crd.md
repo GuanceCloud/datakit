@@ -1,4 +1,11 @@
-# Prometheus CRD 支持
+---
+title     : 'Prometheus CRD'
+summary   : '支持 Prometheus-Operator CRD 并采集对应指标'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
 
 ## 介绍 {#intro}
 

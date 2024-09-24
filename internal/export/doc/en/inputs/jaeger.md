@@ -1,6 +1,10 @@
 ---
 title     : 'Jaeger'
 summary   : 'Receive Jaeger APM Data'
+tags:
+  - 'JAEGER'
+  - 'APM'
+  - 'TRACING'
 __int_icon      : 'icon/jaeger'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +14,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Jaeger
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

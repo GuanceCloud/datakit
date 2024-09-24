@@ -1,6 +1,8 @@
 ---
 title     : 'Log Streaming'
 summary   : 'Report log data via HTTP'
+tags:
+  - 'LOG'
 __int_icon      : 'icon/logstreaming'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Log Streaming
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

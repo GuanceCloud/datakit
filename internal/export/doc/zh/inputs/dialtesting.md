@@ -1,6 +1,9 @@
 ---
 title     : '网络拨测'
 summary   : '通过网络拨测来获取网络性能表现'
+tags:
+  - '拨测'
+  - '网络'
 __int_icon      : 'icon/dialtesting'
 dashboard :
   - desc  : '暂无'
@@ -10,10 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# 网络拨测
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

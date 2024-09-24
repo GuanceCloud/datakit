@@ -13,20 +13,20 @@ DataKit is an open source and integrated data collection Agent, which provides f
 
 - Support data collection of metrics, logs and Tracing in host, middleware, log, APM and other fields
 - Complete support for Kubernetes cloud native ecology
-- [Pipeline](../pipeline/pipeline/index.md): Easy structured data extraction
+- [Pipeline](../pipeline/index.md): Easy structured data extraction
 - Support access to other third-party data collection
-    - [Telegraf](telegraf.md)
-    - [Prometheus](prom.md)
-    - [Statsd](statsd.md)
-    - [Fluentd](logstreaming.md)
-    - [Filebeat](beats_output.md)
-    - [Function](../dataflux-func/write-data-via-datakit.md)
+    - [Telegraf](../integrations/telegraf.md)
+    - [Prometheus](../integrations/prom.md)
+    - [Statsd](../integrations/statsd.md)
+    - [Fluentd](../integrations/logstreaming.md)
+    - [Filebeat](../integrations/beats_output.md)
+    - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing
-        - [OpenTelemetry](opentelemetry.md)
-        - [DDTrace](ddtrace.md)
-        - [Zipkin](zipkin.md)
-        - [Jaeger](jaeger.md)
-        - [SkyWalking](skywalking.md)
+        - [OpenTelemetry](../integrations/opentelemetry.md)
+        - [DDTrace](../integrations/ddtrace.md)
+        - [Zipkin](../integrations/zipkin.md)
+        - [Jaeger](../integrations/jaeger.md)
+        - [SkyWalking](../integrations/skywalking.md)
 
 ## Description {#spec}
 

@@ -109,7 +109,7 @@ The configuration here should follow the following rules:
 
 ### Basic Grammar Rules {#basic}
 
-The basic syntax rules of filter are basically the same as Pipeline, see [here](../pipeline/pipeline/pipeline-platypus-grammar.md).
+The basic syntax rules of filter are basically the same as Pipeline, see [here](../pipeline/use-pipeline/pipeline-platypus-grammar.md).
 
 ### Operator {#operator}
 
@@ -165,7 +165,7 @@ You can view the filtering using the `datakit monitor -V` command:
 
 ### Network {#n}
 
-The [eBPF collector](ebpf.md) needs to be turned on. Suppose we want to filter out network traffic with destination port `443`, the configuration file can read as follows:
+The [eBPF collector](../integrations/ebpf.md) needs to be turned on. Suppose we want to filter out network traffic with destination port `443`, the configuration file can read as follows:
 
 ```toml
 [io]

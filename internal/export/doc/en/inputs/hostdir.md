@@ -1,6 +1,8 @@
 ---
 title     : 'Host Directory'
 summary   : 'Collect metrics from file directories'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/hostdir'
 dashboard :
   - desc  : 'Host Directory'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Host Directory
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

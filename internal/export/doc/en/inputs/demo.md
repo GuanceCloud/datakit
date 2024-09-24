@@ -1,5 +1,6 @@
-<!-- This file required to translate to EN. -->
-# Demo 采集器
+---
+skip: 'not-searchable-on-index-page'
+title: 'Demo 采集器'
 ---
 
 {{.AvailableArchs}}

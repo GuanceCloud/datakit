@@ -1,6 +1,8 @@
 ---
 title     : 'Filebeat'
 summary   : '接收 Filebeat 采集的日志数据'
+tags:
+  - '日志'
 __int_icon      : 'icon/beats'
 dashboard :
   - desc  : '暂无'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Filebeat 日志数据接入
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

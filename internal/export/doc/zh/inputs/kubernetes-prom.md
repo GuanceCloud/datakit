@@ -1,7 +1,12 @@
-
-# Prometheus Exporter 指标采集
-
 ---
+title     : 'Kubernetes Prometheus Exporter'
+summary   : '采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
+
 
 :fontawesome-brands-linux: :material-kubernetes:
 

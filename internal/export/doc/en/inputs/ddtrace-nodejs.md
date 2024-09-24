@@ -1,6 +1,14 @@
-# NodeJS
-
 ---
+title     : 'DDTrace NodeJS'
+summary   : 'Tracing NodeJS applications with DDTrace'
+tags      :
+  - 'DDTRACE'
+  - 'NODEJS'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/ddtrace'
+---
+
 
 ## Install Dependencies {#dependence}
 

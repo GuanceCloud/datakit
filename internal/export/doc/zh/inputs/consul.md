@@ -2,6 +2,8 @@
 title     : 'Consul'
 summary   : '采集 Consul 的指标数据'
 __int_icon      : 'icon/consul'
+tags:
+  - '中间件'
 dashboard :
   - desc  : 'Consul'
     path  : 'dashboard/zh/consul'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/zh/consul'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Consul
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

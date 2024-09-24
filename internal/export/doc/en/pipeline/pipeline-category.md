@@ -135,8 +135,8 @@ The above four types of Pipeline directories store Pipeline scripts as follows:
 There are four matching policies for data and script names, which will be judged from the 4th (highest priority) to the 1st, and if the high priority policy is satisfied, the low priority policy will not be executed:
 
 1. Add the script file extension `.p` of Pipeline to the data characteristic string generated according to the input data, and find the script of the corresponding category.
-1. The default script of the data category set for all data under this category in the observation cloud console.
-1. The mapping relationship between data and scripts set in the observation cloud console.
+1. The default script of the data category set for all data under this category in the Guance Cloud console.
+1. The mapping relationship between data and scripts set in the Guance Cloud console.
 1. Specify the script in the collector configuration file.
 
 All of the above data and script matching strategies depend on the data feature strings of the data; for different types of data, the generation strategies of the data feature strings are different:

@@ -1,6 +1,9 @@
 ---
 title     : 'Nginx'
 summary   : '采集 Nginx 的指标数据'
+tags:
+  - 'WEB SERVER'
+  - '中间件'
 __int_icon      : 'icon/nginx'
 dashboard :
   - desc  : 'Nginx'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Nginx
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,6 +1,10 @@
 ---
-title     : 'Log Forward'
+title     : 'Log Forward Server'
 summary   : 'Collect log data in Pod through sidecar method'
+tags:
+  - 'KUBERNETES'
+  - 'LOG'
+  - 'CONTAINER'
 __int_icon      : 'icon/logfwd'
 dashboard :
   - desc  : 'N/A'
@@ -8,12 +12,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# {{.InputName}}
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

@@ -373,7 +373,7 @@ cp telegraf.conf.sample telegraf.conf
 telegraf --config telegraf.conf
 ```
 
-See [here](telegraf.md) for the use of Telegraf.
+See [here](../integrations/telegraf.md) for the use of Telegraf.
 
 ### Security Checker Integration {#scheck}
 
@@ -387,7 +387,7 @@ It will run automatically after successful installation, and Security Checker is
 
 ### DataKit eBPF Integration {#ebpf}
 
-The DataKit eBPF collector currently only supports `linux/amd64 | linux/arm64` platform. See [DataKit eBPF collector](ebpf.md) for instructions on how to use the collector.
+The DataKit eBPF collector currently only supports `linux/amd64 | linux/arm64` platform. See [DataKit eBPF collector](../integrations/ebpf.md) for instructions on how to use the collector.
 
 ```shell
 datakit install --ebpf
@@ -494,7 +494,7 @@ The output said that, data in file *lineproto.data* has been matched by the 7th(
 ### Using Glob Rules to Retrieve File Paths {#glob-conf}
 [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
 
-In logging collection, [glob rules can be used to configure log paths](logging.md#glob-rules).
+In logging collection, [glob rules can be used to configure log paths](../integrations/logging.md#glob-rules).
 
 By using the DataKit debugging glob rule, a configuration file must be provided where each line of the file is a glob statement.
 
@@ -524,7 +524,7 @@ $ datakit debug --glob-conf glob-config
 ### Matching Text with Regular Expressions {#regex-conf}
 [:octicons-tag-24: Version-1.8.0](changelog.md#cl-1.8.0)
 
-In log collection, regular expressions can be used to configure [multiline log collection](logging.md#multiline).
+In log collection, regular expressions can be used to configure [multiline log collection](../integrations/logging.md#multiline).
 
 By using the DataKit debugging regular expression rule, a configuration file must be provided where the first line of the file is the regular expression statement and the remaining contents are the matched text.
 

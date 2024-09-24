@@ -1,6 +1,10 @@
-
-# C++
-
+---
+title     : 'DDTrace C++'
+summary   : 'DDTrace C++ 集成'
+tags      :
+  - '链路追踪'
+  - 'C/C++'
+__int_icon: 'icon/ddtrace'
 ---
 
 在 C++ 代码中应用 DDTrace，需要修改业务代码，并且对于常见的中间件和库也没有对应的 SDK 集成，**需手动在现有业务代码中进行埋点**。

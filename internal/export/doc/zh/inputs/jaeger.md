@@ -2,18 +2,15 @@
 title     : 'Jaeger'
 summary   : '接收 Jaeger APM 数据'
 __int_icon      : 'icon/jaeger'
+tags      :
+  - 'JAEGER'
+  - '链路追踪'
 dashboard :
   - desc  : '暂无'
     path  : '-'
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Jaeger
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

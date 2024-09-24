@@ -1,30 +1,29 @@
 ---
-title     : 'Profiling PHP'
-summary   : 'PHP Profiling 集成'
+title: 'Profiling PHP'
+summary: 'PHP Profiling Integration'
 tags:
   - 'PHP'
   - 'PROFILE'
 __int_icon: 'icon/profiling'
 ---
 
+Starting from Datakit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"}, support for using [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} as an application performance monitoring tool for PHP projects is available.
 
-从 Datakit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"} 开始支持使用 [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} 作为 `PHP` 项目的应用性能监测工具。
+## Prerequisites {#prerequisites}
 
-## 前置条件 {#prerequisites}
+- Linux X64 with glibc 2.17+, Linux X64 with musl v1.2+
+- PHP 7.1+ NTS (Non-Thread Safe)
 
-- `Linux X64 with glibc 2.17+，Linux X64 with musl v1.2+`
-- `PHP 7.1+ NTS(Non-Thread Safe)`
+## Install `dd-trace-php` {#install-dd-trace-php}
 
-## 安装 `dd-trace-php` {#install-dd-trace-php}
-
-下载安装脚本 [*datadog-setup.php*](https://github.com/DataDog/dd-trace-php/releases/download/0.90.0/datadog-setup.php){:target="_blank"} 并执行：
+Download the installation script [*datadog-setup.php*](https://github.com/DataDog/dd-trace-php/releases/download/0.90.0/datadog-setup.php){:target="_blank"} and execute:
 
 ```shell
-wget https://github.com/DataDog/dd-trace-php/releases/download/0.90.0/datadog-setup.php
+wget https://github.com/DataDog/dd-trace-php/releases/download/0.90.0/datadog-setup.php 
 php datadog-setup.php --enable-profiling
 ```
 
-安装过程中脚本会自动检测当前系统安装的 `php` 和 `php-fpm` 路径，并让你选择哪些程序需要开启 profiling，根据你的需要输入相应的序号即可。
+During the installation process, the script will automatically detect the paths of the `php` and `php-fpm` installed on the current system and ask you to select which programs need profiling. Enter the corresponding numbers as needed.
 
 ```shell
 Searching for available php binaries, this operation might take a while.
@@ -37,14 +36,13 @@ Multiple PHP binaries detected. Please select the binaries the datadog library w
 Select binaries using their number. Multiple binaries separated by space (example: 1 3): 1 2 3
 ```
 
-
-如果你知道当前系统的 `php` 或 `php-fpm` 的安装路径，也可以在执行安装脚本的时候通过 `--php-bin` 参数直接指定 `php` 的路径，这样可以跳过上述检测和选择的步骤，例如：
+If you know the installation path of the current system's `php` or `php-fpm`, you can also specify the `php` path directly via the `--php-bin` parameter when executing the installation script. This can skip the detection and selection steps mentioned above, for example:
 
 ```shell
 php datadog-setup.php --enable-profiling --php-bin=/usr/bin/php8.1 --php-bin=/usr/sbin/php-fpm8.1
 ```
 
-程序安装过程中需要从 `github.com` 下载安装包，根据你的网络情况可能需要一些时间，请等待安装程序成功退出，之后可以执行命令 `php --ri "datadog-profiling"` 验证安装是否成功。
+The installation process requires downloading the installation package from `github.com`. Depending on your network conditions, this may take some time. Please wait for the installation program to exit successfully. Afterwards, you can execute the command `php --ri "datadog-profiling"` to verify whether the installation was successful.
 
 ```shell
 php --ri "datadog-profiling"
@@ -58,20 +56,19 @@ Allocation Profiling Enabled => true
 ...
 ```
 
-
 <!-- markdownlint-disable MD046 -->
 ???+ Note
 
-    在编写此文档时 `Datakit` 最高支持到 [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"} 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可随时与我们联系。
+    As of the time of writing this document, `Datakit` supports up to [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"}. Higher versions have not been systematically tested, and compatibility is unknown. If you encounter any issues during use, please feel free to contact us.
 <!-- markdownlint-enable -->
 
 
-## 开启 Profiling {#start-profiling}
+## Start Profiling {#start-profiling}
 
 <!-- markdownlint-disable MD046 -->
 === "PHP CLI"
 
-    启动 PHP 脚本时设置如下环境变量：
+    Set the following environment variables when starting the PHP script:
     ```shell
     DD_PROFILING_ENABLED=1 \
     DD_PROFILING_ENDPOINT_COLLECTION_ENABLED=1 \
@@ -89,10 +86,10 @@ Allocation Profiling Enabled => true
 
 === "PHP-FPM"
 
-    在 `PHP-FPM` 的进程池配置目录 *pool.d* 下的配置文件中（默认只有一个 *www.conf* 配置文件）使用 `env` 指令在 *www.conf* 添加如下环境变量：
+    In the `PHP-FPM` pool configuration directory *pool.d* (by default, there is only one configuration file *www.conf*), add the following environment variables to *www.conf* using the `env` directive:
 
     ???+ Note
-        可以尝试使用 `php-fpm -i | grep Configuration` 来确认 `php-fpm` 当前加载配置文件的位置：
+        You can try using `php-fpm -i | grep Configuration` to confirm the location of the currently loaded `php-fpm` configuration files:
         ```shell
         php-fpm8.1 -i | grep Configuration
         Configuration File (php.ini) Path => /etc/php/8.1/fpm
@@ -101,7 +98,7 @@ Allocation Profiling Enabled => true
         total 48
         -rw-r--r-- 1 root root 20901 Aug  7 21:22 www.conf
         ```
-        如果你的 `php-fpm` 程序被注册为 `systemd` 服务，也可以尝试使用命令 `systemctl status php-fpm.service | grep .conf` 来查看当前的配置文件路径：
+        If your `php-fpm` program is registered as a `systemd` service, you can also try using the command `systemctl status php-fpm.service | grep .conf` to view the current configuration file path:
         ```shell
         systemctl status php8.1-fpm.service | grep .conf
         Process: 629814 ExecStart=/usr/sbin/php-fpm8.1 --nodaemonize --fpm-config /etc/php/8.1/fpm/php-fpm.conf (code=exited, status=0/SUCCESS)
@@ -109,7 +106,6 @@ Allocation Profiling Enabled => true
         Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
         ...
         ```
-
 
     ```shell
     ...
@@ -136,8 +132,7 @@ Allocation Profiling Enabled => true
 
     ```
 
-    重启 `php-fpm` 并访问你的项目。
+    Restart `php-fpm` and visit your project.
 <!-- markdownlint-enable -->
 
-稍等几分钟后便可以在 [观测云控制台](https://console.guance.com/tracing/profile){:target="_blank"} 查看相关数据。
-
+After a few minutes, you should be able to view the relevant data in the [Guance Cloud Console](https://console.guance.com/tracing/profile){:target="_blank"}.

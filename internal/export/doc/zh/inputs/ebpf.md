@@ -1,6 +1,9 @@
 ---
 title     : 'eBPF'
 summary   : '通过 eBPF 采集 Linux 网络数据'
+tags:
+  - 'EBPF'
+  - 'NETWORK'
 __int_icon      : 'icon/ebpf'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# eBPF
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

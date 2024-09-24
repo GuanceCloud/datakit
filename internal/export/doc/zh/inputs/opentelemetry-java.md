@@ -1,5 +1,13 @@
-# Java 示例
 ---
+title     : 'OpenTelemetry Java'
+summary   : 'OpenTelemetry Java 集成'
+tags      :
+  - 'JAVA'
+  - 'OTEL'
+  - '链路追踪'
+__int_icon: 'icon/opentelemetry'
+---
+
 
 在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
 

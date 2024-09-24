@@ -1,4 +1,11 @@
-# NodeJS Profiling
+---
+title     : 'Profiling NodeJS'
+summary   : 'Profling NodeJS applications'
+tags:
+  - 'NODEJS'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
 
 [:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0)
 

@@ -1,19 +1,15 @@
 ---
 title     : 'Proxy'
 summary   : '代理 Datakit 的 HTTP 请求'
-__int_icon      : 'icon/proxy'
+tags:
+  - 'PROXY'
+__int_icon: 'icon/proxy'
 dashboard :
   - desc  : '暂无'
     path  : '-'
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# DataKit 代理
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

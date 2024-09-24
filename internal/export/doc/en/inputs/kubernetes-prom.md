@@ -1,6 +1,12 @@
-
-# Prometheus Exporter Metric Collection
 ---
+title     : 'Kubernetes Prometheus Exporter'
+summary   : 'Collect Prometheus metrics among Kubernetes Pod'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
+
 
 :fontawesome-brands-linux: :material-kubernetes:
 

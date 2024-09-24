@@ -1,7 +1,10 @@
 ---
 title     : 'OpenTelemetry'
 summary   : '接收 OpenTelemetry 指标、日志、APM 数据'
-__int_icon      : 'icon/opentelemetry'
+__int_icon: 'icon/opentelemetry'
+tags      :
+  - 'OTEL'
+  - '链路追踪'
 dashboard :
   - desc  : 'Opentelemetry JVM 监控视图'
     path  : 'dashboard/zh/opentelemetry'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# OpenTelemetry
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

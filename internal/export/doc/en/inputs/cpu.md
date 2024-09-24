@@ -1,6 +1,8 @@
 ---
 title     : 'CPU'
 summary   : 'Collect metric of cpu'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/cpu'
 dashboard :
   - desc  : 'CPU'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/en/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# CPU
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

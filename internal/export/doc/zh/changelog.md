@@ -935,7 +935,7 @@
     - 数据聚合函数 `agg_create()` 和 `agg_metric()` 支持输出任意类别的数据（#1865）
 - 优化 Datakit 镜像大小（#1869）
 - 文档
-    - 增加[Datakit 指标性能测试报告](../integrations/datakit-metric-performance.md)（#1867）
+    - 增加 Datakit 指标性能测试报告](../integrations/datakit-metric-performance.md)（#1867）
     - 增加[external 采集器的使用文档](../integrations/external.md)（#1851）
     - 增加不同 Trace 传递说明的[文档](../integrations/tracing-propagator.md)（#1824）
 

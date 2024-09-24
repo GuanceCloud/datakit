@@ -1,4 +1,11 @@
-# C/C++ Profiling
+---
+title     : 'Profiling C++'
+summary   : 'C++ Profiling 集成'
+tags:
+  - 'C/C++'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
 
 目前 DataKit 支持 1 种方式来采集 C/C++ profiling 数据，即 [Pyroscope](https://pyroscope.io/){:target="_blank"}。
 

@@ -1,12 +1,20 @@
-# OTEL SQL Obfuscation
 ---
+title      : 'OpenTelemetry Extensions'
+summary    : 'Guance Cloud added more OpenTelemetry plugins'
+__int_icon : 'icon/opentelemetry'
+tags       :
+  - 'OTEL'
+  - 'APM'
+  - 'TRACING'
+---
+
+## SQL obfuscation {#sql-obfuscation}
 
 Before understanding SQL Obfuscation, please read the official preprocessing scheme：
 
 [DB statement sanitization](https://opentelemetry.io/docs/instrumentation/java/automatic/agent-config/#db-statement-sanitization)
 
-
-## DB statement sanitization {#db-statement-sanitization}
+### DB statement sanitization {#db-statement-sanitization}
 
 Most of the sentences contain some sensitive data including: user name, mobile phone number, password, card number and so on. Another reason why these data can be filtered out through sensitive processing is to facilitate group filtering operations.
 
@@ -38,10 +46,9 @@ The `OTEL_INSTRUMENTATION_COMMON_DB_STATEMENT_SANITIZER_ENABLED` mentioned above
 
 The reason is that the agent's probe is on the function `prepareStatement()` or `Statement()`.
 
-
 Solve the desensitization problem fundamentally. Need to add probes to `set`. The parameters are cached before `executue()`, and finally the parameters are put into Attributes.
 
-## Guance Branch {#guacne-branch}
+### Guance Cloud extension {#guacne-branch}
 
 If you want to get the data before cleaning and the value added by the `set` function later, you need to make a new buried point and add an environment variable:
 
@@ -59,15 +66,16 @@ In the end, the link details on GuanceCloud look like this:
   <figcaption> trace </figcaption>
 </figure>
 
+### Question {#question}
 
-## Question {#question}
+1. Enabling `-Dotel.jdbc.sql.obfuscation=true`, but SQL obfuscation not disabled.
 
-1. Open `otel.jdbc.sql.obfuscation=true` and `otel.instrumentation.common.db-statement-sanitizer.enabled=true`
+   You may encounter a mismatch between placeholders and the number of `origin_sql_x` fields. This discrepancy occurs because some parameters have already been replaced by placeholders during the DB statement obfuscation process.
 
-    ```text
-        There may be a mismatch between the number of placeholders and `origin_sql_x`. The reason is that some parameters have been replaced by placeholders in the DB statement cleaning.
-    ```
+1. Enabling `-Dotel.jdbc.sql.obfuscation=true` and disabling DB statement obfuscation
 
+   If the statements are excessively long or contain numerous line breaks, the formatting may become chaotic without proper formatting. Additionally, this can lead to unnecessary traffic consumption.
 
 ## More {#more}
+
 If you have other questions, please ask in [GitHub-Guance](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues){:target="_blank"}

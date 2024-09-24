@@ -1,6 +1,8 @@
 ---
 title     : 'CoreDNS'
 summary   : 'Collect CoreDNS metrics and logs'
+tags:
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/coredns'
 dashboard :
   - desc  : 'CoreDNS'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# CoreDNS
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

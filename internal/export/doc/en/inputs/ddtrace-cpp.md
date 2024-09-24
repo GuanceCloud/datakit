@@ -1,6 +1,13 @@
-# C++
-
 ---
+title     : 'DDTrace C++'
+summary   : 'Tracing C++ Application with DDTrace'
+tags      :
+  - 'APM'
+  - 'TRACING'
+  - 'C/C++'
+__int_icon: 'icon/ddtrace'
+---
+
 
 To apply DDTrace in C++ code, you need to modify the business code, and there is no corresponding SDK integration for common middleware and libraries, **manual instrumentation is required in existing business code**.
 

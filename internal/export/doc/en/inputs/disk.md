@@ -1,6 +1,8 @@
 ---
 title     : 'Disk'
 summary   : 'Collect metrics of disk'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/disk'
 dashboard :
   - desc  : 'disk'
@@ -10,13 +12,6 @@ monitor   :
     path  : 'monitor/en/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Disk
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

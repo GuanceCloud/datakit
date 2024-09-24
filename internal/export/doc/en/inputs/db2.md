@@ -1,6 +1,8 @@
 ---
-title     : 'IBM Db2'
-summary   : 'Collect IBM Db2 metrics'
+title     : 'DB2'
+summary   : 'Collect IBM DB2 metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/db2'
 dashboard :
   - desc  : 'IBM Db2'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# IBM Db2
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

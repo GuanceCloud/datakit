@@ -1,6 +1,8 @@
 ---
 title     : '内存'
 summary   : '采集主机内存的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/mem'
 dashboard :
   - desc  : '内存'
@@ -10,13 +12,6 @@ monitor   :
     path  : 'monitor/zh/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# 内存
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

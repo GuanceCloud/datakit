@@ -2,6 +2,8 @@
 title     : 'Profiling'
 summary   : '采集应用程序的运行时性能数据'
 __int_icon: 'icon/profiling'
+tags:
+  - 'PROFILE'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -10,12 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-
-# Profiling
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

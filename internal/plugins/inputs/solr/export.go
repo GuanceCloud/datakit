@@ -32,7 +32,7 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 		return map[string]string{
 			"introduction":            "Introduction",
 			"description":             "Description",
-			"description_content":     `The collector can take many metrics from the Solr instance, such as cache, request number and other metrics, and collect the metrics to the observation cloud to help monitor and analyze various abnormal situations of Solr.\n\nhttps://docs.guance.com/datakit/solr/`,
+			"description_content":     `The collector can take many metrics from the Solr instance, such as cache, request number and other metrics, and collect the metrics to the Guance Cloud to help monitor and analyze various abnormal situations of Solr.\n\nhttps://docs.guance.com/datakit/solr/`,
 			"metric":                  "Metric",
 			"deleted_document_number": "Number of deleted documents",
 			"document_number":         "Number of documents",

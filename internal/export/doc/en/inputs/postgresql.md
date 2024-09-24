@@ -1,6 +1,8 @@
 ---
 title     : 'PostgreSQL'
 summary   : 'Collect PostgreSQL metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/postgresql'
 dashboard :
   - desc  : 'PostgrepSQL'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# PostgreSQL
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

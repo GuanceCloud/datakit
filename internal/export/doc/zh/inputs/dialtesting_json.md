@@ -1,6 +1,9 @@
 ---
 title     : '自定义拨测任务'
 summary   : '自定义拨测采集器来定制拨测任务'
+tags:
+  - '拨测'
+  - '网络'
 __int_icon      : 'icon/dialtesting'
 dashboard :
   - desc  : '暂无'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# 自定义拨测任务
-<!-- markdownlint-enable -->
-
----
 
 某些情况下，可能不能连接 SAAS 的拨测任务服务，此时，我们可以通过本地的 JSON 文件来定义拨测任务。
 

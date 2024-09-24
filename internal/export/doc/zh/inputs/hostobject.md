@@ -1,6 +1,8 @@
 ---
 title     : '主机对象'
 summary   : '采集主机基本信息'
+tags:
+  - '主机'
 __int_icon      : 'icon/hostobject'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 主机对象
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

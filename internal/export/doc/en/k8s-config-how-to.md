@@ -9,8 +9,8 @@ The current version (> 1.2. 0) of DataKit supports the following configurations:
 
 - Configure with [conf](datakit-daemonset-deploy.md#configmap-setting)
 - Configure with [ENV](datakit-daemonset-deploy.md#using-k8-env)
-- Configure with [Annotation](container-log.md#logging-with-annotation-or-label)
-- Configure with [CRD](kubernetes-crd.md)
+- Configure with [Annotation](../integrations/container-log.md#logging-with-annotation-or-label)
+- Configure with [CRD](../integrations/kubernetes-crd.md)
 - Configure with [Git](datakit-conf.md#using-gitrepo)
 - Configure with [DCA](dca.md)
 
@@ -38,7 +38,7 @@ In K8s, when we start DataKit, we can [inject many environment variables](dataki
 ENV_INPUT_XXX_YYY
 ```
 
-Here `XXX` refers to the collector name, and `YYY` is a specific configuration field in the collector configuration, such as `ENV_INPUT_CPU_PERCPU` to adjust whether [CPU collector](cpu.md) _collects metrics per CPU core_ (by default, this option is turned off by default, that is, CPU metrics per core are not collected)
+Here `XXX` refers to the collector name, and `YYY` is a specific configuration field in the collector configuration, such as `ENV_INPUT_CPU_PERCPU` to adjust whether [CPU collector](../integrations/cpu.md) _collects metrics per CPU core_ (by default, this option is turned off by default, that is, CPU metrics per core are not collected)
 
 It should be noted that not all collectors support ENV injection at present. The collector that supports ENV injection is generally [the collector that is turned on by default](datakit-input-conf.md#default-enabled-inputs). The collector opened through ConfigMap also supports ENV injection (see if the collector supports it), and **the default is based on ENV injection**.
 
@@ -74,13 +74,13 @@ spec:
 ...
 ```
 
-> Note: Currently, the Annotation mode does not support the mainstream collector opening (currently only [Prom](prom.md)) is supported). More collectors will be added later.
+> Note: Currently, the Annotation mode does not support the mainstream collector opening (currently only [Prom](../integrations/prom.md)) is supported). More collectors will be added later.
 
 So far, in DataKit, there are only three mainstream configuration modes in K8s environment, and their priorities are gradually improved, that is, conf mode has the lowest priority, ENV takes the second place, and Annotation mode has the highest priority.
 
 - Configuration via CRD
 
-CRD is a widely used configuration method of Kubernetes. Compared with Annotation, CRD does not need to change the deployment of collected objects, and it is less invasive. See [DataKit CRD Usage Documentation](kubernetes-crd.md).
+CRD is a widely used configuration method of Kubernetes. Compared with Annotation, CRD does not need to change the deployment of collected objects, and it is less invasive. See [DataKit CRD Usage Documentation](../integrations/kubernetes-crd.md).
 
 ### Git configuration {#git}
 

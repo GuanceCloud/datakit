@@ -1,4 +1,12 @@
-# Auto Attach DDTrace-Java Agent
+---
+title     : 'DDTrace Attach '
+summary   : 'Attach DDTrace to Java applications'
+tags      :
+  - 'APM'
+  - 'TRACING'
+  - 'JAVA'
+__int_icon: 'icon/ddtrace'
+---
 
 This Java tool is mainly used to inject DDTrace-Java agent into the currently running Java process without manually configuring and restarting the host Java process.
 <!-- markdownlint-disable MD046 MD030 -->
@@ -10,7 +18,8 @@ This Java tool is mainly used to inject DDTrace-Java agent into the currently ru
     [:octicons-history-16:](https://github.com/GuanceCloud/agent-attach-java/releases){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030-->
+
 ## principle {#principle}
 
 Attach after the JVM is started and load through the Attach API. This method will execute the agent main method after the agent is loaded.

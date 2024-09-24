@@ -1,6 +1,9 @@
 ---
 title     : 'Redis'
 summary   : 'Redis 指标和日志采集'
+tags:
+  - '缓存'
+  - '中间件'
 __int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
@@ -8,12 +11,6 @@ dashboard :
 monitor:
   - desc: 'Redis'
     path: 'monitor/zh/redis'
----
-
-<!-- markdownlint-disable MD025 -->
-# Redis
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

@@ -1,6 +1,8 @@
 ---
-title     : 'File Log'
+title     : 'Log Collector'
 summary   : 'Collect log data on the host'
+tags:
+  - 'LOG'
 __int_icon      : 'icon/logging'
 dashboard :
   - desc  : 'Log'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# File Log
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -282,7 +279,7 @@ The maximum length of a single line (including after `multiline_match`) is 32MB,
 
 ### Pipeline Configuring and Using {#pipeline}
 
-[Pipeline](../pipeline/pipeline/index.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
+[Pipeline](../pipeline/index.md) is used primarily to cut unstructured text data, or to extract parts of information from structured text, such as JSON.
 
 For log data, there are two main fields to extract:
 
@@ -472,14 +469,14 @@ But in fact, the compression ratio of DataKit will not be so high, because DataK
 <!-- markdownlint-disable MD046 -->
 ??? info
 
-    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../pipeline/pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
+    Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
 <!-- markdownlint-enable -->
 
 ## Extended reading {#more-reading}
 
 - [DataKit Log Collection Overview](datakit-logging.md)
-- [Pipeline: Text Data Processing](../pipeline/pipeline/index.md)
-- [Pipeline debugging](../pipeline/pipeline/pipeline-quick-start.md#debug)
+- [Pipeline: Text Data Processing](../pipeline/index.md)
+- [Pipeline debugging](../pipeline/use-pipeline/pipeline-quick-start.md#debug)
 - [Pipeline Performance Test and Comparison](logging-pipeline-bench.md)
 - [Collect container internal logs via Sidecar (logfwd)](logfwd.md)
-- [Configure correctly with regular expressions](datakit-input-conf#debug-regex)
+- [Configure correctly with regular expressions](../datakit/datakit-input-conf.md#debug-regex)

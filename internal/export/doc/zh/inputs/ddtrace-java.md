@@ -1,7 +1,13 @@
-
-# Java
-
 ---
+title     : 'DDTrace Java'
+summary   : 'DDTrace Java 集成'
+tags      :
+  - 'DDTRACE'
+  - 'JAVA'
+  - '链路追踪'
+__int_icon: 'icon/ddtrace'
+---
+
 
 Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应的 agent 即可。
 

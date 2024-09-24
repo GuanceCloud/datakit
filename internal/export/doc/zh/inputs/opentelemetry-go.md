@@ -1,5 +1,13 @@
-# Golang 示例
 ---
+title     : 'OpenTelemetry Golang'
+summary   : 'OpenTelemetry Golang 集成'
+tags      :
+  - 'GOLANG'
+  - 'OTEL'
+  - '链路追踪'
+__int_icon: 'icon/opentelemetry'
+---
+
 
 本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
 

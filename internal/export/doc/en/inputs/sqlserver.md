@@ -1,6 +1,8 @@
 ---
 title     : 'SQLServer'
 summary   : 'Collect SQLServer Metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# SQLServer
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

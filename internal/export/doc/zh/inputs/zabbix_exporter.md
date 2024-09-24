@@ -1,6 +1,8 @@
 ---
-title     : 'Zabbix_export'
+title     : 'Zabbix 数据接入'
 summary   : 'Zabbix realTime data 数据接入'
+tags:
+  - '外部数据接入'
 __int_icon      : 'icon/zabbix'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Zabbix RealTime Exporter
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

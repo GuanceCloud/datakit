@@ -1,6 +1,8 @@
 ---
 title     : 'System'
 summary   : 'Collecting metrics data related to the host system'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/system'
 dashboard :
   - desc  : 'System'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# System
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

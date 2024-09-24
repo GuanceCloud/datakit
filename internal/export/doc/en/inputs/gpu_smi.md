@@ -1,6 +1,8 @@
 ---
 title     : 'GPU'
 summary   : 'Collect NVIDIA GPU metrics and logs'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/gpu_smi'
 dashboard :
   - desc  : 'N/A'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# GPU
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

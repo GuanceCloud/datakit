@@ -1,6 +1,8 @@
 ---
-title     : 'AWS Lambda Extention'
-summary   : '通过 awslambda 扩展采集数据'
+title     : 'AWS Lambda 扩展'
+summary   : '通过 AWS Lambda 扩展采集数据'
+tags:
+  - 'AWS'
 __int_icon      : 'icon/awslambda'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# AWSLambda
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

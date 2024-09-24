@@ -173,21 +173,23 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 
 The list of collectors currently supporting elections is as follows:
 
-- [Apache](apache.md)
-- [ElasticSearch](elasticsearch.md)
-- [GitLab](gitlab.md)
-- [InfluxDB](influxdb.md)
-- [Container](container.md)
-- [MongoDB](mongodb.md)
-- [MySQL](mysql.md)
-- [NSQ](nsq.md)
-- [Nginx](nginx.md)
-- [PostgreSQL](postgresql.md)
-- [Prom](prom.md)
-- [RabbitMQ](rabbitmq.md)
-- [Redis](redis.md)
-- [Solr](solr.md)
-- [TDengine](tdengine.md)
+- [Apache](../integrations/apache.md)
+- [ElasticSearch](../integrations/elasticsearch.md)
+- [GitLab](../integrations/gitlab.md)
+- [InfluxDB](../integrations/influxdb.md)
+- [Container](../integrations/container.md)
+- [MongoDB](../integrations/mongodb.md)
+- [MySQL](../integrations/mysql.md)
+- [NSQ](../integrations/nsq.md)
+- [Nginx](../integrations/nginx.md)
+- [PostgreSQL](../integrations/postgresql.md)
+- [Prom](../integrations/prom.md)
+- [RabbitMQ](../integrations/rabbitmq.md)
+- [Redis](../integrations/redis.md)
+- [Solr](../integrations/solr.md)
+- [TDengine](../integrations/tdengine.md)
+
+> In fact, there are more collectors that support elections, and this information may not be up-to-date. Please refer to the specific documentation of the collector for the most accurate information.
 
 ## FAQ {#faq}
 

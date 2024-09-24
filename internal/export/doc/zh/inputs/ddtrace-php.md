@@ -1,7 +1,13 @@
-
-# PHP
-
 ---
+title     : 'DDTrace PHP'
+summary   : 'DDTrace PHP 集成'
+tags      :
+  - 'DDTRACE'
+  - 'PHP'
+  - '链路追踪'
+__int_icon: 'icon/ddtrace'
+---
+
 
 ## 安装依赖 {#dependence}
 

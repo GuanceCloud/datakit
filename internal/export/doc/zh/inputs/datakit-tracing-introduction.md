@@ -1,4 +1,7 @@
-# 链路追踪简述
+---
+skip: 'not-searchable-on-index-page'
+title: '链路追踪简述'
+---
 
 程序日志是代码执行过程的面包屑，寻找这些面包屑不但可以找到隐藏在代码中的 Bug:fontawesome-solid-bug: 更重要的是连续的程序日志循迹提供了一种构建程序执行过程可观测的途径。
 

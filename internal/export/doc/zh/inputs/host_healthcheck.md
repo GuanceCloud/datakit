@@ -1,6 +1,8 @@
 ---
-title     : '健康检查'
+title     : '主机健康检查'
 summary   : '定期检查主机进程和网络健康状况'
+tags:
+  - '主机'
 __int_icon      : 'icon/healthcheck'
 dashboard :
   - desc  : '暂无'
@@ -9,10 +11,6 @@ monitor   :
   - desc  : '暂无'
     path  : '-'
 ---
-
-<!-- markdownlint-disable MD025 -->
-# 健康检查
-<!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.24.0](../datakit/changelog.md#cl-1.24.0)
 

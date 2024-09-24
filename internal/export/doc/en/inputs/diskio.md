@@ -1,6 +1,8 @@
 ---
 title     : 'Disk IO'
 summary   : 'Collect metrics of disk io'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/diskio'
 dashboard :
   - desc  : 'Disk IO'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/en/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DiskIO
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -86,7 +83,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### Collecting disk `await` for Linux {#linux-await}
 
-By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../../developers/pythond/).
+By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../developers/pythond.md).
 
 Preconditions
 

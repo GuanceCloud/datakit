@@ -1,6 +1,8 @@
 ---
 title     : 'Socket'
 summary   : 'Collect metrics of TCP/UDP ports'
+tags:
+  - 'NETWORK'
 __int_icon      : 'icon/socket'
 dashboard :
   - desc  : 'Socket'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'Socket'
     path  : 'monitor/en/socket'
----
-
-<!-- markdownlint-disable MD025 -->
-# Socket
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

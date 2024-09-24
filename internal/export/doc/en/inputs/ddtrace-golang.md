@@ -1,5 +1,12 @@
-# Golang
-
+---
+title     : 'DDTrace Golang'
+summary   : 'Tracing Golang application with DDTrace'
+tags      :
+  - 'DDTRACE'
+  - 'GOLANG'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/ddtrace'
 ---
 
 Integrating APM into Golang involves some level of invasiveness, **requiring modifications to existing code**, but overall, common business code does not need too many changes, simply replace the relevant import packages.

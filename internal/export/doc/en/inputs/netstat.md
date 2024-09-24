@@ -1,6 +1,9 @@
 ---
 title     : 'NetStat'
 summary   : 'Collect NIC traffic metrics data'
+tags:
+  - 'NETWORK'
+  - 'HOST'
 __int_icon      : 'icon/netstat'
 dashboard :
   - desc  : 'NetStat'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'NetStat'
     path  : 'monitor/en/netstat'
----
-
-<!-- markdownlint-disable MD025 -->
-# NetStat
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

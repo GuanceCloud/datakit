@@ -2,6 +2,9 @@
 title     : 'DDTrace'
 summary   : '接收 DDTrace 的 APM 数据'
 __int_icon: 'icon/ddtrace'
+tags      :
+  - 'DDTRACE'
+  - '链路追踪'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DDTrace
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

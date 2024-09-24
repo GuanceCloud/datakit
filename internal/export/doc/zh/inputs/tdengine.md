@@ -1,6 +1,8 @@
 ---
 title     : 'TDengine'
 summary   : '采集 TDengine 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/tdengine'
 dashboard :
   - desc  : 'TDengine'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# TDengine
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

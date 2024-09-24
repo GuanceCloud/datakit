@@ -1,3 +1,7 @@
+---
+skip: 'not-searchable-on-index-page'
+---
+
 # 更新历史
 
 ---

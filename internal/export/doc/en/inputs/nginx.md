@@ -1,6 +1,9 @@
 ---
 title     : 'Nginx'
 summary   : 'Collect metrics of Nginx'
+tags:
+  - 'WEB SERVER'
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/nginx'
 dashboard :
   - desc  : 'Nginx'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Nginx
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

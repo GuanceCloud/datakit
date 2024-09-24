@@ -1,5 +1,12 @@
-# Java Example
-
+---
+title     : 'OpenTelemetry Java'
+summary   : 'Tracing Java applications with OpenTelemetry'
+tags      :
+  - 'JAVA'
+  - 'OTEL'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/opentelemetry'
 ---
 
 Before using OTEL to send Trace to Datakit, make sure you have [configured the collector](opentelemetry.md).

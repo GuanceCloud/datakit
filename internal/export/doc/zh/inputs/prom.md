@@ -1,19 +1,16 @@
 ---
 title     : 'Prometheus Exporter'
 summary   : '采集 Prometheus Exporter 暴露的指标数据'
-__int_icon      : 'icon/prometheus'
+tags:
+  - '外部数据接入'
+  - 'PROMETHEUS'
+__int_icon: 'icon/prometheus'
 dashboard :
   - desc  : '暂无'
     path  : '-'
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Prometheus Exporter 数据采集
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

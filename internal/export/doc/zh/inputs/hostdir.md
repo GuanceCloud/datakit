@@ -1,6 +1,8 @@
 ---
 title     : '文件目录'
 summary   : '采集文件目录的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/hostdir'
 dashboard :
   - desc  : '文件目录'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 主机目录
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

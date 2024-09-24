@@ -1,6 +1,8 @@
 ---
 title     : 'InfluxDB'
 summary   : 'Collect InfluxDB metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/influxdb'
 dashboard :
   - desc  : 'InfluxDB'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# InfluxDB
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

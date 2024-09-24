@@ -1,6 +1,8 @@
 ---
 title     : 'Process'
-summary   : 'Collect host process and it's metrics'
+summary   : 'Collect host process metrics'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/process'
 dashboard :
   - desc  : 'process'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Process
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -23,12 +20,10 @@ monitor   :
 The process collector can monitor various running processes in the system, acquire and analyze various metrics when the process is running, Including memory utilization rate, CPU time occupied, current state of the process, port of process monitoring, etc. According to various index information of process running, users can configure relevant alarms in Guance Cloud, so that users can know the state of the process, and maintain the failed process in time when the process fails.
 
 <!-- markdownlint-disable MD046 -->
-
 ???+ attention
 
     Process collectors (whether objects or metrics) may consume a lot on macOS, causing CPU to soar, so you can turn them off manually. At present, the default collector still turns on the process object collector (it runs once every 5min by default).
-
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Configuration {#config}
 
@@ -45,15 +40,14 @@ The process collector can monitor various running processes in the system, acqui
 ### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
-
 === "Host Installation"
 
     Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
-    
+
     Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
@@ -61,10 +55,9 @@ The process collector can monitor various running processes in the system, acqui
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
-    
-{{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+{{ CodeBlock .InputENVSample 4 }}
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

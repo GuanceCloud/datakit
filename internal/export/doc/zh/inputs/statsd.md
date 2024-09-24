@@ -1,6 +1,8 @@
 ---
 title     : 'StatsD'
 summary   : '收集 StatsD 上报的指标数据'
+tags:
+  - '外部数据接入'
 __int_icon      : 'icon/statsd'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# StatsD 数据接入
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

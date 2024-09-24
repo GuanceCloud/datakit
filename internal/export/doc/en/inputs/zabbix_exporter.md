@@ -1,6 +1,8 @@
 ---
-title     : 'Zabbix_export'
+title     : 'Zabbix Export'
 summary   : 'Zabbix real-time data exporter'
+tags:
+  - 'THIRD PARTY'
 __int_icon      : 'icon/zabbix'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Zabbix RealTime Exporter
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

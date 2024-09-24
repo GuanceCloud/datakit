@@ -1,6 +1,8 @@
 ---
 title     : 'SSH'
 summary   : '采集 SSH 的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/ssh'
 dashboard :
   - desc  : 'SSH'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'SSH'
     path  : 'monitor/zh/ssh'
----
-
-<!-- markdownlint-disable MD025 -->
-# SSH
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

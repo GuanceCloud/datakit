@@ -1,6 +1,8 @@
 ---
 title     : 'Disk S.M.A.R.T'
 summary   : 'Collect disk metrics through smartctl'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/smartctl'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Disk S.M.A.R.T
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

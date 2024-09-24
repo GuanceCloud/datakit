@@ -1,4 +1,12 @@
-# Golang Example
+---
+title     : 'OpenTelemetry Golang'
+summary   : 'Tracing Golang applications with OpenTelemetry'
+tags      :
+  - 'GOLANG'
+  - 'OTEL'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/opentelemetry'
 ---
 
 In this paper, the common Web-side three-tier architecture mode is used to realize the link tracing and observability of OTEL.

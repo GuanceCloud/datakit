@@ -1,6 +1,8 @@
 ---
 title     : 'MySQL'
 summary   : '采集 MySQL 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# MySQL
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

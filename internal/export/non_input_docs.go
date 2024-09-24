@@ -270,14 +270,14 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			ENVName: "ENV_HTTP_LISTEN",
 			Type:    doc.String,
 			Default: "localhost:9529",
-			Desc:    "The address can be modified so that the [DataKit interface](apis) can be called externally.",
+			Desc:    "The address can be modified so that the [DataKit interface](apis.md) can be called externally.",
 			DescZh:  "可修改地址，使得外部可以调用 [Datakit 接口](apis.md)。",
 		},
 
 		{
 			ENVName: "ENV_HTTP_PUBLIC_APIS",
 			Type:    doc.List,
-			Desc:    "[API list](apis) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.",
+			Desc:    "[API list](apis.md) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.",
 			DescZh:  "允许外部访问的 Datakit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 Datakit 部署在公网时，用来禁用部分 API。",
 		},
 
@@ -421,7 +421,7 @@ func envSinker() []*inputs.ENVInfo {
 func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_IO_FILTERS", Type: doc.JSON, Desc: "Add [row protocol filter](datakit-filter)", DescZh: "添加[行协议过滤器](datakit-filter.md)"},
+		{ENVName: "ENV_IO_FILTERS", Type: doc.JSON, Desc: "Add [line protocol filter](datakit-filter.md)", DescZh: "添加[行协议过滤器](datakit-filter.md)"},
 		{ENVName: "ENV_IO_FLUSH_INTERVAL", Type: doc.TimeDuration, Default: "10s", Desc: "IO channel capacity [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送时间频率 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
 		{ENVName: "ENV_IO_FEED_CHAN_SIZE", Type: doc.Int, Default: "1", Desc: "IO transmission time frequency [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送队列长度 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
 		{ENVName: "ENV_IO_FLUSH_WORKERS", Type: doc.Int, Default: "`cpu_core * 2 + 1`", Desc: "IO flush workers [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)", DescZh: "IO 发送 worker 数 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)"},

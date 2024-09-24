@@ -10,11 +10,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# External
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

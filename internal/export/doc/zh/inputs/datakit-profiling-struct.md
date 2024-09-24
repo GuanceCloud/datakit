@@ -1,4 +1,6 @@
-# Datakit Profiling 相关数据结构
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Profiling 相关数据结构'
 ---
 
 本文介绍 Datakit 中 profiling 相关数据结构定义。

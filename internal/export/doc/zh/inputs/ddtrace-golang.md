@@ -1,7 +1,13 @@
-
-# Golang
-
 ---
+title     : 'DDTrace Golang'
+summary   : 'DDTrace Golang 集成'
+tags      :
+  - 'DDTRACE'
+  - 'GOLANG'
+  - '链路追踪'
+__int_icon: 'icon/ddtrace'
+---
+
 
 Golang 的 APM 接入有一定的侵入性，**需要修改已有代码**，但总体而言，常见的业务代码不需要做太多变更，只需要替换相关的 import 包即可。
 

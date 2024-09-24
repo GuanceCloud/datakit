@@ -1,6 +1,9 @@
 ---
 title     : 'RabbitMQ'
 summary   : '采集 RabbitMQ 的指标数据'
+tags:
+  - '消息队列'
+  - '中间件'
 __int_icon      : 'icon/rabbitmq'
 dashboard :
   - desc  : 'RabbitMQ'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'RabbitMQ'
     path  : 'monitor/zh/rabbitmq'
----
-
-<!-- markdownlint-disable MD025 -->
-# RabbitMQ
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

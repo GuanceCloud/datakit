@@ -1,6 +1,8 @@
 ---
 title: 'DataKit 自身指标采集'
 summary: '采集 Datakit 自身运行指标'
+tags:
+  - '主机'
 __int_icon: 'icon/dk'
 dashboard:
   - desc: 'Datakit 内置视图'
@@ -13,11 +15,6 @@ monitor:
     path: '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DataKit 自身指标
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}} · [:octicons-tag-24: Version-1.11.0](../datakit/changelog.md#cl-1.11.0)
 

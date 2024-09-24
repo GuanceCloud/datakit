@@ -1,6 +1,9 @@
 ---
-title     : 'ebpftrace'
+title     : 'eBPF Tracing'
 summary   : '关联 eBPF 采集的链路 span，生成链路'
+tags:
+  - '链路追踪'
+  - 'EBPF'
 __int_icon      : 'icon/ebpf'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# ebpftrace
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

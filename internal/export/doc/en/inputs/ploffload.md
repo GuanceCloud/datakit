@@ -1,5 +1,5 @@
 ---
-title     : 'ploffload'
+title     : 'Pipeline Offload'
 summary   : 'Receive pending data offloaded from the datakit pipeline'
 __int_icon      : 'icon/ploffload'
 dashboard :
@@ -8,11 +8,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# PlOffload
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

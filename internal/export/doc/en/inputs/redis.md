@@ -1,6 +1,9 @@
 ---
 title     : 'Redis'
 summary   : 'Collect Redis metrics and logs'
+tags:
+  - 'CACHING'
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
@@ -10,11 +13,6 @@ monitor:
     path: 'monitor/en/redis'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Redis
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

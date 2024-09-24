@@ -1,4 +1,10 @@
-# Kubernetes CRD Extended Collection
+---
+title     : 'Kubernetes CRD Extended Collection'
+summary   : 'Create Datakit CRD to collect'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
 ---
 
 :material-kubernetes:

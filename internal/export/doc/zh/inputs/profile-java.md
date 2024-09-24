@@ -1,6 +1,10 @@
-
-# Java profiling
-
+---
+title     : 'Profiling Java'
+summary   : 'Java Profiling 集成'
+tags:
+  - 'JAVA'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
 ---
 
 DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`](https://github.com/DataDog/dd-trace-java){:target="_blank"} 和 [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}。

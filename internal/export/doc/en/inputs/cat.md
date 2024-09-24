@@ -1,18 +1,16 @@
 ---
-title     : 'CAT'
+title     : 'Dianping CAT'
 summary   : 'The performance, capacity, and business indicator monitoring system of Meituan Dianping'
 __int_icon      : 'icon/cat'
+tags:
+  - 'TRACING'
+  - 'APM'
 dashboard :
   - desc  : 'Cat dashboard'
     path  : 'dashboard/en/cat'
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# CAT
-<!-- markdownlint-enable -->
 ---
 
 [:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0) ·
@@ -58,7 +56,7 @@ Data Classification：
 
 The data is all in the Datakit, and the web page of cat no longer has data, so the significance of starting is not significant.
 
-Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the observation cloud page. It is not recommended to start a cat_ Home (cat server) service.
+Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the Guance Cloud page. It is not recommended to start a cat_ Home (cat server) service.
 
 The corresponding configuration can be configured in client.xml, please refer to the following text.
 

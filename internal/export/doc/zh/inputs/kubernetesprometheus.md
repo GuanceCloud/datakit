@@ -1,4 +1,11 @@
-# Datakit KubernetesPrometheus 采集器文档
+---
+title     : 'Kubernetes Prometheus Discovery'
+summary   : '支持发现 Kubernetes 中的 Prometheus 指标暴露并采集'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
 
 [:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 

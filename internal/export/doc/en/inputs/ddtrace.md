@@ -2,6 +2,10 @@
 title     : 'DDTrace'
 summary   : 'Receive APM data from DDTrace'
 __int_icon: 'icon/ddtrace'
+tags:
+  - 'APM'
+  - 'TRACING'
+  - 'DDTRACE'
 dashboard :
   - desc  : 'N/A'
     path  : '-'
@@ -10,10 +14,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DDTrace
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 
@@ -200,9 +200,9 @@ Once environment set, the Pod/Node name will attached to related Span tags.
 
 ### HTTP Settings {#http}
 
-If Trace data is sent across machines, you need to set [HTTP settings for DataKit](datakit-conf.md#config-http-server).
+If Trace data is sent across machines, you need to set [HTTP settings for DataKit](../datakit/datakit-conf.md#config-http-server).
 
-If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](datakit-monitor.md):
+If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](../datakit/datakit-monitor.md):
 
 <figure markdown>
   ![input-ddtrace-monitor](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
@@ -309,7 +309,7 @@ Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do no
 | pod_name          | pod_name          | pod_name from dd.tags |
 | _dd.base_service  | _dd_base_service  | base service          |
 
-In the link interface of the observation cloud, tags that are not in the list can also be filtered.
+In the link interface of the Guance Cloud, tags that are not in the list can also be filtered.
 
 Restore whitelist functionality from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0). If there are labels that must be extracted from the first level label list, they can be found in the `customer_tags`.
 
@@ -340,4 +340,4 @@ If the configured whitelist label is in the native `message.meta`, Will convert 
 
 - [DataKit Tracing Field definition](datakit-tracing-struct.md)
 - [DataKit general Tracing data collection instructions](datakit-tracing.md)
-- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)
+- [Proper use of regular expressions to configure](../datakit/datakit-input-conf.md#debug-regex)

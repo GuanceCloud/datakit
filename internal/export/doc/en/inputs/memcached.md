@@ -1,6 +1,9 @@
 ---
 title     : 'Memcached'
 summary   : 'Collect memcached metrics data'
+tags:
+  - 'CACHING'
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/memcached'
 dashboard :
   - desc  : 'Memcached'
@@ -10,17 +13,12 @@ monitor   :
     path  : '-' 
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Memcached
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
 ---
 
-Memcached collector can collect the running status metrics from Memcached instances, and collect the metrics to the observation cloud to help monitor and analyze various abnormal situations of Memcached.
+Memcached collector can collect the running status metrics from Memcached instances, and collect the metrics to the Guance Cloud to help monitor and analyze various abnormal situations of Memcached.
 
 ## Config {#config}
 

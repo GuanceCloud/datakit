@@ -421,13 +421,19 @@ copyright_check_auto_fix:
 define check_docs
 	# check spell on docs
 	@echo 'version of cspell: $(shell cspell --version)'
-	cspell lint --show-suggestions -c scripts/cspell.json --no-progress $(1)/**/*.md | tee dist/cspell.lint
+	@echo 'check markdown files under $(1)...'
+
+	cspell lint --show-suggestions \
+		-c scripts/cspell.json \
+		--no-progress $(1)/**/*.md | tee dist/cspell.lint
 
   # check markdown style
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
 	@echo 'version of markdownlint: $(shell markdownlint --version)'
 	@truncate -s 0 dist/md-lint.json
-	markdownlint -c scripts/markdownlint.yml -j -o dist/md-lint.json $(1) 
+	markdownlint -c scripts/markdownlint.yml \
+		-j \
+		-o dist/md-lint.json $(1)
 
 	@if [ -s dist/md-lint.json ]; then \
 		printf "$(RED) [FAIL] dist/md-lint.json not empty \n$(NC)"; \
@@ -444,14 +450,16 @@ endef
 
 exportdir=dist/export
 # only check ZH docs, EN docs too many errors
-docs_dir=$(exportdir)/guance-doc/docs/
-docs_template_dir=internal/export/doc/
+# template generated real markdown files
+docs_dir=$(exportdir)/guance-doc/docs
+# all markdown template files
+docs_template_dir=internal/export/doc
 
 md_lint:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--mdcheck $(docs_template_dir) \
-		--mdcheck-autofix=$(AUTO_FIX) # check doc templates
+		--mdcheck-autofix=$(AUTO_FIX) # check markdown templates first
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
 	@bash export.sh -D $(exportdir) -E -V 0.0.0
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
