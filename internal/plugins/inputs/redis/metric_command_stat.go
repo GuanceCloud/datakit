@@ -42,39 +42,47 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
-	collectCache := []*point.Point{}
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	var (
+		collectCache = []*point.Point{}
+		rdr          = strings.NewReader(list)
+		scanner      = bufio.NewScanner(rdr)
+		opts         = append(point.DefaultMetricOptions(), point.WithTime(time.Now()))
+	)
 
-	rdr := strings.NewReader(list)
-	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
-		var kvs point.KVs
-
 		line := scanner.Text()
 		if len(line) == 0 || line[0] == '#' {
+			l.Warnf("ignore comment or empty line %q", line)
 			continue
 		}
 
 		parts := strings.Split(line, ":")
 		if len(parts) != 2 {
+			l.Warnf("ignore line %q", line)
 			continue
 		}
 
 		// example data:
 		// cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls=0,failed_calls=0
+		var kvs point.KVs
 		kvs = kvs.AddTag("method", parts[0])
 
 		itemStrs := strings.Split(parts[1], ",")
 		for _, itemStr := range itemStrs {
-			item := strings.Split(itemStr, "=")
+			arr := strings.Split(itemStr, "=")
 
-			f, err := strconv.ParseFloat(item[1], 64)
-			if err != nil {
+			if len(arr) != 2 {
+				l.Warnf("ignore itemStr %q within %q", itemStr, parts[1])
 				continue
 			}
 
-			kvs = kvs.Add(item[0], f, false, false)
+			f, err := strconv.ParseFloat(arr[1], 64)
+			if err != nil {
+				l.Warnf("ignore value %q on key %q within %q", arr[1], arr[0], parts[1])
+				continue
+			}
+
+			kvs = kvs.Add(arr[0], f, false, false)
 		}
 
 		if kvs.FieldCount() > 0 {
@@ -82,6 +90,8 @@ func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
 				kvs = kvs.AddTag(k, v)
 			}
 			collectCache = append(collectCache, point.NewPointV2(redisCommandStat, kvs, opts...))
+		} else {
+			l.Warnf("no field, ignored line %q", line)
 		}
 	}
 

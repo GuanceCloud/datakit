@@ -8,15 +8,24 @@ package redis
 import (
 	"sort"
 	"strings"
-	"testing"
+	T "testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-func TestInput_parseCommandData(t *testing.T) {
+func TestInput_parseCommandData(t *T.T) {
+	mockCommandData01 := `cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls=0,failed_calls=0
+cmdstat_cluster|info:calls=2,usec=93,usec_per_call=46.50,rejected_calls=0,failed_calls=0
+cmdstat_info:calls=5,usec=378,usec_per_call=75.60,rejected_calls=0,failed_calls=0
+cmdstat_ping:calls=1,usec=6,usec_per_call=6.00,rejected_calls=0,failed_calls=0
+cmdstat_command|docs:calls=2,usec=4112,usec_per_call=2056.00,rejected_calls=0,failed_calls=0
+`
+
 	type fields struct {
 		Host     string
 		Tags     map[string]string
@@ -27,11 +36,10 @@ func TestInput_parseCommandData(t *testing.T) {
 		list string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    []string
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   []string
 	}{
 		{
 			name: "no election",
@@ -51,7 +59,6 @@ func TestInput_parseCommandData(t *testing.T) {
 				"redis_command_stat,foo=bar,host=HOST,method=cmdstat_info calls=5,failed_calls=0,rejected_calls=0,usec=378,usec_per_call=75.6",
 				"redis_command_stat,foo=bar,host=HOST,method=cmdstat_ping calls=1,failed_calls=0,rejected_calls=0,usec=6,usec_per_call=6",
 			},
-			wantErr: false,
 		},
 		{
 			name: "election",
@@ -71,11 +78,10 @@ func TestInput_parseCommandData(t *testing.T) {
 				"redis_command_stat,election=TRUE,foo=bar,method=cmdstat_info calls=5,failed_calls=0,rejected_calls=0,usec=378,usec_per_call=75.6",
 				"redis_command_stat,election=TRUE,foo=bar,method=cmdstat_ping calls=1,failed_calls=0,rejected_calls=0,usec=6,usec_per_call=6",
 			},
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(t *T.T) {
 			ipt := &Input{
 				Host:     tt.fields.Host,
 				Tags:     tt.fields.Tags,
@@ -86,13 +92,7 @@ func TestInput_parseCommandData(t *testing.T) {
 			ipt.setup()
 
 			got, err := ipt.parseCommandData(tt.args.list)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Input.parseCommandData() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if err != nil {
-				return
-			}
+			require.NoError(t, err)
 
 			gotStr := []string{}
 			for _, v := range got {
@@ -105,11 +105,41 @@ func TestInput_parseCommandData(t *testing.T) {
 			assert.Equal(t, tt.want, gotStr)
 		})
 	}
-}
 
-var mockCommandData01 = `cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls=0,failed_calls=0
-cmdstat_cluster|info:calls=2,usec=93,usec_per_call=46.50,rejected_calls=0,failed_calls=0
-cmdstat_info:calls=5,usec=378,usec_per_call=75.60,rejected_calls=0,failed_calls=0
-cmdstat_ping:calls=1,usec=6,usec_per_call=6.00,rejected_calls=0,failed_calls=0
-cmdstat_command|docs:calls=2,usec=4112,usec_per_call=2056.00,rejected_calls=0,failed_calls=0
-`
+	t.Run("ignore-bad-command", func(t *T.T) {
+		badCommand := `# invalid value
+cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls=0,failed_calls=,invalid=1=2
+
+# no command details: ignored
+cmdstat_client|list
+
+# point no fields: ignored
+cmdstat_client|list:calls=
+
+# key got no value
+cmdstat_client|list:calls=1,usec=25,usec_per_call=25.00,rejected_calls,failed_calls=0`
+
+		ipt := &Input{
+			tagger: testutils.DefaultMockTagger(),
+		}
+
+		ipt.setup()
+
+		got, err := ipt.parseCommandData(badCommand)
+		for _, pt := range got {
+			pt.SetTime(time.Unix(0, 123))
+		}
+
+		require.NoError(t, err)
+		assert.Len(t, got, 2)
+		assert.Equal(t,
+			"redis_command_stat,host=HOST,method=cmdstat_client|list calls=1,rejected_calls=0,usec=25,usec_per_call=25 123",
+			got[0].LineProto(),
+		)
+
+		assert.Equal(t,
+			"redis_command_stat,host=HOST,method=cmdstat_client|list calls=1,failed_calls=0,usec=25,usec_per_call=25 123",
+			got[1].LineProto(),
+		)
+	})
+}
