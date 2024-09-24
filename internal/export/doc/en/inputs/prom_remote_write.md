@@ -1,6 +1,9 @@
 ---
 title     : 'Prometheus Remote Write'
 summary   : 'Receive metrics via Prometheus Remote Write'
+tags:
+  - 'THIRD PARTY'
+  - 'PROMETHEUS'
 __int_icon      : 'icon/prometheus'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Prometheus Remote Write
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -107,7 +105,7 @@ We can rename some of the tag names that an indicator already has by configuring
 
 In addition, when the renamed tag key is the same as the existing tag key: You can configure whether to overwrite the existing tag key by `overwrite`.
 
-> Note: For [DataKit global tag key](datakit-conf.md#update-global-tag), renaming them is not supported here.
+> Note: For [DataKit global tag key](../datakit/datakit-conf.md#update-global-tag), renaming them is not supported here.
 
 ## Metric {#metric}
 

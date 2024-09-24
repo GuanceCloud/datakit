@@ -1,6 +1,8 @@
 ---
 title     : 'Socket'
 summary   : '采集 TCP/UDP 端口的指标数据'
+tags:
+  - '网络'
 __int_icon      : 'icon/socket'
 dashboard :
   - desc  : 'Socket'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'Socket'
     path  : 'monitor/zh/socket'
----
-
-<!-- markdownlint-disable MD025 -->
-# Socket
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

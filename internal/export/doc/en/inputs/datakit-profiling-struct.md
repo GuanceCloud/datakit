@@ -1,4 +1,6 @@
-# Profiling Data Structure
+---
+skip: 'not-searchable-on-index-page'
+title: 'Profiling Data Structure'
 ---
 
 This page will introduce about profiling data structure used in Datakit.

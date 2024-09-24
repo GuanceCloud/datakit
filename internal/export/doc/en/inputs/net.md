@@ -1,6 +1,8 @@
 ---
-title     : 'Net'
+title     : 'Network'
 summary   : 'Collect NIC metrics data'
+tags:
+  - 'HOST'
 __int_icon: 'icon/net'
 dashboard :
   - desc  : 'Net'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Net
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

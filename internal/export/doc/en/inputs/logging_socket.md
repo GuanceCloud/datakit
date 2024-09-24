@@ -1,4 +1,15 @@
-# Sample Socket Log Access
+---
+title     : 'Socket Logging'
+summary   : 'Accept Java/Go/Python logging framework remotely'
+tags:
+  - 'LOG'
+__int_icon      : 'icon/socket'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
 ---
 
 This article focuses on how the Java Go Python logging framework configures socket output to the Datakit socket log collector.
@@ -119,7 +130,8 @@ log4j.appender.server.ReconnectionDelay=10000
 
 > The problem is that the `SocketAppender` sends serialized Java objects instead of plain text. You can use log4j for input, but I do not recommend replacing the logging component. Rather, I rewrite an `Appender` that sends log data as plain text, and you use it with JSON formatting.
 
-Alternative plan: [Logback Logstash](../best-practices/cloud-native/k8s-logback-socket.md#spring-boot){:target="_blank"}
+
+<!-- TODO: Alternative plan: [Logback Logstash](../best-practices/cloud-native/k8s-logback-socket.md#spring-boot){:target="_blank"} -->
 
 ## Golang {#golang}
 

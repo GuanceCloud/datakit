@@ -1,6 +1,6 @@
-
-# DataKit 日志采集器性能测试
-
+---
+title: 'DataKit 日志采集器性能测试'
+skip: 'not-searchable-on-index-page'
 ---
 
 ## 环境和工具 {#env-tools}

@@ -1,6 +1,8 @@
 ---
 title     : 'OceanBase'
 summary   : '采集 OceanBase 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/oceanbase'
 dashboard :
   - desc  : 'OceanBase'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# OceanBase
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

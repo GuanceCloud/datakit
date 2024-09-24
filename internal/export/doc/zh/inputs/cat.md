@@ -1,7 +1,9 @@
 ---
-title     : 'CAT'
-summary   : '美团点评的性能、容量和业务指标监控系统'
-__int_icon      : 'icon/cat'
+title      : '点评 CAT'
+summary    : '美团点评的性能、容量和业务指标监控系统'
+__int_icon : 'icon/cat'
+tags       :
+  - '链路追踪'
 dashboard :
   - desc  : 'Cat 监控视图'
     path  : 'dashboard/zh/cat'
@@ -10,15 +12,8 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# 点评 CAT 数据接入
-<!-- markdownlint-enable -->
----
-
 [:octicons-tag-24: Version-1.9.0](../datakit/changelog.md#cl-1.9.0) ·
 [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
-
----
 
 {{.AvailableArchs}}
 

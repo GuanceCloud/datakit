@@ -1,20 +1,17 @@
 ---
-title     : 'Cassandra'
-summary   : 'Collect Cassandra metrics'
-__int_icon      : 'icon/cassandra'
-dashboard :
-  - desc  : 'Cassandra'
-    path  : 'dashboard/en/cassandra'
-monitor   :
-  - desc  : 'Cassandra'
-    path  : 'monitor/en/cassandra'
+title   : 'Cassandra'
+summary : 'Collect Cassandra metrics'
+tags    :
+  - 'DATA STORES'
+__int_icon : 'icon/cassandra'
+dashboard  :
+  - desc   : 'Cassandra'
+    path   : 'dashboard/en/cassandra'
+monitor    :
+  - desc   : 'Cassandra'
+    path   : 'monitor/en/cassandra'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Cassandra
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

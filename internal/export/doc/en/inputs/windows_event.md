@@ -1,6 +1,8 @@
 ---
 title     : 'Windows Event'
 summary   : 'Collect event logs in Windows'
+tags:
+  - 'WINDOWS'
 __int_icon      : 'icon/winevent'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Windows Event
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

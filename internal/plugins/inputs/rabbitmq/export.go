@@ -67,7 +67,7 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 			"overview":                      "Overview",
 			"introduction":                  "Introduction",
 			"description":                   "Description",
-			"description_content":           `The collector can take many metrics from the rabbitmq instance, such as the number of connections, the number of queues, the total number of messages, and other metrics, and collect the metrics to the observation cloud to help monitor and analyze various abnormal situations of rabbitmq.\n\nhttps://docs.guance.com/datakit/rabbitmq/`,
+			"description_content":           `The collector can take many metrics from the rabbitmq instance, such as the number of connections, the number of queues, the total number of messages, and other metrics, and collect the metrics to the Guance Cloud to help monitor and analyze various abnormal situations of rabbitmq.\n\nhttps://docs.guance.com/datakit/rabbitmq/`,
 			"message":                       "Message",
 			"queue":                         "Queue",
 			"node":                          "Node",

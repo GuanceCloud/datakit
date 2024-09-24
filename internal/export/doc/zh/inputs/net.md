@@ -1,6 +1,9 @@
 ---
 title     : 'Net'
 summary   : '采集网卡的指标数据'
+tags:
+  - '主机'
+  - '网络'
 __int_icon: 'icon/net'
 dashboard :
   - desc  : 'Net'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Net
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

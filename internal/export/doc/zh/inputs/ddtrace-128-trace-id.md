@@ -1,4 +1,7 @@
-# 支持 128 位的链路 ID
+---
+skip: 'not-searchable-on-index-page'
+title: '128-bit Trace ID'
+---
 
 [:octicons-tag-24: Datakit-1.8.0](../datakit/changelog.md#cl-1.8.0)
 [:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)

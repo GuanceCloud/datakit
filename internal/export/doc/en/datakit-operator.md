@@ -326,7 +326,7 @@ datakit-lib-init
 
 #### Prerequisites {#datakit-operator-inject-logfwd-prerequisites}
 
-[logfwd](logfwd.md#using) is a proprietary log collection application for Datakit. To use it, you need to first deploy Datakit in the same Kubernetes cluster and satisfy the following two conditions:
+[logfwd](../integrations/logfwd.md#using) is a proprietary log collection application for Datakit. To use it, you need to first deploy Datakit in the same Kubernetes cluster and satisfy the following two conditions:
 
 1. The Datakit `logfwdserver` collector is enabled, for example, listening on port `9533`.
 2. The Datakit service needs to open port `9533` to allow other Pods to access `datakit-service.datakit.svc:9533`.
@@ -362,17 +362,17 @@ datakit-lib-init
 ]
 ```
 
-Parameter explanation can refer to [logfwd configuration](logfwd.md#config):
+Parameter explanation can refer to [logfwd configuration](../integrations/logfwd.md#config):
 
 - `datakit_addr` is the Datakit logfwdserver address.
-- `loggings` is the main configuration and is an array that can refer to [Datakit logging collector](logging.md).
+- `loggings` is the main configuration and is an array that can refer to [Datakit logging collector](../integrations/logging.md).
     - `logfiles` is a list of log files, which can specify absolute paths and support batch specification using glob rules. Absolute paths are recommended.
     - `ignore` filters file paths using glob rules. If it meets any filtering condition, the file will not be collected.
     - `source` is the data source. If it is empty, `'default'` will be used by default.
     - `service` adds a new tag. If it is empty, `$source` will be used by default.
     - `pipeline` is the Pipeline script path. If it is empty, `$source.p` will be used. If `$source.p` does not exist, the Pipeline will not be used. (This script file exists on the DataKit side.)
     - `character_encoding` selects an encoding. If the encoding is incorrect, the data cannot be viewed. It is recommended to leave it blank. Supported encodings include `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or "".
-    - `multiline_match` is for multiline matching, as described in [Datakit Log Multiline Configuration](logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
+    - `multiline_match` is for multiline matching, as described in [Datakit Log Multiline Configuration](../integrations/logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
     - `tags` adds additional tags in JSON map format, such as `{ "key1":"value1", "key2":"value2" }`.
 
 #### Example {#datakit-operator-inject-logfwd-example}
@@ -422,7 +422,7 @@ $ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.contain
 log-container datakit-logfwd
 ```
 
-Finally, you can check whether the logs have been collected on the Observability Cloud Log Platform.
+Finally, you can check whether the logs have been collected on the Guance Cloud Log Platform.
 
 ### FAQ {#datakit-operator-faq}
 

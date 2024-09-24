@@ -1,5 +1,7 @@
-
-# Datakit Tracing 数据结构
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Tracing 数据结构'
+---
 
 ## 简述 {#intro}
 

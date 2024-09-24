@@ -1,7 +1,10 @@
-# 内置 CDN 列表
-
+---
+skip: 'not-searchable-on-index-page'
+title: '内置 CDN 列表'
+---
 
 <!-- markdownlint-disable -->
+
 ```toml
   cdn_map='''
   [

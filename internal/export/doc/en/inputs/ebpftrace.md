@@ -1,6 +1,10 @@
 ---
-title     : 'ebpftrace'
+title     : 'eBPF Tracing'
 summary   : 'Associate eBPF span and generate trace'
+tags:
+  - 'APM'
+  - 'TRACING'
+  - 'EBPF'
 __int_icon      : 'icon/ebpf'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +14,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# ebpftrace
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

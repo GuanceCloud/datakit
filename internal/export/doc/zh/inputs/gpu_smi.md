@@ -1,6 +1,8 @@
 ---
 title     : 'GPU'
 summary   : '采集 NVIDIA GPU 指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/gpu_smi'
 dashboard :
   - desc  : '暂无'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# GPU
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

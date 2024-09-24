@@ -1,7 +1,9 @@
 ---
 title     : 'Cassandra'
 summary   : '采集 Cassandra 的指标数据'
-__int_icon      : 'icon/cassandra'
+tags      :
+  - '数据库'
+__int_icon: 'icon/cassandra'
 dashboard :
   - desc  : 'Cassandra'
     path  : 'dashboard/zh/cassandra'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/zh/cassandra'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Cassandra
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

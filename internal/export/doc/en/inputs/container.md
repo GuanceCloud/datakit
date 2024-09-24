@@ -1,6 +1,9 @@
 ---
 title: 'Basic Collection Of Containers'
 summary: 'Collect metrics, objects, and log data for Container and Kubernetes, and report them to the guance cloud.'
+tags:
+  - 'KUBERNETES'
+  - 'CONTAINER'
 __int_icon:    'icon/kubernetes/'  
 dashboard:
   - desc: 'Kubernetes Dashboard'
@@ -19,12 +22,6 @@ monitor:
     path: 'monitor/en/kubernetes'
 ---
 
-
-<!-- markdownlint-disable MD025 -->
-# Container Data Collection
-<!-- markdownlint-enable -->
----
-
 {{.AvailableArchs}}
 
 ---
@@ -37,7 +34,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
 - At present, container supported Docker/Containerd/CRI-O runtime
     - Docker v17.04 and above should be installed, Container v15.1 and above should be installed, CRI-O 1.20.1 and above should be installed.
-- Collecting Kubernetes data requires the DataKit to [be deployed as a DaemonSet](datakit-daemonset-deploy.md).
+- Collecting Kubernetes data requires the DataKit to [be deployed as a DaemonSet](../datakit/datakit-daemonset-deploy.md).
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -324,5 +321,5 @@ See [doc](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/#using-
 ## More Readings {#more-reading}
 
 - [eBPF Collector: Support flow collection in container environment](ebpf.md)
-- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)
-- [Several configurations of DataKit under Kubernetes](k8s-config-how-to.md)
+- [Proper use of regular expressions to configure](../datakit/datakit-input-conf.md#debug-regex)
+- [Several configurations of DataKit under Kubernetes](../datakit/k8s-config-how-to.md)

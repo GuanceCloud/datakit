@@ -1,6 +1,8 @@
 ---
 title     : 'ElasticSearch'
 summary   : '采集 ElasticSearch 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/elasticsearch'
 dashboard :
   - desc  : 'ElasticSearch'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# ElasticSearch
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,6 +1,10 @@
 ---
 title     : 'Zipkin'
 summary   : 'Zipkin Tracing Data Ingestion'
+tags      :
+  - 'ZIPKIN'
+  - 'APM'
+  - 'TRACING'
 __int_icon      : 'icon/zipkin'
 dashboard :
   - desc  : 'N/A'
@@ -8,12 +12,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Zipkin
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

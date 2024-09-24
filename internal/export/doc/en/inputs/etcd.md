@@ -1,6 +1,8 @@
 ---
 title     : 'etcd'
 summary   : 'Collect etcd metrics'
+tags:
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/etcd'
 dashboard :
   - desc  : 'etcd'
@@ -12,11 +14,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# etcd
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,5 +1,17 @@
-
-# Collect Pod Log by Sidecar Mode
+---
+title     : 'Sidecar for Pod Logging'
+summary   : 'Collect pod logging via Sidecar'
+tags:
+  - 'KUBERNETES'
+  - 'LOG'
+  - 'CONTAINER'
+__int_icon      : 'icon/kubernetes'
+dashboard :
+  - desc  : 'N/A'
+    path  : '-'
+monitor   :
+  - desc  : 'N/A'
+    path  : '-'
 ---
 
 ":material-kubernetes:"
@@ -316,7 +328,7 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 - [Socket Log access best practices](logging_socket.md)
 - [Log collection configuration for specifying pod in Kubernetes](container-log.md#logging-with-annotation-or-label)
 - [Third-party log access](logstreaming.md)
-- [Introduction of DataKit configuration mode in Kubernetes environment](k8s-config-how-to.md)
+- [Introduction of DataKit configuration mode in Kubernetes environment](../datakit/k8s-config-how-to.md)
 - [Install DataKit as DaemonSet](../datakit/datakit-daemonset-deploy.md)
 - [Deploy `logfwdserver` on DataKit](logfwdserver.md)
-- [Proper use of regular expressions to configure](datakit-input-conf.md#debug-regex)
+- [Proper use of regular expressions to configure](../datakit/datakit-input-conf.md#debug-regex)

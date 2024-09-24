@@ -1,7 +1,10 @@
 ---
 title     : 'Pinpoint'
 summary   : 'Pinpoint Tracing 数据接入'
-__int_icon      : 'icon/pinpoint'
+tags      :
+  - 'PINPOINT'
+  - '链路追踪'
+__int_icon: 'icon/pinpoint'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Pinpoint
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

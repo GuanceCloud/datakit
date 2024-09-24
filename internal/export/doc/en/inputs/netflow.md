@@ -1,6 +1,8 @@
 ---
 title     : 'NetFlow'
 summary   : 'NetFlow collector can be used to visualize and monitor NetFlow-enabled device.'
+tags:
+  - 'NETWORK'
 __int_icon      : 'icon/netflow'
 dashboard :
   - desc  : 'NetFlow'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/en/netflow'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# NetFlow
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

@@ -1,6 +1,8 @@
 ---
 title     : 'Flink'
 summary   : '采集 Flink 的指标数据'
+tags:
+  - '中间件'
 __int_icon      : 'icon/flink'
 dashboard :
   - desc  : 'Flink'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/zh/flink'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Flink
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

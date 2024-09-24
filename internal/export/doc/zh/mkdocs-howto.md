@@ -145,7 +145,7 @@
 === "B 情况下这么使用"
 
     在 B 情况下 ...
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 具体用法，参见[这里](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/){:target="_blank"}
 
@@ -173,7 +173,7 @@
 
     Kubernetes 中支持以环境变量的方式修改配置参数：
     ...
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ```
 
 如果要屏蔽多个相关检查，其格式如下（以空格分隔对应的检测项）：
@@ -182,11 +182,12 @@
 <!-- markdownlint-disable MD046 MD047 MD048 -->
 ...
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD047 MD048 -->
 ```
 
 注意事项：
 
+- disable 了什么，下面就 enable 什么，保持对称
 - 一定要记得在适当的位置，开启所有的检测项
 - 如果不是误报，而是因为文档确实触犯了对应的规则，并且通过改写文档能够通过检测，那么就不要屏蔽检测项，勇敢的改正对应的文档
 
@@ -228,7 +229,7 @@ cspell 在检测单词（这里主要指英文单词，目前还不能检测中�
 ??? warning
 
     所有的中英文混排，都需要遵循这个设定，不管是不是代码排版。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 404 链接检查 {#404-check}
 
@@ -247,7 +248,7 @@ cspell 在检测单词（这里主要指英文单词，目前还不能检测中�
     - 带有无意义的多余空格，如 ` 请参见这个[非法链接]( https://invalid-link.com)`
     - 多余的 `#`，如 ` 请参见这个[非法链接](some.md#invalid-link/#)`
 - 如果普通文本中带有链接说明，需用代码字体来排版这个链接，不然会触发 404 误报。比如：`` 请将主机地址设置为 `http://localhost:8080` ``，文中的这个 localhost 链接用代码字体修饰后，就不会触发 404 误报了。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD038 -->
 
 ## 更多阅读 {#more-reading}
 

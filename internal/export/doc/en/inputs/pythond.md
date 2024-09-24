@@ -1,6 +1,8 @@
 ---
 title     : 'Pythond'
 summary   : 'Collect data via Python extension'
+tags:
+  - 'PYTHON'
 __int_icon      : 'icon/pythond'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Developing Custom Collector with Python
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

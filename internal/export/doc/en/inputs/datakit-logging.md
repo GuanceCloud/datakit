@@ -1,4 +1,6 @@
-# Overview of DataKit Log Collection
+---
+skip: 'not-searchable-on-index-page'
+title: 'Overview of DataKit Log Collection'
 ---
 
 For the overall observability of log data, it provides a flexible and changeable way of information combination. For this reason, compared with metrics and Tracing, there are more ways to collect and process logs to adapt to different environments, architectures and collection scenarios of technology stacks.

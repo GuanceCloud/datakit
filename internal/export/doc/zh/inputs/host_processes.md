@@ -1,6 +1,8 @@
 ---
 title     : '进程'
 summary   : '采集进程的指标和对象数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/process'
 dashboard :
   - desc  : '进程'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# 进程
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -28,7 +25,7 @@ monitor   :
 
     进程采集器（不管是对象还是指标），在 macOS 上可能消耗比较大，导致 CPU 飙升，可以手动将其关闭。目前默认采集器仍然开启进程对象采集器（默认 5min 运行一次）。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 配置 {#config}
 

@@ -1,6 +1,8 @@
 ---
 title     : 'SNMP'
 summary   : 'Collect metrics and object data from SNMP devices'
+tags:
+  - 'SNMP'
 __int_icon      : 'icon/snmp'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# SNMP
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,6 +1,8 @@
 ---
 title     : '磁盘 IO'
 summary   : '采集磁盘 IO 指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/diskio'
 dashboard :
   - desc  : '磁盘 IO'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/zh/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DiskIO
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

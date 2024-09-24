@@ -1,5 +1,9 @@
-
-# Scheck Access
+---
+title     : 'SCheck'
+summary   : '接收 SCheck 采集的数据'
+tags:
+  - 'SECURITY'
+__int_icon: 'icon/scheck'
 ---
 
 Operating system support: :fontawesome-brands-linux: :fontawesome-brands-windows:

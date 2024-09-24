@@ -1,8 +1,7 @@
-# changelog
-
 ---
-
-> *作者： 刘锐、宋龙奇*
+skip: 'not-searchable-on-index-page'
+title: 'DDTrace Extension Changelog'
+---
 
 ## Introduction {#intro}
 

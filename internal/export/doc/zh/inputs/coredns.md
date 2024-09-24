@@ -1,6 +1,8 @@
 ---
 title     : 'CoreDNS'
 summary   : '采集 CoreDNS 的指标数据'
+tags:
+  - '中间件'
 __int_icon      : 'icon/coredns'
 dashboard :
   - desc  : 'CoreDNS'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# CoreDNS
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

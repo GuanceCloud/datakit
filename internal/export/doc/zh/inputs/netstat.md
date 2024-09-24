@@ -1,6 +1,9 @@
 ---
 title     : 'NetStat'
 summary   : '采集网卡流量指标数据'
+tags:
+  - '网络'
+  - '主机'
 __int_icon      : 'icon/netstat'
 dashboard :
   - desc  : 'NetStat'
@@ -10,11 +13,6 @@ monitor   :
     path  : 'monitor/zh/netstat'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# NetStat
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

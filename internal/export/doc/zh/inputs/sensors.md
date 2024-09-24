@@ -1,6 +1,8 @@
 ---
 title     : '硬件 Sensors 数据采集'
 summary   : '通过 Sensors 命令采集硬件温度指标'
+tags:
+  - '主机'
 __int_icon      : 'icon/sensors'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 硬件温度 Sensors
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

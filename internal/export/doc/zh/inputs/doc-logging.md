@@ -1,4 +1,7 @@
-# Datakit 日志采集系统的设计和实现
+---
+title: 'Datakit 日志采集系统的设计和实现'
+skip: 'not-searchable-on-index-page'
+---
 
 ## 前言 {#head}
 

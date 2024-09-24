@@ -1,6 +1,8 @@
 ---
-title     : 'Graphite Exporter'
+title     : 'Graphite'
 summary   : '采集 Graphite Exporter 暴露的指标数据'
+tags:
+  - '外部数据接入'
 __int_icon      : 'icon/graphite'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Graphite
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

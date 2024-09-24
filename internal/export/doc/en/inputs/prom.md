@@ -1,6 +1,9 @@
 ---
 title     : 'Prometheus Exporter'
 summary   : 'Collect metrics exposed by Prometheus Exporter'
+tags:
+  - 'PROMETHEUS'
+  - 'THIRD PARTY'
 __int_icon      : 'icon/prometheus'
 dashboard :
   - desc  : 'N/A'
@@ -8,11 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Prometheus Exporter Data Collection
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}
@@ -64,7 +62,7 @@ The Prom collector supports configuring additional request headers in HTTP reque
 
 ### About Tag Renaming {#tag-rename}
 
-> Note: For [DataKit global tag key](datakit-conf#update-global-tag), renaming them is not supported here.
+> Note: For [DataKit global tag key](../datakit/datakit-conf.md#update-global-tag), renaming them is not supported here.
 
 `tags_rename` can replace the tag name of the collected Prometheus Exporter data, and `overwrite_exist_tags` is used to open the option of overwriting existing tags. For example, for existing Prometheus Exporter data:
 

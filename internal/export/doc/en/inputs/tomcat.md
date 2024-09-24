@@ -1,6 +1,9 @@
 ---
 title     : 'Tomcat'
 summary   : 'Collect Tomcat metrics'
+tags:
+  - 'WEB SERVER'
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/tomcat'
 dashboard :
   - desc  : 'Tomcat'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'Tomcat'
     path  : 'monitor/en/tomcat'
----
-
-<!-- markdownlint-disable MD025 -->
-# Tomcat
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

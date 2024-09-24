@@ -1,6 +1,13 @@
-# Datakit KubernetesPrometheus Collector Documentation
+---
+title     : 'Kubernetes Prometheus Discovery'
+summary   : 'Auto discovery and collecting Prometheus exported metrics among Kubernetes'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
+---
 
-[:octicons-tag-24: Version-1.34.0](changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 ## Overview {#overview}
 

@@ -1,6 +1,8 @@
 ---
 title     : 'Windows 事件'
 summary   : '采集 Windows 中的事件日志'
+tags:
+  - 'WINDOWS'
 __int_icon      : 'icon/winevent'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Windows 事件
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

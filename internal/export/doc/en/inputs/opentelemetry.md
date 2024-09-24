@@ -1,6 +1,10 @@
 ---
 title     : 'OpenTelemetry'
 summary   : 'Collect OpenTelemetry metric, log and APM data'
+tags      :
+  - 'OTEL'
+  - 'APM'
+  - 'TRACING'
 __int_icon      : 'icon/opentelemetry'
 dashboard :
   - desc  : 'Opentelemetry JVM Monitoring View'
@@ -9,10 +13,6 @@ monitor   :
   - desc  : 'N/A'
     path  : '-'
 ---
-
-<!-- markdownlint-disable MD025 -->
-# OpenTelemetry
-<!-- markdownlint-enable -->
 
 {{.AvailableArchs}}
 
@@ -165,7 +165,7 @@ If you want to add custom labels, you can use environment variables:
 -Dotel.resource.attributes=username=myName,env=1.1.0
 ```
 
-And modify the whitelist in the configuration file so that a custom label can appear in the first level label of the observation cloud link details.
+And modify the whitelist in the configuration file so that a custom label can appear in the first level label of the Guance Cloud link details.
 
 ```toml
 customer_tags = ["sink_project", "username","env"]

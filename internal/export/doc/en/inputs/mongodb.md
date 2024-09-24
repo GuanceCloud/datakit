@@ -1,6 +1,8 @@
 ---
 title     : 'MongoDB'
 summary   : 'Collect mongodb metrics data'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/mongodb'
 dashboard :
   - desc  : 'Mongodb'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# MongoDB
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

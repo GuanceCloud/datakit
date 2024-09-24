@@ -1,4 +1,6 @@
-# DataKit 日志处理综述
+---
+skip: 'not-searchable-on-index-page'
+title: 'DataKit 日志处理综述'
 ---
 
 本篇用来介绍 DataKit 如何处理日志的。在[另一篇文档](datakit-logging.md)中，我们介绍了 DataKit 是如何采集日志的，这两篇文档，可结合起来看，希望大家对整个日志处理有更全面的认识。

@@ -1,24 +1,22 @@
 ---
-title      : '观测云 OpenTelemetry Exportor'
-summary    : '直接将 OpenTelemetry 的数据输出给观测云'
-__int_icon : 'icon/opentelemetry'
-tags       :
+title     : 'OpenTelemetry Exportor for Guance Cloud'
+summary   : 'Export OpenTelemetry data to GuanCe Cloud directly'
+__int_icon: 'icon/opentelemetry'
+tags      :
   - 'OTEL'
 ---
 
-> *作者： 宋龙奇*
+GuanCe Cloud has added a `guance-exporter` in the OTEL JAVA Agent, which can send traces and metrics directly to the GuanCe Cloud Center.
 
-观测云在 OTEL JAVA agent 中添加了一个 `guance-exporter`，该 exporter 可以将链路和指标直接发送到观测云中心。
+[guance-exporter](https://github.com/GuanceCloud/guance-java-exporter){:target="_blank"} is open source on GitHub and is integrated into the Guance Cloud's secondarily developed [otel-java-agent](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}.
 
-[guance-exporter](https://github.com/GuanceCloud/guance-java-exporter){:target="_blank"} 在 GitHub 中是开源的，并且集成到了观测云二次开发的 [otel-java-agent](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"} 之中。
+The `guance-exporter` can send data directly to GuanCe Cloud, that is, the endpoint, and the format of the sent data is InfluxDB point.
 
-guance-exporter 可以将数据直接发送到观测云，也就是 `endpoint`, 发送的数据格式是 InfluxDB point。
+## Download {#download}
 
-## 下载 {#download}
+Download from [GitHub-Release](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/release){:target="_blank"}, the version is **not lower than** v1.26.3-guance.
 
-从 [GitHub-Release](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/release){:target="_blank"} 中下载，版本***不低于*** `v1.26.3-guance`
-
-### Agent 使用方式 {#agent}
+### Agent Usage {#agent}
 
 ```shell
 java  -javaagent:/usr/local/opentelemetry-javaagent-1.26.3-guance.jar \
@@ -29,7 +27,7 @@ java  -javaagent:/usr/local/opentelemetry-javaagent-1.26.3-guance.jar \
 -jar app.jar
 ```
 
-如果是 k8s :
+for k8s:
 
 ```shell
 export OTEL_TRACES_EXPORTER=guance
@@ -38,17 +36,17 @@ export OTEL_EXPORTER_GUANCE_ENDPOINT=https://openway.guance.com
 export OTEL_EXPORTER_GUANCE_TOKEN=<TOKEN>
 ```
 
-参数说明：
+Parameter Description:
 
-- `guance` exporter 名称。
-- `endpoint` 观测云中心地址，通常为 `https://openway.guance.com`。
-- `token` 观测云用户空间 token。
+- `guance` exporter name.
+- `endpoint` GuanCe Cloud Center address, usually `https://openway.guance.com`.
+- `token` GuanCe Cloud user space token.
 
-注意： 不配置 `otel.metrics.exporter` 则指标不会上传，`otel.traces.exporter` 同理。但是 `endpoint` 和 `token` 是必填的。
+Note: If `otel.metrics.exporter` is not configured, metrics will not be uploaded, the same for `otel.traces.exporter`. However, `endpoint` and `token` are required.
 
-### 集成方式 {#code-integration}
+### Integration {#code-integration}
 
-引用该 jar 包， *pom.xml* 部分如下：
+Reference the jar package, the pom.xml section is as follows:
 
 ```xml
 <dependencies>
@@ -73,24 +71,24 @@ export OTEL_EXPORTER_GUANCE_TOKEN=<TOKEN>
     <dependency>
         <groupId>com.guance</groupId>
         <artifactId>guance-exporter</artifactId>
-        <!--  请确认版本！！ -->
+        <!--  Please confirm the version!! -->
        <version>1.4.0</version>
     </dependency>
 </dependencies>
 ```
 
-版本可在 maven2 仓库中使用最新版本：[maven2-guance-exporter](https://repo1.maven.org/maven2/com/guance/guance-exporter/){:target="_blank"}
+The version can be used in the maven2 repository with the latest version: [maven2-guance-exporter](https://repo1.maven.org/maven2/com/guance/guance-exporter/){:target="_blank"}
 
-要在 `SpringBoot` 项目中初始化一个全局的 OpenTelemetry 对象，你可以创建一个单例类来管理它。以下是一个示例：
+To initialize a global OpenTelemetry object in a SpringBoot project, you can create a singleton class to manage it. Here is an example:
 
-首先，创建一个名为 `OpenTelemetryManager` 的类：
+First, create a class named OpenTelemetryManager:
 
 ```java
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
 
 public class OpenTelemetryManager {
-    private static final OpenTelemetry OPEN_TELEMETRY = OpenTelemetryInitializer.initialize(); // 初始化 OpenTelemetry
+    private static final OpenTelemetry OPEN_TELEMETRY = OpenTelemetryInitializer.initialize();
 
     public static OpenTelemetry getOpenTelemetry() {
         return OPEN_TELEMETRY;
@@ -102,7 +100,7 @@ public class OpenTelemetryManager {
 }
 ```
 
-然后，在 `OpenTelemetryInitializer` 类中进行 `OpenTelemetry` 的初始化和配置：
+Then, in the OpenTelemetryInitializer class, perform the initialization and configuration of OpenTelemetry:
 
 ```java
 import com.guance.exporter.guance.trace.GuanceSpanExporter;
@@ -137,7 +135,7 @@ public class OpenTelemetryInitializer {
 }
 ```
 
-最后，在你的 Java 文件中，你可以直接通过 `OpenTelemetryManager` 类来获取全局的 `OpenTelemetry` 对象：
+Finally, in your Java files, you can directly obtain the global OpenTelemetry object through the `OpenTelemetryManager` class:
 
 ```java
 import io.opentelemetry.api.OpenTelemetry;
@@ -148,13 +146,13 @@ public class YourClass {
     private static final Tracer tracer = OpenTelemetryManager.getTracer("your-tracer-name");
 
     public void yourMethod() {
-        // 使用 tracer 进行跟踪
+        // use tracer for tracing
         tracer.spanBuilder("your-span").startSpan().end();
         // ...
     }
 }
 ```
 
-## 指标 {#metrics}
+## Metric {#metrics}
 
-guance-exporter 支持 metric 数据发送到观测云，指标集的名字是 `otel-service` 。
+`guance-exporter` supports sending metric data to GuanCe Cloud, and the name of the metric set is `otel-service`.

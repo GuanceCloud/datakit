@@ -1,4 +1,6 @@
-# Overview of DataKit Log Processing
+---
+skip: 'not-searchable-on-index-page'
+title: 'Overview of DataKit Log Processing'
 ---
 
 This article is used to introduce how DataKit handles logs. [In another document](datakit-logging.md), we introduced how DataKit collects logs. These two documents can be seen together, hoping that everyone has a more comprehensive understanding of the whole log processing.
@@ -103,17 +105,17 @@ After reading (receiving) the log from the outside, the basic processing will be
 If the corresponding log is configured with Pipeline cutting, then each log (including a single multi-line log) will be cut by Pipeline, which is mainly divided into two steps:
 
 1. Grok/JSON cutting: Through Grok/JSON, a single Raw log is cut into structured data.
-1. The extracted fields are processed finely, such as [completing IP information](../pipeline/pipeline/pipeline-built-in-function.md#fn-geoip), [desensitizing logs](../pipeline/pipeline/pipeline-built-in-function.md#fn-cover), etc.
+1. The extracted fields are processed finely, such as [completing IP information](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-geoip), [desensitizing logs](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-cover), etc.
 
 - Blacklist（Filter）
 
-[Filter is a set of filters](datakit-filter.md), which receives a set of structured data and decides whether the data is discarded or not through certain logical judgment. Filter is a set of logical operation rules distributed by the center (actively pulled by DataKit), and its form is roughly as follows:
+[Filter is a set of filters](../datakit/datakit-filter.md), which receives a set of structured data and decides whether the data is discarded or not through certain logical judgment. Filter is a set of logical operation rules distributed by the center (actively pulled by DataKit), and its form is roughly as follows:
 
 ```txt
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 
-If the center configures a log blacklist, assuming that 10 of the 100 cut logs meet the conditions here (that is, the source is `datakit` and the value of the `bar` field appears in the following list), then these 10 logs will not be reported to Guance Cloud and will be silently discarded. You can see the discarded statistics in the [DataKit Monitor](datakit-monitor.md).
+If the center configures a log blacklist, assuming that 10 of the 100 cut logs meet the conditions here (that is, the source is `datakit` and the value of the `bar` field appears in the following list), then these 10 logs will not be reported to Guance Cloud and will be silently discarded. You can see the discarded statistics in the [DataKit Monitor](../datakit/datakit-monitor.md).
 
 - Report Guance Cloud
 
@@ -124,5 +126,5 @@ Under normal circumstances, there is a delay of about 30s from the time when the
 ## Extend Reading {#more-readings}
 
 - [Overview of DataKit Log Collection](datakit-logging.md)
-- [How to Debug Pipeline](../pipeline/pipeline/pipeline-quick-start.md#debug)
-- [Row Protocol Black Name Filter](datakit-filter.md)
+- [How to Debug Pipeline](../pipeline/use-pipeline/pipeline-quick-start.md#debug)
+- [Row Protocol Black Name Filter](../datakit/datakit-filter.md)

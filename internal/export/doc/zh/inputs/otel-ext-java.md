@@ -1,7 +1,15 @@
-# OTEL SQL 脱敏
+---
+title      : 'OpenTelemetry 扩展'
+summary    : '观测云对 OpenTelemetry 插件做了额外的扩展'
+__int_icon : 'icon/opentelemetry'
+tags       :
+  - 'OTEL'
+  - '链路追踪'
 ---
 
 > *作者： 宋龙奇*
+
+## SQL 脱敏 {#sql-obfuscation}
 
 SQL 脱敏 也是狭义的 DB 语句清理。
 
@@ -25,7 +33,7 @@ agent 在设置 `db.statement` 语义属性之前清理所有数据库查询/语
 说明：启用 DB 语句清理。
 ```
 
-## DB 语句清理和结果 {#why}
+### DB 语句清理和结果 {#why}
 
 大部分语句中都包括一些敏感数据包括：用户名，手机号，密码，卡号等等。通过敏感处理能够过滤掉这些数据，另一个原因就是方便进行分组筛选操作。
 
@@ -60,9 +68,9 @@ ps.setString(2,pw);        //  替换第二个?
 
 从根本上解决脱敏问题。需要加探针加在 `set` 上。先将参数缓存之后才是 `exectue()` , 最终将参数放到 Attributes 中。
 
-## 观测云二次开发 {#guacne-branch}
+### 观测云扩展 {#guacne-branch}
 
-想要获取清洗前的数据以及后续通过 `set` 函数添加的值，就需要进行新的埋点， 并添加环境变量：
+想要获取脱敏前的数据以及后续通过 `set` 函数添加的值，就需要进行新的埋点， 并添加环境变量：
 
 ```shell
 -Dotel.jdbc.sql.obfuscation=true
@@ -78,20 +86,15 @@ OTEL_JDBC_SQL_OBFUSCATION=true
   <figcaption> 链路详情 </figcaption>
 </figure>
 
+### 常见问题 {#question}
 
-## 常见问题 {#question}
+1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 但是没有关闭 DB 语句脱敏
 
-1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 但是没有关闭 DB 语句清洗
+可能会出现占位符和 `origin_sql_x` 数量对不上，原因是因为有的参数已经在 DB 语句脱敏中被占位符替换掉了。
 
-    ```text
-        可能会出现占位符和 `origin_sql_x` 数量对不上。原因是因为有的参数已经在 DB 语句清洗中被占位符替换掉了。
-    ```
+1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 关闭 DB 语句脱敏
 
-2. 开启 `-Dotel.jdbc.sql.obfuscation=true` 关闭 DB 语句清洗
-
- ```text
-     如果语句过长或者换行符很多，没有进行格式化的情况下语句会很混乱。同时也会造成没必要的流量浪费。
- ```
+如果语句过长或者换行符很多，没有进行格式化的情况下语句会很混乱。同时也会造成没必要的流量浪费。
 
 ## 更多 {#more}
 

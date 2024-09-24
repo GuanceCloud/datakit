@@ -1,5 +1,12 @@
-# Python
-
+---
+title     : 'DDTrace Phthon'
+summary   : 'Tracing Python applications with DDTrace'
+tags      :
+  - 'DDTRACE'
+  - 'PYTHON'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/ddtrace'
 ---
 
 ## Install Dependencies {#dependence}

@@ -1,6 +1,9 @@
 ---
 title     : 'Kafka'
 summary   : 'Collect metrics of Kafka'
+tags:
+  - 'MIDDLEWARE'
+  - 'MESSAGE QUEUES'
 __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'Kafka'
@@ -10,11 +13,6 @@ monitor   :
     path  : 'monitor/en/kafka'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Kafka
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

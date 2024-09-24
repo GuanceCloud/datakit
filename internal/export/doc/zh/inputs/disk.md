@@ -1,6 +1,8 @@
 ---
 title     : '磁盘'
 summary   : '采集磁盘的指标数据'
+tags:
+  - '主机'
 __int_icon      : 'icon/disk'
 dashboard :
   - desc  : '磁盘'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '主机检测库'
     path  : 'monitor/zh/host'
----
-
-<!-- markdownlint-disable MD025 -->
-# Disk
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

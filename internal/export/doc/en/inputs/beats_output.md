@@ -1,6 +1,8 @@
 ---
 title     : 'Filebeat'
 summary   : 'Receive log collected by Filebeat '
+tags:
+  - 'LOG'
 __int_icon      : 'icon/beats'
 dashboard :
   - desc  : 'N/A'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Filebeat
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

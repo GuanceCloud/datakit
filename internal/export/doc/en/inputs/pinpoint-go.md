@@ -1,4 +1,13 @@
-# Golang example
+---
+title     : 'PinPoint Golang'
+summary   : 'Tracing Golang applications with PinPoint'
+__int_icon: 'icon/pinpoint'
+tags      :
+  - 'PINPOINT'
+  - 'GOLANG'
+  - 'APM'
+  - 'TRACING'
+---
 
 - [Pinpoint Golang Agent code repository](https://github.com/pinpoint-apm/pinpoint-go-agent){:target="_blank"}
 - [Pinpoint Golang code example](https://github.com/pinpoint-apm/pinpoint-go-agent/tree/main/example){:target="_blank"}

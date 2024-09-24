@@ -1,6 +1,9 @@
 ---
 title     : 'Apache'
 summary   : 'Apache 采集器可以从 Apache 服务中采集请求数、连接数等'
+tags:
+  - '中间件'
+  - 'WEB SERVER'
 __int_icon      : 'icon/apache'
 dashboard :
   - desc  : 'Apache'
@@ -8,11 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'Apache'
     path  : 'monitor/zh/apache'
----
-
-<!-- markdownlint-disable MD025 -->
-# Apache
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

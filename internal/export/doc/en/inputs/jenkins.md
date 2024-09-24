@@ -1,6 +1,9 @@
 ---
 title     : 'Jenkins'
 summary   : 'Collect Jenkins metrics and logs'
+tags:
+  - 'JENKINS'
+  - 'CI/CD'
 __int_icon      : 'icon/jenkins'
 dashboard :
   - desc  : 'Jenkins'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'Jenkins'
     path  : 'monitor/en/jenkins'
----
-
-<!-- markdownlint-disable MD025 -->
-# Jenkins
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

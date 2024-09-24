@@ -1,6 +1,9 @@
 ---
 title     : 'Kafka'
 summary   : '采集 Kafka 的指标数据'
+tags:
+  - '中间件'
+  - '消息队列'
 __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'Kafka'
@@ -8,12 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'Kafka'
     path  : 'monitor/zh/kafka'
----
-
-<!-- markdownlint-disable MD025 -->
-# Kafka
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

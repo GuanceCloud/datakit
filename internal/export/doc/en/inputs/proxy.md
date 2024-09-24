@@ -10,11 +10,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DataKit Proxy
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

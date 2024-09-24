@@ -1,8 +1,12 @@
-# Java
-
 ---
-
-> *作者： 刘锐、宋龙奇*
+title     : 'DDTrace Extensions'
+summary   : 'GuanceCloud Extensions on DDTrace'
+__int_icon: 'icon/ddtrace'
+tags      :
+  - 'DDTRACE'
+  - 'APM'
+  - 'TRACING'
+---
 
 ## Introduction {#intro}
 
@@ -40,7 +44,7 @@ DDTrace supported version: [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
 
 The link information will put the header information of the request and response into the tag.The default state is off. If it needs to be turned on, add the parameter `-Ddd.trace.headers.enabled=true`  during startup.
 
-DDTrace supported version: [v1.25.2](ddtrace-ext-changelog/cl-1.25.2-guance)
+DDTrace supported version: [v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
 
 ## supported trace-128-id {#trace_128_bit_id}
 
@@ -50,7 +54,7 @@ DDTrace supported version: [v1.25.2](ddtrace-ext-changelog/cl-1.25.2-guance)
 The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data.
 Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
 
-To this end, secondary development was carried out on the observation cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
+To this end, secondary development was carried out on the Guance Cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
 
 how to config:
 
@@ -66,7 +70,7 @@ At present, only DDTrace and OTEL are connected in series, and there is currentl
 
 ## supported MongoDB obfuscation {#mongo-obfuscation}
 
-Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the observation cloud.
+Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the Guance Cloud.
 
 Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
 
@@ -74,7 +78,7 @@ supported version：
 
 - [x] all
 
-DDTrace supported version: [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
+DDTrace supported version: [v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
 
 ## supported DM8 Database {#dameng-db}
 Add DM8 Database trace information.
@@ -102,7 +106,7 @@ After the declaration is made in the above way, the corresponding method will be
 
 <!-- markdownlint-enable -->
 
-DDTrace supported version： [v1.12.1](ddtrace-ext-changelog/cl-1.12.1-guance)
+DDTrace supported version： [v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
 
 ## ddtrace agent default port {#agent_port}
 
@@ -111,7 +115,7 @@ ddtrace changes the default remote port 8126 to 9529.
 ## redis command args {#redis-command-args}
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
-Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the observation cloud link: `redis.command.args=key val`.
+Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the Guance Cloud link: `redis.command.args=key val`.
 
 Supported version:
 
@@ -189,7 +193,7 @@ After the SQL is executed, this map will be filled into the Span. The final data
 
 supported version： Version 2.3 and above are currently supported.
 
-DDTrace supported version：[v0.113.0](ddtrace-ext-changelog/#ccl-0.113.0-new)
+DDTrace supported version：[v0.113.0](ddtrace-ext-changelog.md#ccl-0.113.0-new)
 
 ## Dubbo supported {#dubbo}
 

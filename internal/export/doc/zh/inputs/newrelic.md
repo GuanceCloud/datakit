@@ -1,6 +1,9 @@
 ---
 title     : 'New Relic'
-summary   : '接收来自 New Relic Agemt 的数据'
+summary   : '接收来自 New Relic Agent 的数据'
+tags:
+  - 'NEWRELIC'
+  - '链路追踪'
 __int_icon      : ''
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# New Relic For .Net
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

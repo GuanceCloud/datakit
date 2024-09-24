@@ -1,6 +1,10 @@
-
-# 观测云二次开发
-
+---
+title     : 'DDTrace 扩展'
+summary   : '观测云扩展了 DDTrace 对组建的支持'
+__int_icon: 'icon/ddtrace'
+tags      :
+  - 'DDTRACE'
+  - '链路追踪'
 ---
 
 ## 简介 {#intro}

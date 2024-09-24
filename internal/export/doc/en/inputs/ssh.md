@@ -1,6 +1,8 @@
 ---
 title     : 'SSH'
 summary   : 'Collect SSH metrics'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/ssh'
 dashboard :
   - desc  : 'SSH'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/en/ssh'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# SSH
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,6 +1,9 @@
 ---
 title     : 'Prometheus Push Gateway'
 summary   : '开启 Pushgateway API，接收 Prometheus 指标数据'
+tags:
+  - '外部数据接入'
+  - 'PROMETHEUS'
 __int_icon      : 'icon/pushgateway'
 dashboard :
   - desc  : '暂无'
@@ -8,11 +11,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Pushgateway
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}} · [:octicons-tag-24: Version-1.31.0](../datakit/changelog.md#cl-1.31.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)

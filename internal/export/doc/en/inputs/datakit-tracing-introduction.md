@@ -1,4 +1,7 @@
-# Brief Introduction of Program Tracing System {#intro}
+---
+skip: 'not-searchable-on-index-page'
+title: 'Brief Introduction of Program Tracing System'
+---
 
 Program log is the breadcrumbs of code execution process. Searching for these breadcrumbs can not only find bugs hidden in code: Bug:fontawesome-solid-bug:; more importantly, continuous program log tracking provides an observable way to build program execution process.
 

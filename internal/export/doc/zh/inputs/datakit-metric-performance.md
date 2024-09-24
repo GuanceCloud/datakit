@@ -1,4 +1,6 @@
-# Datakit 指标性能测试报告
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit 指标性能测试报告'
 ---
 
 ## 测试环境参数

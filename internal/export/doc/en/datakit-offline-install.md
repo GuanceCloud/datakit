@@ -16,7 +16,7 @@ At present, DataKit has a inner proxy collector; The same goal can also be achie
 
 ### Preconditions {#requrements}
 
-- Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](proxy.md) collector is located in Datakit IP 1.2. 3.4, with the following configuration:
+- Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](../integrations/proxy.md) collector is located in Datakit IP 1.2. 3.4, with the following configuration:
 
 ```toml
 [[inputs.proxy]]

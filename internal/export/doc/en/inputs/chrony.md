@@ -10,10 +10,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Chrony
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

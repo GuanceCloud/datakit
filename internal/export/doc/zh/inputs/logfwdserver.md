@@ -1,6 +1,10 @@
 ---
 title     : 'Log Forward'
 summary   : '通过 sidecar 方式收集 Pod 内日志数据'
+tags:
+  - 'KUBERNETES'
+  - '日志'
+  - '容器'
 __int_icon      : 'icon/logfwd'
 dashboard :
   - desc  : '暂无'
@@ -8,11 +12,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# {{.InputName}}
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

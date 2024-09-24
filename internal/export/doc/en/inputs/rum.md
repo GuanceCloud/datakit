@@ -1,6 +1,8 @@
 ---
 title     : 'RUM'
 summary   : 'Collect user behavior data'
+tags:
+  - 'RUM'
 __int_icon      : 'icon/rum'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# RUM
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -41,7 +38,7 @@ RUM (Real User Monitor) collector is used to collect user access monitoring data
 
 It is recommended that RUM be deployed separately on the public network, not with existing services (such as Kubernetes cluster). As the traffic on RUM interface may be very large, the traffic within the cluster will be disturbed by it, and some possible resource scheduling mechanisms within the cluster may affect the operation of RUM services.
 
-- On the DataKit [install IP geo-Repository](datakit-tools-how-to.md#install-ipdb)
+- On the DataKit [install IP geo-Repository](../datakit/datakit-tools-how-to.md#install-ipdb)
 - Since [1.2.7](../datakit/changelog.md#cl-1.2.7), due to the adjustment of the installation method of IP geographic information base, the default installation no longer comes with its own IP information base, but needs to be installed manually.
 
 ### Collector Configuration {#input-config}
@@ -73,7 +70,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 <!-- markdownlint-enable -->
 ### Security Restrictions {#security-setting}
 
-Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
+Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](../datakit/apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
 
 ```toml
 [http_api]
@@ -91,7 +88,7 @@ Because RUM DataKit is generally deployed in a public network environment, but o
   ]
 ```
 
-Other interfaces are still available, but can only be accessed natively through the DataKit, such as [query DQL](datakit-dql-how-to.md) or view [DataKit running status](datakit-tools-how-to.md#using-monitor).
+Other interfaces are still available, but can only be accessed natively through the DataKit, such as [query DQL](../datakit/datakit-dql-how-to.md) or view [DataKit running status](../datakit/datakit-tools-how-to.md#using-monitor).
 
 ### Disable DataKit 404 Page {#disable-404}
 

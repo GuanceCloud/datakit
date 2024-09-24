@@ -1,5 +1,6 @@
-# 更新历史
-
+---
+title: 'DDTrace Java 扩展更新日志'
+skip: 'not-searchable-on-index-page'
 ---
 
 > *作者： 刘锐、宋龙奇*

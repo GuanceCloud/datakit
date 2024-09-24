@@ -1,6 +1,9 @@
 ---
 title     : 'NSQ'
 summary   : 'Collect NSQ metrics'
+tags:
+  - 'MESSAGE QUEUES'
+  - 'MIDDLEWARE'
 __int_icon      : 'icon/nsq'
 dashboard :
   - desc  : 'NSQ'
@@ -10,11 +13,6 @@ monitor   :
     path  : 'monitor/en/nsq'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# NSQ
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

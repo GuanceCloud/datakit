@@ -2,17 +2,15 @@
 title     : 'Diatesting'
 summary   : 'Obtain network performance through network dialing test'
 __int_icon      : 'icon/dialtesting'
+tags:
+  - 'TESTING'
+  - 'NETWORK'
 dashboard :
   - desc  : 'N/A'
     path  : '-'
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Network Dial Test
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

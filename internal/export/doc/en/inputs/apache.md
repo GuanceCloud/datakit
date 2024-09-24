@@ -1,6 +1,9 @@
 ---
 title     : 'Apache'
 summary   : 'Apache collector can collect the number of requests, connections, etc. from the Apache service'
+tags:
+  - 'MIDDLEWARE'
+  - 'WEB SERVER'
 __int_icon      : 'icon/apache'
 dashboard :
   - desc  : 'Apache'
@@ -8,11 +11,6 @@ dashboard :
 monitor   :
   - desc  : 'Apache'
     path  : 'monitor/en/apache'
----
-
-<!-- markdownlint-disable MD025 -->
-# Apache
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

@@ -1,4 +1,11 @@
-# Python profiling
+---
+title     : 'Profiling Python'
+summary   : 'Python Profiling 集成'
+tags:
+  - 'PYTHON'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
 
 目前 DataKit Python profiling 支持 [dd-trace-py](https://github.com/DataDog/dd-trace-py){:target="_blank"} 和 [py-spy](https://github.com/benfred/py-spy){:target="_blank"} 两种性能采集器。
 

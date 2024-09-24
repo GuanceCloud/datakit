@@ -1,6 +1,8 @@
 ---
 title     : 'Pythond'
 summary   : '通过 Python 扩展采集数据'
+tags:
+  - 'PYTHON'
 __int_icon      : 'icon/pythond'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# 用 Python 开发自定义采集器
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

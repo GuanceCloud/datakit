@@ -1,5 +1,11 @@
-
-# Python
+---
+title     : 'DDTrace Phthon'
+summary   : 'DDTrace Python 集成'
+tags      :
+  - 'DDTRACE'
+  - 'PYTHON'
+  - '链路追踪'
+__int_icon: 'icon/ddtrace'
 ---
 
 ## 安装依赖 {#dependence}

@@ -1,6 +1,10 @@
 ---
 title     : 'IIS'
 summary   : '采集 IIS 指标数据'
+tags:
+  - 'WINDOWS'
+  - 'IIS'
+  - 'WEB SERVER'
 __int_icon      : 'icon/iis'
 dashboard :
   - desc  : 'IIS'
@@ -10,11 +14,6 @@ monitor   :
     path  : 'monitor/zh/iis'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# IIS
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

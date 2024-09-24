@@ -1,6 +1,8 @@
 ---
-title: 'DataKit own metrics collection'
-summary: 'Collect DataKit's own operational metrics'
+title: 'DataKit metrics'
+summary: 'Collect DataKit metrics'
+tags:
+  - 'HOST'
 __int_icon: 'icon/dk'
 dashboard:
   - desc: 'DataKit dashboard'
@@ -13,12 +15,6 @@ monitor:
     path: '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# DataKit Metrics
-<!-- markdownlint-enable -->
-
----
-
 {{.AvailableArchs}} · [:octicons-tag-24: Version-1.10.0](../datakit/changelog.md#cl-1.10.0)
 
 ---
@@ -27,7 +23,7 @@ This Input used to collect Datakit exported metrics, such as runtime/CPU/memory 
 
 ## Configuration {#config}
 
-After Datakit startup, it will expose a lot of [Prometheus metrics](datakit-metrics.md), and the input `dk` can scrap
+After Datakit startup, it will expose a lot of [Prometheus metrics](../datakit/datakit-metrics.md), and the input `dk` can scrap
 these metrics.
 
 ### Collector Configuration {#input-config}

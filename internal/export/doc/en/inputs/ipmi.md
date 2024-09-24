@@ -1,6 +1,8 @@
 ---
 title     : 'IPMI'
 summary   : 'Collect IPMI metrics'
+tags:
+  - 'IPMI'
 __int_icon      : 'icon/ipmi'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# IPMI
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

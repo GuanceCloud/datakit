@@ -1,5 +1,10 @@
-# Metric exposure and custom metrics
-
+---
+title     : 'DDTrace JMX'
+summary   : 'Export JVM metrics with DDTrace JMX'
+tags      :
+  - 'DDTRACE'
+  - 'JAVA'
+__int_icon: 'icon/ddtrace'
 ---
 
 ## JMXFetch {#ddtrace-jmxfetch}

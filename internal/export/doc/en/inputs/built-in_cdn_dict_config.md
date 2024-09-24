@@ -1,4 +1,7 @@
-# Built-in CDN Dict
+---
+skip: 'not-searchable-on-index-page'
+title: 'Built-in CDN List'
+---
 
 <!-- markdownlint-disable -->
 ```toml

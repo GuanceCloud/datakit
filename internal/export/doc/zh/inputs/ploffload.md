@@ -1,18 +1,15 @@
 ---
-title     : 'ploffload'
-summary   : '接收来自 datakit pipeline 卸载的待处理数据'
-__int_icon      : 'icon/ploffload'
+title     : 'Pipeline Offload'
+summary   : '接收来自 Datakit Pipeline 卸载的待处理数据'
+__int_icon: 'icon/ploffload'
+tags      :
+  - 'PIPELINE'
 dashboard :
   - desc  : '暂无'
     path  : '-'
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# PlOffload
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

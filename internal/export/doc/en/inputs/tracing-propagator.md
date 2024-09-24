@@ -1,4 +1,11 @@
-# Propagation Among Multiple Tracing Stack
+---
+title     : 'Tracing Propagator'
+summary   : 'Propagation between multiple tracing agents'
+tags      :
+  - 'APM'
+  - 'TRACING'
+__int_icon: ''
+---
 
 This article mainly introduces the products of multiple tracing stacks, and how to realize tracing information propagation them in distributed services.
 

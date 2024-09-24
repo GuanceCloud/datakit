@@ -1,6 +1,8 @@
 ---
 title     : 'Swap'
 summary   : 'Collect metrics of host swap'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/swap'
 dashboard :
   - desc  : 'Swap'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/en/host'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Swap
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

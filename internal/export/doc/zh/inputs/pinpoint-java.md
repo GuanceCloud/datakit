@@ -1,4 +1,12 @@
-# Java 示例
+---
+title     : 'PinPoint Java'
+summary   : 'PinPoint Java 集成'
+__int_icon: 'icon/pinpoint'
+tags      :
+  - 'PINPOINT'
+  - 'JAVA'
+  - '链路追踪'
+---
 
 Pinpoint Java Agent [下载地址](https://github.com/pinpoint-apm/pinpoint/releases){:target="_blank"}
 

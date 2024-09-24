@@ -1,6 +1,8 @@
 ---
 title     : 'CPU'
 summary   : '采集 CPU 指标数据'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/cpu'
 dashboard :
   - desc  : 'CPU'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : '主机检测库'
     path  : 'monitor/zh/host'
----
-
-<!-- markdownlint-disable MD025 -->
-# CPU
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

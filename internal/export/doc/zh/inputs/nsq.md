@@ -1,6 +1,9 @@
 ---
 title     : 'NSQ'
 summary   : '采集 NSQ 的指标数据'
+tags:
+  - '消息队列'
+  - '中间件'
 __int_icon      : 'icon/nsq'
 dashboard :
   - desc  : 'NSQ'
@@ -10,11 +13,6 @@ monitor   :
     path  : 'monitor/zh/nsq'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# NSQ
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

@@ -1,4 +1,11 @@
-# Python profiling
+---
+title     : 'Profiling Python'
+summary   : 'Profling Python applications'
+tags:
+  - 'PYTHON'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
 
 DataKit Python profiling supports [dd-trace-py](https://github.com/DataDog/dd-trace-py){:target="_blank"} and [py-spy](https://github.com/benfred/py-spy){:target="_blank"}.
 

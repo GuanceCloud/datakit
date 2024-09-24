@@ -1,7 +1,12 @@
-
-# Go profiling
-
 ---
+title     : 'Profiling Golang'
+summary   : 'Golang Profiling 集成'
+tags:
+  - 'GOLANG'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
+
 
 Go 内置了性能分析 (Profiling) 工具 `pprof`，可以采集程序运行中的性能数据，可通过以下两种方式使用：
 

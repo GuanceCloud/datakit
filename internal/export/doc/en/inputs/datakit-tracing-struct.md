@@ -1,5 +1,7 @@
-
-# Datakit Tracing Data Structure
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Tracing Data Structure'
+---
 
 ## Brief {#intro}
 

@@ -1,6 +1,8 @@
 ---
 title     : 'Oracle'
 summary   : 'Collect Oracle Metric'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Oracle
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

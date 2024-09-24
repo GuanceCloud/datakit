@@ -1,6 +1,8 @@
 ---
 title     : 'Couchbase'
 summary   : '采集 Couchbase 服务器相关的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/couchbase'
 dashboard :
   - desc  : 'Couchbase 内置视图'
@@ -10,10 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Couchbase
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

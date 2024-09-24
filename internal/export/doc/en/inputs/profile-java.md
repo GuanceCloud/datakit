@@ -1,7 +1,12 @@
-
-# Java profiling
-
 ---
+title     : 'Profiling Java'
+summary   : 'Profling Java applications'
+tags:
+  - 'JAVA'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
+
 
 Datakit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
 
@@ -136,13 +141,13 @@ After about 10s, there will generate a file named `profiling.html` in current di
 
 Requirements:
 
-- [Install DataKit](datakit-install.md).
+- [Install DataKit](../datakit/datakit-install.md).
 
 - [Enable Profile Inputs](profile.md)
 
 - Set your service name（optional）
 
-By default, the program name will be automatically obtained as a 'service' to report the observation cloud. If customization is needed, the service name can be injected when the program starts:
+By default, the program name will be automatically obtained as a 'service' to report the Guance Cloud. If customization is needed, the service name can be injected when the program starts:
 
 ```shell
 java -Ddk.service=<service-name> ... -jar <your-jar>

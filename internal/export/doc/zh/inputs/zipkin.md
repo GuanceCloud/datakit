@@ -2,18 +2,15 @@
 title     : 'Zipkin'
 summary   : 'Zipkin Tracing 数据接入'
 __int_icon      : 'icon/zipkin'
+tags      :
+  - 'ZIPKIN'
+  - '链路追踪'
 dashboard :
   - desc  : '暂无'
     path  : '-'
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Zipkin
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

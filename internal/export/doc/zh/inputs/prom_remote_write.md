@@ -1,7 +1,10 @@
 ---
 title     : 'Prometheus Remote Write'
 summary   : '通过 Prometheus Remote Write 汇集指标数据'
-__int_icon      : 'icon/prometheus'
+tags:
+  - '外部数据接入'
+  - 'PROMETHEUS'
+__int_icon: 'icon/prometheus'
 dashboard :
   - desc  : '暂无'
     path  : '-'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Prometheus Remote Write
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

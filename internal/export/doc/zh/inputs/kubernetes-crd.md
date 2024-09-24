@@ -1,6 +1,10 @@
-
-# Kubernetes CRD 扩展采集
-
+---
+title     : 'Kubernetes CRD'
+summary   : 'Create Datakit CRD to collect'
+tags      :
+  - 'PROMETHEUS'
+  - 'KUBERNETES'
+__int_icon: 'icon/kubernetes'
 ---
 
 :material-kubernetes:

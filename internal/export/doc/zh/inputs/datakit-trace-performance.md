@@ -1,4 +1,7 @@
-# Datakit Trace Agent 性能报告
+---
+skip: 'not-searchable-on-index-page'
+title: 'Datakit Trace Agent 性能报告'
+---
 
 以下测试在真实物理环境下进行，并使用测试工具发送饱和数据。
 

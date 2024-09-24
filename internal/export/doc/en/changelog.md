@@ -58,7 +58,7 @@ This release is an iterative update with the following main changes:
 
     Then the Nginx logs would **not** be processed by *nginx.p* but by *default.p*. This setting was not reasonable. The adjusted priority is as follows (priority decreasing):
 
-    1. The Pipeline specified for `source` on the observation cloud page
+    1. The Pipeline specified for `source` on the Guance Cloud page
     1. The Pipeline specified for `source` in the collector
     1. The `source` value can find the corresponding Pipeline (for example, if the `source` is the log of `my-app`, a *my-app.p* can be found in the Pipeline's storage directory)
     1. Finally, use *default.p*
@@ -320,7 +320,7 @@ This release is an iterative update with the following main changes:
 
 In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
 
-- Upgrade the center base to [1.87.167](../deployment/changelog.md#1871672024-06-05) or
+- Upgrade the center base to 1.87.167 or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
 #### For InfluxDB {#cl-1.30.0-brk-influxdb}
@@ -668,7 +668,7 @@ This release is an iterative release with the following updates:
 ### New addition {#cl-1.20.0-new}
 
 - [Redis](../integrations/redis.md) collector added `hotkey` info(#2019)
-- Command `datakit monitor` add playing support for metrics from [Bug Report](why-no-data.m#bug-report)(#2001)
+- Command `datakit monitor` add playing support for metrics from [Bug Report](why-no-data.md#bug-report)(#2001)
 - [Oracle](../integrations/oracle.md) collector added custom queries(#1929)
 - [Container](../integrations/container.md) logging files support wildcard match(#2004)
 - Kubernetes Pod add `network` and `storage` info(#2022)
@@ -721,7 +721,7 @@ This release is an iterative release with the following updates:
 
 ### New addition {#cl-1.19.0-new}
 
-- Add [OceanBase](../integrations/oceanbase.Md) for MySQL(#1952)
+- Add [OceanBase](../integrations/oceanbase.md) for MySQL(#1952)
 - Add [record/play](datakit-tools-how-to.md#record-and-replay) feature(#1738)
 
 ### Fix {#cl-1.19.0-fix}
@@ -766,7 +766,7 @@ This release is an iterative release with the following updates:
 - Fixed compatibility of large Tag values in Tracing data, now adjusted to 32MB(#1932)
 - Fix RUM session replay dirty data issue(#1958)
 - Fixed indicator information export issue(#1953)
-- Fix the [v2 version protocol](Datakit-conf.m#datawawe-Settings) build error
+- Fix the [v2 version protocol](datakit-conf.md#dataway-settings) build error
 
 ### Function optimization {#cl-1.18.0-opt}
 
@@ -824,7 +824,7 @@ This release is a Hotfix release, which fixes the following issues:
 ### New features {#cl-1.17.1-new}
 
 - eBPF can also [build APM data](../integrations/ebpftrace.md) to trace process/thread relationship under Linux(#1835)
-- Pipeline add new function [`pt_name`](../pipeline/pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
+- Pipeline add new function [`pt_name`](../pipeline/use-pipeline/pipeline-built-in-function.md#fn-pt-name)(#1937)
 
 ### Features Optimizations {#cl-1.17.1-opt}
 
@@ -940,7 +940,7 @@ This release is an iterative release, mainly including the following updates:
 - Optimize Datakit image size (#1869)
 - Docs:
     - Add [documentation](../integrations/tracing-propagator.md) for different Trace delivery instructions (#1824)
-    - Add [Datakit Metric Performance Test Report](../integrations/datakit-metric-performance.md) (#1867)
+    - Add Datakit Metric Performance Test Report (#1867)
     - Add [documentation of external collector](../integrations/external.md) (#1851)
 - Pipeline
     - Added functions `parse_int()` and `format_int()` (#1824)
@@ -990,7 +990,7 @@ This release is an iterative release, mainly including the following updates:
 - Remove [open_files_list](../integrations/host_processes.md#object) field in Process collector (#1838)
 - Added the handling case of index loss in the collector document of [host object](../integrations/hostobject.md#faq) (#1838)
 - Optimize the Datakit view and improve the Datakit Prometheus indicator documentation
-- Optimize the mount method of [Pod/container log collection](../integration/container-log.md#logging-with-inside-config) (#1844)
+- Optimize the mount method of [Pod/container log collection](../integrations/container-log.md#logging-with-inside-config) (#1844)
 - Add Process and System collector integration tests (#1841/#1842)
 - Optimize etcd integration tests (#1847)
 - Upgrade Golang 1.19.12 (#1516)

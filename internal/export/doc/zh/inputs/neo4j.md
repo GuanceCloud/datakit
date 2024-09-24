@@ -1,6 +1,8 @@
 ---
 title     : 'Neo4j'
 summary   : '采集 Neo4j 的指标数据'
+tags:
+  - '数据库'
 __int_icon      : 'icon/neo4j'
 dashboard :
   - desc  : 'Neo4j'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/zh/neo4j'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Neo4j
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

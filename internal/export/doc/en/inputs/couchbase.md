@@ -1,6 +1,8 @@
 ---
 title     : 'Couchbase'
 summary   : 'Collect Couchbase server metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/couchbase'
 dashboard :
   - desc  : 'Couchbase dashboard'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Couchbase
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

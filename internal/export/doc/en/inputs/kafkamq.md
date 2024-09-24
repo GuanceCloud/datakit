@@ -1,6 +1,9 @@
 ---
 title     : 'KafkaMQ'
 summary   : 'Collect metrics and log data via Kafka'
+tags:
+  - 'MESSAGE QUEUES'
+  - 'LOG'
 __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'N/A'
@@ -10,11 +13,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Subscribe to Data in Kafka
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
@@ -236,7 +234,7 @@ After receiving the messages, KafkaMQ merges them into a package containing `sen
 ]
 ```
 
-The returned data should comply with `v1/write/tracing` interface regulations, [Interface Documentation](apis.md#api-v1-write)
+The returned data should comply with `v1/write/tracing` interface regulations, [Interface Documentation](../datakit/apis.md#api-v1-write)
 
 The returned header should also indicate the type of the data: the default is `tracing`
 
@@ -244,7 +242,7 @@ The returned header should also indicate the type of the data: the default is `t
 X-category=tracing  
 ```
 
-[DataKit api category](apis/#category)
+[DataKit api category](../datakit/apis.md#category)
 
 As long as the data is received, it means that KafkaMQ has successfully sent the data. Regardless of the parsing, it should return 200 and wait for the next request.
 
@@ -255,7 +253,7 @@ If the parsing fails, it is recommended to set `debug=true` in the KafkaMQ confi
 External plugins have some constraints:
 
 - KafkaMQ receives data but is not responsible for serialization after parsing, because this is a custom development and cannot be used by all users.
-- The data parsed by the external plug-in can be sent to [dk apis](apis.md#api-v1-write) , or returned to KafkaMQ and then sent to GuanceCloud.
+- The data parsed by the external plug-in can be sent to [dk apis](../datakit/apis.md#api-v1-write) , or returned to KafkaMQ and then sent to GuanceCloud.
 - The response returned to KafkaMQ must be in the ***line protocol format***, if it is `JSON` format, the header information needs to be included: `Content-Type:application/json` In addition, the returned header information should also include Type: `X-category:tracing` indicates this link information.
 - External plug-ins should return 200 regardless of parsing failure or not when data is received.
 - If KafkaMQ sends data to the external plug-in, if there is a timeout, the port does not exist and other problems. Will try to reconnect. Messages from Kafka are no longer consumed.
@@ -304,7 +302,7 @@ Connection failure may be a version problem: Please fill in the kafka version co
 3. Increase the write capacity of the backend.
 4. Remove any network bandwidth restrictions.
 5. Increase the number of collectors and expand the number of message partitions to allow more consumers to consume.
-6. If the above solutions still cannot solve the problem, you can use [bug-report](../datakit/why-no-data/#bug-report) to collect runtime metrics for analysis.
+6. If the above solutions still cannot solve the problem, you can use [bug-report](../datakit/why-no-data.md#bug-report) to collect runtime metrics for analysis.
 
 
 Other issues:

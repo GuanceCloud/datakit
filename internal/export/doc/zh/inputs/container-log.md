@@ -1,5 +1,11 @@
-# 容器日志
-
+---
+title: '容器日志'
+summary: '采集 Container 和 Kubernetes 日志数据'
+tags:
+  - '日志'
+  - '容器'
+  - 'KUBERNETES'
+__int_icon:    'icon/kubernetes/'
 ---
 
 Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可以分为以下两种：
@@ -149,7 +155,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     ```shell
     kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"log-source\",\"service\":\"log-service\",\"pipeline\":\"test.p\",\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
-    ``` 
+    ```
 
     如果一个 Pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效。
 
@@ -274,7 +280,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     ## 忽略所有 kodo 容器
     container_exclude_log = ["image:kodo"]
     ```
-    
+
     `container_include` 和 `container_exclude` 必须以属性字段开头，格式为一种[类正则的 Glob 通配](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}：`"<字段名>:<glob 规则>"`
 
     现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
@@ -305,7 +311,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 === "Kubernetes"
 
-    可通过如下环境变量 
+    可通过如下环境变量
 
     - ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
     - ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
@@ -341,7 +347,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     ```
 
     Kubernetes Pod：
-    
+
     ``` shell
     echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     ```

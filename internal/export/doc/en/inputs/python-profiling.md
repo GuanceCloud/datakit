@@ -1,4 +1,7 @@
-# Python profiling
+---
+title: 'Python profiling'
+skip: 'not-searchable-on-index-page'
+---
 
 Currently, DataKit Python profiling supports [ddtrace](https://github.com/DataDog/dd-trace-py){:target="_blank"} and  [py-spy](https://github.com/benfred/py-spy){:target="_blank"}.
 
@@ -62,7 +65,7 @@ After the program starts, ddtrace will collect data regularly (once every minute
 
 `py-spy` is a non-invasive Python performance metrics sampling tool provided by the open source community that runs alone and has low impact on target program load.
 
-`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit, observation cloud provides a branch version [py-spy-for-Datakit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}, which is based on the original version with a few modifications and supports automatic profiling.
+`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit, Guance Cloud provides a branch version [py-spy-for-Datakit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}, which is based on the original version with a few modifications and supports automatic profiling.
 Data is sent to DataKit.
 
 - Installation
@@ -140,4 +143,4 @@ py-spy-for-datakit datakit \
   -- python3 server.py  # Note that you need to add an extra space before python3 here
 ```
 
-If there is no error, wait a minute or two to view the specific performance index data on the observation cloud platform [Application Performance Monitoring -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} page.
+If there is no error, wait a minute or two to view the specific performance index data on the Guance Cloud platform [Application Performance Monitoring -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} page.

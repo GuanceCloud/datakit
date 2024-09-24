@@ -1,9 +1,11 @@
-
-# 自动注入 DDTrace-Java Agent
-
------
-
-本 Java 工具主要用于将 DDTrace-Java agent 注入到当前已经运行的 Java 进程中，无需手动配置和重启宿主 Java 进程。
+---
+title     : '自动注入 DDTrace-Java Agent'
+summary   : 'DDTrace Java 集成'
+tags      :
+  - '链路追踪'
+  - 'JAVA'
+__int_icon: 'icon/ddtrace'
+---
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
@@ -14,7 +16,11 @@
     [:octicons-history-16:](https://github.com/GuanceCloud/agent-attach-java/releases){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030 -->
+
+---
+
+本 Java 工具主要用于将 DDTrace-Java agent 注入到当前已经运行的 Java 进程中，无需手动配置和重启宿主 Java 进程。
 
 ## 原理 {#principle}
 

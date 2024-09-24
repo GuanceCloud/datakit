@@ -1,6 +1,9 @@
-
-# Scheck 接入
-
+---
+title     : 'SCheck'
+summary   : '接收 SCheck 采集的数据'
+tags:
+  - '安全'
+__int_icon: 'icon/scheck'
 ---
 
 操作系统支持：:fontawesome-brands-linux: :fontawesome-brands-windows:

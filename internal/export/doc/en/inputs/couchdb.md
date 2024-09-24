@@ -1,6 +1,8 @@
 ---
 title     : 'CouchDB'
 summary   : 'Collect CouchDB server metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/couchdb'
 dashboard :
   - desc  : 'CouchDB'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/en/couchdb'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# CouchDB
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

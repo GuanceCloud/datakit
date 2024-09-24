@@ -1,4 +1,11 @@
-# C/C++ Profiling
+---
+title     : 'Profiling C++'
+summary   : 'Profling C++ applications'
+tags:
+  - 'C/C++'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
 
 At present, DataKit supports one way to collect C/C + + profiling data, namely [Pyroscope](https://pyroscope.io/){:target="_blank"}.
 

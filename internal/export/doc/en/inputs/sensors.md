@@ -1,6 +1,8 @@
 ---
-title     : 'Hardware Sensors data collection'
+title     : 'Hardware Sensors'
 summary   : 'Collect hardware temperature indicators through Sensors command'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/sensors'
 dashboard :
   - desc  : 'N/A'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# Hardware temperature Sensors
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

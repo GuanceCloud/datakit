@@ -1,6 +1,8 @@
 ---
-title     : 'AWS Lambda Extention'
-summary   : 'Extend data collection through awslambda'
+title     : 'AWS Lambda Extension'
+summary   : 'Extend data collection through AWS Lambda'
+tags:
+  - 'AWS'
 __int_icon      : 'icon/awslambda'
 dashboard :
   - desc  : 'None'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# AWSLambda
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

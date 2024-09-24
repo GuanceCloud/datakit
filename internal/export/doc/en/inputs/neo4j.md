@@ -1,6 +1,8 @@
 ---
 title     : 'Neo4j'
 summary   : 'Collect Neo4j server metrics'
+tags:
+  - 'DATA STORES'
 __int_icon      : 'icon/neo4j'
 dashboard :
   - desc  : 'Neo4j'
@@ -10,10 +12,6 @@ monitor   :
     path  : 'monitor/en/neo4j'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Neo4j
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

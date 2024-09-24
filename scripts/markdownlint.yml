@@ -17,9 +17,9 @@ extends: null
 MD001: true
 
 # MD002/first-heading-h1/first-header-h1 - First heading should be a top-level heading
-MD002:
+MD002: false
   # Heading level
-  level: 1
+  # level: 1
 
 # MD003/heading-style/header-style - Heading style
 MD003:

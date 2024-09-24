@@ -31,7 +31,7 @@ This API is used to upload(`POST`) various data (`category`) to DataKit. The URL
 - Type: bool
 - Required: N
 - Default value: false
-- Description: Test mode, just POST Point to Datakit, not actually uploaded to the observation cloud
+- Description: Test mode, just POST Point to Datakit, not actually uploaded to the Guance Cloud
 
 **`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 

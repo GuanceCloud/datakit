@@ -1,6 +1,14 @@
-# PHP
-
 ---
+title     : 'DDTrace PHP'
+summary   : 'Tracing PHP applications with DDTrace'
+tags      :
+  - 'DDTRACE'
+  - 'PHP'
+  - 'TRACING'
+  - 'APM'
+__int_icon: 'icon/ddtrace'
+---
+
 
 ## Install Dependencies {#dependence}
 

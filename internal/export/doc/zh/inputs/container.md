@@ -2,6 +2,9 @@
 title: '容器基础采集'
 summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。'
 __int_icon:    'icon/kubernetes/'  
+tags:
+  - 'KUBERNETES'
+  - '容器'
 dashboard:
   - desc: 'Kubernetes 监控视图'
     path: 'dashboard/zh/kubernetes'
@@ -20,10 +23,6 @@ monitor:
 ---
 
 
-<!-- markdownlint-disable MD025 -->
-# 容器基础采集
-<!-- markdownlint-enable -->
----
 
 {{.AvailableArchs}}
 

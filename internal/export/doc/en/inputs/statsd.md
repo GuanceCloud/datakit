@@ -1,6 +1,8 @@
 ---
 title     : 'StatsD'
 summary   : 'Collect metrics reported by StatsD'
+tags:
+  - 'THIRD PARTY'
 __int_icon      : 'icon/statsd'
 dashboard :
   - desc  : 'N/A'
@@ -8,11 +10,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# StatsD data access
-<!-- markdownlint-enable -->
 ---
 
 {{.AvailableArchs}}

@@ -1,6 +1,8 @@
 ---
 title     : 'SNMP'
 summary   : '采集 SNMP 设备的指标和对象数据'
+tags:
+  - 'SNMP'
 __int_icon      : 'icon/snmp'
 dashboard :
   - desc  : '暂无'
@@ -8,12 +10,6 @@ dashboard :
 monitor   :
   - desc  : '暂无'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# SNMP
-<!-- markdownlint-enable -->
-
 ---
 
 {{.AvailableArchs}}

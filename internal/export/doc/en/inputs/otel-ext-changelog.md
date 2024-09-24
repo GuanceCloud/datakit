@@ -1,5 +1,6 @@
-# Guance OTEL ChangeLog
-
+---
+skip: 'not-searchable-on-index-page'
+title: 'Guance OTEL Plugins ChangeLog'
 ---
 
 ## Intro {#intro}

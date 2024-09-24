@@ -1,7 +1,12 @@
-
-# Go profiling
-
 ---
+title     : 'Profiling C++'
+summary   : 'Profling Golang applications'
+tags:
+  - 'GOLANG'
+  - 'PROFILE'
+__int_icon: 'icon/profiling'
+---
+
 
 Golang built-in tool `pprof` can be used to profiling go process.
 

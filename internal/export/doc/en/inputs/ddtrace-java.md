@@ -1,5 +1,12 @@
-# Java
-
+---
+title     : 'DDTrace Java'
+summary   : 'Tracing Java application with DDTrace'
+tags      :
+  - 'DDTRACE'
+  - 'JAVA'
+  - 'APM'
+  - 'TRACING'
+__int_icon: 'icon/ddtrace'
 ---
 
 Integrating APM into Java is quite convenient, as it does not require any modifications to the business code; you only need to inject the corresponding agent.

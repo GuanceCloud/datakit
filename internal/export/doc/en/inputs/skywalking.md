@@ -1,6 +1,10 @@
 ---
 title     : 'SkyWalking'
 summary   : 'SkyWalking Tracing Data Ingestion'
+tags:
+  - 'APM'
+  - 'TRACING'
+  - 'SKYWALKING'
 __int_icon      : 'icon/skywalking'
 dashboard :
   - desc  : 'Skywalking JVM Monitoring View'
@@ -8,12 +12,6 @@ dashboard :
 monitor   :
   - desc  : 'N/A'
     path  : '-'
----
-
-<!-- markdownlint-disable MD025 -->
-# SkyWalking
-<!-- markdownlint-enable -->
-
 ---
 
 :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:

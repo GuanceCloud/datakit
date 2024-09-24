@@ -1,6 +1,8 @@
 ---
 title     : 'Health Check'
 summary   : 'Regularly check the host process and network health status'
+tags:
+  - 'HOST'
 __int_icon      : 'icon/healthcheck'
 dashboard :
   - desc  : 'N/A'
@@ -9,10 +11,6 @@ monitor   :
   - desc  : 'N/A'
     path  : '-'
 ---
-
-<!-- markdownlint-disable MD025 -->
-# Health check
-<!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.24.0](../datakit/changelog.md#cl-1.24.0)
 

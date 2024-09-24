@@ -250,7 +250,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEV
 
 ### Log in to DCA {#login}
 
-After the DCA is enabled and installed, you can access it by entering the address `localhost:8000` in your browser. When you visit it for the first time, the page will redirect you to a login transition page. After clicking the "Go Now" button at the bottom of the page, you will be guided to the GuanceCloud platform. Then, follow the instructions on the page to configure the DCA address. Once the configuration is completed, you will be able to directly access the DCA platform through the observation cloud platform without logging in.
+After the DCA is enabled and installed, you can access it by entering the address `localhost:8000` in your browser. When you visit it for the first time, the page will redirect you to a login transition page. After clicking the "Go Now" button at the bottom of the page, you will be guided to the GuanceCloud platform. Then, follow the instructions on the page to configure the DCA address. Once the configuration is completed, you will be able to directly access the DCA platform through the Guance Cloud platform without logging in.
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca/dca-login-redirect.png){ width="800" }
@@ -296,7 +296,7 @@ Note: DCA does not support configuration of collector at present, so it is neces
 
 ### View Log Pipeline {#view-pipeline}
 
-After connecting to the DataKit remotely, click「Pipelines」to view the Pipeline file that comes with the DataKit by default. Refer to the document [text data processing](pipeline.md) for Pipeline.
+After connecting to the DataKit remotely, click「Pipelines」to view the Pipeline file that comes with the DataKit by default. Refer to the document [text data processing](../pipeline/index.md) for Pipeline.
 
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca/dca-pipeline-1.png){ width="800" }
@@ -304,7 +304,7 @@ After connecting to the DataKit remotely, click「Pipelines」to view the Pipeli
 
 ### View the Blacklist {#view-filters}
 
-After connecting to DataKit remotely, click "Blacklist" to view the blacklist configured in the observation cloud. As shown in the following figure, `source = default and (status in [unknown])` is the configured blacklist condition.
+After connecting to DataKit remotely, click "Blacklist" to view the blacklist configured in the Guance Cloud. As shown in the following figure, `source = default and (status in [unknown])` is the configured blacklist condition.
 
 Note: The blacklist files created through Guance Cloud are stored in the path: `/usr/local/datakit/data/.pull`.
 

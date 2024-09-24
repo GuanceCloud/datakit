@@ -1,6 +1,8 @@
 ---
 title     : 'Log Streaming'
 summary   : '通过 HTTP 上报日志数据'
+tags:
+  - '日志'
 __int_icon      : 'icon/logstreaming'
 dashboard :
   - desc  : '暂无'
@@ -10,11 +12,6 @@ monitor   :
     path  : '-'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# Log Streaming
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 

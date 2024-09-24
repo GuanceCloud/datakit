@@ -2,6 +2,8 @@
 title     : 'CockroachDB'
 summary   : 'Collect CockroachDB metrics'
 __int_icon      : 'icon/cockroachdb'
+tags:
+  - 'DATA STORES'
 dashboard :
   - desc  : 'CockroachDB'
     path  : 'dashboard/en/cockroachdb'
@@ -10,11 +12,6 @@ monitor   :
     path  : 'monitor/en/cockroachdb'
 ---
 
-<!-- markdownlint-disable MD025 -->
-# CockroachDB
-<!-- markdownlint-enable -->
-
----
 
 {{.AvailableArchs}}
 
