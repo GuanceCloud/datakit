@@ -72,13 +72,12 @@ Datakit could reports the SQLs, those executed time exceeded the threshold time 
 
 This function is disabled by default, user could enabling it by modify Datakit's OceanBase configuration like followings:
 
-Change the string value after `--slow-query-time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
+Change the string value after `slow_query_time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
 
 ```conf
-  args = [
-    ...
-    '--slow-query-time' , '10s',
-  ]
+
+slow_query_time = "0s"
+
 ```
 
 ???+ info "Fields description"

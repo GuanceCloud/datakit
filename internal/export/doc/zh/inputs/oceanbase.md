@@ -75,13 +75,12 @@ Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测�
 
 该功能默认情况下是关闭的，用户可以在 OceanBase 的配置文件中将其打开，方法如下：
 
-将 `--slow-query-time` 后面的值从 `0s` 改成用户心中的阈值，最小值 1 毫秒。一般推荐 10 秒。
+将 `slow_query_time` 后面的值从 `0s` 改成用户心中的阈值，最小值 1 毫秒，一般推荐 10 秒。
 
 ```conf
-  args = [
-    ...
-    '--slow-query-time' , '10s'                        ,
-  ]
+
+slow_query_time = "10s"
+
 ```
 
 ???+ info "字段说明"
