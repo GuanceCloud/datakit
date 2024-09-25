@@ -138,13 +138,19 @@ func (ipt *Input) Resume() error {
 	}
 }
 
+func newPauseVar() *atomic.Bool {
+	b := &atomic.Bool{}
+	b.Store(true)
+	return b
+}
+
 func init() { //nolint:gochecknoinits
 	setupMetrics()
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			NodeLocal: true,
 			chPause:   make(chan bool, inputs.ElectionPauseChannelLength),
-			pause:     &atomic.Bool{},
+			pause:     newPauseVar(),
 			feeder:    dkio.DefaultFeeder(),
 		}
 	})
