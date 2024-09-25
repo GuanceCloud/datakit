@@ -47,7 +47,7 @@ type Task interface {
 	GetLineData() string
 	GetHostName() (string, error)
 	GetWorkspaceLanguage() string
-	GetTagsInfo() string
+	GetDFLabel() string
 
 	SetRegionID(string)
 	SetAk(string)

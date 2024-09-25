@@ -41,7 +41,8 @@ type HTTPTask struct {
 	Tags              map[string]string  `json:"tags,omitempty"`
 	Labels            []string           `json:"labels,omitempty"`
 	WorkspaceLanguage string             `json:"workspace_language,omitempty"`
-	TagsInfo          string             `json:"tags_info,omitempty"`
+	TagsInfo          string             `json:"tags_info,omitempty"` // deprecated
+	DFLabel           string             `json:"df_label,omitempty"`
 	AdvanceOptions    *HTTPAdvanceOption `json:"advance_options,omitempty"`
 	UpdateTime        int64              `json:"update_time,omitempty"`
 	Option            map[string]string
@@ -658,6 +659,9 @@ func (t *HTTPTask) GetWorkspaceLanguage() string {
 	return "zh"
 }
 
-func (t *HTTPTask) GetTagsInfo() string {
+func (t *HTTPTask) GetDFLabel() string {
+	if t.DFLabel != "" {
+		return t.DFLabel
+	}
 	return t.TagsInfo
 }

@@ -9,6 +9,7 @@
 package dialtesting
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -22,6 +23,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const LabelDF = "df_label"
+
 type dialer struct {
 	task                 dt.Task
 	ipt                  *Input
@@ -32,6 +35,7 @@ type dialer struct {
 	testCnt              int64
 	class                string
 	tags                 map[string]string
+	dfTags               map[string]string // tags from df_label
 	category             string
 	regionName           string
 	measurementInfo      *inputs.MeasurementInfo
@@ -66,6 +70,56 @@ func (d *dialer) exit() {
 	close(d.stopCh)
 }
 
+// populateDFLabelTags populate df_label tags.
+//
+// label format: ["v1","k1:v2","v2"].
+//
+// or old version format: "v1,v2", which is deprecated.
+func populateDFLabelTags(label string, tags map[string]string) {
+	if tags == nil {
+		return
+	}
+
+	// treat empty label as []
+	if label == "" {
+		tags[LabelDF] = "[]"
+		return
+	}
+
+	isOldLabel := true
+	labels := []string{}
+
+	if strings.HasPrefix(label, "[") && strings.HasSuffix(label, "]") {
+		isOldLabel = false
+	}
+
+	if isOldLabel {
+		labels = strings.Split(label, ",")
+		if jsonLabel, err := json.Marshal(labels); err != nil {
+			l.Warnf("failed to marshal label %s to json: %s", label, err.Error())
+		} else {
+			label = string(jsonLabel)
+		}
+	} else if err := json.Unmarshal([]byte(label), &labels); err != nil {
+		l.Warnf("failed to unmarshal label %s to json: %s", label, err.Error())
+	}
+
+	tags[LabelDF] = label
+
+	for _, l := range labels {
+		ls := strings.SplitN(l, ":", 2)
+		if len(ls) == 2 {
+			k := strings.TrimSpace(ls[0])
+			v := strings.TrimSpace(ls[1])
+			if k == "" || k == LabelDF || v == "" {
+				continue
+			}
+
+			tags[k] = v
+		}
+	}
+}
+
 func newDialer(t dt.Task, ipt *Input) *dialer {
 	var info *inputs.MeasurementInfo
 	switch t.Class() {
@@ -83,15 +137,16 @@ func newDialer(t dt.Task, ipt *Input) *dialer {
 	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
-	if t.GetTagsInfo() != "" {
-		tags["tags_info"] = t.GetTagsInfo()
-	}
+
+	dfTags := make(map[string]string)
+	populateDFLabelTags(t.GetDFLabel(), dfTags)
 
 	return &dialer{
 		task:                 t,
 		updateCh:             make(chan dt.Task),
 		initTime:             time.Now(),
 		tags:                 tags,
+		dfTags:               dfTags,
 		measurementInfo:      info,
 		class:                t.Class(),
 		taskExecTimeInterval: ipt.taskExecTimeInterval,
@@ -239,8 +294,9 @@ func (d *dialer) run() error {
 				d.regionName = d.ipt.regionName
 			}
 
-			// update tags_info
-			d.tags["tags_info"] = t.GetTagsInfo()
+			d.dfTags = make(map[string]string)
+			// update df_label
+			populateDFLabelTags(t.GetDFLabel(), d.dfTags)
 
 			if err := d.checkInternalNetwork(); err != nil {
 				return err
