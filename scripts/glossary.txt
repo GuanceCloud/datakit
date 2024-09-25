@@ -170,6 +170,7 @@ mitm
 mnodes
 mnodes
 mysqld
+maxmemory
 netflow
 netlog
 nginx

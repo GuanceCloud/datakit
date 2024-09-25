@@ -47,6 +47,23 @@ func TestInput_parseBigData(t *testing.T) {
 		},
 
 		{
+			name: "v5.0.7",
+			fields: fields{
+				mergedTags: map[string]string{"for": "bar"},
+			},
+			args: args{
+				data: mockBigData5_0_7,
+				db:   0,
+			},
+			want: []string{
+				"redis_bigkey,db_name=0,for=bar key=\"keyname\",key_type=\"hash\",message=\"big key  key: keyname key_type: hash value_length: 2\",status=\"unknown\",value_length=2i",
+				"redis_bigkey,db_name=0,for=bar key=\"mykey\",key_type=\"string\",message=\"big key  key: mykey key_type: string value_length: 13\",status=\"unknown\",value_length=13i",
+				"redis_bigkey,db_name=0,for=bar keys_sampled=2i,message=\"big key  keys_sampled: 2\",status=\"unknown\"",
+			},
+			wantErr: false,
+		},
+
+		{
 			name: "v6.0.8",
 			fields: fields{
 				mergedTags: map[string]string{"for": "bar"},
@@ -140,6 +157,30 @@ Biggest   zset found '"keyZSet2999"' has 3001 members
 0 streams with 0 entries (00.00% of keys, avg size 0.00)
 0 sets with 0 members (00.00% of keys, avg size 0.00)
 3 zsets with 3033 members (00.10% of keys, avg size 1011.00)
+`
+
+var mockBigData5_0_7 = `
+# Scanning the entire keyspace to find biggest keys as well as
+# average sizes per key type.  You can use -i 0.1 to sleep 0.1 sec
+# per 100 SCAN commands (not usually needed).
+
+[00.00%] Biggest hash   found so far 'keyname' with 2 fields
+[00.00%] Biggest string found so far 'mykey' with 13 bytes
+
+-------- summary -------
+
+Sampled 2 keys in the keyspace!
+Total key length in bytes is 12 (avg len 6.00)
+
+Biggest   hash found 'keyname' has 2 fields
+Biggest string found 'mykey' has 13 bytes
+
+0 lists with 0 items (00.00% of keys, avg size 0.00)
+1 hashs with 2 fields (50.00% of keys, avg size 2.00)
+1 strings with 13 bytes (50.00% of keys, avg size 13.00)
+0 streams with 0 entries (00.00% of keys, avg size 0.00)
+0 sets with 0 members (00.00% of keys, avg size 0.00)
+0 zsets with 0 members (00.00% of keys, avg size 0.00)
 `
 
 var mockBigData6_0_8 = `
