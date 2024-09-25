@@ -47,6 +47,7 @@ const (
 	SizeMB    = "MB"
 	SizeMBits = "Mb"
 	SizeGB    = "GB"
+	SizeTB    = "TB"
 	NCount    = "count"
 
 	// time units.

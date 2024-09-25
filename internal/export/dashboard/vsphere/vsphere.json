@@ -1,0 +1,2460 @@
+{
+  "title": "{{.Dashboard.title}}",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "Cluster": true,
+      "Datastores": true,
+      "ESXi Hosts": true,
+      "Virtual Machines": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "vcenter_server",
+        "seq": 0,
+        "datasource": "custom_object",
+        "code": "vcenter_server",
+        "type": "FIELD",
+        "definition": {
+          "tag": "",
+          "field": "host",
+          "value": "",
+          "metric": "",
+          "object": "vsphere_cluster",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "cluster_name",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "cluster_name",
+        "type": "TAG",
+        "definition": {
+          "tag": "cluster_name",
+          "field": "",
+          "value": "",
+          "metric": "vsphere_cluster",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "esx_host",
+        "seq": 2,
+        "datasource": "custom_object",
+        "code": "esx_host",
+        "type": "FIELD",
+        "definition": {
+          "tag": "",
+          "field": "esx_hostname",
+          "value": "",
+          "metric": "",
+          "object": "vsphere_host",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "vm_name",
+        "seq": 3,
+        "datasource": "ftinfluxdb",
+        "code": "vm_name",
+        "type": "TAG",
+        "definition": {
+          "tag": "vm_name",
+          "field": "",
+          "value": "",
+          "metric": "vsphere_vm",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Cluster",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "CO::`vsphere_cluster`:(count(`*`)) { `cluster_name` = '#{cluster_name}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "search": "",
+              "filters": [
+                {
+                  "id": "4da849c0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "56ed55c0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "custom_object",
+              "dataSource": "vsphere_cluster",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "ESXI",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "CO::`vsphere_host`:(count(`*`)) { `host` = '#{vcenter_server}' and `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "search": "",
+              "filters": [
+                {
+                  "id": "8d75e800-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                },
+                {
+                  "id": "98030460-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "a0e7a0e0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "custom_object",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "VM",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "CO::`vsphere_vm`:(count(`*`)) { `host` = '#{vcenter_server}' and `cluster_name` = '#{cluster_name}' and `vm_name` = '#{vm_name}' and `esx_hostname` = '#{esx_host}' }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "search": "",
+              "filters": [
+                {
+                  "id": "af485a80-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                },
+                {
+                  "id": "b7a8d2e0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "bdf426e0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "c7d2b3c0-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "custom_object",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "Datastore",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "CO::`vsphere_datastore`:(count(`*`)) { `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "search": "",
+              "filters": [
+                {
+                  "id": "e1122c30-7a58-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "custom_object",
+              "dataSource": "vsphere_datastore",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "index": "default",
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "unitType": "global",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "field": "time",
+                "headerName": "时间"
+              }
+            ],
+            "showTitle": true,
+            "titleDesc": "",
+            "addColumns": [
+              {
+                "hide": true,
+                "field": "status"
+              },
+              {
+                "hide": true,
+                "field": "__docid"
+              },
+              {
+                "field": "resource_type"
+              },
+              {
+                "field": "user_name"
+              },
+              {
+                "field": "event_type_id"
+              },
+              {
+                "field": "message"
+              }
+            ],
+            "globalUnit": [],
+            "isSampling": true,
+            "valMappings": [],
+            "timeInterval": "",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "log",
+            "showFieldMapping": false,
+            "valColorMappings": []
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "vSphere events",
+        "pos": {
+          "h": 17,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        },
+        "type": "log",
+        "queries": [
+          {
+            "name": "",
+            "type": "log",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "L('default')::`vsphere_event`:(`status`, `__docid`, `resource_type`, `user_name`, `event_type_id`, `message`) { `host` = '#{vcenter_server}' and `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "内容",
+              "field": null,
+              "fields": [
+                {
+                  "hide": true,
+                  "field": "status"
+                },
+                {
+                  "hide": true,
+                  "field": "__docid"
+                },
+                {
+                  "field": "resource_type"
+                },
+                {
+                  "field": "user_name"
+                },
+                {
+                  "field": "event_type_id"
+                },
+                {
+                  "alias": "",
+                  "field": "message",
+                  "isEditAlias": false
+                }
+              ],
+              "filters": [
+                {
+                  "id": "c4589640-7a5a-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                },
+                {
+                  "id": "d1f340c0-7a5a-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "f77fae00-7a5a-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "highlight": true,
+              "namespace": "logging",
+              "dataSource": "vsphere_event",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "additionalFields": null,
+              "disableMultipleField": false
+            },
+            "datasource": "dataflux",
+            "noTimeRange": false
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "CPU usage Top 10",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`cpu_usage_average`)) { `cluster_name` = '#{cluster_name}' and `host` = '#{vcenter_server}' and `esx_hostname` = '#{esx_host}' } BY `esx_hostname`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_usage_average",
+              "filters": [
+                {
+                  "id": "cf426050-7a54-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "c24a64d0-7a5c-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                },
+                {
+                  "id": "cfe29e50-7a5c-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "esx_hostname"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "CPU usage",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`cpu_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "45605b10-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "Memory usage Top 10",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 10
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`mem_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `host` = '#{vcenter_server}' } BY `esx_hostname`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_usage_average",
+              "filters": [
+                {
+                  "id": "d4d8c390-7a51-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "da2e6cf0-7a51-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "59ba9f30-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "esx_hostname"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "Memory usage",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`mem_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "646be560-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "traffic",
+              "KB/S"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "Network utilization",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`net_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "net_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "4edfff10-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "KB"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "ESXi Hosts"
+        },
+        "name": "Disk read",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_host`:(avg(`disk_read_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "disk_read_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "6e4a4b30-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_host",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "CPU usage Top 10",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`cpu_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' } BY `vm_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_usage_average",
+              "filters": [
+                {
+                  "id": "b7285510-7a54-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "bbc005a0-7a54-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "c26c1740-7a54-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "7b765560-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "vm_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "CPU usage",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`cpu_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "9d1deb80-7a54-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "83eee9a0-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 10,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "Memory usage Top 10",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 10
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`mem_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' } BY `vm_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_usage_average",
+              "filters": [
+                {
+                  "id": "d4d8c390-7a51-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "da2e6cf0-7a51-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "21cd0d70-7a55-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "9395dee0-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "vm_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "Memory usage",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`mem_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "3efc5db0-7a55-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "9e945ab0-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "traffic",
+              "KB/S"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "Network utilization",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`mem_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "4ed07d70-7a55-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "8be22140-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "traffic",
+              "KB/S"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Virtual Machines"
+        },
+        "name": "Disk I/O rates",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_vm`:(avg(`disk_usage_average`)) { `cluster_name` = '#{cluster_name}' and `esx_hostname` = '#{esx_host}' and `vm_name` = '#{vm_name}' and `host` = '#{vcenter_server}' } BY `vm_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "disk_usage_average",
+              "filters": [
+                {
+                  "id": "4cd4e340-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "cluster_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name}",
+                  "values": []
+                },
+                {
+                  "id": "51faca10-7a4f-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "esx_hostname",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{esx_host}",
+                  "values": []
+                },
+                {
+                  "id": "779643c0-7a55-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "vm_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vm_name}",
+                  "values": []
+                },
+                {
+                  "id": "a62cef30-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "vm_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_vm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "auto",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Datastores"
+        },
+        "name": "Used space percent",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B * 100, A=\"M::`vsphere_datastore`:(avg(`disk_used_latest`)) { `host` = '#{vcenter_server}' } BY `dsname`\", B=\"M::`vsphere_datastore`:(avg(`disk_capacity_latest`)) { `host` = '#{vcenter_server}' } BY `dsname`\")",
+              "code": "A",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`vsphere_datastore`:(avg(`disk_used_latest`)) { `host` = '#{vcenter_server}' } BY `dsname`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "disk_used_latest",
+                  "filters": [
+                    {
+                      "id": "b5347020-7a5b-11ef-b5b2-3b763c15fe27",
+                      "op": "=",
+                      "name": "host",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{vcenter_server}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "dsname"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "vsphere_datastore",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`vsphere_datastore`:(avg(`disk_capacity_latest`)) { `host` = '#{vcenter_server}' } BY `dsname`",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "disk_capacity_latest",
+                  "filters": [
+                    {
+                      "id": "c2056200-7a5b-11ef-b5b2-3b763c15fe27",
+                      "op": "=",
+                      "name": "host",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{vcenter_server}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "dsname"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "vsphere_datastore",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B * 100"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Datastores"
+        },
+        "name": "Number of reads",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_datastore`:(avg(`datastore_numberReadAveraged_average`) AS `number`) { `host` = '#{vcenter_server}' } BY `dsname`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "number",
+              "field": "datastore_numberReadAveraged_average",
+              "filters": [
+                {
+                  "id": "cbc80270-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "dsname"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_datastore",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Datastores"
+        },
+        "name": "Number of writes",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`vsphere_datastore`:(avg(`datastore_numberWriteAveraged_average`) AS `number`) { `host` = '#{vcenter_server}' } BY `dsname`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "number",
+              "field": "datastore_numberWriteAveraged_average",
+              "filters": [
+                {
+                  "id": "cbc80270-7a5b-11ef-b5b2-3b763c15fe27",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{vcenter_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "dsname"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "vsphere_datastore",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "ESXi Hosts",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "Virtual Machines",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "Datastores",
+        "extend": {
+          "bgColor": ""
+        }
+      }
+    ],
+    "type": "template"
+  }
+}

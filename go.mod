@@ -44,7 +44,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/golang/snappy v0.0.4
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/gosnmp/gosnmp v1.35.0
 	github.com/grafana/loki v1.6.2-0.20210806161513-f5fd02966003
@@ -187,7 +187,7 @@ require (
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -367,6 +367,7 @@ require (
 	github.com/rosedblabs/wal v1.3.6
 	github.com/sijms/go-ora/v2 v2.8.19
 	github.com/spf13/cobra v1.5.0
+	github.com/vmware/govmomi v0.38.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000
 )

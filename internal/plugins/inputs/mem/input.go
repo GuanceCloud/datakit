@@ -175,8 +175,10 @@ func (ipt *Input) Terminate() {
 		ipt.semStop.Close()
 	}
 }
-func (*Input) Catalog() string          { return "host" }
-func (*Input) SampleConfig() string     { return sampleCfg }
+func (*Input) Catalog() string { return "host" }
+func (*Input) SampleConfig() string {
+	return sampleCfg
+}
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
