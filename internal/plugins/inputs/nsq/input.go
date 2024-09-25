@@ -125,9 +125,13 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+
 			ipt.setUpState()
+
 			l.Debugf("feed nsq pts")
+
 			ipt.FeedCoPts()
+
 			start := time.Now()
 			pts, err := ipt.gather()
 			if err != nil {
@@ -135,24 +139,23 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 			}
 
-			if len(pts) == 0 {
-				ipt.FeedUpMetric()
-				continue
+			if len(pts) > 0 {
+				if err := ipt.feeder.FeedV2(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
+					l.Errorf("io.Feed: %s, ignored", err)
+				}
 			}
 
-			if err := ipt.feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(start)),
-				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(inputName),
-			); err != nil {
-				l.Errorf("io.Feed: %s, ignored", err)
-			}
 			ipt.FeedUpMetric()
 		case <-updateListTicker.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+
 			if ipt.isLookupd() {
 				if err := ipt.updateEndpointListByLookupd(ipt.lookupdEndpoint); err != nil {
 					l.Error(err)

@@ -723,6 +723,9 @@ func (ipt *Input) Run() {
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),
 			)
+
+			// On init failing, we still upload up metric to show that the mysql input not working.
+			ipt.FeedUpMetric()
 		} else {
 			break
 		}
@@ -879,7 +882,7 @@ func defaultInput() *Input {
 		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
-		UpState:  1,
+		UpState:  0,
 	}
 }
 

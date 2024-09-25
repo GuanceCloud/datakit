@@ -251,6 +251,9 @@ func (ipt *Input) Init() {
 
 		case <-tick.C:
 		}
+
+		// on init failing, we still upload up metric to show that the oracle input not working.
+		ipt.FeedUpMetric()
 	}
 }
 

@@ -433,30 +433,34 @@ func (ipt *Input) Collect() error {
 	for _, serv := range ipt.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
-				var clusterName string
-				var err error
-				url := ipt.nodeStatsURL(s)
-				ipt.setUpState(url)
+				var (
+					clusterName string
+					err         error
+					nodeURL     = ipt.nodeStatsURL(s)
+				)
+
+				ipt.setUpState(nodeURL)
+
 				// Always gather node stats
-				if clusterName, err = ipt.gatherNodeStats(url); err != nil {
-					ipt.setErrUpState(url)
+				if clusterName, err = ipt.gatherNodeStats(nodeURL); err != nil {
+					ipt.setErrUpState(nodeURL)
 					l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
 				if ipt.ClusterHealth {
-					url = s + "/_cluster/health"
+					url := s + "/_cluster/health"
 					if ipt.ClusterHealthLevel != "" {
 						url = url + "?level=" + ipt.ClusterHealthLevel
 					}
 					if err := ipt.gatherClusterHealth(url, s); err != nil {
-						ipt.setErrUpState(url)
+						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
 				if ipt.ClusterStats && (ipt.serverInfo[s].isMaster() || !ipt.ClusterStatsOnlyFromMaster || !ipt.Local) {
 					if err := ipt.gatherClusterStats(s + "/_cluster/stats"); err != nil {
-						ipt.setErrUpState(url)
+						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
@@ -471,7 +475,7 @@ func (ipt *Input) Collect() error {
 							"/"+
 							strings.Join(ipt.IndicesInclude, ",")+
 							"/_stats?ignore_unavailable=true", clusterName); err != nil {
-							ipt.setErrUpState(url)
+							ipt.setErrUpState(nodeURL)
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
@@ -479,22 +483,24 @@ func (ipt *Input) Collect() error {
 							"/"+
 							strings.Join(ipt.IndicesInclude, ",")+
 							"/_stats?level=shards&ignore_unavailable=true", clusterName); err != nil {
-							ipt.setErrUpState(url)
+							ipt.setErrUpState(nodeURL)
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
 
 					// get settings
 					if err := ipt.gatherIndicesSettings(s, clusterName); err != nil {
-						ipt.setErrUpState(url)
+						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
-				ipt.FeedUpMetric(url)
+
+				ipt.FeedUpMetric(nodeURL)
 				return nil
 			})
 		}(serv)
 	}
+
 	ipt.collectCustomerObjectMeasurement()
 	return g.Wait()
 }

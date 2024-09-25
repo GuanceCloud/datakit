@@ -20,11 +20,29 @@ import (
 )
 
 func (ipt *Input) setUpState(server string) {
+	l.Debugf("set up metric for %q to 1", server)
+	ipt.serverInfoMutex.Lock()
 	ipt.upStates[server] = 1
+	ipt.serverInfoMutex.Unlock()
 }
 
 func (ipt *Input) setErrUpState(server string) {
+	l.Debugf("set up metric for %q to 0", server)
+	ipt.serverInfoMutex.Lock()
 	ipt.upStates[server] = 0
+	ipt.serverInfoMutex.Unlock()
+}
+
+func (ipt *Input) getUpState(server string) int {
+	ipt.serverInfoMutex.Lock()
+	defer ipt.serverInfoMutex.Unlock()
+
+	if x, ok := ipt.upStates[server]; !ok {
+		l.Errorf("up status for server %q not set, should not been here", server)
+		return -1 // not set yet, should not been here
+	} else {
+		return x
+	}
 }
 
 func (ipt *Input) getUpJob() string {
@@ -54,7 +72,7 @@ func (ipt *Input) buildUpPoints(server string) ([]*point.Point, error) {
 		"instance": ipt.getUpInstance(server),
 	}
 	fields := map[string]interface{}{
-		"up": ipt.upStates[server],
+		"up": ipt.getUpState(server),
 	}
 	m := &upMeasurement{
 		name:     "collector",

@@ -988,6 +988,8 @@ func (ipt *Input) Run() {
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),
 			)
+
+			ipt.FeedUpMetric()
 		} else {
 			break
 		}
