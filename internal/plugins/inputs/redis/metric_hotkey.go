@@ -107,7 +107,7 @@ func (ipt *Input) getHotData(ctxKey context.Context, db int) (string, error) {
 	// Official docs be wrong: https://redis.io/docs/connect/cli/
 	// Right example: redis-cli --hotkeys -i 0.1 -u redis://127.0.0.1:6379/0 --user username --pass password
 	u := "redis://" + ipt.Host + ":" + fmt.Sprint(ipt.Port) + "/" + fmt.Sprint(db)
-	args := []string{"redis-cli", "--hotkeys", "-i", ipt.KeyScanSleep, "-u", u}
+	args := []string{ipt.RedisCliPath, "--hotkeys", "-i", ipt.KeyScanSleep, "-u", u}
 	if ipt.Username != "" && ipt.Password != "" {
 		args = append(args, "--user", ipt.Username, "--pass", ipt.Password)
 	}

@@ -40,6 +40,10 @@ const (
   ## @param interval - number - optional - default: 15
   interval = "15s"
 
+  ## @param redis_cli_path - string - optional - default: "redis-cli"
+  ## If you want to use a custom redis-cli path for bigkey or hotkey, set this to the path of the redis-cli binary.
+  # redis_cli_path = "/usr/bin/redis-cli"
+
   ## @param hotkey - boolean - optional - default: false
   ## If you collet hotkey, set this to true
   # hotkey = false

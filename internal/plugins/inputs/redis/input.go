@@ -79,6 +79,7 @@ type Input struct {
 	LatencyPercentiles bool          `toml:"latency_percentiles"`
 	Slowlog            bool          `toml:"slow_log"`
 	AllSlowLog         bool          `toml:"all_slow_log"`
+	RedisCliPath       string        `toml:"redis_cli_path"`
 	Hotkey             bool          `toml:"hotkey"`
 	BigKey             bool          `toml:"bigkey"`
 	KeyInterval        time.Duration `toml:"key_interval"`
@@ -155,6 +156,10 @@ func (ipt *Input) initCfg() error {
 		ipt.TLSOpen,
 		ipt.InsecureSkipVerify,
 	)
+
+	if ipt.RedisCliPath == "" {
+		ipt.RedisCliPath = "redis-cli"
+	}
 
 	tlsCfg, err := ipt.TLSClientConfig.TLSConfigWithBase64()
 	if err != nil {

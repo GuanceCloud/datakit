@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -215,7 +216,7 @@ func (ipt *Input) getBigData(ctxKey context.Context, db int) (string, error) {
 	// Official docs be wrong: https://redis.io/docs/connect/cli/
 	// Right example: redis-cli --hotkeys -i 0.1 -u redis://127.0.0.1:6379/0 --user username --pass password
 	u := "redis://" + ipt.Host + ":" + fmt.Sprint(ipt.Port) + "/" + fmt.Sprint(db)
-	args := []string{"redis-cli", "--bigkeys", "-i", ipt.KeyScanSleep, "-u", u}
+	args := []string{ipt.RedisCliPath, "--bigkeys", "-i", ipt.KeyScanSleep, "-u", u}
 	if ipt.Username != "" && ipt.Password != "" {
 		args = append(args, "--user", ipt.Username, "--pass", ipt.Password)
 	}
@@ -279,8 +280,8 @@ func (ipt *Input) parseBigData(data string, db int) ([]*point.Point, error) {
 		}
 
 		if strings.HasPrefix(line, "Biggest ") &&
-			strings.Contains(line, " found '\"") &&
-			strings.Contains(line, "\"' has ") {
+			strings.Contains(line, " found ") &&
+			strings.Contains(line, " has ") {
 			kv = getBigKey(line)
 			if v, ok := kv["key"]; ok {
 				message += " key: " + fmt.Sprint(v)
@@ -318,23 +319,18 @@ func getBigKey(line string) map[string]interface{} {
 	// Example: Biggest string found '"keySlice2999"' has 47984 bytes
 	// Example: Biggest   zset found '"keyZSet2999"' has 3001 members
 	kv := map[string]interface{}{}
-
-	line = strings.TrimPrefix(line, "Biggest ")
-	line = strings.ReplaceAll(line, "\"' has ", " found '\"")
-	parts := strings.Split(line, " found '\"")
-	if len(parts) != 3 {
-		return kv
+	pattern := `Biggest\s+(\w+)\s+found\s+['"]*(.+?)['"]*\s+has\s+(\d+)\s+\w+`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(line)
+	if len(matches) == 4 {
+		kv["key_type"] = matches[1]
+		kv["key"] = matches[2]
+		valueLength, err := strconv.Atoi(matches[3])
+		if err != nil {
+			return kv
+		}
+		kv["value_length"] = valueLength
 	}
-
-	bigKeyCounterStrs := strings.Split(parts[2], " ")
-	valueLength, err := strconv.Atoi(bigKeyCounterStrs[0])
-	if err != nil {
-		return kv
-	}
-
-	kv["value_length"] = valueLength
-	kv["key"] = strings.Trim(parts[1], " ")
-	kv["key_type"] = strings.Trim(parts[0], " ")
 
 	return kv
 }
