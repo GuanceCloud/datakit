@@ -1,0 +1,34 @@
+[
+  [
+    "go_alloc_bytes_per_sec",
+    232769.73333333334
+  ],
+  [
+    "go_allocs_per_sec",
+    388
+  ],
+  [
+    "go_frees_per_sec",
+    358.2
+  ],
+  [
+    "go_heap_growth_bytes_per_sec",
+    7393.066666666667
+  ],
+  [
+    "go_gcs_per_sec",
+    0.016666666666666666
+  ],
+  [
+    "go_gc_pause_time",
+    0.00000965346793130803
+  ],
+  [
+    "go_max_gc_pause_time",
+    581178
+  ],
+  [
+    "go_num_goroutine",
+    26
+  ]
+]

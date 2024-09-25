@@ -157,6 +157,8 @@ github.com/GuanceCloud/grok v1.1.4 h1:+w/U5a54cgY0O+dvfcKc2qD3JuhmaS8Hi29BM4QMYt
 github.com/GuanceCloud/grok v1.1.4/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/influxdb1-client v0.1.8 h1:7XNICWcW+NxAHFkzQ8mkOCKA/8U2WNH5m+Hm9g0vz4k=
 github.com/GuanceCloud/influxdb1-client v0.1.8/go.mod h1:4HC4b/O653/ezBiHMPBnHYnHCCfsNT2LvCr7wNLngw4=
+github.com/GuanceCloud/jfr-parser v0.8.6 h1:kyiVxH5LcxNc1Xc3R9uSJz8f8RmBDhy9ytJrXCL6pn8=
+github.com/GuanceCloud/jfr-parser v0.8.6/go.mod h1:mngmZuDZbFhqGn2F+fK7tyxq+EmwvNZqWnQQ+heWmE4=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cro+7xCCruRvPh9z1L6DwX8xo2N4RDgHGUmtg=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f h1:0+A0eeT48LSlnDpVOQ/sqoW/lbYmerKKF7NVNBlgnww=
@@ -175,6 +177,8 @@ github.com/GuanceCloud/toml v1.2.5 h1:jBWfqFSVortEY0C4RYqFPvhDKcGxIosKzcQqTPtZMf
 github.com/GuanceCloud/toml v1.2.5/go.mod h1:D7S1XowYqOvMQdtsp2+lg2rKmO6RVuyekXJL+MzkD5Y=
 github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3 h1:+b+MkQrj/eJcODklzCSObp19TBycmfuooqCBD+89qmU=
 github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3/go.mod h1:5nclDehqFMaV8YMZzt1FuXz9/JRVKq0LYhmV2Djc1GU=
+github.com/GuanceCloud/zipstream v0.1.0 h1:RToNErercYk7y/nmyvshjN0Zt12lFNg2BpLh3YXXSNY=
+github.com/GuanceCloud/zipstream v0.1.0/go.mod h1:d5rjEl0N0ucmRRvrfX1+9JtsZZMYt5sWg9AR6pyTkCM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0 h1:6dpdDPTRoo78HxAJ6T1HfMiKSnqhgRRqzCuPshRkQ7I=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/IBM/sarama v1.41.2 h1:ZDBZfGPHAD4uuAtSv4U22fRZBgst0eEwGFzLj0fb85c=

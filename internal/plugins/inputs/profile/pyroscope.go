@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
+
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pyroscope-io/pyroscope/pkg/agent/types"
@@ -489,8 +491,8 @@ Put implements storage.Putter interface
 */
 func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage.PutInput) error {
 	var profileDataSet []*profileData
-	var reportFamily Language
-	var reportFormat Format
+	var reportFamily metrics.Language
+	var reportFormat metrics.Format
 	var startTime, endTime time.Time
 
 	spyName := putInput.SpyName
@@ -527,8 +529,8 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 
 		// Having cpu, inuse_objects, and inuse_space. Data is ready, start send.
 
-		reportFamily = NodeJS
-		reportFormat = PPROF
+		reportFamily = metrics.NodeJS
+		reportFormat = metrics.PPROF
 
 		// cpu
 		cpuData, err := getBytesBufferByPut(detail.CPU)
@@ -570,8 +572,8 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		report.Delete(name)
 
 	case eBPFSpyName:
-		reportFamily = CPP
-		reportFormat = Collapsed
+		reportFamily = metrics.CPP
+		reportFormat = metrics.Collapsed
 
 		report.inputTags["sample_rate"] = fmt.Sprintf("%d", putInput.SampleRate)
 		report.inputTags["units"] = putInput.Units.String()
@@ -595,17 +597,17 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 		return fmt.Errorf("not supported format")
 	}
 
-	event := &Metadata{
+	event := &metrics.Metadata{
 		Language: reportFamily,
 		Format:   reportFormat,
-		Profiler: Pyroscope,
-		Start:    newRFC3339Time(startTime),
-		End:      newRFC3339Time(endTime),
+		Profiler: metrics.Pyroscope,
+		Start:    metrics.NewRFC3339Time(startTime),
+		End:      metrics.NewRFC3339Time(endTime),
 		Attachments: []string{
 			withExtName(pyroscopeFilename, ".pprof"),
 		},
-		TagsProfiler:  joinTags(report.inputTags),
-		SubCustomTags: joinTags(report.pyrs.Tags),
+		TagsProfiler:  metrics.JoinTags(report.inputTags),
+		SubCustomTags: metrics.JoinTags(report.pyrs.Tags),
 	}
 
 	if err := pushProfileData(
@@ -619,7 +621,7 @@ func (report *pyroscopeDatakitReport) Put(ctx context.Context, putInput *storage
 			Input:           report.pyrs.input,
 		},
 		event,
-		report.pyrs.input.getBodySizeLimit(),
+		report.pyrs.input.GetBodySizeLimit(),
 	); err != nil {
 		log.Errorf("unable to push pyroscope profile data: %s", err)
 		return err

@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package profile
+package metrics
 
 import (
 	"encoding/json"
@@ -17,11 +17,21 @@ import (
 )
 
 const (
-	eventJSONFile           = "event"
-	eventJSONFileWithSuffix = "event.json"
-	profileTagsKey          = "tags[]"
-	eventFileTagsKey        = "tags_profiler"
-	subCustomTagsKey        = "sub_custom_tags"
+	EventFile        = "event"
+	EventJSONFile    = "event.json"
+	ProfFile         = "prof"
+	MainFile         = "main"
+	MainJFRFile      = "main.jfr"
+	MainPprofFile    = "main.pprof"
+	AutoFile         = "auto"
+	AutoJFRFile      = "auto.jfr"
+	MetricFile       = "metrics"
+	MetricJSONFile   = "metrics.json"
+	AutoPprofFile    = "auto.pprof"
+	profileTagsKey   = "tags[]"
+	eventFileTagsKey = "tags_profiler"
+	SubCustomTagsKey = "sub_custom_tags"
+	PprofExt         = ".pprof"
 )
 
 const (
@@ -113,7 +123,7 @@ type Tags map[string]string
 
 type rfc3339Time time.Time
 
-func newRFC3339Time(t time.Time) *rfc3339Time {
+func NewRFC3339Time(t time.Time) *rfc3339Time {
 	return (*rfc3339Time)(&t)
 }
 
@@ -151,29 +161,19 @@ type Metadata struct {
 	End           *rfc3339Time `json:"end"`
 }
 
-func newTags(originTags []string) Tags {
-	pt := make(Tags)
+func NewTags(originTags []string) Tags {
+	tags := make(Tags)
 	for _, tag := range originTags {
 		// 有":"， 用:切割成键值对
 		if strings.Index(tag, ":") > 0 {
 			pairs := strings.SplitN(tag, ":", 2)
-			pt[pairs[0]] = pairs[1]
+			tags[pairs[0]] = pairs[1]
 		} else {
 			// 没有":" 整个值做key, value为空
-			pt[tag] = ""
+			tags[tag] = ""
 		}
 	}
-	return pt
-}
-
-func (t Tags) Get(name string, defVal ...string) string {
-	if tag, ok := t[name]; ok {
-		return tag
-	}
-	if len(defVal) > 0 {
-		return defVal[0]
-	}
-	return ""
+	return tags
 }
 
 func ResolveLanguage(runtimes []string) Language {
@@ -188,11 +188,11 @@ func ResolveLanguage(runtimes []string) Language {
 	return UnKnown
 }
 
-func resolveStartTime(formValue map[string][]string) (time.Time, error) {
+func ResolveStartTime(formValue map[string][]string) (time.Time, error) {
 	return resolveTime(formValue, []string{"recording-start", "start"})
 }
 
-func resolveEndTime(formValue map[string][]string) (time.Time, error) {
+func ResolveEndTime(formValue map[string][]string) (time.Time, error) {
 	return resolveTime(formValue, []string{"recording-end", "end"})
 }
 
@@ -224,84 +224,85 @@ func resolveTime(formValue map[string][]string, formFields []string) (time.Time,
 	return tm, errors.New("there is not proper form time field")
 }
 
-func getForm(field string, formValues map[string][]string) string {
-	if val := formValues[field]; len(val) > 0 {
-		return val[0]
-	}
-	return ""
-}
-
-func resolveLang(formValue map[string][]string, pt Tags) Language {
+func ResolveLang(metadata *ResolvedMetadata) Language {
 	var runtimes []string
 
-	if v := pt.Get("language"); v != "" {
-		runtimes = append(runtimes, v)
-	}
-
-	if v := pt.Get("runtime"); v != "" {
-		runtimes = append(runtimes, v)
-	}
-
-	formKeys := []string{
-		"runtime",
+	aliasNames := []string{
 		"language",
+		"runtime",
 		"family",
 	}
 
-	for _, field := range formKeys {
-		if v := getForm(field, formValue); v != "" {
+	for _, field := range aliasNames {
+		if v := metadata.GetTag(field); v != "" {
 			runtimes = append(runtimes, v)
+		}
+	}
+
+	for _, field := range aliasNames {
+		if values := metadata.FormValue[field]; len(values) > 0 {
+			runtimes = append(runtimes, values...)
 		}
 	}
 
 	return ResolveLanguage(runtimes)
 }
 
-func interface2String(i interface{}) (string, error) {
-	switch baseV := i.(type) {
+func any2String(i interface{}) string {
+	switch ix := i.(type) {
 	case string:
-		return baseV, nil
+		return ix
+	case []byte:
+		return string(ix)
 	case float32, float64:
-		return strconv.FormatFloat(reflect.ValueOf(i).Float(), 'g', -1, 64), nil
+		return strconv.FormatFloat(reflect.ValueOf(i).Float(), 'g', -1, 64)
 	case int, int8, int16, int32, int64:
-		return strconv.FormatInt(reflect.ValueOf(i).Int(), 10), nil
+		return strconv.FormatInt(reflect.ValueOf(i).Int(), 10)
 	case uint, uint8, uint16, uint32, uint64, uintptr:
-		return strconv.FormatUint(reflect.ValueOf(i).Uint(), 10), nil
+		return strconv.FormatUint(reflect.ValueOf(i).Uint(), 10)
 	case bool:
-		if baseV {
-			return "true", nil
+		if ix {
+			return "true"
 		}
-		return "false", nil
+		return "false"
+	case json.Number:
+		return ix.String()
 	}
-	return "", fmt.Errorf("not suppoerted interface type: %T", i)
+	return fmt.Sprintf("%v", i)
 }
 
-func json2StringMap(m map[string]interface{}) map[string][]string {
+func json2FormValues(m map[string]interface{}) map[string][]string {
 	formatted := make(map[string][]string, len(m))
 
 	for k, v := range m {
-		switch baseV := v.(type) {
+		switch vx := v.(type) {
 		case []interface{}:
-			for _, elem := range baseV {
-				if elemStr, err := interface2String(elem); err == nil {
-					formatted[k] = append(formatted[k], elemStr)
-				}
+			for _, elem := range vx {
+				formatted[k] = append(formatted[k], any2String(elem))
 			}
 		default:
-			if vStr, err := interface2String(v); err == nil {
-				formatted[k] = append(formatted[k], vStr)
-			}
+			formatted[k] = append(formatted[k], any2String(v))
 		}
 	}
 	return formatted
 }
 
-type resolvedMetadata struct {
-	formValue map[string][]string
-	tags      Tags
+type ResolvedMetadata struct {
+	FormValue map[string][]string
+	Tags      Tags
 }
 
-func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
+func (r *ResolvedMetadata) GetTag(name string, defValue ...string) string {
+	if tag, ok := r.Tags[name]; ok {
+		return tag
+	}
+	if len(defValue) > 0 {
+		return defValue[0]
+	}
+	return ""
+}
+
+func ParseMetadata(req *http.Request) (*ResolvedMetadata, int64, error) {
 	filesize := int64(0)
 	for _, files := range req.MultipartForm.File {
 		for _, f := range files {
@@ -311,16 +312,16 @@ func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 
 	if req.MultipartForm.Value != nil {
 		if _, ok := req.MultipartForm.Value[profileTagsKey]; ok {
-			return &resolvedMetadata{
-				formValue: req.MultipartForm.Value,
-				tags:      newTags(req.MultipartForm.Value[profileTagsKey]),
+			return &ResolvedMetadata{
+				FormValue: req.MultipartForm.Value,
+				Tags:      NewTags(req.MultipartForm.Value[profileTagsKey]),
 			}, filesize, nil
 		}
 	}
 
-	eventFiles, ok := req.MultipartForm.File[eventJSONFile]
+	eventFiles, ok := req.MultipartForm.File[EventFile]
 	if !ok {
-		eventFiles, ok = req.MultipartForm.File[eventJSONFileWithSuffix]
+		eventFiles, ok = req.MultipartForm.File[EventJSONFile]
 	}
 
 	if ok && len(eventFiles) > 0 {
@@ -337,15 +338,32 @@ func parseMetadata(req *http.Request) (*resolvedMetadata, int64, error) {
 		if err := decoder.Decode(&events); err != nil {
 			return nil, filesize, fmt.Errorf("resolve the event file fail: %w", err)
 		}
-		eventFormValues := json2StringMap(events)
+		eventFormValues := json2FormValues(events)
+		var tags []string
 		if len(eventFormValues[eventFileTagsKey]) > 0 && eventFormValues[eventFileTagsKey][0] != "" {
-			eventFormValues[profileTagsKey] = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
+			tags = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
 		}
 
-		return &resolvedMetadata{
-			formValue: eventFormValues,
-			tags:      newTags(eventFormValues[profileTagsKey]),
+		return &ResolvedMetadata{
+			FormValue: eventFormValues,
+			Tags:      NewTags(tags),
 		}, filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
+}
+
+func JoinTags(m map[string]string) string {
+	if len(m) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+
+	for k, v := range m {
+		sb.WriteString(k)
+		sb.WriteByte(':')
+		sb.WriteString(v)
+		sb.WriteByte(',')
+	}
+	return strings.TrimSuffix(sb.String(), ",")
 }

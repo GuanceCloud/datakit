@@ -355,6 +355,7 @@ require (
 	github.com/cilium/ebpf v0.11.0
 	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db
 	github.com/google/gopacket v0.0.0-00010101000000-000000000000
+	github.com/grafana/jfr-parser v0.0.1
 	github.com/grafana/pyroscope/ebpf v0.2.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/ibmdb/go_ibm_db v0.4.4
@@ -373,6 +374,7 @@ require (
 )
 
 require (
+	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -390,6 +392,7 @@ require (
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
+	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4

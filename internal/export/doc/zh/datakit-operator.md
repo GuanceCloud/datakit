@@ -469,12 +469,15 @@ spec:
       labels:
         app: movies-java
       annotations:
-        admission.datakit/java-profiler.version: "latest"
+        admission.datakit/java-profiler.version: "0.4.4"
     spec:
       containers:
         - name: movies-java
           image: zhangyicloud/movies-java:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            seccompProfile:
+              type: Unconfined
           env:
             - name: JAVA_OPTS
               value: ""

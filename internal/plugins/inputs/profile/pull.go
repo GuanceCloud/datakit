@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
+
 	pprofile "github.com/google/pprof/profile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -202,22 +204,6 @@ func withExtName(f, ext string) string {
 	return f
 }
 
-func joinTags(m map[string]string) string {
-	if len(m) == 0 {
-		return ""
-	}
-
-	var sb strings.Builder
-
-	for k, v := range m {
-		sb.WriteString(k)
-		sb.WriteByte(':')
-		sb.WriteString(v)
-		sb.WriteByte(',')
-	}
-	return strings.TrimSuffix(sb.String(), ",")
-}
-
 func (g *GoProfiler) pullProfile() {
 	var (
 		deltaData      []*profileData
@@ -241,17 +227,17 @@ func (g *GoProfiler) pullProfile() {
 						inputNameSuffix: "/go",
 						Input:           g.input,
 					},
-					&Metadata{
-						Language:      Golang,
-						Format:        PPROF,
-						Profiler:      GoPProf,
-						Start:         newRFC3339Time(pData.startTime),
-						End:           newRFC3339Time(pData.endTime),
+					&metrics.Metadata{
+						Language:      metrics.Golang,
+						Format:        metrics.PPROF,
+						Profiler:      metrics.GoPProf,
+						Start:         metrics.NewRFC3339Time(pData.startTime),
+						End:           metrics.NewRFC3339Time(pData.endTime),
 						Attachments:   []string{withExtName(pData.fileName, ".pprof")},
-						TagsProfiler:  joinTags(g.tags),
-						SubCustomTags: joinTags(g.Tags),
+						TagsProfiler:  metrics.JoinTags(g.tags),
+						SubCustomTags: metrics.JoinTags(g.Tags),
 					},
-					g.input.getBodySizeLimit(),
+					g.input.GetBodySizeLimit(),
 				); err != nil {
 					log.Warnf("push profile data error: %s", err.Error())
 				}
@@ -274,17 +260,17 @@ func (g *GoProfiler) pullProfile() {
 				inputNameSuffix: "/go",
 				Input:           g.input,
 			},
-			&Metadata{
-				Language:      Golang,
-				Format:        PPROF,
-				Profiler:      GoPProf,
-				Start:         newRFC3339Time(pData.startTime),
-				End:           newRFC3339Time(pData.endTime),
+			&metrics.Metadata{
+				Language:      metrics.Golang,
+				Format:        metrics.PPROF,
+				Profiler:      metrics.GoPProf,
+				Start:         metrics.NewRFC3339Time(pData.startTime),
+				End:           metrics.NewRFC3339Time(pData.endTime),
 				Attachments:   deltaFileNames,
-				TagsProfiler:  joinTags(g.tags),
-				SubCustomTags: joinTags(g.Tags),
+				TagsProfiler:  metrics.JoinTags(g.tags),
+				SubCustomTags: metrics.JoinTags(g.Tags),
 			},
-			g.input.getBodySizeLimit(),
+			g.input.GetBodySizeLimit(),
 		); err != nil {
 			log.Warnf("push delta profile data error: %s", err.Error())
 		}
@@ -373,12 +359,12 @@ func (g *GoProfiler) pullProfileData(path string, params url.Values) (*bytes.Buf
 	}
 
 	dst := new(bytes.Buffer)
-	n, err := io.Copy(dst, LimitReader(resp.Body, g.input.getBodySizeLimit()))
+	n, err := io.Copy(dst, LimitReader(resp.Body, g.input.GetBodySizeLimit()))
 	if err != nil {
 		return nil, err
 	}
 
-	if n > g.input.getBodySizeLimit() {
+	if n > g.input.GetBodySizeLimit() {
 		return nil, fmt.Errorf("exceed body max size")
 	}
 
