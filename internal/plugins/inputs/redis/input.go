@@ -586,8 +586,6 @@ func defaultInput() *Input {
 		Election:        true,
 		feeder:          dkio.DefaultFeeder(),
 		tagger:          datakit.DefaultGlobalTagger(),
-
-		UpState: 1,
 	}
 }
 
