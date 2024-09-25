@@ -139,7 +139,12 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 { service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def MATCH ['foo.*', 'bar.*']) }
 ```
 
-除此之外，还支持如下列表操作：
+- 内置常量
+
+    - `true/false`
+    - `nil/null`: 空值，见下文说明
+
+- 匹配和列表操作
 
 | 操作符              | 支持数值类型   | 说明                                                   | 示例                              |
 | ----                | ----           | ----                                                   | ----                              |
@@ -149,7 +154,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    列表中**只能出现普通的数据类型**，如字符串、整数、浮点，其它表达式均不支持。 
+    - 列表中**只能出现普通的数据类型**，如字符串、整数、浮点，其它表达式均不支持。 
 
     `IN/NOTIN/MATCH/NOTMATCH` 这些关键字**大小写不敏感**，即 `in` 和 `IN` 以及 `In` 效果是一样的。除此之外，其它操作数的大小写都是敏感的，比如如下几个过滤器表达的意思不同：
 
@@ -160,7 +165,32 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
     ```
 
     在数据点中，**所有字段以及其值都是大小写敏感的**。
+
+    - 恒等/恒不等表达式写法：
+
+    ```python
+    # 恒等
+    { 1 = 1}
+    { 'abc' = 'abc'}
+
+    # 恒不等
+    { true = false  }
+    { 'abc' = 'ABC' } # 字符串大小写敏感
+    ```
 <!-- markdownlint-enable -->
+
+### nil/null 用法 {#nil}
+
+`nil/null` 用于表示某些字段不存在，我们可以在 `=/!=/IN/NOTIN` 操作中使用：
+
+```python
+{ some_tag_or_field != nil }                     # 某个字段存在
+{ some_tag_or_field = nil }                      # 某个字段不存在
+{ some_tag_or_field IN ["abc", "123", null] }    # 某个字段要么不存在，要么只能等于指定的值
+{ some_tag_or_field NOTIN ["abc", "123", null] } # 某个字段不为 null 且不为指定的值
+```
+
+此处 `nil/null` 不区分大小写，我们可以写成 `NULL/Null/NIL/Nil` 等多种形式。
 
 ## 用法示例 {#usage}
 
