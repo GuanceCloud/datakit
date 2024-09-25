@@ -73,7 +73,7 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ### 生成性能指标 {#metrics}
 
-Datakit 自 [1.39.0](changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，下面列举其中部分指标加以说明：
+Datakit 自 [1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，下面列举其中部分指标加以说明：
 
 | 指标名称                                  | 说明                                                     | 单位         |
 |---------------------------------------|--------------------------------------------------------|------------|
