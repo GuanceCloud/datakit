@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	pt "github.com/GuanceCloud/cliutils/point"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
@@ -41,13 +40,13 @@ type (
 	serviceOKFunc    func(t *testing.T, port string) bool
 )
 
-var collectPointsCache []*pt.Point = make([]*point.Point, 0)
+var collectPointsCache []*point.Point = make([]*point.Point, 0)
 
 type mockSender struct {
 	mu sync.Mutex
 }
 
-func (m *mockSender) send(url string, point *pt.Point) error {
+func (m *mockSender) send(url string, point *point.Point) error {
 	m.mu.Lock()
 	collectPointsCache = append(collectPointsCache, point)
 	m.mu.Unlock()
@@ -233,7 +232,7 @@ func (cs *caseSpec) run() error {
 	}
 
 	// setup container
-	if err := setupContainer(cs.pool, cs.resource); err != nil {
+	if err := setupContainer(cs.resource); err != nil {
 		return err
 	}
 
@@ -483,7 +482,7 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 }
 
 // setupContainer sets up the container for the given Pool and Resource.
-func setupContainer(p *dt.Pool, resource *dt.Resource) error {
+func setupContainer(resource *dt.Resource) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
 	var err error
 	defer cancel()

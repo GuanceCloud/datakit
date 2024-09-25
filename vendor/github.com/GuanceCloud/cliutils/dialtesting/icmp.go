@@ -64,7 +64,8 @@ type ICMPTask struct {
 	Labels            []string          `json:"labels,omitempty"`
 	UpdateTime        int64             `json:"update_time,omitempty"`
 	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
-	TagsInfo          string            `json:"tags_info,omitempty"`
+	TagsInfo          string            `json:"tags_info,omitempty"` // deprecated
+	DFLabel           string            `json:"df_label,omitempty"`
 
 	packetLossPercent float64
 	avgRoundTripTime  float64 // us
@@ -506,6 +507,9 @@ func (t *ICMPTask) GetWorkspaceLanguage() string {
 	return "zh"
 }
 
-func (t *ICMPTask) GetTagsInfo() string {
+func (t *ICMPTask) GetDFLabel() string {
+	if t.DFLabel != "" {
+		return t.DFLabel
+	}
 	return t.TagsInfo
 }

@@ -68,7 +68,8 @@ type WebsocketTask struct {
 	Labels            []string                `json:"labels,omitempty"`
 	UpdateTime        int64                   `json:"update_time,omitempty"`
 	WorkspaceLanguage string                  `json:"workspace_language,omitempty"`
-	TagsInfo          string                  `json:"tags_info,omitempty"`
+	TagsInfo          string                  `json:"tags_info,omitempty"` // deprecated
+	DFLabel           string                  `json:"df_label,omitempty"`
 
 	reqCost         time.Duration
 	reqDNSCost      time.Duration
@@ -490,6 +491,9 @@ func (t *WebsocketTask) GetWorkspaceLanguage() string {
 	return "zh"
 }
 
-func (t *WebsocketTask) GetTagsInfo() string {
+func (t *WebsocketTask) GetDFLabel() string {
+	if t.DFLabel != "" {
+		return t.DFLabel
+	}
 	return t.TagsInfo
 }

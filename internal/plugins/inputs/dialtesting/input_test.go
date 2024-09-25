@@ -71,3 +71,38 @@ func TestInternalNetwork(t *testing.T) {
 	}()
 	assert.NoError(t, dialer.run())
 }
+
+func TestPopulateDFLabelTags(t *testing.T) {
+	cases := []struct {
+		Title  string
+		Label  string
+		Expect map[string]string
+	}{
+		{
+			Title:  "no need to extract tags",
+			Label:  "test",
+			Expect: map[string]string{LabelDF: `["test"]`},
+		},
+		{
+			Title:  "empty label",
+			Label:  "",
+			Expect: map[string]string{LabelDF: `[]`},
+		},
+		{
+			Title:  "extract tags",
+			Label:  "test,f1:2,f2:3:3",
+			Expect: map[string]string{LabelDF: `["test","f1:2","f2:3:3"]`, "f1": "2", "f2": "3:3"},
+		},
+		{
+			Title:  "new label format",
+			Label:  "[\"tag1:value1\",\"tag2:value2\",\"tag3:value3\"]",
+			Expect: map[string]string{LabelDF: "[\"tag1:value1\",\"tag2:value2\",\"tag3:value3\"]", "tag1": "value1", "tag2": "value2", "tag3": "value3"},
+		},
+	}
+	for _, tc := range cases {
+		tags := make(map[string]string)
+		populateDFLabelTags(tc.Label, tags)
+
+		assert.EqualValues(t, tc.Expect, tags)
+	}
+}
