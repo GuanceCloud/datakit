@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package profile
+package metrics
 
 import (
 	"bytes"
@@ -25,8 +25,8 @@ func TestMetadata(t *testing.T) {
 		Language:      Golang,
 		TagsProfiler:  "process_id:31145,service:zy-profiling-test,profiler_version:0.102.0~b67f6e3380,host:zydeMacBook-Air.local,runtime-id:06dddda1-957b-4619-97cb-1a78fc7e3f07,language:jvm,env:test,version:v1.2",
 		SubCustomTags: "foobar:hello-world",
-		Start:         newRFC3339Time(time.Now()),
-		End:           newRFC3339Time(time.Now().Add(time.Minute)),
+		Start:         NewRFC3339Time(time.Now()),
+		End:           NewRFC3339Time(time.Now().Add(time.Minute)),
 	}
 
 	out, err := json.MarshalIndent(md, "", "    ")
@@ -51,7 +51,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	headers := json2StringMap(m)
+	headers := json2FormValues(m)
 
 	for k, v := range headers {
 		fmt.Println(k, ":", v)
@@ -82,7 +82,7 @@ func TestJson2StringMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	strMap := json2StringMap(v)
+	strMap := json2FormValues(v)
 
 	for key, val := range strMap {
 		fmt.Println(key, ":", val)
@@ -123,19 +123,19 @@ func TestParseMetadata(t *testing.T) {
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
-	err = req.ParseMultipartForm(defaultInput().getBodySizeLimit())
+	err = req.ParseMultipartForm(1e9)
 	assert.NoError(t, err)
 
-	metadata, _, err := parseMetadata(req)
+	metadata, _, err := ParseMetadata(req)
 
 	assert.NoError(t, err)
 
-	for k, v := range metadata.tags {
+	for k, v := range metadata.Tags {
 		t.Logf("%s : %s \n", k, v)
 	}
 
-	assert.Equal(t, "bar", metadata.tags["foo"])
-	assert.Equal(t, "hello-world", metadata.tags["foobar"])
+	assert.Equal(t, "bar", metadata.Tags["foo"])
+	assert.Equal(t, "hello-world", metadata.Tags["foobar"])
 
-	fmt.Println(joinTags(metadata.tags))
+	fmt.Println(JoinTags(metadata.Tags))
 }

@@ -37,8 +37,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -66,6 +67,9 @@ const (
 
   ## the max allowed size of http request body (of MB), 32MB by default.
   body_size_limit_mb = 32 # MB
+
+  ## set false to stop generating apm metrics from ddtrace output.
+  generate_metrics = true
 
   ## io_config is used to control profiling uploading behavior.
   ## cache_path set the disk directory where temporarily cache profiling data.
@@ -313,7 +317,7 @@ func defaultDiskCachePath() string {
 	return filepath.Join(datakit.CacheDir, defaultDiskCacheFileName)
 }
 
-func defaultInput() *Input {
+func DefaultInput() *Input {
 	return &Input{
 		BodySizeLimitMB: defaultProfileMaxSize,
 		IOConfig: ioConfig{
@@ -324,18 +328,19 @@ func defaultInput() *Input {
 			SendTimeout:       defaultHTTPClientTimeout,
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
-		pauseCh:    make(chan bool, inputs.ElectionPauseChannelLength),
-		Election:   true,
-		semStop:    cliutils.NewSem(),
-		feeder:     dkio.DefaultFeeder(),
-		Tagger:     datakit.DefaultGlobalTagger(),
-		httpClient: http.DefaultClient,
+		GenerateMetrics: true,
+		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
+		Election:        true,
+		semStop:         cliutils.NewSem(),
+		feeder:          dkio.DefaultFeeder(),
+		Tagger:          datakit.DefaultGlobalTagger(),
+		httpClient:      http.DefaultClient,
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return defaultInput()
+		return DefaultInput()
 	})
 }
 
@@ -347,6 +352,7 @@ type Input struct {
 	Go              []*GoProfiler     `toml:"go"`
 	PyroscopeLists  []*pyroscopeOpts  `toml:"pyroscope"`
 	Election        bool              `toml:"election"`
+	GenerateMetrics bool              `toml:"generate_metrics"`
 
 	pause   bool
 	pauseCh chan bool
@@ -359,7 +365,7 @@ type Input struct {
 	Tagger  datakit.GlobalTagger
 }
 
-func (ipt *Input) getBodySizeLimit() int64 {
+func (ipt *Input) GetBodySizeLimit() int64 {
 	return int64(ipt.BodySizeLimitMB) * MiB
 }
 
@@ -456,7 +462,7 @@ func cacheRequest(w http.ResponseWriter, r *http.Request, bodySizeLimit int64) *
 }
 
 func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if err := cacheRequest(w, req, ipt.getBodySizeLimit()); err != nil {
+	if err := cacheRequest(w, req, ipt.GetBodySizeLimit()); err != nil {
 		log.Errorf("unable to cache profiling request: %v", err)
 		w.WriteHeader(err.HttpCode)
 		_, _ = io.WriteString(w, err.Error())
@@ -464,13 +470,13 @@ func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *resolvedMetadata) error {
-	f, err := mw.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
+func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *metrics.ResolvedMetadata) error {
+	f, err := mw.CreateFormFile(metrics.EventFile, metrics.EventJSONFile)
 	if err != nil {
 		return fmt.Errorf("unable to create form file: %w", err)
 	}
 
-	md := Metadata{}
+	md := metrics.Metadata{}
 
 	for name, fileHeaders := range form.File {
 		extName := filepath.Ext(name)
@@ -488,33 +494,32 @@ func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *r
 		md.Attachments = append(md.Attachments, name)
 		switch strings.ToLower(extName) {
 		case ".pprof":
-			md.Format = PPROF
+			md.Format = metrics.PPROF
 		case ".jfr":
-			md.Format = JFR
+			md.Format = metrics.JFR
 		}
 	}
 	if md.Format == "" {
 		md.Format = "unknown"
 	}
-	startTime, err := resolveStartTime(metadata.formValue)
+	startTime, err := metrics.ResolveStartTime(metadata.FormValue)
 	if err != nil {
 		log.Warnf("unable to resolve profile start time: %w", err)
 	} else {
-		md.Start = newRFC3339Time(startTime)
+		md.Start = metrics.NewRFC3339Time(startTime)
 	}
 
-	endTime, err := resolveEndTime(metadata.formValue)
+	endTime, err := metrics.ResolveEndTime(metadata.FormValue)
 	if err != nil {
 		log.Warnf("unable to resolve profile end time: %w", err)
 	} else {
-		md.End = newRFC3339Time(endTime)
+		md.End = metrics.NewRFC3339Time(endTime)
 	}
 
-	tags := metadata.tags
-	lang := resolveLang(metadata.formValue, tags)
+	lang := metrics.ResolveLang(metadata)
 	md.Language = lang
 
-	md.TagsProfiler = joinTags(metadata.tags)
+	md.TagsProfiler = metrics.JoinTags(metadata.Tags)
 
 	mdBytes, err := json.Marshal(md)
 	if err != nil {
@@ -547,18 +552,43 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		}
 	}
 
-	if err := req.ParseMultipartForm(ipt.getBodySizeLimit()); err != nil {
+	if err := req.ParseMultipartForm(ipt.GetBodySizeLimit()); err != nil {
 		return fmt.Errorf("unable to parse multipart/formdata: %w", err)
 	}
 
-	metadata, _, err := parseMetadata(req)
+	metadata, _, err := metrics.ParseMetadata(req)
 	if err != nil {
 		return fmt.Errorf("unable to resolve profiling tags: %w", err)
 	}
 
 	var subCustomTags map[string]string
-	if len(metadata.formValue[subCustomTagsKey]) > 0 && metadata.formValue[subCustomTagsKey][0] != "" {
-		subCustomTags = newTags(strings.Split(metadata.formValue[subCustomTagsKey][0], ","))
+	if len(metadata.FormValue[metrics.SubCustomTagsKey]) > 0 && metadata.FormValue[metrics.SubCustomTagsKey][0] != "" {
+		subCustomTags = metrics.NewTags(strings.Split(metadata.FormValue[metrics.SubCustomTagsKey][0], ","))
+	}
+
+	language := metrics.ResolveLang(metadata)
+	if ipt.GenerateMetrics {
+		allCustomTags := make(map[string]string, len(ipt.Tags)+len(subCustomTags))
+		for k, v := range ipt.Tags {
+			allCustomTags[k] = v
+		}
+		for k, v := range subCustomTags {
+			allCustomTags[k] = v
+		}
+		switch language { // nolint:exhaustive
+		case metrics.Java:
+			if err = metrics.ExportJVMMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+				log.Errorf("unable to export java ddtrace profiling metrics: %v", err)
+			}
+		case metrics.Golang:
+			if err = metrics.ExportGoMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+				log.Errorf("unable to export golang ddtrace profiling metrics: %v", err)
+			}
+		case metrics.Python:
+			if err = metrics.ExportPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+				log.Errorf("unable to export python ddtrace profiling metrics: %v", err)
+			}
+		}
 	}
 
 	customTagsDefined := false
@@ -567,15 +597,15 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			// has set tags in sub settings, ignore
 			continue
 		}
-		if old, ok := metadata.tags[tk]; !ok || old != tv {
+		if old, ok := metadata.Tags[tk]; !ok || old != tv {
 			customTagsDefined = true
-			metadata.tags[tk] = tv
+			metadata.Tags[tk] = tv
 		}
 	}
 
 	// Add event form file to multipartForm if it doesn't exist
-	_, ok1 := req.MultipartForm.File[eventJSONFile]
-	_, ok2 := req.MultipartForm.File[eventJSONFileWithSuffix]
+	_, ok1 := req.MultipartForm.File[metrics.EventFile]
+	_, ok2 := req.MultipartForm.File[metrics.EventJSONFile]
 
 	if (!ok1 && !ok2) || customTagsDefined {
 		if newBody, err := modifyMultipartForm(req, req.MultipartForm, metadata); err != nil {
@@ -587,7 +617,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 
-	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata.tags,
+	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata.Tags,
 		config.Cfg.Dataway.GlobalTags(),
 		config.Cfg.Dataway.CustomTagKeys())
 	if xGlobalTag == "" {
@@ -672,7 +702,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	}
 	reqCost = time.Since(reqStart)
 
-	metricName := inputName + "/" + resolveLang(metadata.formValue, metadata.tags).String()
+	metricName := inputName + "/" + language.String()
 	if sendErr == nil && resp.StatusCode/100 == 2 {
 		dkio.InputsFeedVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
 		dkio.InputsFeedPtsVec().WithLabelValues(metricName, point.Profiling.String()).Observe(float64(1))
@@ -684,8 +714,8 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			feedErr = fmt.Errorf("error status code %d", resp.StatusCode)
 		}
 		ipt.feeder.FeedLastError(feedErr.Error(),
-			metrics.WithLastErrorInput(metricName),
-			metrics.WithLastErrorCategory(point.Profiling),
+			dkMetrics.WithLastErrorInput(metricName),
+			dkMetrics.WithLastErrorCategory(point.Profiling),
 		)
 	}
 
@@ -782,6 +812,8 @@ func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("the input %s is running...", inputName)
 
+	metrics.InitLog()
+
 	if err := ipt.InitDiskQueueIO(); err != nil {
 		log.Errorf("unable to start IO process for profiling: %s", err)
 	}
@@ -873,7 +905,7 @@ type pushProfileDataOpt struct {
 	Input           *Input
 }
 
-func pushProfileData(opt *pushProfileDataOpt, event *Metadata, bodySizeLimit int64) error {
+func pushProfileData(opt *pushProfileDataOpt, event *metrics.Metadata, bodySizeLimit int64) error {
 	b := new(bytes.Buffer)
 	mw := multipart.NewWriter(b)
 
@@ -888,7 +920,7 @@ func pushProfileData(opt *pushProfileDataOpt, event *Metadata, bodySizeLimit int
 		}
 	}
 
-	f, err := mw.CreateFormFile(eventJSONFile, eventJSONFileWithSuffix)
+	f, err := mw.CreateFormFile(metrics.EventFile, metrics.EventJSONFile)
 	if err != nil {
 		return err
 	}

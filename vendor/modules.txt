@@ -64,6 +64,20 @@ github.com/GuanceCloud/cliutils/pipeline/ptinput/utils
 github.com/GuanceCloud/cliutils/pipeline/stats
 github.com/GuanceCloud/cliutils/pkg/hash
 github.com/GuanceCloud/cliutils/point
+github.com/GuanceCloud/cliutils/pprofparser/cfg
+github.com/GuanceCloud/cliutils/pprofparser/domain/events
+github.com/GuanceCloud/cliutils/pprofparser/domain/languages
+github.com/GuanceCloud/cliutils/pprofparser/domain/parameter
+github.com/GuanceCloud/cliutils/pprofparser/domain/pprof
+github.com/GuanceCloud/cliutils/pprofparser/domain/quantity
+github.com/GuanceCloud/cliutils/pprofparser/domain/tracing
+github.com/GuanceCloud/cliutils/pprofparser/service/parsing
+github.com/GuanceCloud/cliutils/pprofparser/service/storage
+github.com/GuanceCloud/cliutils/pprofparser/tools/filepathtoolkit
+github.com/GuanceCloud/cliutils/pprofparser/tools/jsontoolkit
+github.com/GuanceCloud/cliutils/pprofparser/tools/logtoolkit
+github.com/GuanceCloud/cliutils/pprofparser/tools/mathtoolkit
+github.com/GuanceCloud/cliutils/pprofparser/tools/parsetoolkit
 github.com/GuanceCloud/cliutils/system/rtpanic
 github.com/GuanceCloud/cliutils/tracer
 # github.com/GuanceCloud/confd v0.1.101
@@ -134,6 +148,9 @@ github.com/GuanceCloud/tracing-protos/skywalking-gen-go/language/profile/v3/comp
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/management/v3/compat
+# github.com/GuanceCloud/zipstream v0.1.0
+## explicit; go 1.12
+github.com/GuanceCloud/zipstream
 # github.com/IBM/sarama v1.41.2
 ## explicit; go 1.17
 github.com/IBM/sarama
@@ -881,6 +898,17 @@ github.com/gorilla/websocket
 # github.com/gosnmp/gosnmp v1.35.0
 ## explicit; go 1.17
 github.com/gosnmp/gosnmp
+# github.com/grafana/jfr-parser v0.0.1 => github.com/GuanceCloud/jfr-parser v0.8.6
+## explicit; go 1.21
+github.com/grafana/jfr-parser/common/attributes
+github.com/grafana/jfr-parser/common/filters
+github.com/grafana/jfr-parser/common/types
+github.com/grafana/jfr-parser/common/units
+github.com/grafana/jfr-parser/internal/utils
+github.com/grafana/jfr-parser/parser
+github.com/grafana/jfr-parser/parser/types
+github.com/grafana/jfr-parser/parser/types/def
+github.com/grafana/jfr-parser/reader
 # github.com/grafana/loki v1.6.2-0.20210806161513-f5fd02966003
 ## explicit; go 1.15
 github.com/grafana/loki/pkg/loghttp
@@ -2481,6 +2509,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
+# github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 # github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 # github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4

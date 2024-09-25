@@ -96,6 +96,44 @@ func demo() {
 
 运行该程序后，DDTrace 会定期（默认 1 分钟一次）将数据推送给 DataKit。
 
+### 生成性能指标 {#metrics}
+
+Datakit 自 [1.39.0](changelog.md#cl-1.39.0) 开始支持从 `dd-trace-go` 的输出中抽取一组 Go 运行时的相关指标，下面列举其中部分指标加以说明：
+
+| 指标名称                              | 说明                                                     | 单位         |
+|-----------------------------------|--------------------------------------------------------|------------|
+| prof_go_cpu_cores                 | 消耗 CPU 核心数                                             | core       |
+| prof_go_cpu_cores_gc_overhead     | 执行 GC 使用的 CPU 核心数                                      | core       |
+| prof_go_alloc_bytes_per_sec       | 每秒分配内存字节数大小                                            | byte       |
+| prof_go_frees_per_sec             | 每秒 GC 回收对象数                                            | count      |
+| prof_go_heap_growth_bytes_per_sec | 每秒堆内存增长大小                                              | byte       |
+| prof_go_allocs_per_sec            | 每秒执行内存分配次数                                             | count      |
+| prof_go_alloc_bytes_total         | 单次 profiling 持续期间（dd-trace 默认以 60 秒为一个采集周期，下同）分配的总内存大小 | byte       |
+| prof_go_blocked_time              | 单次 profiling 持续期间协程阻塞的总时长                              | nanosecond |
+| prof_go_mutex_delay_time          | 单次 profiling 持续期间用于等待锁所消耗的总时间                          | nanosecond |
+| prof_go_gcs_per_sec               | 每秒运行 GC 次数                                             | count      |
+| prof_go_max_gc_pause_time         | 单次 profiling 持续期间由于执行 GC 导致的程序中断的单次最长时长                | nanosecond |
+| prof_go_gc_pause_time             | 单次 profiling 持续期间由于执行 GC 导致的程序中断的总时长                   | nanosecond |
+| prof_go_num_goroutine             | 当前协程总数                                                 | count      |
+| prof_go_lifetime_heap_bytes       | 当前堆内存中存活对象占用的内存总大小                                     | byte       |
+| prof_go_lifetime_heap_objects     | 当前堆内存中存活的对象总数                                          | count      |
+
+
+<!-- markdownlint-disable MD046 -->
+???+ tips
+
+    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_INSTALL_DIR\>/datakit/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 Datakit.
+
+    ```toml
+    [[inputs.profile]]
+    
+    ...
+    
+    ## set false to stop generating apm metrics from ddtrace output.
+    generate_metrics = false
+    ```
+<!-- markdownlint-enable -->
+
 ## Pull 方式 {#pull-mode}
 
 ### Go 应用开启 Profiling {#app-config}

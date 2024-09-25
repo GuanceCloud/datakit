@@ -12,6 +12,8 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 )
 
 var httpNewLine = []byte{'\r', '\n'}
@@ -72,7 +74,7 @@ func getBoundary(contentType string) (string, error) {
 	return params["boundary"], nil
 }
 
-func modifyMultipartForm(r *http.Request, form *multipart.Form, metadata *resolvedMetadata) ([]byte, error) {
+func modifyMultipartForm(r *http.Request, form *multipart.Form, metadata *metrics.ResolvedMetadata) ([]byte, error) {
 	boundary, err := getBoundary(r.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, fmt.Errorf("unable to get multipart boundary: %w", err)
@@ -115,12 +117,12 @@ func modifyMultipartForm(r *http.Request, form *multipart.Form, metadata *resolv
 	}
 
 	for name, files := range form.File {
-		if name == eventJSONFile || name == eventJSONFileWithSuffix {
+		if name == metrics.EventFile || name == metrics.EventJSONFile {
 			continue
 		}
 
 		for _, file := range files {
-			if file.Filename == eventJSONFile || file.Filename == eventJSONFileWithSuffix {
+			if file.Filename == metrics.EventFile || file.Filename == metrics.EventJSONFile {
 				continue
 			}
 			if err = cp(file, name); err != nil {

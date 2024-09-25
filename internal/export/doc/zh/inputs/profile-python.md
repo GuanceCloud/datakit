@@ -61,7 +61,7 @@ prof.start(True, True)
 #     time.sleep(1)
 ```
 
-此时启动项目则无需再加 `ddtrace-run` 命令：
+此时启动项目则无需再用 `ddtrace-run` 命令：
 
 ```shell
 DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.py
@@ -70,6 +70,41 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 ### 查看 Profile {#view}
 
 程序启动后，DDTrace 会定期（默认 1 分钟上报一次）收集数据并上报给 Datakit，稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 查看相应数据。
+
+### 生成性能指标 {#metrics}
+
+Datakit 自 [1.39.0](changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，下面列举其中部分指标加以说明：
+
+| 指标名称                                  | 说明                                                     | 单位         |
+|---------------------------------------|--------------------------------------------------------|------------|
+| prof_python_cpu_cores                 | 消耗 CPU 核心数                                             | core       |
+| prof_python_alloc_bytes_per_sec       | 每秒分配内存字节数大小                                            | byte       |
+| prof_python_allocs_per_sec            | 每秒分配内存次数                                               | count      |
+| prof_python_alloc_bytes_total         | 单次 profiling 持续期间（dd-trace 默认以 60 秒为一个采集周期，下同）分配的总内存大小 | byte       |
+| prof_python_lock_acquisition_time     | 单次 profiling 持续期间用于等待锁所消耗的总时间                          | nanosecond |
+| prof_python_lock_acquisitions_per_sec | 每秒发生锁争用的次数                                             | count      |
+| prof_python_lock_hold_time            | 单次 profiling 持续期间持有锁的总和时长                              | nanosecond |
+| prof_python_exceptions_per_sec        | 每秒抛出的异常数                                               | count      |
+| prof_python_exceptions_total          | 单次 profiling 持续期间抛出的异常总数                               | count      |
+| prof_python_lifetime_heap_bytes       | 当前堆内存对象占用的内存总大小                                        | byte       |
+| prof_python_wall_time                 | 时钟时长                                                   | nanosecond |
+
+
+<!-- markdownlint-disable MD046 -->
+???+ tips
+
+    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_INSTALL_DIR\>/datakit/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 Datakit.
+
+    ```toml
+    [[inputs.profile]]
+    
+    ...
+    
+    ## set false to stop generating apm metrics from ddtrace output.
+    generate_metrics = false
+    ```
+<!-- markdownlint-enable -->
+
 
 ## `py-spy` 接入 {#py-spy}
 
