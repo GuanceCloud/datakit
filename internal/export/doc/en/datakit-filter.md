@@ -131,17 +131,22 @@ Support basic numerical comparison operations:
 { service = re('.*') AND ( abc IN [1,2,'foo', 2.3] OR def MATCH ['foo.*', 'bar.*']) }
 ```
 
+- Built-in constants
+
+    - `true/false`
+    - `nil/null`: null value, see following usage about them
+
 In addition, the following list operations are supported:
 
-| Operator              | Support Numeric Types   | Description                                                   | Example                              |
-| ----                | ----           | ----                                                   | ----                              |
-| `IN`, `NOTIN`       | Numeric list   | Whether the specified field is in a list, and multi-type cluttering is supported in the list           | `{ abc IN [1,2, "foo", 3.5]}`     |
+| Operator            | Support Numeric Types   | Description                                                                                   | Example                           |
+| ----                | ----                    | ----                                                                                          | ----                              |
+| `IN`, `NOTIN`       | Numeric list            | Whether the specified field is in a list, and multi-type cluttering is supported in the list  | `{ abc IN [1,2, "foo", 3.5]}`     |
 | `MATCH`, `NOTMATCH` | Regular expression list | Whether the specified field matches the regular in the list, which only supports string types | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    **Only ordinary data types** such as string, integer, floating point can appear in the list. Other expressions are not supported.
+    - **Only ordinary data types** such as string, integer, floating point can appear in the list. Other expressions are not supported.
     
     The keywords `IN/NOTIN/MATCH/NOTMATCH` **are case insensitive**, meaning `in`, `IN` and `In` have the same effect. In addition, other operands are case sensitive, for example, the following filters express different meanings:
     
@@ -152,7 +157,33 @@ In addition, the following list operations are supported:
     ```
     
     In data point, all fields of **and their values are case-sensitive**.
+
+    - Identity/Non-identity Expression Syntax:
+
+    ```python
+    # Identity
+    { 1 == 1}
+    { 'abc' == 'abc'}
+
+    # Non-identity
+    { true != false }
+    { 'abc' != 'ABC' }  # String comparison is case-sensitive
+    ```
+
 <!-- markdownlint-enable -->
+
+### Usage of nil/null {#nil}
+
+`nil/null` is used to indicate the non-existence of certain fields, and can be used in `=/!=/IN/NOTIN` operations:
+
+```python
+{ some_tag_or_field != nil }                     # The field exists
+{ some_tag_or_field = nil }                      # The field does not exist
+{ some_tag_or_field IN ["abc", "123", null] }     # The field either does not exist or can only equal specified values
+{ some_tag_or_field NOTIN ["abc", "123", null] }  # The field is not null and not equal to specified values
+```
+
+Here, `nil/null` is not case sensitive and can be written in various forms such as `NULL/Null/NIL/Nil`.
 
 ## Usage Example {#usage}
 
