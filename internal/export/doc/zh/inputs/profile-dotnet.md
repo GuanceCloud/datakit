@@ -1,5 +1,5 @@
 ---
-title     : 'Profiling Golang'
+title     : 'Profiling .Net'
 summary   : '.Net Profiling 集成'
 tags:
   - '.Net'
