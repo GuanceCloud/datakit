@@ -130,12 +130,12 @@ func TestParseMetadata(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	for k, v := range metadata.Tags {
+	for k, v := range metadata {
 		t.Logf("%s : %s \n", k, v)
 	}
 
-	assert.Equal(t, "bar", metadata.Tags["foo"])
-	assert.Equal(t, "hello-world", metadata.Tags["foobar"])
+	assert.Equal(t, "bar", metadata["foo"])
+	assert.Equal(t, "hello-world", metadata["foobar"])
 
-	fmt.Println(JoinTags(metadata.Tags))
+	fmt.Println(JoinTags(metadata))
 }

@@ -18,10 +18,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	filter2 "github.com/GuanceCloud/cliutils/filter"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"golang.org/x/exp/maps"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/proto"
@@ -142,6 +144,16 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 		version = filterKV["version"]
 		service = filterKV["service"]
 
+		// apply remote or local filters
+		pt := point.NewPointV2("session_replay", point.NewTags(filterKV), point.WithTime(time.Now()))
+		if len(filter.FilterPts(point.RUM, []*point.Point{pt})) == 0 {
+			log.Infof("session replay data matched the blacklist and was dropped")
+			replayFilteredTotalCount.WithLabelValues(appID, env, version, service).Inc()
+			replayFilteredTotalBytes.WithLabelValues(appID, env, version, service).Add(float64(len(body)))
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
+
 		if len(ipt.SessionReplayCfg.whereConditions) > 0 {
 			// multi rules are of relationship OR.
 			for _, cond := range ipt.SessionReplayCfg.whereConditions {
@@ -149,7 +161,6 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 					// drop this data if match the rule
 					log.Infof("session replay data is dropped as it matches the filter rules")
 					replayFilteredTotalCount.WithLabelValues(appID, env, version, service).Inc()
-
 					replayFilteredTotalBytes.WithLabelValues(appID, env, version, service).Add(float64(len(body)))
 					w.WriteHeader(http.StatusAccepted)
 					return

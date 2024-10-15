@@ -188,7 +188,7 @@ func (m *metricKVs) AddV2(k string, v any, force bool, opts ...point.KVOption) {
 	*m = metricKVs(m.toPointKVs().AddV2(k, v, force, opts...))
 }
 
-func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata *ResolvedMetadata, customTags map[string]string) error {
+func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata map[string]string, customTags map[string]string) error {
 	jfrFile := func() *multipart.FileHeader {
 		for field, headers := range files {
 			if field == EventFile || field == EventJSONFile {
@@ -225,11 +225,11 @@ func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata *Resolv
 	}
 	defer f.Close() // nolint:errcheck
 
-	jfrStart, err := ResolveStartTime(metadata.FormValue)
+	jfrStart, err := ResolveStartTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve jfr start time: %w", err)
 	}
-	jfrEnd, err := ResolveEndTime(metadata.FormValue)
+	jfrEnd, err := ResolveEndTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve jfr end time: %w", err)
 	}
@@ -245,10 +245,10 @@ func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata *Resolv
 
 	commonTags := map[string]string{
 		"language": Java.String(),
-		"host":     metadata.GetTag("host"),
-		"service":  metadata.GetTag("service"),
-		"env":      metadata.GetTag("env"),
-		"version":  metadata.GetTag("version"),
+		"host":     metadata["host"],
+		"service":  metadata["service"],
+		"env":      metadata["env"],
+		"version":  metadata["version"],
 	}
 
 	for k, v := range customTags {
@@ -364,24 +364,24 @@ func pickProfileFile(files map[string][]*multipart.FileHeader) *multipart.FileHe
 	return nil
 }
 
-func ExportPythonMetrics(files map[string][]*multipart.FileHeader, metadata *ResolvedMetadata, customTags map[string]string) error {
+func ExportPythonMetrics(files map[string][]*multipart.FileHeader, metadata map[string]string, customTags map[string]string) error {
 	commonTags := map[string]string{
 		"language": Python.String(),
-		"host":     metadata.GetTag("host"),
-		"service":  metadata.GetTag("service"),
-		"env":      metadata.GetTag("env"),
-		"version":  metadata.GetTag("version"),
+		"host":     metadata["host"],
+		"service":  metadata["service"],
+		"env":      metadata["env"],
+		"version":  metadata["version"],
 	}
 
 	for k, v := range customTags {
 		commonTags[k] = v
 	}
 
-	pprofStart, err := ResolveStartTime(metadata.FormValue)
+	pprofStart, err := ResolveStartTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve python profiling start time: %w", err)
 	}
-	pprofEnd, err := ResolveEndTime(metadata.FormValue)
+	pprofEnd, err := ResolveEndTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve python profiling end time: %w", err)
 	}
@@ -519,24 +519,24 @@ func ExportPythonMetrics(files map[string][]*multipart.FileHeader, metadata *Res
 	return nil
 }
 
-func ExportGoMetrics(files map[string][]*multipart.FileHeader, metadata *ResolvedMetadata, customTags map[string]string) error {
+func ExportGoMetrics(files map[string][]*multipart.FileHeader, metadata map[string]string, customTags map[string]string) error {
 	commonTags := map[string]string{
 		"language": Golang.String(),
-		"host":     metadata.GetTag("host"),
-		"service":  metadata.GetTag("service"),
-		"env":      metadata.GetTag("env"),
-		"version":  metadata.GetTag("version"),
+		"host":     metadata["host"],
+		"service":  metadata["service"],
+		"env":      metadata["env"],
+		"version":  metadata["version"],
 	}
 
 	for k, v := range customTags {
 		commonTags[k] = v
 	}
 
-	pprofStart, err := ResolveStartTime(metadata.FormValue)
+	pprofStart, err := ResolveStartTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve go profiling start time: %w", err)
 	}
-	pprofEnd, err := ResolveEndTime(metadata.FormValue)
+	pprofEnd, err := ResolveEndTime(metadata)
 	if err != nil {
 		return fmt.Errorf("unable to resolve go profiling end time: %w", err)
 	}

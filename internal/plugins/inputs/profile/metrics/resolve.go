@@ -118,33 +118,30 @@ var langMaps = map[string]Language{
 	"go":      Golang,
 }
 
-// Tags refer to parsed formValue["tags[]"].
-type Tags map[string]string
+type RFC3339Time time.Time
 
-type rfc3339Time time.Time
-
-func NewRFC3339Time(t time.Time) *rfc3339Time {
-	return (*rfc3339Time)(&t)
+func NewRFC3339Time(t time.Time) *RFC3339Time {
+	return (*RFC3339Time)(&t)
 }
 
 var (
-	_ json.Marshaler   = (*rfc3339Time)(nil)
-	_ json.Unmarshaler = (*rfc3339Time)(nil)
+	_ json.Marshaler   = (*RFC3339Time)(nil)
+	_ json.Unmarshaler = (*RFC3339Time)(nil)
 )
 
-func (r *rfc3339Time) MarshalJSON() ([]byte, error) {
+func (r *RFC3339Time) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + time.Time(*r).Format(time.RFC3339Nano) + `"`), nil
 }
 
-func (r *rfc3339Time) UnmarshalJSON(bytes []byte) error {
+func (r *RFC3339Time) UnmarshalJSON(bytes []byte) error {
 	s := string(bytes[1 : len(bytes)-1])
 
 	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
-		*r = rfc3339Time(t)
+		*r = RFC3339Time(t)
 		return nil
 	}
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
-		*r = rfc3339Time(t)
+		*r = RFC3339Time(t)
 		return nil
 	}
 	return fmt.Errorf("unresolvable time format: [%s]", s)
@@ -157,12 +154,12 @@ type Metadata struct {
 	Language      Language     `json:"language,omitempty"`
 	TagsProfiler  string       `json:"tags_profiler"`
 	SubCustomTags string       `json:"sub_custom_tags,omitempty"`
-	Start         *rfc3339Time `json:"start"`
-	End           *rfc3339Time `json:"end"`
+	Start         *RFC3339Time `json:"start"`
+	End           *RFC3339Time `json:"end"`
 }
 
-func NewTags(originTags []string) Tags {
-	tags := make(Tags)
+func NewTags(originTags []string) map[string]string {
+	tags := make(map[string]string)
 	for _, tag := range originTags {
 		// 有":"， 用:切割成键值对
 		if strings.Index(tag, ":") > 0 {
@@ -171,6 +168,22 @@ func NewTags(originTags []string) Tags {
 		} else {
 			// 没有":" 整个值做key, value为空
 			tags[tag] = ""
+		}
+	}
+	return tags
+}
+
+func mixFormValueToTags(tags map[string]string, formValues map[string][]string) map[string]string {
+	for k, v := range formValues {
+		if tv, ok := tags[k]; !ok || tv == "" {
+			switch len(v) {
+			case 0:
+				tags[k] = ""
+			case 1:
+				tags[k] = v[0]
+			default:
+				tags[k] = strings.Join(v, ",")
+			}
 		}
 	}
 	return tags
@@ -188,29 +201,28 @@ func ResolveLanguage(runtimes []string) Language {
 	return UnKnown
 }
 
-func ResolveStartTime(formValue map[string][]string) (time.Time, error) {
-	return resolveTime(formValue, []string{"recording-start", "start"})
+func ResolveStartTime(metadata map[string]string) (time.Time, error) {
+	return resolveTime(metadata, []string{"recording-start", "start"})
 }
 
-func ResolveEndTime(formValue map[string][]string) (time.Time, error) {
-	return resolveTime(formValue, []string{"recording-end", "end"})
+func ResolveEndTime(metadata map[string]string) (time.Time, error) {
+	return resolveTime(metadata, []string{"recording-end", "end"})
 }
 
-func resolveTime(formValue map[string][]string, formFields []string) (time.Time, error) {
+func resolveTime(tags map[string]string, fields []string) (time.Time, error) {
 	var tm time.Time
 
-	if len(formFields) == 0 {
+	if len(fields) == 0 {
 		return tm, fmt.Errorf("form time fields is empty")
 	}
 
 	var err error
-	for _, field := range formFields {
-		if timeVal := formValue[field]; len(timeVal) > 0 {
-			tVal := timeVal[0]
-			if strings.Contains(tVal, ".") {
-				tm, err = time.Parse(time.RFC3339Nano, tVal)
+	for _, field := range fields {
+		if timeVal := tags[field]; timeVal != "" {
+			if strings.Contains(timeVal, ".") {
+				tm, err = time.Parse(time.RFC3339Nano, timeVal)
 			} else {
-				tm, err = time.Parse(time.RFC3339, tVal)
+				tm, err = time.Parse(time.RFC3339, timeVal)
 			}
 			if err == nil {
 				return tm, nil
@@ -224,7 +236,7 @@ func resolveTime(formValue map[string][]string, formFields []string) (time.Time,
 	return tm, errors.New("there is not proper form time field")
 }
 
-func ResolveLang(metadata *ResolvedMetadata) Language {
+func ResolveLang(metadata map[string]string) Language {
 	var runtimes []string
 
 	aliasNames := []string{
@@ -234,14 +246,8 @@ func ResolveLang(metadata *ResolvedMetadata) Language {
 	}
 
 	for _, field := range aliasNames {
-		if v := metadata.GetTag(field); v != "" {
+		if v := metadata[field]; v != "" {
 			runtimes = append(runtimes, v)
-		}
-	}
-
-	for _, field := range aliasNames {
-		if values := metadata.FormValue[field]; len(values) > 0 {
-			runtimes = append(runtimes, values...)
 		}
 	}
 
@@ -287,22 +293,7 @@ func json2FormValues(m map[string]interface{}) map[string][]string {
 	return formatted
 }
 
-type ResolvedMetadata struct {
-	FormValue map[string][]string
-	Tags      Tags
-}
-
-func (r *ResolvedMetadata) GetTag(name string, defValue ...string) string {
-	if tag, ok := r.Tags[name]; ok {
-		return tag
-	}
-	if len(defValue) > 0 {
-		return defValue[0]
-	}
-	return ""
-}
-
-func ParseMetadata(req *http.Request) (*ResolvedMetadata, int64, error) {
+func ParseMetadata(req *http.Request) (map[string]string, int64, error) {
 	filesize := int64(0)
 	for _, files := range req.MultipartForm.File {
 		for _, f := range files {
@@ -312,10 +303,9 @@ func ParseMetadata(req *http.Request) (*ResolvedMetadata, int64, error) {
 
 	if req.MultipartForm.Value != nil {
 		if _, ok := req.MultipartForm.Value[profileTagsKey]; ok {
-			return &ResolvedMetadata{
-				FormValue: req.MultipartForm.Value,
-				Tags:      NewTags(req.MultipartForm.Value[profileTagsKey]),
-			}, filesize, nil
+			tags := NewTags(req.MultipartForm.Value[profileTagsKey])
+			delete(req.MultipartForm.Value, profileTagsKey)
+			return mixFormValueToTags(tags, req.MultipartForm.Value), filesize, nil
 		}
 	}
 
@@ -342,12 +332,10 @@ func ParseMetadata(req *http.Request) (*ResolvedMetadata, int64, error) {
 		var tags []string
 		if len(eventFormValues[eventFileTagsKey]) > 0 && eventFormValues[eventFileTagsKey][0] != "" {
 			tags = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
+			delete(eventFormValues, eventFileTagsKey)
 		}
 
-		return &ResolvedMetadata{
-			FormValue: eventFormValues,
-			Tags:      NewTags(tags),
-		}, filesize, nil
+		return mixFormValueToTags(NewTags(tags), eventFormValues), filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")
 }
