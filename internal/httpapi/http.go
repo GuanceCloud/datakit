@@ -159,6 +159,7 @@ func setDKInfo(c *gin.Context) {
 	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DatakitHostName))
 }
 
+// dkHTTPTimeout Caution: this middleware must be registered as the first one.
 func dkHTTPTimeout(du time.Duration) gin.HandlerFunc {
 	return timeout.New(
 		timeout.WithTimeout(du),
@@ -181,6 +182,10 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	router := gin.New()
 
+	// Caution: timeout middleware MUST be registered as the first one, or may crash the process.
+	// DON'T CHANGE ITS ORDER!
+	router.Use(dkHTTPTimeout(hs.timeout))
+
 	// use whitelist config
 	if len(hs.apiConfig.PublicAPIs) != 0 {
 		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
@@ -196,8 +201,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.Use(gin.Recovery())
 
 	router.Use(uhttp.CORSMiddlewareV2(hs.apiConfig.AllowedCORSOrigins))
-
-	router.Use(dkHTTPTimeout(hs.timeout))
 
 	if !hs.apiConfig.Disable404Page {
 		router.NoRoute(page404)
