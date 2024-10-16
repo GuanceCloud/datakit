@@ -306,8 +306,8 @@ func makeRootSpan(idLength int, service string, transaction *transaction) *itrac
 		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
 		AddTag(itrace.TagSource, inputName).
 		AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
-		Add(itrace.FieldStart, transaction.start()*int64(time.Microsecond), false, false).
-		Add(itrace.FieldDuration, transaction.duration()*int64(time.Microsecond), false, false).
+		Add(itrace.FieldStart, transaction.start()*int64(time.Millisecond), false, false).
+		Add(itrace.FieldDuration, transaction.duration()*int64(time.Millisecond), false, false).
 		AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 	if uri, err := url.ParseRequestURI(transaction.url()); err == nil {
@@ -344,8 +344,8 @@ func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, pa
 			AddTag(itrace.TagSpanType, itrace.SpanTypeLocal).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
-			Add(itrace.FieldStart, (rootStart+child.startElapsed())*int64(time.Microsecond), false, false).
-			Add(itrace.FieldDuration, (child.endElapsed()-child.startElapsed())*int64(time.Microsecond), false, false).
+			Add(itrace.FieldStart, (rootStart+child.startElapsed())*int64(time.Millisecond), false, false).
+			Add(itrace.FieldDuration, (child.endElapsed()-child.startElapsed())*int64(time.Millisecond), false, false).
 			AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 		if child.method() == "InvokeService" {
