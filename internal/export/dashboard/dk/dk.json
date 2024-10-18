@@ -384,12 +384,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`datakit_io_dataway_point_total`) AS `points`) { `host` = '#{host}' and `status` = 'OK' } BY `category`, `host`\")",
+              "q": "M::`dk`:(last(`datakit_io_dataway_point_total`) AS `points`) { `host` = '#{host}' and `status` = 'OK' }[:::irate] BY `category`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "points",
               "field": "datakit_io_dataway_point_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -421,12 +422,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
             },
@@ -522,12 +518,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`datakit_io_dataway_point_bytes_total`) AS `bytes`) { `enc` = 'gzip' and `host` = '#{host}' and `status` = 'OK' } BY `category`, `host`\")",
+              "q": "M::`dk`:(last(`datakit_io_dataway_point_bytes_total`) AS `bytes`) { `enc` = 'gzip' and `host` = '#{host}' and `status` = 'OK' }[:::irate] BY `category`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "bytes",
               "field": "datakit_io_dataway_point_bytes_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -565,12 +562,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
             },
@@ -931,12 +923,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_pipeline_point_total`) AS `points`) { `host` = '#{host}' } BY `category`, `host`, `name`\")",
+              "q": "M::`dk`:(avg(`datakit_pipeline_point_total`) AS `points`) { `host` = '#{host}' }[:::irate] BY `category`, `host`, `name`",
               "code": "B",
               "fill": null,
               "type": "simple",
               "alias": "points",
               "field": "datakit_pipeline_point_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -958,12 +951,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
             },
@@ -1059,12 +1047,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_pipeline_cost_seconds_sum`) AS `cost`) { `host` = '#{host}' } BY `category`, `name`, `host`, `namespace`\")",
+              "q": "M::`dk`:(avg(`datakit_pipeline_cost_seconds_sum`) AS `cost`) { `host` = '#{host}' }[:::irate] BY `category`, `name`, `host`, `namespace`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "cost",
               "field": "datakit_pipeline_cost_seconds_sum",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -1089,12 +1078,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
             },
@@ -1474,7 +1458,7 @@
                   "values": []
                 },
                 {
-                  "id": "3464ffc0-5f88-11ef-a8b6-cdc46a8e3f6b",
+                  "id": "2821c040-8abc-11ef-bff8-c39ec2619c7a",
                   "op": "=",
                   "name": "quantile",
                   "type": "keyword",
@@ -1651,7 +1635,7 @@
             "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "titleDesc": "Only for Linux & Windows",
+            "titleDesc": "Only for Linux",
             "globalUnit": [],
             "isSampling": true,
             "compareType": [],
@@ -1705,8 +1689,8 @@
         "pos": {
           "h": 13,
           "w": 6,
-          "x": 0,
-          "y": 37
+          "x": 12,
+          "y": 40
         },
         "type": "sequence",
         "queries": [
@@ -2274,6 +2258,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -2283,6 +2268,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -2341,12 +2327,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(avg(`datakit_httpcli_tcp_conn_total`) AS `conn`) { `host` = '#{host}' and `type` = 'created' } BY `remote`, `from`, `host`",
+              "q": "M::`dk`:(avg(`datakit_httpcli_tcp_conn_total`) AS `conn`) { `host` = '#{host}' and `type` = 'created' }[:::rate] BY `remote`, `from`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "conn",
               "field": "datakit_httpcli_tcp_conn_total",
+              "rollup": "rate",
               "filters": [
                 {
                   "id": "12dc1b60-f61e-11ed-9847-7f9b08df60cc",
@@ -2629,6 +2616,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -2638,6 +2626,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "min"
             ],
@@ -2673,7 +2662,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "fixedGroupByTime": null
         },
         "group": {
@@ -2695,7 +2684,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_uptime_seconds`) AS `uptime`) { `host` = '#{host}' } BY `host`, `version`",
+              "q": "M::`dk`:(last(`datakit_uptime_seconds`) AS `uptime`) { `host` = '#{host}' } BY `host`, `version`, `os_arch`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2713,7 +2702,8 @@
               ],
               "groupBy": [
                 "host",
-                "version"
+                "version",
+                "os_arch"
               ],
               "funcList": [],
               "fieldFunc": "last",
@@ -2963,6 +2953,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -2972,6 +2963,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -3030,12 +3022,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_http_api_total`) AS `api`) { `status` != 'OK' and `host` = '#{host}' and `api` != '404-page' and `api` != '/info' } BY `api`, `host`, `status`",
+              "q": "M::`dk`:(last(`datakit_http_api_total`) AS `api`) { `status` != 'OK' and `host` = '#{host}' and `api` != '404-page' and `api` != '/info' }[:::irate] BY `api`, `host`, `status`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "api",
               "field": "datakit_http_api_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -3150,10 +3143,10 @@
         },
         "name": "Top(n) CPU usage",
         "pos": {
-          "h": 10,
+          "h": 13,
           "w": 12,
           "x": 12,
-          "y": 27
+          "y": 53
         },
         "type": "toplist",
         "queries": [
@@ -3194,30 +3187,39 @@
         "extend": {
           "settings": {
             "alias": [],
-            "units": [],
+            "units": [
+              {
+                "key": "bytes",
+                "name": "bytes",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
             "colors": [],
             "levels": [],
             "slimit": 20,
             "density": "medium",
             "showLine": false,
-            "unitType": "global",
+            "unitType": "custom",
             "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
-            "globalUnit": [
-              "digital",
-              "B"
-            ],
+            "globalUnit": [],
             "isSampling": true,
             "compareType": [],
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -3255,15 +3257,15 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false
+          "isRefresh": true
         },
         "group": {
           "name": "Disk cache"
         },
-        "name": "Put bytes",
+        "name": "Put",
         "pos": {
           "h": 14,
-          "w": 6,
+          "w": 8,
           "x": 0,
           "y": 0
         },
@@ -3276,12 +3278,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`diskcache_put_bytes_total`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`\")",
+              "q": "M::`dk`:(avg(`diskcache_put_bytes_sum`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "bytes",
-              "field": "diskcache_put_bytes_total",
+              "field": "diskcache_put_bytes_sum",
               "filters": [
                 {
                   "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
@@ -3301,98 +3303,12 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
             "datasource": "dataflux"
-          }
-        ]
-      },
-      {
-        "extend": {
-          "settings": {
-            "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 20,
-            "density": "medium",
-            "showLine": false,
-            "unitType": "global",
-            "chartType": "areaLine",
-            "fixedTime": "",
-            "isPercent": false,
-            "openStack": false,
-            "precision": "2",
-            "showTitle": true,
-            "stackType": "time",
-            "titleDesc": "",
-            "globalUnit": [
-              "digital",
-              "B"
-            ],
-            "isSampling": true,
-            "compareType": [],
-            "openCompare": false,
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null,
-            "legendValues": [
-              "avg",
-              "min",
-              "max"
-            ],
-            "timeInterval": "auto",
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "legendPostion": "bottom",
-            "maxPointCount": 360,
-            "sorderByOrder": "desc",
-            "xAxisShowType": "time",
-            "isTimeInterval": true,
-            "changeWorkspace": false,
-            "currentChartType": "sequence",
-            "showFieldMapping": false,
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "weekCompare": "rgba(213,217,226,0.25)",
-              "monthCompare": "rgba(213,217,226,0.12)"
-            },
-            "onlyShowGroupName": false,
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "A"
           },
-          "fixedTime": "",
-          "isRefresh": false
-        },
-        "group": {
-          "name": "Disk cache"
-        },
-        "name": "Get bytes",
-        "pos": {
-          "h": 14,
-          "w": 6,
-          "x": 18,
-          "y": 0
-        },
-        "type": "sequence",
-        "queries": [
           {
             "name": "",
             "type": "sequence",
@@ -3400,12 +3316,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`diskcache_get_bytes_total`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`\")",
-              "code": "A",
+              "q": "M::`dk`:(avg(`diskcache_put_bytes_count`) AS `count`) { `host` = '#{host}' } BY `path`, `host`",
+              "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "bytes",
-              "field": "diskcache_get_bytes_total",
+              "alias": "count",
+              "field": "diskcache_put_bytes_count",
               "filters": [
                 {
                   "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
@@ -3425,12 +3341,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -3442,156 +3353,39 @@
         "extend": {
           "settings": {
             "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 20,
-            "density": "medium",
-            "showLine": false,
-            "unitType": "global",
-            "chartType": "areaLine",
-            "fixedTime": "",
-            "isPercent": false,
-            "openStack": false,
-            "precision": "2",
-            "showTitle": true,
-            "stackType": "time",
-            "titleDesc": "",
-            "globalUnit": [],
-            "isSampling": true,
-            "compareType": [],
-            "openCompare": false,
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null,
-            "legendValues": [
-              "avg",
-              "min",
-              "max"
-            ],
-            "timeInterval": "auto",
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "legendPostion": "bottom",
-            "maxPointCount": 360,
-            "sorderByOrder": "desc",
-            "xAxisShowType": "time",
-            "isTimeInterval": true,
-            "changeWorkspace": false,
-            "currentChartType": "sequence",
-            "showFieldMapping": false,
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "weekCompare": "rgba(213,217,226,0.25)",
-              "monthCompare": "rgba(213,217,226,0.12)"
-            },
-            "onlyShowGroupName": false,
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "A"
-          },
-          "fixedTime": "",
-          "isRefresh": false
-        },
-        "group": {
-          "name": "Disk cache"
-        },
-        "name": "Get count",
-        "pos": {
-          "h": 14,
-          "w": 6,
-          "x": 12,
-          "y": 0
-        },
-        "type": "sequence",
-        "queries": [
-          {
-            "name": "",
-            "type": "sequence",
-            "unit": "",
-            "color": "",
-            "qtype": "dql",
-            "query": {
-              "q": "irate(\"M::`dk`:(avg(`diskcache_get_total`) AS `gets`) { `host` = '#{host}' } BY `path`, `host`\")",
-              "code": "A",
-              "fill": null,
-              "type": "simple",
-              "alias": "gets",
-              "field": "diskcache_get_total",
-              "filters": [
-                {
-                  "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
-                  "op": "=",
-                  "name": "host",
-                  "type": "",
-                  "logic": "and",
-                  "value": "#{host}"
-                }
-              ],
-              "groupBy": [
-                "path",
-                "host"
-              ],
-              "funcList": [],
-              "fieldFunc": "avg",
-              "fieldType": "float",
-              "namespace": "metric",
-              "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
-              "groupByTime": "",
-              "indexFilter": ""
-            },
-            "datasource": "dataflux"
-          }
-        ]
-      },
-      {
-        "extend": {
-          "settings": {
-            "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 20,
-            "density": "medium",
-            "compares": [
+            "units": [
               {
-                "label": "周同比",
-                "value": "weekCompare"
+                "key": "bytes",
+                "name": "bytes",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
               }
             ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
             "showLine": false,
-            "unitType": "global",
+            "unitType": "custom",
             "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
             "globalUnit": [],
             "isSampling": true,
-            "compareType": [
-              "weekCompare"
-            ],
+            "compareType": [],
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -3610,7 +3404,6 @@
             "xAxisShowType": "time",
             "isTimeInterval": true,
             "changeWorkspace": false,
-            "compareChartType": "sequence",
             "currentChartType": "sequence",
             "showFieldMapping": false,
             "compareColorsDark": {
@@ -3635,11 +3428,11 @@
         "group": {
           "name": "Disk cache"
         },
-        "name": "Put count",
+        "name": "Get",
         "pos": {
           "h": 14,
-          "w": 6,
-          "x": 6,
+          "w": 8,
+          "x": 8,
           "y": 0
         },
         "type": "sequence",
@@ -3651,12 +3444,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`diskcache_put_total`) AS `puts`) { `host` = '#{host}' } BY `path`, `host`\")",
+              "q": "M::`dk`:(avg(`diskcache_get_bytes_sum`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "puts",
-              "field": "diskcache_put_total",
+              "alias": "bytes",
+              "field": "diskcache_get_bytes_sum",
               "filters": [
                 {
                   "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
@@ -3672,16 +3465,49 @@
                 "host"
               ],
               "funcList": [],
-              "fieldFunc": "last",
+              "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`diskcache_get_bytes_count`) AS `count`) { `host` = '#{host}' } BY `path`, `host`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "count",
+              "field": "diskcache_get_bytes_count",
+              "filters": [
                 {
-                  "args": [],
-                  "name": "irate"
+                  "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
                 }
               ],
+              "groupBy": [
+                "path",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -3762,8 +3588,8 @@
         "pos": {
           "h": 13,
           "w": 6,
-          "x": 6,
-          "y": 37
+          "x": 18,
+          "y": 40
         },
         "type": "sequence",
         "queries": [
@@ -3774,12 +3600,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_process_ctx_switch_total`) AS `switch`) { `host` = '#{host}' } BY `type`, `host`\")",
+              "q": "M::`dk`:(avg(`datakit_process_ctx_switch_total`) AS `switch`) { `host` = '#{host}' }[:::irate] BY `type`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "switch",
               "field": "datakit_process_ctx_switch_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "05c71fd0-f617-11ed-be02-091d3a9f52ac",
@@ -3799,12 +3626,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -3889,7 +3711,7 @@
           "h": 13,
           "w": 6,
           "x": 12,
-          "y": 37
+          "y": 27
         },
         "type": "sequence",
         "queries": [
@@ -3900,12 +3722,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_process_io_bytes_total`) AS `bytes`) { `host` = '#{host}' } BY `type`, `host`\")",
+              "q": "M::`dk`:(avg(`datakit_process_io_bytes_total`) AS `bytes`) { `host` = '#{host}' }[:::irate] BY `type`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "bytes",
               "field": "datakit_process_io_bytes_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "fbc41b00-f616-11ed-be02-091d3a9f52ac",
@@ -3925,12 +3748,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -4012,7 +3830,7 @@
           "h": 13,
           "w": 6,
           "x": 18,
-          "y": 37
+          "y": 27
         },
         "type": "sequence",
         "queries": [
@@ -4023,12 +3841,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_process_io_count_total`) AS `count`) { `host` = '#{host}' } BY `type`, `host`\")",
+              "q": "M::`dk`:(avg(`datakit_process_io_count_total`) AS `count`) { `host` = '#{host}' }[:::irate] BY `type`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "count",
               "field": "datakit_process_io_count_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "f4b80f10-f616-11ed-be02-091d3a9f52ac",
@@ -4048,12 +3867,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -4064,19 +3878,29 @@
       {
         "extend": {
           "settings": {
-            "bar": {
-              "direction": "horizontal",
-              "xAxisShowType": "groupBy"
-            },
             "alias": [],
-            "color": "#498bfe",
-            "table": {
-              "queryMode": "toGroupColumn"
-            },
             "units": [
               {
-                "key": "datakit_sys_alloc_bytes",
-                "name": "datakit_sys_alloc_bytes",
+                "key": "gc-avg",
+                "name": "gc-avg",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              },
+              {
+                "key": "gc-p75",
+                "name": "gc-p75",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ns"
+                ]
+              },
+              {
+                "key": "gc-free-bytes",
+                "name": "gc-free-bytes",
                 "unit": "",
                 "units": [
                   "digital",
@@ -4087,74 +3911,264 @@
             "colors": [],
             "levels": [],
             "slimit": 20,
-            "topSize": 10,
+            "showLine": false,
             "unitType": "custom",
-            "chartType": "bar",
+            "chartType": "areaLine",
             "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
+            "stackType": "time",
             "titleDesc": "",
             "globalUnit": [],
             "isSampling": true,
+            "compareType": [],
             "openCompare": false,
-            "showTopSize": true,
-            "timeInterval": "default",
-            "showTableHead": true,
-            "tableSortType": "top",
-            "isTimeInterval": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
             "changeWorkspace": false,
-            "currentChartType": "toplist",
+            "currentChartType": "sequence",
             "showFieldMapping": false,
-            "mainMeasurementSort": "top",
-            "tableSortMetricName": "",
-            "mainMeasurementLimit": 5,
+            "onlyShowGroupName": false,
             "openThousandsSeparator": true,
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false
+          "isRefresh": false,
+          "fixedGroupByTime": null
         },
         "group": {
           "name": "Overview"
         },
-        "name": "Top(n) mem usage(sys)",
+        "name": "GC",
         "pos": {
-          "h": 10,
+          "h": 13,
           "w": 12,
           "x": 0,
-          "y": 27
+          "y": 40
         },
-        "type": "toplist",
+        "type": "sequence",
         "queries": [
           {
             "name": "",
-            "type": "toplist",
+            "type": "sequence",
             "unit": "",
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(`datakit_sys_alloc_bytes`)[:::last] BY `host`",
+              "q": "eval(A/B, alias='gc-avg', A=\"M::`dk`:(`datakit_gc_summary_seconds_sum`) { `host` = '#{host}' }[:::last] BY `host`\", B=\"M::`dk`:(avg(`datakit_gc_summary_seconds_count`)) { `host` = '#{host}' } BY `host`\")",
               "code": "A",
+              "type": "expression",
+              "alias": "gc-avg",
+              "children": [
+                {
+                  "q": "M::`dk`:(`datakit_gc_summary_seconds_sum`) { `host` = '#{host}' }[:::last] BY `host`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "datakit_gc_summary_seconds_sum",
+                  "rollup": "last",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "d0132300-8b59-11ef-bff8-c39ec2619c7a",
+                      "op": "=",
+                      "name": "host",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{host}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "dk",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": ""
+                },
+                {
+                  "q": "M::`dk`:(avg(`datakit_gc_summary_seconds_count`)) { `host` = '#{host}' } BY `host`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "datakit_gc_summary_seconds_count",
+                  "filters": [
+                    {
+                      "id": "df937d70-8b59-11ef-bff8-c39ec2619c7a",
+                      "op": "=",
+                      "name": "host",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{host}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "dk",
+                  "groupByTime": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B"
+            },
+            "disabled": true,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`go_gc_duration_seconds`) AS `gc-p75`) { `host` = '#{host}' and `quantile` = '0.75' } BY `host`",
+              "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "",
-              "field": "datakit_sys_alloc_bytes",
-              "rollup": "last",
-              "filters": [],
+              "alias": "gc-p75",
+              "field": "go_gc_duration_seconds",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "cebc33a0-8b5b-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                },
+                {
+                  "id": "0899e450-8b5c-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.75",
+                  "values": []
+                }
+              ],
               "groupBy": [
                 "host"
               ],
-              "funcList": [
-                null,
-                "top:10"
-              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
               "queryFuncs": [],
-              "groupByTime": "auto",
-              "indexFilter": ""
+              "withLabels": [],
+              "groupByTime": ""
             },
+            "disabled": true,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_gc_summary_seconds_count`) AS `gc-count`) { `host` = '#{host}' }[:::irate] BY `host`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "gc-count",
+              "field": "datakit_gc_summary_seconds_count",
+              "rollup": "irate",
+              "filters": [
+                {
+                  "id": "4650b080-8b5c-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`go_gc_heap_frees_bytes_total`) AS `gc-free-bytes`) { `host` = '#{host}' }[:::irate] BY `host`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "gc-free-bytes",
+              "field": "go_gc_heap_frees_bytes_total",
+              "rollup": "irate",
+              "filters": [
+                {
+                  "id": "c79c0e00-8b5c-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "disabled": false,
             "datasource": "dataflux"
           }
         ]
@@ -4175,7 +4189,13 @@
               }
             ],
             "colors": [],
-            "levels": [],
+            "levels": [
+              {
+                "title": "100%",
+                "value": 100,
+                "bgColor": "#FE4952"
+              }
+            ],
             "slimit": 20,
             "density": "medium",
             "compares": [
@@ -4251,8 +4271,8 @@
         "name": "CPU usage%",
         "pos": {
           "h": 15,
-          "w": 9,
-          "x": 15,
+          "w": 12,
+          "x": 12,
           "y": 12
         },
         "type": "sequence",
@@ -4305,157 +4325,35 @@
               "q": "M::`dk`:(last(`datakit_cpu_cores`) AS `cores`) { `host` = '#{host}' } BY `host`",
               "code": "B",
               "fill": null,
-              "type": "simple",
+              "type": "dql",
               "alias": "cores",
               "field": "datakit_cpu_cores",
+              "index": "",
+              "fillNum": null,
               "filters": [
                 {
-                  "id": "867a0620-417f-11ee-aa25-7f7df7ca8b4e",
-                  "op": "=",
-                  "name": "host",
-                  "type": "keyword",
-                  "logic": "and",
-                  "value": "#{host}"
-                }
-              ],
-              "groupBy": [
-                "host"
-              ],
-              "funcList": [],
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "namespace": "metric",
-              "dataSource": "dk",
-              "queryFuncs": [],
-              "groupByTime": "",
-              "indexFilter": ""
-            },
-            "datasource": "dataflux"
-          }
-        ]
-      },
-      {
-        "extend": {
-          "settings": {
-            "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 50,
-            "density": "medium",
-            "compares": [
-              {
-                "label": "环比",
-                "value": "circleCompare"
-              }
-            ],
-            "showLine": false,
-            "unitType": "global",
-            "chartType": "areaLine",
-            "fixedTime": "",
-            "isPercent": false,
-            "openStack": false,
-            "precision": "2",
-            "showTitle": true,
-            "stackType": "time",
-            "titleDesc": "",
-            "globalUnit": [
-              "digital",
-              "B"
-            ],
-            "isSampling": true,
-            "compareType": [
-              "circleCompare"
-            ],
-            "openCompare": false,
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null,
-            "legendValues": [
-              "avg",
-              "min",
-              "max"
-            ],
-            "timeInterval": "auto",
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "legendPostion": "bottom",
-            "maxPointCount": 360,
-            "sorderByOrder": "desc",
-            "xAxisShowType": "time",
-            "isTimeInterval": true,
-            "changeWorkspace": false,
-            "compareChartType": "sequence",
-            "currentChartType": "sequence",
-            "showFieldMapping": false,
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "weekCompare": "rgba(213,217,226,0.25)",
-              "monthCompare": "rgba(213,217,226,0.12)"
-            },
-            "onlyShowGroupName": false,
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "A"
-          },
-          "fixedTime": "",
-          "isRefresh": false
-        },
-        "group": {
-          "name": "Overview"
-        },
-        "name": "Mem usage(heap)",
-        "pos": {
-          "h": 15,
-          "w": 7,
-          "x": 0,
-          "y": 12
-        },
-        "type": "sequence",
-        "queries": [
-          {
-            "name": "",
-            "type": "sequence",
-            "unit": "",
-            "color": "",
-            "qtype": "dql",
-            "query": {
-              "q": "M::`dk`:(last(`datakit_heap_alloc_bytes`) AS `heap`) { `host` = '#{host}' } BY `host`",
-              "code": "A",
-              "fill": null,
-              "type": "simple",
-              "alias": "heap",
-              "field": "datakit_heap_alloc_bytes",
-              "filters": [
-                {
-                  "id": "e50edfe0-f566-11ed-9047-75c3d7e6331d",
                   "op": "=",
                   "name": "host",
                   "type": "",
                   "logic": "and",
-                  "value": "#{host}"
+                  "value": "#{host}",
+                  "values": []
                 }
               ],
               "groupBy": [
                 "host"
               ],
+              "indexes": [],
+              "labelOp": "",
               "funcList": [],
+              "interval": "",
               "fieldFunc": "last",
-              "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
               "queryFuncs": [],
+              "withLabels": [],
               "groupByTime": "",
-              "indexFilter": ""
+              "dataSourceFunc": ""
             },
             "datasource": "dataflux"
           }
@@ -4587,8 +4485,8 @@
             "alias": [],
             "units": [
               {
-                "key": "Elected date",
-                "name": "Elected date",
+                "key": "Elected Date",
+                "name": "Elected Date",
                 "unit": "",
                 "units": [
                   "timeStamp",
@@ -4622,7 +4520,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "fixedGroupByTime": null
         },
         "group": {
@@ -4644,11 +4542,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_election_status`) AS `Elected date`) { `status` = 'success' } BY `namespace`, `host`",
+              "q": "M::`dk`:(last(`datakit_election_status`) AS `Elected Date`) { `status` = 'success' } BY `namespace`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "Elected date",
+              "alias": "Elected Date",
               "field": "datakit_election_status",
               "filters": [
                 {
@@ -4989,12 +4887,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`datakit_httpcli_tcp_conn_total`) AS `conn`) { `host` = '#{host}' and `type` = 'reused' } BY `remote`, `from`, `host`\")",
+              "q": "M::`dk`:(avg(`datakit_httpcli_tcp_conn_total`) AS `conn`) { `host` = '#{host}' and `type` = 'reused' }[:::rate] BY `remote`, `from`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "conn",
               "field": "datakit_httpcli_tcp_conn_total",
+              "rollup": "rate",
               "filters": [
                 {
                   "id": "12dc1b60-f61e-11ed-9847-7f9b08df60cc",
@@ -5024,12 +4923,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -5052,6 +4946,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -5061,6 +4956,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -5077,7 +4973,7 @@
             "showFieldMapping": false,
             "onlyShowGroupName": false,
             "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "A"
+            "mainMeasurementQueryCode": "B"
           },
           "fixedTime": "",
           "isRefresh": false
@@ -5101,18 +4997,20 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`pointpool_chan_get_total`) AS `get`) { `host` = '#{host}' } BY `host`\")",
-              "code": "A",
+              "q": "M::`dk`:(avg(`pointpool_chan_get_total`) AS `get`) { `host` = '#{host}' }[:::irate] BY `host`",
+              "code": "B",
               "fill": null,
               "type": "simple",
               "alias": "get",
               "field": "pointpool_chan_get_total",
+              "rollup": "irate",
+              "fillNum": null,
               "filters": [
                 {
-                  "id": "7cdfb370-f553-11ee-a929-df46efac2c78",
+                  "id": "af3d66c0-8bab-11ef-bff8-c39ec2619c7a",
                   "op": "=",
                   "name": "host",
-                  "type": "keyword",
+                  "type": "",
                   "logic": "and",
                   "value": "#{host}",
                   "values": []
@@ -5121,19 +5019,15 @@
               "groupBy": [
                 "host"
               ],
+              "labelOp": "",
               "funcList": [],
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
-              "groupByTime": "",
-              "indexFilter": ""
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
             },
             "datasource": "dataflux"
           }
@@ -5154,6 +5048,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -5163,6 +5058,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -5203,12 +5099,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`pointpool_pool_get_total`) AS `get`) { `host` = '#{host}' } BY `host`\")",
+              "q": "M::`dk`:(avg(`pointpool_pool_get_total`) AS `get`) { `host` = '#{host}' }[:::irate] BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "get",
               "field": "pointpool_pool_get_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "7cdfb370-f553-11ee-a929-df46efac2c78",
@@ -5228,12 +5125,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -5256,6 +5148,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -5265,6 +5158,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -5305,12 +5199,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`pointpool_pool_put_total`) AS `put`) { `host` = '#{host}' } BY `host`\")",
+              "q": "M::`dk`:(avg(`pointpool_pool_put_total`) AS `put`) { `host` = '#{host}' }[:::irate] BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "put",
               "field": "pointpool_pool_put_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "7cdfb370-f553-11ee-a929-df46efac2c78",
@@ -5330,12 +5225,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -5358,6 +5248,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -5367,6 +5258,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -5407,12 +5299,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(avg(`pointpool_chan_put_total`) AS `put`) { `host` = '#{host}' } BY `host`\")",
+              "q": "M::`dk`:(avg(`pointpool_chan_put_total`) AS `put`) { `host` = '#{host}' }[:::irate] BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "put",
               "field": "pointpool_chan_put_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "7cdfb370-f553-11ee-a929-df46efac2c78",
@@ -5432,12 +5325,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -5556,6 +5444,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "sync.Pool.New() called total",
@@ -5565,6 +5454,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -5605,12 +5495,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`pointpool_malloc_total`) AS `malloc`) { `host` = '#{host}' } BY `host`\")",
+              "q": "M::`dk`:(last(`pointpool_malloc_total`) AS `malloc`) { `host` = '#{host}' }[:::irate] BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "malloc",
               "field": "pointpool_malloc_total",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "7cdfb370-f553-11ee-a929-df46efac2c78",
@@ -5630,12 +5521,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
             },
@@ -5979,6 +5865,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -5991,6 +5878,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -6036,7 +5924,7 @@
         "name": "Cache size",
         "pos": {
           "h": 15,
-          "w": 6,
+          "w": 8,
           "x": 0,
           "y": 14
         },
@@ -6098,6 +5986,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -6110,6 +5999,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -6154,10 +6044,10 @@
         },
         "name": "Get/Put latency",
         "pos": {
-          "h": 15,
-          "w": 6,
-          "x": 6,
-          "y": 14
+          "h": 14,
+          "w": 8,
+          "x": 16,
+          "y": 0
         },
         "type": "sequence",
         "queries": [
@@ -6168,76 +6058,44 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "eval(A/B, alias='get', A=\"M::`dk`:(avg(`diskcache_get_latency_sum`)) { `host` = '#{host}' } BY `host`, `path`\", B=\"M::`dk`:(avg(`diskcache_get_latency_count`)) { `host` = '#{host}' } BY `host`, `path`\")",
+              "q": "M::`dk`:(avg(`diskcache_get_latency`) AS `get`) { `quantile` = '0.9' and `host` = '#{host}' } BY `host`",
               "code": "A",
-              "type": "expression",
+              "fill": null,
+              "type": "simple",
               "alias": "get",
-              "children": [
+              "field": "diskcache_get_latency",
+              "filters": [
                 {
-                  "q": "M::`dk`:(avg(`diskcache_get_latency_sum`)) { `host` = '#{host}' } BY `host`, `path`",
-                  "code": "A",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "diskcache_get_latency_sum",
-                  "filters": [
-                    {
-                      "id": "080e5970-fb8e-11ee-abc1-abcf64b8b48c",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "path"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "92dd8640-8ac0-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.9",
+                  "values": []
                 },
                 {
-                  "q": "M::`dk`:(avg(`diskcache_get_latency_count`)) { `host` = '#{host}' } BY `host`, `path`",
-                  "code": "B",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "diskcache_get_latency_count",
-                  "filters": [
-                    {
-                      "id": "080e5970-fb8e-11ee-abc1-abcf64b8b48c",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "path"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "9f93e6f0-8c4f-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
                 }
               ],
+              "groupBy": [
+                "host"
+              ],
               "funcList": [],
-              "expression": "A/B"
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
             },
             "datasource": "dataflux"
           },
@@ -6248,76 +6106,44 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "eval(A/B, alias='put', A=\"M::`dk`:(avg(`diskcache_put_latency_sum`)) { `host` = '#{host}' } BY `host`, `path`\", B=\"M::`dk`:(avg(`diskcache_put_latency_count`)) { `host` = '#{host}' } BY `host`, `path`\")",
+              "q": "M::`dk`:(avg(`diskcache_put_latency`) AS `put`) { `quantile` = '0.9' and `host` = '#{host}' } BY `host`",
               "code": "B",
-              "type": "expression",
+              "fill": null,
+              "type": "simple",
               "alias": "put",
-              "children": [
+              "field": "diskcache_put_latency",
+              "filters": [
                 {
-                  "q": "M::`dk`:(avg(`diskcache_put_latency_sum`)) { `host` = '#{host}' } BY `host`, `path`",
-                  "code": "A",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "diskcache_put_latency_sum",
-                  "filters": [
-                    {
-                      "id": "080e5970-fb8e-11ee-abc1-abcf64b8b48c",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "path"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "92dd8640-8ac0-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.9",
+                  "values": []
                 },
                 {
-                  "q": "M::`dk`:(avg(`diskcache_put_latency_count`)) { `host` = '#{host}' } BY `host`, `path`",
-                  "code": "B",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "diskcache_put_latency_count",
-                  "filters": [
-                    {
-                      "id": "080e5970-fb8e-11ee-abc1-abcf64b8b48c",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "path"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "a6c1abb0-8c4f-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
                 }
               ],
+              "groupBy": [
+                "host"
+              ],
               "funcList": [],
-              "expression": "A/B"
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
             },
             "datasource": "dataflux"
           }
@@ -6329,8 +6155,8 @@
             "alias": [],
             "units": [
               {
-                "key": "build cost",
-                "name": "build cost",
+                "key": "cost(p90)",
+                "name": "cost(p90)",
                 "unit": "",
                 "units": [
                   "time",
@@ -6367,6 +6193,14 @@
                 "mappingVal": "v2",
                 "originalVal": [
                   "protobuf"
+                ]
+              },
+              {
+                "field": "encoding",
+                "operation": "=",
+                "mappingVal": "v1",
+                "originalVal": [
+                  "line-protocol"
                 ]
               }
             ],
@@ -6416,6 +6250,16 @@
                 "fontColor": "",
                 "lineColor": "",
                 "operation": "="
+              },
+              {
+                "field": "encoding",
+                "value": [
+                  "line-protocol"
+                ],
+                "bgColor": "",
+                "fontColor": "",
+                "lineColor": "",
+                "operation": "="
               }
             ],
             "mainMeasurementSort": "top",
@@ -6424,7 +6268,7 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true
+          "isRefresh": false
         },
         "group": {
           "name": "Dataway"
@@ -6432,8 +6276,8 @@
         "name": "Build body",
         "pos": {
           "h": 12,
-          "w": 18,
-          "x": 6,
+          "w": 6,
+          "x": 18,
           "y": 12
         },
         "type": "table",
@@ -6565,78 +6409,47 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "eval(A/B, alias='build cost', A=\"M::`dk`:(avg(`datakit_io_build_body_cost_seconds_sum`)) { `host` = '#{host}' } BY `host`, `encoding`, `category`\", B=\"M::`dk`:(avg(`datakit_io_build_body_cost_seconds_count`)) { `host` = '#{host}' } BY `host`, `encoding`, `category`\")",
+              "q": "M::`dk`:(avg(`datakit_io_build_body_cost_seconds`) AS `cost(p90)`) { `host` = '#{host}' and `quantile` = '0.9' } BY `host`, `encoding`, `category`",
               "code": "D",
-              "type": "expression",
-              "alias": "build cost",
-              "children": [
+              "fill": null,
+              "type": "simple",
+              "alias": "cost(p90)",
+              "field": "datakit_io_build_body_cost_seconds",
+              "fillNum": null,
+              "filters": [
                 {
-                  "q": "M::`dk`:(avg(`datakit_io_build_body_cost_seconds_sum`)) { `host` = '#{host}' } BY `host`, `encoding`, `category`",
-                  "code": "A",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "datakit_io_build_body_cost_seconds_sum",
-                  "filters": [
-                    {
-                      "id": "226c5200-fcd2-11ee-9e50-adf03e570949",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "encoding",
-                    "category"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "9d87b8d0-8ac6-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
                 },
                 {
-                  "q": "M::`dk`:(avg(`datakit_io_build_body_cost_seconds_count`)) { `host` = '#{host}' } BY `host`, `encoding`, `category`",
-                  "code": "B",
-                  "fill": null,
-                  "type": "simple",
-                  "alias": "",
-                  "field": "datakit_io_build_body_cost_seconds_count",
-                  "filters": [
-                    {
-                      "id": "2960b740-fcd2-11ee-9e50-adf03e570949",
-                      "op": "=",
-                      "name": "host",
-                      "type": "keyword",
-                      "logic": "and",
-                      "value": "#{host}",
-                      "values": []
-                    }
-                  ],
-                  "groupBy": [
-                    "host",
-                    "encoding",
-                    "category"
-                  ],
-                  "funcList": [],
-                  "fieldFunc": "avg",
-                  "fieldType": "float",
-                  "namespace": "metric",
-                  "dataSource": "dk",
-                  "queryFuncs": [],
-                  "groupByTime": "",
-                  "indexFilter": ""
+                  "id": "a56c7180-8ac6-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.9",
+                  "values": []
                 }
               ],
+              "groupBy": [
+                "host",
+                "encoding",
+                "category"
+              ],
+              "labelOp": "",
               "funcList": [],
-              "expression": "A/B"
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
             },
             "datasource": "dataflux"
           }
@@ -6658,6 +6471,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -6670,6 +6484,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -6715,8 +6530,8 @@
         "name": "Cache dropped bytes",
         "pos": {
           "h": 15,
-          "w": 6,
-          "x": 18,
+          "w": 8,
+          "x": 16,
           "y": 14
         },
         "type": "sequence",
@@ -6728,12 +6543,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(avg(`diskcache_dropped_bytes_total`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`",
+              "q": "M::`dk`:(avg(`diskcache_dropped_data_sum`) AS `bytes`) { `host` = '#{host}' } BY `path`, `host`, `reason`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "bytes",
-              "field": "diskcache_dropped_bytes_total",
+              "field": "diskcache_dropped_data_sum",
               "filters": [
                 {
                   "id": "3c079580-f567-11ed-9047-75c3d7e6331d",
@@ -6746,7 +6561,8 @@
               ],
               "groupBy": [
                 "path",
-                "host"
+                "host",
+                "reason"
               ],
               "funcList": [],
               "fieldFunc": "avg",
@@ -6831,8 +6647,8 @@
         "name": "Cache data files",
         "pos": {
           "h": 15,
-          "w": 6,
-          "x": 12,
+          "w": 8,
+          "x": 8,
           "y": 14
         },
         "type": "sequence",
@@ -6862,133 +6678,6 @@
               ],
               "groupBy": [
                 "path",
-                "host"
-              ],
-              "funcList": [],
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "namespace": "metric",
-              "dataSource": "dk",
-              "queryFuncs": [],
-              "groupByTime": "",
-              "indexFilter": ""
-            },
-            "datasource": "dataflux"
-          }
-        ]
-      },
-      {
-        "extend": {
-          "settings": {
-            "alias": [],
-            "units": [],
-            "colors": [],
-            "levels": [],
-            "slimit": 50,
-            "density": "medium",
-            "compares": [
-              {
-                "label": "环比",
-                "value": "circleCompare"
-              }
-            ],
-            "showLine": false,
-            "unitType": "global",
-            "chartType": "areaLine",
-            "fixedTime": "",
-            "isPercent": false,
-            "openStack": false,
-            "precision": "2",
-            "showTitle": true,
-            "stackType": "time",
-            "titleDesc": "",
-            "globalUnit": [
-              "digital",
-              "B"
-            ],
-            "isSampling": true,
-            "compareType": [
-              "circleCompare"
-            ],
-            "openCompare": false,
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null,
-            "legendValues": [
-              "avg",
-              "min",
-              "max"
-            ],
-            "timeInterval": "auto",
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "legendPostion": "bottom",
-            "maxPointCount": 360,
-            "sorderByOrder": "desc",
-            "xAxisShowType": "time",
-            "isTimeInterval": true,
-            "changeWorkspace": false,
-            "compareChartType": "sequence",
-            "currentChartType": "sequence",
-            "showFieldMapping": false,
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "weekCompare": "rgba(213,217,226,0.25)",
-              "monthCompare": "rgba(213,217,226,0.12)"
-            },
-            "onlyShowGroupName": false,
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "weekCompare": "rgba(11,11,12,0.3)",
-              "monthCompare": "rgba(11,11,12,0.12)"
-            },
-            "openThousandsSeparator": true,
-            "mainMeasurementQueryCode": "B"
-          },
-          "fixedTime": "",
-          "isRefresh": false
-        },
-        "group": {
-          "name": "Overview"
-        },
-        "name": "Mem usage(sys)",
-        "pos": {
-          "h": 15,
-          "w": 8,
-          "x": 7,
-          "y": 12
-        },
-        "type": "sequence",
-        "queries": [
-          {
-            "name": "",
-            "type": "sequence",
-            "unit": "",
-            "color": "",
-            "qtype": "dql",
-            "query": {
-              "q": "M::`dk`:(last(`datakit_sys_alloc_bytes`) AS `sys`) { `host` = '#{host}' } BY `host`",
-              "code": "B",
-              "fill": null,
-              "type": "simple",
-              "alias": "sys",
-              "field": "datakit_sys_alloc_bytes",
-              "filters": [
-                {
-                  "id": "eb100b80-f566-11ed-9047-75c3d7e6331d",
-                  "op": "=",
-                  "name": "host",
-                  "type": "",
-                  "logic": "and",
-                  "value": "#{host}"
-                }
-              ],
-              "groupBy": [
                 "host"
               ],
               "funcList": [],
@@ -7134,6 +6823,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -7143,6 +6833,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -7183,12 +6874,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "irate(\"M::`dk`:(last(`pointpool_escaped`) AS `escaped`) { `host` = '#{host}' } BY `host`\")",
+              "q": "M::`dk`:(last(`pointpool_escaped`) AS `escaped`) { `host` = '#{host}' }[:::irate] BY `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "escaped",
               "field": "pointpool_escaped",
+              "rollup": "irate",
               "filters": [
                 {
                   "id": "fa4761f0-21a4-11ef-b92d-ef27e7697bf5",
@@ -7208,12 +6900,7 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
-              "queryFuncs": [
-                {
-                  "args": [],
-                  "name": "irate"
-                }
-              ],
+              "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
               "additionalFields": null
@@ -7426,6 +7113,7 @@
             "isPercent": false,
             "openStack": false,
             "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
@@ -7435,6 +7123,7 @@
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
+            "connectNulls": true,
             "legendValues": [
               "avg",
               "min",
@@ -7477,7 +7166,7 @@
         "group": {
           "name": "HTTP-API(Datakit as server)"
         },
-        "name": "API requests",
+        "name": "API requests(rate)",
         "pos": {
           "h": 17,
           "w": 6,
@@ -7493,12 +7182,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(avg(`datakit_http_api_total`) AS `req`) { `host` = re(`.*`) } BY `host`, `api`",
+              "q": "M::`dk`:(last(`datakit_http_api_total`) AS `req`) { `host` = '#{host}' }[:::irate] BY `host`, `api`, `status`",
               "code": "B",
               "fill": null,
               "type": "simple",
               "alias": "req",
               "field": "datakit_http_api_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -7513,11 +7203,12 @@
               ],
               "groupBy": [
                 "host",
-                "api"
+                "api",
+                "status"
               ],
               "labelOp": "",
               "funcList": [],
-              "fieldFunc": "avg",
+              "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
@@ -7525,8 +7216,7 @@
               "withLabels": [],
               "groupByTime": ""
             },
-            "datasource": "dataflux",
-            "dashboardUUID": "dsbd_36867366c57348188fed275eaea4ce11"
+            "datasource": "dataflux"
           }
         ]
       },
@@ -7686,6 +7376,127 @@
         "extend": {
           "settings": {
             "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "Default only drop metric points",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "min",
+              "max",
+              "avg"
+            ],
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Collectors(Inputs)"
+        },
+        "name": "Feed drop",
+        "pos": {
+          "h": 14,
+          "w": 6,
+          "x": 0,
+          "y": 14
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_io_feed_drop_point_total`) AS `drop`) { `host` = '#{host}' } BY `host`, `category`, `from`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "drop",
+              "field": "datakit_io_feed_drop_point_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "90b104f0-0b55-11ee-b529-4df829524caa",
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host",
+                "category",
+                "from"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
             "units": [
               {
                 "key": "derivative(last(datakit_io_feed_point_total))",
@@ -7760,7 +7571,7 @@
         "group": {
           "name": "Collectors(Inputs)"
         },
-        "name": "Flush total",
+        "name": "Compact",
         "pos": {
           "h": 14,
           "w": 6,
@@ -7776,12 +7587,13 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_io_flush_total`) AS `flush`) { `host` = '#{host}' } BY `category`, `host`",
+              "q": "M::`dk`:(last(`datakit_io_flush_total`) AS `compact`) { `host` = '#{host}' }[:::irate] BY `category`, `host`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "flush",
+              "alias": "compact",
               "field": "datakit_io_flush_total",
+              "rollup": "irate",
               "fillNum": null,
               "filters": [
                 {
@@ -7853,13 +7665,13 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "fixedGroupByTime": null
         },
         "group": {
           "name": "Collectors(Inputs)"
         },
-        "name": "Flush workers",
+        "name": "Compact workers",
         "pos": {
           "h": 14,
           "w": 6,
@@ -8262,7 +8074,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "eval(A/B, alias='ratio', A=\"M::`dk`:(avg(`datakit_io_dataway_point_bytes_total`)) { `enc` = 'gzip' and `status` = 'total' and `host` = '#{host}' } BY `host`, `category`\", B=\"M::`dk`:(avg(`datakit_io_dataway_point_bytes_total`)) { `enc` = 'raw' and `status` = 'total' and `host` = '#{host}' } BY `host`, `category`\")",
+              "q": "eval(1-(A/B), alias='ratio', A=\"M::`dk`:(avg(`datakit_io_dataway_point_bytes_total`)) { `enc` = 'gzip' and `status` = 'total' and `host` = '#{host}' } BY `host`, `category`\", B=\"M::`dk`:(avg(`datakit_io_dataway_point_bytes_total`)) { `enc` = 'raw' and `status` = 'total' and `host` = '#{host}' } BY `host`, `category`\")",
               "code": "A",
               "type": "expression",
               "alias": "ratio",
@@ -8370,7 +8182,7 @@
                 }
               ],
               "funcList": [],
-              "expression": "A/B"
+              "expression": "1-(A/B)"
             },
             "datasource": "dataflux"
           }
@@ -8383,10 +8195,10 @@
             "units": [],
             "colors": [],
             "levels": [],
-            "slimit": 100,
+            "slimit": 50,
             "density": "medium",
             "showLine": false,
-            "unitType": "custom",
+            "unitType": "global",
             "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
@@ -8396,18 +8208,20 @@
             "showTitle": true,
             "stackType": "time",
             "titleDesc": "",
-            "globalUnit": [],
+            "globalUnit": [
+              "time",
+              "s"
+            ],
             "isSampling": true,
             "compareType": [],
             "openCompare": false,
             "yAxixMaxVal": null,
             "yAxixMinVal": null,
-            "aliasVersion": 2,
             "connectNulls": true,
             "legendValues": [
-              "last",
               "avg",
-              "min"
+              "min",
+              "max"
             ],
             "timeInterval": "auto",
             "compareColors": {
@@ -8441,18 +8255,17 @@
             "mainMeasurementQueryCode": "A"
           },
           "fixedTime": "",
-          "isRefresh": false,
-          "fixedGroupByTime": null
+          "isRefresh": false
         },
         "group": {
-          "name": "Collectors(Inputs)"
+          "name": "HTTP request(Datakit as client)"
         },
-        "name": "Feed total",
+        "name": "TCP idle time",
         "pos": {
-          "h": 14,
+          "h": 17,
           "w": 6,
-          "x": 0,
-          "y": 14
+          "x": 18,
+          "y": 17
         },
         "type": "sequence",
         "queries": [
@@ -8463,38 +8276,579 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`dk`:(last(`datakit_io_feed_total`) AS `points`) { `host` = '#{host}' } BY `category`, `name`, `host`",
+              "q": "M::`dk`:(avg(`datakit_httpcli_conn_idle_time_seconds`) AS `idle`) { `host` = '#{host}' and `quantile` = '0.9' } BY `host`, `from`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "points",
-              "field": "datakit_io_feed_total",
+              "alias": "idle",
+              "field": "datakit_httpcli_conn_idle_time_seconds",
+              "filters": [
+                {
+                  "id": "12dc1b60-f61e-11ed-9847-7f9b08df60cc",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "216e2aa0-65c7-11ef-aa8b-a74a26cb1e2d",
+                  "op": "=",
+                  "name": "quantile",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "0.9",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host",
+                "from"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [
+              {
+                "title": "1GB",
+                "value": 1073741824,
+                "bgColor": "#FE495F"
+              }
+            ],
+            "slimit": 100,
+            "density": "medium",
+            "compares": [
+              {
+                "label": "环比",
+                "value": "circleCompare"
+              }
+            ],
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": [
+              "circleCompare"
+            ],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "compareChartType": "sequence",
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Mem usage(go-mem vs rss)",
+        "pos": {
+          "h": 28,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_golang_mem_usage`) AS `go-mem`) { `host` = '#{host}' } BY `host`, `type`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "go-mem",
+              "field": "datakit_golang_mem_usage",
+              "filters": [
+                {
+                  "id": "e50edfe0-f566-11ed-9047-75c3d7e6331d",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host",
+                "type"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_mem_stat`) AS `rss`) { `host` = '#{host}' and `type` = 'rss' } BY `host`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "rss",
+              "field": "datakit_mem_stat",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "c2574660-0cdd-11ef-8b8f-9389928954cf",
+                  "id": "5b08b030-6b4b-11ef-b941-d79a8d0dcc67",
                   "op": "=",
                   "name": "host",
                   "type": "",
                   "logic": "and",
                   "value": "#{host}",
                   "values": []
+                },
+                {
+                  "id": "5b08b031-6b4b-11ef-b941-d79a8d0dcc67",
+                  "op": "=",
+                  "name": "type",
+                  "type": "",
+                  "logic": "and",
+                  "value": "rss",
+                  "values": []
                 }
               ],
               "groupBy": [
-                "category",
-                "name",
                 "host"
               ],
               "labelOp": "",
               "funcList": [],
-              "fieldFunc": "last",
+              "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "dk",
               "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Dataway"
+        },
+        "name": "WAL flush bytes",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 6,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_io_dataway_wal_flush_sum`) AS `bytes`) { `host` = '#{host}' }[:::irate] BY `host`, `queue`, `category`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "bytes",
+              "field": "datakit_io_dataway_wal_flush_sum",
+              "rollup": "irate",
+              "filters": [
+                {
+                  "id": "bf233240-8ac5-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host",
+                "queue",
+                "category"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498bfe",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "topSize": 10,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "default",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "tableSortMetricName": "",
+            "mainMeasurementLimit": 50,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Top(n) mem usage(rss)",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 53
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(`datakit_mem_stat`) { `type` = 'rss' }[:::last] BY `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "datakit_mem_stat",
+              "rollup": "last",
+              "filters": [
+                {
+                  "id": "fc5ed540-87f7-11ef-a07d-b1bb8c5db76f",
+                  "op": "=",
+                  "name": "type",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "rss",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [
+                null,
+                "top:10"
+              ],
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "auto",
+              "indexFilter": ""
+            },
+            "checked": true,
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Dataway"
+        },
+        "name": "WAL points",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 12,
+          "y": 12
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`dk`:(avg(`datakit_io_wal_point_total`) AS `bytes`) { `host` = '#{host}' }[:::irate] BY `host`, `category`, `status`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "bytes",
+              "field": "datakit_io_wal_point_total",
+              "rollup": "irate",
+              "filters": [
+                {
+                  "id": "bf233240-8ac5-11ef-bff8-c39ec2619c7a",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host",
+                "category",
+                "status"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "dk",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
             },
             "datasource": "dataflux"
           }
@@ -8546,3 +8900,4 @@
     "type": "template"
   }
 }
+
