@@ -8,13 +8,17 @@ package container
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
+
+const defaultActiveDuration = time.Hour * 3
 
 func (c *container) cleanMissingContainerLog(newIDs []string) {
 	missingIDs := c.logTable.findDifferences(newIDs)
@@ -53,6 +57,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
 			tailer.WithMaxForceFlushLimit(c.ipt.LoggingForceFlushLimit),
 			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
+			tailer.WithIgnoreDeadLog(defaultActiveDuration),
 			tailer.WithDone(done),
 		}
 
@@ -80,6 +85,10 @@ func (c *container) tailingLogs(ins *logInstance) {
 
 		for _, file := range filelist {
 			if c.logTable.inTable(ins.id, file) {
+				continue
+			}
+
+			if !openfile.FileIsActive(file, defaultActiveDuration) {
 				continue
 			}
 

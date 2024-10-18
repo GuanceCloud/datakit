@@ -122,7 +122,7 @@ func (t *Single) Run() {
 }
 
 func (t *Single) Close() {
-	t.recordingCache(true /*the last recording*/)
+	t.recordPosition()
 	t.closeFile()
 
 	openfileVec.WithLabelValues(t.opt.mode.String()).Dec()
@@ -183,21 +183,14 @@ func (t *Single) seekOffset() error {
 	return err
 }
 
-func (t *Single) recordingCache(last bool) {
+func (t *Single) recordPosition() {
 	if t.offset <= 0 {
 		return
 	}
 
 	c := &recorder.MetaData{Source: t.opt.source, Offset: t.offset}
 
-	var err error
-	if last {
-		err = recorder.SetAndFlush(t.recordKey, c)
-	} else {
-		err = recorder.Set(t.recordKey, c)
-	}
-
-	if err != nil {
+	if err := recorder.SetAndFlush(t.recordKey, c); err != nil {
 		t.log.Debugf("recording cache %s err: %s", c, err)
 	}
 }
@@ -403,7 +396,6 @@ func (t *Single) feed(pending [][]byte) {
 		t.feedToRemote(pending)
 		return
 	}
-	defer t.recordingCache(false)
 	t.feedToIO(pending)
 }
 
@@ -505,8 +497,7 @@ func (t *Single) multiline(text []byte) []byte {
 	if t.mult == nil {
 		return text
 	}
-	res, state := t.mult.ProcessLine(text)
-	multilineVec.WithLabelValues(t.opt.source, t.filepath, state.String()).Inc()
+	res, _ := t.mult.ProcessLine(text)
 	return res
 }
 
