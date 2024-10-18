@@ -90,8 +90,10 @@ func Extract(r io.Reader, to string) error {
 				return fmt.Errorf("MkdirAll: %w", err)
 			}
 
+			_ = os.Remove(filepath.Clean(target))
 			// TODO: lock file before extracting, to avoid `text file busy` error
-			f, err := os.OpenFile(filepath.Clean(target), os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
+			f, err := os.OpenFile(filepath.Clean(target),
+				os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(hdr.Mode))
 			if err != nil {
 				return fmt.Errorf("OpenFile: %w", err)
 			}
@@ -143,7 +145,17 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 }
 
 func doDownload(r io.Reader, to string) error {
-	f, err := os.OpenFile(filepath.Clean(to), os.O_CREATE|os.O_RDWR, os.ModePerm)
+	to = filepath.Clean(to)
+
+	if _, err := os.Stat(filepath.Dir(to)); err != nil {
+		if err := os.MkdirAll(filepath.Dir(to), os.ModePerm); err != nil {
+			return fmt.Errorf("MkdirAll: %w", err)
+		}
+	}
+
+	_ = os.Remove(filepath.Clean(to))
+	f, err := os.OpenFile(filepath.Clean(to),
+		os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
 	}

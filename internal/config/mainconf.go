@@ -77,6 +77,8 @@ type Config struct {
 
 	HTTPAPI *APIConfig `toml:"http_api"`
 
+	APMInject *APMInject `toml:"apm_inject"`
+
 	Recorder               *recorder.Recorder `toml:"recorder"`
 	IO                     *io.IOConf         `toml:"io"`
 	IOCacheCountDeprecated int                `toml:"io_cache_count,omitzero"`
@@ -187,6 +189,8 @@ func DefaultConfig() *Config {
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
 		},
+
+		APMInject: &APMInject{},
 
 		DKUpgrader: &DKUpgraderCfg{
 			Host: "0.0.0.0",
