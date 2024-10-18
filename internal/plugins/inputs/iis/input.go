@@ -83,6 +83,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithService("iis"),
 		tailer.WithPipeline(ipt.Log.Pipeline),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithDone(ipt.semStop.Wait()),
 	}
 

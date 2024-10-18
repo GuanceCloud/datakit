@@ -130,6 +130,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithDone(ipt.semStop.Wait()),
 	}
 

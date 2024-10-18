@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -136,6 +137,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithService(inputName),
 		tailer.WithPipeline(ipt.Pipeline),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
