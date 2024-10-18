@@ -21,6 +21,7 @@ func (c *DiskCache) dropBatch() error {
 		return nil
 	}
 
+	// FILO drop: accept new data, and drop old data.
 	fname := c.dataFiles[0]
 
 	if c.rfd != nil && c.curReadfile == fname {
@@ -36,14 +37,13 @@ func (c *DiskCache) dropBatch() error {
 			return err
 		}
 
-		c.size -= fi.Size()
+		c.size.Add(-fi.Size())
 
 		c.dataFiles = c.dataFiles[1:]
 
-		droppedBatchVec.WithLabelValues(c.path, reasonExceedCapacity).Inc()
-		droppedBytesVec.WithLabelValues(c.path).Add(float64(fi.Size()))
+		droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(fi.Size()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 	}
 
 	return nil

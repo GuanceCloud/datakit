@@ -14,48 +14,169 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
+type walFrom int8
+
+const (
+	walFromMem walFrom = iota
+	walFromDisk
+)
+
+func (f walFrom) String() string {
+	// nolint: exhaustive
+	switch f {
+	case walFromMem:
+		return "M"
+	default:
+		return "D"
+	}
+}
+
 type body struct {
-	buf        []byte
-	rawLen     int
-	gzon       bool
-	npts       int
-	payloadEnc point.Encoding
+	CacheData
+
+	// NOTE: these 2 buffer may comes from:
+	//       - reusable buffer that not allocated by body instance, or
+	//       - new allocated by apply withCap() when getBody().
+	// So during putBody(), do not touch these 2 buffer.
+	marshalBuf []byte // buffer used for dump pb binary
+	sendBuf    []byte // buffer used for encoding points to pb/line-proto
+
+	chksum string
+
+	selfBuffer, // buffer that belongs to itself, and we should not drop it when putback
+	gzon int8
+	from      walFrom
+	checkSize bool
 }
 
 func (b *body) reset() {
-	b.buf = nil
-	b.rawLen = 0
-	b.gzon = false
-	b.npts = 0
-	b.payloadEnc = point.LineProtocol
+	b.CacheData.Payload = nil
+	b.CacheData.PayloadType = int32(point.Protobuf)
+	b.CacheData.Category = int32(point.Protobuf)
+
+	b.CacheData.Headers = b.CacheData.Headers[:0]
+	b.CacheData.DynURL = ""
+	b.CacheData.Pts = 0
+	b.CacheData.RawLen = 0
+
+	if b.selfBuffer != 1 { // buffer not managed by itself
+		b.sendBuf = nil
+		b.marshalBuf = nil
+	}
+
+	// NOTE: do not touch b.sendBuf and b.marshalBuf, we use the buffer for encoding
+	// and WAL protobuf marshal, their len(x) is always it's capacity. If len(x) changed,
+	// this will **panic** body encoding and protobuf marshal.
+
+	b.gzon = -1
+	b.from = walFromMem
+}
+
+func (b *body) buf() []byte {
+	return b.CacheData.Payload
+}
+
+func (b *body) headers() []*HTTPHeader {
+	return b.CacheData.Headers
+}
+
+func (b *body) url() string {
+	return b.CacheData.DynURL
+}
+
+func (b *body) cat() point.Category {
+	return point.Category(b.CacheData.Category)
+}
+
+func (b *body) enc() point.Encoding {
+	return point.Encoding(b.CacheData.PayloadType)
+}
+
+func (b *body) npts() int32 {
+	return b.CacheData.Pts
+}
+
+func (b *body) rawLen() int32 {
+	return b.CacheData.RawLen
+}
+
+func (b *body) loadCache(data []byte) error {
+	if err := b.CacheData.Unmarshal(data); err != nil {
+		return fmt.Errorf("Unmarshal: %w", err)
+	}
+
+	return nil
+}
+
+func (b *body) dump() ([]byte, error) {
+	if b.checkSize { // checkSize will not set on production, just for testing cases.
+		// NOTE: check required size before marshal, extra Size() call may cause a bit CPU time.
+		if s := b.CacheData.Size(); s > len(b.marshalBuf) {
+			return nil, fmt.Errorf("too small(%d) marshal buffer, need %d", len(b.marshalBuf), s)
+		}
+	}
+
+	// MarshalTo() all call Size() within itself.
+	if n, err := b.CacheData.MarshalTo(b.marshalBuf); err != nil {
+		return nil, fmt.Errorf("MarshalTo: %w", err)
+	} else {
+		return b.marshalBuf[:n], nil
+	}
 }
 
 func (b *body) String() string {
-	return fmt.Sprintf("gzon: %v, pts: %d, buf bytes: %d, rawLen: %d", b.gzon, b.npts, len(b.buf), b.rawLen)
+	return fmt.Sprintf("from: %s, enc: %s, cat: %s, gzon: %v, headers: %d, pts: %d, buf bytes: %d, chksum: %s, rawLen: %d, cap: %d",
+		b.from, b.enc(), b.cat(), b.gzon, len(b.headers()), b.npts(), len(b.buf()), b.chksum, b.rawLen(), cap(b.sendBuf))
 }
 
-func (w *writer) zip(data []byte) ([]byte, error) {
-	// reset zipper on multiple parts.
-	// zipper may called multiple times during build HTTP bodies,
-	// so zipper need to reset before next round.
-	if w.parts > 0 {
-		w.zipper.buf.Reset()
-		w.zipper.w.Reset(w.zipper.buf)
+func (b *body) pretty() string {
+	var arr []string
+	arr = append(arr, fmt.Sprintf("\n%p from: %s", b, b.from))
+	arr = append(arr, fmt.Sprintf("enc: %s", b.enc()))
+	arr = append(arr, fmt.Sprintf("cat: %s", b.cat()))
+	arr = append(arr, fmt.Sprintf("gzon: %d", b.gzon))
+	arr = append(arr, fmt.Sprintf("#buf: %d", len(b.buf())))
+	arr = append(arr, fmt.Sprintf("#send-buf: %d", len(b.sendBuf)))
+	arr = append(arr, fmt.Sprintf("#mars-buf: %d", len(b.sendBuf)))
+	arr = append(arr, fmt.Sprintf("url: %s", b.url()))
+	arr = append(arr, fmt.Sprintf("raw-len: %d", b.rawLen()))
+
+	arr = append(arr, fmt.Sprintf("headers(%d):\n", len(b.headers())))
+
+	for _, h := range b.headers() {
+		arr = append(arr, fmt.Sprintf("  %s: %s", h.Key, h.Value))
 	}
 
-	if _, err := w.zipper.w.Write(data); err != nil {
+	return strings.Join(arr, "\n")
+}
+
+func (z *gzipWriter) zip(data []byte) ([]byte, error) {
+	if _, err := z.w.Write(data); err != nil {
 		return nil, err
 	}
 
-	if err := w.zipper.w.Flush(); err != nil {
+	if err := z.w.Flush(); err != nil {
 		return nil, err
 	}
 
-	if err := w.zipper.w.Close(); err != nil {
+	if err := z.w.Close(); err != nil {
 		return nil, err
 	}
 
-	return w.zipper.buf.Bytes(), nil
+	return z.buf.Bytes(), nil
+}
+
+func isGzip(data []byte) int8 {
+	if len(data) < 2 {
+		return -1
+	}
+
+	// See: https://stackoverflow.com/a/6059342/342348
+	if data[0] == 0x1f && data[1] == 0x8b {
+		return 1
+	} else {
+		return 0
+	}
 }
 
 type bodyCallback func(w *writer, b *body) error
@@ -69,10 +190,13 @@ func dumpPoints(pts []*point.Point) string {
 	return strings.Join(arr, "\n")
 }
 
-func (w *writer) buildPointsBody(cb bodyCallback) error {
+// buildPointsBody build points within w into line-protocol(v1) or protobuf(v2).
+//
+// If there too many points, it will automatically split them on multipart on dataway's MaxRawBodySize.
+func (w *writer) buildPointsBody() error {
 	var (
-		start   = time.Now()
 		nptsArr []int
+		parts   int
 	)
 
 	// encode callback: to trace payload info.
@@ -94,12 +218,6 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 
 	enc.EncodeV2(w.points)
 
-	if cap(w.sendBuffer) == 0 {
-		// The buffer not set before, here we make a default
-		// buffer to prevent too-small-buffer error from enc.Next().
-		w.sendBuffer = make([]byte, w.batchBytesSize)
-	}
-
 	// for panic logging, when panics, we know:
 	// - what these points are
 	// - how points encoded and sent
@@ -109,10 +227,10 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 				buf := make([]byte, 1<<12)
 				runtime.Stack(buf, false)
 
-				log.Errorf("panic: %s\n%s", err.Error(), string(buf))
+				l.Errorf("panic: %s\n%s", err.Error(), string(buf))
 
-				log.Errorf("encode: %s, total points: %d, current part: %d, body cap: %d",
-					err.Error(), len(w.points), w.parts, cap(w.sendBuffer))
+				l.Errorf("encode: %s, total points: %d, current part: %d, body cap: %d",
+					err.Error(), len(w.points), parts, w.batchBytesSize)
 
 				panic(fmt.Errorf("dump points: %s", dumpPoints(w.points)))
 			}
@@ -120,68 +238,64 @@ func (w *writer) buildPointsBody(cb bodyCallback) error {
 	}()
 
 	for {
-		encodeBytes, ok := enc.Next(w.sendBuffer)
+		var (
+			compactStart = time.Now()
+			b            = getNewBufferBody(withNewBuffer(w.batchBytesSize))
+		)
+
+		encodeBytes, ok := enc.Next(b.sendBuf)
 		if !ok {
 			if err := enc.LastErr(); err != nil {
-				log.Errorf("encode: %s, total points: %d, current part: %d, body cap: %d",
-					err.Error(), len(w.points), w.parts, cap(w.sendBuffer))
+				l.Errorf("encode: %s, cat: %s, total points: %d, current part: %d, body cap: %d",
+					err.Error(), b.cat().Alias(), len(w.points), parts, cap(b.sendBuf))
 				return err
 			}
 			break
 		}
 
-		var err error
-		w.body.reset()
-
-		w.body.buf = encodeBytes
-		w.body.rawLen = len(encodeBytes)
-		w.body.gzon = w.gzip
-		w.body.payloadEnc = w.httpEncoding
-		w.body.npts = -1
-
-		if w.gzip {
-			w.body.buf, err = w.zip(encodeBytes)
-			if err != nil {
-				log.Errorf("datakit.GZip: %s", err.Error())
-				continue
-			}
+		// setup body info.
+		b.from = walFromMem
+		b.CacheData.Payload = encodeBytes
+		b.CacheData.Category = int32(w.category)
+		b.CacheData.Pts = int32(nptsArr[parts])
+		b.CacheData.RawLen = int32(len(encodeBytes))
+		b.CacheData.PayloadType = int32(w.httpEncoding)
+		b.CacheData.DynURL = w.dynamicURL
+		for k, v := range w.httpHeaders {
+			b.CacheData.Headers = append(b.CacheData.Headers, &HTTPHeader{Key: k, Value: v})
 		}
-
-		w.body.npts = nptsArr[w.parts]
 
 		buildBodyCostVec.WithLabelValues(
-			w.category.String(),
+			b.cat().String(),
 			w.httpEncoding.String(),
-		).Observe(float64(time.Since(start)) / float64(time.Second))
+			"enc",
+		).Observe(float64(time.Since(compactStart)) / float64(time.Second))
 
 		buildBodyBatchBytesVec.WithLabelValues(
-			w.category.String(),
+			b.cat().String(),
 			w.httpEncoding.String(),
-			fmt.Sprintf("%v", w.gzip),
-		).Observe(float64(len(w.body.buf)))
+			"raw",
+		).Observe(float64(b.rawLen()))
 
 		buildBodyBatchPointsVec.WithLabelValues(
-			w.category.String(),
+			b.cat().String(),
 			w.httpEncoding.String(),
-			fmt.Sprintf("%v", w.gzip),
-		).Observe(float64(w.body.npts))
-		w.parts++
+		).Observe(float64(b.npts()))
 
-		if cb != nil {
-			if err := cb(w, w.body); err != nil {
-				log.Warnf("send %d points to %q(gzip: %v) bytes failed: %q, ignored",
-					w.body.npts, w.category, w.gzip, err.Error())
-			} else {
-				log.Debugf("send part %d with %d points to %q ok, bytes: %d/%d(zipped)",
-					w.parts, w.body.npts, w.category, len(encodeBytes), len(w.body.buf))
+		if w.bcb != nil {
+			if err := w.bcb(w, b); err != nil {
+				l.Warnf("%d points to %q bytes failed: %q, ignored",
+					nptsArr[parts], w.category, err.Error())
 			}
 		}
+
+		parts++
 	}
 
 	buildBodyBatchCountVec.WithLabelValues(
 		w.category.String(),
 		w.httpEncoding.String(),
-	).Observe(float64(w.parts))
+	).Observe(float64(parts))
 
 	return nil
 }

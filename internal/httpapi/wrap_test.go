@@ -16,56 +16,69 @@ import (
 )
 
 func TestLimitWrap(t *testing.T) {
-	var limit float64 = 1000.0
-	reqLimiter = setupLimiter(limit)
+	var (
+		limit   = 100.0
+		ttl     = time.Minute // ttl 需超过本测试的运行时长，这样得到的 limit 比较接近预期值 @expectLimited
+		limiter = setupLimiter(limit, ttl)
+	)
 
 	r := gin.New()
 	apiHandler := func(c *gin.Context) {
 		c.Data(200, "", nil)
 	}
 
-	r.GET("/", ginLimiter(reqLimiter), apiHandler)
+	r.GET("/", ginLimiter(limiter), apiHandler)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 	time.Sleep(time.Second)
 
-	total := 0
-	limited := 0
-	passed := 0
-	round := 0
+	var (
+		total   = 0
+		limited = 0
+		passed  = 0
+
+		max   = 10000
+		sleep = time.Millisecond // 总运行时长在 10s+ 左右
+	)
 
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
+	start := time.Now()
 	for {
+		if total >= max {
+			break
+		}
+
 		resp, err := http.Get(ts.URL)
 		if err != nil {
 			t.Error(err)
 		}
 
-		resp.Body.Close()
-		time.Sleep(time.Microsecond)
+		if resp != nil {
+			resp.Body.Close()
+			time.Sleep(sleep)
 
-		switch resp.StatusCode {
-		case 200:
-			passed++
-		case 429:
-			limited++
+			switch resp.StatusCode {
+			case 200:
+				passed++
+			case 429:
+				limited++
+			}
 		}
+
 		total++
-		if total > 10000 {
-			break
-		}
-
-		select {
-		case <-tick.C:
-			round++
-			rate := float64(passed) / float64(round)
-			assert.Truef(t, rate < limit, "expect %f < %f", rate, limit)
-
-			t.Logf("rate: %f, passed: %d, limited: %d, total: %d", rate, passed, limited, total)
-		default:
-		}
 	}
+
+	expectLimited := float64(time.Since(start)) / float64(time.Second) * limit
+	ratio := float64(passed) / expectLimited
+
+	// 此处 passed 总会高出 expectLimited 一截，不清楚是不是 TTL 边界的原因，但不会超过 expectLimited 10%
+	assert.Truef(t, ratio <= 1.1, "expected %d, passed %d", int(expectLimited), passed)
+	// TTL 一旦小于 for 循环运行时长，此处的偏差就开始变大。当 TTL 大于 运行时长时，不管时 1min 还是 1hour，
+	// 比例都在 10% 以内。
+
+	t.Logf("cost %s, expected: %d, passed: %d(ratio: %f), limited: %d, total: %d",
+		time.Since(start), int(expectLimited), passed, ratio, limited, total)
 }

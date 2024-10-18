@@ -70,7 +70,7 @@ var (
 	EnableInputs,
 	CloudProvider,
 	Proxy,
-	Dataway string
+	DatawayURLs string
 
 	HTTPPublicAPIs string
 
@@ -313,15 +313,15 @@ func preEnableHostobjectInput(cloud string) []byte {
 func getDataway() (*dataway.Dataway, error) {
 	dw := dataway.NewDefaultDataway()
 
-	if Dataway != "" {
-		dw.URLs = strings.Split(Dataway, ",")
+	if DatawayURLs != "" {
+		urls := strings.Split(DatawayURLs, ",")
 
 		if Proxy != "" {
 			l.Debugf("set proxy to %s", Proxy)
 			dw.HTTPProxy = Proxy
 		}
 
-		if err := dw.Init(); err != nil {
+		if err := dw.Init(dataway.WithURLs(urls...)); err != nil {
 			return nil, err
 		} else {
 			tokens := dw.GetTokens()

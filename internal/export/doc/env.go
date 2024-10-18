@@ -23,7 +23,7 @@ const (
 	URL          = "URL"
 	JSON         = "JSON"
 	List         = "List"
-	TimeDuration = "TimeDuration"
+	TimeDuration = "Duration"
 
 	// Doc type.
 	NonInput = "NonInput"

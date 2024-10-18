@@ -41,13 +41,11 @@ func init() {
 
 type runtimeInfo struct {
 	goroutines int
-	heapAlloc  uint64
-	sys        uint64
-	cpuUsage   float64
 
-	gcPauseTotal uint64
-	gcNum        uint32
-	memStats     *process.MemoryInfoStat
+	cpuUsage float64
+
+	goMemStats *runtime.MemStats
+	osMemStats *process.MemoryInfoStat
 
 	ioCountersstats *process.IOCountersStat
 	numCtxSwitch    *process.NumCtxSwitchesStat
@@ -62,20 +60,19 @@ func getRuntimeInfo() *runtimeInfo {
 		usage = u
 	}
 
-	ms, _ := resourcelimit.MyMemStat()
-
-	return &runtimeInfo{
-		goroutines: runtime.NumGoroutine(),
-		heapAlloc:  m.HeapAlloc,
-		sys:        m.Sys,
-		cpuUsage:   usage,
-		memStats:   ms,
-
-		gcPauseTotal:    m.PauseTotalNs,
-		gcNum:           m.NumGC,
+	ri := &runtimeInfo{
+		goroutines:      runtime.NumGoroutine(),
+		goMemStats:      &m,
+		cpuUsage:        usage,
 		ioCountersstats: resourcelimit.MyIOCountersStat(),
 		numCtxSwitch:    resourcelimit.MyCtxSwitch(),
 	}
+
+	if ms, err := resourcelimit.MyMemStat(); err == nil {
+		ri.osMemStats = ms
+	}
+
+	return ri
 }
 
 // collector for basic runtime info.
@@ -92,14 +89,21 @@ var (
 
 	riHeapAllocDesc = p8s.NewDesc(
 		"datakit_heap_alloc_bytes",
-		"Datakit memory heap bytes",
+		"Datakit memory heap bytes(Deprecated by `datakit_golang_mem_usage`)",
 		nil, nil,
 	)
 
 	riSysAllocDesc = p8s.NewDesc(
 		"datakit_sys_alloc_bytes",
-		"Datakit memory system bytes",
+		"Datakit memory system bytes(Deprecated by `datakit_golang_mem_usage`)",
+
 		nil, nil,
+	)
+
+	riGolangMemDesc = p8s.NewDesc(
+		"datakit_golang_mem_usage",
+		"Datakit golang memory usage stats",
+		[]string{"type"}, nil,
 	)
 
 	riMemStatDesc = p8s.NewDesc(
@@ -199,18 +203,38 @@ func (rc runtimeInfoCollector) Describe(ch chan<- *p8s.Desc) {
 func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 	ri := getRuntimeInfo()
 
-	ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.gcNum), float64(ri.gcPauseTotal)/float64(time.Second), nil)
 	ch <- p8s.MustNewConstMetric(riGoroutineDesc, p8s.GaugeValue, float64(ri.goroutines))
-	ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.heapAlloc))
-	ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.sys))
 
-	if ri.memStats != nil {
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.RSS), "rss")
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.VMS), "vms")
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.HWM), "hwm")
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Data), "data")
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Stack), "stack")
-		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.memStats.Locked), "locked")
+	if ri.osMemStats != nil {
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.RSS), "rss")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.VMS), "vms")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.HWM), "hwm")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.Data), "data")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.Stack), "stack")
+		ch <- p8s.MustNewConstMetric(riMemStatDesc, p8s.GaugeValue, float64(ri.osMemStats.Locked), "locked")
+	}
+
+	if ri.goMemStats != nil {
+		ch <- p8s.MustNewConstSummary(riGCPauseDesc, uint64(ri.goMemStats.NumGC), float64(ri.goMemStats.PauseTotalNs)/float64(time.Second), nil)
+
+		// the 2 deprecated by following `heap_alloc' and `total'
+		ch <- p8s.MustNewConstMetric(riHeapAllocDesc, p8s.GaugeValue, float64(ri.goMemStats.HeapAlloc))
+		ch <- p8s.MustNewConstMetric(riSysAllocDesc, p8s.GaugeValue, float64(ri.goMemStats.Sys-ri.goMemStats.HeapReleased))
+
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.Sys-ri.goMemStats.HeapReleased), "total")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.HeapAlloc), "heap_alloc")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.HeapInuse-ri.goMemStats.HeapAlloc), "heap_unused")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.HeapIdle-ri.goMemStats.HeapReleased), "heap_free")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.HeapReleased), "heap_released")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.StackInuse), "goroutine_stack")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.StackSys-ri.goMemStats.StackInuse), "thread_stack")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.GCSys), "gc")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.MSpanInuse), "mspan_inuse")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.MSpanSys-ri.goMemStats.MSpanInuse), "mspan_free")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.MCacheInuse), "mcache_inuse")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.MCacheSys-ri.goMemStats.MCacheInuse), "mcache_free")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.OtherSys), "other")
+		ch <- p8s.MustNewConstMetric(riGolangMemDesc, p8s.GaugeValue, float64(ri.goMemStats.BuckHashSys), "buckets")
 	}
 
 	ch <- p8s.MustNewConstMetric(riCPUUsageDesc, p8s.GaugeValue, ri.cpuUsage)

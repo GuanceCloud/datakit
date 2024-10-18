@@ -131,7 +131,7 @@ func init() {
 	// flag.StringVar(&flagAPMInstrumentationLibraries, "apm-instrumentation-libraries", "datadog|java,python",
 	// 	"install and use the APM library of the specified provider")
 
-	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
+	flag.StringVar(&installer.DatawayURLs, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&installer.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&installer.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
@@ -542,12 +542,12 @@ __downloadOK:
 	setupUserGroup(userName, userName)
 
 	if flagInstallOnly != 0 {
-		l.Warnf("Only install service %q, NOT started", dkservice.Name)
+		l.Warnf("Only install service %q, NOT started", dkservice.Name())
 	} else {
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("Start service %q failed: %s", dkservice.Name, err.Error())
+			l.Warnf("Start service %q failed: %s", dkservice.Name(), err.Error())
 		} else {
-			l.Infof("Starting service %q ok", dkservice.Name)
+			l.Infof("Starting service %q ok", dkservice.Name())
 		}
 	}
 

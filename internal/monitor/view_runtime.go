@@ -22,9 +22,10 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 	}
 
 	goroutines := app.mfs["datakit_goroutines"]
-	heapAlloc := app.mfs["datakit_heap_alloc_bytes"]
-	sysAlloc := app.mfs["datakit_sys_alloc_bytes"]
-	memStat := app.mfs["datakit_mem_stat"]
+
+	osMemStat := app.mfs["datakit_mem_stat"]
+	goMemStat := app.mfs["datakit_golang_mem_usage"]
+
 	cpuUsage := app.mfs["datakit_cpu_usage"]
 	gcSummary := app.mfs["datakit_gc_summary_seconds"]
 	openFiles := app.mfs["datakit_open_files"]
@@ -39,26 +40,31 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 		row++
 	}
 
-	var heap, sysMem float64
-	if heapAlloc != nil && len(heapAlloc.Metric) == 1 {
-		m := heapAlloc.Metric[0]
-		heap = m.GetGauge().GetValue()
-	}
+	var heap, memTotal float64 // golang runtime heap and total memory
+	for _, m := range goMemStat.Metric {
+		lps := m.GetLabel()
+		if len(lps) != 1 {
+			continue
+		}
 
-	if sysAlloc != nil && len(sysAlloc.Metric) == 1 {
-		m := sysAlloc.Metric[0]
-		sysMem = m.GetGauge().GetValue()
+		switch lps[0].GetValue() {
+		case "total":
+			memTotal = m.GetGauge().GetValue()
+		case "heap_alloc":
+			heap = m.GetGauge().GetValue()
+		default: // pass
+		}
 	}
 
 	table.SetCell(row, 0,
-		tview.NewTableCell("Sys/Heap").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		tview.NewTableCell("Total/Heap").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
-		tview.NewTableCell(fmt.Sprintf("%s/%s", number(sysMem), number(heap))).
+		tview.NewTableCell(fmt.Sprintf("%s/%s", number(memTotal), number(heap))).
 			SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignLeft))
 	row++
 
-	var rss, vms float64
-	for _, m := range memStat.Metric {
+	var rss, vms float64 // OS RSS and VMS memory
+	for _, m := range osMemStat.Metric {
 		lps := m.GetLabel()
 		if len(lps) != 1 {
 			continue

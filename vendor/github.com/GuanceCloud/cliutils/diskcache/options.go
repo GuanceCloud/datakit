@@ -26,6 +26,18 @@ func WithNoFallbackOnError(on bool) CacheOption {
 	}
 }
 
+// WithFILODrop set drop policy during Put() when cache's size
+// almost reached it's capacity(). When set FILO drop, the Put()
+// will fail immediately with a error.
+//
+// Default drop policy is FIFO, means all Put() will OK and the
+// cache drop old data automatically.
+func WithFILODrop(on bool) CacheOption {
+	return func(c *DiskCache) {
+		c.filoDrop = on
+	}
+}
+
 // WithNoLock set .lock on or off.
 //
 // File '.lock' used to exclude Open() on same path.
@@ -126,5 +138,13 @@ func WithFilePermission(perms os.FileMode) CacheOption {
 func WithPath(x string) CacheOption {
 	return func(c *DiskCache) {
 		c.path = filepath.Clean(x)
+	}
+}
+
+func WithStreamSize(x int32) CacheOption {
+	return func(c *DiskCache) {
+		if x > 0 {
+			c.streamBuf = make([]byte, x)
+		}
 	}
 }

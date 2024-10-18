@@ -34,7 +34,7 @@ func (dw *Dataway) UsageTrace(body []byte) error {
 		return fmt.Errorf("no workspace query URL available")
 	}
 
-	log.Debugf("NewRequest: %s", requrl)
+	l.Debugf("NewRequest: %s", requrl)
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func (dw *Dataway) UsageTrace(body []byte) error {
 	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
-		log.Debugf("usage trace refresh ok")
+		l.Debugf("usage trace refresh ok")
 		return nil
 	default:
 		return fmt.Errorf("usage trace refresh failed(status: %d): %s", resp.StatusCode, string(respBody))
@@ -76,7 +76,7 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 		return nil, fmt.Errorf("no workspace query URL available")
 	}
 
-	log.Debugf("NewRequest: %s", requrl)
+	l.Debugf("NewRequest: %s", requrl)
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
@@ -132,11 +132,11 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 		return nil, fmt.Errorf("token missing")
 	}
 
-	log.Debugf("election sending %s", requrl)
+	l.Debugf("election sending %s", requrl)
 
 	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
@@ -147,7 +147,7 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
@@ -157,17 +157,17 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
-		log.Debugf("election %s ok", requrl)
+		l.Debugf("election %s ok", requrl)
 		return body, nil
 	default:
-		log.Debugf("election failed: %d", resp.StatusCode)
+		l.Debugf("election failed: %d", resp.StatusCode)
 		return nil, fmt.Errorf("election failed: %s", string(body))
 	}
 }
@@ -190,11 +190,11 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 		return nil, fmt.Errorf("token missing")
 	}
 
-	log.Debugf("election sending heartbeat %s", requrl)
+	l.Debugf("election sending heartbeat %s", requrl)
 
 	req, err := http.NewRequest("POST", requrl, reqBody)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
@@ -205,7 +205,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
@@ -215,7 +215,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return nil, err
 	}
 
@@ -274,11 +274,11 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 
 	var dws dataways
 	if err := json.Unmarshal(body, &dws); err != nil {
-		log.Errorf(`%s, body: %s`, err, string(body))
+		l.Errorf(`%s, body: %s`, err, string(body))
 		return nil, datawayListIntervalDefault, err
 	}
 
-	log.Debugf(`available dataways; %+#v,body: %s`, dws.Content, string(body))
+	l.Debugf(`available dataways; %+#v,body: %s`, dws.Content, string(body))
 	return dws.Content.DatawayList, dws.Content.Interval, nil
 }
 
@@ -377,7 +377,7 @@ type ntpResp struct {
 // TimeDiff implement ntp time sync interface.
 func (dw *Dataway) TimeDiff() int64 {
 	if d, err := dw.doTimeDiff(); err != nil {
-		log.Errorf("doTimeDiff: %s", err.Error())
+		l.Errorf("doTimeDiff: %s", err.Error())
 		return 0
 	} else {
 		return d
@@ -395,7 +395,7 @@ func (dw *Dataway) doTimeDiff() (int64, error) {
 		return 0, fmt.Errorf("url %s not available", datakit.NTPSync)
 	}
 
-	log.Debugf("NewRequest: %s", requrl)
+	l.Debugf("NewRequest: %s", requrl)
 	req, err := http.NewRequest(http.MethodGet, requrl, nil)
 	if err != nil {
 		return 0, fmt.Errorf("http.NewRequest: %w", err)
@@ -419,12 +419,12 @@ func (dw *Dataway) doTimeDiff() (int64, error) {
 	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
-		log.Debugf("ntp ok")
+		l.Debugf("ntp ok")
 
 		var nr ntpResp
 
 		if err := json.Unmarshal(respBody, &nr); err != nil {
-			log.Errorf("Unmarshal: %s", string(respBody))
+			l.Errorf("Unmarshal: %s", string(respBody))
 
 			return 0, fmt.Errorf(`json.Unmarshal: %w`, err)
 		}

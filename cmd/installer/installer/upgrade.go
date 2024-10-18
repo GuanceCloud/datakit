@@ -12,6 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 var l = logger.DefaultSLogger("upgrade")
@@ -71,6 +72,13 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 
 			c.Dataway.DeprecatedHTTPTimeout = "" // always remove the config
 		}
+
+		if c.Dataway.MaxRawBodySize >= dataway.DeprecatedDefaultMaxRawBodySize {
+			l.Infof("to save memory, set max-raw-body-size from %d to %d",
+				c.Dataway.MaxRawBodySize, dataway.DefaultMaxRawBodySize)
+
+			c.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
+		}
 	}
 
 	l.Infof("Set log to %s", c.Logging.Log)
@@ -126,9 +134,9 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IO.MaxCacheCount = 1000
 	}
 
-	if c.IntervalDeprecated != "" {
-		c.IO.FlushInterval = c.IntervalDeprecated
-		c.IntervalDeprecated = ""
+	if c.IntervalDeprecated != time.Duration(0) {
+		c.IO.CompactInterval = c.IntervalDeprecated
+		c.IntervalDeprecated = time.Duration(0)
 	}
 
 	if c.IO.FeedChanSize > 1 {

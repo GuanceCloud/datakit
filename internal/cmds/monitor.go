@@ -15,15 +15,16 @@ import (
 )
 
 var moduleMap = map[string]string{
-	"G":  "goroutine",
-	"B":  "basic",
-	"R":  "runtime",
-	"F":  "filter",
-	"H":  "http",
-	"In": "inputs",
-	"P":  "pipeline",
-	"IO": "io_stats",
-	"W":  "dataway",
+	"G":   "goroutine",
+	"B":   "basic",
+	"R":   "runtime",
+	"F":   "filter",
+	"H":   "http",
+	"In":  "inputs",
+	"P":   "pipeline",
+	"IO":  "io_stats",
+	"W":   "dataway",
+	"WAL": "wal",
 }
 
 // loadLocalDatakitConf try to find where local datakit listen.

@@ -1,14 +1,32 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Definition of WAL cache for body
+
 syntax = "proto3";
 
 package dataway;
 
 option go_package = "./;dataway";
 
+message HTTPHeader {
+	string key = 1;
+	string value = 2;
+}
+
 // fail-cache proto message.
+// NOTE: do not change field's number if you need to add more.
 message CacheData {
   int32 category = 1;
   int32 payloadType = 2;
   bytes payload = 3;
+
+  int32 pts = 4;
+  int32 rawLen = 5;
+  repeated HTTPHeader headers = 6; // extra HTTP headers for the data, especially for sink header
+  string dynURL = 7; // for dial-testing body, it's url are dynamic
 }
 
 // Generate command: protoc --go_out=.  *.proto

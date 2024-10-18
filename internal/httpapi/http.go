@@ -86,7 +86,7 @@ func Start(opts ...option) {
 
 	if hs.apiConfig.RequestRateLimit > 0.0 {
 		l.Infof("set request limit to %f", hs.apiConfig.RequestRateLimit)
-		reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit)
+		reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit, time.Minute)
 	} else {
 		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
 	}

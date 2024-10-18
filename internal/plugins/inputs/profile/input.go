@@ -795,7 +795,7 @@ func (ipt *Input) InitDiskQueueIO() error {
 							reqData = msg
 							return nil
 						}); err != nil {
-							if errors.Is(err, diskcache.ErrEOF) {
+							if errors.Is(err, diskcache.ErrNoData) {
 								log.Debugf("disk queue is empty: %s", err)
 								time.Sleep(time.Second * 3)
 							} else {

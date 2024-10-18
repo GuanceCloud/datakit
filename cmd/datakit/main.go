@@ -29,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/gitrepo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote"
@@ -219,30 +220,29 @@ func startIO() {
 	opts := []dkio.IOOption{
 		dkio.WithFeederOutputer(dkio.NewDatawayOutput(c.FeedChanSize)),
 		dkio.WithDataway(config.Cfg.Dataway),
-		dkio.WithMaxCacheCount(c.MaxCacheCount),
-		dkio.WithDiskCache(c.EnableCache),
-		dkio.WithDiskCacheSize(c.CacheSizeGB),
+		dkio.WithCompactAt(c.MaxCacheCount),
 		dkio.WithFilters(c.Filters),
-		dkio.WithCacheAll(c.CacheAll),
-		dkio.WithFlushWorkers(c.FlushWorkers),
+		dkio.WithCompactWorkers(c.CompactWorkers),
 		dkio.WithRecorder(config.Cfg.Recorder),
 		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
 	}
 
-	du, err := time.ParseDuration(c.FlushInterval)
-	if err != nil {
-	} else {
-		opts = append(opts, dkio.WithFlushInterval(du))
-	}
-
-	du, err = time.ParseDuration(c.CacheCleanInterval)
-	if err != nil {
-		l.Warnf("parse CacheCleanInterval failed: %s, use default 5s", err)
-	} else {
-		opts = append(opts, dkio.WithDiskCacheCleanInterval(du))
-	}
-
 	dkio.Start(opts...)
+}
+
+func startDatawayWorkers() {
+	dw := config.Cfg.Dataway
+
+	// setup extra options on @dw
+	if dw.WAL.Workers == 0 {
+		n := datakit.AvailableCPUs * 2
+		l.Infof("set %d flush WAL workers", n)
+		dataway.WithWALWorkers(n)(dw)
+	}
+
+	if err := dw.StartFlushWorkers(); err != nil {
+		l.Errorf("StartFlushWorkers failed: %s", err)
+	}
 }
 
 func gc(du time.Duration) {
@@ -280,10 +280,12 @@ func doRun() error {
 	}
 
 	cpuLimit := getCurrentCPULimits()
+	l.Infof("get limited cpu cores: %f", cpuLimit)
 	if cpuLimit > 1.0 {
 		datakit.AvailableCPUs = int(cpuLimit)
 	} // else datakit.AvailableCPUs default to 1
 
+	startDatawayWorkers()
 	startIO()
 
 	// start NTP syncer on dataway.

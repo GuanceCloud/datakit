@@ -24,15 +24,15 @@ func TestDefaultMainConf(t *testing.T) {
 	c := DefaultConfig()
 	c.Ulimit = 0 // ulimit diff among OS platforms
 
-	def := DefaultConfig()
-	_, err := bstoml.Decode(datakit.DatakitConfSample, &def)
+	x := DefaultConfig()
+	_, err := bstoml.Decode(datakit.DatakitConfSample, &x)
 	require.NoError(t, err)
 
-	def.DefaultEnabledInputs = def.DefaultEnabledInputs[:0] // clear
-	def.GlobalHostTags = map[string]string{}                // clear:  host tags setted on default conf sample
-	def.Ulimit = 0
+	x.DefaultEnabledInputs = x.DefaultEnabledInputs[:0] // clear
+	x.GlobalHostTags = map[string]string{}              // clear:  host tags setted on default conf sample
+	x.Ulimit = 0
 
-	assert.Equal(t, c.String(), def.String())
+	assert.Equal(t, c.String(), x.String())
 }
 
 func TestEnableDefaultsInputs(t *testing.T) {
@@ -407,9 +407,11 @@ func Test_setupDataway(t *testing.T) {
 	}{
 		{
 			name: "check_dev_null",
-			dw: &dataway.Dataway{
-				URLs: []string{datakit.DatawayDisableURL},
-			},
+			dw: func() *dataway.Dataway {
+				x := dataway.NewDefaultDataway()
+				x.URLs = []string{datakit.DatawayDisableURL}
+				return x
+			}(),
 		},
 	}
 

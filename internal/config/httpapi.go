@@ -21,7 +21,7 @@ type APIConfig struct {
 	Disable404Page      bool       `toml:"disable_404page"`
 	RUMAppIDWhiteList   []string   `toml:"rum_app_id_white_list"`
 	PublicAPIs          []string   `toml:"public_apis"`
-	RequestRateLimit    float64    `toml:"request_rate_limit,omitzero"`
+	RequestRateLimit    float64    `toml:"request_rate_limit"`
 	Timeout             string     `toml:"timeout"`
 	CloseIdleConnection bool       `toml:"close_idle_connection"`
 	TLSConf             *TLSConfig `toml:"tls"`

@@ -5,7 +5,11 @@
 
 package io
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+import (
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+)
 
 // IOConf configure io module in datakit.conf.
 type IOConf struct {
@@ -15,13 +19,8 @@ type IOConf struct {
 	MaxCacheCount                  int `toml:"max_cache_count"`
 	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`
 
-	FlushInterval string `toml:"flush_interval"`
-	FlushWorkers  int    `toml:"flush_workers"`
-
-	EnableCache        bool   `toml:"enable_cache"`
-	CacheAll           bool   `toml:"cache_all"`
-	CacheSizeGB        int    `toml:"cache_max_size_gb"`
-	CacheCleanInterval string `toml:"cache_clean_interval"`
+	CompactInterval time.Duration `toml:"flush_interval"`
+	CompactWorkers  int           `toml:"flush_workers"`
 
 	Filters map[string]filter.FilterConditions `toml:"filters"`
 }

@@ -172,7 +172,11 @@ func setupUploader() (uploader, error) {
 	}
 
 	u := &uploaderImpl{
-		dw: &dataway.Dataway{URLs: dwURLS},
+		dw: func() *dataway.Dataway {
+			x := dataway.NewDefaultDataway()
+			x.URLs = dwURLS
+			return x
+		}(),
 	}
 
 	if err := u.dw.Init(); err != nil {

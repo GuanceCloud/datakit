@@ -31,7 +31,7 @@ func (c *DiskCache) rotate() error {
 
 	defer func() {
 		rotateVec.WithLabelValues(c.path).Inc()
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
 
@@ -91,7 +91,7 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 	defer c.rwlock.Unlock()
 
 	defer func() {
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 		removeVec.WithLabelValues(c.path).Inc()
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
@@ -105,7 +105,7 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 
 	if fi, err := os.Stat(c.curReadfile); err == nil { // file exist
 		if fi.Size() > dataHeaderLen {
-			c.size -= (fi.Size() - dataHeaderLen) // EOF bytes do not counted in size
+			c.size.Add(-(fi.Size() - dataHeaderLen)) // EOF bytes do not counted in size
 		}
 
 		if err := os.Remove(c.curReadfile); err != nil {

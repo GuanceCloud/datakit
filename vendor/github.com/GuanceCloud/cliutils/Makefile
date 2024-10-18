@@ -20,3 +20,6 @@ copyright_check_auto_fix:
 
 test:
 		LOGGER_PATH=nul CGO_CFLAGS=-Wno-undef-prefix go test -test.v -timeout 99999m -cover ./...
+
+show_metrics:
+	@promlinter list . --add-help -o md --with-vendor

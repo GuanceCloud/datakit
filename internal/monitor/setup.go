@@ -20,39 +20,96 @@ func (app *monitorAPP) setup() {
 	app.golangRuntime.SetBorder(true).SetTitle("[red]R[white]untime Info").SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
-	app.inputsStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	app.inputsStatTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
 	app.inputsStatTable.SetBorder(true).SetTitle("[red]In[white]puts Info").SetTitleAlign(tview.AlignLeft)
 
 	// pipeline running stats
-	app.plStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	app.plStatTable.SetBorder(true).SetTitle("[red]P[white]ipeline Info").SetTitleAlign(tview.AlignLeft)
+	app.plStatTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.plStatTable.
+		SetBorder(true).
+		SetTitle("[red]P[white]ipeline Info").
+		SetTitleAlign(tview.AlignLeft)
+
+	// WAL running stats
+	app.walStatTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.walStatTable.
+		SetBorder(true).
+		SetTitle("[red]WAL[white] Info").
+		SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
 	app.enabledInputTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	app.enabledInputTable.SetBorder(true).SetTitle("Enabled [red]In[white]puts").SetTitleAlign(tview.AlignLeft)
+	app.enabledInputTable.
+		SetBorder(true).
+		SetTitle("Enabled [red]In[white]puts").
+		SetTitleAlign(tview.AlignLeft)
 
 	// goroutine stats
-	app.goroutineStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	app.goroutineStatTable.SetBorder(true).SetTitle("[red]G[white]oroutine Groups").SetTitleAlign(tview.AlignLeft)
+	app.goroutineStatTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.goroutineStatTable.
+		SetBorder(true).
+		SetTitle("[red]G[white]oroutine Groups").
+		SetTitleAlign(tview.AlignLeft)
 
 	// 9592 http stats
-	app.httpServerStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	app.httpServerStatTable.SetBorder(true).SetTitle("[red]H[white]TTP APIs").SetTitleAlign(tview.AlignLeft)
+	app.httpServerStatTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.httpServerStatTable.
+		SetBorder(true).
+		SetTitle("[red]H[white]TTP APIs").
+		SetTitleAlign(tview.AlignLeft)
 
-	// IO stats
-	app.ioStatTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	app.ioStatTable.SetBorder(true).SetTitle("[red]IO[white] Info").SetTitleAlign(tview.AlignLeft)
+	// dataway points stats
+	app.dwptsTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.dwptsTable.
+		SetBorder(true).
+		SetTitle("[red]IO[white] Info").
+		SetTitleAlign(tview.AlignLeft)
 
 	// dataway stats
-	app.dwTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	app.dwTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
 	app.dwTable.SetBorder(true).SetTitle("Data[red]W[white]ay APIs").SetTitleAlign(tview.AlignLeft)
 
 	// filter stats
 	app.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
 	app.filterStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter").SetTitleAlign(tview.AlignLeft)
 
-	app.filterRulesStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	app.filterRulesStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter Rules").SetTitleAlign(tview.AlignLeft)
+	app.filterRulesStatsTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false).
+		SetSeparator(tview.Borders.Vertical)
+	app.filterRulesStatsTable.
+		SetBorder(true).
+		SetTitle("[red]F[white]ilter Rules").
+		SetTitleAlign(tview.AlignLeft)
 
 	// bottom prompt
 	app.exitPrompt = tview.NewTextView().SetDynamicColors(true)

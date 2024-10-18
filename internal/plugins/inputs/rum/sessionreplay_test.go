@@ -107,7 +107,7 @@ func TestSessionReplayHandler(t *testing.T) {
 		return nil
 	})
 
-	assert.ErrorIs(t, err, diskcache.ErrEOF)
+	assert.ErrorIs(t, err, diskcache.ErrNoData)
 
 	assert.NoError(t, ipt.replayDiskQueue.Close())
 }
@@ -141,7 +141,7 @@ func TestReplayDiskQueue(t *testing.T) {
 		return nil
 	})
 
-	assert.ErrorIs(t, err, diskcache.ErrEOF)
+	assert.ErrorIs(t, err, diskcache.ErrNoData)
 
 	assert.NoError(t, ipt.replayDiskQueue.Close())
 }

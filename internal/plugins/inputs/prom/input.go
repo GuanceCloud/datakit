@@ -166,55 +166,6 @@ func (i *Input) tryInit() {
 		i.l.Errorf("Init %s", err)
 		return
 	}
-
-	// Callback func.
-	if i.StreamSize > 0 {
-		i.callbackFunc = func(pts []*point.Point) error {
-			// Append tags to points
-			for _, v := range i.urlTags[i.currentURL] {
-				for _, pt := range pts {
-					pt.AddTag(v.key, v.value)
-				}
-			}
-
-			if len(pts) < 1 {
-				return nil
-			}
-
-			if i.AsLogging != nil && i.AsLogging.Enable {
-				// Feed measurement as logging.
-				for _, pt := range pts {
-					// We need to feed each point separately because
-					// each point might have different measurement name.
-					if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
-						dkio.WithCollectCost(time.Since(i.startTime)),
-						dkio.WithElection(i.Election),
-						dkio.WithInputName(pt.Name()),
-					); err != nil {
-						i.Feeder.FeedLastError(err.Error(),
-							metrics.WithLastErrorInput(inputName),
-							metrics.WithLastErrorSource(inputName+"/"+i.Source),
-						)
-						i.l.Errorf("feed logging: %s", err)
-					}
-				}
-			} else if err := i.Feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(i.startTime)),
-				dkio.WithElection(i.Election),
-				dkio.WithInputName(inputName+"/"+i.Source),
-			); err != nil {
-				i.Feeder.FeedLastError(err.Error(),
-					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorSource(inputName+"/"+i.Source),
-				)
-				i.l.Errorf("feed measurement: %s", err)
-			}
-			i.FeedUpMetric(i.currentURL)
-			return nil
-		}
-	}
-
-	i.isInitialized = true
 }
 
 func (i *Input) collect() error {
@@ -402,6 +353,54 @@ func (i *Input) Resume() error {
 	}
 }
 
+type promHandleCallback func([]*point.Point) error
+
+func (i *Input) defaultHandleCallback() promHandleCallback {
+	return func(pts []*point.Point) error {
+		// Append tags to points
+		for _, v := range i.urlTags[i.currentURL] {
+			for _, pt := range pts {
+				pt.AddTag(v.key, v.value)
+			}
+		}
+
+		if len(pts) < 1 {
+			return nil
+		}
+
+		if i.AsLogging != nil && i.AsLogging.Enable {
+			// Feed measurement as logging.
+			for _, pt := range pts {
+				// We need to feed each point separately because
+				// each point might have different measurement name.
+				if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+					dkio.WithCollectCost(time.Since(i.startTime)),
+					dkio.WithElection(i.Election),
+					dkio.WithInputName(pt.Name()),
+				); err != nil {
+					i.Feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorSource(inputName+"/"+i.Source),
+					)
+					i.l.Errorf("feed logging: %s", err)
+				}
+			}
+		} else if err := i.Feeder.FeedV2(point.Metric, pts,
+			dkio.WithCollectCost(time.Since(i.startTime)),
+			dkio.WithElection(i.Election),
+			dkio.WithInputName(inputName+"/"+i.Source),
+		); err != nil {
+			i.Feeder.FeedLastError(err.Error(),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource(inputName+"/"+i.Source),
+			)
+			i.l.Errorf("feed measurement: %s", err)
+		}
+		i.FeedUpMetric(i.currentURL)
+		return nil
+	}
+}
+
 func (i *Input) Init() error {
 	i.l = logger.SLogger(inputName + "/" + i.Source)
 
@@ -441,6 +440,10 @@ func (i *Input) Init() error {
 			}{key: k, value: v})
 		}
 		i.urlTags[u] = tempTags
+	}
+
+	if i.StreamSize > 0 && i.callbackFunc == nil { // set callback on streamming-mode
+		i.callbackFunc = i.defaultHandleCallback()
 	}
 
 	opts := []iprom.PromOption{

@@ -90,7 +90,7 @@ func (s *Storage) RunConsumeWorker() error {
 
 			key, buf, err := s.Get()
 			if err != nil {
-				if errors.Is(err, dc.ErrEOF) {
+				if errors.Is(err, dc.ErrNoData) {
 					s.log.Debug("local-cache empty")
 					time.Sleep(time.Second)
 					continue

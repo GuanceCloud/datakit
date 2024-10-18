@@ -77,7 +77,10 @@ func TestCors(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	w := getResponse(t, req, hs)
@@ -107,7 +110,10 @@ func runTestCases(t *testing.T, cases []TestCase) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	for _, tc := range cases {
@@ -277,7 +283,9 @@ func TestDcaReload(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	w := getResponse(t, req, hs)
@@ -317,7 +325,9 @@ func TestDcaSaveConfig(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	w := getResponse(t, req, hs)
@@ -342,7 +352,10 @@ func TestDcaSaveConfig(t *testing.T) {
 func TestGetConfig(t *testing.T) {
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	// no path
@@ -403,7 +416,10 @@ func TestDcaGetPipelines(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	w := getResponse(t, req, hs)
@@ -465,7 +481,10 @@ func TestDcaGetPipelinesDetail(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
+
 	assert.NoError(t, hs.dw.Init())
 
 	for _, tc := range testCases {
@@ -518,7 +537,9 @@ func TestDcaTestPipelines(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
 	assert.NoError(t, hs.dw.Init())
 
 	for _, tc := range testCases {
@@ -602,7 +623,9 @@ func TestDcaCreatePipeline(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
 	assert.NoError(t, hs.dw.Init())
 
 	for _, tc := range testCases {
@@ -688,7 +711,9 @@ func TestDcaGetFilter(t *testing.T) {
 
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
 	assert.NoError(t, hs.dw.Init())
 
 	for index, tc := range cases {
@@ -732,7 +757,8 @@ func TestDcaGetLogTail(t *testing.T) {
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
 
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
 	assert.NoError(t, hs.dw.Init())
 
 	router := setupDcaRouter(hs)
@@ -763,7 +789,9 @@ func TestDcaGetLogTail(t *testing.T) {
 func TestDcaDownloadLog(t *testing.T) {
 	hs := defaultHTTPServerConf()
 	hs.dcaConfig = &config.DCAConfig{}
-	hs.dw = &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + TOKEN}}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = []string{"http://localhost:9529?token=" + TOKEN}
 	assert.NoError(t, hs.dw.Init())
 
 	tmpDir, err := ioutil.TempDir("./", "__tmp")

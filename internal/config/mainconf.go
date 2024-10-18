@@ -44,9 +44,9 @@ type Config struct {
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
 	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
 
-	IntervalDeprecated   string `toml:"interval,omitempty"`
-	OutputFileDeprecated string `toml:"output_file,omitempty"`
-	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
+	IntervalDeprecated   time.Duration `toml:"interval,omitempty"`
+	OutputFileDeprecated string        `toml:"output_file,omitempty"`
+	UUIDDeprecated       string        `toml:"uuid,omitempty"`
 
 	PointPool *pointPool `toml:"point_pool"`
 
@@ -124,7 +124,7 @@ func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		DefaultEnabledInputs: []string{},
 		PointPool: &pointPool{
-			Enable:           false,
+			Enable:           true,
 			ReservedCapacity: 4096,
 		},
 
@@ -149,14 +149,9 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IO: &io.IOConf{
-			FeedChanSize:  1,
-			MaxCacheCount: 1000,
-			FlushInterval: "10s",
-
-			// Enable disk cache on datakit send fail.
-			EnableCache:        false,
-			CacheSizeGB:        10,
-			CacheCleanInterval: "5s",
+			FeedChanSize:    1,
+			MaxCacheCount:   1000,
+			CompactInterval: time.Second * 10,
 
 			Filters: nil,
 		},
@@ -181,6 +176,7 @@ func DefaultConfig() *Config {
 			Listen:              "localhost:9529",
 			RUMAppIDWhiteList:   []string{},
 			PublicAPIs:          []string{},
+			RequestRateLimit:    20,
 			Timeout:             "30s",
 			CloseIdleConnection: false,
 			TLSConf:             &TLSConfig{},

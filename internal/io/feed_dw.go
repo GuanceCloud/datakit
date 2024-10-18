@@ -61,11 +61,7 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 
 	if data.syncSend {
 		defIO.recordPoints(data)
-		fc, ok := defIO.fcs[data.cat.String()]
-		if !ok {
-			log.Infof("IO local cache not set for %q", data.cat.String())
-		}
-		err := defIO.doFlush(data.pts, data.cat, fc)
+		err := defIO.doCompact(data.pts, data.cat)
 		if err != nil {
 			log.Warnf("post %d points to %s failed: %s, ignored", len(data.pts), data.cat, err)
 		}

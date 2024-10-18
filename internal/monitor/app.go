@@ -25,11 +25,12 @@ var (
 
 	inputsFeedCols   = strings.Split(`Input|Cat|Feeds|P90Lat|P90Pts|Filtered|LastFeed|AvgCost|Errors`, "|")
 	plStatsCols      = strings.Split("Script|Cat|Namespace|TotalPts|DropPts|ErrPts|PLUpdate|AvgCost", "|")
+	walStatsCols     = strings.Split("Cat|Points(mem/disk/drop/total)", "|")
 	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")
 	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
 	httpAPIStatCols  = strings.Split(`API|Status|Total|Latency|BodySize`, "|")
 	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost", "|")
-	ioStatCols       = strings.Split(`Cat|ChanUsage|Points(ok/total)|Bytes(ok/total/gz)`, "|")
+	dwptsStatCols    = strings.Split(`Cat|Points(ok/total)|Bytes(ok/total/gz)`, "|")
 	dwCols           = strings.Split(`API|Status|Count|Latency|Retry`, "|")
 
 	moduleGoroutine = []string{"G", "goroutine"}
@@ -41,22 +42,26 @@ var (
 	modulePipeline  = []string{"P", "pipeline"}
 	moduleIO        = []string{"IO", "io_stats"}
 	moduleDataway   = []string{"W", "dataway"}
+	moduleWAL       = []string{"WAL", "wal"}
+
+	labelCategory = "category"
+	labelName     = "name"
 )
 
 type monitorAPP struct {
 	app *tview.Application
 
 	// UI elements
-	basicInfoTable      *tview.Table
-	golangRuntime       *tview.Table
-	inputsStatTable     *tview.Table
-	plStatTable         *tview.Table
-	enabledInputTable   *tview.Table
-	goroutineStatTable  *tview.Table
-	httpServerStatTable *tview.Table
-	ioStatTable         *tview.Table
-	dwTable             *tview.Table
-
+	basicInfoTable        *tview.Table
+	golangRuntime         *tview.Table
+	inputsStatTable       *tview.Table
+	plStatTable           *tview.Table
+	walStatTable          *tview.Table
+	enabledInputTable     *tview.Table
+	goroutineStatTable    *tview.Table
+	httpServerStatTable   *tview.Table
+	dwTable               *tview.Table
+	dwptsTable            *tview.Table
 	filterStatsTable      *tview.Table
 	filterRulesStatsTable *tview.Table
 

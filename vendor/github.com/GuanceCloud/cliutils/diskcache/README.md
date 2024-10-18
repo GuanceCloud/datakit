@@ -78,51 +78,50 @@ log.Println(m.LineProto()) // get line-protocol format of metrics
 
 支持通过如下环境变量来覆盖默认的缓存配置：
 
-| 环境变量                           | 描述                                                                                        |
-| ---                                | ---                                                                                         |
-| ENV_DISKCACHE_BATCH_SIZE           | 设置单个磁盘文件大小，单位字节，默认 64MB                                                   |
-| ENV_DISKCACHE_MAX_DATA_SIZE        | 限制单次写入的字节大小，避免意料之外的巨量数据写入，单位字节，默认不限制                    |
-| ENV_DISKCACHE_CAPACITY             | 限制缓存能使用的磁盘上限，一旦用量超过该限制，老数据将被移除掉。默认不限制                  |
-| ENV_DISKCACHE_NO_SYNC              | 禁用磁盘写入的 sync 同步，默认不开启。一旦开启，可能导致磁盘数据丢失问题                    |
-| ENV_DISKCACHE_NO_LOCK              | 禁用文件目录夹锁。默认是加锁状态，一旦不加锁，在同一个目录多开（`Open`）可能导致文件混乱    |
-| ENV_DISKCACHE_NO_POS               | 禁用磁盘写入位置记录，默认带有位置记录。一旦不记录，程序重启会导致部分数据重复消费（`Get`） |
-| ENV_DISKCACHE_NO_FALLBACK_ON_ERROR | 禁用错误回退机制                                                                            |
+| 环境变量                           | 单位 | 描述                                                                                        |
+| ---                                | ---  | ---                                                                                         |
+| ENV_DISKCACHE_BATCH_SIZE           | byte | 设置单个磁盘文件大小，单位字节，默认 64MB                                                   |
+| ENV_DISKCACHE_MAX_DATA_SIZE        | byte | 限制单次写入的字节大小，避免意料之外的巨量数据写入，单位字节，默认不限制                    |
+| ENV_DISKCACHE_CAPACITY             | byte | 限制缓存能使用的磁盘上限，一旦用量超过该限制，老数据将被移除掉。默认不限制                  |
+| ENV_DISKCACHE_NO_SYNC              | N/A  | 禁用磁盘写入的 sync 同步，默认不开启。一旦开启，可能导致磁盘数据丢失问题                    |
+| ENV_DISKCACHE_NO_LOCK              | N/A  | 禁用文件目录夹锁。默认是加锁状态，一旦不加锁，在同一个目录多开（`Open`）可能导致文件混乱    |
+| ENV_DISKCACHE_NO_POS               | N/A  | 禁用磁盘写入位置记录，默认带有位置记录。一旦不记录，程序重启会导致部分数据重复消费（`Get`） |
+| ENV_DISKCACHE_NO_FALLBACK_ON_ERROR | N/A  | 禁用错误回退机制                                                                            |
 
 
 ## Prometheus 指标
 
 所有指标可选的 label 列表如下：
 
-| label                | 取值               | 说明                                                          |
-| ---                  | ---                | ---                                                           |
-| no_fallback_on_error | true/false         | 是否关闭错误回退（即禁止 Get() 回调失败时，再次读到老的数据） |
-| no_lock              | true/false         | 是否关闭加锁功能（即允许一个 cache 目录同时被多次 `Open()`）  |
-| no_pos               | true/false         | 是否关闭 pos 功能                                             |
-| no_sync              | true/false         | 是否关闭同步写入功能                                          |
-| path                 | cache 所在磁盘目录 | cache 所在磁盘目录                                            |
+| label                  | 取值               | 说明                                                          |
+| ---                    | ---                | ---                                                           |
+| `no_fallback_on_error` | true/false         | 是否关闭错误回退（即禁止 Get() 回调失败时，再次读到老的数据） |
+| `no_lock`              | true/false         | 是否关闭加锁功能（即允许一个 cache 目录同时被多次 `Open()`）  |
+| `no_pos`               | true/false         | 是否关闭 pos 功能                                             |
+| `no_sync`              | true/false         | 是否关闭同步写入功能                                          |
+| `path`                 | cache 所在磁盘目录 | cache 所在磁盘目录                                            |
 
 指标列表如下：
 
-| TYPE    | NAME                            | LABELS                                             | HELP                                                                     |
-| ---     | ---                             | ---                                                | ---                                                                      |
-| COUNTER | `diskcache_put_bytes_total`     | `path`                                             | Cache Put() bytes count                                                  |
-| COUNTER | `diskcache_get_total`           | `path`                                             | Cache Get() count                                                        |
-| COUNTER | `diskcache_wakeup_total`        | `path`                                             | Wakeup count on sleeping write file                                      |
-| COUNTER | `diskcache_get_bytes_total`     | `path`                                             | Cache Get() bytes count                                                  |
-| GAUGE   | `diskcache_capacity`            | `path`                                             | Current capacity(in bytes)                                               |
-| GAUGE   | `diskcache_max_data`            | `path`                                             | Max data to Put(in bytes), default 0                                     |
-| GAUGE   | `diskcache_batch_size`          | `path`                                             | Data file size(in bytes)                                                 |
-| GAUGE   | `diskcache_size`                | `path`                                             | Current cache size(in bytes)                                             |
-| GAUGE   | `diskcache_open_time`           | `no_fallback_on_error,no_lock,no_pos,no_sync,path` | Current cache Open time in unix timestamp(second)                        |
-| GAUGE   | `diskcache_last_close_time`     | `path`                                             | Current cache last Close time in unix timestamp(second)                  |
-| GAUGE   | `diskcache_datafiles`           | `path`                                             | Current un-readed data files                                             |
-| SUMMARY | `diskcache_get_latency`         | `path`                                             | Get() time cost(micro-second)                                            |
-| SUMMARY | `diskcache_put_latency`         | `path`                                             | Put() time cost(micro-second)                                            |
-| COUNTER | `diskcache_dropped_bytes_total` | `path`                                             | Dropped bytes during Put() when capacity reached.                        |
-| COUNTER | `diskcache_dropped_total`       | `path`                                             | Dropped files during Put() when capacity reached.                        |
-| COUNTER | `diskcache_rotate_total`        | `path`                                             | Cache rotate count, mean file rotate from data to data.0000xxx           |
-| COUNTER | `diskcache_remove_total`        | `path`                                             | Removed file count, if some file read EOF, remove it from un-readed list |
-| COUNTER | `diskcache_put_total`           | `path`                                             | Cache Put() count                                                        |
+|TYPE|NAME|LABELS|HELP|
+|---|---|---|---|
+|SUMMARY|`diskcache_dropped_data`|`path,reason`|Dropped data during Put() when capacity reached.|
+|COUNTER|`diskcache_rotate_total`|`path`|Cache rotate count, mean file rotate from data to data.0000xxx|
+|COUNTER|`diskcache_remove_total`|`path`|Removed file count, if some file read EOF, remove it from un-read list|
+|COUNTER|`diskcache_wakeup_total`|`path`|Wakeup count on sleeping write file|
+|COUNTER|`diskcache_seek_back_total`|`path`|Seek back when Get() got any error|
+|GAUGE|`diskcache_capacity`|`path`|Current capacity(in bytes)|
+|GAUGE|`diskcache_max_data`|`path`|Max data to Put(in bytes), default 0|
+|GAUGE|`diskcache_batch_size`|`path`|Data file size(in bytes)|
+|GAUGE|`diskcache_size`|`path`|Current cache size(in bytes)|
+|GAUGE|`diskcache_open_time`|`no_fallback_on_error,no_lock,no_pos,no_sync,path`|Current cache Open time in unix timestamp(second)|
+|GAUGE|`diskcache_last_close_time`|`path`|Current cache last Close time in unix timestamp(second)|
+|GAUGE|`diskcache_datafiles`|`path`|Current un-read data files|
+|SUMMARY|`diskcache_stream_put`|`path`|Stream put times|
+|SUMMARY|`diskcache_get_latency`|`path`|Get() cost seconds|
+|SUMMARY|`diskcache_put_latency`|`path`|Put() cost seconds|
+|SUMMARY|`diskcache_put_bytes`|`path`|Cache Put() bytes|
+|SUMMARY|`diskcache_get_bytes`|`path`|Cache Get() bytes|
 
 ## 性能估算
 

@@ -135,12 +135,14 @@ func RawHTTPWrapper(lmt *limiter.Limiter, next APIHandler, other ...interface{})
 func limitReach(w http.ResponseWriter, r *http.Request) {
 	// TODO: export metrics here group by r.Method + r.URL
 	// or we can cache the request
+	l.Warnf("request %s(%s) reached rate limit, dropped", r.URL.String(), r.Method)
 }
 
-func setupLimiter(limit float64) *limiter.Limiter {
-	return tollbooth.NewLimiter(limit, &limiter.ExpirableOptions{
-		DefaultExpirationTTL: time.Second,
-	}).SetOnLimitReached(limitReach).SetBurst(1)
+func setupLimiter(limit float64, ttl time.Duration) *limiter.Limiter {
+	return tollbooth.NewLimiter(limit,
+		&limiter.ExpirableOptions{
+			DefaultExpirationTTL: ttl,
+		}).SetOnLimitReached(limitReach) // .SetBurst(2)
 }
 
 // From https://github.com/DanielHeckrath/gin-prometheus/blob/master/gin_prometheus.go

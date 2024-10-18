@@ -10,12 +10,63 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 )
 
-func (x *dkIO) cacheData(c *consumer, d *feedOption, tryClean bool) {
+type compactor struct {
+	category      point.Category
+	compactTicker *time.Ticker
+	points        []*point.Point
+	lastCompact   time.Time
+}
+
+func (x *dkIO) runCompactor(cat point.Category) {
+	r := x.fo.Reader(cat)
+	if r == nil && cat != point.DynamicDWCategory {
+		log.Panicf("invalid category %q, should not been here", cat.String())
+	}
+
+	c := &compactor{
+		compactTicker: time.NewTicker(x.flushInterval),
+		category:      cat,
+	}
+
+	defer c.compactTicker.Stop()
+
+	if cat == point.DynamicDWCategory {
+		// NOTE: 目前只有拨测的数据会将数据打到 dynamicDatawayPts 中，而拨测数据
+		// 是写日志，故将 category 设置为 logging
+		c.category = point.Logging
+	}
+
+	log.Infof("run compactor on %s", c.category)
+	for {
+		select {
+		case d := <-r:
+			x.cacheData(c, d, true)
+			PutFeedOption(d) // release feed options here
+
+		case <-c.compactTicker.C:
+			if len(c.points) > 0 {
+				log.Debugf("on tick(%s) to compact %s(%d points), last compact %s ago...",
+					x.flushInterval, c.category, len(c.points), time.Since(c.lastCompact))
+				x.compact(c)
+			}
+
+		case <-datakit.Exit.Wait():
+			if len(c.points) > 0 {
+				log.Debugf("on tick(%s) to compact %s(%d points), last compact %s ago...",
+					x.flushInterval, c.category, len(c.points), time.Since(c.lastCompact))
+				x.compact(c)
+			}
+			return
+		}
+	}
+}
+
+func (x *dkIO) cacheData(c *compactor, d *feedOption, tryClean bool) {
 	if d == nil {
 		log.Warn("get empty data, ignored")
 		return
@@ -35,11 +86,11 @@ func (x *dkIO) cacheData(c *consumer, d *feedOption, tryClean bool) {
 	x.recordPoints(d)
 	c.points = append(c.points, d.pts...)
 
-	if tryClean && x.maxCacheCount > 0 && len(c.points) > x.maxCacheCount {
-		x.flush(c)
+	if tryClean && x.compactAt > 0 && len(c.points) > x.compactAt {
+		x.compact(c)
 
-		// reset consumer flush ticker to prevent send small packages
-		c.flushTiker.Reset(x.flushInterval)
+		// reset compact ticker to prevent small packages
+		c.compactTicker.Reset(x.flushInterval)
 	}
 }
 
@@ -55,14 +106,14 @@ func (x *dkIO) recordPoints(d *feedOption) {
 	}
 }
 
-func (x *dkIO) flush(c *consumer) {
-	c.lastFlush = time.Now()
+func (x *dkIO) compact(c *compactor) {
+	c.lastCompact = time.Now()
 
 	defer func() {
 		flushVec.WithLabelValues(c.category.String()).Inc()
 	}()
 
-	if err := x.doFlush(c.points, c.category, c.fc); err != nil {
+	if err := x.doCompact(c.points, c.category); err != nil {
 		log.Warnf("post %d points to %s failed: %s, ignored", len(c.points), c.category, err)
 	}
 
@@ -72,24 +123,7 @@ func (x *dkIO) flush(c *consumer) {
 	c.points = c.points[:0] // clear
 }
 
-func (x *dkIO) flushFailCache(c *consumer) {
-	if c.fc == nil {
-		return
-	}
-
-	if err := x.dw.Write(dataway.WithCacheClean(true),
-		dataway.WithCategory(c.category),
-		dataway.WithFailCache(c.fc),
-	); err != nil {
-		log.Warnf("flush cache failed: %s, ignored", err)
-	}
-}
-
-func (x *dkIO) doFlush(points []*point.Point,
-	cat point.Category,
-	fc failcache.Cache,
-	dynamicURL ...string,
-) error {
+func (x *dkIO) doCompact(points []*point.Point, cat point.Category, dynamicURL ...string) error {
 	if x.dw == nil {
 		return fmt.Errorf("dataway not set")
 	}
@@ -100,13 +134,9 @@ func (x *dkIO) doFlush(points []*point.Point,
 
 	opts := []dataway.WriteOption{
 		dataway.WithPoints(points),
-
 		// max cache size(in memory) upload as a batch
-		dataway.WithBatchSize(x.maxCacheCount),
-
+		dataway.WithBatchSize(x.compactAt),
 		dataway.WithCategory(cat),
-		dataway.WithFailCache(fc),
-		dataway.WithCacheAll(x.cacheAll),
 	}
 
 	if len(dynamicURL) > 0 {

@@ -15,14 +15,13 @@ import (
 
 func TestDWInit(t *T.T) {
 	t.Run("basic", func(t *T.T) {
-		dw := &Dataway{
-			URLs: []string{
-				"https://host.com?token=tkn_11111111111111111111",
-				"https://host.com?token=tkn_22222222222222222222",
-			},
+		dw := NewDefaultDataway()
+		urls := []string{
+			"https://host.com?token=tkn_11111111111111111111",
+			"https://host.com?token=tkn_22222222222222222222",
 		}
 
-		require.NoError(t, dw.doInit())
+		require.NoError(t, dw.Init(WithURLs(urls...)))
 
 		assert.Len(t, dw.eps, 2)
 		assert.Equal(t, dw.HTTPTimeout, time.Second*30)
@@ -30,15 +29,14 @@ func TestDWInit(t *T.T) {
 	})
 
 	t.Run("invalid-timeout", func(t *T.T) {
-		dw := &Dataway{
-			URLs: []string{
-				"https://host.com?token=tkn_11111111111111111111",
-				"https://host.com?token=tkn_22222222222222222222",
-			},
-			HTTPTimeout: -30 * time.Second,
+		dw := NewDefaultDataway()
+		urls := []string{
+			"https://host.com?token=tkn_11111111111111111111",
+			"https://host.com?token=tkn_22222222222222222222",
 		}
+		dw.HTTPTimeout = -30 * time.Second
 
-		require.NoError(t, dw.doInit())
+		require.NoError(t, dw.Init(WithURLs(urls...)))
 		assert.Equal(t, 30*time.Second, dw.HTTPTimeout)
 	})
 }

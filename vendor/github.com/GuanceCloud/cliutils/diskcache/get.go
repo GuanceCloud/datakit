@@ -35,19 +35,26 @@ func (c *DiskCache) switchNextFile() error {
 
 func (c *DiskCache) skipBadFile() error {
 	defer func() {
-		droppedBatchVec.WithLabelValues(c.path, reasonBadDataFile).Inc()
+		droppedDataVec.WithLabelValues(c.path, reasonBadDataFile).Observe(float64(c.curReadSize))
 	}()
 
 	return c.switchNextFile()
 }
 
 // Get fetch new data from disk cache, then passing to fn
-// if any error occurred during call fn, the reading data is
-// dropped, and will not read again.
 //
 // Get is safe to call concurrently with other operations and will
 // block until all other operations finish.
 func (c *DiskCache) Get(fn Fn) error {
+	return c.doGet(nil, fn)
+}
+
+// BufGet fetch new data from disk cache, and read into buf
+func (c *DiskCache) BufGet(buf []byte, fn Fn) error {
+	return c.doGet(buf, fn)
+}
+
+func (c *DiskCache) doGet(buf []byte, fn Fn) error {
 	var (
 		n, nbytes int
 		err       error
@@ -60,11 +67,10 @@ func (c *DiskCache) Get(fn Fn) error {
 
 	defer func() {
 		if uint32(nbytes) != EOFHint {
-			getBytesVec.WithLabelValues(c.path).Add(float64(nbytes))
+			getBytesVec.WithLabelValues(c.path).Observe(float64(nbytes))
 
 			// get on EOF not counted as a real Get
-			getVec.WithLabelValues(c.path).Inc()
-			getLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start) / time.Microsecond))
+			getLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
 		}
 	}()
 
@@ -89,14 +95,11 @@ func (c *DiskCache) Get(fn Fn) error {
 
 retry:
 	if c.rfd == nil {
-		return ErrEOF
+		return ErrNoData
 	}
 
-	hdr := make([]byte, dataHeaderLen)
-	if n, err = c.rfd.Read(hdr); err != nil || n != dataHeaderLen {
-		//
+	if n, err = c.rfd.Read(c.batchHeader); err != nil || n != dataHeaderLen {
 		// On bad datafile, just ignore and delete the file.
-		//
 		if err = c.skipBadFile(); err != nil {
 			return err
 		}
@@ -105,7 +108,7 @@ retry:
 	}
 
 	// how many bytes of current data?
-	nbytes = int(binary.LittleEndian.Uint32(hdr[0:]))
+	nbytes = int(binary.LittleEndian.Uint32(c.batchHeader))
 
 	if uint32(nbytes) == EOFHint { // EOF
 		if err := c.switchNextFile(); err != nil {
@@ -115,9 +118,21 @@ retry:
 		goto retry // read next new file to save another Get() calling.
 	}
 
-	databuf := make([]byte, nbytes)
+	if buf == nil {
+		buf = make([]byte, nbytes)
+	}
 
-	if n, err = c.rfd.Read(databuf); err != nil {
+	if len(buf) < nbytes {
+		// seek to next read position
+		if _, err := c.rfd.Seek(int64(nbytes), io.SeekCurrent); err != nil {
+			return err
+		}
+
+		droppedDataVec.WithLabelValues(c.path, reasonTooSmallReadBuffer).Observe(float64(nbytes))
+		return ErrTooSmallReadBuf
+	}
+
+	if n, err := c.rfd.Read(buf[:nbytes]); err != nil {
 		return err
 	} else if n != nbytes {
 		return ErrUnexpectedReadSize
@@ -127,7 +142,7 @@ retry:
 		goto __updatePos
 	}
 
-	if err = fn(databuf); err != nil {
+	if err = fn(buf[:nbytes]); err != nil {
 		// seek back
 		if !c.noFallbackOnError {
 			if _, serr := c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); serr != nil {

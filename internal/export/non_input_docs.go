@@ -39,12 +39,46 @@ var nonInputDocs = map[string]content{
 func envCommon() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_DISABLE_PROTECT_MODE", Type: doc.Boolean, Desc: "Disable protect mode", DescZh: "禁用「配置保护」模式"},
-		{ENVName: "ENV_DATAWAY", Type: doc.URL, Example: "`https://openway.guance.com?token=xxx`", Required: doc.Yes, Desc: "Configure the DataWay address", DescZh: "配置 DataWay 地址"},
-		{ENVName: "ENV_DEFAULT_ENABLED_INPUTS", Type: doc.List, Example: `cpu,mem,disk`, Desc: "[The list of collectors](datakit-input-conf.md#default-enabled-inputs) is opened by default, divided by English commas, the old  `ENV_ENABLE_INPUTS` will be discarded", DescZh: "默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk`"},
-		{ENVName: "ENV_ENABLE_INPUTS :fontawesome-solid-x:", Type: doc.List, Desc: "Same as ENV_DEFAULT_ENABLED_INPUTS, to be scrapped", DescZh: "同 ENV_DEFAULT_ENABLED_INPUTS，将废弃"},
-		{ENVName: "ENV_GLOBAL_HOST_TAGS", Type: doc.List, Example: `tag1=val,tag2=val2`, Desc: "Global tag, multiple tags are divided by English commas. The old `ENV_GLOBAL_TAGS` will be discarded", DescZh: "全局 tag，多个 tag 之间以英文逗号分割"},
-		{ENVName: "ENV_GLOBAL_TAGS :fontawesome-solid-x:", Type: doc.List, Desc: "Same as ENV_GLOBAL_HOST-TAGS, to be scrapped", DescZh: "同 ENV_GLOBAL_HOST_TAGS，将废弃"},
+		{
+			ENVName: "ENV_DISABLE_PROTECT_MODE",
+			Type:    doc.Boolean,
+			Desc:    "Disable protect mode",
+			DescZh:  "禁用「配置保护」模式",
+		},
+		{
+			ENVName:  "ENV_DATAWAY",
+			Type:     doc.URL,
+			Example:  "`https://openway.guance.com?token=xxx`",
+			Required: doc.Yes,
+			Desc:     "Configure the DataWay address",
+			DescZh:   "配置 DataWay 地址",
+		},
+		{
+			ENVName: "ENV_DEFAULT_ENABLED_INPUTS",
+			Type:    doc.List,
+			Example: `cpu,mem,disk`,
+			Desc:    "[The list of collectors](datakit-input-conf.md#default-enabled-inputs) is opened by default, divided by commas",
+			DescZh:  "默认开启[采集器列表](datakit-input-conf.md#default-enabled-inputs)，以英文逗号分割，如 `cpu,mem,disk`",
+		},
+		{
+			ENVName: "~~ENV_ENABLE_INPUTS~~",
+			Type:    doc.List,
+			Desc:    "Same as ENV_DEFAULT_ENABLED_INPUTS(Deprecated)",
+			DescZh:  "同 ENV_DEFAULT_ENABLED_INPUTS，将废弃",
+		},
+		{
+			ENVName: "ENV_GLOBAL_HOST_TAGS",
+			Type:    doc.List,
+			Example: `tag1=val,tag2=val2`,
+			Desc:    "Global tag, multiple tags are divided by English commas. The old `ENV_GLOBAL_TAGS` will be discarded",
+			DescZh:  "全局 tag，多个 tag 之间以英文逗号分割",
+		},
+		{
+			ENVName: "~~ENV_GLOBAL_TAGS~~",
+			Type:    doc.List,
+			Desc:    "Same as ENV_GLOBAL_HOST-TAGS(Deprecated)",
+			DescZh:  "同 ENV_GLOBAL_HOST_TAGS，将废弃",
+		},
 
 		{
 			ENVName: "ENV_K8S_CLUSTER_NODE_NAME",
@@ -149,15 +183,51 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_NTP_INTERVAL",
 			Type:    doc.String,
-			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
-			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
+			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.38.2](changelog.md#cl-1.38.2)",
+			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.38.2](changelog.md#cl-1.38.2)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_NTP_DIFF",
 			Type:    doc.String,
-			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
-			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.39.0](changelog.md#cl-1.38.2)",
+			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.38.2](changelog.md#cl-1.38.2)",
+			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.38.2](changelog.md#cl-1.38.2)",
+		},
+
+		// WAL
+		{
+			ENVName: "ENV_DATAWAY_WAL_CAPACITY",
+			Type:    doc.Float,
+			Desc:    "Set WAL disk cache capacity [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 占用的磁盘大小 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_WAL_WORKERS",
+			Type:    doc.Int,
+			Desc:    "Set WAL workers, default to limited CPU cores [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_WAL_MEM_CAPACITY",
+			Type:    doc.Int,
+			Desc:    "Set WAL memory queue length, default to limited CPU cores [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_WAL_PATH",
+			Type:    doc.String,
+			Desc:    "Set WAL disk path, default path is *data/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *data/dw-wal* [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_WAL_FAIL_CACHE_CLEAN_INTERVAL",
+			Type:    doc.TimeDuration,
+			Desc:    "Set WAL fail-cache clean interval, default `30s`[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 失败队列的重试间隔，默认 `30s` [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
 		},
 	}
 
@@ -189,7 +259,7 @@ func envLog() []*inputs.ENVInfo {
 func envPprof() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_ENABLE_PPROF :fontawesome-solid-x:", Type: doc.Boolean, Desc: "Whether to start `pprof`", DescZh: "是否开启 `pprof`"},
+		{ENVName: "~~ENV_ENABLE_PPROF~~", Type: doc.Boolean, Desc: "Whether to start port on for profiling(Deprecated: Default enabled)", DescZh: "是否开启 profiling 端口（已默认启用）"},
 		{ENVName: "ENV_PPROF_LISTEN", Type: doc.String, Desc: "`pprof` service listening address", DescZh: "`pprof` 服务监听地址"},
 	}
 
@@ -324,6 +394,7 @@ func envHTTPAPI() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_REQUEST_RATE_LIMIT",
 			Type:    doc.Float,
+			Default: "20.0",
 			Desc:    "Limit 9529 [API requests per second](datakit-conf.md#set-http-api-limit).",
 			DescZh:  "限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)。",
 		},
@@ -421,15 +492,69 @@ func envSinker() []*inputs.ENVInfo {
 func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_IO_FILTERS", Type: doc.JSON, Desc: "Add [line protocol filter](datakit-filter.md)", DescZh: "添加[行协议过滤器](datakit-filter.md)"},
-		{ENVName: "ENV_IO_FLUSH_INTERVAL", Type: doc.TimeDuration, Default: "10s", Desc: "IO channel capacity [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送时间频率 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
-		{ENVName: "ENV_IO_FEED_CHAN_SIZE", Type: doc.Int, Default: "1", Desc: "IO transmission time frequency [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)", DescZh: "IO 发送队列长度 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)"},
-		{ENVName: "ENV_IO_FLUSH_WORKERS", Type: doc.Int, Default: "`cpu_core * 2 + 1`", Desc: "IO flush workers [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)", DescZh: "IO 发送 worker 数 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)"},
-		{ENVName: "ENV_IO_MAX_CACHE_COUNT", Type: doc.Int, Default: "1000", Desc: "Send buffer size", DescZh: "发送 buffer（点数）大小"},
-		{ENVName: "ENV_IO_ENABLE_CACHE", Type: doc.Boolean, Default: "false", Desc: "Whether to open the disk cache that failed to send", DescZh: "是否开启发送失败的磁盘缓存"},
-		{ENVName: "ENV_IO_CACHE_ALL", Type: doc.Boolean, Default: "false", Desc: "Cache failed data points of all categories", DescZh: "是否 cache 所有发送失败的数据"},
-		{ENVName: "ENV_IO_CACHE_MAX_SIZE_GB", Type: doc.Int, Default: "10", Desc: "Disk size of send failure cache (in GB)", DescZh: "发送失败缓存的磁盘大小（单位 GB）"},
-		{ENVName: "ENV_IO_CACHE_CLEAN_INTERVAL", Type: doc.TimeDuration, Default: "5s", Desc: "Periodically send failed tasks cached on disk", DescZh: "定期发送缓存在磁盘内的失败任务"},
+		{
+			ENVName: "ENV_IO_FILTERS",
+			Type:    doc.JSON,
+			Desc:    "Add [line protocol filter](datakit-filter.md)",
+			DescZh:  "添加[行协议过滤器](datakit-filter.md)",
+		},
+		{
+			ENVName: "ENV_IO_FLUSH_INTERVAL",
+			Type:    doc.TimeDuration,
+			Default: "10s",
+			Desc:    "Set compact interval [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)",
+			DescZh:  "设置 compact 执行间隔 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)",
+		},
+		{
+			ENVName: "ENV_IO_FEED_CHAN_SIZE",
+			Type:    doc.Int,
+			Default: "1",
+			Desc:    "Set compact queue size [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)",
+			DescZh:  "设置 compact 队列长度 [:octicons-tag-24: Version-1.22.0](changelog.md#cl-1.22.0)",
+		},
+		{
+			ENVName: "ENV_IO_FLUSH_WORKERS",
+			Type:    doc.Int,
+			Desc:    "Set compact workers, default to limited CPU cores x 2 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)",
+			DescZh:  "设置 compactor worker 数，默认为 CPU 配额核心数 x 2 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)",
+		},
+
+		{
+			ENVName: "ENV_IO_MAX_CACHE_COUNT",
+			Type:    doc.Int,
+			Default: "1024",
+			Desc:    "Compact buffer size",
+			DescZh:  "Compact 缓存的点数",
+		},
+
+		{
+			ENVName: "~~ENV_IO_ENABLE_CACHE~~",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "Whether to open the disk cache that failed to send. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "是否开启发送失败的磁盘缓存。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+		},
+		{
+			ENVName: "~~ENV_IO_CACHE_ALL~~",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "Cache failed data points of all categories. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "是否 cache 所有发送失败的数据。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+		},
+		{
+			ENVName: "~~ENV_IO_CACHE_MAX_SIZE_GB~~",
+			Type:    doc.Int,
+			Default: "10",
+			Desc:    "Disk size of send failure cache (in GB). Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "发送失败缓存的磁盘大小（单位 GB）。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+		},
+		{
+			ENVName: "~~ENV_IO_CACHE_CLEAN_INTERVAL~~",
+			Type:    doc.TimeDuration,
+			Default: "5s",
+			Desc:    "Periodically send failed tasks cached on disk. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "定期发送缓存在磁盘内的失败任务。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+		},
 	}
 
 	for idx := range infos {
@@ -511,8 +636,26 @@ func envOthers() []*inputs.ENVInfo {
 func envPointPool() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_ENABLE_POINT_POOL", Type: doc.Boolean, Example: "`on`", Desc: "Enable point pool", DescZh: "开启 point pool"},
-		{ENVName: "ENV_POINT_POOL_RESERVED_CAPACITY", Type: doc.Int, Desc: "Specify pool capacity(default 4096)", DescZh: "指定 point pool 大小（默认 4096）"},
+		{
+			ENVName: "~~ENV_ENABLE_POINT_POOL~~",
+			Type:    doc.Boolean,
+			Example: "`on`",
+			Desc:    "Enable point pool [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) default enabled",
+			DescZh:  "开启 point pool [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已默认开启",
+		},
+		{
+			ENVName: "ENV_DISABLE_POINT_POOL",
+			Type:    doc.Boolean,
+			Example: "`on`",
+			Desc:    "Disable point pool [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "禁用 point pool [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+		},
+		{
+			ENVName: "ENV_POINT_POOL_RESERVED_CAPACITY",
+			Type:    doc.Int,
+			Desc:    "Specify pool capacity(default 4096)",
+			DescZh:  "指定 point pool 大小（默认 4096）",
+		},
 	}
 
 	for idx := range infos {

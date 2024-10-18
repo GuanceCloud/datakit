@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -111,14 +110,11 @@ func TestEndpointMetrics(t *T.T) {
 				t.Logf("%s: %s", k, r.Header.Get(k))
 			}
 
-			x, err := uhttp.Unzip(body)
-			assert.NoError(t, err)
-
 			assert.Equal(t, `test-1 f1=1i,f2=false 123
 test-2 f1=1i,f2=false 123
-`, string(x))
+`, string(body))
 
-			t.Logf("body: %q", x)
+			t.Logf("body: %q", body)
 
 			time.Sleep(time.Second) // intended
 
@@ -132,7 +128,7 @@ test-2 f1=1i,f2=false 123
 		ep, err := newEndpoint(urlstr, withAPIs([]string{datakit.Metric}))
 		assert.NoError(t, err)
 
-		w := getWriter(WithGzip(true),
+		w := getWriter(WithGzip(1),
 			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
@@ -182,14 +178,11 @@ test-2 f1=1i,f2=false 123
 				t.Logf("%s: %s", k, r.Header.Get(k))
 			}
 
-			x, err := uhttp.Unzip(body)
-			assert.NoError(t, err)
-
 			assert.Equal(t, []byte(`test-1 f1=1i,f2=false 123
 test-2 f1=1i,f2=false 123
-`), x)
+`), body)
 
-			t.Logf("body: %q", x)
+			t.Logf("body: %q", body)
 
 			time.Sleep(time.Second) // intended
 
@@ -208,7 +201,7 @@ test-2 f1=1i,f2=false 123
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
-			WithGzip(true),
+			WithGzip(1),
 		)
 		defer putWriter(w)
 
@@ -255,14 +248,11 @@ test-2 f1=1i,f2=false 123
 
 			defer r.Body.Close()
 
-			x, err := uhttp.Unzip(body)
-			assert.NoError(t, err)
-
 			assert.Equal(t, []byte(`test-1 f1=1i,f2=false 123
 test-2 f1=1i,f2=false 123
-`), x)
+`), body)
 
-			t.Logf("body: %q", x)
+			t.Logf("body: %q", body)
 
 			time.Sleep(time.Second) // intended
 
@@ -284,7 +274,7 @@ test-2 f1=1i,f2=false 123
 			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-			}), WithGzip(true))
+			}), WithGzip(1))
 		defer putWriter(w)
 
 		reg := prometheus.NewRegistry()

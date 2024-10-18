@@ -51,16 +51,13 @@ func BenchmarkGroup(b *T.B) {
 func TestGroupPoint(t *T.T) {
 	t.Run("duplicate-keys", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{"https://fake-dataway.com?token=tkn_xxxxxxxxxx"},
-			GlobalCustomerKeys: []string{
-				"category",
-			},
-			EnableSinker: true,
-			GZip:         true,
-		}
 
-		assert.NoError(t, dw.Init())
+		dw := NewDefaultDataway()
+		dw.GlobalCustomerKeys = []string{"category"}
+		dw.EnableSinker = true
+		dw.GZip = true
+
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",
@@ -82,21 +79,18 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("customer-keys", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
-			GlobalCustomerKeys: []string{
-				"class",
-				"tag2",
-				"t1", "t2", "t3", "t4",
-				"t5", "t6", "t7", "t8",
-			},
-			EnableSinker: true,
-			GZip:         true,
-		}
 
-		assert.NoError(t, dw.Init())
+		dw := NewDefaultDataway()
+		dw.GlobalCustomerKeys = []string{
+			"class",
+			"tag2",
+			"t1", "t2", "t3", "t4",
+			"t5", "t6", "t7", "t8",
+		}
+		dw.EnableSinker = true
+		dw.GZip = true
+
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",
@@ -157,19 +151,19 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("random-pts-on-logging", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
-			GlobalCustomerKeys: []string{"source"},
-			EnableSinker:       true,
-			GZip:               true,
-		}
 
-		assert.NoError(t, dw.Init(WithGlobalTags(map[string]string{
-			"tag1": "value1",
-			"tag2": "value2",
-		})))
+		dw := NewDefaultDataway()
+
+		dw.GlobalCustomerKeys = []string{"source"}
+		dw.EnableSinker = true
+		dw.GZip = true
+
+		assert.NoError(t, dw.Init(
+			WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx"),
+			WithGlobalTags(map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			})))
 
 		r := point.NewRander(point.WithFixedTags(true), point.WithRandText(3))
 
@@ -194,19 +188,18 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("basic", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
-			GlobalCustomerKeys: []string{"namespace", "app"},
-			EnableSinker:       true,
-			GZip:               true,
-		}
+		dw := NewDefaultDataway()
 
-		assert.NoError(t, dw.Init(WithGlobalTags(map[string]string{
-			"tag1": "value1",
-			"tag2": "value2",
-		})))
+		dw.GlobalCustomerKeys = []string{"namespace", "app"}
+		dw.EnableSinker = true
+		dw.GZip = true
+
+		assert.NoError(t, dw.Init(
+			WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx"),
+			WithGlobalTags(map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			})))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",
@@ -256,17 +249,13 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("no-global-tags", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
 
-			EnableSinker:       true,
-			GlobalCustomerKeys: []string{"namespace", "app"},
-			GZip:               true,
-		}
+		dw := NewDefaultDataway()
+		dw.EnableSinker = true
+		dw.GlobalCustomerKeys = []string{"namespace", "app"}
+		dw.GZip = true
 
-		assert.NoError(t, dw.Init())
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",
@@ -316,16 +305,12 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("no-global-tags-on-object", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
-			GlobalCustomerKeys: []string{"class"},
-			EnableSinker:       true,
-			GZip:               true,
-		}
+		dw := NewDefaultDataway()
+		dw.GlobalCustomerKeys = []string{"class"}
+		dw.EnableSinker = true
+		dw.GZip = true
 
-		assert.NoError(t, dw.Init())
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",
@@ -378,15 +363,12 @@ func TestGroupPoint(t *T.T) {
 
 	t.Run("no-global-tags-no-customer-tag-keys", func(t *T.T) {
 		metricsReset()
-		dw := &Dataway{
-			URLs: []string{
-				"https://fake-dataway.com?token=tkn_xxxxxxxxxx",
-			},
-			EnableSinker: true,
-			GZip:         true,
-		}
+		dw := NewDefaultDataway()
 
-		assert.NoError(t, dw.Init())
+		dw.EnableSinker = true
+		dw.GZip = true
+
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
 			point.NewPointV2("some",

@@ -14,8 +14,10 @@ var (
 	ptsCounterVec,
 	bytesCounterVec,
 	writeDropPointsCounterVec,
+	walPointCounterVec,
 	httpRetry *prometheus.CounterVec
 
+	walWorkerFlush,
 	flushFailCacheVec,
 	buildBodyCostVec,
 	buildBodyBatchBytesVec,
@@ -23,6 +25,8 @@ var (
 	buildBodyBatchCountVec,
 	groupedRequestVec,
 	apiSumVec *prometheus.SummaryVec
+
+	walQueueMemLenVec *prometheus.GaugeVec
 )
 
 func HTTPRetry() *prometheus.CounterVec {
@@ -36,7 +40,9 @@ func APISumVec() *prometheus.SummaryVec {
 // Metrics get all metrics aboud dataway.
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
+		walWorkerFlush,
 		ptsCounterVec,
+		walPointCounterVec,
 		bytesCounterVec,
 		writeDropPointsCounterVec,
 		apiSumVec,
@@ -47,17 +53,21 @@ func Metrics() []prometheus.Collector {
 		buildBodyBatchCountVec,
 		groupedRequestVec,
 		flushFailCacheVec,
+		walQueueMemLenVec,
 	}
 }
 
 func metricsReset() {
+	walWorkerFlush.Reset()
 	ptsCounterVec.Reset()
+	walPointCounterVec.Reset()
 	bytesCounterVec.Reset()
 	writeDropPointsCounterVec.Reset()
 	apiSumVec.Reset()
 
 	httpRetry.Reset()
 	flushFailCacheVec.Reset()
+	walQueueMemLenVec.Reset()
 	buildBodyCostVec.Reset()
 	buildBodyBatchBytesVec.Reset()
 	buildBodyBatchPointsVec.Reset()
@@ -67,12 +77,15 @@ func metricsReset() {
 
 func doRegister() {
 	metrics.MustRegister(
+		walWorkerFlush,
 		ptsCounterVec,
+		walPointCounterVec,
 		bytesCounterVec,
 		writeDropPointsCounterVec,
 		apiSumVec,
 
 		flushFailCacheVec,
+		walQueueMemLenVec,
 		httpRetry,
 		buildBodyCostVec,
 		buildBodyBatchBytesVec,
@@ -84,6 +97,16 @@ func doRegister() {
 
 // nolint:gochecknoinits
 func init() {
+	walQueueMemLenVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_wal_mem_len",
+			Help:      "Dataway WAL's memory queue length",
+		},
+		[]string{"category"},
+	)
+
 	flushFailCacheVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
@@ -113,7 +136,7 @@ func init() {
 				0.99: 0.001,
 			},
 		},
-		[]string{"category", "encoding"},
+		[]string{"category", "encoding", "stage"},
 	)
 
 	buildBodyBatchCountVec = prometheus.NewSummaryVec(
@@ -145,7 +168,7 @@ func init() {
 				0.99: 0.001,
 			},
 		},
-		[]string{"category", "encoding", "gzip"},
+		[]string{"category", "encoding", "type"},
 	)
 
 	buildBodyBatchPointsVec = prometheus.NewSummaryVec(
@@ -161,7 +184,26 @@ func init() {
 				0.99: 0.001,
 			},
 		},
-		[]string{"category", "encoding", "gzip"},
+		[]string{"category", "encoding"},
+	)
+
+	walWorkerFlush = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_wal_flush",
+			Help:      "Dataway WAL worker flushed bytes",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{
+			"category",
+			"gzip",
+			"queue", // from walqueue disk or mem
+		},
 	)
 
 	ptsCounterVec = prometheus.NewCounterVec(
@@ -170,6 +212,16 @@ func init() {
 			Subsystem: "io",
 			Name:      "dataway_point_total",
 			Help:      "Dataway uploaded points, partitioned by category and send status(HTTP status)",
+		},
+		[]string{"category", "status"},
+	)
+
+	walPointCounterVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "wal_point_total",
+			Help:      "WAL queued points",
 		},
 		[]string{"category", "status"},
 	)

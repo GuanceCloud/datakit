@@ -197,6 +197,7 @@ var (
 	flagDebugBugreportOSS            = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
 	flagDebugBugreportDisableProfile = fsDebug.Bool("disable-profile", false, "disable profile collection when running bug-report")
 	flagDebugBugreportNMetrics       = fsDebug.Int("nmetrics", 3, "collect N batch of datakit metrics")
+	flagDebugBugreportTag            = fsDebug.String("tag", "", "ping a tag to current bug report")
 
 	flagDebugInputConf  = fsDebug.String("input-conf", "", "input TOML conf path")
 	flagDebugHTTPListen = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")

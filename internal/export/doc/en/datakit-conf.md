@@ -59,12 +59,14 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     After the configuration is complete, you can use the `curl` command to test whether the configuration is successful: `sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`. For more information on the test commands for `curl`, see [here](https://superuser.com/a/925610){:target="_blank"}.
     
     ### HTTP Request Frequency Control {#set-http-api-limit}
+
+    > [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) default enabled this limit.
     
     As DataKit needs to receive a large number of external data writes, in order to avoid causing huge overhead to the host node, the following HTTP configuration can be modified (it is not turned on by default):
     
     ```toml
     [http_api]
-      request_rate_limit = 1000.0 # Limit ingeach HTTP API to receive only 1000 requests per second
+      request_rate_limit = 20.0 # Limit HTTP request(client IP + route) QPS
     ```
     
     ### Other Settings {#http-other-settings}

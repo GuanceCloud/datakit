@@ -34,13 +34,12 @@ func TestNTP(t *T.T) {
 		}))
 
 		dw := NewDefaultDataway()
-		dw.URLs[0] = fmt.Sprintf("%s?token=tkn_xxxxxxxx", ts.URL)
 		dw.NTP = &ntp{
 			Interval:   time.Second,
 			SyncOnDiff: time.Second,
 		}
 
-		assert.NoError(t, dw.Init())
+		assert.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_xxxxxxxx", ts.URL))))
 
 		diff, err := dw.doTimeDiff()
 
@@ -52,7 +51,7 @@ func TestNTP(t *T.T) {
 
 func TestDWAPIs(t *T.T) {
 	t.Run("apis-with-global-tags", func(t *T.T) {
-		var dw *Dataway
+		dw := NewDefaultDataway()
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equalf(t, dw.globalTagsHTTPHeaderValue, r.Header.Get(HeaderXGlobalTags), "failed on request %s", r.URL.Path)
@@ -64,14 +63,12 @@ func TestDWAPIs(t *T.T) {
 			w.WriteHeader(200)
 		}))
 
-		dw = &Dataway{
-			URLs: []string{fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)},
-		}
-
-		assert.NoError(t, dw.Init(WithGlobalTags(map[string]string{
-			"tag1": "value1",
-			"tag2": "value2",
-		})))
+		assert.NoError(t, dw.Init(
+			WithURLs(fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)),
+			WithGlobalTags(map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			})))
 
 		_, err := dw.Pull("some-args")
 		assert.NoError(t, err)

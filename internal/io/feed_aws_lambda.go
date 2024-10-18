@@ -44,7 +44,7 @@ func (a *awsLambdaOutput) flush() {
 			if len(pts) == 0 {
 				continue
 			}
-			err := defIO.doFlush(pts, cat, nil)
+			err := defIO.doCompact(pts, cat)
 			if err != nil {
 				log.Warnf("post %d points to %s failed: %s, ignored", len(pts), cat, err)
 			}

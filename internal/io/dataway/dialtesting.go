@@ -36,9 +36,20 @@ func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
 
 func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	// TODO: can not set content encoding here, default use line-protocol
+
+	// return write error or build error
+	var writeError error
 	w := getWriter(WithPoints(pts),
 		WithDynamicURL(url),
 		WithCategory(point.DynamicDWCategory),
+		WithBodyCallback(func(w *writer, b *body) error {
+			err := d.ep.writePointData(w, b)
+			if err != nil {
+				writeError = err
+			}
+
+			return err
+		}),
 		WithHTTPHeader("X-Sub-Category", "dialtesting"))
 	defer putWriter(w)
 
@@ -46,16 +57,7 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 		return fmt.Errorf("endpoint is not set correctly")
 	}
 
-	// return write error or build error
-	var writeError error
-	buildErr := w.buildPointsBody(func(w *writer, b *body) error {
-		err := d.ep.writeBody(w, b)
-		if err != nil {
-			writeError = err
-		}
-
-		return err
-	})
+	buildErr := w.buildPointsBody()
 
 	if buildErr != nil {
 		return buildErr
@@ -84,7 +86,7 @@ func (d *DialtestingSender) CheckToken(token, scheme, host string) (bool, error)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		return false, err
 	}
 

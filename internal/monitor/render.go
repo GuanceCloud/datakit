@@ -23,24 +23,25 @@ func (app *monitorAPP) render() {
 	app.inputsStatTable.Clear()
 	app.enabledInputTable.Clear()
 	app.plStatTable.Clear()
+	app.walStatTable.Clear()
 	app.goroutineStatTable.Clear()
-	app.ioStatTable.Clear()
+	app.dwptsTable.Clear()
 	app.dwTable.Clear()
+	app.httpServerStatTable.Clear()
 	app.filterStatsTable.Clear()
 	app.filterRulesStatsTable.Clear()
 
 	app.renderBasicInfoTable(app.mfs)
 	app.renderGolangRuntimeTable(app.mfs)
 	app.renderEnabledInputTable(app.mfs, enabledInputCols)
-
 	app.renderInputsFeedTable(app.mfs, inputsFeedCols)
 	app.renderGoroutineTable(app.mfs, goroutineCols)
 	app.renderHTTPStatTable(app.mfs, httpAPIStatCols)
-
 	app.renderFilterStatsTable(app.mfs)
 	app.renderFilterRulesStatsTable(app.mfs, filterRuleCols)
 	app.renderPLStatTable(app.mfs, plStatsCols)
-	app.renderIOTable(app.mfs, ioStatCols)
+	app.renderWALStatTable(app.mfs, walStatsCols)
+	app.renderDWPointsTable(app.mfs, dwptsStatCols)
 	app.renderDatawayTable(app.mfs, dwCols)
 
 end:

@@ -29,9 +29,10 @@ import (
 func TestHandleSourcemapUpload(t *testing.T) {
 	const Token = "xxxxxxxxxx"
 
-	dw := &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + Token}}
-	err := dw.Init()
-	assert.NoError(t, err)
+	dw := dataway.NewDefaultDataway()
+	dw.URLs = []string{"http://localhost:9529?token=" + Token}
+	assert.NoError(t, dw.Init())
+
 	config.Cfg.Dataway = dw
 
 	dir, err := ioutil.TempDir("./", "tmp")
@@ -276,9 +277,10 @@ func TestHandleSourcemapDelete(t *testing.T) {
 		platform = "web"
 	)
 
-	dw := &dataway.Dataway{URLs: []string{"http://localhost:9529?token=" + Token}}
-	err := dw.Init()
-	assert.NoError(t, err)
+	dw := dataway.NewDefaultDataway()
+	dw.URLs = []string{"http://localhost:9529?token=" + Token}
+	assert.NoError(t, dw.Init())
+
 	config.Cfg.Dataway = dw
 
 	ipt := defaultInput()

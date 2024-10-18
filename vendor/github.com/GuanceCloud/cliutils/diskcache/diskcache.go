@@ -20,7 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -36,11 +38,16 @@ var (
 	// Invalid read size.
 	ErrUnexpectedReadSize = errors.New("unexpected read size")
 
+	ErrTooSmallReadBuf = errors.New("too small read buffer")
+
 	// Data send to Put() exceed the maxDataSize.
 	ErrTooLargeData = errors.New("too large data")
 
 	// Get on no data cache.
-	ErrEOF = errors.New("EOF")
+	ErrNoData = errors.New("no data")
+
+	// Diskcache full, no data can be write now
+	ErrCacheFull = errors.New("cache full")
 
 	// Invalid cache filename.
 	ErrInvalidDataFileName       = errors.New("invalid datafile name")
@@ -72,19 +79,23 @@ type DiskCache struct {
 	// how long to wakeup a sleeping write-file
 	wakeup time.Duration
 
-	wlock, // used to exclude concurrent Put.
-	rlock *sync.Mutex // used to exclude concurrent Get.
-	rwlock *sync.Mutex // used to exclude switch/rotate/drop/Close
+	wlock, // write-lock: used to exclude concurrent Put to the header file.
+	rlock *sync.Mutex // read-lock: used to exclude concurrent Get on the tail file.
+	rwlock *sync.Mutex // used to exclude switch/rotate/drop/Close on current disk cache instance.
 
 	flock *flock // disabled multi-Open on same path
 	pos   *pos   // current read fd position info
 
 	// specs of current diskcache
-	size, // current byte size
+	size          atomic.Int64 // current byte size
 	curBatchSize, // current writing file's size
+	curReadSize, // current reading file's size
 	batchSize, // current batch size(static)
 	capacity int64 // capacity of the diskcache
 	maxDataSize int32 // max data size of single Put()
+
+	batchHeader []byte
+	streamBuf   []byte
 
 	// File permission, default 0750/0640
 	dirPerms,
@@ -94,6 +105,7 @@ type DiskCache struct {
 	noSync, // NoSync if enabled, may cause data missing, default false
 	noFallbackOnError, // ignore Fn() error
 	noPos, // no position
+	filoDrop, // first-in-last-out drop, meas we chooes to drop the new-comming data first
 	noLock bool // no file lock
 
 	// labels used to export prometheus flags
@@ -108,12 +120,40 @@ func (c *DiskCache) String() string {
 	// if there too many files(>10), only print file count
 	if n := len(c.dataFiles); n > 10 {
 		return fmt.Sprintf("%s/[size: %d][fallback: %v][nosync: %v][nopos: %v][nolock: %v][files: %d][maxDataSize: %d][batchSize: %d][capacity: %d][dataFiles: %d]",
-			c.path, c.size, c.noFallbackOnError, c.noSync, c.noPos, c.noLock, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, n,
+			c.path, c.size.Load(), c.noFallbackOnError, c.noSync, c.noPos, c.noLock, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, n,
 		)
 	} else {
 		// nolint: lll
 		return fmt.Sprintf("%s/[size: %d][fallback: %v][nosync: %v][nopos: %v][nolock: %v][files: %d][maxDataSize: %d][batchSize: %d][capacity: %d][dataFiles: %v]",
-			c.path, c.size, c.noFallbackOnError, c.noSync, c.noLock, c.noPos, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, c.dataFiles,
+			c.path, c.size.Load(), c.noFallbackOnError, c.noSync, c.noLock, c.noPos, len(c.dataFiles), c.maxDataSize, c.batchSize, c.capacity, c.dataFiles,
 		)
 	}
+}
+
+func (c *DiskCache) Pretty() string {
+	c.rwlock.Lock()
+	defer c.rwlock.Unlock()
+
+	arr := []string{}
+
+	arr = append(arr, "path: "+c.path)
+	arr = append(arr, fmt.Sprintf("size: %d", c.size.Load()))
+	arr = append(arr, fmt.Sprintf("max-data-size: %d", c.maxDataSize))
+	arr = append(arr, fmt.Sprintf("capacity: %d", c.capacity))
+	arr = append(arr, fmt.Sprintf("data-files(%d):", len(c.dataFiles)))
+
+	for i, df := range c.dataFiles {
+		arr = append(arr, "\t"+df)
+		if i > 10 {
+			arr = append(arr, fmt.Sprintf("omitted %d files...", len(c.dataFiles)-i))
+		}
+	}
+
+	if c.rfd != nil {
+		arr = append(arr, fmt.Sprintf("cur-read: %s", c.rfd.Name()))
+	} else {
+		arr = append(arr, "no-Get()")
+	}
+
+	return strings.Join(arr, "\n")
 }

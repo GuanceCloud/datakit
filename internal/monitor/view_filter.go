@@ -57,7 +57,7 @@ func (app *monitorAPP) renderFilterRulesStatsTable(mfs map[string]*dto.MetricFam
 				filter = val
 			case "source":
 				source = val
-			case "category":
+			case labelCategory:
 				cat = val
 				table.SetCell(row, 0, tview.NewTableCell(point.CatString(val).Alias()).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
