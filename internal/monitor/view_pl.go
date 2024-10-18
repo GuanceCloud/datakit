@@ -50,12 +50,12 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 		for _, lp := range lps {
 			val := lp.GetValue()
 			switch lp.GetName() {
-			case "name":
+			case labelName:
 				name = val
 				table.SetCell(row, 0,
 					tview.NewTableCell(val).
 						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
-			case "category":
+			case labelCategory:
 				cat = val
 				table.SetCell(row, 1,
 					tview.NewTableCell(point.CatString(val).Alias()).

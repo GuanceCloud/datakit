@@ -57,6 +57,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
+		inp.StreamSize = 0
 
 		inp.Tagger = &taggerMock{
 			hostTags: map[string]string{
@@ -108,6 +109,7 @@ some_info{info1="data1"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.tryInit()
 
@@ -154,6 +156,7 @@ promhttp_metric_handler_errors_total{cause="encoding",ignore_me="some"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.TagsIgnore = []string{"ignore_me"}
 
@@ -188,6 +191,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.TagsRename = &iprom.RenameTags{
 			Mapping: map[string]string{
@@ -227,6 +231,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.AsLogging = &iprom.AsLogging{
 			Enable:  true,
@@ -266,6 +271,8 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementName = "some"
 
@@ -301,6 +308,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementPrefix = "some_"
 
@@ -337,6 +345,7 @@ promtcp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.Measurements = []iprom.Rule{
 			{
@@ -377,6 +386,7 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.DisableInstanceTag = true
 
@@ -413,6 +423,7 @@ promhttp_metric_handler_errors_total{cause="encoding-3",some="foo-3"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
+		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.IgnoreTagKV = map[string][]string{
 			"cause": {"encoding-1", "encoding-2"}, // keep `encoding-3'
@@ -479,7 +490,6 @@ func TestInputBatch(t *T.T) {
 			},
 		}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -538,7 +548,6 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -596,7 +605,6 @@ some_info{info1="data1"} 0
 		// info type disabled
 		inp.DisableInfoTag = true
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -650,7 +658,6 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.TagsIgnore = []string{"ignore_me"}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -708,7 +715,6 @@ some_info{info1="data1"} 0
 			},
 		}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -766,7 +772,6 @@ some_info{info1="data1"} 0
 			Service: "as-logging",
 		}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -822,7 +827,6 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementName = "some"
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -877,7 +881,6 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementPrefix = "some_"
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -938,7 +941,6 @@ some_info{info1="data1"} 0
 			},
 		}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -993,7 +995,6 @@ some_info{info1="data1"} 0
 		inp.URLs = []string{srv.URL}
 		inp.DisableInstanceTag = true
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -1052,7 +1053,6 @@ some_info{info1="data1"} 0
 			"some":  {"foo-1", "foo-3"},           // keep `foo-2'
 		}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -1173,7 +1173,6 @@ func TestBatchParser(t *T.T) {
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -1286,7 +1285,6 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
 
-		inp.StreamSize = 1
 		ptCh := make(chan []*point.Point, 1)
 		points := []*point.Point{}
 		wg := sync.WaitGroup{}
@@ -1360,7 +1358,6 @@ func TestLargeBatch(t *T.T) {
 		inp := NewProm()
 		inp.Feeder = feeder
 		inp.URLs = []string{srv.URL}
-		inp.StreamSize = 1
 
 		start := time.Now()
 		stopCh := make(chan bool)
@@ -1465,7 +1462,6 @@ func TestLargeFileBatch(t *T.T) {
 		inp := NewProm()
 		inp.Feeder = feeder
 		inp.URLs = []string{"large-metrics.txt"}
-		inp.StreamSize = 1
 
 		start := time.Now()
 		stopCh := make(chan bool)

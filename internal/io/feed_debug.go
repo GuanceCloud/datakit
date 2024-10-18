@@ -21,6 +21,7 @@ type debugOutput struct{}
 var _ FeederOutputer = new(debugOutput)
 
 func (fo *debugOutput) Reader(cat point.Category) <-chan *feedOption {
+	// not implemented
 	return nil
 }
 

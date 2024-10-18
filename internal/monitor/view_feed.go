@@ -81,10 +81,10 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 			val := lp.GetValue()
 
 			switch lp.GetName() {
-			case "name":
+			case labelName:
 				inputName = val
 
-			case "category": //nolint:goconst
+			case labelCategory: //nolint:goconst
 				cat = val
 
 			default:
@@ -114,10 +114,10 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		col++
 
 		// P90Lat
-		feedSum := metricWithLabel(feedCost, cat, inputName).GetSummary()
+		feedSum := metricWithLabel(feedCost, cat, inputName)
 		feedLat := "-"
 		if feedSum != nil {
-			q := feedSum.GetQuantile()[1] // p90
+			q := feedSum.GetSummary().GetQuantile()[1] // p90
 			if v := q.GetValue(); math.IsNaN(v) {
 				feedLat = "NaN"
 			} else {

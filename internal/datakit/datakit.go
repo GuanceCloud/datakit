@@ -283,6 +283,8 @@ func CategoryDirName() map[string]string {
 func SetWorkDir(dir string) {
 	InstallDir = dir
 
+	l.Infof("set workdir to %q", dir)
+
 	DataDir = filepath.Join(InstallDir, "data")
 	DataRUMDir = filepath.Join(DataDir, "rum")
 	ConfdDir = filepath.Join(InstallDir, StrConfD)

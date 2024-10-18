@@ -42,10 +42,10 @@ datakit_user = "root"
 ulimit = 64000
 
 ################################################
-# point_pool: use point pool for better memory usage(Experimental)
+# point_pool: use point pool for better memory usage
 ################################################
 [point_pool]
-  enable = false
+  enable = true
   reserved_capacity = 4096
 
 ################################################
@@ -123,6 +123,9 @@ ulimit = 64000
   # Datakit server-side timeout
   timeout = "30s"
   close_idle_connection = false
+
+  # API rate limit(QPS)
+  request_rate_limit = 20.0
 
   #
   # RUM related: we should port these configures to RUM inputs(TODO)
@@ -212,14 +215,16 @@ ulimit = 64000
 [dataway]
   # urls: Dataway URL list
   # NOTE: do not configure multiple URLs here, it's a deprecated feature.
-  urls = ["https://openway.guance.com?token=tkn_xxxxxxxxxxx"]
+  urls = [
+    # "https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
+  ]
 
   # Dataway HTTP timeout
   timeout_v2 = "30s"
 
   # max_retry_count specifies at most how many times the data sending operation will be tried when it fails,
   # valid minimum value is 1 (NOT 0) and maximum value is 10.
-  max_retry_count = 4
+  max_retry_count = 1
 
   # The interval between two retry operation, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
   retry_delay = "1s"
@@ -242,7 +247,7 @@ ulimit = 64000
   # do NOT disable gzip or your get large network payload.
   gzip = true
 
-  max_raw_body_size = 10485760 # max body size(before gizp) in bytes
+  max_raw_body_size = 1048576 # max body size(before gizp) in bytes
 
   # Customer tag or field keys that will extract from exist points
   # to build the X-Global-Tags HTTP header value.
@@ -257,6 +262,14 @@ ulimit = 64000
     # datakit's soft time will update to the dataway time.
     # NOTE: diff MUST larger than "1s"
     diff     = "30s" 
+
+  # WAL queue for uploading points
+  [dataway.wal]
+    max_capacity_gb = 2.0 # 2GB reserved disk space for each category(M/L/O/T/...)
+    #workers = 4          # flush workers on WAL(default to CPU limited cores)
+    #mem_cap = 4          # in-memory queue capacity(default to CPU limited cores)
+    #fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
+
 
 ################################################
 # Datakit logging configure

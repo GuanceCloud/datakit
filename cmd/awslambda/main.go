@@ -75,7 +75,7 @@ func loadLambdaDefaultConf() {
 	config.Cfg.HTTPAPI.Listen = "0.0.0.0:9529"
 	config.Cfg.DefaultEnabledInputs = []string{"awslambda", "ddtrace", "opentelemetry", "statsd"}
 	config.Cfg.Dataway.MaxRawBodySize = dataway.MinimalRawBodySize
-	config.Cfg.IO.FlushWorkers = 1
+	config.Cfg.IO.CompactWorkers = 1
 }
 
 func run() {
@@ -129,27 +129,12 @@ func startIO() {
 	opts := []dkio.IOOption{
 		dkio.WithFeederOutputer(dkio.NewAwsLambdaOutput()),
 		dkio.WithDataway(config.Cfg.Dataway),
-		dkio.WithMaxCacheCount(c.MaxCacheCount),
-		dkio.WithDiskCache(c.EnableCache),
-		dkio.WithDiskCacheSize(c.CacheSizeGB),
+		dkio.WithCompactAt(c.MaxCacheCount),
 		dkio.WithFilters(c.Filters),
-		dkio.WithCacheAll(c.CacheAll),
-		dkio.WithFlushWorkers(c.FlushWorkers),
+		dkio.WithCompactWorkers(c.CompactWorkers),
 		dkio.WithRecorder(config.Cfg.Recorder),
-		dkio.WithConsumer(false),
-	}
-
-	du, err := time.ParseDuration(c.FlushInterval)
-	if err != nil {
-	} else {
-		opts = append(opts, dkio.WithFlushInterval(du))
-	}
-
-	du, err = time.ParseDuration(c.CacheCleanInterval)
-	if err != nil {
-		l.Warnf("parse CacheCleanInterval failed: %s, use default 5s", err)
-	} else {
-		opts = append(opts, dkio.WithDiskCacheCleanInterval(du))
+		dkio.WithCompactInterval(c.CompactInterval),
+		dkio.WithCompactor(false),
 	}
 
 	dkio.Start(opts...)

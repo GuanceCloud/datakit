@@ -88,7 +88,9 @@ func TestRestartAPI(t *T.T) {
 	}
 
 	hs := defaultHTTPServerConf()
-	hs.dw = &dataway.Dataway{URLs: urls}
+
+	hs.dw = dataway.NewDefaultDataway()
+	hs.dw.URLs = urls
 	assert.NoError(t, hs.dw.Init())
 
 	cases := []struct {

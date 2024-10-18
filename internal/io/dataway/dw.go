@@ -8,6 +8,7 @@ package dataway
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -22,8 +23,14 @@ import (
 
 const (
 	HeaderXGlobalTags = "X-Global-Tags"
-	DefaultRetryCount = 4
+	DefaultRetryCount = 1
 	DefaultRetryDelay = time.Second
+
+	// DeprecatedDefaultMaxRawBodySize will cause too many memory, we set it to
+	// 1MB. Set 1MB because the max-log length(message) is 1MB at storage side.
+	DeprecatedDefaultMaxRawBodySize = 10 * (1 << 20)  // 10MB
+	DefaultMaxRawBodySize           = (1 << 20)       // 1MB
+	MinimalRawBodySize              = 100 * (1 << 10) // 100KB
 )
 
 type IDataway interface {
@@ -64,13 +71,13 @@ var (
 	}
 
 	AvailableDataways          = []string{}
-	log                        = logger.DefaultSLogger("dataway")
+	l                          = logger.DefaultSLogger("dataway")
 	datawayListIntervalDefault = 60
 )
 
-func NewDefaultDataway() *Dataway {
-	return &Dataway{
-		URLs:               []string{"https://openway.guance.com?token=tkn_xxxxxxxxxxx"},
+func NewDefaultDataway(opts ...DWOption) *Dataway {
+	dw := &Dataway{
+		URLs:               []string{},
 		HTTPTimeout:        30 * time.Second,
 		IdleTimeout:        90 * time.Second,
 		MaxRawBodySize:     DefaultMaxRawBodySize,
@@ -83,7 +90,19 @@ func NewDefaultDataway() *Dataway {
 			Interval:   time.Minute * 5,
 			SyncOnDiff: time.Second * 30,
 		},
+
+		walq: map[point.Category]*WALQueue{},
+		WAL: &WALConf{
+			MaxCapacityGB:          2.0,
+			FailCacheCleanInterval: time.Second * 30,
+		},
 	}
+
+	for _, opt := range opts {
+		opt(dw)
+	}
+
+	return dw
 }
 
 type ntp struct {
@@ -128,8 +147,13 @@ type Dataway struct {
 	InsecureSkipVerify bool `toml:"tls_insecure"`
 
 	GlobalCustomerKeys []string `toml:"global_customer_keys"`
+	WAL                *WALConf `toml:"wal"`
 
-	eps        []*endPoint
+	eps []*endPoint
+
+	walq    map[point.Category]*WALQueue
+	walFail *WALQueue
+
 	locker     sync.RWMutex
 	dnsCachers []*dnsCacher
 
@@ -139,8 +163,7 @@ type Dataway struct {
 	NTP *ntp `toml:"ntp"`
 }
 
-type dwopt func(*Dataway)
-
+// ParseGlobalCustomerKeys parse custom tag keys used for sinker.
 func ParseGlobalCustomerKeys(v string) (arr []string) {
 	for _, elem := range strings.Split(v, ",") { // remove white space
 		if x := strings.TrimSpace(elem); len(x) > 0 {
@@ -150,34 +173,22 @@ func ParseGlobalCustomerKeys(v string) (arr []string) {
 	return
 }
 
-func WithGlobalTags(maps ...map[string]string) dwopt {
-	return func(dw *Dataway) {
-		if dw.globalTags == nil {
-			dw.globalTags = map[string]string{}
-		}
-
-		for _, tags := range maps {
-			for k, v := range tags {
-				dw.globalTags[k] = v
-			}
-		}
-
-		log.Infof("dataway set globals: %+#v", dw.globalTags)
-	}
-}
-
+// UpdateGlobalTags hot-update dataway's global tags.
 func (dw *Dataway) UpdateGlobalTags(tags map[string]string) {
 	dw.locker.Lock()
 	defer dw.locker.Unlock()
 	dw.globalTags = tags
-	log.Infof("set %d global tags to dataway", len(dw.globalTags))
+	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
 		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
 	}
 }
 
-func (dw *Dataway) Init(opts ...dwopt) error {
-	log = logger.SLogger("dataway")
+// Init setup current dataway.
+//
+// During Init(), we also accept options to update dataway's field after NewDefaultDataway().
+func (dw *Dataway) Init(opts ...DWOption) error {
+	l = logger.SLogger("dataway")
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -202,6 +213,8 @@ func (dw *Dataway) String() string {
 		}
 	}
 
+	arr = append(arr, fmt.Sprintf("wal: %s, cap: %fGB", dw.WAL.Path, dw.WAL.MaxCapacityGB))
+
 	return strings.Join(arr, "\n")
 }
 
@@ -209,6 +222,7 @@ func (dw *Dataway) ClientsCount() int {
 	return len(dw.eps)
 }
 
+// GetTokens list all dataway's tokens.
 func (dw *Dataway) GetTokens() []string {
 	var arr []string
 	for _, ep := range dw.eps {
@@ -220,11 +234,6 @@ func (dw *Dataway) GetTokens() []string {
 	return arr
 }
 
-const (
-	DefaultMaxRawBodySize = 10 * 1024 * 1024
-	MinimalRawBodySize    = 1 * 1024 * 1024
-)
-
 // TagHeaderValue create X-Global-Tags header value in the
 // form of key=val,key=val with ASC sorted.
 func TagHeaderValue(tags map[string]string) string {
@@ -235,6 +244,8 @@ func TagHeaderValue(tags map[string]string) string {
 	sort.Strings(arr)
 	return strings.Join(arr, ",")
 }
+
+var defaultInvalidDatawayURL = "https://guance.openway.com?token=YOUR-WORKSPACE-TOKEN"
 
 func (dw *Dataway) doInit() error {
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
@@ -251,7 +262,8 @@ func (dw *Dataway) doInit() error {
 	}
 
 	if len(dw.URLs) == 0 {
-		return fmt.Errorf("dataway not set: urls is empty")
+		l.Warnf("dataway not set: urls is empty, set to %q", defaultInvalidDatawayURL)
+		dw.URLs = append(dw.URLs, defaultInvalidDatawayURL)
 	}
 
 	if dw.HTTPTimeout <= time.Duration(0) {
@@ -262,7 +274,7 @@ func (dw *Dataway) doInit() error {
 		dw.MaxIdleConnsPerHost = 64
 	}
 
-	log.Infof("set %d global tags to dataway", len(dw.globalTags))
+	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
 		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
 	}
@@ -273,7 +285,7 @@ func (dw *Dataway) doInit() error {
 			withInsecureSkipVerify(dw.InsecureSkipVerify),
 			withAPIs(dwAPIs),
 			withHTTPHeaders(map[string]string{
-				HeaderXGlobalTags: dw.globalTagsHTTPHeaderValue,
+				// HeaderXGlobalTags: dw.globalTagsHTTPHeaderValue,
 
 				// DatakitUserAgent define HTTP User-Agent header.
 				// user-agent format. See
@@ -290,8 +302,12 @@ func (dw *Dataway) doInit() error {
 			withRetryDelay(dw.RetryDelay),
 		)
 		if err != nil {
-			log.Errorf("init dataway url %s failed: %s", u, err.Error())
+			l.Errorf("init dataway url %s failed: %s", u, err.Error())
 			return err
+		}
+
+		if dw.EnableSinker {
+			ep.httpHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
 		}
 
 		dw.eps = append(dw.eps, ep)
@@ -299,13 +315,19 @@ func (dw *Dataway) doInit() error {
 		dw.addDNSCache(ep.host)
 	}
 
+	if dw.WAL.Path == "" {
+		dw.WAL.Path = filepath.Join(datakit.DataDir, "dw-wal")
+	}
+
 	return nil
 }
 
+// GlobalTags list all global tags of the dataway.
 func (dw *Dataway) GlobalTags() map[string]string {
 	return dw.globalTags
 }
 
+// CustomTagKeys list all custome keys of the dataway.
 func (dw *Dataway) CustomTagKeys() []string {
 	return dw.GlobalCustomerKeys
 }

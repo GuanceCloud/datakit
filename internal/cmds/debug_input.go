@@ -29,7 +29,7 @@ func debugInput(conf string) error {
 	dkio.Start(dkio.WithFeederOutputer(dkio.NewDebugOutput()),
 		// disable filter and consumer, the debug output not implemented the Reader()
 		dkio.WithFilter(false),
-		dkio.WithConsumer(false))
+		dkio.WithCompactor(false))
 
 	loadedInputs, err := config.LoadSingleConfFile(conf, inputs.Inputs, false)
 	if err != nil {

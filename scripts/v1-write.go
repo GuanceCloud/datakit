@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -28,6 +29,7 @@ var (
 	flagMaxBody  = flag.Int("max-body", 0, "set max body size(kb)")
 	flagDecode   = flag.Bool("decode", false, "try decode request")
 	flag5XXRatio = flag.Int("5xx-ratio", 0, "fail request ratio(minimal is 1/1000)")
+	flagLatency  = flag.Duration("latency", time.Millisecond*10, "latency used on API cost")
 
 	MPts, LPts, TPts, totalReq, req5xx atomic.Int64
 )
@@ -55,6 +57,10 @@ func benchHTTPServer() {
 		func(c *gin.Context) {
 			log.Printf("************************************************")
 
+			if *flagLatency > 0 {
+				time.Sleep(*flagLatency)
+			}
+
 			totalReq.Add(1)
 
 			if *flag5XXRatio > 0 {
@@ -73,9 +79,10 @@ func benchHTTPServer() {
 			}
 
 			var (
-				start    = time.Now()
-				encoding point.Encoding
-				dec      *point.Decoder
+				start     = time.Now()
+				encoding  point.Encoding
+				dec       *point.Decoder
+				headerArr []string
 			)
 
 			if body, err := io.ReadAll(c.Request.Body); err != nil {
@@ -84,7 +91,6 @@ func benchHTTPServer() {
 			} else {
 				elapsed := time.Since(start)
 				if len(body) > 0 {
-					log.Printf("************************************************")
 					log.Printf("copy elapsed %s, bandwidth %fKB/S", elapsed, float64(len(body))/(float64(elapsed)/float64(time.Second))/1024.0)
 				}
 
@@ -93,19 +99,22 @@ func benchHTTPServer() {
 				}
 
 				for k, _ := range c.Request.Header {
-					log.Printf("%s: %s", k, c.Request.Header.Get(k))
+					headerArr = append(headerArr, fmt.Sprintf("%s: %s", k, c.Request.Header.Get(k)))
 				}
+
+				log.Printf("URL: %s", c.Request.URL)
+				log.Printf("headers:\n%s", strings.Join(headerArr, "\n"))
 
 				if c.Request.Header.Get("Content-Encoding") == "gzip" {
 					unzipbody, err := uhttp.Unzip(body)
 					if err != nil {
 						//log.Printf("unzip: %s, body: %q", err, body)
-						log.Printf("unzip: %s", err)
+						log.Printf("[ERROR] unzip(header %q): %s", body[:10], err)
 						c.Data(http.StatusBadRequest, "", []byte(err.Error()))
 						return
 					}
 
-					log.Printf("unzip body: %d => %d(%.4f)", len(body), len(unzipbody), float64(len(body))/float64(len(unzipbody)))
+					log.Printf("[INFO] unzip body: %d => %d(%.4f)", len(body), len(unzipbody), float64(len(body))/float64(len(unzipbody)))
 
 					body = unzipbody
 				}
@@ -121,19 +130,21 @@ func benchHTTPServer() {
 					defer point.PutDecoder(dec)
 
 				default: // not implemented
-					log.Printf("unknown encoding %s", encoding)
+					log.Printf("[ERROR] unknown encoding %s", encoding)
+					return
 				}
 
 				if dec != nil {
 					if pts, err := dec.Decode(body); err != nil {
-						log.Printf("decode on %s error: %s", encoding, err)
+						log.Printf("[ERROR] decode on %s error: %s", encoding, err)
 					} else {
 						nwarns := 0
 						for _, pt := range pts {
 							if len(pt.Warns()) > 0 {
-								//fmt.Printf(pt.Pretty())
 								nwarns++
 							}
+
+							log.Println(pt.LineProto())
 						}
 
 						cat := point.CatURL(c.Request.URL.Path)
@@ -147,7 +158,7 @@ func benchHTTPServer() {
 							TPts.Add(int64(len(pts)))
 						}
 
-						log.Printf("decode %d points, %d with warnnings", len(pts), nwarns)
+						log.Printf("[INFO] decode %d points, %d with warnnings", len(pts), nwarns)
 					}
 
 					showInfo()
@@ -190,6 +201,7 @@ func showENVs() {
 
 // nolint: typecheck
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	showENVs()
 
 	var rLimit syscall.Rlimit

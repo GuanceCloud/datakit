@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func Test_setupDefaultInputs(t *T.T) {
@@ -252,7 +253,7 @@ func TestUpgradeMainConfig(t *T.T) {
 			old: func() *config.Config {
 				c := config.DefaultConfig()
 				c.IOCacheCountDeprecated = 10
-				c.IntervalDeprecated = "100s"
+				c.IntervalDeprecated = 100 * time.Second
 
 				return c
 			}(),
@@ -260,7 +261,7 @@ func TestUpgradeMainConfig(t *T.T) {
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
 				c.IO.MaxCacheCount = 1000 // auto reset to 10000
-				c.IO.FlushInterval = "100s"
+				c.IO.CompactInterval = 100 * time.Second
 
 				return c
 			}(),
@@ -271,6 +272,21 @@ func TestUpgradeMainConfig(t *T.T) {
 			old: func() *config.Config {
 				c := config.DefaultConfig()
 				c.Dataway.ContentEncoding = "v1"
+
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				return c
+			}(),
+		},
+
+		{
+			name: "set-default-raw-body-size",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.Dataway.MaxRawBodySize = dataway.DeprecatedDefaultMaxRawBodySize
 
 				return c
 			}(),

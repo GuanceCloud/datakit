@@ -7,6 +7,10 @@ package diskcache
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
+	"io"
+	"os"
 	"time"
 )
 
@@ -20,13 +24,17 @@ func (c *DiskCache) Put(data []byte) error {
 	defer c.wlock.Unlock()
 
 	defer func() {
-		putVec.WithLabelValues(c.path).Inc()
-		putBytesVec.WithLabelValues(c.path).Add(float64(len(data)))
-		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start) / time.Microsecond))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size))
+		putBytesVec.WithLabelValues(c.path).Observe(float64(len(data)))
+		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 	}()
 
-	if c.capacity > 0 && c.size+int64(len(data)) > c.capacity {
+	if c.capacity > 0 && c.size.Load()+int64(len(data)) > c.capacity {
+		if c.filoDrop { // do not accept new data
+			droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(len(data)))
+			return ErrCacheFull
+		}
+
 		if err := c.dropBatch(); err != nil {
 			return err
 		}
@@ -54,13 +62,93 @@ func (c *DiskCache) Put(data []byte) error {
 	}
 
 	c.curBatchSize += int64(len(data) + dataHeaderLen)
-	c.size += int64(len(data) + dataHeaderLen)
+	c.size.Add(int64(len(data) + dataHeaderLen))
 	c.wfdLastWrite = time.Now()
 
 	// rotate new file
 	if c.curBatchSize >= c.batchSize {
 		if err := c.rotate(); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *DiskCache) putPart(part []byte) error {
+	if _, err := c.wfd.Write(part); err != nil {
+		return err
+	}
+
+	if !c.noSync {
+		if err := c.wfd.Sync(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// StreamPut read from r for bytes and write to storage.
+//
+// If we read the data from some network stream(such as HTTP response body),
+// we can use StreamPut to avoid a intermidiate buffer to accept the huge(may be) body.
+func (c *DiskCache) StreamPut(r io.Reader, size int) error {
+	var (
+		n           = 0
+		total       = 0
+		err         error
+		startOffset int64
+		start       = time.Now()
+		round       = 0
+	)
+
+	c.wlock.Lock()
+	defer c.wlock.Unlock()
+
+	if c.capacity > 0 && c.size.Load()+int64(size) > c.capacity {
+		return ErrCacheFull
+	}
+
+	if startOffset, err = c.wfd.Seek(0, os.SEEK_CUR); err != nil {
+		return fmt.Errorf("Seek(0, SEEK_CUR): %w", err)
+	}
+
+	defer func() {
+		if total > 0 && err != nil { // fallback to origin postion
+			if _, serr := c.wfd.Seek(startOffset, os.SEEK_SET); serr != nil {
+			}
+		}
+
+		putBytesVec.WithLabelValues(c.path).Observe(float64(size))
+		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
+		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
+		streamPutVec.WithLabelValues(c.path).Observe(float64(round))
+	}()
+
+	binary.LittleEndian.PutUint32(c.batchHeader, uint32(size))
+	if _, err := c.wfd.Write(c.batchHeader); err != nil {
+		return err
+	}
+
+	for {
+		n, err = r.Read(c.streamBuf)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			} else {
+				return err
+			}
+		}
+
+		if n == 0 {
+			break
+		}
+
+		if err = c.putPart(c.streamBuf); err != nil {
+			return err
+		} else {
+			total += n
+			round++
 		}
 	}
 

@@ -8,7 +8,6 @@ package dataway
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,7 +24,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	pb "google.golang.org/protobuf/proto"
 )
 
 type endPoint struct {
@@ -141,7 +139,7 @@ func withHTTPHeaders(headers map[string]string) endPointOption {
 			if len(v) > 0 { // ignore empty header value
 				ep.httpHeaders[k] = v
 			} else {
-				log.Warnf("ignore empty value on header %q", k)
+				l.Warnf("ignore empty value on header %q", k)
 			}
 		}
 	}
@@ -150,7 +148,7 @@ func withHTTPHeaders(headers map[string]string) endPointOption {
 func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 	u, err := url.ParseRequestURI(urlstr)
 	if err != nil {
-		log.Errorf("parse dataway url %s failed: %s", urlstr, err.Error())
+		l.Errorf("parse dataway url %s failed: %s", urlstr, err.Error())
 		return nil, err
 	}
 
@@ -183,7 +181,7 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 				api)
 		}
 
-		log.Infof("endpoint regist dataway API %q:%q ok", api, ep.categoryURL[api])
+		l.Infof("endpoint regist dataway API %q:%q ok", api, ep.categoryURL[api])
 	}
 
 	switch ep.scheme {
@@ -201,7 +199,7 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 	dialContext, err := dnet.GetDNSCacheDialContext(defaultDNSCacheFreq, defaultDNSCacheLookUpTimeout)
 	if err != nil {
-		log.Warnf("GetDNSCacheDialContext failed: %v", err)
+		l.Warnf("GetDNSCacheDialContext failed: %v", err)
 		dialContext = nil // if failed, then not use dns cache.
 	}
 
@@ -218,13 +216,13 @@ func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 
 	if ep.proxy != "" { // set proxy
 		if u, err := url.ParseRequestURI(ep.proxy); err != nil {
-			log.Warnf("parse http proxy %q failed err: %s, ignored and no proxy set", ep.proxy, err.Error())
+			l.Warnf("parse http proxy %q failed err: %s, ignored and no proxy set", ep.proxy, err.Error())
 		} else {
 			if ProxyURLOK(u) {
 				cliOpts.ProxyURL = u
-				log.Infof("set dataway proxy to %q ok", ep.proxy)
+				l.Infof("set dataway proxy to %q ok", ep.proxy)
 			} else {
-				log.Warnf("invalid proxy URL: %s, ignored", u)
+				l.Warnf("invalid proxy URL: %s, ignored", u)
 			}
 		}
 	}
@@ -252,79 +250,24 @@ func (ep *endPoint) Transport() *http.Transport {
 	return httpcli.Transport(ep.getHTTPCliOpts())
 }
 
-func (ep *endPoint) writeBody(w *writer, b *body) (err error) {
-	w.gzip = b.gzon
-
-	// if send failed, do nothing.
-	if err = ep.writePointData(w, b); err != nil {
-		// 4xx error do not cache data.
-		if errors.Is(err, errWritePoints4XX) {
-			writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
-			return
-		}
-
-		if w.fc == nil { // no cache
-			writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
-			return
-		}
-
-		// do cache: write them to disk.
-		if w.cacheAll {
-			if err := doCache(w, b); err != nil {
-				log.Errorf("doCache %d pts on %s: %s", b.npts, w.category, err)
-			} else {
-				log.Infof("ok on doCache %d pts on %s", b.npts, w.category)
-			}
-		} else {
-			//nolint:exhaustive
-			switch w.category {
-			case point.Metric, // these categories are not cache.
-				point.MetricDeprecated,
-				point.Object,
-				point.CustomObject,
-				point.DynamicDWCategory:
-
-				writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts))
-				log.Warnf("drop %d pts on %s, not cached", b.npts, w.category)
-
-			default:
-				if err := doCache(w, b); err != nil {
-					log.Errorf("doCache %v pts on %s: %s", b.npts, w.category, err)
-				}
-			}
-		}
-	}
-
-	return err
-}
-
 func (ep *endPoint) writePoints(w *writer) error {
-	return w.buildPointsBody(ep.writeBody)
-}
-
-func doCache(w *writer, b *body) error {
-	if cachedata, err := pb.Marshal(&CacheData{
-		Category:    int32(w.category),
-		PayloadType: int32(b.payloadEnc),
-		Payload:     b.buf,
-	}); err != nil {
-		return err
-	} else {
-		return w.fc.Put(cachedata)
-	}
+	WithBodyCallback(ep.writePointData)(w)
+	return w.buildPointsBody()
 }
 
 func (ep *endPoint) writePointData(w *writer, b *body) error {
 	httpCodeStr := "unknown"
-	requrl, catNotFound := ep.categoryURL[w.category.URL()]
+	requrl, catNotFound := ep.categoryURL[b.cat().URL()]
 
 	if !catNotFound {
+		l.Debugf("cat %q not found, w.dynamicURL: %s", b.cat(), w.dynamicURL)
+
 		if w.dynamicURL != "" {
 			// for dialtesting, there are dynamic URL to post
 			if _, err := url.ParseRequestURI(w.dynamicURL); err != nil {
 				return err
 			} else {
-				log.Debugf("try use dynamic URL %s", w.dynamicURL)
+				l.Debugf("try use dynamic URL %s", w.dynamicURL)
 				requrl = w.dynamicURL
 			}
 		} else {
@@ -334,52 +277,55 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 
 	defer func() {
 		if w.cacheClean { // ignore metrics on cache clean operation
+			l.Debug("on cache clean, no metric applied")
 			return
 		}
 
 		// /v1/write/metric -> metric
-		cat := w.category.String()
+		cat := b.cat().String()
 
-		if w.category == point.DynamicDWCategory {
+		if b.cat() == point.DynamicDWCategory {
 			// NOTE: datakit category deprecated, we use point category
 			cat = point.DynamicDWCategory.String()
 		}
 
-		bytesCounterVec.WithLabelValues(cat, "gzip", "total").Add(float64(len(b.buf)))
-		bytesCounterVec.WithLabelValues(cat, "gzip", httpCodeStr).Add(float64(len(b.buf)))
-		bytesCounterVec.WithLabelValues(cat, "raw", "total").Add(float64(b.rawLen))
-		bytesCounterVec.WithLabelValues(cat, "raw", httpCodeStr).Add(float64(b.rawLen))
+		bytesCounterVec.WithLabelValues(cat, "gzip", "total").Add(float64(len(b.buf())))
+		bytesCounterVec.WithLabelValues(cat, "gzip", httpCodeStr).Add(float64(len(b.buf())))
+		bytesCounterVec.WithLabelValues(cat, "raw", "total").Add(float64(b.rawLen()))
+		bytesCounterVec.WithLabelValues(cat, "raw", httpCodeStr).Add(float64(b.rawLen()))
 
-		if b.npts > 0 {
-			ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts))
-			ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts))
+		if b.npts() > 0 {
+			ptsCounterVec.WithLabelValues(cat, "total").Add(float64(b.npts()))
+			ptsCounterVec.WithLabelValues(cat, httpCodeStr).Add(float64(b.npts()))
 		} else {
-			log.Warnf("npts not set, should not been here")
+			l.Warnf("npts not set, body from %q", b.from)
 		}
 	}()
 
-	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(b.buf))
+	l.Debugf("post %d bytes to %s...", len(b.buf()), requrl)
+	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(b.buf()))
 	if err != nil {
-		log.Error("new request to %s: %s", requrl, err)
+		l.Error("new request to %s: %s", requrl, err)
 		return err
 	}
 
-	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts))
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(b.buf)))
-	req.Header.Set("Content-Type", w.httpEncoding.HTTPContentType())
-	if w.gzip {
+	req.Header.Set("X-Points", fmt.Sprintf("%d", b.npts()))
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(b.buf())))
+	req.Header.Set("Content-Type", b.enc().HTTPContentType())
+	if w.gzip == 1 {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	log.Debugf("set %d endpoint HTTP headers", len(ep.httpHeaders))
 	for k, v := range ep.httpHeaders {
+		l.Debugf("set %s:%s HTTP header comes from endpoint", k, v)
 		req.Header.Set(k, v)
 	}
 
 	// Append extra HTTP headers to request.
 	// Here may attach X-Global-Tags again.
 	for k, v := range w.httpHeaders {
+		l.Debugf("set %s:%s HTTP header comes from writer", k, v)
 		req.Header.Set(k, v)
 	}
 
@@ -390,8 +336,8 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 	}
 
 	if err != nil {
-		log.Errorf("sendReq: request url %s failed(proxy: %s): %s, resp: %v", requrl, ep.proxy, err, resp)
-		return err
+		l.Errorf("sendReq: request url %s failed(proxy: %s): %s, resp: %v", requrl, ep.proxy, err, resp)
+		// do not return here, we need more details about the fail from @resp.
 	}
 
 	if resp == nil {
@@ -401,20 +347,18 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 	defer resp.Body.Close() //nolint:errcheck
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("io.ReadAll: %s", err)
+		l.Errorf("io.ReadAll: %s", err)
 		return err
 	}
 
-	log.Debugf("post %d bytes to %s...", len(b.buf), requrl)
-
 	switch resp.StatusCode / 100 {
 	case 2:
-		log.Debugf("post %d bytes to %s ok(gz: %v)", len(b.buf), requrl, w.gzip)
+		l.Debugf("post %d bytes to %s ok(gz: %v)", len(b.buf()), requrl, w.gzip)
 
 		// Send data ok, it means the error `beyond-usage` error is cleared by kodo server,
 		// we have to clear the hint in monitor too.
 		if strings.Contains(requrl, "/v1/write/") && atomic.LoadInt64(&metrics.BeyondUsage) > 0 {
-			log.Info("clear BeyondUsage")
+			l.Info("clear BeyondUsage")
 			atomic.StoreInt64(&metrics.BeyondUsage, 0)
 		}
 
@@ -422,8 +366,8 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 
 	case 4:
 		strBody := string(body)
-		log.Errorf("post %d to %s failed(HTTP: %s): %s, data dropped",
-			len(b.buf),
+		l.Errorf("post %d to %s failed(HTTP: %s): %s, data dropped",
+			len(b.buf()),
 			requrl,
 			resp.Status,
 			strBody)
@@ -432,7 +376,7 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 		case http.StatusForbidden:
 			if strings.Contains(strBody, "beyondDataUsage") {
 				atomic.AddInt64(&metrics.BeyondUsage, time.Now().Unix()) // will set `beyond-usage' hint in monitor.
-				log.Info("set BeyondUsage")
+				l.Info("set BeyondUsage")
 			}
 		default:
 			// pass
@@ -441,8 +385,8 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 		return errWritePoints4XX
 
 	default: // 5xx
-		log.Errorf("post %d to %s failed(HTTP: %s): %s",
-			len(b.buf),
+		l.Errorf("post %d to %s failed(HTTP: %s): %s",
+			len(b.buf()),
 			requrl,
 			resp.Status,
 			string(body))
@@ -473,7 +417,7 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 
 	resp, err := ep.sendReq(req)
 	if err != nil {
-		log.Errorf("datakitPull: %s", err.Error())
+		l.Errorf("datakitPull: %s", err.Error())
 
 		return nil, err
 	}
@@ -484,7 +428,7 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(err.Error())
+		l.Error(err.Error())
 		return nil, err
 	}
 
@@ -501,7 +445,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 
 	// Generally, the req.GetBody in DK should not be nil, while we do this to avoid accidents.
 	if ep.maxRetryCount > 1 && req.GetBody == nil && req.Body != nil {
-		log.Debugf("setup GetBody() on %q", req.URL.Path)
+		l.Debugf("setup GetBody() on %q", req.URL.Path)
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -524,7 +468,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		maxRetry = DefaultRetryCount
 	}
 
-	log.Debugf("retry %q with delay %s on %d retrying", req.URL.Path, delay, maxRetry)
+	l.Debugf("retry %q with delay %s on %d retrying", req.URL.Path, delay, maxRetry)
 
 	if err := retry.Do(
 		func() error {
@@ -534,14 +478,14 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 				}
 
 				if req.GetBody == nil {
-					log.Debugf("GetBody() not set for request %q, ignored", req.URL.Path)
+					l.Debugf("GetBody() not set for request %q, ignored", req.URL.Path)
 					return
 				}
 
 				if body, ierr := req.GetBody(); ierr == nil {
 					req.Body = body // reset body reader, then we can send the request again.
 				} else {
-					log.Errorf("GetBody() on %q failed: %s", req.URL.Path, ierr)
+					l.Errorf("GetBody() on %q failed: %s", req.URL.Path, ierr)
 				}
 			}()
 
@@ -554,7 +498,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 				// Terminate retry on global exit.
 				select {
 				case <-datakit.Exit.Wait():
-					log.Info("retry abort on global exit")
+					l.Info("retry abort on global exit")
 					return nil
 
 				default: // pass
@@ -570,7 +514,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		retry.Delay(delay),
 
 		retry.OnRetry(func(n uint, err error) {
-			log.Warnf("on %dth retry for %s, error: %s(%s)", n, req.URL, err, reflect.TypeOf(err))
+			l.Warnf("on %dth retry for %s, error: %s(%s)", n, req.URL, err, reflect.TypeOf(err))
 
 			switch {
 			// most of the error is Client.Timeout
@@ -594,7 +538,7 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 }
 
 func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
-	log.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
+	l.Debugf("send request %q, proxy: %q, cli: %p, timeout: %s",
 		req.URL.String(), ep.proxy, ep.httpCli.Transport, ep.httpTimeout)
 
 	var (
@@ -644,17 +588,19 @@ func (ep *endPoint) doSendReq(req *http.Request) (*http.Response, error) {
 				httpCodeStr = "reset-by-pear"
 			case strings.Contains(ue.Error(), "connection refused"):
 				httpCodeStr = "connection-refused"
+			case strings.Contains(ue.Error(), "network is unreachable"):
+				httpCodeStr = "network-is-unreachable"
 			default:
-				log.Warnf("unwrapped URL error: %s", err.Error())
+				l.Warnf("unwrapped URL error: %s", err.Error())
 				httpCodeStr = "unwrapped-url-error"
 			}
 		}
 
-		log.Warnf("Do: %s, error type: %s", err.Error(), reflect.TypeOf(err))
+		l.Warnf("Do: %s, error type: %s", err.Error(), reflect.TypeOf(err))
 
 		return nil, fmt.Errorf("httpCli.Do: %w, resp: %+#v", err, resp)
 	}
-	log.Debugf("%s send req ok", req.URL)
+	l.Debugf("%s send req ok", req.URL)
 
 end:
 	if resp != nil {

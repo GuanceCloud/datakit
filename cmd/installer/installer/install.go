@@ -51,14 +51,14 @@ func Install(svc service.Service, userName string) {
 	mc.DatakitUser = userName
 
 	// prepare dataway info and check token format
-	if len(Dataway) != 0 {
+	if len(DatawayURLs) != 0 {
 		mc.Dataway, err = getDataway()
 		if err != nil {
 			l.Errorf("getDataway failed: %s", err.Error())
 			l.Fatal(err)
 		}
 
-		l.Infof("Set dataway to %s", Dataway)
+		l.Infof("Set dataway to %s", DatawayURLs)
 
 		mc.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(SinkerGlobalCustomerKeys)
 		mc.Dataway.EnableSinker = (EnableSinker != "")

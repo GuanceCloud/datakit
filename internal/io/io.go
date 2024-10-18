@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/failcache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 )
@@ -34,13 +33,8 @@ type dkIO struct {
 	dw      dataway.IDataway
 	filters map[string]filter.FilterConditions
 
-	cacheSizeGB        int
-	cacheCleanInterval time.Duration
-	enableCache,
-	cacheAll bool
-
 	withFilter,
-	withConsumer bool
+	withCompactor bool
 
 	recorder *recorder.Recorder
 
@@ -48,14 +42,9 @@ type dkIO struct {
 	availableCPUs,
 	flushWorkers int
 
-	maxCacheCount int
+	compactAt int
 
-	//////////////////////////
-	// inner fields
-	//////////////////////////
 	fo FeederOutputer
-
-	fcs map[string]failcache.Cache
 
 	lock sync.RWMutex
 }
@@ -75,17 +64,11 @@ func Start(opts ...IOOption) {
 
 func getIO() *dkIO {
 	x := &dkIO{
-		cacheSizeGB:        1 * 1024 * 1024,
-		cacheCleanInterval: 30 * time.Second,
-		enableCache:        false,
-
-		withFilter:   true,
-		withConsumer: true,
+		withFilter:    true,
+		withCompactor: true,
 
 		flushInterval: time.Second * 10,
-		maxCacheCount: 1024,
-
-		fcs: map[string]failcache.Cache{},
+		compactAt:     1024,
 
 		lock: sync.RWMutex{},
 	}
@@ -109,13 +92,13 @@ func (x *dkIO) start() {
 		})
 	}
 
-	if x.withConsumer {
-		fn := func(cat point.Category, n int) {
-			log.Infof("start %d workers on %q", n, cat)
-			g := datakit.G("io/consumer/" + cat.Alias())
+	if x.withCompactor {
+		compactorWorker := func(cat point.Category, n int) {
+			log.Infof("start %dth workers on %q", n, cat)
+			g := datakit.G("io/compactor/" + cat.Alias())
 			for i := 0; i < n; i++ {
 				g.Go(func(_ context.Context) error {
-					x.runConsumer(cat)
+					x.runCompactor(cat)
 					return nil
 				})
 			}
@@ -131,16 +114,17 @@ func (x *dkIO) start() {
 
 			//nolint:exhaustive
 			switch c {
-			case point.Metric,
+			case
+				point.Metric,
 				point.Network,
 				point.Logging,
 				point.Tracing,
 				point.RUM:
-				fn(c, nworker)
+				compactorWorker(c, nworker)
 
 				flushWorkersVec.WithLabelValues(c.String()).Set(float64(nworker))
 			default:
-				fn(c, 1)
+				compactorWorker(c, 1)
 				flushWorkersVec.WithLabelValues(c.String()).Set(1)
 			}
 		}

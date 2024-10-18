@@ -658,6 +658,12 @@ func (info *datakitInfo) compressDir() (string, error) {
 	date := time.Now().UnixMilli()
 	fileName := fmt.Sprintf("info-%d", date)
 	zipPath := fmt.Sprintf("%s.zip", fileName)
+
+	if *flagDebugBugreportTag != "" {
+		fileName = fmt.Sprintf("%s-info-%d", *flagDebugBugreportTag, date)
+		zipPath = fmt.Sprintf("%s.zip", fileName)
+	}
+
 	// Open a file to write the compressed data to
 	zipFile, err := os.Create(filepath.Clean(zipPath))
 	if err != nil {

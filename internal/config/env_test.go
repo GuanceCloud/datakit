@@ -289,7 +289,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.HTTPAPI.RequestRateLimit = 0
+				cfg.HTTPAPI.RequestRateLimit = 20.0
 				return cfg
 			}(),
 		},
@@ -489,13 +489,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.IO.FeedChanSize = 1 // force reset to 1
 				cfg.IO.MaxCacheCount = 8192
 
-				cfg.IO.EnableCache = true
 				cfg.IO.FeedChanSize = 123
-				cfg.IO.CacheSizeGB = 8
-				cfg.IO.FlushInterval = "2s"
-				cfg.IO.FlushWorkers = 1
-				cfg.IO.CacheCleanInterval = "100s"
-				cfg.IO.CacheAll = true
+				cfg.IO.CompactInterval = 2 * time.Second
+				cfg.IO.CompactWorkers = 1
 
 				return cfg
 			}(),
@@ -540,6 +536,22 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 				cfg.Hostname = "testing-env-node1"
+
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-point-pool",
+			envs: map[string]string{
+				"ENV_POINT_POOL_RESERVED_CAPACITY": "12345",
+				"ENV_DISABLE_POINT_POOL":           "yes",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.PointPool.Enable = false
+				cfg.PointPool.ReservedCapacity = 12345
 
 				return cfg
 			}(),

@@ -76,6 +76,12 @@ func (c *DiskCache) doSwitchNextFile() error {
 
 	c.rfd = fd
 
+	if fi, err := c.rfd.Stat(); err != nil {
+		return fmt.Errorf("on rfd.Stat(): %w", err)
+	} else {
+		c.curReadSize = fi.Size()
+	}
+
 	if !c.noPos {
 		c.pos.Name = []byte(c.curReadfile)
 		c.pos.Seek = 0

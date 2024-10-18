@@ -6,12 +6,124 @@
 package dataway
 
 import (
+	"bytes"
+	"compress/gzip"
 	sync "sync"
 
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-var wpool sync.Pool
+var (
+	newBufferBodyPool, reuseBufferBodyPool sync.Pool
+
+	wpool   sync.Pool
+	zippool sync.Pool
+
+	defaultBatchSize = (1 << 20) // 1MB
+)
+
+func getZipper() *gzipWriter {
+	if x := zippool.Get(); x == nil {
+		buf := bytes.Buffer{}
+		return &gzipWriter{
+			buf: &buf,
+			w:   gzip.NewWriter(&buf),
+		}
+	} else {
+		return x.(*gzipWriter)
+	}
+}
+
+func putZipper(z *gzipWriter) {
+	if z != nil {
+		// reset zip buffer and the writer.
+		z.buf.Reset()
+		z.w.Reset(z.buf)
+		zippool.Put(z)
+	}
+}
+
+type bodyOpt func(*body)
+
+func withNewBuffer(n int) bodyOpt {
+	return func(b *body) {
+		if n > 0 && b.sendBuf == nil && b.marshalBuf == nil {
+			b.sendBuf = make([]byte, n)
+
+			// +10% on marshal buffer: we need more bytes for meta-info about the body
+			extra := int(float64(n) * .1)
+			b.marshalBuf = make([]byte, n+extra)
+			b.selfBuffer = 1
+		}
+	}
+}
+
+// withReusableBuffer assign outter buffer that not managed by body instance.
+// if withNewBuffer() and withReusableBuffer() both passed, only 1 applied
+// according to the order of bodyOpts.
+func withReusableBuffer(send, marshal []byte) bodyOpt {
+	return func(b *body) {
+		if len(send) > 0 && len(marshal) > 0 { // sendBuf and marshalBuf should not nil
+			b.sendBuf = send
+			b.marshalBuf = marshal
+			b.selfBuffer = 0 // buffer not comes from new buffer
+		}
+	}
+}
+
+func getNewBufferBody(opts ...bodyOpt) *body {
+	var b *body
+	if x := newBufferBodyPool.Get(); x == nil {
+		b = &body{
+			selfBuffer: 1,
+		}
+	} else {
+		b = x.(*body)
+	}
+
+	for _, opt := range opts {
+		opt(b)
+	}
+
+	if len(b.sendBuf) == 0 || len(b.marshalBuf) == 0 {
+		panic("no buffer set for new-buffer-body")
+	}
+
+	return b
+}
+
+func getReuseBufferBody(opts ...bodyOpt) *body {
+	var b *body
+	if x := reuseBufferBodyPool.Get(); x == nil {
+		b = &body{
+			selfBuffer: 0,
+		}
+	} else {
+		b = x.(*body)
+	}
+
+	for _, opt := range opts {
+		opt(b)
+	}
+
+	if len(b.sendBuf) == 0 || len(b.marshalBuf) == 0 {
+		panic("no buffer set for reuse-buffer-body")
+	}
+
+	return b
+}
+
+func putBody(b *body) {
+	if b != nil {
+		b.reset()
+
+		if b.selfBuffer == 1 {
+			newBufferBodyPool.Put(b)
+		} else {
+			reuseBufferBodyPool.Put(b)
+		}
+	}
+}
 
 func getWriter(opts ...WriteOption) *writer {
 	var w *writer
@@ -19,8 +131,7 @@ func getWriter(opts ...WriteOption) *writer {
 	if x := wpool.Get(); x == nil {
 		w = &writer{
 			httpHeaders:    map[string]string{},
-			batchBytesSize: 1 << 20, // 1MB
-			body:           &body{},
+			batchBytesSize: defaultBatchSize,
 		}
 	} else {
 		w = x.(*writer)
@@ -39,19 +150,12 @@ func putWriter(w *writer) {
 	w.category = point.UnknownCategory
 	w.dynamicURL = ""
 	w.points = w.points[:0]
-	w.gzip = false
+	w.gzip = -1
 	w.cacheClean = false
 	w.cacheAll = false
 	w.batchBytesSize = 1 << 20
 	w.batchSize = 0
-	w.fc = nil
-	w.parts = 0
-	w.body.reset()
-
-	if w.zipper != nil {
-		w.zipper.buf.Reset()
-		w.zipper.w.Reset(w.zipper.buf)
-	}
+	w.bcb = nil
 
 	for k := range w.httpHeaders {
 		delete(w.httpHeaders, k)

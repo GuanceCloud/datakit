@@ -59,12 +59,14 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     配置完成后可以使用 `curl` 命令测试是否配置成功：`sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610){:target="_blank"}。
     
     ### HTTP 请求频率控制 {#set-http-api-limit}
+
+    > [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 已经默认开启该功能。
     
     由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
     
     ```toml
     [http_api]
-      request_rate_limit = 1000.0 # 限制每个 HTTP API 每秒只接收 1000 次请求
+      request_rate_limit = 20.0 # 限制每个客户端（IP + API 路由）发起请求的 QPS 限制
     ```
 
     ### 其它设置 {#http-other-settings}
@@ -315,6 +317,57 @@ Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
     - v2 即 Protobuf 协议，相比 v1，它各方面的性能都更优越。运行稳定后，后续将默认采用 v2
 
 Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-dataway)。
+
+#### WAL 队列配置 {#dataway-wal}
+
+[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
+
+在 `[dataway.wal]` 中，我们可以调整 WAL 队列的配置：
+
+```toml
+  [dataway.wal]
+     max_capacity_gb = 2.0             # 2GB reserved disk space for each category(M/L/O/T/...)
+     workers = 0                       # flush workers on WAL(default to CPU limited cores)
+     mem_cap = 0                       # in-memory queue capacity(default to CPU limited cores)
+     fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
+```
+
+磁盘文件位于 Datakit 安装目录的 *data/dw-wal* 目录下：
+
+```shell
+/usr/local/datakit/data/dw-wal/
+├── custom_object
+│   └── data
+├── dialtesting
+│   └── data
+├── dynamic_dw
+│   └── data
+├── fc
+│   └── data
+├── keyevent
+│   └── data
+├── logging
+│   ├── data
+│   └── data.00000000000000000000000000000000
+├── metric
+│   └── data
+├── network
+│   └── data
+├── object
+│   └── data
+├── profiling
+│   └── data
+├── rum
+│   └── data
+├── security
+│   └── data
+└── tracing
+    └── data
+
+13 directories, 14 files
+```
+
+此处，除了 *fc* 是失败重传队列，其它目录分别对应一种数据类型。
 
 ### Sinker 配置 {#dataway-sink}
 

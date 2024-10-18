@@ -242,15 +242,16 @@ func (c *Config) loadPipelineEnvs() {
 }
 
 func (c *Config) loadPointPoolEnvs() {
-	if v := datakit.GetEnv("ENV_ENABLE_POINT_POOL"); v != "" {
-		c.PointPool.Enable = true
+	if v := datakit.GetEnv("ENV_DISABLE_POINT_POOL"); v != "" {
+		l.Warn("point pool disabled, this may cost too many memory")
+		c.PointPool.Enable = false
+	}
 
-		if v := datakit.GetEnv("ENV_POINT_POOL_RESERVED_CAPACITY"); v != "" {
-			if i, err := strconv.ParseInt(v, 10, 64); err == nil {
-				c.PointPool.ReservedCapacity = i
-			} else {
-				l.Warnf("invalid ENV_POINT_POOL_RESERVED_CAPACITY: %s, use default %d", v, c.PointPool.ReservedCapacity)
-			}
+	if v := datakit.GetEnv("ENV_POINT_POOL_RESERVED_CAPACITY"); v != "" {
+		if i, err := strconv.ParseInt(v, 10, 64); err == nil {
+			c.PointPool.ReservedCapacity = i
+		} else {
+			l.Warnf("invalid ENV_POINT_POOL_RESERVED_CAPACITY: %s, use default %d", v, c.PointPool.ReservedCapacity)
 		}
 	}
 }
@@ -402,6 +403,47 @@ func (c *Config) loadDatawayEnvs() {
 			}
 		}
 	}
+
+	// WAL
+	if c.Dataway.WAL != nil {
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_CAPACITY"); v != "" {
+			if x, err := strconv.ParseFloat(v, 64); err != nil {
+				l.Warnf("invalid ENV_DATAWAY_WAL_CAPACITY, expect int or float, got %s, ignored", v)
+			} else {
+				c.Dataway.WAL.MaxCapacityGB = x
+			}
+		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_WORKERS"); v != "" {
+			if x, err := strconv.ParseInt(v, 10, 64); err != nil {
+				l.Warnf("invalid ENV_DATAWAY_WAL_WORKERS, expect int, got %s, ignored", v)
+			} else {
+				c.Dataway.WAL.Workers = int(x)
+			}
+		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_MEM_CAPACITY"); v != "" {
+			if x, err := strconv.ParseInt(v, 10, 64); err != nil {
+				l.Warnf("invalid ENV_DATAWAY_WAL_MEM_CAPACITY, expect int, got %s, ignored", v)
+			} else {
+				c.Dataway.WAL.MemCap = int(x)
+			}
+		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_PATH"); v != "" {
+			c.Dataway.WAL.Path = v
+		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_FAIL_CACHE_CLEAN_INTERVAL"); v != "" {
+			if x, err := time.ParseDuration(v); err != nil {
+				l.Warnf("invalid ENV_DATAWAY_WAL_FAIL_CACHE_CLEAN_INTERVAL, expect duration, got %s, ignored", v)
+			} else {
+				c.Dataway.WAL.FailCacheCleanInterval = x
+			}
+		}
+	} else {
+		l.Errorf("WAL not set, should not been here")
+	}
 }
 
 func (c *Config) loadElectionEnvs() {
@@ -488,23 +530,13 @@ func (c *Config) loadIOEnvs() {
 		}
 	}
 
-	if v := datakit.GetEnv("ENV_IO_ENABLE_CACHE"); v != "" {
-		l.Info("ENV_IO_ENABLE_CACHE enabled")
-		c.IO.EnableCache = true
-	}
-
-	if v := datakit.GetEnv("ENV_IO_CACHE_ALL"); v != "" {
-		l.Info("ENV_IO_CACHE_ALL enabled")
-		c.IO.CacheAll = true
-	}
-
-	if v := datakit.GetEnv("ENV_IO_CACHE_MAX_SIZE_GB"); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
+	if v := datakit.GetEnv("ENV_IO_FLUSH_WORKERS"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			l.Warnf("invalid env key ENV_IO_CACHE_MAX_SIZE_GB, value %s, err: %s ignored", v, err)
+			l.Warnf("invalid env key ENV_IO_FLUSH_WORKERS, value %s, err: %s ignored", v, err)
 		} else {
-			l.Infof("set ENV_IO_CACHE_MAX_SIZE_GB to %d", val)
-			c.IO.CacheSizeGB = int(val)
+			l.Infof("set ENV_IO_FLUSH_WORKERS to %d", n)
+			c.IO.CompactWorkers = int(n)
 		}
 	}
 
@@ -514,17 +546,7 @@ func (c *Config) loadIOEnvs() {
 			l.Warnf("invalid env key ENV_IO_FLUSH_INTERVAL, value %s, err: %s ignored", v, err)
 		} else {
 			l.Infof("set ENV_IO_FLUSH_INTERVAL to %s", du)
-			c.IO.FlushInterval = v
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_IO_FLUSH_WORKERS"); v != "" {
-		n, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			l.Warnf("invalid env key ENV_IO_FLUSH_WORKERS, value %s, err: %s ignored", v, err)
-		} else {
-			l.Infof("set ENV_IO_FLUSH_WORKERS to %d", n)
-			c.IO.FlushWorkers = int(n)
+			c.IO.CompactInterval = du
 		}
 	}
 
@@ -535,16 +557,6 @@ func (c *Config) loadIOEnvs() {
 		} else {
 			l.Infof("set ENV_IO_FEED_CHAN_SIZE to %d", n)
 			c.IO.FeedChanSize = int(n)
-		}
-	}
-
-	if v := datakit.GetEnv("ENV_IO_CACHE_CLEAN_INTERVAL"); v != "" {
-		du, err := time.ParseDuration(v)
-		if err != nil {
-			l.Warnf("invalid env key ENV_IO_CACHE_CLEAN_INTERVAL, value %s, err: %s ignored", v, err)
-		} else {
-			l.Infof("set ENV_IO_CACHE_CLEAN_INTERVAL to %s", du)
-			c.IO.CacheCleanInterval = v
 		}
 	}
 

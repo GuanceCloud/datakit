@@ -48,6 +48,9 @@ func defaultInstance() *DiskCache {
 	return &DiskCache{
 		noSync: false,
 
+		streamBuf:   make([]byte, 4*1024),
+		batchHeader: make([]byte, dataHeaderLen),
+
 		batchSize:   20 * 1024 * 1024,
 		maxDataSize: 0, // not set
 
@@ -129,9 +132,9 @@ func (c *DiskCache) doOpen() error {
 			switch filepath.Base(path) {
 			case ".lock", ".pos": // ignore them
 			case "data": // count on size
-				c.size += fi.Size()
+				c.size.Add(fi.Size())
 			default:
-				c.size += fi.Size()
+				c.size.Add(fi.Size())
 				c.dataFiles = append(c.dataFiles, path)
 			}
 

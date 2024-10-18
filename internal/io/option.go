@@ -6,12 +6,8 @@
 package io
 
 import (
-	"path/filepath"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/diskcache"
-	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
@@ -40,10 +36,10 @@ func WithRecorder(r *recorder.Recorder) IOOption {
 	}
 }
 
-// WithConsumer disble consumer on IO feed.
-func WithConsumer(on bool) IOOption {
+// WithCompactor disble consumer on IO feed.
+func WithCompactor(on bool) IOOption {
 	return func(x *dkIO) {
-		x.withConsumer = on
+		x.withCompactor = on
 	}
 }
 
@@ -70,64 +66,8 @@ func WithFilters(filters map[string]filter.FilterConditions) IOOption {
 	}
 }
 
-// WithDiskCacheCleanInterval used to control clean(retry-on-failed-data)
-// interval of disk cache.
-func WithDiskCacheCleanInterval(du time.Duration) IOOption {
-	return func(x *dkIO) {
-		if int64(du) > 0 {
-			x.cacheCleanInterval = du
-		}
-	}
-}
-
-// WithDiskCacheSize used to set max disk cache(in GB bytes).
-func WithDiskCacheSize(gb int) IOOption {
-	return func(x *dkIO) {
-		if gb > 0 {
-			x.cacheSizeGB = gb
-		}
-	}
-}
-
-// WithCacheAll will cache all categories.
-// By default, metric(M), object(CO/O) and dial-testing data point not cached.
-func WithCacheAll(on bool) IOOption {
-	return func(x *dkIO) {
-		x.cacheAll = on
-	}
-}
-
-// WithDiskCache used to set/unset disk cache on failed data.
-func WithDiskCache(on bool) IOOption {
-	return func(x *dkIO) {
-		x.enableCache = on
-		if !on {
-			log.Infof("io diskcache not set")
-			return
-		}
-
-		for _, c := range point.AllCategories() {
-			p := filepath.Join(datakit.CacheDir, c.String())
-			capacity := int64(x.cacheSizeGB * 1024 * 1024 * 1024)
-
-			cache, err := diskcache.Open(
-				diskcache.WithPath(p),
-				diskcache.WithCapacity(capacity),
-				diskcache.WithWakeup(30*time.Second), // to disable generate too many files under cache
-			)
-			if err != nil {
-				log.Warnf("NewWALCache to %s with capacity %d: %s", p, capacity, err.Error())
-				continue
-			} else {
-				log.Infof("diskcache.New ok on category %q on path %q, cap %d", c.String(), p, capacity)
-				x.fcs[c.String()] = cache
-			}
-		}
-	}
-}
-
-// WithFlushWorkers set IO flush workers.
-func WithFlushWorkers(n int) IOOption {
+// WithCompactWorkers set IO flush workers.
+func WithCompactWorkers(n int) IOOption {
 	return func(x *dkIO) {
 		if n > 0 {
 			x.flushWorkers = n
@@ -135,8 +75,8 @@ func WithFlushWorkers(n int) IOOption {
 	}
 }
 
-// WithFlushInterval used to contol when to flush cached data.
-func WithFlushInterval(d time.Duration) IOOption {
+// WithCompactInterval used to contol when to flush cached data.
+func WithCompactInterval(d time.Duration) IOOption {
 	return func(x *dkIO) {
 		if int64(d) > 0 {
 			x.flushInterval = d
@@ -144,13 +84,13 @@ func WithFlushInterval(d time.Duration) IOOption {
 	}
 }
 
-// WithMaxCacheCount used to set max cache size.
+// WithCompactAt used to set max cache size.
 // The count used to control when to send the cached data.
-func WithMaxCacheCount(count int) IOOption {
+func WithCompactAt(count int) IOOption {
 	return func(x *dkIO) {
 		if count > 0 {
 			log.Debugf("set max cache count to %d", count)
-			x.maxCacheCount = count
+			x.compactAt = count
 		}
 	}
 }
