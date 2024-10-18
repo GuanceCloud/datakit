@@ -7,8 +7,11 @@ package httpapi
 
 import (
 	"bytes"
+	"compress/flate"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +20,10 @@ import (
 	"testing"
 	T "testing"
 	"time"
+
+	"github.com/GuanceCloud/cliutils"
+	"github.com/andybalholm/brotli"
+	"github.com/klauspost/compress/zstd"
 
 	lp "github.com/GuanceCloud/cliutils/lineproto"
 	"github.com/GuanceCloud/cliutils/metrics"
@@ -29,7 +36,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -91,6 +99,88 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func BenchmarkDecodeBody(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	body := []byte(data)
+	// encode body, include gzip, deflate, br, zstd
+	b.Run("gzip", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "gzip")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBody(encodeBody, "gzip"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("deflate", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "deflate")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBody(encodeBody, "deflate"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("br", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "br")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBody(encodeBody, "br"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("zstd", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "zstd")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBody(encodeBody, "zstd"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkDecodeBodyNoPool(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	body := []byte(data)
+	// encode body, include gzip, deflate, br, zstd
+	b.Run("gzip", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "gzip")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBodyNoPool(encodeBody, "gzip"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("deflate", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "deflate")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBodyNoPool(encodeBody, "deflate"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("br", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "br")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBodyNoPool(encodeBody, "br"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("zstd", func(b *T.B) {
+		encodeBody, _ := encodeBody(body, "zstd")
+		for n := 0; n < b.N; n++ {
+			if _, err := decodeBodyNoPool(encodeBody, "zstd"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
 
 func TestHandleBody(t *testing.T) {
@@ -383,7 +473,7 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) Feed(cat point.Category, _ []*point.Point, opts []io.FeedOption) error {
+func (x *apiWriteMock) Feed(cat point.Category, _ []*point.Point, opts []dkio.FeedOption) error {
 	x.t.Helper()
 	x.t.Log("mock feed impl")
 
@@ -411,12 +501,12 @@ func TestAPIWrite(t *testing.T) {
 	time.Sleep(time.Second)
 
 	cases := []struct {
-		name, method, url string
-		body              []byte
-		expectBody        interface{}
-		expectStatusCode  int
-		contentType       string
-
+		name, method, url             string
+		body                          []byte
+		expectBody                    interface{}
+		expectStatusCode              int
+		contentType                   string
+		encodeType                    string
 		globalHostTags, globalEnvTags map[string]string
 
 		fail bool
@@ -486,6 +576,108 @@ func TestAPIWrite(t *testing.T) {
 					Time: 123000000000,
 				},
 			},
+		},
+
+		//--------------------------------------------
+		// decompress cases
+		//--------------------------------------------
+		{
+			name:             `write-json-with-precision-gzip`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			encodeType:       "gzip",
+			expectStatusCode: 200,
+			expectBody: []*point.JSONPoint{
+				{
+					Measurement: "abc",
+					Tags: map[string]string{
+						"t1": "xxx",
+					},
+					Fields: map[string]interface{}{
+						"f1": 1.0,
+					},
+					Time: 123000000000,
+				},
+			},
+		},
+
+		{
+			name:             `write-json-with-precision-deflate`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			encodeType:       "deflate",
+			expectStatusCode: 200,
+			expectBody: []*point.JSONPoint{
+				{
+					Measurement: "abc",
+					Tags: map[string]string{
+						"t1": "xxx",
+					},
+					Fields: map[string]interface{}{
+						"f1": 1.0,
+					},
+					Time: 123000000000,
+				},
+			},
+		},
+
+		{
+			name:             `write-json-with-precision-br`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			encodeType:       "br",
+			expectStatusCode: 200,
+			expectBody: []*point.JSONPoint{
+				{
+					Measurement: "abc",
+					Tags: map[string]string{
+						"t1": "xxx",
+					},
+					Fields: map[string]interface{}{
+						"f1": 1.0,
+					},
+					Time: 123000000000,
+				},
+			},
+		},
+
+		{
+			name:             `write-json-with-precision-zstd`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			encodeType:       "zstd",
+			expectStatusCode: 200,
+			expectBody: []*point.JSONPoint{
+				{
+					Measurement: "abc",
+					Tags: map[string]string{
+						"t1": "xxx",
+					},
+					Fields: map[string]interface{}{
+						"f1": 1.0,
+					},
+					Time: 123000000000,
+				},
+			},
+		},
+
+		{
+			name:             `write-json-with-precision-wrong-encoding`,
+			method:           "POST",
+			url:              "/v1/write/metric?echo_json=1&precision=s",
+			body:             []byte(`[{"measurement":"abc", "tags": {"t1": "xxx"}, "fields":{"f1": 1.0}, "time":123}]`),
+			contentType:      "application/json",
+			encodeType:       "zip",
+			expectStatusCode: 400,
+			expectBody:       ErrDecodeBody,
 		},
 
 		{
@@ -820,12 +1012,31 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 
 			var resp *http.Response
 			var err error
+
 			switch tc.method {
 			case "POST":
+				url := fmt.Sprintf("%s%s", ts.URL, tc.url)
+				// encode body
+				if tc.encodeType != "" {
+					tc.body, err = encodeBody(tc.body, tc.encodeType)
+					if err != nil {
+						_ = fmt.Errorf("encodeRequest err: %w", err)
+					}
+				}
+				httpRequest, err := http.NewRequest("POST", url, bytes.NewBuffer(tc.body))
+				if err != nil {
+					t.Errorf("http.NewRequest: %s", err)
+				}
 
-				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url),
-					tc.contentType,
-					bytes.NewBuffer(tc.body))
+				httpRequest.Header.Set("Content-Type", tc.contentType)
+				// Content-Encoding
+				if tc.encodeType != "" {
+					httpRequest.Header.Set("Content-Encoding", tc.encodeType)
+				}
+
+				client := http.Client{}
+				resp, err = client.Do(httpRequest)
+
 				require.NoError(t, err)
 			default: //
 				t.Error("TODO")
@@ -878,6 +1089,56 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 			assert.Equal(t, tc.expectStatusCode, resp.StatusCode)
 		})
 	}
+}
+
+func encodeBody(body []byte, encodeType string) ([]byte, error) {
+	encoders := map[string]func([]byte) ([]byte, error){
+		"gzip":    dkzip.GZip,
+		"deflate": dkzip.DeflateZip,
+		"br":      dkzip.BrotliZip,
+		"zstd":    dkzip.ZstdZip,
+	}
+
+	if encodeFunc, exists := encoders[encodeType]; exists {
+		return encodeFunc(body)
+	}
+
+	return body, fmt.Errorf("unsupported encoding: %s", encodeType)
+}
+
+func decodeBodyNoPool(body []byte, contentEncoding string) ([]byte, error) {
+	var (
+		requestBody = bytes.NewReader(body)
+		reader      io.ReadCloser
+		err         error
+	)
+
+	switch contentEncoding {
+	case "gzip":
+		reader, err = gzip.NewReader(requestBody)
+	case "deflate":
+		reader = flate.NewReader(requestBody)
+	case "br":
+		reader = io.NopCloser(brotli.NewReader(requestBody))
+	case "zstd":
+		var zstdDecoder *zstd.Decoder
+		zstdDecoder, err = zstd.NewReader(requestBody)
+		reader = io.NopCloser(zstdDecoder)
+	default:
+		return nil, ErrDecodeBody
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close() //nolint:errcheck
+
+	decodedBody, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedBody, nil
 }
 
 // go test -v -timeout 30s -run ^Test_getTimeFromInt64$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi

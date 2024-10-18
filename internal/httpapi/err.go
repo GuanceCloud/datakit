@@ -22,6 +22,7 @@ var (
 	ErrInvalidPipeline = newErr(errors.New("invalid pipeline"), http.StatusBadRequest)
 	ErrInvalidData     = newErr(errors.New("invalid data"), http.StatusBadRequest)
 	ErrCompiledFailed  = newErr(errors.New("pipeline compile failed"), http.StatusBadRequest)
+	ErrDecodeBody      = newErr(errors.New("decode body failed"), http.StatusBadRequest)
 
 	ErrInvalidPrecision       = newErr(errors.New("invalid precision"), http.StatusBadRequest)
 	ErrHTTPReadErr            = newErr(errors.New("HTTP read error"), http.StatusInternalServerError)

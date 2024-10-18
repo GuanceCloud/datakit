@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
-	"github.com/GuanceCloud/cliutils/point"
-
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
@@ -41,7 +41,7 @@ const (
 	DefaultPrecision = "n"
 )
 
-func apiWrite(_ http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
+func apiWrite(c http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
 	if x == nil || len(x) != 1 {
 		l.Errorf("invalid handler")
 		return nil, ErrInvalidAPIHandler
@@ -277,6 +277,7 @@ const (
 	argVersion        = "version"
 	argPipelineSource = "source"
 	argStrict         = "strict"
+	argEncoding       = "encoding"
 )
 
 // APIV1Write handle API /v1/write/:category.
@@ -388,6 +389,15 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		return ErrEmptyBody
 	}
 
+	var decodeType string
+	if decodeType = q.Get(argEncoding); decodeType == "" {
+		decodeType = req.Header.Get("Content-Encoding")
+	}
+	if body, err = decodeBody(body, decodeType); err != nil {
+		l.Debugf("decodeBody failed: %s", err.Error())
+		return ErrDecodeBody
+	}
+
 	if pts, err = HandleWriteBody(body, cntTyp, opts...); err != nil {
 		if errors.Is(err, point.ErrInvalidLineProtocol) {
 			return uhttp.Errorf(ErrInvalidLinePoint, "%s: body(%d bytes)", err.Error(), len(body))
@@ -427,12 +437,30 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	}
 
 	wr.RespBody = getEchoOption(pts, q)
-
 	if x := q.Get(argDryRun); x == "" {
 		wr.Points = pts
 	}
 
 	return nil
+}
+
+func decodeBody(body []byte, decodeType string) ([]byte, error) {
+	if decodeType == "" {
+		return body, nil
+	}
+
+	decoders := map[string]func([]byte) ([]byte, error){
+		"gzip":    dkzip.UnGZip,
+		"deflate": dkzip.UnDeflateZip,
+		"br":      dkzip.UnBrotliZip,
+		"zstd":    dkzip.UnZstdZip,
+	}
+
+	if decodeFunc, exists := decoders[decodeType]; exists {
+		return decodeFunc(body)
+	}
+
+	return nil, uhttp.Errorf(ErrDecodeBody, "unsupported content-encoding: %s", decodeType)
 }
 
 func getEchoOption(pts []*point.Point, q url.Values) []byte {
