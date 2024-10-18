@@ -41,7 +41,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 默认值：-
 - 说明：可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
 
-**`encoding`** [:octicons-tag-24: Version-1.40.0](changelog.md#cl-1.40.0)
+**`encoding`** [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
 
 - 类型：string
 - 是否必选：N
