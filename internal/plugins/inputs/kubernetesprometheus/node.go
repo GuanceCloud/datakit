@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	infov1 "k8s.io/client-go/informers/core/v1"
@@ -109,22 +109,21 @@ func (n *Node) process(ctx context.Context) bool {
 		return true
 	}
 
+	if shouldSkipNode(node) {
+		return true
+	}
+
 	if n.scrape.matchesKey(key, nodeFeature(node)) {
 		return true
 	}
 
-	klog.Infof("found node %s", key)
-
+	klog.Infof("found new node %s", key)
 	n.terminateScrape(key)
 	n.startScrape(ctx, key, node)
 	return true
 }
 
 func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
-	if shouldSkipNode(item) {
-		return
-	}
-
 	feature := nodeFeature(item)
 	checkPausedFunc := func() bool {
 		return checkPaused(ctx, false /* not use election */)
@@ -154,8 +153,8 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 
 		opts := buildPromOptions(
 			RoleNode, key, n.feeder,
-			iprom.WithMeasurementName(cfg.measurement),
-			iprom.WithTags(cfg.tags))
+			promscrape.WithMeasurement(cfg.measurement),
+			promscrape.WithExtraTags(cfg.tags))
 
 		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
 			klog.Warnf("node %s has unexpected tls config %ss", key, err)

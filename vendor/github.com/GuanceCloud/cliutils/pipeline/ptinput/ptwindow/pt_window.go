@@ -22,8 +22,6 @@ type PtRing struct {
 	ring []*point.Point
 	pos  int
 
-	notNil int
-
 	elemLimit int
 }
 
@@ -31,23 +29,16 @@ func (w *PtRing) put(pt *point.Point) {
 	if w.pos >= len(w.ring) {
 		w.pos = 0
 	}
-	if w.ring[w.pos] != nil {
-		PutbackPoints(pt)
-	}
 
-	w.ring[w.pos] = pt
-	if pt != nil {
-		w.notNil++
+	if w.ring[w.pos] != nil {
+		PutbackPoints(w.ring[w.pos])
 	}
+	w.ring[w.pos] = pt
+
 	w.pos++
 }
 
 func (w *PtRing) clean() []*point.Point {
-	if w.notNil == 0 {
-		return nil
-	}
-
-	w.notNil = 0
 	var r []*point.Point
 
 	for i := 0; i < len(w.ring); i++ {

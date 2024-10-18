@@ -118,7 +118,11 @@ func (s *scrapeManager) doWork(ctx context.Context, name string) {
 			if !ok {
 				return
 			}
-			tasks = append(tasks, sp)
+			if len(tasks) >= 100 {
+				klog.Warnf("%s scrape is over limit", s.role)
+			} else {
+				tasks = append(tasks, sp)
+			}
 
 		case <-tick.C:
 			// next
@@ -133,6 +137,7 @@ func (s *scrapeManager) doWork(ctx context.Context, name string) {
 			if task.shouldScrape() {
 				if err := task.scrape(); err != nil {
 					klog.Warnf("failed to scrape url %s, err %s", task.targetURL(), err)
+					removeIndex = append(removeIndex, idx)
 				}
 			}
 		}

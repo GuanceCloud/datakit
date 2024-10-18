@@ -6,19 +6,21 @@
 package kubernetesprometheus
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 )
 
 type promScraper struct {
-	role, key string
-	urlstr    string
-	pm        *iprom.Prom
+	role, key      string
+	urlstr, remote string
+	pm             *promscrape.PromScraper
 
 	checkPaused func() bool
 	terminated  atomic.Bool
@@ -33,7 +35,7 @@ func newPromScraper(
 	urlstr string,
 	interval time.Duration,
 	checkPaused func() bool,
-	opts []iprom.PromOption,
+	opts []promscrape.Option,
 ) (*promScraper, error) {
 	var err error
 	p := promScraper{
@@ -44,7 +46,12 @@ func newPromScraper(
 		interval:    interval,
 	}
 
-	p.pm, err = iprom.NewProm(opts...)
+	u, err := url.Parse(urlstr)
+	if err == nil {
+		p.remote = fmt.Sprintf(":%s%s", u.Port(), u.Path)
+	}
+
+	p.pm, err = promscrape.NewPromScraper(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +80,12 @@ func (p *promScraper) shouldScrape() bool {
 
 func (p *promScraper) scrape() error {
 	p.lastTime = time.Now()
-	_, err := p.pm.CollectFromHTTPV2(p.urlstr)
-	scrapeTargetCost.WithLabelValues(p.role, p.key, p.urlstr).Observe(float64(time.Since(p.lastTime)) / float64(time.Second))
+	err := p.pm.ScrapeURL(p.urlstr)
+	scrapeTargetCost.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(p.lastTime)) / float64(time.Second))
 	return err
 }
 
-func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.PromOption) []iprom.PromOption {
+func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
 	name := string(role) + "/" + key
 
 	callbackFn := func(pts []*point.Point) error {
@@ -100,34 +107,34 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...iprom.P
 		return nil
 	}
 
-	res := []iprom.PromOption{
-		iprom.WithLogger(klog), // WithLogger must in the first
-		iprom.WithSource(name),
-		iprom.WithMaxBatchCallback(1, callbackFn),
+	res := []promscrape.Option{
+		// promscrape.WithLogger(klog), // WithLogger must in the first
+		promscrape.WithSource(name),
+		promscrape.WithCallback(callbackFn),
 	}
 	res = append(res, opts...)
 	return res
 }
 
-func buildPromOptionsWithAuth(auth *Auth) ([]iprom.PromOption, error) {
-	var opts []iprom.PromOption
+func buildPromOptionsWithAuth(auth *Auth) ([]promscrape.Option, error) {
+	var opts []promscrape.Option
 
 	if auth.BearerTokenFile != "" {
 		token, err := os.ReadFile(auth.BearerTokenFile)
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, iprom.WithBearerToken(string(token)))
+		opts = append(opts, promscrape.WithBearerToken(string(token)))
 	}
 
 	if auth.TLSConfig != nil {
 		opts = append(
 			opts,
-			iprom.WithTLSOpen(true),
-			iprom.WithCacertFiles(auth.TLSConfig.CaCerts),
-			iprom.WithCertFile(auth.TLSConfig.Cert),
-			iprom.WithKeyFile(auth.TLSConfig.CertKey),
-			iprom.WithInsecureSkipVerify(auth.TLSConfig.InsecureSkipVerify),
+			promscrape.WithTLSOpen(true),
+			promscrape.WithCacertFiles(auth.TLSConfig.CaCerts),
+			promscrape.WithCertFile(auth.TLSConfig.Cert),
+			promscrape.WithKeyFile(auth.TLSConfig.CertKey),
+			promscrape.WithInsecureSkipVerify(auth.TLSConfig.InsecureSkipVerify),
 		)
 	}
 

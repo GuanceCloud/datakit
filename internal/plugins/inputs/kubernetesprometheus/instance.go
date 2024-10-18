@@ -259,3 +259,13 @@ func checkPaused(ctx context.Context, election bool) bool {
 	paused, exists := pauseFrom(ctx)
 	return exists && paused
 }
+
+func matchInstanceOrHost(str, host string) (bool, string) {
+	switch str {
+	case MateInstanceTag:
+		return true, host
+	case MateHostTag:
+		return true, splitHost(host)
+	}
+	return false, str
+}

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	infov1 "k8s.io/client-go/informers/core/v1"
@@ -106,22 +106,21 @@ func (e *Endpoints) process(ctx context.Context) bool {
 		return true
 	}
 
+	if shouldSkipEndpoints(ep) {
+		return true
+	}
+
 	if e.scrape.matchesKey(key, endpointsFeature(ep)) {
 		return true
 	}
 
-	klog.Infof("found endpoints %s", key)
-
+	klog.Infof("found new endpoints %s", key)
 	e.terminateScrape(key)
 	e.startScrape(ctx, key, ep)
 	return true
 }
 
 func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.Endpoints) {
-	if shouldSkipEndpoints(item) {
-		return
-	}
-
 	nodeName, nodeNameExists := nodeNameFrom(ctx)
 	feature := endpointsFeature(item)
 
@@ -152,8 +151,8 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 
 			opts := buildPromOptions(
 				RoleEndpoints, key, e.feeder,
-				iprom.WithMeasurementName(cfg.measurement),
-				iprom.WithTags(cfg.tags))
+				promscrape.WithMeasurement(cfg.measurement),
+				promscrape.WithExtraTags(cfg.tags))
 
 			if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
 				klog.Warnf("endpoints %s has unexpected tls config %s", key, err)

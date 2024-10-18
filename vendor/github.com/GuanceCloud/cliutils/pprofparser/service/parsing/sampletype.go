@@ -1,7 +1,13 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package parsing
 
 import (
 	"fmt"
+
 	"github.com/GuanceCloud/cliutils/pprofparser/domain/events"
 	"github.com/GuanceCloud/cliutils/pprofparser/domain/languages"
 )
@@ -43,8 +49,8 @@ type fileSampleTypesMap map[string]map[string]events.Type
 
 var pyPprofTypeMaps = fileSampleTypesMap{
 	"prof|auto|*.pprof": {
-		//		"cpu-samples":       events.CpuSamples,
-		"cpu-time":          events.CpuTime,
+		//		"cpu-samples":       events.CPUSamples,
+		"cpu-time":          events.CPUTime,
 		"wall-time":         events.WallTime,
 		"exception-samples": events.ThrownExceptions,
 		"lock-acquire":      events.LockAcquires,
@@ -58,7 +64,7 @@ var pyPprofTypeMaps = fileSampleTypesMap{
 }
 var dotnetPProfEventMaps = fileSampleTypesMap{
 	"prof|auto|*.pprof": {
-		"cpu":           events.CpuTime,
+		"cpu":           events.CPUTime,
 		"exception":     events.ThrownExceptions,
 		"alloc-samples": events.Allocations,
 		"alloc-size":    events.AllocatedMemory,
@@ -72,8 +78,8 @@ var dotnetPProfEventMaps = fileSampleTypesMap{
 
 var phpEventMaps = fileSampleTypesMap{
 	"prof|auto|*.pprof": {
-		"cpu-time":      events.CpuTime,
-		"sample":        events.CpuSamples,
+		"cpu-time":      events.CPUTime,
+		"sample":        events.CPUSamples,
 		"wall-time":     events.WallTime,
 		"alloc-samples": events.Allocations,
 		"alloc-size":    events.AllocatedMemory,
@@ -82,7 +88,7 @@ var phpEventMaps = fileSampleTypesMap{
 
 var nodejsEventMaps = fileSampleTypesMap{
 	"cpu.pprof": {
-		"": events.CpuSamples,
+		"": events.CPUSamples,
 	},
 
 	"inuse_objects.pprof": {
@@ -96,7 +102,7 @@ var nodejsEventMaps = fileSampleTypesMap{
 
 var goPprofTypeMaps = fileSampleTypesMap{
 	"cpu.pprof|*cpu.pprof*": {
-		"cpu": events.CpuTime,
+		"cpu": events.CPUTime,
 	},
 	"delta-heap.pprof|*delta-heap.pprof*": {
 		"alloc_objects": events.Allocations,

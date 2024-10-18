@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package parsing is the core pprof parsing package.
 package parsing
 
 import (
@@ -304,14 +310,14 @@ func (p *PProf) Summary() (map[events.Type]*EventSummary, int64, error) {
 			// 需要进行span过滤
 			if p.filterBySpan {
 				spanID := parsetoolkit.GetStringLabel(sample, LabelSpanID)
-				rootSpanId := parsetoolkit.GetStringLabel(sample, LabelLocalRootSpanID)
+				rootSpanID := parsetoolkit.GetStringLabel(sample, LabelLocalRootSpanID)
 				// 没有spanID的数据去掉
 				if spanID == "" {
 					continue
 				}
 				if p.spanIDSet != nil {
 					if p.spanIDSet == tracing.AllTraceSpanSet {
-						if rootSpanId != p.span.SpanID {
+						if rootSpanID != p.span.SpanID {
 							continue
 						}
 					} else if !p.spanIDSet.Contains(spanID) {
@@ -352,7 +358,7 @@ func parseAndClose(r io.Reader) (*profile.Profile, error) {
 	}
 
 	if closable, ok := r.(io.Closer); ok {
-		defer closable.Close()
+		defer closable.Close() // nolint:errcheck
 	}
 
 	goPprof, err := profile.Parse(r)
@@ -428,12 +434,12 @@ func (p *PProf) ResolveFlameGraph(eventType events.Type) (*pprof.Frame, Aggregat
 		// span 过滤，必须有spanID的才显示
 		if p.filterBySpan {
 			spanID := parsetoolkit.GetStringLabel(smp, LabelSpanID)
-			rootSpanId := parsetoolkit.GetStringLabel(smp, LabelLocalRootSpanID)
+			rootSpanID := parsetoolkit.GetStringLabel(smp, LabelLocalRootSpanID)
 			if spanID == "" {
 				continue
 			}
 			if p.spanIDSet == tracing.AllTraceSpanSet {
-				if rootSpanId != p.span.SpanID {
+				if rootSpanID != p.span.SpanID {
 					continue
 				}
 			} else if p.spanIDSet != nil {

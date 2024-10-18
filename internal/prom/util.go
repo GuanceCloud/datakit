@@ -418,6 +418,14 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 	return pts, nil
 }
 
+func (p *Prom) getMode() string {
+	if p.opt.streamSize > 0 {
+		return "stream"
+	} else {
+		return "no_stream"
+	}
+}
+
 func getValue(m *dto.Metric, metricType dto.MetricType) float64 {
 	switch metricType { //nolint:exhaustive
 	case dto.MetricType_GAUGE:
@@ -437,12 +445,4 @@ func getTimestampS(m *dto.Metric, startTime time.Time) time.Time {
 		return time.Unix(m.GetTimestampMs()/1000, 0)
 	}
 	return startTime
-}
-
-func (p *Prom) getMode() string {
-	if p.opt.streamSize > 0 {
-		return "stream"
-	} else {
-		return "no_stream"
-	}
 }

@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	infov1 "k8s.io/client-go/informers/core/v1"
@@ -109,22 +109,21 @@ func (p *Pod) process(ctx context.Context) bool {
 		return true
 	}
 
+	if shouldSkipPod(pod) {
+		return true
+	}
+
 	if p.scrape.matchesKey(key, podFeature(pod)) {
 		return true
 	}
 
-	klog.Infof("found pod %s", key)
-
+	klog.Infof("found new pod %s", key)
 	p.terminateScrape(key)
 	p.startScrape(ctx, key, pod)
 	return true
 }
 
 func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
-	if shouldSkipPod(item) {
-		return
-	}
-
 	feature := podFeature(item)
 	checkPausedFunc := func() bool {
 		return checkPaused(ctx, false /* not use election */)
@@ -154,8 +153,8 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 
 		opts := buildPromOptions(
 			RolePod, key, p.feeder,
-			iprom.WithMeasurementName(cfg.measurement),
-			iprom.WithTags(cfg.tags))
+			promscrape.WithMeasurement(cfg.measurement),
+			promscrape.WithExtraTags(cfg.tags))
 
 		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
 			klog.Warnf("pod %s has unexpected tls config %s", key, err)

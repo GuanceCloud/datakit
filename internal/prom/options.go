@@ -51,24 +51,34 @@ type option struct {
 
 	batchCallback func([]*point.Point) error
 	streamSize    int
-	l             *logger.Logger
+
+	l *logger.Logger
 }
 
 type PromOption func(opt *option)
 
+var minimumHTTPTimeout = time.Second * 3
+
+func defaultOption() *option {
+	return &option{
+		l:       logger.DefaultSLogger("prom"),
+		timeout: minimumHTTPTimeout,
+	}
+}
+
 func WithSource(str string) PromOption { return func(opt *option) { opt.source = str } }
-func WithTimeout(dura time.Duration) PromOption {
+func WithTimeout(dur time.Duration) PromOption {
 	return func(opt *option) {
-		if dura > 0 {
-			opt.timeout = dura
+		if minimumHTTPTimeout < dur {
+			opt.timeout = dur
 		}
 	}
 }
 
-func WithKeepAlive(dura time.Duration) PromOption {
+func WithKeepAlive(dur time.Duration) PromOption {
 	return func(opt *option) {
-		if dura > 0 {
-			opt.keepAlive = dura
+		if dur > 0 {
+			opt.keepAlive = dur
 		}
 	}
 }
