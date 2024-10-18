@@ -28,6 +28,8 @@ type option struct {
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// e.g. "utf-8","utf-16le","utf-16be","gbk","gb18030"
 	characterEncoding string
+	// 添加 debug 字段
+	enableDebugFields bool
 
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
@@ -48,7 +50,7 @@ type option struct {
 	// 判定不活跃文件
 	ignoreDeadLog time.Duration
 	// 添加额外tag
-	globalTags map[string]string
+	extraTags map[string]string
 
 	// 连续 N 次采集为空，就强制 flush 已有数据
 	maxForceFlushLimit int
@@ -70,6 +72,7 @@ func WithIgnoreStatus(arr []string) Option   { return func(opt *option) { opt.ig
 func WithPipeline(s string) Option           { return func(opt *option) { opt.pipeline = s } }
 func WithCharacterEncoding(s string) Option  { return func(opt *option) { opt.characterEncoding = s } }
 func WithFromBeginning(b bool) Option        { return func(opt *option) { opt.fromBeginning = b } }
+func WithEnableDebugFields(b bool) Option    { return func(opt *option) { opt.enableDebugFields = b } }
 func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mode = mode } }
 
 func WithSource(s string) Option {
@@ -90,10 +93,10 @@ func WithService(s string) Option {
 			s = opt.source
 		}
 		opt.service = s
-		if opt.globalTags == nil {
-			opt.globalTags = make(map[string]string)
+		if opt.extraTags == nil {
+			opt.extraTags = make(map[string]string)
 		}
-		opt.globalTags["service"] = opt.service
+		opt.extraTags["service"] = opt.service
 	}
 }
 
@@ -144,17 +147,17 @@ func WithMaxForceFlushLimit(n int) Option {
 func WithGlobalTags(m map[string]string) Option {
 	return func(opt *option) {
 		for k, v := range m {
-			opt.globalTags[k] = v
+			opt.extraTags[k] = v
 		}
 	}
 }
 
 func WithTag(key, value string) Option {
 	return func(opt *option) {
-		if opt.globalTags == nil {
-			opt.globalTags = make(map[string]string)
+		if opt.extraTags == nil {
+			opt.extraTags = make(map[string]string)
 		}
-		opt.globalTags[key] = value
+		opt.extraTags[key] = value
 	}
 }
 
@@ -167,7 +170,7 @@ func WithFeeder(feeder dkio.Feeder) Option  { return func(opt *option) { opt.fee
 func defaultOption() *option {
 	return &option{
 		source:                         "default",
-		globalTags:                     map[string]string{"service": "default"},
+		extraTags:                      map[string]string{"service": "default"},
 		maxForceFlushLimit:             10,
 		fileFromBeginningThresholdSize: 1000 * 1000 * 1, // 1 MB
 		done:                           make(<-chan interface{}),

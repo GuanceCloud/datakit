@@ -18,7 +18,7 @@ func TestWithOptions(t *testing.T) {
 		WithService("testing-service")(opt)
 
 		res := map[string]string{"service": "testing-service"}
-		assert.Equal(t, opt.globalTags, res)
+		assert.Equal(t, opt.extraTags, res)
 	})
 
 	t.Run("with-default-service", func(t *testing.T) {
@@ -27,7 +27,7 @@ func TestWithOptions(t *testing.T) {
 		WithService("")(opt)
 
 		res := map[string]string{"service": "testing-source"}
-		assert.Equal(t, opt.globalTags, res)
+		assert.Equal(t, opt.extraTags, res)
 	})
 
 	t.Run("with-default-service", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestWithOptions(t *testing.T) {
 		WithSource("testing-source")(opt)
 
 		res := map[string]string{"service": "default"}
-		assert.Equal(t, opt.globalTags, res)
+		assert.Equal(t, opt.extraTags, res)
 	})
 
 	t.Run("with-non-service", func(t *testing.T) {
@@ -44,6 +44,6 @@ func TestWithOptions(t *testing.T) {
 		WithSource("testing-source")(opt)
 
 		res := map[string]string{"service": "default"}
-		assert.Equal(t, opt.globalTags, res)
+		assert.Equal(t, opt.extraTags, res)
 	})
 }

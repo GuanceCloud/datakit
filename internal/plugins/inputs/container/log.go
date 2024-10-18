@@ -214,12 +214,9 @@ func replaceLabelKey(s string) string {
 
 func (lc *logInstance) tags() map[string]string {
 	m := map[string]string{
-		"container_id":     lc.id,
-		"container_name":   lc.containerName,
-		"image":            lc.image,
-		"image_name":       lc.imageName,
-		"image_short_name": lc.imageShortName,
-		"image_tag":        lc.imageTag,
+		"container_id":   lc.id,
+		"container_name": lc.containerName,
+		"image":          lc.image,
 	}
 
 	if lc.podName != "" {

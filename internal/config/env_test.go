@@ -121,10 +121,9 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_HTTP_TLS_CRT":                    "/path/to/datakit/tls.crt",
 				"ENV_HTTP_TLS_KEY":                    "/path/to/datakit/tls.key",
 
-				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":    "ok",
-				"ENV_PIPELINE_OFFLOAD_RECEIVER":        offload.DKRcv,
-				"ENV_PIPELINE_DISABLE_APPEND_RUN_INFO": "true",
-				"ENV_PIPELINE_OFFLOAD_ADDRESSES":       "http://aaa:123,http://1.2.3.4:1234",
+				"ENV_ENABLE_ELECTION_NAMESPACE_TAG": "ok",
+				"ENV_PIPELINE_OFFLOAD_RECEIVER":     offload.DKRcv,
+				"ENV_PIPELINE_OFFLOAD_ADDRESSES":    "http://aaa:123,http://1.2.3.4:1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -159,7 +158,6 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Logging.RotateBackups = 10
 				cfg.Logging.Rotate = 128
 
-				cfg.Pipeline.DisableAppendRunInfo = true
 				cfg.Pipeline.Offload = &offload.OffloadConfig{}
 				cfg.Pipeline.Offload.Receiver = offload.DKRcv
 				cfg.Pipeline.Offload.Addresses = []string{"http://aaa:123", "http://1.2.3.4:1234"}

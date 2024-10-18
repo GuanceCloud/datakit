@@ -295,3 +295,9 @@ func GetNamespacePipelineFiles(namespace string) ([]string, error) {
 	}
 	return nil, fmt.Errorf("invalid namespace")
 }
+
+func fillPipelineConfig(c *Config) {
+	if c.Pipeline != nil {
+		c.Pipeline.EnableDebugFields = c.EnableDebugFields
+	}
+}

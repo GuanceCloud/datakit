@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
@@ -46,6 +47,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithSource(cfg.Source),
 			tailer.WithService(cfg.Service),
 			tailer.WithPipeline(cfg.Pipeline),
+			tailer.WithEnableDebugFields(config.Cfg.EnableDebugFields),
 			tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 			tailer.WithMultilinePatterns(cfg.MultilinePatterns),
 			tailer.WithGlobalTags(mergedTags),
@@ -89,7 +91,6 @@ func (c *container) tailingLogs(ins *logInstance) {
 			pathAtInside := trimLogsFromRootfs(file)
 			if insidePath := joinInsideFilepath(cfg.hostDir, cfg.insideDir, pathAtInside); insidePath != pathAtInside {
 				newOpts = append(newOpts, tailer.WithTag("inside_filepath", insidePath))
-				newOpts = append(newOpts, tailer.WithTag("host_filepath", file))
 			}
 
 			tail, err := tailer.NewTailerSingle(file, newOpts...)

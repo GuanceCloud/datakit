@@ -44,7 +44,7 @@ func NewSocketLogWithOptions(opts ...Option) (*SocketLogger, error) {
 	sk := &SocketLogger{
 		opt: c,
 	}
-	sk.tags = buildTags(sk.opt.globalTags)
+	sk.tags = buildTags(sk.opt.extraTags)
 	sk.log = logger.SLogger("socketLog/" + sk.opt.source)
 
 	if err := sk.setup(); err != nil {
