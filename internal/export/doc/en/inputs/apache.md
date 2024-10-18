@@ -96,6 +96,28 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.FieldsMarkdownTable}}
 {{ end }}
+
+## Custom Object {#object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- tag
+
+{{$m.TagsMarkdownTable}}
+
+- Metric list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
 ## Log Collection {#logging}
 
 To collect the Apache log, open  `files` in {{.InputName}}.conf and write to the absolute path of the Apache log file. For example:

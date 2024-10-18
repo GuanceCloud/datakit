@@ -123,6 +123,27 @@ GO
 {{ end }}
 {{ end }}
 
+## 自定义对象 {#object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
 ## 日志 {#logging}
 
 以下指标集均以日志形式收集，所有日志等级均为 `info`。

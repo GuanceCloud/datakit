@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/GuanceCloud/cliutils/point"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -89,11 +90,14 @@ func exportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 				}
 
 				switch tmp.Type {
-				case "logging", "tracing", "network":
+				case point.Logging.String(),
+					point.Tracing.String(),
+					point.Network.String():
 					l.Warnf("ignore %s from %s", tmp.Type, k)
 					continue
 
-				case "object":
+				case point.Object.String(),
+					point.CustomObject.String():
 					if _, ok := defaultMetaInfo.ObjectMetaInfo[tmp.Name]; ok {
 						if defaultMetaInfo.ObjectMetaInfo[tmp.Name].From == k {
 							l.Warnf("original object measurement %q, current measurement %q, measurement type: %q, measurement name: %q",
@@ -113,7 +117,8 @@ func exportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 						From:   k,
 					}
 
-				case "metric", "":
+				case point.Metric.String(), "": // not specified, default to metric
+
 					if _, ok := defaultMetaInfo.MetricMetaInfo[tmp.Name]; ok {
 						if defaultMetaInfo.MetricMetaInfo[tmp.Name].From == k {
 							l.Warnf("original metric measurement %q, current measurement %q, measurement type: %q, measurement name: %q",
