@@ -8,8 +8,9 @@ package diskcache
 import "os"
 
 const (
-	reasonExceedCapacity = "exceed-max-capacity"
-	reasonBadDataFile    = "bad-data-file"
+	reasonExceedCapacity     = "exceed-max-capacity"
+	reasonBadDataFile        = "bad-data-file"
+	reasonTooSmallReadBuffer = "too-small-read-buffer"
 )
 
 func (c *DiskCache) dropBatch() error {

@@ -16,7 +16,7 @@ import (
 type option struct {
 	optionClientConn
 
-	source              string
+	source, remote      string
 	measurement         string
 	keepExistMetricName bool
 
@@ -35,7 +35,7 @@ type optionClientConn struct {
 	insecureSkipVerify bool
 	tlsClientConfig    *dknet.TLSClientConfig
 
-	headers map[string]string
+	httpHeaders map[string]string
 }
 
 type Option func(opt *option)
@@ -46,9 +46,10 @@ var discardPointsFn = func([]*point.Point) error {
 
 func defaultOption() *option {
 	return &option{
+		source: "promscrape",
 		optionClientConn: optionClientConn{
-			timeout: time.Second * 10,
-			headers: make(map[string]string),
+			timeout:     time.Second * 10,
+			httpHeaders: make(map[string]string),
 		},
 		extraTags: make(map[string]string),
 		callback:  discardPointsFn,
@@ -56,6 +57,7 @@ func defaultOption() *option {
 }
 
 func WithSource(str string) Option      { return func(opt *option) { opt.source = str } }
+func WithRemote(str string) Option      { return func(opt *option) { opt.remote = str } }
 func WithMeasurement(str string) Option { return func(opt *option) { opt.measurement = str } }
 func KeepExistMetricName(b bool) Option {
 	return func(opt *option) { opt.keepExistMetricName = b }
@@ -90,9 +92,17 @@ func WithInsecureSkipVerify(b bool) Option {
 	return func(opt *option) { opt.insecureSkipVerify = b }
 }
 
+func WithHTTPHeader(m map[string]string) Option {
+	return func(opt *option) {
+		for k, v := range m {
+			opt.httpHeaders[k] = v
+		}
+	}
+}
+
 func WithBearerToken(str string) Option {
 	return func(opt *option) {
-		opt.headers["Authorization"] = "Bearer " + str
+		opt.httpHeaders["Authorization"] = "Bearer " + str
 	}
 }
 

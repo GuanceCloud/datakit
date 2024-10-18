@@ -86,7 +86,8 @@ func (p *promScraper) scrape() error {
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
-	name := string(role) + "/" + key
+	source := "kubernetesprometheus/" + string(role)
+	remote := key
 
 	callbackFn := func(pts []*point.Point) error {
 		if len(pts) == 0 {
@@ -96,7 +97,7 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 		if err := feeder.FeedV2(
 			point.Metric,
 			pts,
-			dkio.WithInputName(name),
+			dkio.WithInputName(source),
 			dkio.DisableGlobalTags(true),
 			dkio.WithElection(true),
 		); err != nil {
@@ -108,8 +109,8 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 	}
 
 	res := []promscrape.Option{
-		// promscrape.WithLogger(klog), // WithLogger must in the first
-		promscrape.WithSource(name),
+		promscrape.WithSource(source),
+		promscrape.WithRemote(remote),
 		promscrape.WithCallback(callbackFn),
 	}
 	res = append(res, opts...)

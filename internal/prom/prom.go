@@ -151,7 +151,7 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	}
 
 	// trace
-	s := httpcli.NewHTTPClientTraceStat("prom/" + p.opt.source)
+	s := httpcli.NewHTTPClientTraceStat("prom/"+p.opt.source, "")
 	defer s.Metrics()
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
 

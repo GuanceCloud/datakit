@@ -244,13 +244,12 @@ func (s *httpClientTraceStat) Trace() *httptrace.ClientTrace {
 }
 
 // NewHTTPClientTraceStat create a hook for HTTP client running metrics.
-func NewHTTPClientTraceStat(from string) *httpClientTraceStat {
+func NewHTTPClientTraceStat(from string, remote string) *httpClientTraceStat {
 	s := &httpClientTraceStat{
-		from: from,
+		from:       from,
+		remoteAddr: remote,
 	}
-
 	s.addTrace()
-
 	return s
 }
 
@@ -261,6 +260,7 @@ func (s *httpClientTraceStat) Metrics() {
 	httpClientGotFirstResponseByteCost.WithLabelValues(s.from).Observe(float64(s.ttfb) / float64(time.Second))
 
 	httpClientConnIdleTime.WithLabelValues(s.from).Observe(float64(s.idleTime) / float64(time.Second))
+
 	if s.reuseConn {
 		httpClientTCPConn.WithLabelValues(s.from, s.remoteAddr, "reused").Add(1)
 	} else {
@@ -278,7 +278,9 @@ func (s *httpClientTraceStat) addTrace() {
 			s.reuseConn = ci.Reused
 			s.idle = ci.WasIdle
 			s.idleTime = ci.IdleTime
-			s.remoteAddr = ci.Conn.RemoteAddr().String()
+			if s.remoteAddr == "" {
+				s.remoteAddr = ci.Conn.RemoteAddr().String()
+			}
 		},
 
 		DNSStart: func(httptrace.DNSStartInfo) { s.dnsStart = time.Now() },
