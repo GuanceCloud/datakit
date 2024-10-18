@@ -175,6 +175,27 @@ PUT _plugins/_security/api/roles/monitor
 
 {{ end }}
 
+## 自定义对象 {#object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
 ## 日志 {#logging}
 
 <!-- markdownlint-disable MD046 -->

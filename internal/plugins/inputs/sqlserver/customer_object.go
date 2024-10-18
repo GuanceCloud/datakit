@@ -41,42 +41,42 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 			"uptime": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "",
+				Unit:     inputs.DurationSecond,
+				Desc:     "Current SQLServer uptime",
 			},
 
 			"display_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "",
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Displayed name in UI",
 			},
 
 			"version": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "",
+				Unit:     inputs.UnknownUnit,
+				Desc:     "Current version of SQLServer",
 			},
 		},
 		Tags: map[string]interface{}{
 			"name": &inputs.TagInfo{
-				Desc: "",
+				Desc: "Object uniq ID",
 			},
 
-			"status": &inputs.TagInfo{
-				Desc: "",
+			"col_co_status": &inputs.TagInfo{
+				Desc: "Current status of collector on SQLServer(`OK/NotOK`)",
 			},
 
 			"ip": &inputs.TagInfo{
-				Desc: "",
+				Desc: "Connection IP of the SQLServer",
 			},
 
 			"host": &inputs.TagInfo{
 				Desc: "The server host address",
 			},
 			"reason": &inputs.TagInfo{
-				Desc: "",
+				Desc: "If status not ok, we'll get some reasons about the status",
 			},
 		},
 	}

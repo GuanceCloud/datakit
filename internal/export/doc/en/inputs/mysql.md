@@ -277,7 +277,26 @@ For all of the following data collections, the global election tags will added a
 
 {{ end }}
 
+## Custom Object {#object}
 
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- tag
+
+{{$m.TagsMarkdownTable}}
+
+- Metric list
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
 
 
 ## Log {#logging}
