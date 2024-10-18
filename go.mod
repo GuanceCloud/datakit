@@ -56,7 +56,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kardianos/service v1.2.1
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mssola/user_agent v0.6.0 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -104,7 +104,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.1 // indirect
 	github.com/DataDog/sketches-go v1.4.1 // indirect
-	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 	github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
 	github.com/GuanceCloud/toml v1.2.5
 	github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
@@ -235,7 +234,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mattn/go-tty v0.0.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -272,7 +271,7 @@ require (
 	github.com/pyroscope-io/jfr-parser v0.5.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.3.1 // indirect
+	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
@@ -313,7 +312,7 @@ require (
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/time v0.6.0
 	golang.org/x/tools v0.14.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/protobuf v1.34.2
@@ -349,7 +348,9 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.21
+	github.com/GuanceCloud/cliutils v1.1.22-0.20240930074036-255c78c086fd
+	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
+	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cilium/ebpf v0.11.0
@@ -374,7 +375,6 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -387,6 +387,7 @@ require (
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
+	github.com/valyala/fastjson v1.6.3
 )
 
 replace (

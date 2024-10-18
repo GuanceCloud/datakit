@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"os"
 	"path"
@@ -20,7 +21,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -58,8 +58,6 @@ func (opt *option) GetSource(defaultSource ...string) string {
 	return "prom" //nolint:goconst
 }
 
-const httpTimeout = time.Second * 3
-
 type Prom struct {
 	opt      *option
 	client   *http.Client
@@ -68,23 +66,13 @@ type Prom struct {
 	ptCount  int
 }
 
-func NewProm(promOpts ...PromOption) (*Prom, error) {
-	opt := option{}
-	for idx := range promOpts {
-		if promOpts[idx] != nil {
-			promOpts[idx](&opt)
-		}
+func NewProm(opts ...PromOption) (*Prom, error) {
+	opt := defaultOption()
+	for _, fn := range opts {
+		fn(opt)
 	}
 
-	if opt.l == nil {
-		opt.l = logger.DefaultSLogger("prom")
-	}
-
-	if opt.timeout < httpTimeout {
-		opt.timeout = httpTimeout
-	}
-
-	p := Prom{opt: &opt, InfoTags: make(map[string]string)}
+	p := Prom{opt: opt, InfoTags: make(map[string]string)}
 
 	var f expfmt.BatchCallback = func(mf map[string]*dto.MetricFamily) error {
 		pts, err := p.MetricFamilies2points(mf, "")
@@ -102,8 +90,10 @@ func NewProm(promOpts ...PromOption) (*Prom, error) {
 	cliopts := httpcli.NewOptions()
 	cliopts.DialTimeout = opt.timeout
 	cliopts.DialKeepAlive = opt.keepAlive
+	cliopts.MaxIdleConns = 1
+	cliopts.MaxIdleConnsPerHost = 1
 
-	if tlsConfig, err := loadTLSConfig(&opt); err != nil {
+	if tlsConfig, err := loadTLSConfig(opt); err != nil {
 		return nil, fmt.Errorf("could not load tlsConfig %w", err)
 	} else if tlsConfig != nil {
 		cliopts.TLSClientConfig = tlsConfig
@@ -159,6 +149,11 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// trace
+	s := httpcli.NewHTTPClientTraceStat("prom/" + p.opt.source)
+	defer s.Metrics()
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
 
 	r, err := p.client.Do(req)
 	if err != nil {

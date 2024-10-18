@@ -1,3 +1,9 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+// Package events define the pprof event types.
 package events
 
 import (
@@ -13,8 +19,8 @@ const (
 )
 
 const (
-	CpuSamples       Type = "cpu-samples"
-	CpuTime          Type = "cpu-time"
+	CPUSamples       Type = "cpu-samples"
+	CPUTime          Type = "cpu-time"
 	WallTime         Type = "wall-time"
 	HeapLiveSize     Type = "heap-space"
 	HeapLiveObjects  Type = "heap-live-objects"
@@ -45,7 +51,7 @@ var TypeProfileFilename = map[languages.Lang]map[Type]string{
 }
 
 var Metas = map[Type]TypeMetadata{
-	CpuSamples: {
+	CPUSamples: {
 		Sort:         sortMap{languages.Python: 0, languages.GoLang: 0, languages.NodeJS: 0},
 		Name:         "CPU Samples",
 		Description:  descriptionMap{languages.Any: "This is the number of samples each method spent running on the CPU."},
@@ -53,7 +59,7 @@ var Metas = map[Type]TypeMetadata{
 		ShowPlaces:   ShowNoWay,
 	},
 
-	CpuTime: {
+	CPUTime: {
 		Sort:         sortMap{languages.Python: 10, languages.GoLang: 10, languages.DotNet: 10}, //map[languages.Lang]int{languages.Python: 10, languages.GoLang: 10},
 		Name:         "CPU Time",
 		Description:  descriptionMap{languages.Any: "This is the time each method spent running on the CPU."},
@@ -254,12 +260,8 @@ type TypeMetadata struct {
 
 type ShowPlace int
 
-// sortMap used to generate sort map for convenience
+// sortMap is used to generate a sorted map for convenience.
 type sortMap map[languages.Lang]int
-
-func newSortMap() sortMap {
-	return make(sortMap)
-}
 
 func (sm sortMap) put(lang languages.Lang, sort int) sortMap {
 	sm[lang] = sort
@@ -267,10 +269,6 @@ func (sm sortMap) put(lang languages.Lang, sort int) sortMap {
 }
 
 type descriptionMap map[languages.Lang]string
-
-func newDescriptionMap() descriptionMap {
-	return make(descriptionMap)
-}
 
 func (dm descriptionMap) put(lang languages.Lang, desc string) descriptionMap {
 	dm[lang] = desc

@@ -119,20 +119,17 @@ func (p *nodeParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 	tags := map[string]string{}
 
 	for k, v := range ins.Tags {
-		switch v {
-		case MateInstanceTag:
-			tags[k] = u.Host
-		case MateHostTag:
-			if host := splitHost(u.Host); host != "" {
-				tags[k] = host
-			}
-		default:
-			if matched, res := p.matches(v); matched && res != "" {
+		if matched, res := matchInstanceOrHost(v, u.Host); matched {
+			if res != "" {
 				tags[k] = res
-			} else {
-				tags[k] = v
 			}
+			continue
 		}
+		if matched, res := p.matches(v); matched && res != "" {
+			tags[k] = res
+			continue
+		}
+		tags[k] = v
 	}
 
 	measurement := ins.Measurement

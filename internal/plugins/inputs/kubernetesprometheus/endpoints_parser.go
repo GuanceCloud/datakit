@@ -6,7 +6,6 @@
 package kubernetesprometheus
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 
@@ -141,6 +140,19 @@ var (
 				return ""
 			},
 		},
+		{
+			// e.g. integer "8080"
+			key: newKeyMatcherWithRegexp(regexp.MustCompile(`^(\d*)$`)),
+			fn: func(item *corev1.EndpointPort, args []string) string {
+				if len(args) != 1 {
+					return ""
+				}
+				if strconv.Itoa(int(item.Port)) == args[0] {
+					return args[0]
+				}
+				return ""
+			},
+		},
 	}
 )
 
@@ -168,60 +180,49 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 	var configs []*basePromConfig
 
 	for _, set := range p.item.Subsets {
+		port := ins.Port
+		if matched, res := p.matchPort(set.Ports, port); matched && res != "" {
+			port = res
+		} else {
+			// not found port
+			continue
+		}
+
 		for addressIdx, address := range set.Addresses {
-			// length 5
-			oldElems := []string{ins.Scheme, ins.Address, ins.Port, ins.Path, ins.Measurement}
-			newElems := deepCopySlice(oldElems)
-
-			tagKeys := []string{}
-			for k, v := range ins.Tags {
-				tagKeys = append(tagKeys, k)
-				newElems = append(newElems, v)
+			elems := []string{ins.Scheme, ins.Address, ins.Path, ins.Measurement}
+			for idx := range elems {
+				if matched, res := p.matchEndpoints(elems[idx]); matched && res != "" {
+					elems[idx] = res
+					continue
+				}
+				if matched, res := p.matchAddress(&set.Addresses[addressIdx], elems[idx]); matched && res != "" {
+					elems[idx] = res
+				}
 			}
 
-			for idx, elem := range newElems {
-				if matched, res := p.matchEndpoints(elem); matched && res != "" {
-					newElems[idx] = res
-					continue
-				}
-				if matched, res := p.matchAddress(&set.Addresses[addressIdx], elem); matched && res != "" {
-					newElems[idx] = res
-					continue
-				}
-				if matched, res := p.matchPort(set.Ports, elem); matched && res != "" {
-					newElems[idx] = res
-					continue
-				}
-				newElems[idx] = elem
-			}
-
-			u, err := buildURLWithParams(newElems[0], newElems[1], newElems[2], newElems[3], ins.Params)
+			u, err := buildURLWithParams(elems[0], elems[1], port, elems[2], ins.Params)
 			if err != nil {
 				return nil, err
 			}
-			measurement := newElems[4]
+			measurement := elems[3]
 
 			tags := map[string]string{}
-
-			if len(tagKeys)+len(oldElems) != len(newElems) {
-				return nil, fmt.Errorf("unexpected tags length %d-%d", len(tagKeys), len(newElems)-len(oldElems))
-			}
-
-			for idx, k := range tagKeys {
-				tags[k] = newElems[idx+len(oldElems)]
-			}
-
-			for k, v := range tags {
-				switch v {
-				case MateInstanceTag:
-					tags[k] = u.Host
-				case MateHostTag:
-					if host := splitHost(u.Host); host != "" {
-						tags[k] = host
+			for k, v := range ins.Tags {
+				if matched, res := matchInstanceOrHost(v, u.Host); matched {
+					if res != "" {
+						tags[k] = res
 					}
-				default:
-					// nil
+					continue
 				}
+				if matched, res := p.matchEndpoints(v); matched && res != "" {
+					tags[k] = res
+					continue
+				}
+				if matched, res := p.matchAddress(&set.Addresses[addressIdx], v); matched && res != "" {
+					tags[k] = res
+					continue
+				}
+				tags[k] = v
 			}
 
 			nodeName := ""

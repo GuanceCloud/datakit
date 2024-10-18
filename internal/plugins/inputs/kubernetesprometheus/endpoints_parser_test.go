@@ -132,6 +132,14 @@ func TestEndpointsMeta(t *testing.T) {
 		matched, res = pr.matchPort(obj, "__kubernetes_endpoints_port_nonexistent_number")
 		assert.Equal(t, false, matched)
 		assert.Equal(t, "", res)
+
+		matched, res = pr.matchPort(obj, "9090")
+		assert.Equal(t, true, matched)
+		assert.Equal(t, "9090", res)
+
+		matched, res = pr.matchPort(obj, "19090")
+		assert.Equal(t, false, matched)
+		assert.Equal(t, "", res)
 	})
 
 	t.Run("endpoints-scrape", func(t *testing.T) {

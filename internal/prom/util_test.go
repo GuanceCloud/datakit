@@ -6,10 +6,77 @@
 package prom
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 )
+
+const (
+	mockHeader = `
+# HELP datakit_http_worker_number The number of the worker
+# TYPE datakit_http_worker_number gauge
+`
+	mockBody = `
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 11.0
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 12.2
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 13.0
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 14.2
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 15.0
+`
+)
+
+func TestParseMetrics(t *testing.T) {
+	var buf bytes.Buffer
+	buf.WriteString(mockHeader)
+	for i := 0; i < 10000; i++ {
+		buf.WriteString(fmt.Sprintf(mockBody, i, i, i, i, i))
+	}
+
+	count := 0
+
+	opts := []PromOption{
+		WithMeasurementName("testing-meas"),
+		WithTags(map[string]string{"key-01": "value-01"}),
+		WithMaxBatchCallback(1, func(pts []*point.Point) error {
+			count += len(pts)
+			return nil
+		}),
+	}
+	prom, err := NewProm(opts...)
+	assert.NoError(t, err)
+
+	_, err = prom.text2MetricsBatch(&buf, "")
+	assert.NoError(t, err)
+
+	fmt.Printf("count: %d\n", count)
+}
+
+func BenchmarkParseMetrics(b *testing.B) {
+	var buf bytes.Buffer
+	buf.WriteString(mockHeader)
+	for i := 0; i < 10000; i++ {
+		buf.WriteString(fmt.Sprintf(mockBody, i, i, i, i, i))
+	}
+
+	opts := []PromOption{
+		WithMeasurementName("testing-meas"),
+		WithTags(map[string]string{"key-01": "value-01"}),
+		WithMaxBatchCallback(1, func(pts []*point.Point) error {
+			return nil
+		}),
+	}
+	prom, err := NewProm(opts...)
+	assert.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err = prom.text2MetricsBatch(&buf, "")
+		assert.NoError(b, err)
+	}
+}
 
 func TestGetNamesByDefault(t *testing.T) {
 	cases := []struct {
