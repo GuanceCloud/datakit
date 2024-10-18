@@ -41,6 +41,13 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 默认值：-
 - 说明：可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
 
+**`encoding`** [:octicons-tag-24: Version-1.40.0](changelog.md#cl-1.40.0)
+
+- 类型：string
+- 是否必选：N
+- 默认值：-
+- 说明：支持 `gzip`、`deflate`、`br` 和 `zstd` 四种压缩方式，如果传入该参数，DataKit 会自动解压缩请求体。
+
 **`global_election_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
 - 类型：bool

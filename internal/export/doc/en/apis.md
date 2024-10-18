@@ -40,6 +40,13 @@ This API is used to upload(`POST`) various data (`category`) to DataKit. The URL
 - Default value: -
 - Description: Optional values `lp/json/pbjson`, `lp` indicates that the uploaded Point is represented in line protocol format in the returned Body, followed by [normal JSON](apis.md#api-v1-write-body-json-protocol) and [PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
 
+**`encoding`** [:octicons-tag-24: Version-1.40.0](changelog.md#cl-1.40.0)
+
+- Type: string
+- Required: N
+- Default value: -
+- Description: Supports `gzip`, `deflate`, `br`, and `zstd` compression methods. If this parameter is passed, DataKit will automatically decompress the request body.
+
 **`global_election_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
 - Type: bool

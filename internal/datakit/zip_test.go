@@ -58,6 +58,75 @@ func BenchmarkGzipBytes(b *T.B) {
 	}
 }
 
+func BenchmarkDeflateBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	for i := 0; i < b.N; i++ {
+		_, err := DeflateZip([]byte(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkUnDeflateBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	zdata, err := DeflateZip([]byte(data))
+
+	assert.NoError(b, err)
+	for i := 0; i < b.N; i++ {
+		_, err = UnDeflateZip(zdata)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkBrotliBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	for i := 0; i < b.N; i++ {
+		_, err := BrotliZip([]byte(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkUnBrotliBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	zdata, err := BrotliZip([]byte(data))
+
+	assert.NoError(b, err)
+	for i := 0; i < b.N; i++ {
+		_, err = UnBrotliZip(zdata)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkZstdBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	for i := 0; i < b.N; i++ {
+		_, err := ZstdZip([]byte(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkUnZstdBytes(b *T.B) {
+	data := cliutils.CreateRandomString(1024)
+	zdata, err := ZstdZip([]byte(data))
+
+	assert.NoError(b, err)
+	for i := 0; i < b.N; i++ {
+		_, err = UnZstdZip(zdata)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestZipRW(t *T.T) {
 	t.Run("zip-string", func(t *T.T) {
 		data := cliutils.CreateRandomString(1024)
@@ -80,6 +149,42 @@ func TestZipRW(t *T.T) {
 		assert.NotNil(t, zdata)
 
 		raw, err := UnGZip(zdata)
+		assert.NoError(t, err)
+
+		assert.Equal(t, data, string(raw))
+	})
+
+	t.Run("deflate", func(t *T.T) {
+		data := cliutils.CreateRandomString(1024)
+		zdata, err := DeflateZip([]byte(data))
+		assert.NoError(t, err)
+		assert.NotNil(t, zdata)
+
+		raw, err := UnDeflateZip(zdata)
+		assert.NoError(t, err)
+
+		assert.Equal(t, data, string(raw))
+	})
+
+	t.Run("brotli", func(t *T.T) {
+		data := cliutils.CreateRandomString(1024)
+		zdata, err := BrotliZip([]byte(data))
+		assert.NoError(t, err)
+		assert.NotNil(t, zdata)
+
+		raw, err := UnBrotliZip(zdata)
+		assert.NoError(t, err)
+
+		assert.Equal(t, data, string(raw))
+	})
+
+	t.Run("zstd", func(t *T.T) {
+		data := cliutils.CreateRandomString(1024)
+		zdata, err := ZstdZip([]byte(data))
+		assert.NoError(t, err)
+		assert.NotNil(t, zdata)
+
+		raw, err := UnZstdZip(zdata)
 		assert.NoError(t, err)
 
 		assert.Equal(t, data, string(raw))
