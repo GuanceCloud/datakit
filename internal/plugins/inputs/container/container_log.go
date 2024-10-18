@@ -51,7 +51,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithSource(cfg.Source),
 			tailer.WithService(cfg.Service),
 			tailer.WithPipeline(cfg.Pipeline),
-			tailer.WithEnableDebugFields(config.Cfg.EnableDebugFields),
+			tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 			tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 			tailer.WithMultilinePatterns(cfg.MultilinePatterns),
 			tailer.WithGlobalTags(mergedTags),

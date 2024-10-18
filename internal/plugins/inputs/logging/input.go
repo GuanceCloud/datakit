@@ -147,7 +147,7 @@ func (ipt *Input) Run() {
 		tailer.WithSource(ipt.Source),
 		tailer.WithService(ipt.Service),
 		tailer.WithPipeline(ipt.Pipeline),
-		tailer.WithEnableDebugFields(config.Cfg.EnableDebugFields),
+		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithSockets(ipt.Sockets),
 		tailer.WithIgnoreStatus(ipt.IgnoreStatus),
 		tailer.WithFromBeginning(ipt.FromBeginning),
