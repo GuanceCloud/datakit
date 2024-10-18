@@ -30,13 +30,13 @@ import (
 	dkhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/golang/protobuf/proto"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
@@ -470,7 +470,7 @@ func (ipt *Input) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *metrics.ResolvedMetadata) error {
+func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata map[string]string) error {
 	f, err := mw.CreateFormFile(metrics.EventFile, metrics.EventJSONFile)
 	if err != nil {
 		return fmt.Errorf("unable to create form file: %w", err)
@@ -502,14 +502,14 @@ func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *m
 	if md.Format == "" {
 		md.Format = "unknown"
 	}
-	startTime, err := metrics.ResolveStartTime(metadata.FormValue)
+	startTime, err := metrics.ResolveStartTime(metadata)
 	if err != nil {
 		log.Warnf("unable to resolve profile start time: %w", err)
 	} else {
 		md.Start = metrics.NewRFC3339Time(startTime)
 	}
 
-	endTime, err := metrics.ResolveEndTime(metadata.FormValue)
+	endTime, err := metrics.ResolveEndTime(metadata)
 	if err != nil {
 		log.Warnf("unable to resolve profile end time: %w", err)
 	} else {
@@ -519,7 +519,7 @@ func insertEventFormFile(form *multipart.Form, mw *multipart.Writer, metadata *m
 	lang := metrics.ResolveLang(metadata)
 	md.Language = lang
 
-	md.TagsProfiler = metrics.JoinTags(metadata.Tags)
+	md.TagsProfiler = metrics.JoinTags(metadata)
 
 	mdBytes, err := json.Marshal(md)
 	if err != nil {
@@ -562,8 +562,8 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	}
 
 	var subCustomTags map[string]string
-	if len(metadata.FormValue[metrics.SubCustomTagsKey]) > 0 && metadata.FormValue[metrics.SubCustomTagsKey][0] != "" {
-		subCustomTags = metrics.NewTags(strings.Split(metadata.FormValue[metrics.SubCustomTagsKey][0], ","))
+	if metadata[metrics.SubCustomTagsKey] != "" {
+		subCustomTags = metrics.NewTags(strings.Split(metadata[metrics.SubCustomTagsKey], ","))
 	}
 
 	language := metrics.ResolveLang(metadata)
@@ -597,10 +597,17 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			// has set tags in sub settings, ignore
 			continue
 		}
-		if old, ok := metadata.Tags[tk]; !ok || old != tv {
+		if old, ok := metadata[tk]; !ok || old != tv {
 			customTagsDefined = true
-			metadata.Tags[tk] = tv
+			metadata[tk] = tv
 		}
+	}
+
+	// apply remote or local filter
+	pt := point.NewPointV2(inputName, point.NewTags(metadata), point.WithTime(time.Now()))
+	if len(filter.FilterPts(point.Profiling, []*point.Point{pt})) == 0 {
+		log.Infof("the profiling data matched the remote or local blacklist and was dropped")
+		return nil
 	}
 
 	// Add event form file to multipartForm if it doesn't exist
@@ -617,7 +624,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
 
-	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata.Tags,
+	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata,
 		config.Cfg.Dataway.GlobalTags(),
 		config.Cfg.Dataway.CustomTagKeys())
 	if xGlobalTag == "" {

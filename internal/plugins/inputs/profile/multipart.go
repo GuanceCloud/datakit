@@ -74,7 +74,7 @@ func getBoundary(contentType string) (string, error) {
 	return params["boundary"], nil
 }
 
-func modifyMultipartForm(r *http.Request, form *multipart.Form, metadata *metrics.ResolvedMetadata) ([]byte, error) {
+func modifyMultipartForm(r *http.Request, form *multipart.Form, metadata map[string]string) ([]byte, error) {
 	boundary, err := getBoundary(r.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, fmt.Errorf("unable to get multipart boundary: %w", err)
