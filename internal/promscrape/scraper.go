@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptrace"
 	"strings"
 	"time"
 
@@ -53,7 +54,7 @@ func buildHTTPClient(opt *optionClientConn) (*http.Client, error) {
 			CaCerts:            opt.cacertFiles,
 			Cert:               opt.certFile,
 			CertKey:            opt.keyFile,
-			InsecureSkipVerify: false,
+			InsecureSkipVerify: opt.insecureSkipVerify,
 		}
 		conf, err := tlsconfig.TLSConfig()
 		if err != nil {
@@ -114,10 +115,15 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 
 func (p *PromScraper) newRequest(u string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", u, nil)
-	for k, v := range p.opt.headers {
+	req.Header.Set("Accept", "text/plain;version=0.0.4;q=1,*/*;q=0.1")
+	for k, v := range p.opt.httpHeaders {
 		req.Header.Set(k, v)
 	}
-	req.Header.Set("Accept", "text/plain;version=0.0.4;q=1,*/*;q=0.1")
+
+	s := httpcli.NewHTTPClientTraceStat(p.opt.source, p.opt.remote)
+	defer s.Metrics()
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
+
 	return req, err
 }
 
