@@ -128,6 +128,11 @@ func (c *Config) loadConfdEnvs() {
 }
 
 func (c *Config) loadPprofEnvs() {
+	if v := datakit.GetEnv("ENV_ENABLE_DEBUG_FIELDS"); v != "" {
+		b, _ := strconv.ParseBool(v)
+		c.EnableDebugFields = b
+	}
+
 	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
 		c.EnablePProf = true
 	}
@@ -210,10 +215,6 @@ func (c *Config) loadPipelineEnvs() {
 
 	if v := datakit.GetEnv("ENV_REFER_TABLE_SQLITE_MEM_MODE"); v != "" {
 		c.Pipeline.SQLiteMemMode = true
-	}
-
-	if v := datakit.GetEnv("ENV_PIPELINE_DISABLE_APPEND_RUN_INFO"); v != "" {
-		c.Pipeline.DisableAppendRunInfo = true
 	}
 
 	if v := datakit.GetEnv("ENV_PIPELINE_OFFLOAD_RECEIVER"); v != "" {

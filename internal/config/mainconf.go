@@ -50,6 +50,8 @@ type Config struct {
 
 	PointPool *pointPool `toml:"point_pool"`
 
+	// debug
+	EnableDebugFields bool `toml:"enable_debug_fields,omitempty"`
 	// pprof
 	EnablePProf bool   `toml:"enable_pprof"`
 	PProfListen string `toml:"pprof_listen"`
@@ -129,9 +131,10 @@ func DefaultConfig() *Config {
 		GlobalHostTags:       map[string]string{},
 		GlobalTagsDeprecated: map[string]string{},
 
-		EnablePProf: true,
-		PProfListen: "localhost:6060",
-		DatakitUser: "root",
+		EnableDebugFields: false,
+		EnablePProf:       true,
+		PProfListen:       "localhost:6060",
+		DatakitUser:       "root",
 
 		Election: &election.ElectionCfg{
 			Enable:             false,

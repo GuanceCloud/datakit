@@ -422,11 +422,7 @@ func (c *container) transformPoint(info *runtime.Container, setPodLabelAsTags fu
 		}
 	}
 
-	imageName, shortName, imageTag := runtime.ParseImage(image)
 	p.SetTag("image", image)
-	p.SetTag("image_name", imageName)
-	p.SetTag("image_short_name", shortName)
-	p.SetTag("image_tag", imageTag)
 
 	// only ecs fargate
 	p.SetTagIfNotEmpty("aws_ecs_cluster_name", getAWSClusterNameForLabels(info.Labels))

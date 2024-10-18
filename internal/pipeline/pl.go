@@ -22,8 +22,7 @@ const (
 	plTagService = "_pl_service"
 	plTagNS      = "_pl_ns"
 	plStatus     = "_pl_status"
-
-	plFieldCost = "_pl_cost" // data type: float64, unit: second
+	plFieldCost  = "_pl_cost" // data type: float64, unit: second
 
 	svcName = "datakit"
 

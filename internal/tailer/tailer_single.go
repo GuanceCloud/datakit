@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -38,10 +37,10 @@ const (
 type Single struct {
 	opt *option
 
-	file               *os.File
-	inode              string
-	recordKey          string
-	filepath, filename string
+	file      *os.File
+	inode     string
+	recordKey string
+	filepath  string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -58,7 +57,7 @@ type Single struct {
 	log  *logger.Logger
 }
 
-func NewTailerSingle(filename string, opts ...Option) (*Single, error) {
+func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	_ = logtail.InitDefault()
 
 	c := defaultOption()
@@ -68,10 +67,9 @@ func NewTailerSingle(filename string, opts ...Option) (*Single, error) {
 
 	t := &Single{
 		opt:      c,
-		filepath: filename,
-		filename: filepath.Base(filename),
+		filepath: filepath,
 	}
-	t.tags = t.buildTags(t.opt.globalTags)
+	t.buildTags(t.opt.extraTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
 
 	if err := t.setup(); err != nil {
@@ -152,7 +150,7 @@ func (t *Single) seekOffset() error {
 			t.log.Infof("position %d larger than the file size %d, may be truncated", offset, size)
 		} else {
 			t.offset, err = t.file.Seek(offset, io.SeekStart)
-			t.log.Infof("set position %d for filename %s", offset, t.filepath)
+			t.log.Infof("set position %d for file %s", offset, t.filepath)
 			return err
 		}
 	}
@@ -161,7 +159,7 @@ func (t *Single) seekOffset() error {
 	// use fromBeginning
 	if t.opt.fromBeginning {
 		t.offset, err = t.file.Seek(0, io.SeekStart)
-		t.log.Infof("set start position for filename %s", t.filepath)
+		t.log.Infof("set start position for file %s", t.filepath)
 		return err
 	}
 
@@ -170,7 +168,7 @@ func (t *Single) seekOffset() error {
 		size := stat.Size()
 		if size < t.opt.fileFromBeginningThresholdSize {
 			t.offset, err = t.file.Seek(0, io.SeekStart)
-			t.log.Infof("set start position for filename %s, because file size %d < %d",
+			t.log.Infof("set start position for file %s, because file size %d < %d",
 				t.filepath, size, t.opt.fileFromBeginningThresholdSize)
 			return err
 		}
@@ -178,7 +176,7 @@ func (t *Single) seekOffset() error {
 
 	// use tail
 	t.offset, err = t.file.Seek(0, io.SeekEnd)
-	t.log.Infof("set end position for filename %s", t.filepath)
+	t.log.Infof("set end position for file %s", t.filepath)
 
 	return err
 }
@@ -274,7 +272,7 @@ func (t *Single) forwardMessage() {
 
 		if err := t.collectOnce(); err != nil {
 			if !errors.Is(err, reader.ErrReadEmpty) {
-				t.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
+				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
 			t.wait()
 			continue
@@ -403,18 +401,19 @@ func (t *Single) feedToRemote(pending [][]byte) {
 	for _, text := range pending {
 		t.readLines++
 		fields := map[string]interface{}{
-			"log_read_lines":     t.readLines,
-			"log_read_offset":    t.offset,
-			"log_read_time":      t.readTime.UnixNano(),
-			"log_file_inode":     t.inode,
-			"message_length":     len(text),
 			"filepath":           t.filepath,
+			"log_read_lines":     t.readLines,
 			pipeline.FieldStatus: pipeline.DefaultStatus,
 		}
+		if t.opt.enableDebugFields {
+			fields["log_read_offset"] = t.offset
+			fields["log_read_time"] = t.readTime.UnixNano()
+			fields["log_file_inode"] = t.inode
+		}
 
-		err := t.opt.forwardFunc(t.filename, string(text), fields)
+		err := t.opt.forwardFunc(t.filepath, string(text), fields)
 		if err != nil {
-			t.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
+			t.log.Warnf("failed to forward text from file %s, error: %s", t.filepath, err)
 		}
 	}
 }
@@ -427,14 +426,17 @@ func (t *Single) feedToIO(pending [][]byte) {
 		t.readLines++
 
 		fields := map[string]interface{}{
+			"filepath":            t.filepath,
 			"log_read_lines":      t.readLines,
-			"log_read_offset":     t.offset,
-			"log_read_time":       t.readTime.UnixNano(),
-			"log_file_inode":      t.inode,
-			"message_length":      len(cnt),
 			pipeline.FieldMessage: string(cnt),
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
+		if t.opt.enableDebugFields {
+			fields["log_read_offset"] = t.offset
+			fields["log_read_time"] = t.readTime.UnixNano()
+			fields["log_file_inode"] = t.inode
+		}
+
 		opts := append(point.DefaultLoggingOptions(), point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)))
 
 		pt := point.NewPointV2(
@@ -470,20 +472,11 @@ func (t *Single) resetFlushScore() {
 	t.flushScore = 0
 }
 
-func (t *Single) buildTags(globalTags map[string]string) map[string]string {
-	tags := make(map[string]string)
-	for k, v := range globalTags {
-		tags[k] = v
+func (t *Single) buildTags(extraTags map[string]string) {
+	t.tags = make(map[string]string)
+	for k, v := range extraTags {
+		t.tags[k] = v
 	}
-
-	if _, ok := tags["filepath"]; !ok {
-		tags["filepath"] = t.filepath
-	}
-
-	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = t.filename
-	}
-	return tags
 }
 
 func (t *Single) decode(text []byte) ([]byte, error) {

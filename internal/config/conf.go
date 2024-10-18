@@ -466,6 +466,8 @@ func (c *Config) ApplyMainConfig() error {
 	c.Operator = operator.NewOperatorClientFromEnv()
 	// 初始化 ENC 密码加密功能。
 	initCrypto(c)
+	//
+	fillPipelineConfig(c)
 	return nil
 }
 
