@@ -6,8 +6,9 @@
 package textparser
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-json"
 )
 
 type dockerjson struct {

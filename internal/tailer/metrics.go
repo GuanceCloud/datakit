@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	multilineVec     *prometheus.CounterVec
 	rotateVec        *prometheus.CounterVec
 	forceFlushVec    *prometheus.CounterVec
 	parseFailVec     *prometheus.CounterVec
@@ -22,20 +21,6 @@ var (
 )
 
 func setupMetrics() {
-	multilineVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "tailer",
-			Name:      "collect_multiline_state_total",
-			Help:      "Tailer multiline state total",
-		},
-		[]string{
-			"source",
-			"filepath",
-			"multilinestate",
-		},
-	)
-
 	rotateVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -122,7 +107,6 @@ func setupMetrics() {
 		[]string{"network"})
 
 	metrics.MustRegister(
-		multilineVec,
 		openfileVec,
 	)
 

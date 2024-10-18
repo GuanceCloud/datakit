@@ -11,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkParseDockerJsonLog(b *testing.B) {
+	data := []byte(`{"log":"[INFO] test log, is partial","stream":"stdout","time":"2024-04-28T03:22:20.055429751Z"}`)
+
+	for i := 0; i < b.N; i++ {
+		msg := new(LogMessage)
+		_ = ParseDockerJSONLog(data, msg)
+	}
+}
+
 func TestParseDockerJsonLog(t *testing.T) {
 	cases := []struct {
 		in   string
