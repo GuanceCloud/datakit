@@ -30,9 +30,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	apminj "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
@@ -66,6 +68,12 @@ var (
 			DataKitVersion))
 	datakitELinkerURL = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit_elinker-%s-%s-%s.tar.gz",
+			runtime.GOOS,
+			runtime.GOARCH,
+			DataKitVersion))
+
+	datakitAPMInjectURL = "https://" + path.Join(DataKitBaseURL,
+		fmt.Sprintf("datakit-apm-inject-%s-%s-%s.tar.gz",
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
@@ -118,6 +126,10 @@ func init() {
 	flag.StringVar(&flagUserName, "user-name", "root", "install log") // user & group.
 	flag.StringVar(&flagLite, "lite", "", "install datakit lite")
 	flag.StringVar(&flagELinker, "elinker", "", "install datakit eBPF span linker")
+
+	flag.StringVar(&installer.InstrumentationEnabled, "apm-instrumentation-enabled", "", "enable APM instrumentation")
+	// flag.StringVar(&flagAPMInstrumentationLibraries, "apm-instrumentation-libraries", "datadog|java,python",
+	// 	"install and use the APM library of the specified provider")
 
 	flag.StringVar(&installer.Dataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&installer.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
@@ -260,7 +272,6 @@ func downloadFiles(to string) error {
 	if err := dl.Download(cli, dkURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
-
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
@@ -272,13 +283,26 @@ func downloadFiles(to string) error {
 
 	// We will not upgrade dk-upgrader default when upgrading Datakit except for setting flagUpgradeManagerService flag
 	if !flagDKUpgrade || (flagDKUpgrade && flagUpgraderEnabled == 1) || flagDownloadOnly {
+		toUpgrader := to
 		if !flagDownloadOnly {
-			to = upgrader.InstallDir
+			toUpgrader = upgrader.InstallDir
 		}
 		dl.CurDownloading = upgrader.BuildBinName
-		cp.Infof("Downloading %s => %s\n", dkUpgraderURL, to)
-		if err := dl.Download(cli, dkUpgraderURL, to, true, flagDownloadOnly); err != nil {
+		cp.Infof("Downloading %s => %s\n", dkUpgraderURL, toUpgrader)
+		if err := dl.Download(cli, dkUpgraderURL, toUpgrader, true, flagDownloadOnly); err != nil {
 			l.Warnf("unable to download %s from [%s]: %s", upgrader.BuildBinName, dkUpgraderURL, err)
+		}
+	}
+
+	if installer.InstrumentationEnabled != "" && runtime.GOOS == "linux" &&
+		(runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
+		if err := apminj.Download(l, apminj.WithOnline(cli, datakitAPMInjectURL),
+			apminj.WithInstallDir(to),
+			apminj.WithInstrumentationEnabled(installer.InstrumentationEnabled),
+		); err != nil {
+			l.Warnf("download apm inject failed: %s", err.Error())
+		} else {
+			config.Cfg.APMInject.InstrumentationEnabled = installer.InstrumentationEnabled
 		}
 	}
 

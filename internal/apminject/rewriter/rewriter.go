@@ -1,0 +1,327 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+package main
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/BurntSushi/toml"
+)
+
+const (
+	recSep   = "\x1E"
+	groupSep = "\x1D"
+
+	filePrefix = "/tmp/dk_inject_rewrite_"
+
+	datakitConfPath = "/usr/local/datakit/conf.d/datakit.conf"
+
+	ddtraceRun     = "ddtrace-run"
+	ddtraceJarPath = "/usr/local/datakit/apm_inject/lib/java/dd-java-agent.jar"
+
+	defaultDKHost = "127.0.0.1"
+	defaultDKPort = "9529"
+)
+
+var (
+	pyRegexp   = regexp.MustCompile(`^python(?:3(?:[\.\d]+)*)*$`)
+	javaRegexp = regexp.MustCompile(`^java$`)
+)
+
+var (
+	errPyLibNotFound    = errors.New("ddtrace-run not found")
+	errParseJavaVersion = errors.New(("failed to parse java version"))
+	errJavaLibNotFound  = errors.New("dd-java-agent.jar not found")
+	errUnsupportedJava  = errors.New(("unsupported java version"))
+	errAlreadyInjected  = errors.New(("already injected"))
+)
+
+func main() {
+	argv := os.Args // include tmpid, path and args
+	envs := os.Environ()
+	if len(argv) < 3 {
+		return // error
+	}
+
+	tmpid := argv[0]
+	ret, err := rewrite(&reArgs{
+		path: argv[1],
+		argv: argv[2:],
+		envp: envs,
+	})
+	if err != nil {
+		// fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
+		return
+	}
+	// fmt.Fprintf(os.Stderr, "new cmd: %s %v, %s\n", ret.path, ret.argv, ret.envp[0])
+	content := marshal(ret.path, ret.argv, ret.envp)
+
+	//nolint:gosec
+	if err := os.WriteFile(filePrefix+tmpid, []byte(content), 0o644); err != nil {
+		_ = err
+		return
+	}
+}
+
+type reArgs struct {
+	path string
+	argv []string
+	envp []string
+}
+
+func pyScriptWhitelist(path string) bool {
+	_, exeName := filepath.Split(path)
+	return strings.EqualFold(exeName, "flask") || strings.Contains(exeName, "gunicorn")
+}
+
+func rewrite(param *reArgs) (*reArgs, error) {
+	exePath := filepath.Clean(param.path)
+	_, exeName := filepath.Split(exePath)
+
+	var pyScript bool
+	if pyScriptWhitelist(exePath) {
+		if s, err := pythonScriptMagic(exePath); err == nil {
+			pyScript = true
+			// python only
+			exePath = s
+		}
+	}
+	switch {
+	case pyScript, pyRegexp.MatchString(exeName): // skip flask
+		ddrun, err := checkPython(exePath, param.argv)
+		if err != nil {
+			return nil, err
+		}
+
+		ret := &reArgs{
+			path: ddrun,
+		}
+
+		host, port := dkAddr()
+		ret.argv = append(ret.argv, ddtraceRun)
+		ret.argv = append(ret.argv, param.argv...)
+		ret.envp = append(ret.envp,
+			fmt.Sprintf("DD_AGENT_HOST=%s", host),
+			fmt.Sprintf("DD_AGENT_PORT=%s", port))
+		ret.envp = append(ret.envp, param.envp...)
+		return ret, nil
+	case javaRegexp.MatchString(exeName):
+		//nolint:gosec
+		cmd := exec.Command(exePath, "-version")
+		o, err := cmd.CombinedOutput()
+		if err != nil {
+			// fmt.Fprintf(os.Stderr, "%s \n", err.Error())
+			return nil, err
+		}
+		// fmt.Fprintf(os.Stderr, "java\n")
+
+		ver, err := getJavaVersion(string(o))
+		if err != nil {
+			return nil, err
+		}
+
+		if ver < 8 {
+			return nil, errUnsupportedJava
+		}
+
+		for i := 1; i < len(param.argv); i++ {
+			p := strings.TrimSpace(param.argv[i])
+			p = strings.ToLower(p)
+			if strings.HasPrefix(p, "-javaagent:") {
+				return nil, errAlreadyInjected
+			}
+		}
+
+		finf, err := os.Stat(ddtraceJarPath)
+		if err != nil {
+			return nil, fmt.Errorf("stat dd-java-agent.jar: %w", err)
+		}
+
+		if finf.IsDir() || (finf.Mode().Perm()&0b100) != 0b100 {
+			return nil, errJavaLibNotFound
+		}
+
+		ret := &reArgs{
+			path: param.path,
+		}
+
+		host, port := dkAddr()
+		ret.argv = append(ret.argv, param.argv[0])
+		ret.argv = append(ret.argv,
+			fmt.Sprintf("-javaagent:%s", ddtraceJarPath),
+			fmt.Sprintf("-Ddd.agent.host=%s", host),
+			fmt.Sprintf("-Ddd.trace.agent.port=%s", port))
+		ret.argv = append(ret.argv, param.argv[1:]...)
+		ret.envp = param.envp
+
+		return ret, nil
+	}
+
+	return nil, fmt.Errorf("skip rewrite exec %s", exePath)
+}
+
+func marshal(path string, args, envp []string) string {
+	var s string
+	s += "1" + recSep
+	s += path + recSep
+	s += groupSep + recSep
+
+	s += strconv.Itoa(len(args)) + recSep
+	for _, v := range args {
+		s += v + recSep
+	}
+	s += groupSep + recSep
+
+	s += strconv.Itoa(len(envp)) + recSep
+	for _, v := range envp {
+		s += v + recSep
+	}
+	s += groupSep + recSep
+
+	return s
+}
+
+func dkAddr() (string, string) {
+	confPath := datakitConfPath
+
+	v := map[string]any{}
+	if _, err := toml.DecodeFile(confPath, &v); err != nil {
+		return defaultDKHost, defaultDKPort
+	}
+
+	if httpAPI, ok := v["http_api"]; ok {
+		if v, ok := httpAPI.(map[string]any); ok {
+			if l, ok := v["listen"]; ok {
+				if l, ok := l.(string); ok {
+					if h, p, e := net.SplitHostPort(l); e == nil {
+						return h, p
+					}
+				}
+			}
+		}
+	}
+	return defaultDKHost, defaultDKPort
+}
+
+func getJavaVersion(s string) (int, error) {
+	lines := strings.Split(s, "\n")
+	if len(lines) < 2 {
+		return 0, errParseJavaVersion
+	}
+
+	idx := strings.Index(lines[0], "\"")
+	if idx == -1 {
+		return 0, errParseJavaVersion
+	}
+	idxTail := strings.LastIndex(lines[0], "\"")
+	if idx == -1 {
+		return 0, errParseJavaVersion
+	}
+
+	versionStr := lines[0][idx+1 : idxTail-1]
+	li := strings.Split(versionStr, ".")
+	if len(li) < 2 {
+		return 0, errParseJavaVersion
+	}
+
+	v, err := strconv.Atoi(li[0])
+	if err != nil {
+		return 0, err
+	}
+
+	if v == 1 {
+		v, err = strconv.Atoi(li[1])
+		if err != nil {
+			return 0, err
+		}
+		return v, nil
+	} else {
+		return v, nil
+	}
+}
+
+var regexpPythonMagic = regexp.MustCompile("^#!(/.*/python(?:3(?:[\\.\\d]+)*)?)\n$")
+
+func pythonScriptMagic(fp string) (string, error) {
+	fp, err := exec.LookPath(fp)
+	if fp == "" || err != nil {
+		return "", fmt.Errorf("not found %s", fp)
+	}
+
+	if fp == "ddtrace-run" {
+		return "", fmt.Errorf("cannot inject ddtrace-run")
+	}
+	if strings.HasSuffix(fp, "/ddtrace-run") {
+		return "", fmt.Errorf("cannot inject ddtrace-run")
+	}
+
+	f, err := os.Open(fp) // nolint:gosec
+	if err != nil {
+		return "", err
+	}
+	buf := make([]byte, 512)
+	n, err := f.Read(buf)
+	if err != nil {
+		return "", err
+	}
+	if n <= 0 {
+		return "", fmt.Errorf("read python magic fail")
+	}
+	buf = buf[:n]
+
+	n = bytes.Index(buf, []byte("\n"))
+	if n == -1 {
+		return "", fmt.Errorf("read python magic fail")
+	}
+
+	buf = buf[:n+1]
+	val := regexpPythonMagic.FindStringSubmatch(string(buf))
+	if len(val) != 2 {
+		return "", fmt.Errorf("read python magic fail")
+	}
+
+	return val[1], nil
+}
+
+func checkPython(pyBinPath string, argv []string) (string, error) {
+	//nolint:gosec
+	// require ddtrace, python3
+	cmd := exec.Command(pyBinPath,
+		"-c", "import ddtrace; print(ddtrace.__version__)")
+
+	if _, err := cmd.Output(); err != nil {
+		return "", fmt.Errorf("get ddtrace-run version error: %w", err)
+	}
+
+	ddrun, err := exec.LookPath(ddtraceRun)
+	if err != nil {
+		return "", errPyLibNotFound
+	}
+	finf, err := os.Stat(ddrun)
+	if err != nil {
+		return "", errPyLibNotFound
+	}
+
+	if finf.IsDir() || (finf.Mode().Perm()&0b1) != 0b1 {
+		return "", fmt.Errorf("ddtrace-run is not executable")
+	}
+
+	for _, v := range argv {
+		if strings.ToLower(strings.TrimSpace(v)) == "-m" {
+			return "", fmt.Errorf("python arg -m is not supported")
+		}
+	}
+	return ddrun, nil
+}

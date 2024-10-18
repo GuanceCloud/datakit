@@ -90,6 +90,8 @@ var (
 	HostName,
 	IPDBType string
 
+	InstrumentationEnabled string
+
 	ConfdBackend,
 	ConfdBasicAuth,
 	ConfdClientCaKeys,

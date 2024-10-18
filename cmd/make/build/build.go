@@ -234,6 +234,10 @@ func Compile() error {
 			return err
 		}
 
+		if err := compileAPMInject(goos, goarch, BuildDir); err != nil {
+			return err
+		}
+
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)
 		l.Debugf("upgraderDir = %s", upgraderDir)
 		if err := compileArch(upgrader.BuildBinName,
@@ -337,6 +341,42 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 	if err != nil {
 		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", cmdArgs, envs, err, string(msg))
 	}
+	return nil
+}
+
+func compileAPMInject(goos, goarch, dir string) error {
+	if goos != "linux" {
+		l.Warnf("skip building apm auto-inject launcher: unsupported os %s", goos)
+		return nil
+	}
+
+	if goarch != "amd64" && goarch != "arm64" {
+		l.Warnf("skip building apm auto-inject launcher: unsupported arch %s", goarch)
+		return nil
+	}
+
+	_, err := exec.LookPath("docker")
+	if err != nil {
+		l.Warnf("skip building apm auto-inject launcher: %s",
+			err.Error())
+		return nil
+	}
+
+	cmdArgs := []string{
+		"sh", "internal/apminject/build_lib.sh",
+		goarch, fmt.Sprintf("%s/datakit-apm-inject-linux-%s", dir, goarch),
+	}
+
+	l.Debugf("building %v with %v", fmt.Sprintf("%s-%s/%s",
+		goos, goarch, "apm-auto-inject-launcher"), cmdArgs)
+
+	var envs []string
+	msg, err := runEnv(cmdArgs, envs)
+	if err != nil {
+		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
+			cmdArgs, envs, err, string(msg))
+	}
+
 	return nil
 }
 

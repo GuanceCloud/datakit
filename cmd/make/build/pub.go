@@ -215,6 +215,13 @@ func PubDatakit() error {
 			}
 		}
 
+		// apm-auto-inject-launcher
+		if goos == Linux && (goarch == AMD64 || goarch == ARM64) {
+			gzName, gzPath := tarFiles(
+				PubDir, BuildDir, "datakit-apm-inject", goos, goarch, TarWithRlsVer)
+			basics[gzName] = gzPath
+		}
+
 		upgraderGZFile, upgraderGZPath := tarFiles(PubDir, BuildDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)

@@ -17,6 +17,7 @@ import (
 
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -107,6 +108,16 @@ func LoadCfg(c *Config, mcp string) error {
 	if err := initPluginPipeline(); err != nil {
 		l.Errorf("init plugin pipeline: %s", err.Error())
 		return err
+	}
+
+	if c.APMInject != nil {
+		if err := utils.Install(
+			utils.WithInstallDir(datakit.InstallDir),
+			utils.WithInstrumentationEnabled(
+				c.APMInject.InstrumentationEnabled),
+		); err != nil {
+			l.Warnf("failed to install/uninstall apm inject: %s", err.Error())
+		}
 	}
 
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))

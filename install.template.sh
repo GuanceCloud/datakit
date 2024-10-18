@@ -156,6 +156,12 @@ if [ -n "$DK_ELINKER" ]; then
 	printf "* Set elinker => $DK_ELINKER\n"
 fi
 
+apmInstrumentation=
+if [ -n "$DK_APM_INSTRUMENTATION_ENABLED" ]; then
+	apmInstrumentation=$DK_APM_INSTRUMENTATION_ENABLED
+	printf "* Set apm-instrumentation-enabled => $DK_APM_INSTRUMENTATION_ENABLED\n"
+fi
+
 global_customer_keys=
 if [ -n "$DK_SINKER_GLOBAL_CUSTOMER_KEYS" ]; then
 	global_customer_keys=$DK_SINKER_GLOBAL_CUSTOMER_KEYS
@@ -550,6 +556,7 @@ if [ "$upgrade" ]; then
 		--install-log="$install_log" \
 		--upgrade --lite="${lite}" \
 		--elinker="${elinker}" \
+		--apm-instrumentation-enabled="${apmInstrumentation}" \
 		--upgrade-manager="${upgrade_manager}" \
 		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--upgrade-listen="${upgrade_listen}" \
@@ -575,6 +582,7 @@ $sudo_cmd $installer \
 		--proxy="${proxy}" \
 		--lite="${lite}" \
 		--elinker="${elinker}" \
+		--apm-instrumentation-enabled="${apmInstrumentation}" \
 		--env_hostname="${env_hostname}" \
 		--dca-enable="${dca_enable}" \
 		--dca-listen="${dca_listen}" \

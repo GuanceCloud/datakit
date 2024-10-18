@@ -94,18 +94,18 @@ You can specify the environment variable `DK_ELINKER` to install DataKit ELinker
 <!-- markdownlint-enable -->
 DataKit ELinker only contains collectors as below:
 
-| Collector Name                                                 | Description                                                                                                   |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| [`cpu`](../integrations/cpu.md)                                | Collect the CPU usage of the host                                                                             |
-| [`disk`](../integrations/disk.md)                              | Collect disk occupancy                                                                                        |
-| [`diskio`](../integrations/diskio.md)                          | Collect the disk IO status of the host                                                                        |
-| [`ebpftrace`](../integrations/ebpftrace.md)                    | Receive eBPF trace span and link these spans to generate trace id                                             |
-| [`mem`](../integrations/mem.md)                                | Collect the memory usage of the host                                                                          |
-| [`swap`](../integrations/swap.md)                              | Collect Swap memory usage                                                                                     |
-| [`system`](../integrations/system.md)                          | Collect the load of host operating system                                                                     |
-| [`net`](../integrations/net.md)                                | Collect host network traffic                                                                                  |
-| [`hostobject`](../integrations/hostobject.md)                  | Collect basic information of host computer (such as operating system information, hardware information, etc.) |
-| [`DataKit(dk)`](../integrations/dk.md)                         | Collect Datakit running metrics                                                                               |
+| Collector Name                                | Description                                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [`cpu`](../integrations/cpu.md)               | Collect the CPU usage of the host                                                                             |
+| [`disk`](../integrations/disk.md)             | Collect disk occupancy                                                                                        |
+| [`diskio`](../integrations/diskio.md)         | Collect the disk IO status of the host                                                                        |
+| [`ebpftrace`](../integrations/ebpftrace.md)   | Receive eBPF trace span and link these spans to generate trace id                                             |
+| [`mem`](../integrations/mem.md)               | Collect the memory usage of the host                                                                          |
+| [`swap`](../integrations/swap.md)             | Collect Swap memory usage                                                                                     |
+| [`system`](../integrations/system.md)         | Collect the load of host operating system                                                                     |
+| [`net`](../integrations/net.md)               | Collect host network traffic                                                                                  |
+| [`hostobject`](../integrations/hostobject.md) | Collect basic information of host computer (such as operating system information, hardware information, etc.) |
+| [`DataKit(dk)`](../integrations/dk.md)        | Collect Datakit running metrics                                                                               |
 
 ### Install Specific Version {#version-install}
 
@@ -317,21 +317,22 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 
 ### Other Installation Options {#env-others}
 
-| Environment Variable Name     | Sample                      | Description                                                                                                                                                                                 |
-|-------------------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `DK_INSTALL_ONLY`             | `on`                        | Install only, not run                                                                                                                                                                       |
-| `DK_HOSTNAME`                 | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
-| `DK_UPGRADE`                  | `1`                         | Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)                                                              |
-| `DK_UPGRADE_MANAGER`          | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
-| `DK_INSTALLER_BASE_URL`       | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.guance.com/datakit`                                                                           |
-| `DK_PROXY_TYPE`               | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
-| `DK_NGINX_IP`                 | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |
-| `DK_INSTALL_LOG`              | -                           | Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.                                                         |
-| `HTTPS_PROXY`                 | `IP:Port`                   | Installed through the Datakit agent                                                                                                                                                         |
-| `DK_INSTALL_RUM_SYMBOL_TOOLS` | `on`                        | Install source map tools for RUM, support from Datakit [1.9.2](changelog.md#cl-1.9.2).                                                                                                      |
-| `DK_VERBOSE`                  | `on`                        | Enable more verbose info during install(only for Linux/Mac)[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)                                                                       |
-| `DK_CRYPTO_AES_KEY`           | `0123456789abcdfg`          | Use the encrypted password decryption key to protect plaintext passwords in the collector.  [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                                     |
-| `DK_CRYPTO_AES_KEY_FILE`      | `/usr/local/datakit/enc4dk` | Another way to configure the secret key takes priority over the previous one. Put the key into the file and configure the configuration file path through environment variables.            |
+| Environment Variable Name        | Sample                      | Description                                                                                                                                                                                 |
+| -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DK_INSTALL_ONLY`                | `on`                        | Install only, not run                                                                                                                                                                       |
+| `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
+| `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)                                                              |
+| `DK_UPGRADE_MANAGER`             | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
+| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.guance.com/datakit`                                                                           |
+| `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
+| `DK_NGINX_IP`                    | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |
+| `DK_INSTALL_LOG`                 | -                           | Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.                                                         |
+| `HTTPS_PROXY`                    | `IP:Port`                   | Installed through the Datakit agent                                                                                                                                                         |
+| `DK_INSTALL_RUM_SYMBOL_TOOLS`    | `on`                        | Install source map tools for RUM, support from Datakit [1.9.2](changelog.md#cl-1.9.2).                                                                                                      |
+| `DK_VERBOSE`                     | `on`                        | Enable more verbose info during install(only for Linux/Mac)[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)                                                                       |
+| `DK_CRYPTO_AES_KEY`              | `0123456789abcdfg`          | Use the encrypted password decryption key to protect plaintext passwords in the collector.  [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                                      |
+| `DK_CRYPTO_AES_KEY_FILE`         | `/usr/local/datakit/enc4dk` | Another way to configure the secret key takes priority over the previous one. Put the key into the file and configure the configuration file path through environment variables.            |
+| `DK_APM_INSTRUMENTATION_ENABLED` | `host`, `disable`           | Enable APM automatic injection for newly started Java and Python applications on the host.                                                                                                  |
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
