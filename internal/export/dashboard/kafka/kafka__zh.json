@@ -1,0 +1,4096 @@
+{
+  "title": "Kafka 监控视图",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "Topic": true,
+      "概览": true,
+      "简介": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/kafka/kafka.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/kafka/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "主机名",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "host",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kafka_controller'], keyin=['host'])",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          }
+        },
+        "valueSort": "",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#00B2CE",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "分区数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 6,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`GlobalPartitionCount.Value`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "GlobalPartitionCount.Value",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "1b0cdc70-c380-11eb-8967-fb1050d86707",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "总计时间",
+                "name": "总计时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "消息转换时间",
+                "name": "消息转换时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "请求队列时间",
+                "name": "请求队列时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              },
+              {
+                "key": "响应队列时间",
+                "name": "响应队列时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "density": "low",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "last(MessageConversionsTimeMs.Count)"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "总计时间",
+        "pos": {
+          "h": 10,
+          "w": 7,
+          "x": 0,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `总计时间`) { `host` = '#{host}' }",
+              "code": "D",
+              "fill": null,
+              "type": "dql",
+              "alias": "总计时间",
+              "field": "TotalTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`MessageConversionsTimeMs.Count`) AS `消息转换时间`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "消息转换时间",
+              "field": "MessageConversionsTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`RequestQueueTimeMs.Count`) AS `请求队列时间`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "dql",
+              "alias": "请求队列时间",
+              "field": "RequestQueueTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`ResponseSendTimeMs.Count`) AS `响应队列时间`) { `host` = '#{host}' }",
+              "code": "C",
+              "fill": null,
+              "type": "dql",
+              "alias": "响应队列时间",
+              "field": "ResponseSendTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "kafka_topics_FetchMessageConversionsPerSec.Count"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "消息转换",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FetchMessageConversionsPerSec.Count`) AS `每秒 Fetch 消息转换`) { `host` = '#{host}' }\")",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Fetch 消息转换",
+              "field": "FetchMessageConversionsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`ProduceMessageConversionsPerSec.Count`) AS `每秒 Produce 消息转换`) { `host` = '#{host}' }\")",
+              "code": "B",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Produce 消息转换",
+              "field": "ProduceMessageConversionsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              },
+              {
+                "key": "出流量",
+                "name": "出流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "openStack": false,
+            "stackType": "time",
+            "openCompare": false,
+            "xAxisShowType": "time",
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "kafka_topics_BytesInPerSec.Count"
+          }
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "网络流量",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `入流量`) { `host` = '#{host}' }\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "入流量",
+              "field": "BytesInPerSec.Count",
+              "filters": [
+                {
+                  "id": "109bf340-c383-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`BytesOutPerSec.Count`) AS `出流量`) { `host` = '#{host}' }\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "出流量",
+              "field": "BytesOutPerSec.Count",
+              "filters": [
+                {
+                  "id": "2206b890-c383-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "每秒 Fetch 请求总计"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "请求总计",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalProduceRequestsPerSec.Count`) AS `每秒 Produce 请求总计`) { `host` = '#{host}' }\")",
+              "code": "B",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Produce 请求总计",
+              "field": "TotalProduceRequestsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "9b43a0a0-55dc-11ed-90f8-85b96def89df",
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`TotalFetchRequestsPerSec.Count`) AS `每秒 Fetch 请求总计`) { `host` = '#{host}' }\")",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Fetch 请求总计",
+              "field": "TotalFetchRequestsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": true,
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "每秒 Fetch 请求失败数"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "请求失败",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedFetchRequestsPerSec.Count`) AS `<no value>`) { `host` = '#{host}' }\")",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Fetch 请求失败数",
+              "field": "FailedFetchRequestsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "NON_NEGATIVE_DERIVATIVE(\"M::`kafka_topics`:(AVG(`FailedProduceRequestsPerSec.Count`) AS `每秒 Produce 请求失败数`) { `host` = '#{host}' }\")",
+              "code": "B",
+              "fill": null,
+              "type": "dql",
+              "alias": "每秒 Produce 请求失败数",
+              "field": "FailedProduceRequestsPerSec.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [
+              {
+                "key": "平均每秒扩容数",
+                "name": "平均每秒扩容数",
+                "color": "rgba(65,206,199,1)"
+              }
+            ],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "平均每秒扩容数"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "副本管理"
+        },
+        "name": "副本扩容",
+        "pos": {
+          "h": 9,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`IsrExpandsPerSec.Count`) AS `平均每秒扩容数`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "平均每秒扩容数",
+              "field": "IsrExpandsPerSec.Count",
+              "filters": [
+                {
+                  "id": "89d55110-c384-11eb-9426-db66bc5d22f6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`IsrShrinksPerSec.Count`) AS `平均每秒缩容数`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "平均每秒缩容数",
+              "field": "IsrShrinksPerSec.Count",
+              "filters": [
+                {
+                  "id": "8c73a2a0-c384-11eb-9426-db66bc5d22f6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [
+              {
+                "key": "最小失败 ISR 分区数",
+                "name": "最小失败 ISR 分区数",
+                "color": "rgba(65,206,199,1)"
+              }
+            ],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "kafka_replica_manager_UnderMinIsrPartitionCount.Value"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "副本管理"
+        },
+        "name": "失效副本",
+        "pos": {
+          "h": 9,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`UnderReplicatedPartitions.Value`) AS `失效副本分区数`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "dql",
+              "alias": "失效副本分区数",
+              "field": "UnderReplicatedPartitions.Value",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`UnderMinIsrPartitionCount.Value`) AS `低于最小 ISR 分区数`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "低于最小 ISR 分区数",
+              "field": "UnderMinIsrPartitionCount.Value",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "type": "sequence",
+            "unit": "",
+            "color": "#db632b",
+            "qtype": "http",
+            "query": {
+              "fill": "none",
+              "fields": [
+                {
+                  "args": [
+                    {
+                      "name": "UnderMinIsrPartitionCount.Value"
+                    }
+                  ],
+                  "alias": "最小失败 ISR 分区数",
+                  "funcName": "Last"
+                },
+                {
+                  "fx": "$$value",
+                  "args": [
+                    {
+                      "name": "UnderReplicatedPartitions.Value"
+                    }
+                  ],
+                  "alias": "失效副本分区数",
+                  "funcName": "last"
+                }
+              ],
+              "filter": {
+                "tags": [
+                  {
+                    "name": "host",
+                    "value": "#{host}",
+                    "condition": "and",
+                    "operation": "="
+                  }
+                ]
+              },
+              "groupBy": [
+                "time(#{defaultInterval})"
+              ],
+              "measurements": [
+                "kafka_replica_manager"
+              ],
+              "transformFuncs": []
+            },
+            "extend": {},
+            "datasource": "ftinfluxdb"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "openStack": false,
+            "stackType": "time",
+            "openCompare": false,
+            "xAxisShowType": "time",
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "离线副本数"
+          }
+        },
+        "group": {
+          "name": "副本管理"
+        },
+        "name": "离线副本数",
+        "pos": {
+          "h": 9,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`OfflineReplicaCount.Value`) AS `离线副本数`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "离线副本数",
+              "field": "OfflineReplicaCount.Value",
+              "filters": [
+                {
+                  "id": "f59e0c80-c383-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [
+              {
+                "key": "Broker 分区数",
+                "name": "Broker 分区数",
+                "color": "rgba(65,206,199,1)"
+              }
+            ],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "Broker 分区数"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "副本管理"
+        },
+        "name": "副本总计",
+        "pos": {
+          "h": 9,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`PartitionCount.Value`) AS `分区数`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "分区数",
+              "field": "PartitionCount.Value",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`LeaderCount.Value`) AS `Leader 副本数`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Leader 副本数",
+              "field": "LeaderCount.Value",
+              "filters": [
+                {
+                  "id": "63de1410-c384-11eb-9426-db66bc5d22f6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#00B2CE",
+            "mappings": [],
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Purgatory"
+        },
+        "name": "删除记录",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_purgatory`:(AVG(`DeleteRecords.NumDelayedOperations`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "field": "DeleteRecords.NumDelayedOperations",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_purgatory",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#FF77AA",
+            "mappings": [],
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Purgatory"
+        },
+        "name": "心跳检测",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_purgatory`:(AVG(`Heartbeat.NumDelayedOperations`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "Heartbeat.NumDelayedOperations",
+              "density": "medium",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_purgatory",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#A0DD86",
+            "mappings": [],
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Purgatory"
+        },
+        "name": "Topic",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_purgatory`:(AVG(`topic.PurgatorySize`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "field": "topic.PurgatorySize",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_purgatory",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#737AE2",
+            "mappings": [],
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Purgatory"
+        },
+        "name": "生产者",
+        "pos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_purgatory`:(AVG(`Produce.PurgatorySize`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "field": "Produce.PurgatorySize",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "kafka_purgatory",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#C57ECD",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "失效的副本分区",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 9,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(AVG(`UnderReplicatedPartitions.Value`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "UnderReplicatedPartitions.Value",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#C8DD4F",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "Topic",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 3,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`GlobalTopicCount.Value`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "GlobalTopicCount.Value",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "07f2b970-c380-11eb-8967-fb1050d86707",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "lineColor": "#c23531",
+            "openStack": false,
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "事件队列"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "队列信息",
+        "pos": {
+          "h": 10,
+          "w": 5,
+          "x": 7,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`TotalQueueSize.Value`) AS `总队列`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "总队列",
+              "field": "TotalQueueSize.Value",
+              "filters": [
+                {
+                  "id": "c839c9c0-c381-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`EventQueueSize.Value`) AS `事件队列`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "事件队列",
+              "field": "EventQueueSize.Value",
+              "filters": [
+                {
+                  "id": "d9fe6ee0-c381-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "units": [
+              {
+                "key": "生产者请求时间",
+                "name": "生产者请求时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "colors": [
+              {
+                "key": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "name": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "tags": {
+                  "host": "iZbp18k3nmsg02frvgelyxZ"
+                },
+                "color": "#498BFE"
+              }
+            ],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "openStack": false,
+            "stackType": "time",
+            "titleDesc": "",
+            "openCompare": false,
+            "xAxisShowType": "time",
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "last(AtMinIsrPartitionCount.Value)"
+          }
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "生产者请求时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `生产者请求时间`) { `request` = 'Produce' and `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "生产者请求时间",
+              "field": "TotalTimeMs.Mean",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "93d474e0-7b70-11eb-bf8d-d7ca32a7c090",
+                  "op": "=",
+                  "name": "request",
+                  "logic": "and",
+                  "value": "Produce"
+                },
+                {
+                  "id": "8bf61940-7b7a-11eb-95bf-4f081fe3b009",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "消费者请求时间",
+                "name": "消费者请求时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "avg(TotalTimeMs.Mean)"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "消费者请求时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Mean`) AS `消费者请求时间`) { `request` = 'FetchConsumer' and `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "消费者请求时间",
+              "field": "TotalTimeMs.Mean",
+              "filters": [
+                {
+                  "id": "54110870-7b73-11eb-bf8d-d7ca32a7c090",
+                  "op": "=",
+                  "name": "request",
+                  "type": "",
+                  "logic": "and",
+                  "value": "FetchConsumer"
+                },
+                {
+                  "id": "99482200-7b7a-11eb-95bf-4f081fe3b009",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "从节点请求时间",
+                "name": "从节点请求时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "从节点请求时间"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "从节点请求时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(AVG(`TotalTimeMs.Count`) AS `从节点请求时间`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "从节点请求时间",
+              "field": "TotalTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "138fdc21-55da-11ed-90f8-85b96def89df",
+                  "op": "=",
+                  "name": "host",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "tableSortMetricName": "last(BytesInPerSec.Count)"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "网络入流量-Topic",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 0,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_topics`:(AVG(`BytesInPerSec.Count`) AS `入流量`) { `host` = '#{host}' } BY `host`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "入流量",
+              "field": "BytesInPerSec.Count",
+              "filters": [
+                {
+                  "id": "65d1fbb0-7b81-11eb-b5c6-45fe7ccbc2b1",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "出流量",
+                "name": "出流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "网络出流量-Topic",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 8,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_derivative(\"M::`kafka_topics`:(avg(`BytesOutPerSec.Count`) AS `出流量`) { `host` = '#{host}' } BY `host`\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "出流量",
+              "field": "BytesOutPerSec.Count",
+              "filters": [
+                {
+                  "id": "65d1fbb0-7b81-11eb-b5c6-45fe7ccbc2b1",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_derivative"
+                }
+              ],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "Controller 数量",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`ActiveControllerCount.Value`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ActiveControllerCount.Value",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "07f2b970-c380-11eb-8967-fb1050d86707",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#A0DD86",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "下线分区数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(avg(`OfflinePartitionsCount.Value`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "OfflinePartitionsCount.Value",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#5F67D6",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "离线目录数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 21,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_log`:(AVG(`OfflineLogDirectoryCount`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "OfflineLogDirectoryCount",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_log",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "density": "medium",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "lineColor": "#c23531",
+            "openStack": false,
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "downsample": "last",
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "legendValues": "",
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "tableSortMetricName": "事件队列"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "选举",
+        "pos": {
+          "h": 10,
+          "w": 5,
+          "x": 12,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`LeaderElectionRateAndTimeMs.Count`) AS `Leader 选举次数`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Leader 选举次数",
+              "field": "LeaderElectionRateAndTimeMs.Count",
+              "filters": [
+                {
+                  "id": "c839c9c0-c381-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(AVG(`UncleanLeaderElectionsPerSec.Count`) AS `Unclean Leader 选举次数`) { `host` = '#{host}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Unclean Leader 选举次数",
+              "field": "UncleanLeaderElectionsPerSec.Count",
+              "filters": [
+                {
+                  "id": "d9fe6ee0-c381-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "index": "default",
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "field": "time",
+                "headerName": "时间",
+                "showTooltip": false,
+                "cellRenderer": "StatusCellRender",
+                "filterParams": {}
+              }
+            ],
+            "showTitle": true,
+            "titleDesc": "",
+            "addColumns": [
+              {
+                "field": "message",
+                "headerName": "消息"
+              },
+              {
+                "hide": true,
+                "field": "status"
+              },
+              {
+                "hide": true,
+                "field": "__docid"
+              }
+            ],
+            "valMappings": [],
+            "timeInterval": "",
+            "isTimeInterval": false,
+            "currentChartType": "log",
+            "showFieldMapping": false,
+            "valColorMappings": []
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "日志"
+        },
+        "name": "新建图表",
+        "pos": {
+          "h": 17,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "log",
+        "queries": [
+          {
+            "name": "",
+            "type": "log",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "L::`kafka`:(`message`, `status`, `__docid`) { `index` = 'default' and  `host` = '#{host}'  }",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "消息",
+              "field": null,
+              "fields": [
+                {
+                  "alias": "消息",
+                  "field": "message"
+                },
+                {
+                  "hide": true,
+                  "field": "status"
+                },
+                {
+                  "hide": true,
+                  "field": "__docid"
+                }
+              ],
+              "search": "",
+              "filters": [
+                {
+                  "id": "204bce90-1639-11ee-bc97-1578a8bd4960",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "text",
+              "highlight": true,
+              "namespace": "logging",
+              "dataSource": "kafka",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "disableMultipleField": false
+            },
+            "datasource": "dataflux",
+            "noTimeRange": false
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "fixedTime": "",
+            "showTitle": true,
+            "titleDesc": "",
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "showFieldMapping": false
+          }
+        },
+        "group": {
+          "name": "简介"
+        },
+        "name": "说明",
+        "pos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "text",
+        "queries": [
+          {
+            "name": "",
+            "query": {
+              "content": "采集器可以从 Kafka 实例中采取很多指标，比如请求、topic等多种指标，并将指标采集到观测云，帮助监控分析 Kafka 各种异常情况。\n\nhttps://docs.guance.com/datakit/kafka/"
+            }
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "网络拒绝流量-Topic",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 18
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_topics`:(avg(`BytesRejectedPerSec.Count`) AS `拒绝流量`) { `host` = '#{host}' } BY `host`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "拒绝流量",
+              "field": "BytesRejectedPerSec.Count",
+              "filters": [
+                {
+                  "id": "65d1fbb0-7b81-11eb-b5c6-45fe7ccbc2b1",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "Broker生产请求频率",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 0,
+          "y": 18
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_topics`:(count(`TotalProduceRequestsPerSec.Count`) AS `生产请求频率`) { `host` = '#{host}' } BY `host`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "生产请求频率",
+              "field": "TotalProduceRequestsPerSec.Count",
+              "filters": [
+                {
+                  "id": "65d1fbb0-7b81-11eb-b5c6-45fe7ccbc2b1",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "入流量",
+                "name": "入流量",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "tableSortMetricName": "last(BytesInPerSec.Count)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Topic"
+        },
+        "name": "Broker消费请求频率",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 8,
+          "y": 18
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_topics`:(last(`TotalFetchRequestsPerSec.Count`) AS `消费请求频率`) { `host` = '#{host}' } BY `host`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "消费请求频率",
+              "field": "TotalFetchRequestsPerSec.Count",
+              "filters": [
+                {
+                  "id": "65d1fbb0-7b81-11eb-b5c6-45fe7ccbc2b1",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "生产者请求时间",
+                "name": "生产者请求时间",
+                "unit": "",
+                "units": [
+                  "time",
+                  "ms"
+                ]
+              }
+            ],
+            "colors": [
+              {
+                "key": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "name": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "tags": {
+                  "host": "iZbp18k3nmsg02frvgelyxZ"
+                },
+                "color": "#498BFE"
+              }
+            ],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "tableSortMetricName": "last(AtMinIsrPartitionCount.Value)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "Leader请求时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 0,
+          "y": 11
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(avg(`LocalTimeMs.Count`) AS `Leader请求时间`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Leader请求时间",
+              "field": "LocalTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8bf61940-7b7a-11eb-95bf-4f081fe3b009",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "队列请求时间",
+                "name": "队列请求时间",
+                "unit": "",
+                "units": []
+              }
+            ],
+            "colors": [
+              {
+                "key": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "name": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "tags": {
+                  "host": "iZbp18k3nmsg02frvgelyxZ"
+                },
+                "color": "#498BFE"
+              }
+            ],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "tableSortMetricName": "last(AtMinIsrPartitionCount.Value)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "队列请求时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 8,
+          "y": 11
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(avg(`RequestQueueTimeMs.Count`) AS `队列请求时间`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "队列请求时间",
+              "field": "RequestQueueTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8bf61940-7b7a-11eb-95bf-4f081fe3b009",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "mark": {
+              "axis": "x",
+              "data": [],
+              "type": "area"
+            },
+            "alias": [],
+            "units": [
+              {
+                "key": "队列请求时间",
+                "name": "队列请求时间",
+                "unit": "",
+                "units": []
+              }
+            ],
+            "colors": [
+              {
+                "key": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "name": "last(TotalTimeMs.Mean){\"host\": \"iZbp18k3nmsg02frvgelyxZ\"}",
+                "tags": {
+                  "host": "iZbp18k3nmsg02frvgelyxZ"
+                },
+                "color": "#498BFE"
+              }
+            ],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "tableSortMetricName": "last(AtMinIsrPartitionCount.Value)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "性能监控"
+        },
+        "name": "队列响应时间",
+        "pos": {
+          "h": 11,
+          "w": 8,
+          "x": 16,
+          "y": 11
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_request`:(avg(`ResponseQueueTimeMs.Count`) AS `队列响应时间`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "队列响应时间",
+              "field": "ResponseQueueTimeMs.Count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8bf61940-7b7a-11eb-95bf-4f081fe3b009",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_request",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#C57ECD",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "低于最小ISR值",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 15,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(count(`UnderMinIsrPartitionCount`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "UnderMinIsrPartitionCount",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#5F67D6",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "死锁线程数",
+        "pos": {
+          "h": 8,
+          "w": 3,
+          "x": 18,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_log`:(avg(`DeadThreadCount`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DeadThreadCount",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_log",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "lineColor": "#c23531",
+            "openStack": false,
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [],
+            "showLineAxis": false,
+            "timeInterval": "default",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "tableSortMetricName": "事件队列",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "网络线程空闲率",
+        "pos": {
+          "h": 10,
+          "w": 4,
+          "x": 17,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_network`:(avg(`NetworkProcessorAvgIdlePercent`) AS `空闲率`) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "空闲率",
+              "field": "NetworkProcessorAvgIdlePercent",
+              "filters": [
+                {
+                  "id": "c839c9c0-c381-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_network",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#5F67D6",
+            "mappings": [],
+            "pageSize": 50,
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#c23531",
+            "precision": "2",
+            "queryMode": "toMergeColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "概览"
+        },
+        "name": "非同步分区选举为leader数",
+        "pos": {
+          "h": 10,
+          "w": 3,
+          "x": 21,
+          "y": 8
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(avg(`UncleanLeaderElectionsPerSec.Count`)) { `host` = '#{host}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "UncleanLeaderElectionsPerSec.Count",
+              "density": "medium",
+              "filters": [
+                {
+                  "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "简介",
+        "extend": {}
+      },
+      {
+        "name": "概览",
+        "extend": {}
+      },
+      {
+        "name": "Topic",
+        "extend": {}
+      },
+      {
+        "name": "副本管理",
+        "extend": {}
+      },
+      {
+        "name": "性能监控",
+        "extend": {}
+      },
+      {
+        "name": "Purgatory",
+        "extend": {}
+      },
+      {
+        "name": "日志",
+        "extend": {}
+      }
+    ],
+    "type": "template"
+  }
+}
