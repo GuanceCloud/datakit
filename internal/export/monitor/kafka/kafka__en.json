@@ -1,0 +1,1010 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka FailedFetchRequestsPerSec Alert",
+        "groupBy": [
+          "host"
+        ],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_topics`:(avg(`FailedFetchRequestsPerSec.Count`)) BY `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_topics`:(avg(`FailedFetchRequestsPerSec.Count`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "FailedFetchRequestsPerSec.Count",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_topics",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "Kafka 检测库",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka UnderReplicatedPartitions Alert",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_replica_manager`:(count(`UnderReplicatedPartitions`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "c6747a82-d029-42e1-be68-25d2c9585b00",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(count(`UnderReplicatedPartitions`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "UnderReplicatedPartitions",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka UnderMinIsrPartitionCount Alert",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_replica_manager`:(count(`UnderMinIsrPartitionCount.Value`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "c6747a82-d029-42e1-be68-25d2c9585b00",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_replica_manager`:(count(`UnderMinIsrPartitionCount.Value`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "UnderMinIsrPartitionCount.Value",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_replica_manager",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka Offline Partition Alert",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_controller`:(count(`OfflinePartitionsCount.Value`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(count(`OfflinePartitionsCount.Value`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "OfflinePartitionsCount.Value",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka Parition Leader Election Count Alert",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_controller`:(count(`LeaderElectionRateAndTimeMs.Count`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(count(`LeaderElectionRateAndTimeMs.Count`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "LeaderElectionRateAndTimeMs.Count",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka Unclean Leader Election Count Alert",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_controller`:(count(`UncleanLeaderElectionsPerSec.Count`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(count(`UncleanLeaderElectionsPerSec.Count`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "UncleanLeaderElectionsPerSec.Count",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Kafka ActiveControllerCount is Zero",
+        "groupBy": [],
+        "message": ">df_dimension_tags：{{ df_dimension_tags }}\n>df_monitor_checker_name：{{ df_monitor_checker_name }}\n>df_monitor_name：{{ df_monitor_name }}\n>df_status： {{ df_status }}\n>Content：Kafka ActiveControllerCount is Zero\n>Suggestion: Log in to the cluster to check for any abnormalities",
+        "targets": [
+          {
+            "dql": "M::`kafka_controller`:(count(`ActiveControllerCount.Value`))",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e67e1bc7-be20-4c25-be08-fd8547304f1c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kafka_controller`:(count(`ActiveControllerCount.Value`))",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "ActiveControllerCount.Value",
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kafka_controller",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
