@@ -160,6 +160,10 @@ func (dw *Dataway) doFlush(w *writer, b *body, opts ...WriteOption) error {
 	}
 
 	isGzip := "F"
+	if w.cacheClean {
+		isGzip = "T" // fail-cache always gzipped before HTTP POST
+	}
+
 	if dw.GZip && !w.cacheClean { // under cacheClean, all body has been gzipped during previous POST
 		var (
 			zstart = time.Now()
