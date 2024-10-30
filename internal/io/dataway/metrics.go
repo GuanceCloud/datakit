@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	bodyCounterVec,
 	ptsCounterVec,
 	bytesCounterVec,
 	writeDropPointsCounterVec,
@@ -41,6 +42,7 @@ func APISumVec() *prometheus.SummaryVec {
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
 		walWorkerFlush,
+		bodyCounterVec,
 		ptsCounterVec,
 		walPointCounterVec,
 		bytesCounterVec,
@@ -59,6 +61,7 @@ func Metrics() []prometheus.Collector {
 
 func metricsReset() {
 	walWorkerFlush.Reset()
+	bodyCounterVec.Reset()
 	ptsCounterVec.Reset()
 	walPointCounterVec.Reset()
 	bytesCounterVec.Reset()
@@ -78,6 +81,7 @@ func metricsReset() {
 func doRegister() {
 	metrics.MustRegister(
 		walWorkerFlush,
+		bodyCounterVec,
 		ptsCounterVec,
 		walPointCounterVec,
 		bytesCounterVec,
@@ -214,6 +218,20 @@ func init() {
 			Help:      "Dataway uploaded points, partitioned by category and send status(HTTP status)",
 		},
 		[]string{"category", "status"},
+	)
+
+	bodyCounterVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_body_total",
+			Help:      "Dataway total body",
+		},
+		[]string{
+			"from",
+			"op",
+			"type",
+		},
 	)
 
 	walPointCounterVec = prometheus.NewCounterVec(
