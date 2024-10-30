@@ -77,7 +77,10 @@ func getNewBufferBody(opts ...bodyOpt) *body {
 		b = &body{
 			selfBuffer: 1,
 		}
+
+		bodyCounterVec.WithLabelValues("malloc", "get", "new").Inc()
 	} else {
+		bodyCounterVec.WithLabelValues("pool", "get", "new").Inc()
 		b = x.(*body)
 	}
 
@@ -98,7 +101,10 @@ func getReuseBufferBody(opts ...bodyOpt) *body {
 		b = &body{
 			selfBuffer: 0,
 		}
+
+		bodyCounterVec.WithLabelValues("malloc", "get", "reuse").Inc()
 	} else {
+		bodyCounterVec.WithLabelValues("pool", "get", "reuse").Inc()
 		b = x.(*body)
 	}
 
@@ -119,8 +125,10 @@ func putBody(b *body) {
 
 		if b.selfBuffer == 1 {
 			newBufferBodyPool.Put(b)
+			bodyCounterVec.WithLabelValues("pool", "put", "new").Inc()
 		} else {
 			reuseBufferBodyPool.Put(b)
+			bodyCounterVec.WithLabelValues("pool", "put", "reuse").Inc()
 		}
 	}
 }

@@ -555,7 +555,6 @@ func TestPBMarshalSize(t *T.T) {
 		b.CacheData.RawLen = int32(size)
 		b.Headers = append(b.Headers, &HTTPHeader{Key: HeaderXGlobalTags, Value: "looooooooooooooooooooooong value"})
 		b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
-		b.checkSize = true // enable size checking, or panic
 
 		_, err := b.dump()
 		assert.Error(t, err)

@@ -45,8 +45,7 @@ type body struct {
 
 	selfBuffer, // buffer that belongs to itself, and we should not drop it when putback
 	gzon int8
-	from      walFrom
-	checkSize bool
+	from walFrom
 }
 
 func (b *body) reset() {
@@ -109,18 +108,16 @@ func (b *body) loadCache(data []byte) error {
 }
 
 func (b *body) dump() ([]byte, error) {
-	if b.checkSize { // checkSize will not set on production, just for testing cases.
-		// NOTE: check required size before marshal, extra Size() call may cause a bit CPU time.
-		if s := b.CacheData.Size(); s > len(b.marshalBuf) {
-			return nil, fmt.Errorf("too small(%d) marshal buffer, need %d", len(b.marshalBuf), s)
-		}
-	}
-
-	// MarshalTo() all call Size() within itself.
-	if n, err := b.CacheData.MarshalTo(b.marshalBuf); err != nil {
-		return nil, fmt.Errorf("MarshalTo: %w", err)
+	// NOTE: check required size before marshal, extra Size() call may cause a bit CPU time.
+	if s := b.CacheData.Size(); s > len(b.marshalBuf) {
+		return nil, fmt.Errorf("too small(%d) marshal buffer, need %d", len(b.marshalBuf), s)
 	} else {
-		return b.marshalBuf[:n], nil
+		// MarshalTo() all call Size() within itself.
+		if n, err := b.CacheData.MarshalToSizedBuffer(b.marshalBuf[:s]); err != nil {
+			return nil, fmt.Errorf("MarshalTo: %w", err)
+		} else {
+			return b.marshalBuf[:n], nil
+		}
 	}
 }
 
@@ -245,11 +242,15 @@ func (w *writer) buildPointsBody() error {
 
 		encodeBytes, ok := enc.Next(b.sendBuf)
 		if !ok {
+			defer putBody(b)
+
 			if err := enc.LastErr(); err != nil {
 				l.Errorf("encode: %s, cat: %s, total points: %d, current part: %d, body cap: %d",
 					err.Error(), b.cat().Alias(), len(w.points), parts, cap(b.sendBuf))
 				return err
 			}
+
+			l.Debugf("last body: %s", b)
 			break
 		}
 
