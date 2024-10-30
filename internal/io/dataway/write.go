@@ -6,9 +6,6 @@
 package dataway
 
 import (
-	"bytes"
-	"compress/gzip"
-
 	"github.com/GuanceCloud/cliutils/point"
 )
 
@@ -82,11 +79,6 @@ func WithBodyCallback(cb bodyCallback) WriteOption {
 	return func(w *writer) {
 		w.bcb = cb
 	}
-}
-
-type gzipWriter struct {
-	buf *bytes.Buffer
-	w   *gzip.Writer
 }
 
 type writer struct {

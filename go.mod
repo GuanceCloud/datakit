@@ -12,7 +12,7 @@ require (
 	github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee
 	github.com/GuanceCloud/timeout v1.9.1
 	github.com/IBM/sarama v1.41.2
-	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect
 	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
@@ -391,6 +391,8 @@ require (
 )
 
 require github.com/andybalholm/brotli v1.0.4
+
+require github.com/klauspost/pgzip v1.2.6
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

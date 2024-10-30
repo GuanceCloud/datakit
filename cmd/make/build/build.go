@@ -345,7 +345,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 }
 
 func compileAPMInject(goos, goarch, dir string) error {
-	if goos != "linux" {
+	// skip build under macOS, we'll never release production package under macOS.
+	if goos != "linux" || runtime.GOOS != "linux" {
 		l.Warnf("skip building apm auto-inject launcher: unsupported os %s", goos)
 		return nil
 	}

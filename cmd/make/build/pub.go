@@ -216,7 +216,7 @@ func PubDatakit() error {
 		}
 
 		// apm-auto-inject-launcher
-		if goos == Linux && (goarch == AMD64 || goarch == ARM64) {
+		if goos == Linux && (goarch == AMD64 || goarch == ARM64) && runtime.GOOS == "linux" {
 			gzName, gzPath := tarFiles(
 				PubDir, BuildDir, "datakit-apm-inject", goos, goarch, TarWithRlsVer)
 			basics[gzName] = gzPath

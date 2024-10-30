@@ -6,8 +6,6 @@
 package dataway
 
 import (
-	"bytes"
-	"compress/gzip"
 	sync "sync"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -16,32 +14,10 @@ import (
 var (
 	newBufferBodyPool, reuseBufferBodyPool sync.Pool
 
-	wpool   sync.Pool
-	zippool sync.Pool
+	wpool sync.Pool
 
 	defaultBatchSize = (1 << 20) // 1MB
 )
-
-func getZipper() *gzipWriter {
-	if x := zippool.Get(); x == nil {
-		buf := bytes.Buffer{}
-		return &gzipWriter{
-			buf: &buf,
-			w:   gzip.NewWriter(&buf),
-		}
-	} else {
-		return x.(*gzipWriter)
-	}
-}
-
-func putZipper(z *gzipWriter) {
-	if z != nil {
-		// reset zip buffer and the writer.
-		z.buf.Reset()
-		z.w.Reset(z.buf)
-		zippool.Put(z)
-	}
-}
 
 type bodyOpt func(*body)
 
