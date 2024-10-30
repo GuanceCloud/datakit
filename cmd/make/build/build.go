@@ -235,7 +235,7 @@ func Compile() error {
 		}
 
 		if err := compileAPMInject(goos, goarch, BuildDir); err != nil {
-			return err
+			l.Warnf("build APM inject failed: %s, ignored", err)
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, upgrader.BuildBinName, goos, goarch)

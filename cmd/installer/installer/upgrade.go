@@ -54,6 +54,11 @@ func Upgrade() error {
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
+	if c.PointPool != nil {
+		l.Infof("default enable point pool")
+		c.PointPool.Enable = true // default enable point-pool
+	}
+
 	// setup dataway
 	if c.Dataway != nil {
 		c.Dataway.DeprecatedURL = ""

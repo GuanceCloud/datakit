@@ -296,6 +296,21 @@ func TestUpgradeMainConfig(t *T.T) {
 				return c
 			}(),
 		},
+
+		{
+			name: "default-enable-point-pool",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.PointPool.Enable = false
+
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				return c
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
