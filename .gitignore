@@ -109,3 +109,6 @@ internal/plugins/externals/ebpf/demo/
 internal/plugins/externals/ebpf/internal/testuitls/mysqlins/mysqlins
 internal/export/doc/zh/inputs/imgs/tracing.png
 /git
+
+# web cache
+node_modules
