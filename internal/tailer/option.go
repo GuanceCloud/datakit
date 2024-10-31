@@ -31,6 +31,7 @@ type option struct {
 	// 添加 debug 字段
 	enableDebugFields bool
 
+	enableMultiline bool
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
@@ -38,6 +39,7 @@ type option struct {
 	multilinePatterns []string
 	// 最大多行存在时间，避免堆积过久
 	maxMultilineLifeDuration time.Duration
+	maxMultilineLength       int64
 
 	// 是否从文件起始处开始读取，如果打开此项，可能会导致大量数据重复
 	fromBeginning bool
@@ -100,6 +102,10 @@ func WithService(s string) Option {
 	}
 }
 
+func EnableMultiline(b bool) Option {
+	return func(opt *option) { opt.enableMultiline = b }
+}
+
 func WithMultilinePatterns(arr []string) Option {
 	return func(opt *option) { opt.multilinePatterns = arr }
 }
@@ -110,6 +116,10 @@ func WithMaxMultilineLifeDuration(dur time.Duration) Option {
 			opt.maxMultilineLifeDuration = dur
 		}
 	}
+}
+
+func WithMaxMultilineLength(n int64) Option {
+	return func(opt *option) { opt.maxMultilineLength = n }
 }
 
 func WithRemoveAnsiEscapeCodes(b bool) Option {
@@ -172,7 +182,7 @@ func defaultOption() *option {
 		source:                         "default",
 		extraTags:                      map[string]string{"service": "default"},
 		maxForceFlushLimit:             10,
-		fileFromBeginningThresholdSize: 1000 * 1000 * 1, // 1 MB
+		fileFromBeginningThresholdSize: 1000 * 1000 * 20, // 20 MB
 		done:                           make(<-chan interface{}),
 		feeder:                         dkio.DefaultFeeder(),
 	}

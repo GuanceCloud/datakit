@@ -54,6 +54,7 @@ type Input struct {
 	ContainerMaxConcurrent                int               `toml:"container_max_concurrent"`
 	ContainerIncludeLog                   []string          `toml:"container_include_log"`
 	ContainerExcludeLog                   []string          `toml:"container_exclude_log"`
+	LoggingEnableMultline                 bool              `toml:"logging_enable_multiline"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
 	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`
 	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
@@ -135,6 +136,7 @@ func newInput() *Input {
 		EnableK8sEvent:            true,
 		EnableK8sNodeLocal:        true,
 		Tags:                      make(map[string]string),
+		LoggingEnableMultline:     true,
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
 		Election:                  true,

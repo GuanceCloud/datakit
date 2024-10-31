@@ -12,12 +12,14 @@ import (
 
 var (
 	rotateVec        *prometheus.CounterVec
-	forceFlushVec    *prometheus.CounterVec
 	parseFailVec     *prometheus.CounterVec
 	openfileVec      *prometheus.GaugeVec
 	socketLogConnect *prometheus.CounterVec
 	socketLogCount   *prometheus.CounterVec
 	socketLogLength  *prometheus.SummaryVec
+
+	pendingBlockLength *prometheus.GaugeVec
+	pendingByteSize    *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -27,19 +29,6 @@ func setupMetrics() {
 			Subsystem: "tailer",
 			Name:      "file_rotate_total",
 			Help:      "Tailer rotate total",
-		},
-		[]string{
-			"source",
-			"filepath",
-		},
-	)
-
-	forceFlushVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "tailer",
-			Name:      "buffer_force_flush_total",
-			Help:      "Tailer force flush total",
 		},
 		[]string{
 			"source",
@@ -77,7 +66,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input_logging_socket",
 			Name:      "connect_status_total",
-			Help:      "connect and close count for net.conn",
+			Help:      "Connect and close count for net.conn",
 		},
 		[]string{"network", "status"})
 
@@ -86,7 +75,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input_logging_socket",
 			Name:      "feed_message_count_total",
-			Help:      "socket feed to IO message count",
+			Help:      "Socket feed to IO message count",
 		},
 		[]string{
 			"network",
@@ -97,7 +86,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input_logging_socket",
 			Name:      "log_length",
-			Help:      "record the length of each log line",
+			Help:      "Record the length of each log line",
 			Objectives: map[float64]float64{
 				0.5:  0.05,
 				0.90: 0.01,
@@ -106,11 +95,34 @@ func setupMetrics() {
 		},
 		[]string{"network"})
 
+	pendingBlockLength = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_logging",
+			Name:      "pending_block_length",
+			Help:      "The length of blocks that are pending processing",
+		},
+		[]string{"source", "filepath"})
+
+	pendingByteSize = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_logging",
+			Name:      "pending_byte_size",
+			Help:      "The size of bytes that are pending processing",
+		},
+		[]string{"source", "filepath"})
+
 	metrics.MustRegister(
 		openfileVec,
+		parseFailVec,
+		rotateVec,
+		socketLogLength,
+		socketLogCount,
+		socketLogConnect,
+		pendingBlockLength,
+		pendingByteSize,
 	)
-
-	metrics.MustRegister(socketLogLength, socketLogCount, socketLogConnect)
 }
 
 //nolint:gochecknoinits

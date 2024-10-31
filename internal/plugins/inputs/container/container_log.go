@@ -19,7 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-const defaultActiveDuration = time.Hour * 3
+const defaultActiveDuration = time.Hour * 1
 
 func (c *container) cleanMissingContainerLog(newIDs []string) {
 	missingIDs := c.logTable.findDifferences(newIDs)
@@ -53,8 +53,10 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithPipeline(cfg.Pipeline),
 			tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 			tailer.WithCharacterEncoding(cfg.CharacterEncoding),
+			tailer.EnableMultiline(c.ipt.LoggingEnableMultline),
 			tailer.WithMultilinePatterns(cfg.MultilinePatterns),
 			tailer.WithGlobalTags(mergedTags),
+			tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 			tailer.WithMaxMultilineLifeDuration(c.ipt.LoggingMaxMultilineLifeDuration),
 			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
 			tailer.WithMaxForceFlushLimit(c.ipt.LoggingForceFlushLimit),
