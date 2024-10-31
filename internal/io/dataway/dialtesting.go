@@ -24,12 +24,14 @@ type DialtestingSender struct {
 
 type DialtestingSenderOpt struct {
 	HTTPTimeout time.Duration
+	HTTPProxy   string
 }
 
 func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
 	d.ep = &endPoint{}
 	if opt != nil {
 		withHTTPTimeout(opt.HTTPTimeout)(d.ep)
+		withProxy(opt.HTTPProxy)(d.ep)
 	}
 	return d.ep.setupHTTP()
 }
