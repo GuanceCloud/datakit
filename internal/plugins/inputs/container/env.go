@@ -89,6 +89,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_SEARCH_INTERVAL : string ("10s")
 // ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 // ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
+// ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
@@ -286,6 +287,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
 		} else {
 			ipt.LoggingAutoMultilineDetection = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE to bool: %s, ignore", err)
+		} else {
+			ipt.LoggingEnableMultline = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {

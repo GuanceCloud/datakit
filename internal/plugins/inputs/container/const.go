@@ -57,6 +57,7 @@ const sampleCfg = `
   ## Set true to enable election for k8s metric collection
   election = true
 
+  logging_enable_multiline = true
   logging_auto_multiline_detection = true
   logging_auto_multiline_extra_patterns = []
 

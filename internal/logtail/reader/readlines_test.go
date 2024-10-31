@@ -19,7 +19,6 @@ func TestReadLines(t *testing.T) {
 	buf.WriteString(mockdata)
 
 	size := 10
-
 	r := NewReader(&buf, WithBufSize(size))
 
 	for i := 0; i <= len(mockdata)/size; i++ {
@@ -49,14 +48,43 @@ func TestReadLines(t *testing.T) {
 	assert.Equal(t, ErrReadEmpty, err)
 }
 
-func TestSplit(t *testing.T) {
+func TestSplitLines(t *testing.T) {
 	r := &reader{
 		opt: defaultOption(),
 	}
-	res := r.split([]byte(mockdata))
+	res := r.splitLines([]byte(mockdata))
 	assert.Equal(t, 2, len(res))
 	assert.Equal(t, []byte("0123456789"), res[0])
 	assert.Equal(t, []byte("abcde"), res[1])
 
 	assert.Equal(t, []byte("ABCDE"), r.previousBlock)
+}
+
+func TestSplitLineBlock(t *testing.T) {
+	buf := bytes.Buffer{}
+	buf.WriteString("0123456789\nabcde\nABCDEFGHIGKL")
+
+	size := 10
+	r := &reader{
+		opt: &option{maxLineLength: 10},
+		rd:  &buf,
+		buf: make([]byte, size),
+	}
+
+	for i := 0; i <= len(mockdata)/size; i++ {
+		switch i {
+		case 0:
+			block, _, _ := r.ReadLineBlock()
+			assert.Equal(t, []byte(nil), block)
+		case 1:
+			block, _, _ := r.ReadLineBlock()
+			assert.Equal(t, []byte("0123456789\nabcde\n"), block)
+		case 2:
+			block, _, _ := r.ReadLineBlock()
+			assert.Equal(t, []byte("ABCDEFGHIGKL"), block)
+		case 3:
+			block, _, _ := r.ReadLineBlock()
+			assert.Equal(t, []byte(nil), block)
+		}
+	}
 }

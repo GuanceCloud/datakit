@@ -153,6 +153,8 @@ func (ipt *Input) Run() {
 		tailer.WithFromBeginning(ipt.FromBeginning),
 		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
 		tailer.WithIgnoreDeadLog(ignoreDuration),
+		tailer.EnableMultiline(ipt.AutoMultilineDetection),
+		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
 		tailer.WithDone(ipt.semStop.Wait()),

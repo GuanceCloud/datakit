@@ -7,6 +7,7 @@ package tailer
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/bytechannel"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
@@ -31,7 +33,7 @@ import (
 
 const (
 	defaultSleepDuration = time.Second
-	checkInterval        = time.Second * 5
+	checkInterval        = time.Second * 3
 )
 
 type Single struct {
@@ -46,10 +48,9 @@ type Single struct {
 	mult    *multiline.Multiline
 	reader  reader.Reader
 
-	readTime   time.Time
-	readLines  int64
-	offset     int64
-	flushScore int
+	offset    int64
+	readLines int64
+	bc        bytechannel.ByteChannel
 
 	partialContentBuff bytes.Buffer
 
@@ -68,6 +69,7 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	t := &Single{
 		opt:      c,
 		filepath: filepath,
+		bc:       bytechannel.NewByteChannel(),
 	}
 	t.buildTags(t.opt.extraTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
@@ -92,6 +94,7 @@ func (t *Single) setup() error {
 	}
 
 	t.mult, err = multiline.New(t.opt.multilinePatterns,
+		multiline.WithMaxLength(int(t.opt.maxMultilineLength)),
 		multiline.WithMaxLifeDuration(t.opt.maxMultilineLifeDuration))
 	if err != nil {
 		return err
@@ -114,9 +117,46 @@ func (t *Single) setup() error {
 	return nil
 }
 
+var processorGo = datakit.G("tailer_processor")
+
 func (t *Single) Run() {
-	t.forwardMessage()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	processorGo.Go(func(_ context.Context) error {
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				cancel()
+				t.log.Infof("%s processor exit", t.opt.source)
+				return nil
+			case <-t.opt.done:
+				cancel()
+				t.log.Infof("%s processor exit", t.opt.source)
+				return nil
+			case <-ctx.Done():
+				t.log.Infof("%s processor exit", t.opt.source)
+				return nil
+			default:
+				// nil
+			}
+
+			block := t.bc.Receive()
+			if len(block) == 0 {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+
+			lines := reader.SplitLines(block)
+			t.process(t.opt.mode, lines)
+
+			pendingBlockLength.WithLabelValues(t.opt.source, t.filepath).Set(float64(t.bc.CurrentChannelSize()))
+			pendingByteSize.WithLabelValues(t.opt.source, t.filepath).Set(float64(t.bc.CurrentByteSize()))
+		}
+	})
+
+	t.forwardMessage(ctx)
 	t.Close()
+	cancel()
 }
 
 func (t *Single) Close() {
@@ -217,33 +257,25 @@ func (t *Single) reopen() error {
 		return err
 	}
 
+	t.reader.SetReader(t.file)
 	t.offset = ret
-	t.reader = reader.NewReader(t.file)
 	t.inode = openfile.FileInode(t.filepath)
 	t.recordKey = openfile.FileKey(t.filepath)
 
 	t.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
-
 	rotateVec.WithLabelValues(t.opt.source, t.filepath).Inc()
 	return nil
 }
 
 //nolint:cyclop
-func (t *Single) forwardMessage() {
+func (t *Single) forwardMessage(ctx context.Context) {
 	checkTicker := time.NewTicker(checkInterval)
 	defer checkTicker.Stop()
 
 	for {
-		t.forceFlush()
-
 		select {
-		case <-datakit.Exit.Wait():
+		case <-ctx.Done():
 			t.log.Infof("exiting: file %s", t.filepath)
-			return
-		case <-t.opt.done:
-			t.log.Infof("exiting: file %s", t.filepath)
-			t.collectToEOF()
-			t.flushCache()
 			return
 
 		case <-checkTicker.C:
@@ -251,7 +283,7 @@ func (t *Single) forwardMessage() {
 			exist := openfile.FileExists(t.filepath)
 
 			if did || !exist {
-				t.collectToEOF()
+				t.readToEOF(ctx)
 			}
 
 			if did {
@@ -270,62 +302,42 @@ func (t *Single) forwardMessage() {
 		default: // nil
 		}
 
-		if err := t.collectOnce(); err != nil {
+		if err := t.readOnce(ctx); err != nil {
 			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
 			t.wait()
 			continue
 		}
-
-		t.resetFlushScore()
 	}
 }
 
-func (t *Single) forceFlush() {
-	if t.opt.maxForceFlushLimit == -1 {
-		return
-	}
-	if t.flushScore >= t.opt.maxForceFlushLimit {
-		t.flushCache()
-		t.resetFlushScore()
-	}
-}
-
-func (t *Single) flushCache() {
-	if t.mult != nil && t.mult.BuffLength() > 0 {
-		text := t.mult.Flush()
-		logstr := removeAnsiEscapeCodes(text, t.opt.removeAnsiEscapeCodes)
-		t.feed([][]byte{logstr})
-
-		forceFlushVec.WithLabelValues(t.opt.source, t.filepath).Inc()
-	}
-}
-
-func (t *Single) collectToEOF() {
+func (t *Single) readToEOF(ctx context.Context) {
 	t.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
 	for {
-		if err := t.collectOnce(); err != nil {
-			if !errors.Is(err, reader.ErrReadEmpty) {
-				t.log.Warnf("read to EOF err: %s", err)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err := t.readOnce(ctx); err != nil {
+				if !errors.Is(err, reader.ErrReadEmpty) {
+					t.log.Warnf("read to EOF err: %s", err)
+				}
+				return
 			}
-			break
 		}
 	}
 }
 
-func (t *Single) collectOnce() error {
-	lines, readNum, err := t.reader.ReadLines()
+func (t *Single) readOnce(ctx context.Context) error {
+	block, readNum, err := t.reader.ReadLineBlock()
 	if err != nil {
 		return err
 	}
 
-	t.readTime = time.Now()
-	t.process(t.opt.mode, lines)
+	t.bc.SendSync(ctx, block)
 	t.offset += int64(readNum)
-
 	t.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
-
 	return nil
 }
 
@@ -407,7 +419,6 @@ func (t *Single) feedToRemote(pending [][]byte) {
 		}
 		if t.opt.enableDebugFields {
 			fields["log_read_offset"] = t.offset
-			fields["log_read_time"] = t.readTime.UnixNano()
 			fields["log_file_inode"] = t.inode
 		}
 
@@ -433,11 +444,13 @@ func (t *Single) feedToIO(pending [][]byte) {
 		}
 		if t.opt.enableDebugFields {
 			fields["log_read_offset"] = t.offset
-			fields["log_read_time"] = t.readTime.UnixNano()
 			fields["log_file_inode"] = t.inode
 		}
 
-		opts := append(point.DefaultLoggingOptions(), point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)))
+		opts := append(point.DefaultLoggingOptions(),
+			point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)),
+			point.WithPrecheck(false),
+		)
 
 		pt := point.NewPointV2(
 			t.opt.source,
@@ -465,11 +478,6 @@ func (t *Single) feedToIO(pending [][]byte) {
 
 func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
-	t.flushScore++
-}
-
-func (t *Single) resetFlushScore() {
-	t.flushScore = 0
 }
 
 func (t *Single) buildTags(extraTags map[string]string) {
@@ -487,7 +495,7 @@ func (t *Single) decode(text []byte) ([]byte, error) {
 }
 
 func (t *Single) multiline(text []byte) []byte {
-	if t.mult == nil {
+	if !t.opt.enableMultiline || t.mult == nil {
 		return text
 	}
 	res, _ := t.mult.ProcessLine(text)

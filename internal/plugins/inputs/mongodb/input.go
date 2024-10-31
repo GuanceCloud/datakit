@@ -226,6 +226,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithPipeline(ipt.MgoDBLog.Pipeline),
 		tailer.WithIgnoreStatus(ipt.MgoDBLog.IgnoreStatus),
 		tailer.WithCharacterEncoding(ipt.MgoDBLog.CharacterEncoding),
+		tailer.EnableMultiline(true),
 		tailer.WithMultilinePatterns([]string{ipt.MgoDBLog.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),

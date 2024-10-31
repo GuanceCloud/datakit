@@ -354,6 +354,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithPipeline(ipt.Log.Pipeline),
 		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
+		tailer.EnableMultiline(true),
 		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),

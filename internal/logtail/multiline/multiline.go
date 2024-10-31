@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultMaxLength       = 4 * 1024 * 1024
+	defaultMaxLength       = 1 * 1024 * 1024 // 1MB
 	defaultMaxLifeDuration = time.Second * 5
 )
 
