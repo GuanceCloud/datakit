@@ -32,7 +32,9 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -179,6 +181,7 @@ func (ipt *Input) setupWorker() {
 
 				if err := dialSender.Init(&dataway.DialtestingSenderOpt{
 					HTTPTimeout: ipt.cli.Timeout,
+					HTTPProxy:   config.Cfg.Dataway.HTTPProxy,
 				}); err != nil {
 					l.Warnf("setup dialSender failed: %s", err.Error())
 				}
@@ -226,6 +229,34 @@ func (ipt *Input) DebugRun() {
 	}
 }
 
+func (ipt *Input) setupCli() {
+	timeout := 30 * time.Second
+
+	if ipt.TimeOut != nil {
+		timeout = ipt.TimeOut.Duration
+	}
+
+	opt := &httpcli.Options{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		DialTimeout:     timeout,
+	}
+
+	proxy := config.Cfg.Dataway.HTTPProxy
+	if proxy != "" {
+		if u, err := url.ParseRequestURI(proxy); err != nil {
+			l.Warnf("invalid http_proxy: %s", proxy)
+		} else {
+			if dataway.ProxyURLOK(u) {
+				opt.ProxyURL = u
+			} else {
+				l.Warnf("invalid proxy URL: %s, ignored", u)
+			}
+		}
+	}
+
+	ipt.cli = httpcli.Cli(opt)
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -250,13 +281,9 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	l.Debugf(`%+#v, %+#v`, ipt.cli, ipt.TimeOut)
+	ipt.setupCli()
 
-	if ipt.TimeOut == nil {
-		ipt.cli.Timeout = 30 * time.Second
-	} else {
-		ipt.cli.Timeout = ipt.TimeOut.Duration
-	}
+	l.Debugf(`%+#v, %+#v`, ipt.cli, ipt.TimeOut)
 
 	ipt.setupWorker()
 
@@ -778,15 +805,6 @@ func defaultInput() *Input {
 	return &Input{
 		Tags:    map[string]string{},
 		semStop: cliutils.NewSem(),
-		cli: &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
-				TLSHandshakeTimeout: 30 * time.Second,
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 100,
-			},
-		},
 	}
 }
 
