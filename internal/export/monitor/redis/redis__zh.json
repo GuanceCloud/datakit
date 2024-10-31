@@ -1,0 +1,912 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{host}} 节点 Redis 内存使用过高 {{Result}}%",
+        "groupBy": [
+          "server",
+          "host"
+        ],
+        "message": "Redis Server 为 {{server}}, Host 为{{host}} 节点 Redis 内存使用过高，检测结果: {{Result}}%",
+        "targets": [
+          {
+            "dql": "eval(A/B*100, A=\"M::`redis_info`:(avg(`used_memory`))  BY `server`, `host`\", B=\"M::`redis_info`:(avg(`maxmemory`))  BY `server`, `host`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "70"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "70"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "47d75378-8616-4a0f-86e3-0f3f6e31fc1e",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B*100, A=\"M::`redis_info`:(avg(`used_memory`))  BY `server`, `host`\", B=\"M::`redis_info`:(avg(`maxmemory`))  BY `server`, `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`redis_info`:(avg(`used_memory`))  BY `server`, `host`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "dql",
+                  "alias": "",
+                  "field": "used_memory",
+                  "index": "",
+                  "fillNum": null,
+                  "filters": [],
+                  "groupBy": [
+                    "server",
+                    "host"
+                  ],
+                  "indexes": [],
+                  "labelOp": "",
+                  "interval": "",
+                  "fieldFunc": "avg",
+                  "namespace": "metric",
+                  "dataSource": "redis_info",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "dataSourceFunc": ""
+                },
+                {
+                  "q": "M::`redis_info`:(avg(`maxmemory`))  BY `server`, `host`",
+                  "code": "B",
+                  "fill": null,
+                  "type": "dql",
+                  "alias": "",
+                  "field": "maxmemory",
+                  "index": "",
+                  "fillNum": null,
+                  "filters": [],
+                  "groupBy": [
+                    "server",
+                    "host"
+                  ],
+                  "indexes": [],
+                  "labelOp": "",
+                  "interval": "",
+                  "fieldFunc": "avg",
+                  "namespace": "metric",
+                  "dataSource": "redis_info",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "dataSourceFunc": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B*100"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "1m",
+        "range": 300,
+        "title": "{{host}} 节点 Redis 连接数发生突增 ，突增值为 {{Result}}",
+        "groupBy": [
+          "host",
+          "server"
+        ],
+        "message": "",
+        "range_2": -1,
+        "targets": [
+          {
+            "dql": "M::`redis_info`:(avg(`connected_clients`)) BY `host`, `server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "up",
+          "threshold": {
+            "value": null,
+            "status": false,
+            "operator": ">"
+          },
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "9b527470-095a-40cd-b546-b20af98d655c",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_info`:(avg(`connected_clients`)) BY `host`, `server`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "connected_clients",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host",
+                "server"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "redis_info",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{server}} 节点Redis slots 分配失败",
+        "groupBy": [
+          "host",
+          "server"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "M::`redis_cluster`:(avg(`cluster_slots_fail`)) BY `host`, `server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "25ba38bf-27f6-4fa7-bbf4-f9cf0134ef59",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_cluster`:(avg(`cluster_slots_fail`)) BY `host`, `server`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "cluster_slots_fail",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host",
+                "server"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "redis_cluster",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{server}} 节点 redis_cluster 状态异常",
+        "groupBy": [
+          "host",
+          "server"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "M::`redis_cluster`:(avg(`cluster_state`)) BY `host`, `server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "!="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "!="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "f3a8299c-a395-42ca-9032-01d761869104",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_cluster`:(avg(`cluster_state`)) BY `host`, `server`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "cluster_state",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host",
+                "server"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "redis_cluster",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{host}} 节点redis发生重启，请确认是否正常",
+        "groupBy": [
+          "host",
+          "server"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "M::`redis_info`:(avg(`uptime_in_seconds`)) BY `host`, `server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "600"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "{{host}} 节点redis -- uptime_in_seconds 指标断档，请确认redis进程是否存在",
+        "noDataAction": "noDataEvent",
+        "noDataMessage": "",
+        "noDataInterval": 300,
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "600"
+                ],
+                "operator": "<="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "cf4b98d0-fd9f-43d6-99b3-303e51e6e531",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_info`:(avg(`uptime_in_seconds`)) BY `host`, `server`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "uptime_in_seconds",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host",
+                "server"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "redis_info",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{host}} ,{{server}} 主从同步断开，请注意查看节点是否正常",
+        "groupBy": [
+          "server",
+          "host"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "M::`redis_replica`:(last(`master_link_status`)) BY `server`, `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "f41a7145-41d1-4a84-a6fc-ec0a8665e669",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_replica`:(last(`master_link_status`)) BY `server`, `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "master_link_status",
+              "groupBy": [
+                "server",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "redis_replica",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{host}} , {{server}} 主从同步延迟较高，延迟值为{{Result}} ms",
+        "groupBy": [
+          "host",
+          "server"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "M::`redis_replica`:(avg(`slave_lag`)) BY `host`, `server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1000"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1000"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "651ca34d-bb99-4673-a5f2-d30ff1ec6e29",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`redis_replica`:(avg(`slave_lag`)) BY `host`, `server`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "slave_lag",
+              "groupBy": [
+                "host",
+                "server"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "redis_replica",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
