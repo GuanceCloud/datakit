@@ -185,6 +185,15 @@ func putDeflateWriter(w *deflateWriter) {
 }
 
 func getDeflateReader(data []byte) *deflateReader {
+	// DEFLATE contains DEFLATE(1951) and ZLIB(RFC 1950) https://datatracker.ietf.org/doc/html/rfc7230#section-4.2
+	// The difference is ZLIB have an extra 2-byte ZLIB header and the checksum of the last 4 bytes
+	if len(data) > 2 &&
+		(data[0]&0xF) == 0x8 && // Low 4-bits must be 8
+		(data[0]&0x80) == 0 && // High-bit must be clear
+		(((int(data[0])<<8)+int(data[1]))%31) == 0 { // Validate checksum 0x789C
+		iStartOffset := 2
+		data = data[iStartOffset:]
+	}
 	if x := deflateReaderPool.Get(); x == nil {
 		reader := bytes.NewReader(data)
 		z := flate.NewReader(reader)
