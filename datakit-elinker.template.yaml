@@ -41,7 +41,7 @@ spec:
       containers:
       - name: datakit-elinker 
         image: pubrepo.guance.com/datakit/datakit-elinker:{{.Version}}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: POD_NAME
             valueFrom:

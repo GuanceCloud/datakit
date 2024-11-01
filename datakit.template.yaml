@@ -194,7 +194,7 @@ spec:
         #  value: iploc
         # # ---iploc-end
         image: pubrepo.guance.com/datakit/datakit:{{.Version}}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: datakit
         ports:
         - containerPort: 9529
