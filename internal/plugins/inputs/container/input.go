@@ -63,6 +63,7 @@ type Input struct {
 	DeprecatedLoggingMinFlushInterval     time.Duration     `toml:"logging_min_flush_interval"`
 	LoggingForceFlushLimit                int               `toml:"logging_force_flush_limit"`
 	LoggingMaxMultilineLifeDuration       time.Duration     `toml:"logging_max_multiline_life_duration"`
+	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
 

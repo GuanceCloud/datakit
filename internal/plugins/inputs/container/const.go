@@ -64,6 +64,9 @@ const sampleCfg = `
   ## Removes ANSI escape codes from text strings.
   logging_remove_ansi_escape_codes = false
 
+  ## Whether to collect logs from the begin of the file.
+  logging_file_from_beginning = false
+
   ## Search logging interval, default "60s"
   #logging_search_interval = ""
 
