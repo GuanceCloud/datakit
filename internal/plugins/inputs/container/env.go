@@ -48,6 +48,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "LoggingAutoMultilineExtraPatterns", ENVName: "LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON", ConfField: "logging_auto_multiline_extra_patterns", Type: doc.JSON, Default: `For more default rules, see [doc](logging.md#auto-multiline)`, Example: `["^\\d{4}-\\d{2}", "^[A-Za-z_]"]`, Desc: `Automatic multi-line pattern pattens list for log collection, supporting manual configuration of multiple multi-line rules`, DescZh: `日志采集的自动多行模式 pattens 列表，支持手动配置多个多行规则`},
 		{FieldName: "LoggingMaxMultilineLifeDuration", Type: doc.TimeDuration, Default: `3s`, Desc: `Maximum single multi-row life cycle of log collection. At the end of this cycle, existing multi-row data will be emptied and uploaded to avoid accumulation`, DescZh: `日志采集的单次多行最大生命周期，此周期结束将清空和上传现存的多行数据，避免堆积`},
 		{FieldName: "LoggingRemoveAnsiEscapeCodes", Type: doc.Boolean, Default: `false`, Desc: "Remove `ansi` escape codes and color characters, referred to [`ansi-decode` doc](logging.md#ansi-decode)", DescZh: `日志采集删除包含的颜色字符，详见[日志特殊字符处理说明](logging.md#ansi-decode)`},
+		{FieldName: "LoggingFileFromBeginningThresholdSize", Type: doc.Int, Default: `20,000,000`, Desc: "Decide whether or not to from_beginning based on the file size, if the file size is smaller than this value when the file is found, start the collection from the begin", DescZh: `根据文件 size 决定是否 from_beginning，如果发现该文件时，文件 size 小于这个值，就使用 from_beginning 从头部开始采集`},
+		{FieldName: "LoggingFileFromBeginning", Type: doc.Boolean, Default: `false`, Desc: "Whether to collect logs from the begin of the file", DescZh: `是否从文件首部采集日志`},
 		{FieldName: "LoggingForceFlushLimit", Type: doc.Int, Default: `5`, Desc: `If there are consecutive N empty collections, the existing data will be uploaded to prevent memory occupation caused by accumulated`, DescZh: `日志采集上传限制，如果连续 N 次都采集为空，会将现有的数据上传，避免数据积攒占用内存`},
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
@@ -93,6 +95,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
+// ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING : booler
 // ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int
 // ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
 // ENV_INPUT_CONTAINER_TAGS : "a=b,c=d".
@@ -313,6 +316,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION to time.Duration: %s, ignore", err)
 		} else {
 			ipt.LoggingMaxMultilineLifeDuration = dur
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING to bool: %s, ignore", err)
+		} else {
+			ipt.LoggingFileFromBeginning = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE"]; ok {

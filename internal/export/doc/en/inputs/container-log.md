@@ -44,6 +44,7 @@ If you want to customize the collection configuration, it can be done through ad
     "service" : "<your-service>",
     "pipeline": "<your-pipeline.p>",
     "remove_ansi_escape_codes": false,
+    "from_beginning"          : false,
     "tags" : {
       "<some-key>" : "<some_other_value>"
     }
@@ -62,6 +63,7 @@ Field explanations:
 | `service`                  | string                    | The service to which the logs belong. The default value is the log source (`source`).                                                                                                                                                                                                          |
 | `pipeline`                 | string                    | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                                                                                                                                                  |
 | `remove_ansi_escape_codes` | true/false                | Enable ANSI codes removal.                                                                                                                                                                                                                                                                     |
+| `from_beginning`           | true/false                | Whether to collect logs from the begin of the file.                                                                                                                                                                                                                                            |
 | `multiline_match`          | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
 | `character_encoding`       | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
 | `tags`                     | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).                                                                                                          |

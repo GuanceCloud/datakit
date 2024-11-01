@@ -28,6 +28,7 @@ type logConfig struct {
 	Pipeline              string            `json:"pipeline"`
 	Multiline             string            `json:"multiline_match"`
 	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
+	FromBeginning         bool              `json:"from_beginning"`
 	Tags                  map[string]string `json:"tags"`
 
 	MultilinePatterns []string `json:"-"`

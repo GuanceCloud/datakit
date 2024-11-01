@@ -60,6 +60,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithMaxMultilineLifeDuration(c.ipt.LoggingMaxMultilineLifeDuration),
 			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
 			tailer.WithMaxForceFlushLimit(c.ipt.LoggingForceFlushLimit),
+			tailer.WithFromBeginning(cfg.FromBeginning || c.ipt.LoggingFileFromBeginning),
 			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
 			tailer.WithIgnoreDeadLog(defaultActiveDuration),
 			tailer.WithDone(done),
