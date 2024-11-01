@@ -42,8 +42,6 @@ func PutCfg(c *cfg) {
 }
 
 type cfg struct {
-	t time.Time
-
 	timestamp int64 // same as t
 
 	// Inject extra tags to the point
@@ -82,50 +80,37 @@ type cfg struct {
 }
 
 func newCfg() *cfg {
-	return &cfg{
-		maxMeasurementLen: 1024,
-		maxTags:           256,
-		maxFields:         1024,
-
-		precision:      PrecNS,
-		maxTagKeyLen:   defaultKeyLen,
-		maxFieldKeyLen: defaultKeyLen,
-		precheck:       true,
-		enableStrField: true,
-		enableU64Field: true,
-		enableDotInKey: true,
-
-		// Merged all tag's key/value, should not exceed 64k.
-		// Merge like this: tag1=1tag2=2tag2=3
-		maxTagKeyValComposeLen: 64 * 1024,
-
-		maxTagValLen:   1024,
-		maxFieldValLen: defaultMaxFieldValLen,
-		extraTags:      nil,
-	}
+	c := &cfg{}
+	c.reset()
+	return c
 }
 
 func (c *cfg) reset() {
+	// clear fields
 	c.callback = nil
 	c.disabledKeys = nil
-	c.enableDotInKey = true
-	c.enableStrField = true
-	c.enableU64Field = true
 	c.enc = DefaultEncoding
 	c.extraTags = nil
+	c.requiredKeys = nil
+	c.timestamp = -1 // NOTE: timestamp == 0 is ok
+
+	// specs reset to default values
 	c.maxFieldKeyLen = defaultKeyLen
 	c.maxFieldValLen = defaultMaxFieldValLen
 	c.maxFields = 1024
 	c.maxMeasurementLen = 1024
 	c.maxTagKeyLen = defaultKeyLen
-	c.maxTagKeyValComposeLen = 64 * 1024
+	c.maxTagKeyValComposeLen = 64 * 1024 // Merged all tag's key/value, should not exceed 64k. Merge like this: tag1=1tag2=2tag2=3
 	c.maxTagValLen = 1024
 	c.maxTags = 256
-	c.precheck = true
 	c.precision = PrecNS
-	c.requiredKeys = nil
-	c.t = time.Time{}
-	c.timestamp = -1
+
+	// flags
+	c.precheck = true
+	c.enableDotInKey = true
+	c.enableStrField = true
+	c.enableU64Field = true
+
 }
 
 func WithMaxKVComposeLen(n int) Option   { return func(c *cfg) { c.maxTagKeyValComposeLen = n } }
@@ -139,7 +124,6 @@ func WithKeySorted(on bool) Option       { return func(c *cfg) { c.keySorted = o
 
 func WithTime(t time.Time) Option {
 	return func(c *cfg) {
-		c.t = t
 		c.timestamp = t.UnixNano()
 	}
 }

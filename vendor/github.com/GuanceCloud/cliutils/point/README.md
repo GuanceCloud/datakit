@@ -16,39 +16,28 @@ Point 是 DataKit 中最常用的一种数据表示形式，目前 Point 有两�
 以上测试，参见 `TestEncodePayloadSize/BenchmarkEncode/BenchmarkDecode`。 可参考如下结果：
 
 ``` shell
-### BAD
-$ CGO_CFLAGS=-Wno-undef-prefix go test -run XXX -test.benchmem -test.v -bench BenchmarkDecode
-goos: darwin
-goarch: arm64
-pkg: github.com/GuanceCloud/cliutils/point
-BenchmarkDecode
-BenchmarkDecode/bench-decode-lp
-BenchmarkDecode/bench-decode-lp-10                   100          12091620 ns/op         4670056 B/op      90282 allocs/op
-BenchmarkDecode/bench-decode-pb
-BenchmarkDecode/bench-decode-pb-10                   550           2172161 ns/op         3052850 B/op      70024 allocs/op
-BenchmarkDecode/bench-decode-json
-BenchmarkDecode/bench-decode-json-10                  96          12690984 ns/op         6269919 B/op     137321 allocs/op
-PASS
-ok      github.com/GuanceCloud/cliutils/point   4.995s
-
 $ CGO_CFLAGS=-Wno-undef-prefix go test -run XXX -test.benchmem -test.v -bench BenchmarkEncode
 goos: darwin
 goarch: arm64
 pkg: github.com/GuanceCloud/cliutils/point
 BenchmarkEncode
-BenchmarkEncode/bench-encode-json
-BenchmarkEncode/bench-encode-json-10                  98          10294642 ns/op         7724543 B/op      60288 allocs/op
-BenchmarkEncode/bench-encode-lp
-BenchmarkEncode/bench-encode-lp-10                   241           4900589 ns/op         8675253 B/op      41043 allocs/op
-BenchmarkEncode/bench-encode-pb
-BenchmarkEncode/bench-encode-pb-10                  2727            452257 ns/op         1115027 B/op         16 allocs/op
-BenchmarkEncode/v2-encode-pb
-BenchmarkEncode/v2-encode-pb-10                     2754            438385 ns/op              15 B/op          0 allocs/op
+BenchmarkEncode/encode-json
+BenchmarkEncode/encode-json-10         	      97	  10421921 ns/op	 7656217 B/op	   60287 allocs/op
+BenchmarkEncode/encode-lp
+BenchmarkEncode/encode-lp-10           	     243	   4906325 ns/op	 8676728 B/op	   41045 allocs/op
+BenchmarkEncode/v1-encode-pb
+BenchmarkEncode/v1-encode-pb-10        	    2685	    431512 ns/op	 1115020 B/op	      16 allocs/op
+BenchmarkEncode/v2-encode-pb-PBSize()
+BenchmarkEncode/v2-encode-pb-PBSize()-10         	    2158	    549952 ns/op	      17 B/op	       0 allocs/op
+BenchmarkEncode/v2-encode-pb-Size()
+BenchmarkEncode/v2-encode-pb-Size()-10           	    3211	    368438 ns/op	       5 B/op	       0 allocs/op
 BenchmarkEncode/v2-encode-lp
-BenchmarkEncode/v2-encode-lp-10                      268           4461083 ns/op         5258539 B/op      39066 allocs/op
+BenchmarkEncode/v2-encode-lp-10                  	     268	   4411220 ns/op	 5260352 B/op	   39069 allocs/op
 PASS
-ok      github.com/GuanceCloud/cliutils/point   7.483s
+ok  	github.com/GuanceCloud/cliutils/point	8.625s
 ```
+
+> v2 的 encode 效率比 v1 要慢一些（~0.80X），因为在编码过程中要实时计算 point 的大小（目的是不超过总 buffer 大小）。但如果只是错略计算大小，则比 v1 （v1 内部要动态分配内存）要快一些（~1.17X）。
 
 ## Point 的约束 {#restrictions}
 

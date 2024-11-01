@@ -399,6 +399,7 @@ func (p *Point) Keys() *Keys {
 }
 
 // Size get underling data size in byte(exclude warning/debug info).
+// Deprecated: use p.PBSize()
 func (p *Point) Size() int {
 	n := len(p.pt.Name)
 	for _, kv := range p.pt.Fields {
@@ -456,16 +457,7 @@ func (p *Point) LPSize() int {
 
 // PBSize get point protobuf size.
 func (p *Point) PBSize() int {
-	pbpt := p.PBPoint()
-
-	m := protojson.Marshaler{}
-	buf := bytes.Buffer{}
-
-	if err := m.Marshal(&buf, pbpt); err != nil {
-		return 0
-	}
-
-	return buf.Len()
+	return p.pt.Size()
 }
 
 func b64(x []byte) string {

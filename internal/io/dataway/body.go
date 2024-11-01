@@ -176,6 +176,7 @@ func (w *writer) buildPointsBody() error {
 	encOpts := []point.EncoderOption{
 		point.WithEncEncoding(w.httpEncoding),
 		point.WithEncFn(encFn),
+		point.WithIgnoreLargePoint(true),
 	}
 
 	enc := point.GetEncoder(encOpts...)
@@ -263,6 +264,8 @@ func (w *writer) buildPointsBody() error {
 
 		parts++
 	}
+
+	skippedPointVec.WithLabelValues(w.category.String()).Add(float64(enc.SkippedPoints()))
 
 	buildBodyBatchCountVec.WithLabelValues(
 		w.category.String(),

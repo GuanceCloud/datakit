@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	skippedPointVec,
 	bodyCounterVec,
 	ptsCounterVec,
 	bytesCounterVec,
@@ -41,6 +42,7 @@ func APISumVec() *prometheus.SummaryVec {
 // Metrics get all metrics aboud dataway.
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
+		skippedPointVec,
 		walWorkerFlush,
 		bodyCounterVec,
 		ptsCounterVec,
@@ -60,6 +62,7 @@ func Metrics() []prometheus.Collector {
 }
 
 func metricsReset() {
+	skippedPointVec.Reset()
 	walWorkerFlush.Reset()
 	bodyCounterVec.Reset()
 	ptsCounterVec.Reset()
@@ -80,6 +83,7 @@ func metricsReset() {
 
 func doRegister() {
 	metrics.MustRegister(
+		skippedPointVec,
 		walWorkerFlush,
 		bodyCounterVec,
 		ptsCounterVec,
@@ -101,6 +105,16 @@ func doRegister() {
 
 // nolint:gochecknoinits
 func init() {
+	skippedPointVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_skipped_point_total",
+			Help:      "Skipped point count during encoding(protobuf) point",
+		},
+		[]string{"category"},
+	)
+
 	walQueueMemLenVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",

@@ -6,6 +6,7 @@
 package dataway
 
 import (
+	"strings"
 	sync "sync"
 	T "testing"
 
@@ -17,6 +18,111 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSkipLargePoint(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		metricsReset()
+
+		var kvsLarge, kvsSmall point.KVs
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024), false, false)
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10), false, false)
+		smallPt1 := point.NewPointV2(`small1`, kvsSmall)
+		largePt := point.NewPointV2(`large`, kvsLarge)
+		smallPt2 := point.NewPointV2(`small2`, kvsSmall)
+
+		w := getWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{smallPt1, largePt, smallPt2, largePt}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *writer, b *body) error {
+				// TODO
+				return nil
+			}))
+		defer putWriter(w)
+
+		assert.NoError(t, w.buildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_dataway_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+	})
+
+	t.Run(`skip-all`, func(t *T.T) {
+		metricsReset()
+
+		var kvsLarge point.KVs
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024), false, false)
+		largePt := point.NewPointV2(`large`, kvsLarge)
+
+		w := getWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{largePt, largePt}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *writer, b *body) error {
+				// TODO
+				return nil
+			}))
+		defer putWriter(w)
+
+		assert.NoError(t, w.buildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_dataway_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+	})
+
+	t.Run(`skip-nothing`, func(t *T.T) {
+		metricsReset()
+
+		var kvsSmall point.KVs
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10), false, false)
+		smallPt1 := point.NewPointV2(`small1`, kvsSmall)
+		smallPt2 := point.NewPointV2(`small2`, kvsSmall)
+
+		w := getWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{smallPt1, smallPt2}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *writer, b *body) error {
+				// TODO
+				return nil
+			}))
+		defer putWriter(w)
+
+		assert.NoError(t, w.buildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_dataway_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(0), m.GetCounter().GetValue())
+	})
+}
 
 func TestCrashBuildBody(t *T.T) {
 	t.Run("test-build-random-points", func(t *T.T) {
