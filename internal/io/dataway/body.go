@@ -14,11 +14,25 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-type walFrom int8
+type (
+	walFrom  int8
+	gzipFlag int8
+	bufOnwer int8
+)
 
 const (
-	walFromMem walFrom = iota
-	walFromDisk
+	walFromMem    walFrom = 0
+	walFromDisk   walFrom = 1
+	walFromNotSet walFrom = -1
+
+	gzipRaw    gzipFlag = 0
+	gzipSet    gzipFlag = 1
+	gzipNotSet gzipFlag = -1
+
+	bufOnwerOthers bufOnwer = 0
+	bufOnwerSelf   bufOnwer = 1
+
+	encNotSet point.Encoding = -1
 )
 
 func (f walFrom) String() string {
@@ -43,22 +57,22 @@ type body struct {
 
 	chksum string
 
-	selfBuffer, // buffer that belongs to itself, and we should not drop it when putback
-	gzon int8
-	from walFrom
+	selfBuffer bufOnwer // buffer that belongs to itself, and we should not drop it when putback
+	gzon       gzipFlag
+	from       walFrom
 }
 
 func (b *body) reset() {
 	b.CacheData.Payload = nil
-	b.CacheData.PayloadType = int32(point.Protobuf)
-	b.CacheData.Category = int32(point.Protobuf)
+	b.CacheData.PayloadType = int32(encNotSet)
+	b.CacheData.Category = int32(point.UnknownCategory)
 
 	b.CacheData.Headers = b.CacheData.Headers[:0]
 	b.CacheData.DynURL = ""
 	b.CacheData.Pts = 0
 	b.CacheData.RawLen = 0
 
-	if b.selfBuffer != 1 { // buffer not managed by itself
+	if b.selfBuffer != bufOnwerSelf { // buffer not managed by itself
 		b.sendBuf = nil
 		b.marshalBuf = nil
 	}
@@ -67,8 +81,8 @@ func (b *body) reset() {
 	// and WAL protobuf marshal, their len(x) is always it's capacity. If len(x) changed,
 	// this will **panic** body encoding and protobuf marshal.
 
-	b.gzon = -1
-	b.from = walFromMem
+	b.gzon = gzipNotSet
+	b.from = walFromNotSet
 }
 
 func (b *body) buf() []byte {
@@ -104,6 +118,10 @@ func (b *body) loadCache(data []byte) error {
 		return fmt.Errorf("Unmarshal: %w", err)
 	}
 
+	if b.enc() == encNotSet || b.cat() == point.UnknownCategory {
+		l.Warnf("invalid body: %s", b.pretty())
+	}
+
 	return nil
 }
 
@@ -129,8 +147,8 @@ func (b *body) String() string {
 func (b *body) pretty() string {
 	var arr []string
 	arr = append(arr, fmt.Sprintf("\n%p from: %s", b, b.from))
-	arr = append(arr, fmt.Sprintf("enc: %s", b.enc()))
-	arr = append(arr, fmt.Sprintf("cat: %s", b.cat()))
+	arr = append(arr, fmt.Sprintf("enc: %d/%s", b.enc(), b.enc()))
+	arr = append(arr, fmt.Sprintf("cat: %d/%s", b.cat(), b.cat()))
 	arr = append(arr, fmt.Sprintf("gzon: %d", b.gzon))
 	arr = append(arr, fmt.Sprintf("#buf: %d", len(b.buf())))
 	arr = append(arr, fmt.Sprintf("#send-buf: %d", len(b.sendBuf)))
@@ -217,7 +235,7 @@ func (w *writer) buildPointsBody() error {
 
 			if err := enc.LastErr(); err != nil {
 				l.Errorf("encode: %s, cat: %s, total points: %d, current part: %d, body cap: %d",
-					err.Error(), b.cat().Alias(), len(w.points), parts, cap(b.sendBuf))
+					err.Error(), w.category.Alias(), len(w.points), parts, cap(b.sendBuf))
 				return err
 			}
 

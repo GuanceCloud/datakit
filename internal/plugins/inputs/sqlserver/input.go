@@ -213,8 +213,8 @@ func (ipt *Input) getPerformanceCounters() {
 			if key == "cntr_value" {
 				// the raw value is a number and the key is cntr_value, store in fields
 				if v, err := strconv.ParseFloat(raw, 64); err == nil {
-					if v > math.MaxInt64 {
-						l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, math.MaxInt64)
+					if v > float64(math.MaxInt64) {
+						l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, int64(math.MaxInt64))
 						continue
 					}
 					// store the counter_name and cntr_value as fields

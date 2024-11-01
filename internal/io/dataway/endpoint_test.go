@@ -46,6 +46,7 @@ func TestEndpointRetry(t *T.T) {
 
 func TestEndpointMetrics(t *T.T) {
 	t.Run("5xx-request", func(t *T.T) {
+		metricsReset()
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
@@ -55,7 +56,6 @@ func TestEndpointMetrics(t *T.T) {
 
 		t.Cleanup(func() {
 			ts.Close()
-			metricsReset()
 		})
 
 		api := "/some/path"
@@ -96,6 +96,7 @@ func TestEndpointMetrics(t *T.T) {
 	})
 
 	t.Run("write-points-4xx", func(t *T.T) {
+		metricsReset()
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
@@ -133,6 +134,7 @@ test-2 f1=1i,f2=false 123
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
+			WithHTTPEncoding(point.LineProtocol),
 			WithCategory(point.Metric))
 		defer putWriter(w)
 
@@ -164,11 +166,11 @@ test-2 f1=1i,f2=false 123
 
 		t.Cleanup(func() {
 			ts.Close()
-			metricsReset()
 		})
 	})
 
 	t.Run("write-n-points-ok", func(t *T.T) {
+		metricsReset()
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			body, err := io.ReadAll(r.Body)
 			defer r.Body.Close()
@@ -189,6 +191,8 @@ test-2 f1=1i,f2=false 123
 			w.WriteHeader(200)
 		}))
 
+		time.Sleep(time.Second)
+
 		urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
 		ep, err := newEndpoint(urlstr, withAPIs([]string{datakit.Metric}))
 		assert.NoError(t, err)
@@ -201,6 +205,7 @@ test-2 f1=1i,f2=false 123
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
+			WithHTTPEncoding(point.LineProtocol),
 			WithGzip(1),
 		)
 		defer putWriter(w)
@@ -234,11 +239,11 @@ test-2 f1=1i,f2=false 123
 
 		t.Cleanup(func() {
 			ts.Close()
-			metricsReset()
 		})
 	})
 
 	t.Run("with-proxy", func(t *T.T) {
+		metricsReset()
 		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
@@ -274,7 +279,9 @@ test-2 f1=1i,f2=false 123
 			WithPoints([]*point.Point{
 				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-			}), WithGzip(1))
+			}),
+			WithHTTPEncoding(point.LineProtocol),
+			WithGzip(1))
 		defer putWriter(w)
 
 		reg := prometheus.NewRegistry()

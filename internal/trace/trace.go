@@ -191,7 +191,13 @@ func GetSpanSourceType(app string) string {
 	}
 }
 
-func FindSpanTypeInMultiServersIntSpanID(spanID, parentID uint64, service string, spanIDs map[uint64]string, parentIDs map[uint64]bool) string {
+func FindSpanTypeInMultiServersIntSpanID(
+	spanID,
+	parentID uint64,
+	service string,
+	spanIDs map[uint64]string,
+	parentIDs map[uint64]bool,
+) string {
 	if parentID != 0 {
 		if ss, ok := spanIDs[parentID]; ok {
 			if service != ss {

@@ -55,17 +55,36 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 }
 
 func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
-	if req.Header.Get("Content-Length") == "0" || req.Header.Get("X-Datadog-Trace-Count") == "0" {
+	clStr := req.Header.Get("Content-Length")
+	ntraceStr := req.Header.Get("X-Datadog-Trace-Count")
+	if clStr == "0" || ntraceStr == "0" {
 		log.Debug("empty request body")
 		httpStatusRespFunc(resp, req, nil)
 
 		return
 	}
 
+	ntrace, err := strconv.ParseInt(ntraceStr, 10, 64)
+	if err != nil {
+		log.Warnf("invalid X-Datadog-Trace-Count: %q, ignored", ntraceStr)
+	}
+
+	cl, err := strconv.ParseInt(clStr, 10, 64)
+	if err != nil {
+		log.Warnf("invalid Content-Length: %q, ignored", clStr)
+	} else if maxTraceBody > 0 && cl > maxTraceBody {
+		if ntrace > 0 {
+			droppedTraces.WithLabelValues(req.URL.Path).Add(float64(ntrace))
+		}
+
+		log.Warnf("dropped %d trace: too large request body(%q bytes > %d bytes)", ntrace, clStr, maxTraceBody)
+		return
+	}
+
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
 
-	_, err := io.Copy(pbuf, req.Body)
+	_, err = io.Copy(pbuf, req.Body)
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
@@ -78,7 +97,9 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		Media:   req.Header.Get("Content-Type"),
 		Body:    pbuf,
 	}
+
 	log.Debugf("param body len=%d", param.Body.Len())
+
 	if err = parseDDTraces(param); err != nil {
 		if errors.Is(err, msgp.ErrShortBytes) {
 			log.Warn(err.Error())
@@ -122,6 +143,7 @@ func parseDDTraces(param *itrace.TraceParameters) error {
 	}
 
 	if len(dktraces) != 0 && afterGatherRun != nil {
+		log.Debugf("feed %d traces", len(dktraces))
 		afterGatherRun.Run(inputName, dktraces)
 	}
 
@@ -157,17 +179,42 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 		}
 	}
 
+	curSpans := 0
+	maxBatch := 100
+
+	log.Debugf("transform ddtrace to dkspan, noStreaming=%v", noStreaming)
+
 	if len(traces) != 0 {
 		for _, trace := range traces {
 			if len(trace) == 0 {
 				log.Debug("### empty trace in traces")
 				continue
 			}
-			if dktrace := ddtraceToDkTrace(trace); len(dktrace) != 0 {
-				dktraces = append(dktraces, dktrace)
+
+			// decode single ddtrace into dktrace
+			dktrace := ddtraceToDkTrace(trace)
+			if nspan := len(dktrace); nspan > 0 {
+				if nspan > maxBatch && !noStreaming { // flush large trace ASAP.
+					log.Debugf("streaming feed %d spans", nspan)
+					afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
+				} else {
+					dktraces = append(dktraces, dktrace)
+					curSpans += nspan
+
+					if curSpans > maxBatch && !noStreaming { // multiple traces got too many spans, flush ASAP.
+						log.Debugf("streaming feed %d spans within %d traces", curSpans, len(dktraces))
+						afterGatherRun.Run(inputName, dktraces)
+
+						// clear and reset
+						dktraces = dktraces[:0]
+						curSpans = 0
+					}
+				}
 			}
 		}
 	}
+
+	log.Debugf("curSpans: %d", curSpans)
 	return dktraces, err
 }
 
@@ -232,13 +279,36 @@ var (
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
-		dktrace            itrace.DatakitTrace
-		parentIDs, spanIDs = gatherSpansInfo(trace)
+		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
+		dktrace            = make(itrace.DatakitTrace, 0, len(trace))
+		strTraceID         = ""
 	)
+
+	traceSpans.WithLabelValues(inputName).Observe(float64(len(trace)))
+
+	// truncate too large spans
+	if traceMaxSpans > 0 && len(trace) > traceMaxSpans {
+		// append info to last span's meta
+		lastSpan := trace[traceMaxSpans-1]
+		if lastSpan.Meta == nil {
+			lastSpan.Meta = map[string]string{}
+		}
+
+		lastSpan.Meta["__datakit_span_truncated"] = fmt.Sprintf("large trace that got spans %d, max span limit is %d(%d spans truncated)",
+			len(trace), traceMaxSpans, len(trace)-traceMaxSpans)
+
+		log.Warnf("truncate %d spans from service %q", len(trace)-traceMaxSpans, trace[0].Service)
+		truncatedTraceSpans.WithLabelValues(inputName).Add(float64(len(trace) - traceMaxSpans))
+		trace = trace[:traceMaxSpans] // truncated too large spans
+	}
 
 	for _, span := range trace {
 		if span == nil {
 			continue
+		}
+
+		if strTraceID == "" {
+			strTraceID = strconv.FormatUint(span.TraceID, traceBase)
 		}
 
 		var spanKV point.KVs
@@ -255,15 +325,24 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			}
 		}
 
-		spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID, traceBase), false, false).
+		resource := span.Resource
+		if strings.Contains(span.Resource, "\n") {
+			resource = strings.ReplaceAll(span.Resource, "\n", " ")
+		}
+
+		spanKV = spanKV.Add(itrace.FieldTraceID, strTraceID, false, false).
 			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase), false, false).
 			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase), false, false).
 			AddTag(itrace.TagService, span.Service).
-			Add(itrace.FieldResource, strings.ReplaceAll(span.Resource, "\n", " "), false, false).
+			Add(itrace.FieldResource, resource, false, false).
 			AddTag(itrace.TagOperation, span.Name).
 			AddTag(itrace.TagSource, inputName).
 			Add(itrace.TagSpanType,
-				itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID, span.ParentID, span.Service, spanIDs, parentIDs), true, false).
+				itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID,
+					span.ParentID,
+					span.Service,
+					spanIDs,
+					parentIDs), true, false).
 			AddTag(itrace.TagSourceType, itrace.GetSpanSourceType(span.Type)).
 			Add(itrace.FieldStart, span.Start/int64(time.Microsecond), false, false).
 			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond), false, false)
@@ -274,11 +353,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			spanKV = spanKV.AddTag("runtime_id", v).AddTag(runTimeIDKey, v)
 			delete(span.Meta, runTimeIDKey)
 		}
+
 		if v, ok := span.Meta["trace_128_bit_id"]; !ignoreTraceIDFromTag && ok {
 			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
-		for k, v := range tags {
+		for k, v := range inputTags {
 			spanKV = spanKV.AddTag(k, v)
 		}
 
@@ -310,10 +390,13 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			}
 		}
 
-		t := time.Unix(span.Start/1e9, span.Start%1e9)
+		t := time.Unix(0, span.Start)
 		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
+
+	log.Debugf("build %d trace point from %d trace spans",
+		len(dktrace), cap(dktrace)) // cap(dktrace) is the origin trace span count
 
 	return dktrace
 }

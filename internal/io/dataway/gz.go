@@ -54,15 +54,15 @@ func (z *gzipWriter) zip(data []byte) ([]byte, error) {
 	return z.buf.Bytes(), nil
 }
 
-func isGzip(data []byte) int8 {
+func isGzip(data []byte) gzipFlag {
 	if len(data) < 2 {
-		return -1
+		return gzipNotSet
 	}
 
 	// See: https://stackoverflow.com/a/6059342/342348
 	if data[0] == 0x1f && data[1] == 0x8b {
-		return 1
+		return gzipSet
 	} else {
-		return 0
+		return gzipRaw
 	}
 }

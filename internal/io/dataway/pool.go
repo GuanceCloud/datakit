@@ -7,8 +7,6 @@ package dataway
 
 import (
 	sync "sync"
-
-	"github.com/GuanceCloud/cliutils/point"
 )
 
 var (
@@ -29,7 +27,7 @@ func withNewBuffer(n int) bodyOpt {
 			// +10% on marshal buffer: we need more bytes for meta-info about the body
 			extra := int(float64(n) * .1)
 			b.marshalBuf = make([]byte, n+extra)
-			b.selfBuffer = 1
+			b.selfBuffer = bufOnwerSelf
 		}
 	}
 }
@@ -42,7 +40,7 @@ func withReusableBuffer(send, marshal []byte) bodyOpt {
 		if len(send) > 0 && len(marshal) > 0 { // sendBuf and marshalBuf should not nil
 			b.sendBuf = send
 			b.marshalBuf = marshal
-			b.selfBuffer = 0 // buffer not comes from new buffer
+			b.selfBuffer = bufOnwerOthers // buffer not comes from new buffer
 		}
 	}
 }
@@ -51,7 +49,7 @@ func getNewBufferBody(opts ...bodyOpt) *body {
 	var b *body
 	if x := newBufferBodyPool.Get(); x == nil {
 		b = &body{
-			selfBuffer: 1,
+			selfBuffer: bufOnwerSelf,
 		}
 
 		bodyCounterVec.WithLabelValues("malloc", "get", "new").Inc()
@@ -75,7 +73,7 @@ func getReuseBufferBody(opts ...bodyOpt) *body {
 	var b *body
 	if x := reuseBufferBodyPool.Get(); x == nil {
 		b = &body{
-			selfBuffer: 0,
+			selfBuffer: bufOnwerOthers,
 		}
 
 		bodyCounterVec.WithLabelValues("malloc", "get", "reuse").Inc()
@@ -99,7 +97,7 @@ func putBody(b *body) {
 	if b != nil {
 		b.reset()
 
-		if b.selfBuffer == 1 {
+		if b.selfBuffer == bufOnwerSelf {
 			newBufferBodyPool.Put(b)
 			bodyCounterVec.WithLabelValues("pool", "put", "new").Inc()
 		} else {
@@ -114,9 +112,9 @@ func getWriter(opts ...WriteOption) *writer {
 
 	if x := wpool.Get(); x == nil {
 		w = &writer{
-			httpHeaders:    map[string]string{},
-			batchBytesSize: defaultBatchSize,
+			httpHeaders: map[string]string{},
 		}
+		w.reset()
 	} else {
 		w = x.(*writer)
 	}
@@ -131,19 +129,6 @@ func getWriter(opts ...WriteOption) *writer {
 }
 
 func putWriter(w *writer) {
-	w.category = point.UnknownCategory
-	w.dynamicURL = ""
-	w.points = w.points[:0]
-	w.gzip = -1
-	w.cacheClean = false
-	w.cacheAll = false
-	w.batchBytesSize = 1 << 20
-	w.batchSize = 0
-	w.bcb = nil
-
-	for k := range w.httpHeaders {
-		delete(w.httpHeaders, k)
-	}
-	w.httpEncoding = point.LineProtocol
+	w.reset()
 	wpool.Put(w)
 }

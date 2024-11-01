@@ -139,7 +139,7 @@ func (q *WALQueue) Get(opts ...bodyOpt) (*body, error) {
 		return nil, nil
 	}
 
-	l.Debugf("from queue %d get bytes", len(raw))
+	l.Debugf("from queue get %d bytes", len(raw))
 
 	if err := b.loadCache(raw); err != nil {
 		return nil, err

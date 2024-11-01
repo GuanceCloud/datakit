@@ -7,7 +7,6 @@
 package trace
 
 import (
-	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -74,6 +73,18 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
+func (aga *AfterGather) doFeed(iname string, dktrace DatakitTrace) {
+	var pts []*point.Point
+	for _, span := range dktrace {
+		span.Point.AddTag(TagDKFingerprintKey, datakit.DatakitHostName)
+		pts = append(pts, span.Point)
+	}
+
+	if err := aga.feeder.FeedV2(point.Tracing, pts, dkio.WithInputName(iname)); err != nil {
+		aga.log.Warnf("feed %d points failed: %s, ignored", len(pts), err.Error())
+	}
+}
+
 func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 	if len(dktraces) == 0 {
 		aga.log.Debug("empty dktraces")
@@ -86,51 +97,31 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		afterFilters = dktraces
 	} else {
 		afterFilters = make(DatakitTraces, 0, len(dktraces))
+
 		for k := range dktraces {
 			aga.log.Debugf("len = %d spans", len(dktraces[k]))
 			serviceName := dktraces[k][0].GetTag(TagService)
+
 			TracingProcessCount.WithLabelValues(inputName, serviceName).Add(1)
-			var temp DatakitTrace
+
+			var singleTrace DatakitTrace
 			for i := range aga.filters {
 				var skip bool
-				if temp, skip = aga.filters[i](aga.log, dktraces[k]); skip {
+				if singleTrace, skip = aga.filters[i](aga.log, dktraces[k]); skip {
 					tracingSamplerCount.WithLabelValues(inputName, serviceName).Add(1)
-					break
+
+					break // skip current trace
 				}
 			}
-			if temp != nil {
-				afterFilters = append(afterFilters, temp)
+
+			if singleTrace != nil {
+				afterFilters = append(afterFilters, singleTrace)
 			}
 		}
 	}
-	if len(afterFilters) == 0 {
-		return
-	}
-	pts := make([]*point.Point, 0)
-	for _, filter := range afterFilters {
-		for _, span := range filter {
-			span.Point.AddTag(TagDKFingerprintKey, datakit.DatakitHostName)
-			pts = append(pts, span.Point)
-		}
-	}
-	if len(pts) != 0 {
-		var (
-			start = time.Now()
-			err   error
-		)
-	IO_FEED_RETRY:
-		if err = aga.feeder.FeedV2(point.Tracing, pts,
-			dkio.WithCollectCost(time.Since(start)),
-			dkio.WithInputName(inputName)); err != nil {
-			if aga.retry > 0 && errors.Is(err, dkio.ErrIOBusy) {
-				time.Sleep(aga.retry)
-				goto IO_FEED_RETRY
-			}
-		} else {
-			aga.log.Debugf("### send %d points cost %dms", len(pts), time.Since(start)/time.Millisecond)
-		}
-	} else {
-		aga.log.Debug("BuildPointsBatch return empty points array")
+
+	for _, trace := range afterFilters {
+		aga.doFeed(inputName, trace)
 	}
 }
 

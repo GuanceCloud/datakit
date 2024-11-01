@@ -48,6 +48,8 @@ func TestReadEnv(t *testing.T) {
 				"ENV_INPUT_DDTRACE_TAGS":               `{"k1":"v1", "k2":"v2", "k3":"v3"}`,
 				"ENV_INPUT_DDTRACE_THREADS":            `{"buffer":1000, "threads":100}`,
 				"ENV_INPUT_DDTRACE_STORAGE":            `{"storage":"./ddtrace_storage", "capacity": 5120}`,
+				"ENV_INPUT_DDTRACE_MAX_SPANS":          `10`,
+				"ENV_INPUT_DDTRACE_MAX_BODY_MB":        `11`,
 			},
 			expected: &Input{
 				Endpoints:        []string{"/v0.3/traces", "/v0.4/traces", "/v0.5/traces"},
@@ -60,6 +62,8 @@ func TestReadEnv(t *testing.T) {
 				Tags:             map[string]string{"k1": "v1", "k2": "v2", "k3": "v3"},
 				WPConfig:         &workerpool.WorkerPoolConfig{Buffer: 1000, Threads: 100},
 				LocalCacheConfig: &storage.StorageConfig{Path: "./ddtrace_storage", Capacity: 5120},
+				TraceMaxSpans:    10,
+				MaxTraceBodyMB:   11,
 			},
 		},
 	}

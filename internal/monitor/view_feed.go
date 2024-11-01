@@ -114,17 +114,19 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		col++
 
 		// P90Lat
-		feedSum := metricWithLabel(feedCost, cat, inputName)
-		feedLat := "-"
-		if feedSum != nil {
-			q := feedSum.GetSummary().GetQuantile()[1] // p90
-			if v := q.GetValue(); math.IsNaN(v) {
-				feedLat = "NaN"
-			} else {
-				feedLat = time.Duration(v * float64(time.Second)).String()
+		if feedCost != nil {
+			x := metricWithLabel(feedCost, cat, inputName)
+			feedLat := "-"
+			if x != nil {
+				q := x.GetSummary().GetQuantile()[1] // p90
+				if v := q.GetValue(); math.IsNaN(v) {
+					feedLat = "NaN"
+				} else {
+					feedLat = time.Duration(v * float64(time.Second)).String()
+				}
 			}
+			table.SetCell(row, col, tview.NewTableCell(feedLat).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		}
-		table.SetCell(row, col, tview.NewTableCell(feedLat).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		col++
 
 		// P90Pts

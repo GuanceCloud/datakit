@@ -93,7 +93,13 @@ func (app *monitorAPP) renderHTTPStatTable(mfs map[string]*dto.MetricFamily, col
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			} else {
-				table.SetCell(row, col, tview.NewTableCell(number(x.GetSummary().GetSampleSum())).
+				p90 := x.GetSummary().GetQuantile()[1]
+				cellVal := fmt.Sprintf("%s/%s",
+					number(p90.GetValue()),
+					number(x.GetSummary().GetSampleSum()),
+				)
+
+				table.SetCell(row, col, tview.NewTableCell(cellVal).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		}

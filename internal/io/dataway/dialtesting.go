@@ -44,6 +44,7 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	w := getWriter(WithPoints(pts),
 		WithDynamicURL(url),
 		WithCategory(point.DynamicDWCategory),
+		WithHTTPEncoding(point.LineProtocol),
 		WithBodyCallback(func(w *writer, b *body) error {
 			err := d.ep.writePointData(w, b)
 			if err != nil {
