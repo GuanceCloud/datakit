@@ -95,8 +95,8 @@ func parseLPPoints(data []byte, c *cfg) ([]*Point, error) {
 		defer PutCfg(c)
 	}
 
-	ptTime := c.t
-	if c.t.IsZero() {
+	ptTime := time.Unix(0, c.timestamp)
+	if c.timestamp == 0 {
 		ptTime = time.Now()
 	}
 
