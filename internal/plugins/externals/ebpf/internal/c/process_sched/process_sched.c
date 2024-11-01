@@ -3,16 +3,17 @@
 #include "bpf_helpers.h"
 #include "process_sched.h"
 #include "bpfmap.h"
-#include "goid2tid.h"
+#include "goidtid.h"
 
 SEC("tracepoint/sched/sched_process_fork")
 int tracepoint__sched_process_fork(struct tp_sched_process_fork_args *ctx)
 {
+    // syscall: clone, clone3, fork, vfork ...
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     rec_process_sched_status_t rec = {0};
     rec.status = REC_SCHED_FORK;
-    rec.prv_pid = ctx->parent_pid;
+    rec.prv_pid = pid_tgid >> 32;
     rec.nxt_pid = ctx->child_pid;
 
     bpf_probe_read(&rec.comm, sizeof(rec.comm), &ctx->child_comm);
@@ -40,19 +41,13 @@ int tracepoint__sched_process_exec(struct tp_sched_process_exec_args *ctx)
 
     // set status
     rec.prv_pid = pid_tgid >> 32;
-    rec.nxt_pid = (__u32)pid_tgid;
+    rec.nxt_pid = rec.prv_pid;
     rec.status = REC_SCHED_EXEC;
     bpf_get_current_comm(&rec.comm, KERNEL_TASK_COMM_LEN);
 
     __u64 cpu = bpf_get_smp_processor_id();
     bpf_perf_event_output(ctx, &process_sched_event, cpu,
                           &rec, sizeof(rec_process_sched_status_t));
-
-    // __u64 pid = pid_tgid >> 32;
-    // if (pid == 157374 || pid == 191010)
-    // {
-    //     bpf_printk("exec comm %s, pid %d tid %d\n", rec.comm, rec.prv_pid, rec.nxt_pid);
-    // };
 
     return 0;
 }
@@ -64,27 +59,22 @@ int tracepoint__sched_process_exit(struct tp_sched_process_exit_args *ctx)
 
     bpf_map_delete_elem(&bmap_tid2goid, &pid_tgid);
 
-    if ((pid_tgid >> 32) == (__u32)pid_tgid) // process(all threads) exit
+    int pid = pid_tgid >> 32;
+    int tid = (u32)pid_tgid;
+    if (pid == tid) // process(all threads) exit
     {
         rec_process_sched_status_t rec = {0};
         rec.status = REC_SCHED_EXIT;
-        rec.prv_pid = pid_tgid >> 32;
-        rec.nxt_pid = (__u32)pid_tgid;
+        rec.prv_pid = pid;
+        rec.nxt_pid = tid;
 
-        __u32 pid = pid_tgid >> 32;
         bpf_map_delete_elem(&bmap_procinject, &pid);
+        bpf_map_delete_elem(&bmap_proc_filter, &pid);
 
         __u64 cpu = bpf_get_smp_processor_id();
         bpf_perf_event_output(ctx, &process_sched_event, cpu,
                               &rec, sizeof(rec_process_sched_status_t));
     }
-
-    // __u64 pid = pid_tgid >> 32;
-    // if (pid == 157374 || pid == 191010)
-    // {
-    //     bpf_printk("exit comm %s, pid %d tid %d\n", ctx->comm, pid_tgid >> 32, (__u32)pid_tgid);
-    // };
-
     return 0;
 }
 
@@ -126,11 +116,6 @@ int uprobe__go_runtime_execute(struct pt_regs *ctx)
     // bpf_printk("goid %d", pid_goid);
 
     bpf_map_update_elem(&bmap_tid2goid, &pid_tgid, &goid, BPF_ANY);
-
-    // if (pid == 157374 || pid == 191010)
-    // {
-    //     bpf_printk("go exec pid %d tid %d goid %d\n", pid_tgid >> 32, (__u32)pid_tgid, goid);
-    // };
 
     return 0;
 }

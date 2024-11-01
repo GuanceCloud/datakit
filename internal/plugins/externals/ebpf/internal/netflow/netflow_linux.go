@@ -13,7 +13,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/shirou/gopsutil/host"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
 	"golang.org/x/net/context"
 )
 
@@ -31,14 +31,20 @@ const (
 	transportUDP = "udp"
 )
 
+var enableUDP bool
+
+func SetEnableUDP(on bool) {
+	enableUDP = on
+}
+
 type NetFlowTracer struct {
 	connStatsRecord *ConnStatsRecord
 	resultCh        chan *ConnResult
 	closedEventCh   chan *ConncetionClosedInfo
-	procFilter      *tracing.ProcessFilter
+	procFilter      *sysmonitor.ProcessFilter
 }
 
-func NewNetFlowTracer(procFilter *tracing.ProcessFilter) *NetFlowTracer {
+func NewNetFlowTracer(procFilter *sysmonitor.ProcessFilter) *NetFlowTracer {
 	return &NetFlowTracer{
 		connStatsRecord: newConnStatsRecord(),
 		resultCh:        make(chan *ConnResult, 4),
@@ -99,7 +105,7 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 
 	if tracer.procFilter != nil {
 		if v, ok := tracer.procFilter.GetProcInfo(int(event.Info.Pid)); ok {
-			event.Info.ProcessName = v.Name
+			event.Info.ProcessName = v.Name()
 		}
 	}
 
@@ -189,7 +195,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 				}
 				if tracer.procFilter != nil {
 					if v, ok := tracer.procFilter.GetProcInfo(int(connInfoC.pid)); ok {
-						connInfo.ProcessName = v.Name
+						connInfo.ProcessName = v.Name()
 					}
 				}
 

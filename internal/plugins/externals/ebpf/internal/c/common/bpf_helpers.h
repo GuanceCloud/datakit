@@ -109,6 +109,13 @@ struct bpf_map_def
 		.value_size = sizeof(value_type),                  \
 		.max_entries = 1};
 
+#define BPF_ARRAY_MAP(map_name, key_type, value_type, map_max_entries) \
+	struct bpf_map_def SEC("maps/" #map_name) map_name = {             \
+		.type = BPF_MAP_TYPE_ARRAY,                                    \
+		.key_size = sizeof(key_type),                                  \
+		.value_size = sizeof(value_type),                              \
+		.max_entries = map_max_entries};
+
 #define BPF_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
 	struct bpf_map_def SEC("maps/" #map_name) map_name = {            \
 		.type = BPF_MAP_TYPE_HASH,                                    \

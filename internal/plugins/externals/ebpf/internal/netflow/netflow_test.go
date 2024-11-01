@@ -367,6 +367,7 @@ func TestConvConn2M(t *testing.T) {
 		},
 	}
 
+	SetEnableUDP(true)
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
 		pt, err := ConvConn2M(v.conn, v.connStats, srcNameM, v.tags,

@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"syscall"
 
 	ddfp "github.com/DataDog/gopsutil/process/filepath"
 
@@ -20,6 +22,11 @@ var log = logger.DefaultSLogger("ebpf")
 
 func SetLogger(nl *logger.Logger) {
 	log = nl
+}
+
+type fileKey struct {
+	dev uint64
+	ino uint64
 }
 
 func diff(old, cur map[string]struct{}) (map[string]struct{}, map[string]struct{}) {
@@ -76,6 +83,22 @@ func GetEnv(key string, dfault string, combineWith ...string) string {
 		copy(all[1:], combineWith)
 		return filepath.Join(all...)
 	}
+}
+
+func FileInfo(fp string) (fileKey, error) {
+	if f, err := os.Stat(fp); err == nil {
+		v := f.Sys()
+		if sysF, ok := v.(*syscall.Stat_t); ok {
+			return fileKey{
+				dev: sysF.Dev,
+				ino: sysF.Ino,
+			}, nil
+		}
+	} else {
+		return fileKey{}, err
+	}
+
+	return fileKey{}, fmt.Errorf("get file info failed")
 }
 
 // HostProc returns the value of the host proc path.

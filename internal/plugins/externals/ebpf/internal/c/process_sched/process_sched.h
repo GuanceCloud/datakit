@@ -21,7 +21,6 @@ typedef struct rec_process_sched_status
     __s32 prv_pid; // parent_pid or tgid or old_pid
     __s32 nxt_pid;
     __s32 __pad;
-    // __s32 cur_tgid;
     __u8 comm[KERNEL_TASK_COMM_LEN];
 } rec_process_sched_status_t;
 
@@ -65,4 +64,14 @@ typedef struct proc_inject
     __u64 offset_go_runtime_g_goid;
     __u64 go_use_register;
 } proc_inject_t;
+
+
+typedef struct proc_filter_info
+{
+    __u8 disable;
+    __u8 pad0;
+    __u16 pad1;
+    __u32 pad2;
+} proc_filter_info_t;
+
 #endif

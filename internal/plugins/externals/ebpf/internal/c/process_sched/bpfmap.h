@@ -6,6 +6,6 @@
 
 BPF_PERF_EVENT_MAP(process_sched_event);
 
-BPF_HASH_MAP(bmap_procinject, u32, proc_inject_t, 4096);
+BPF_HASH_MAP(bmap_procinject, u32, proc_inject_t, 12800);
 
 #endif

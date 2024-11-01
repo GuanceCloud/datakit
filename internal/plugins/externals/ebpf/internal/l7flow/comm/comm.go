@@ -203,6 +203,7 @@ type NetwrkData struct {
 	Index       uint64         `json:"index"`
 	Fn          FnID           `json:"fn_id"`
 	Payload     []byte         `json:"payload"`
+	SockPtr     uint64
 }
 
 func (d NetwrkData) String() string {

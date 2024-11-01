@@ -27,7 +27,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 	"golang.org/x/sys/unix"
 
 	expRand "golang.org/x/exp/rand"
@@ -321,16 +320,11 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 }
 
 type APIFlowTracer struct {
-	gTags          map[string]string
 	datakitPostURL string
 	tracePostURL   string
-	conv2dd        bool
-	procFilter     *tracing.ProcessFilter
 
 	tracer *Tracer
 }
-
-var selfPid = 0
 
 type APITracerOpt func(*apiTracerConfig)
 
@@ -340,9 +334,16 @@ type apiTracerConfig struct {
 	tracePostURL   string
 	conv2dd        bool
 	enableTrace    bool
-	procFilter     *tracing.ProcessFilter
+	procFilter     *sysmonitor.ProcessFilter
 	protos         map[protodec.L7Protocol]struct{}
 	k8sNetInfo     *k8sinfo.K8sNetInfo
+	selfPid        int
+}
+
+func WithSelfPid(pid int) APITracerOpt {
+	return func(cfg *apiTracerConfig) {
+		cfg.selfPid = pid
+	}
 }
 
 func WithTags(tags map[string]string) APITracerOpt {
@@ -375,7 +376,7 @@ func WithEnableTrace(enableTrace bool) APITracerOpt {
 	}
 }
 
-func WithProcessFilter(procFilter *tracing.ProcessFilter) APITracerOpt {
+func WithProcessFilter(procFilter *sysmonitor.ProcessFilter) APITracerOpt {
 	return func(cfg *apiTracerConfig) {
 		cfg.procFilter = procFilter
 	}
@@ -401,24 +402,17 @@ func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer 
 		}
 	}
 
-	if selfPid == 0 {
-		selfPid = os.Getpid()
-	}
 	return &APIFlowTracer{
-		gTags:          cfg.tags,
 		datakitPostURL: cfg.datakitPostURL,
 		tracePostURL:   cfg.tracePostURL,
-		conv2dd:        cfg.conv2dd,
-		procFilter:     cfg.procFilter,
 		tracer:         newTracer(ctx, &cfg),
 	}
 }
 
+const bpfMapProtocolFilter = "mp_protocol_filter"
+
 func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
 	bmaps map[string]*ebpf.Map, enableTLS bool, interval time.Duration) error {
-	if selfPid == 0 {
-		selfPid = os.Getpid()
-	}
 	go tracer.tracer.Start(ctx, interval)
 
 	bpfManger, r, err := NewHTTPFlowManger(constEditor, bmaps,
@@ -435,6 +429,22 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.Cons
 	}
 
 	log.Info("api tracer starting ...")
+
+	var fn func(uint64)
+	if mp, ok, err := bpfManger.GetMap(bpfMapProtocolFilter); err == nil && ok {
+		fn = func() func(u uint64) {
+			return func(u uint64) {
+				val := uint8(1)
+				if err := mp.Update(&u, &val, ebpf.UpdateExist); err != nil {
+					log.Debug(err)
+				}
+			}
+		}()
+	} else {
+		fn = func(u uint64) {}
+	}
+
+	tracer.tracer.protocolFilter.setFn(fn)
 
 	if r != nil {
 		r.ScanAndUpdate()

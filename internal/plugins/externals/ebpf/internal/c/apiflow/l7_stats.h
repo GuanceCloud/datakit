@@ -74,6 +74,7 @@ typedef struct sk_inf
 {
     id_generator_t uni_id;
     __u64 index;
+    __u64 skptr;
     conn_inf_t conn;
 } sk_inf_t;
 
@@ -105,67 +106,32 @@ typedef struct netwrk_data
 typedef struct event_rec
 {
     __u32 num;
-    __u32 len;
+    __u32 bytes;
 } event_rec_t;
 
 enum
 {
-    L7_EVENT_SIZE = (L7_BUFFER_SIZE * 2 - sizeof(event_rec_t)),
+    L7_EVENT_SIZE = (L7_BUFFER_SIZE * 4 - sizeof(event_rec_t)),
 #define L7_EVENT_SIZE L7_EVENT_SIZE
 };
 
 typedef struct network_events
 {
-    event_rec_t pos;
+    event_rec_t rec;
     __u8 payload[L7_EVENT_SIZE];
 } network_events_t;
 
-typedef enum
-{
-    BUF_DIV8 = L7_BUFFER_SIZE / 8,
-#define BUF_DIV8 BUF_DIV8
-
-    BUF_DIV4 = L7_BUFFER_SIZE / 4,
-#define BUF_DIV4 BUF_DIV4
-
-    BUF_DIV2 = L7_BUFFER_SIZE / 2,
-#define BUF_DIV2 BUF_DIV2
-
-    BUF_DIV1 = L7_BUFFER_SIZE,
-#define BUF_DIV1 BUF_DIV1
-} buf_div_t;
-
 typedef struct net_event_comm
 {
-    __u32 idx;
-    __u32 len;
-
+    event_rec_t rec;
     netdata_meta_t meta;
 } net_event_comm_t;
 
 typedef struct
 {
     net_event_comm_t event_comm;
-    __u8 payload[BUF_DIV8];
-} net_event_div8_t;
-
-typedef struct
-{
-    net_event_comm_t event_comm;
-    __u8 payload[BUF_DIV4];
-} net_event_div4_t;
-
-typedef struct
-{
-    net_event_comm_t event_comm;
-    __u8 payload[BUF_DIV2];
-} net_event_div2_t;
-
-typedef struct
-{
-    net_event_comm_t event_comm;
-    __u8 payload[BUF_DIV1];
-} net_event_div1_t;
+    __u8 payload[L7_BUFFER_SIZE];
+} net_event_t;
 
 typedef struct ssl_read_args
 {

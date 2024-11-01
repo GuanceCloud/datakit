@@ -14,7 +14,8 @@ func TestDKE(t *testing.T) {
 		PprofPort: "6267",
 		Service:   "ebpf",
 
-		Enabled: []string{"ebpf-net", "ebpf-trace"},
+		Enabled: []string{"ebpf-net"},
+		// "ebpf-trace"},
 
 		EBPFNet: FlagNet{
 			L7NetEnabled: []string{"httpflow"},

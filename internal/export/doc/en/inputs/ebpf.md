@@ -123,6 +123,11 @@ Configuration items:
     - Environment variable: `ENV_INPUT_EBPF_L7NET_ENABLED`
     - Example: `httpflow`
 
+- `interval`
+    - Description: Set the sampling time interval
+    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
+    - Example: `1m30s`
+
 - `ipv6_disabled`
     - Description: Whether the system does not support IPv6
     - Environment variable: `ENV_INPUT_EBPF_IPV6_DISABLED`
