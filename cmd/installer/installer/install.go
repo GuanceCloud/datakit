@@ -8,16 +8,12 @@ package installer
 
 import (
 	"errors"
-	"fmt"
-	"net"
-	"runtime"
 	"strings"
 
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -50,181 +46,8 @@ func Install(svc service.Service, userName string) {
 	mc := config.Cfg
 	mc.DatakitUser = userName
 
-	// prepare dataway info and check token format
-	if len(DatawayURLs) != 0 {
-		mc.Dataway, err = getDataway()
-		if err != nil {
-			l.Errorf("getDataway failed: %s", err.Error())
-			l.Fatal(err)
-		}
-
-		l.Infof("Set dataway to %s", DatawayURLs)
-
-		mc.Dataway.GlobalCustomerKeys = dataway.ParseGlobalCustomerKeys(SinkerGlobalCustomerKeys)
-		mc.Dataway.EnableSinker = (EnableSinker != "")
-
-		l.Infof("Set dataway global sinker customer keys: %+#v", mc.Dataway.GlobalCustomerKeys)
-	}
-
-	if OTA {
-		mc.AutoUpdate = OTA
-		l.Info("set auto update(OTA enabled)")
-	}
-
-	if HTTPPublicAPIs != "" {
-		apis := strings.Split(HTTPPublicAPIs, ",")
-		idx := 0
-		for _, api := range apis {
-			api = strings.TrimSpace(api)
-			if api != "" {
-				if !strings.HasPrefix(api, "/") {
-					api = "/" + api
-				}
-				apis[idx] = api
-				idx++
-			}
-		}
-		mc.HTTPAPI.PublicAPIs = apis[:idx]
-		l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
-	}
-
-	if DCAEnable != "" {
-		config.Cfg.DCAConfig.Enable = true
-		if DCAWhiteList != "" {
-			config.Cfg.DCAConfig.WhiteList = strings.Split(DCAWhiteList, ",")
-		}
-
-		// check white list whether is empty or invalid
-		if len(config.Cfg.DCAConfig.WhiteList) == 0 {
-			l.Fatalf("DCA service is enabled, but white list is empty! ")
-		}
-
-		for _, cidr := range config.Cfg.DCAConfig.WhiteList {
-			if _, _, err := net.ParseCIDR(cidr); err != nil {
-				if net.ParseIP(cidr) == nil {
-					l.Fatalf("DCA white list set error, invalid IP: %s", cidr)
-				}
-			}
-		}
-
-		if DCAListen != "" {
-			config.Cfg.DCAConfig.Listen = DCAListen
-		}
-
-		l.Infof("DCA enabled, listen on %s, whiteliste: %s", DCAListen, DCAWhiteList)
-	}
-
-	if PProfListen != "" {
-		config.Cfg.PProfListen = PProfListen
-	}
-	l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
-
-	// Only supports linux and windows
-	if LimitDisabled != 1 && (runtime.GOOS == datakit.OSLinux || runtime.GOOS == datakit.OSWindows) {
-		mc.ResourceLimitOptions.Enable = true
-
-		if LimitCPUMax > 0 {
-			mc.ResourceLimitOptions.CPUMax = LimitCPUMax
-		}
-
-		if LimitMemMax > 0 {
-			l.Infof("resource limit set max memory to %dMB", LimitMemMax)
-			mc.ResourceLimitOptions.MemMax = LimitMemMax
-		} else {
-			l.Infof("resource limit max memory not set")
-		}
-
-		l.Infof("resource limit enabled under %s, cpu: %f, mem: %dMB",
-			runtime.GOOS, mc.ResourceLimitOptions.CPUMax, mc.ResourceLimitOptions.MemMax)
-	} else {
-		mc.ResourceLimitOptions.Enable = false
-		l.Infof("resource limit disabled, OS: %s", runtime.GOOS)
-	}
-
-	if HostName != "" {
-		mc.Environments["ENV_HOSTNAME"] = HostName
-		l.Infof("set ENV_HOSTNAME to %s", HostName)
-	}
-
-	if GlobalHostTags != "" {
-		mc.GlobalHostTags = config.ParseGlobalTags(GlobalHostTags)
-
-		l.Infof("set global host tags to %+#v", mc.GlobalHostTags)
-	}
-
-	if GlobalElectionTags != "" {
-		mc.Election.Tags = config.ParseGlobalTags(GlobalElectionTags)
-		l.Infof("set global election tags to %+#v", mc.Election.Tags)
-	}
-
-	if EnableElection != "" {
-		mc.Election.Enable = true
-		l.Infof("election enabled? %v", true)
-	}
-	mc.Election.Namespace = ElectionNamespace
-	l.Infof("set election namespace to %s", mc.Election.Namespace)
-
-	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", HTTPListen, HTTPPort)
-	l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
-
-	mc.InstallVer = DataKitVersion
-	l.Infof("install version %s", mc.InstallVer)
-
-	if DatakitName != "" {
-		mc.Name = DatakitName
-		l.Infof("set datakit name to %s", mc.Name)
-	}
-
-	if CryptoAESKey != "" || CryptoAESKeyFile != "" {
-		if mc.Crypto != nil {
-			mc.Crypto.AESKey = CryptoAESKey
-			mc.Crypto.AESKeyFile = CryptoAESKeyFile
-			l.Infof("set datakit crypto key=%s or crypto key file=%s", mc.Crypto.AESKey, mc.Crypto.AESKeyFile)
-		}
-	}
-
-	// 一个 func 最大 230 行
-	addConfdConfig(mc)
-
-	if GitURL != "" {
-		mc.GitRepos = &config.GitRepost{
-			PullInterval: GitPullInterval,
-			Repos: []*config.GitRepository{
-				{
-					Enable:                true,
-					URL:                   GitURL,
-					SSHPrivateKeyPath:     GitKeyPath,
-					SSHPrivateKeyPassword: GitKeyPW,
-					Branch:                GitBranch,
-				}, // GitRepository
-			}, // Repos
-		} // GitRepost
-	}
-
-	if RumDisable404Page != "" {
-		l.Infof("set disable 404 page: %v", RumDisable404Page)
-		mc.HTTPAPI.Disable404Page = true
-	}
-
-	if RumOriginIPHeader != "" {
-		l.Infof("set rum origin IP header: %s", RumOriginIPHeader)
-		mc.HTTPAPI.RUMOriginIPHeader = RumOriginIPHeader
-	}
-
-	if LogLevel != "" {
-		mc.Logging.Level = LogLevel
-		l.Infof("set log level to %s", LogLevel)
-	}
-
-	if Log != "" {
-		mc.Logging.Log = Log
-		l.Infof("set log to %s", Log)
-	}
-
-	if GinLog != "" {
-		l.Infof("set gin log to %s", GinLog)
-		mc.Logging.GinLog = GinLog
-	}
+	// load DK_XXX env config
+	mc = loadDKEnvCfg(mc)
 
 	writeDefInputToMainCfg(mc, false)
 

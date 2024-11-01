@@ -206,7 +206,7 @@
     ./installer-linux-amd64 --help
     ```
 
-    比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，（离线）升级模式下，这些是不生效的。
+    比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，（离线）模式下，这些是不生效的。
 <!-- markdownlint-enable -->
 
 ### 高级模式 {#offline-advanced}

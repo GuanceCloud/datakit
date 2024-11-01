@@ -414,6 +414,15 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Desc:    "RUM app-id white list, split by `,`.",
 			DescZh:  "RUM app-id 白名单列表，以 `,` 分割。",
 		},
+
+		{
+			ENVName: "ENV_HTTP_ALLOWED_CORS_ORIGINS",
+			Type:    doc.List,
+			Default: "-",
+			Example: "Origin,Access-Control-Allow-Origin,Access-Control-Allow-Methods",
+			Desc:    "Setup CORS on Datakit HTTP APIs(split by `,`) [:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)",
+			DescZh:  "设置 Datakit API CORS 属性（英文逗号分割）[:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)",
+		},
 	}
 
 	for idx := range infos {

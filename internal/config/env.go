@@ -627,6 +627,10 @@ func (c *Config) loadHTTPAPIEnvs() {
 		c.HTTPAPI.RUMAppIDWhiteList = strings.Split(v, ",")
 	}
 
+	if v := datakit.GetEnv("ENV_ALLOWED_CORS_ORIGINS"); v != "" {
+		c.HTTPAPI.AllowedCORSOrigins = strings.Split(v, ",")
+	}
+
 	if v := datakit.GetEnv("ENV_DISABLE_404PAGE"); v != "" {
 		c.HTTPAPI.Disable404Page = true
 	}

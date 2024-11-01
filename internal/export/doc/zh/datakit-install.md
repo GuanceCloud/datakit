@@ -125,7 +125,7 @@ Windows 下同理：
 {{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
 ```
 
-## 额外支持的安装变量 {#extra-envs}
+## 额外支持的环境变量 {#extra-envs}
 
 如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
@@ -158,8 +158,7 @@ NAME1="value1" NAME2="value2"
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    1. [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
-    1. 这些环境变量只有在安装模式才能生效，升级模式下，这些环境变量都是不生效的。
+    [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
 <!-- markdownlint-enable -->
 
 ### 最常用环境变量 {#common-envs}
@@ -344,7 +343,7 @@ NAME1="value1" NAME2="value2"
 | -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `DK_INSTALL_ONLY`                | `on`                        | 仅安装，不运行                                                                                                                   |
 | `DK_HOSTNAME`                    | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                                     |
-| `DK_UPGRADE`                     | `1`                         | 升级到最新版本（注：一旦开启该选项，除 `DK_UPGRADE_MANAGER` 外其它选项均无效）                                                   |
+| `DK_UPGRADE`                     | `1`                         | 升级到最新版本                                                   |
 | `DK_UPGRADE_MANAGER`             | `on`                        | 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`                                                             |
 | `DK_PROXY_TYPE`                  | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |

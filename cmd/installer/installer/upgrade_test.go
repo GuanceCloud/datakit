@@ -48,7 +48,7 @@ func Test_setupDefaultInputs(t *T.T) {
 			"2,mem", // white list, with extra input 'mem'
 			[]string{"1", "2", "3"}, true)
 
-		assert.Equal(t, []string{"1", "2", "3", "disk"}, c.DefaultEnabledInputs)
+		assert.Equal(t, []string{"1", "2", "3", "disk", "mem"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("install-with-blacklist", func(t *T.T) {

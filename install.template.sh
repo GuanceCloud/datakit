@@ -554,14 +554,69 @@ if [ "$upgrade" ]; then
 	printf "* Upgrading DataKit...\n"
 	$sudo_cmd $installer \
 		--install-log="$install_log" \
-		--upgrade --lite="${lite}" \
+		--installer_base_url="$installer_base_url" \
+		--dataway="${dataway}" \
+		--enable-inputs="${def_inputs}" \
+		--http-public-apis="$http_public_apis" \
+		--http-disabled-apis="$http_disabled_apis" \
+		--install-rum-symbol-tools="$install_rum_symbol_tools" \
+		--global-host-tags="${global_host_tags}" \
+		--global-election-tags="${global_election_tags}" \
+		--cloud-provider="${cloud_provider}" \
+		--namespace="${namespace}" \
+		--listen="${http_listen}" \
+		--port="${http_port}" \
+		--proxy="${proxy}" \
+		--lite="${lite}" \
 		--elinker="${elinker}" \
 		--apm-instrumentation-enabled="${apmInstrumentation}" \
+		--env_hostname="${env_hostname}" \
+		--dca-enable="${dca_enable}" \
+		--dca-listen="${dca_listen}" \
+		--dca-white-list="${dca_white_list}" \
+		--pprof-listen="${pprof_listen}" \
+		--install-externals="${install_externals}" \
+		--confd-backend="${confd_backend}" \
+		--confd-basic-auth="${confd_basic_auth}" \
+		--confd-client-ca-keys="${confd_client_ca_keys}" \
+		--confd-client-cert="${confd_client_cert}" \
+		--confd-client-key="${confd_client_key}" \
+		--confd-backend-nodes="${confd_backend_nodes}" \
+		--confd-password="${confd_password}" \
+		--confd-scheme="${confd_scheme}" \
+		--confd-separator="${confd_separator}" \
+		--confd-username="${confd_username}" \
+		--confd-access-key="${confd_access_key}" \
+		--confd-secret-key="${confd_secret_key}" \
+		--confd-circle-interval="${confd_circle_interval}" \
+		--confd-confd-namespace="${confd_confd_namespace}" \
+		--confd-pipeline-namespace="${confd_pipeline_namespace}" \
+		--confd-region="${confd_region}" \
+		--git-url="${git_url}" \
+		--git-key-path="${git_key_path}" \
+		--git-key-pw="${git_key_pw}" \
+		--git-branch="${git_branch}" \
+		--git-pull-interval="${git_pull_interval}" \
+		--limit-cpumax="${limit_cpumax}" \
+		--limit-memmax="${limit_memmax}" \
+		--limit-disabled="${limit_disabled}" \
+		--enable-election="${enable_election}" \
+		--rum-origin-ip-header="${rum_origin_ip_header}" \
+		--disable-404page="${disable_404page}" \
+		--log-level="${log_level}" \
+		--log="${log}" \
+		--ipdb-type="${ipdb_type}" \
+		--sinker-global-customer-keys="${global_customer_keys}" \
+		--enable-dataway-sinker="${dataway_sinker}" \
+		--user-name="${user_name}" \
+		--crypto-aes_key="${crypto_aes_key}" \
+		--crypto-aes_key_file="${crypto_aes_key_file}" \
+		--upgrade \
 		--upgrade-manager="${upgrade_manager}" \
 		--upgrade-ip-whitelist="${upgrade_ip_whitelist}" \
 		--upgrade-listen="${upgrade_listen}" \
-		--proxy="${proxy}" \
-		--installer_base_url="$installer_base_url"
+		--gin-log="${gin_log}"
+		
 else
 printf "* Installing DataKit...\n"
 $sudo_cmd $installer \
