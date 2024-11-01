@@ -26,12 +26,10 @@ func Upgrade() error {
 
 	// load exists datakit.conf
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
-		mc = upgradeMainConfig(mc)
+		// load DK_XXX env config
+		mc = loadDKEnvCfg(mc)
 
-		if OTA {
-			l.Debugf("set auto update(OTA enabled)")
-			mc.AutoUpdate = OTA
-		}
+		mc = upgradeMainConfig(mc)
 
 		writeDefInputToMainCfg(mc, true)
 	} else {

@@ -4,6 +4,10 @@
 
 DataKit supports both manual and automatic upgrade.
 
+## Additional Supported Environment Variable {#extra-envs}
+
+From version [1.60.1](changelog.md#cl-1.60.1) onwards, the upgrade command also supports the same environment variables as the install command. For more details, refer to the [environment variables supported by the install command](datakit-install.md#extra-envs).
+
 ## Preconditions {#req}
 
 - Automatic upgrade require DataKit version >= 1.1.6-rc1

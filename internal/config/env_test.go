@@ -113,6 +113,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
 				"ENV_DATAWAY_TLS_INSECURE":            "on",
 				"ENV_REQUEST_RATE_LIMIT":              "1234",
+				"ENV_HTTP_ALLOWED_CORS_ORIGINS":       "https://foo,https://bar",
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
 				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
 				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
@@ -145,6 +146,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway.GlobalCustomerKeys = []string{}
 				cfg.Dataway.GZip = true
 
+				cfg.HTTPAPI.AllowedCORSOrigins = []string{"https://foo", "https://bar"}
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
 				cfg.HTTPAPI.Disable404Page = true

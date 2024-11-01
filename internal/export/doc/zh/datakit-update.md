@@ -4,6 +4,10 @@
 
 DataKit 支持手动更新和自动更新两种方式。
 
+## 额外支持的环境变量 {#extra-envs}
+
+目前在升级命令中也支持和安装命令一致的环境变量[安装命令支持的环境变量](datakit-install.md#extra-envs)，从 [1.60.1](changelog.md#cl-1.60.1) 版本开始支持。
+
 ## 前置条件 {#req}
 
 - 远程更新要求 Datakit 版本 >= 1.5.9

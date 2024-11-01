@@ -121,7 +121,7 @@ And the same as Windows:
 {{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
 ```
 
-## Additional Supported Installation Variable {#extra-envs}
+## Additional Supported Environment Variable {#extra-envs}
 
 If you need to define some DataKit configuration during the installation phase, you can add environment variables to the installation command, just append them before `DK_DATAWAY` For example, append the `DK_NAMESPACE` setting:
 <!-- markdownlint-disable MD046 -->
@@ -321,7 +321,7 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 | -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DK_INSTALL_ONLY`                | `on`                        | Install only, not run                                                                                                                                                                       |
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
-| `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version (Note: Once this option is turned on, all other options except `DK_UPGRADE_MANAGER` are invalid)                                                              |
+| `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
 | `DK_UPGRADE_MANAGER`             | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.guance.com/datakit`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
