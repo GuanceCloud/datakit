@@ -30,7 +30,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/dumpstd"
 
 	// nolint:gosec
@@ -270,6 +269,7 @@ func mergeOption(cfgFilePath *string, opt *Flag) (*Flag, error) {
 
 //nolint:funlen
 func runCmd(cfgFile *string, fl *Flag) error {
+	_ = cfgFile
 	fl, gTags, err := parseFlags(fl)
 	if err != nil {
 		return err
@@ -302,6 +302,17 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	initResLitmiter(fl, signaIterrrupt)
 
 	interval := time.Minute
+	if v, err := time.ParseDuration(fl.Interval); err == nil {
+		if v > interval {
+			interval = v
+		} else {
+			log.Warnf("%s is less than the minimum interval of 60s", v)
+		}
+	} else {
+		log.Warnf("parse interval failed: %s", err.Error())
+	}
+
+	log.Infof("set the time interval to %s", interval)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -320,43 +331,45 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	if enableEbpfNet {
-		traceAll := fl.EBPFTrace.TraceAllProc
+		_ = fl.EBPFTrace.TraceAllProc
 
-		envSet := map[string]bool{}
+		var envWhitelist []string
+		var envBlacklist []string
+
 		for _, e := range fl.EBPFTrace.TraceEnvList {
 			e = strings.TrimSpace(e)
 			if e != "" {
-				envSet[e] = true
+				envWhitelist = append(envWhitelist, e)
 			}
 		}
 
 		for _, e := range fl.EBPFTrace.TraceEnvBlacklist {
 			e = strings.TrimSpace(e)
 			if e != "" {
-				envSet[e] = false
+				envBlacklist = append(envBlacklist, e)
 			}
 		}
 
-		processSet := map[string]bool{}
-		processSet["datakit-ebpf"] = false
-		processSet["datakit"] = false
+		nameBlacklist := []string{"datakit-ebpf", "datakit"}
+		var nameWhitelist []string
 
 		for _, p := range fl.EBPFTrace.TraceNameList {
 			p = strings.TrimSpace(p)
 			if p != "" {
-				processSet[p] = true
+				nameWhitelist = append(nameWhitelist, p)
 			}
 		}
 
 		for _, p := range fl.EBPFTrace.TraceNameBlacklist {
 			p = strings.TrimSpace(p)
 			if p != "" {
-				processSet[p] = false
+				nameBlacklist = append(nameBlacklist, p)
 			}
 		}
 
-		var enableTraceFilter bool
-		enableProtos := map[protodec.L7Protocol]struct{}{}
+		enableProtos := map[protodec.L7Protocol]struct{}{
+			protodec.ProtoHTTP: {},
+		}
 		if enableTrace && fl.EBPFTrace.TraceServer != "" {
 			protoLi := netproto(fl.EBPFTrace.TraceProtoList, fl.EBPFTrace.TraceProtoBlacklist)
 			var protoStr []string
@@ -364,19 +377,25 @@ func runCmd(cfgFile *string, fl *Flag) error {
 				enableProtos[p] = struct{}{}
 				protoStr = append(protoStr, p.StringLower())
 			}
-			enableTraceFilter = true
-			log.Info("trace function enabled")
+			log.Info("trace feature enabled")
 			log.Info("trace protocols: ", strings.Join(protoStr, ","))
-			log.Info("trace all processes: ", traceAll)
-			log.Info("service name environment variables: ", strings.Join(envAssignAllowed, ","))
-			log.Info("enable trace environment variables: ", envSet)
-			log.Info("process name set: ", processSet)
 		}
 
-		log.Info(envAssignAllowed, envSet, processSet, traceAll, !enableTraceFilter)
+		log.Infof("service env: %v, env w: %v, b: %v, proc w: %v, b: %v",
+			envAssignAllowed, envWhitelist, envBlacklist, nameWhitelist, nameBlacklist)
 
-		procFilter := tracing.NewProcessFilter(
-			envAssignAllowed, envSet, processSet, traceAll, !enableTraceFilter,
+		procFilter := sysmonitor.NewProcessFilter(ctx,
+			sysmonitor.WithSelfPid(os.Getpid()),
+
+			sysmonitor.WithEnvService(envAssignAllowed),
+
+			sysmonitor.WithEnvBlacklist(envBlacklist),
+			sysmonitor.WithEnvWhitelist(envWhitelist),
+
+			sysmonitor.WithNameBlacklist(nameBlacklist),
+			sysmonitor.WithNameWhitelist(nameWhitelist),
+
+			sysmonitor.WithTracing(enableTrace),
 		)
 
 		schedTracer, err := sysmonitor.NewProcessSchedTracer(procFilter)
@@ -449,10 +468,9 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 		var bmaps map[string]*ebpf.Map
 		if ctMap != nil {
-			if bmaps == nil {
-				bmaps = make(map[string]*ebpf.Map)
+			bmaps = map[string]*ebpf.Map{
+				"bpfmap_conntrack_tuple": ctMap,
 			}
-			bmaps["bpfmap_conntrack_tuple"] = ctMap
 		}
 
 		netflowTracer := netflow.NewNetFlowTracer(procFilter)
@@ -499,7 +517,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			constEditor = append(constEditor, httpConst...)
 
 			// TODO: append conntrack bpf map
-			bmaps, _ := schedTracer.GetGOSchedMap()
+			bmaps, _ := schedTracer.GetSchedMap()
 			var traceSvc string
 			if exporter.DataKitTraceServer != "" {
 				traceSvc = fmt.Sprintf("http://%s%s", exporter.DataKitTraceServer, "/v1/bpftracing")
@@ -510,6 +528,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 				url.QueryEscape(inputNameNetHTTP)
 
 			tracer := l7flow.NewAPIFlowTracer(ctx,
+				l7flow.WithSelfPid(os.Getpid()),
 				l7flow.WithTags(gTags),
 				l7flow.WithDatakitPostURL(dkPostURL),
 				l7flow.WithTracePostURL(traceSvc),
@@ -546,7 +565,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 		var fnSetEndpoints l4log.CfgFn
 
-		if fl.ContainerInfo.Endpoints != nil && len(fl.ContainerInfo.Endpoints) > 0 {
+		if len(fl.ContainerInfo.Endpoints) > 0 {
 			fnSetEndpoints = l4log.WithCtrEndpointOverride(fl.ContainerInfo.Endpoints)
 		} else {
 			var rootfs string

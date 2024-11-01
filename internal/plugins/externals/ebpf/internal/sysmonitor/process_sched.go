@@ -12,7 +12,6 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -22,7 +21,6 @@ import (
 	"github.com/golang/groupcache/lru"
 	pr "github.com/shirou/gopsutil/v3/process"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
 
 	"golang.org/x/sys/unix"
 )
@@ -31,6 +29,16 @@ import (
 import "C"
 
 type ProcessSchedC C.struct_rec_process_sched_status
+
+type ProcFilterInfoC C.struct_proc_filter_info
+
+func (sc *ProcessSchedC) String() string {
+	comm := *(*[16]byte)(unsafe.Pointer(&sc.comm[0]))
+	return fmt.Sprintf("st %d, prv %d, nxt %d, name `%s`", sc.status,
+		sc.prv_pid, sc.nxt_pid,
+		string(bytes.TrimRight(comm[:], "\x00")))
+}
+
 type ProcInjectC C.struct_proc_inject
 
 type ProcessSchedWithFNameC C.struct_rec_process_sched_status_with_filename
@@ -45,6 +53,8 @@ const (
 
 const (
 	bmapProcInject = "bmap_procinject"
+	bmapProcFilter = "bmap_proc_filter"
+	bmapTid2Goid   = "bmap_tid2goid"
 )
 
 type ProcessInfo struct {
@@ -138,7 +148,7 @@ var execGoFnName = []string{
 	"uprobe__go_runtime_execute",
 }
 
-func NewProcessSchedTracer(filter *tracing.ProcessFilter) (*SchedTracer, error) {
+func NewProcessSchedTracer(filter *ProcessFilter) (*SchedTracer, error) {
 	tracer := SchedTracer{
 		processFilter: filter,
 	}
@@ -155,45 +165,68 @@ func NewProcessSchedTracer(filter *tracing.ProcessFilter) (*SchedTracer, error) 
 type SchedTracer struct {
 	Manager *manager.Manager
 
-	processFilter *tracing.ProcessFilter
+	processFilter *ProcessFilter
 	attachInfo    ProcessAttachInfo
+
+	selfPid int
 
 	sync.Mutex
 }
 
-func (tracer *SchedTracer) GetGOSchedMap() (map[string]*ebpf.Map, bool) {
+func (tracer *SchedTracer) GetSchedMap() (map[string]*ebpf.Map, bool) {
 	if tracer.Manager == nil {
 		return nil, false
 	}
 
 	bmaps := map[string]*ebpf.Map{}
 
-	// if m, ok, err := tracer.Manager.GetMap("bmap_goid2tid"); !ok || err != nil {
-	// 	return nil, false
-	// } else {
-	// 	bmaps["bmap_goid2tid"] = m
-	// }
-	if m, ok, err := tracer.Manager.GetMap("bmap_tid2goid"); !ok || err != nil {
+	if m, ok, err := tracer.Manager.GetMap(bmapTid2Goid); !ok || err != nil {
 		return nil, false
 	} else {
-		bmaps["bmap_tid2goid"] = m
+		bmaps[bmapTid2Goid] = m
 	}
+
+	if m, ok, err := tracer.Manager.GetMap(bmapProcFilter); !ok || err != nil {
+		return nil, false
+	} else {
+		bmaps[bmapProcFilter] = m
+	}
+
 	return bmaps, true
 }
 
+type kernelProcFilter func(int)
+
 func (tracer *SchedTracer) Start(ctx context.Context) error {
+	tracer.selfPid = os.Getpid()
 	err := tracer.Manager.Start()
 	if err != nil {
 		return err
 	}
 
+	fn := func() kernelProcFilter {
+		if mp, ok, err := tracer.Manager.GetMap(bmapProcFilter); err == nil && ok {
+			return func(pid int) {
+				k := uint32(pid)
+				v := ProcFilterInfoC{
+					disable: 1,
+				}
+				if err := mp.Update(&k, &v, ebpf.UpdateAny); err != nil {
+					log.Info(err)
+				}
+			}
+		}
+		return func(pid int) {}
+	}()
+
+	tracer.processFilter.setKernelProcFilter(fn)
+
 	pses, err := pr.Processes()
 	if err != nil {
 		return nil
 	}
-
 	for _, p := range pses {
-		if err := tracer.goProbeRegister(p); err != nil {
+		if err := tracer.attachProcess(p); err != nil {
 			log.Warn(err)
 		}
 	}
@@ -266,15 +299,12 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 	switch evetC.status {
 	case SchedFork:
 	case SchedExec:
-		// eventC := (*ProcessSchedWithFNameC)(unsafe.Pointer(&data[0]))
-		// pid := eventC.sched_status.nxt_pid
-
 		p, err := pr.NewProcess(int32(evetC.nxt_pid))
 		if err != nil {
 			break
 		}
 
-		if err := tracer.goProbeRegister(p); err != nil {
+		if err := tracer.attachProcess(p); err != nil {
 			log.Debug(err)
 		}
 	case SchedExit:
@@ -286,60 +316,36 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 	}
 }
 
-func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
-	pname, err := p.Name()
+func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
+	if p.Pid < 0 {
+		return fmt.Errorf("pid < 0")
+	}
+
+	procInfo, err := tracer.processFilter.TryAdd(int(p.Pid))
 	if err != nil {
 		return err
 	}
-	env, err := p.Environ()
-	if err != nil {
-		log.Debug(err)
+	if !procInfo.TraceFilterd() || procInfo.binPath == "" {
 		return nil
-	}
-
-	envMap := map[string]string{}
-	for _, v := range env {
-		s := strings.Index(v, "=")
-		if s > 0 {
-			envMap[v[:s]] = v[s+1:]
-		}
-	}
-	exePath, err := p.Exe()
-	if err != nil {
-		log.Debug(err)
-		return nil
-	}
-
-	pid := p.Pid
-	exeResolvePath := resolveBinPath(int(pid), exePath)
-	if exeResolvePath == "" {
-		return nil
-	}
-
-	exeResolvePath = HostRoot(exeResolvePath)
-
-	if tracer.processFilter != nil {
-		if !tracer.processFilter.Filter(int(pid), pname, exePath, envMap) {
-			return nil
-		}
 	}
 
 	// check file modified
 
-	exeFstat, err := os.Stat(exeResolvePath)
+	binPath := procInfo.binPath
+	exeFstat, err := os.Stat(binPath)
 	if err != nil {
 		return err
 	}
 	exeModTime := exeFstat.ModTime()
 
-	if tmod, ok := tracer.attachInfo.GetCannotAndAttachInfo(exeResolvePath); ok {
+	if tmod, ok := tracer.attachInfo.GetCannotAndAttachInfo(binPath); ok {
 		if tmod.Equal(exeFstat.ModTime()) {
 			return nil
 		}
 	}
 
 	var goVer = [2]int{}
-	inf, err := buildinfo.ReadFile(exeResolvePath)
+	inf, err := buildinfo.ReadFile(binPath)
 	if err != nil {
 		log.Debug(err)
 		// if the go version is greater than 1.13+, this function can get the go version
@@ -352,14 +358,14 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 
 	var symbolAddr uint64 = 0
 
-	elfFile, err := elf.Open(exeResolvePath)
+	elfFile, err := elf.Open(binPath)
 	if err != nil {
-		return fmt.Errorf("nnable to open elf file %s: %w", exeResolvePath, err)
+		return fmt.Errorf("nnable to open elf file %s: %w", binPath, err)
 	}
 
 	if syms, err := FindSymbol(elfFile, "runtime.execute"); err == nil {
 		if len(syms) != 1 {
-			log.Debugf("find symbol runtime.execute, exe %s, count %d", exeResolvePath, len(syms))
+			log.Debugf("find symbol runtime.execute, exe %s, count %d", binPath, len(syms))
 			return nil
 		}
 		symbolAddr = syms[0].Value
@@ -367,7 +373,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 		sym, err := getGoUprobeSymbolFromPCLN(elfFile, goVer[1] >= 20, "runtime.execute")
 		if err != nil {
 			log.Debug(err)
-			tracer.attachInfo.AddCannotAttach(exeResolvePath, exeModTime)
+			tracer.attachInfo.AddCannotAttach(binPath, exeModTime)
 			return nil
 		}
 		symbolAddr = sym.Start
@@ -408,20 +414,20 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 		}
 	}
 
-	pidU32 := (uint32)(pid)
+	pidU32 := (uint32)(procInfo.pid)
 	if err := emap.Update(unsafe.Pointer(&pidU32), unsafe.Pointer(&val), ebpf.UpdateAny); err != nil {
 		return err
 	}
 
 	var uid string
-	if tmod, ok := tracer.attachInfo.GetAttachInfo(exeResolvePath); ok {
+	if tmod, ok := tracer.attachInfo.GetAttachInfo(binPath); ok {
 		if tmod.Equal(exeModTime) {
 			return nil
 		}
 
-		uid = ShortID(exeResolvePath)
+		uid = ShortID(binPath)
 
-		log.Info("DetachHook: file modfied: ", exeResolvePath, " ShortID: ", uid)
+		log.Info("DetachHook: file modfied: ", binPath, " ShortID: ", uid)
 		for _, fnName := range execGoFnName {
 			p, ok := tracer.Manager.GetProbe(manager.ProbeIdentificationPair{
 				UID:          uid,
@@ -445,13 +451,13 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 		}
 	}
 
-	tracer.attachInfo.AddAtach(exeResolvePath, exeModTime)
+	tracer.attachInfo.AddAtach(binPath, exeModTime)
 
 	if uid == "" {
-		uid = ShortID(exeResolvePath)
+		uid = ShortID(binPath)
 	}
 
-	log.Info("AddHook: ", exeResolvePath, " ShortID: ", uid)
+	log.Info("AddHook: ", binPath, " ShortID: ", uid)
 	for _, fnName := range execGoFnName {
 		if err := tracer.Manager.AddHook("", &manager.Probe{
 			ProbeIdentificationPair: manager.ProbeIdentificationPair{
@@ -459,7 +465,7 @@ func (tracer *SchedTracer) goProbeRegister(p *pr.Process) error {
 				EBPFFuncName: fnName,
 			},
 			UprobeOffset: symbolAddr,
-			BinaryPath:   exeResolvePath,
+			BinaryPath:   binPath,
 		}); err != nil {
 			log.Warn(err)
 		}

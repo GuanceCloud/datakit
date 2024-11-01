@@ -485,6 +485,9 @@ func U32BEToIP(addr [4]uint32, isIPv6 bool) net.IP {
 // 4. Filter connections with port 0 or ip address :: or 0.0.0.0;
 // Need to filter, the function returns False.
 func ConnNotNeedToFilter(conn *ConnectionInfo, connStats *ConnFullStats) bool {
+	if !enableUDP && !ConnProtocolIsTCP(conn.Meta) {
+		return false
+	}
 	if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]|conn.Saddr[3]) == 0 ||
 		(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]|conn.Daddr[3]) == 0 ||
 		conn.Sport == 0 || conn.Dport == 0 {

@@ -98,6 +98,8 @@ FN_KPROBE(tcp_close)
         return 0;
     }
 
+    clean_protocol_filter(sk);
+
     net_data_t *dst = get_net_data_percpu();
     if (dst == NULL)
     {
@@ -122,8 +124,6 @@ FN_KPROBE(tcp_close)
     }
 
     try_upload_net_events(ctx, dst);
-
-    clean_protocol_filter(pid_tgid, sk);
 
     return 0;
 }
@@ -166,18 +166,17 @@ FN_UPROBE(SSL_shutdown)
 FN_KPROBE(sched_getaffinity)
 {
     __u64 cpu = bpf_get_smp_processor_id();
-    __s32 index = 0;
-    network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);
+    network_events_t *events = get_net_events();
     if (events == NULL)
     {
         return 0;
     }
 
-    if (events->pos.num > 0)
+    if (events->rec.num > 0)
     {
         bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
-        events->pos.len = 0;
-        events->pos.num = 0;
+        events->rec.bytes = 0;
+        events->rec.num = 0;
     }
 
     return 0;

@@ -15,7 +15,7 @@
 
 #include "../netflow/netflow_utils.h"
 #include "../conntrack/maps.h"
-#include "../process_sched/goid2tid.h"
+#include "../process_sched/goidtid.h"
 #include "bpfmap_l7.h"
 
 #include "bpf_helpers.h"
@@ -89,10 +89,16 @@ static __always_inline __u8 get_sk_inf(void *sk, sk_inf_t *dst, __u8 force)
                 return 0;
             }
 
+            i.skptr = (u64)sk;
             // May fail due to exceeding the upper limit of the number of elements
             bpf_map_update_elem(&mp_sk_inf, &sk, &i, BPF_NOEXIST);
 
             inf = (sk_inf_t *)bpf_map_lookup_elem(&mp_sk_inf, &sk);
+            if (inf != NULL)
+            {
+                __u8 val = 0;
+                bpf_map_update_elem(&mp_protocol_filter, &sk, &val, BPF_NOEXIST);
+            }
         }
     }
 
@@ -140,27 +146,26 @@ static __always_inline void del_sk_inf(void *sk)
         }                                                             \
     } while (0)
 
-static __always_inline bool proto_filter(__u64 pid_tgid, void *sock_ptr)
+static __always_inline bool net_filtered(__u64 pid_tgid, void *sock_ptr)
 {
-    pid_skptr_t key = {
-        .pid = pid_tgid >> 32,
-        .sk_ptr = (__u64)sock_ptr};
+    u32 pid = pid_tgid >> 32;
+    if (need_filter_proc(&pid))
+    {
+        return false;
+    }
 
-    __u8 *val = bpf_map_lookup_elem(&mp_protocol_filter, &key);
+    __u8 *val = bpf_map_lookup_elem(&mp_protocol_filter, &sock_ptr);
     if (val != NULL && *val == 1)
     {
-        return true;
+        return false;
     }
-    return false;
+
+    return true;
 }
 
-static __always_inline void clean_protocol_filter(__u64 pid_tgid, void *sock_ptr)
+static __always_inline void clean_protocol_filter(void *sock_ptr)
 {
-    pid_skptr_t key = {
-        .pid = pid_tgid >> 32,
-        .sk_ptr = (__u64)sock_ptr};
-
-    bpf_map_delete_elem(&mp_protocol_filter, &key);
+    bpf_map_delete_elem(&mp_protocol_filter, &sock_ptr);
 }
 
 // ret 0: r, 1: w
@@ -275,6 +280,7 @@ static __always_inline void read_netwrk_data(net_data_t *dst, __u8 *buf, __s64 l
 {
     if (len_or_errno <= 0)
     {
+        dst->meta.capture_size = 0;
         return;
     }
 
@@ -407,7 +413,7 @@ static __always_inline bool get_sk_with_typ(struct socket *skt, struct sock **sk
 static __always_inline net_data_t *get_net_data_percpu()
 {
     __s32 index = 0;
-    net_data_t *data = bpf_map_lookup_elem(&mp_network_data, &index);
+    net_data_t *data = bpf_map_lookup_elem(&mp_network_data_per_cpu, &index);
     if (data == NULL)
     {
         return NULL;
@@ -418,113 +424,55 @@ static __always_inline net_data_t *get_net_data_percpu()
     return data;
 }
 
-static __always_inline int buf_copy_thr_bprobe(void *dst, const int max_size_base2, int size, void *src)
-{
-    if (size <= 0)
-    {
-        return 0;
-    }
-    if (size >= max_size_base2)
-    {
-        size = max_size_base2;
-    }
-    else
-    {
-        size &= (max_size_base2 - 1);
-    }
-
-    bpf_probe_read(dst, size, src);
-    return size;
-}
-
-#define write_net_event(ctx, cpu, data, typ)                                                                             \
-    do                                                                                                                   \
-    {                                                                                                                    \
-        __s32 index = 0;                                                                                                 \
-        network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);                                      \
-        if (events == NULL)                                                                                              \
-        {                                                                                                                \
-            return;                                                                                                      \
-        }                                                                                                                \
-                                                                                                                         \
-        if (sizeof(typ) > L7_EVENT_SIZE - events->pos.len)                                                               \
-        {                                                                                                                \
-            bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));                 \
-            events->pos.len = 0;                                                                                         \
-            events->pos.num = 0;                                                                                         \
-        }                                                                                                                \
-                                                                                                                         \
-        if (sizeof(typ) + events->pos.len <= L7_EVENT_SIZE)                                                              \
-        {                                                                                                                \
-            typ *elem = (typ *)((__u8 *)(events->payload) + events->pos.len);                                            \
-                                                                                                                         \
-            events->pos.num += 1;                                                                                        \
-            elem->event_comm.idx = events->pos.num;                                                                      \
-                                                                                                                         \
-            bpf_probe_read(&elem->event_comm.meta, sizeof(data->meta), &data->meta);                                     \
-            events->pos.len += sizeof(elem->event_comm);                                                                 \
-                                                                                                                         \
-            int capture_size = data->meta.capture_size;                                                                  \
-            if (capture_size < 0)                                                                                        \
-            {                                                                                                            \
-                capture_size = 0;                                                                                        \
-            }                                                                                                            \
-            if (capture_size > 0)                                                                                        \
-            {                                                                                                            \
-                capture_size = buf_copy_thr_bprobe(&elem->payload, sizeof(elem->payload), capture_size, &data->payload); \
-            }                                                                                                            \
-                                                                                                                         \
-            events->pos.len += capture_size;                                                                             \
-            elem->event_comm.len = capture_size;                                                                         \
-        }                                                                                                                \
-    } while (0);
-
 static __always_inline void try_upload_net_events(void *ctx, net_data_t *data)
 {
-    __u64 cpu = bpf_get_smp_processor_id();
-
-    s32 capture_size = 0;
-    capture_size = data->meta.capture_size;
-
-    if (capture_size <= BUF_DIV8)
-    {
-        write_net_event(ctx, cpu, data, net_event_div8_t);
-    }
-    else if (capture_size <= BUF_DIV4)
-    {
-        write_net_event(ctx, cpu, data, net_event_div4_t);
-    }
-    else if (capture_size <= BUF_DIV2)
-    {
-        write_net_event(ctx, cpu, data, net_event_div2_t);
-    }
-    else if (capture_size <= BUF_DIV1)
-    {
-        write_net_event(ctx, cpu, data, net_event_div1_t);
-    }
-    else
-    {
-#ifdef __DKE_DEBUG_RW_V__
-        bpf_printk("act_size %d\n", capture_size);
-#endif
-        // something wrong
-    }
-}
-
-static __always_inline void flush_net_events(void *ctx)
-{
-    __s32 index = 0;
-    network_events_t *events = bpf_map_lookup_elem(&mp_network_events, &index);
-    if (events == NULL || events->pos.num == 0)
+    network_events_t *events = get_net_events();
+    if (events == NULL)
     {
         return;
     }
 
     __u64 cpu = bpf_get_smp_processor_id();
 
-    bpf_perf_event_output(ctx, &mp_network_events, cpu, events, sizeof(network_events_t));
-    events->pos.len = 0;
-    events->pos.num = 0;
+    int capture_size = data->meta.capture_size;
+    if (capture_size < 0)
+    {
+        capture_size = 0;
+    }
+
+    if (sizeof(net_event_t) + events->rec.bytes > L7_EVENT_SIZE)
+    {
+        bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
+        events->rec.bytes = 0;
+        events->rec.num = 0;
+    }
+
+    if (sizeof(net_event_t) + events->rec.bytes <= L7_EVENT_SIZE)
+    {
+        net_event_t *net_event = (net_event_t *)((__u8 *)(events->payload) + events->rec.bytes);
+
+        // update events header
+        events->rec.bytes += sizeof(net_event_comm_t);
+        events->rec.num += 1;
+        // update event rec header
+        net_event->event_comm.rec.num = events->rec.num;
+
+        // copy meta data from data to event meta
+        bpf_probe_read(&net_event->event_comm.meta, sizeof(data->meta), &data->meta);
+
+        // copy payload from data to event payload
+        if (capture_size > 0)
+        {
+            bpf_probe_read(&net_event->payload, sizeof(data->payload), &data->payload);
+        }
+        else
+        {
+            capture_size = 0;
+        }
+
+        events->rec.bytes += capture_size;
+        net_event->event_comm.rec.bytes = capture_size;
+    }
 }
 
 static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map, enum MSG_RW rw)
@@ -557,7 +505,7 @@ static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map
         return false;
     }
 
-    if (proto_filter(pid_tgid, sk))
+    if (!net_filtered(pid_tgid, sk))
     {
         return false;
     }
@@ -625,7 +573,7 @@ static __always_inline bool put_rw_v_args(tp_syscall_rw_v_args_t *ctx, void *bpf
         return false;
     }
 
-    if (proto_filter(pid_tgid, sk))
+    if (!net_filtered(pid_tgid, sk))
     {
         return false;
     }

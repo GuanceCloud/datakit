@@ -120,6 +120,11 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_L7NET_ENABLED`
     - 示例：`httpflow`
 
+- `interval`
+    - 描述：设置采样时间间隔
+    - 环境变量：`ENV_INPUT_EBPF_INTERVAL`
+    - 示例：`1m30s`
+
 - `ipv6_disabled`
     - 描述：系统是否不支持 IPv6
     - 环境变量：`ENV_INPUT_EBPF_IPV6_DISABLED`
