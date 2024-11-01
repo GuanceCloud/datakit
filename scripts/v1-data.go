@@ -8,9 +8,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace"
 )
 
 var (
@@ -18,6 +21,12 @@ var (
 	flagCount = flag.Int("count", 3, "generated data count")
 	flagP8s   = flag.Bool("p8s", false, "generate promethues metric text")
 	flagFile  = flag.String("output", "v1.data", "data output to file")
+
+	flagDDTrace         = flag.Bool("ddtrace", false, "generate ddtrace msgpack payload file")
+	flagDDTraceTrace    = flag.Uint64("ddtrace-trace", 100, "generate N ddtrace trace")
+	flagDDTraceSpan     = flag.Uint64("ddtrace-span", 100, "generate N ddtrace dd-span within each trace")
+	flagDDTraceRandSpan = flag.Uint64("ddtrace-rand-span", 100, "generate 0~N dd-spans within each trace ")
+	flagDDTraceFile     = flag.String("ddtrace-msg-file", "ddtrace.msgp", "output file of DDTrace msgpack raw data")
 )
 
 func genLargeLog() {
@@ -120,6 +129,67 @@ go_gc_heap_allocs_by_size_bytes_count{tag1="%05d",tag2="%05d"} 4.35160484e+08
 	}
 }
 
+var (
+	meta = map[string]string{
+		"_dd.p.dm":            "-1",
+		"_dd.p.tid":           "671f024100000000",
+		"_dd.tracer_hostname": "kodo-servicemap-2.kodo-servicemap.forethought-kodo.svc.cluster.local",
+		"language":            "go",
+	}
+	metrics = map[string]float64{
+		"_dd.profiling.enabled":           0,
+		"_dd.trace_span_attribute_schema": 0,
+		"_dd.top_level":                   1,
+		"_sampling_priority_v1":           1,
+		"_dd.agent_psr":                   1,
+		"process_id":                      1,
+	}
+)
+
+func getTrace(nspan uint64) (trace ddtrace.DDTrace) {
+	tid := rand.Uint64()
+	pid := rand.Uint64()
+	start := time.Now().UnixMicro()
+	for i := uint64(0); i < nspan; i++ {
+		trace = append(trace, &ddtrace.DDSpan{
+			Service:  "v1-data",
+			Name:     fmt.Sprintf("span-%d", i),
+			Resource: "v1-data-resource",
+			TraceID:  tid,
+			SpanID:   rand.Uint64(),
+			ParentID: pid,
+			Start:    start + 1,
+			Duration: 1,
+			Meta:     meta,
+			Metrics:  metrics,
+			Type:     "not-set",
+		})
+	}
+	return
+}
+
+func genLargeDDTrace() {
+	ntrace, nspan, randSpan := *flagDDTraceTrace, *flagDDTraceSpan, *flagDDTraceRandSpan
+	rand.Seed(time.Now().UnixNano())
+	var traces ddtrace.DDTraces
+	for i := uint64(0); i < ntrace; i++ {
+		if randSpan > 0 {
+			traces = append(traces, getTrace(rand.Uint64()%randSpan))
+		} else {
+			traces = append(traces, getTrace(uint64(nspan)))
+		}
+	}
+
+	buf, err := traces.MarshalMsg(nil)
+	if err != nil {
+		panic(fmt.Sprintf("error: %s", err.Error()))
+	}
+
+	if err := os.WriteFile(*flagDDTraceFile, buf, 0600); err != nil {
+		panic(fmt.Sprintf("error: %s", err.Error()))
+	}
+}
+
 // nolint: typecheck
 func main() {
 	flag.Parse()
@@ -127,5 +197,11 @@ func main() {
 		genLargeP8sMetric()
 		return
 	}
+
+	if *flagDDTrace {
+		genLargeDDTrace()
+		return
+	}
+
 	genLargeLog()
 }

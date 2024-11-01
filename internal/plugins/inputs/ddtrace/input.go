@@ -66,40 +66,46 @@ const (
   ## delete trace message
   # del_message = true
 
+  ## max spans limit on each trace. default 100000 or set to -1 to remove this limit.
+  # trace_max_spans = 100000
+
+  ## max trace body(Content-Length) limit. default 32MiB or set to -1 to remove this limit.
+  # max_trace_body_mb = 32
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
   ## If you want to block some resources universally under all services, you can set the
   ## service name as "*". Note: double quotes "" cannot be omitted.
   # [inputs.ddtrace.close_resource]
-    # service1 = ["resource1", "resource2", ...]
-    # service2 = ["resource1", "resource2", ...]
-    # "*" = ["close_resource_under_all_services"]
-    # ...
+  #   service1 = ["resource1", "resource2", ...]
+  #   service2 = ["resource1", "resource2", ...]
+  #   "*" = ["close_resource_under_all_services"]
+  #   ...
 
   ## Sampler config uses to set global sampling strategy.
   ## sampling_rate used to set global sampling rate.
   # [inputs.ddtrace.sampler]
-    # sampling_rate = 1.0
+  #   sampling_rate = 1.0
 
   # [inputs.ddtrace.tags]
-    # key1 = "value1"
-    # key2 = "value2"
-    # ...
+  #   key1 = "value1"
+  #   key2 = "value2"
+  #   ...
 
   ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
   ## buffer is the size of jobs' buffering of worker channel.
   ## threads is the total number fo goroutines at running time.
   # [inputs.ddtrace.threads]
-    # buffer = 100
-    # threads = 8
+  #   buffer = 100
+  #   threads = 8
 
   ## Storage config a local storage space in hard dirver to cache trace data.
   ## path is the local file path used to cache data.
   ## capacity is total space size(MB) used to store data.
   # [inputs.ddtrace.storage]
-    # path = "./ddtrace_storage"
-    # capacity = 5120
+  #   path = "./ddtrace_storage"
+  #   capacity = 5120
 `
 )
 
@@ -108,12 +114,15 @@ var (
 	v1, v2, v3, v4, v5  = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
 	stats, apmTelemetry = "/v0.6/stats", "/telemetry/proxy/api/v2/apmtelemetry"
 	afterGatherRun      itrace.AfterGatherHandler
-	tags                map[string]string
+	inputTags           map[string]string
 	wkpool              *workerpool.WorkerPool
 	localCache          *storage.Storage
 	traceBase           = 10
 	spanBase            = 10
 	delMessage          bool
+	traceMaxSpans       = 100000
+	maxTraceBody        = int64(32 * (1 << 20))
+	noStreaming         = false
 )
 
 type Input struct {
@@ -135,6 +144,11 @@ type Input struct {
 	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
 
+	TraceMaxSpans  int   `toml:"trace_max_spans"`
+	MaxTraceBodyMB int64 `toml:"max_trace_body_mb"`
+
+	NoStreaming bool `toml:"no_streaming,omitempty"`
+
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 	Tagger  datakit.GlobalTagger
@@ -154,7 +168,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 	log.Infof("DdTrace start init and register HTTP. Input=%s", ipt.string())
-	tags = ipt.Tags
+	inputTags = ipt.Tags
 	if ipt.CompatibleOTEL {
 		spanBase = 16
 	}
@@ -166,6 +180,16 @@ func (ipt *Input) RegHTTPHandler() {
 	if len(ipt.CustomerTags) != 0 {
 		setCustomTags(ipt.CustomerTags)
 	}
+
+	if ipt.TraceMaxSpans != 0 {
+		traceMaxSpans = ipt.TraceMaxSpans
+	}
+
+	if ipt.MaxTraceBodyMB != 0 {
+		maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
+	}
+
+	noStreaming = ipt.NoStreaming
 	delMessage = ipt.DelMessage
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 
@@ -344,9 +368,10 @@ func (ipt *Input) string() string {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:  dkio.DefaultFeeder(),
-		semStop: cliutils.NewSem(),
-		Tagger:  datakit.DefaultGlobalTagger(),
+		feeder:        dkio.DefaultFeeder(),
+		semStop:       cliutils.NewSem(),
+		Tagger:        datakit.DefaultGlobalTagger(),
+		TraceMaxSpans: traceMaxSpans,
 	}
 }
 

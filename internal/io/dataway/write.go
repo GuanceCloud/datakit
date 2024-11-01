@@ -9,8 +9,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-var MaxKodoBody = 10 * 1000 * 1000
-
 type WriteOption func(w *writer)
 
 func WithCategory(cat point.Category) WriteOption {
@@ -49,7 +47,7 @@ func WithCacheClean(on bool) WriteOption {
 	}
 }
 
-func WithGzip(on int) WriteOption {
+func WithGzip(on gzipFlag) WriteOption {
 	return func(w *writer) {
 		w.gzip = on
 	}
@@ -93,12 +91,29 @@ type writer struct {
 
 	httpEncoding point.Encoding
 
-	gzip                 int
+	gzip                 gzipFlag
 	cacheClean, cacheAll bool
 
 	httpHeaders map[string]string
 
 	bcb bodyCallback
+}
+
+func (w *writer) reset() {
+	w.category = point.UnknownCategory
+	w.dynamicURL = ""
+	w.points = w.points[:0]
+	w.gzip = gzipNotSet
+	w.cacheClean = false
+	w.cacheAll = false
+	w.batchBytesSize = defaultBatchSize
+	w.batchSize = 0
+	w.bcb = nil
+
+	for k := range w.httpHeaders {
+		delete(w.httpHeaders, k)
+	}
+	w.httpEncoding = encNotSet
 }
 
 func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*point.Point) {
@@ -127,9 +142,9 @@ func (dw *Dataway) groupPoints(ptg *ptGrouper,
 }
 
 func (dw *Dataway) Write(opts ...WriteOption) error {
-	gzOn := 0
+	gzOn := gzipNotSet
 	if dw.GZip {
-		gzOn = 1
+		gzOn = gzipSet
 	}
 
 	w := getWriter(

@@ -45,7 +45,7 @@ func TestEqualGZip(t *T.T) {
 	pgzBytes := buf.Bytes()
 	t.Logf("raw data: %d bytes, pgzip: %d", len(arr[0]), len(pgzBytes))
 
-	assert.Equal(t, int8(1), isGzip(pgzBytes))
+	assert.Equal(t, gzipSet, isGzip(pgzBytes))
 
 	// unzip pgzBytes with go's gzip
 	gzr := bytes.NewBuffer(pgzBytes)
@@ -69,7 +69,7 @@ func TestEqualGZip(t *T.T) {
 	kgzBytes := buf.Bytes()
 	t.Logf("raw data: %d bytes, kgzip: %d", len(arr[0]), len(kgzBytes))
 
-	assert.Equal(t, int8(1), isGzip(kgzBytes))
+	assert.Equal(t, gzipSet, isGzip(kgzBytes))
 
 	// unzip pgzBytes with go's gzip
 	gzr = bytes.NewBuffer(kgzBytes)

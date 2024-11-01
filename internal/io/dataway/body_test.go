@@ -304,7 +304,7 @@ func BenchmarkBuildBody(b *T.B) {
 		name  string
 		pts   []*point.Point
 		batch int
-		gz    int
+		gz    gzipFlag
 		enc   point.Encoding
 	}{
 		{

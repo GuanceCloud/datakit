@@ -130,9 +130,9 @@ func (f *flusher) start() {
 }
 
 func (f *flusher) do(b *body, opts ...WriteOption) error {
-	gzOn := 0
+	gzOn := gzipNotSet
 	if f.dw.GZip {
-		gzOn = 1
+		gzOn = gzipSet
 	}
 
 	w := getWriter(

@@ -35,6 +35,26 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: `{"buffer":1000, "threads":100}`, Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
 		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: `{"storage":"./ddtrace_storage", "capacity": 5120}`, Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
 		{FieldName: "Tags", Type: doc.JSON, Example: `{"k1":"v1", "k2":"v2", "k3":"v3"}`},
+
+		{
+			FieldName: "TraceMaxSpans",
+			ENVName:   "ENV_INPUT_DDTRACE_MAX_SPANS",
+			Type:      doc.Int,
+			Example:   `1000`,
+			Default:   "100000",
+			Desc:      "Max spans of single trace. Set to -1 to remove this limit",
+			DescZh:    "单个 trace 最大 span 个数，如果超过该限制，多余的 span 将截断，置为 -1 可关闭该限制",
+		},
+
+		{
+			FieldName: "MaxTraceBodyMB",
+			ENVName:   "ENV_INPUT_DDTRACE_MAX_BODY_MB",
+			Type:      doc.JSON,
+			Example:   `32`,
+			Default:   "10",
+			Desc:      "Max body(in MiB) of single trace POST. Set to -1 to remove this limit",
+			DescZh:    "单个 trace API 请求最大 body 字节数（单位 MiB），置为 -1 可关闭该限制",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DDTRACE_", infos)
@@ -52,6 +72,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_DDTRACE_TAGS : JSON string
 // ENV_INPUT_DDTRACE_THREADS : JSON string
 // ENV_INPUT_DDTRACE_STORAGE : JSON string
+// ENV_INPUT_DDTRACE_MAX_SPANS: int
 // below is a complete example for env in shell
 // export ENV_INPUT_DDTRACE_ENDPOINTS=`["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]`
 // export ENV_INPUT_DDTRACE_IGNORE_TAGS=`["block1", "block2"]`
@@ -66,16 +87,40 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_DDTRACE_ENDPOINTS", "ENV_INPUT_DDTRACE_COMPATIBLE_OTEL", "ENV_INPUT_DDTRACE_CUSTOMER_TAGS", "ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
-		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS", "ENV_INPUT_DDTRACE_CLOSE_RESOURCE", "ENV_INPUT_DDTRACE_SAMPLER",
-		"ENV_INPUT_DDTRACE_TAGS", "ENV_INPUT_DDTRACE_THREADS", "ENV_INPUT_DDTRACE_STORAGE", "ENV_INPUT_DDTRACE_DEL_MESSAGE",
+		"ENV_INPUT_DDTRACE_ENDPOINTS",
+		"ENV_INPUT_DDTRACE_COMPATIBLE_OTEL",
+		"ENV_INPUT_DDTRACE_CUSTOMER_TAGS",
+		"ENV_INPUT_DDTRACE_KEEP_RARE_RESOURCE",
+		"ENV_INPUT_DDTRACE_OMIT_ERR_STATUS",
+		"ENV_INPUT_DDTRACE_CLOSE_RESOURCE",
+		"ENV_INPUT_DDTRACE_SAMPLER",
+		"ENV_INPUT_DDTRACE_TAGS",
+		"ENV_INPUT_DDTRACE_THREADS",
+		"ENV_INPUT_DDTRACE_STORAGE",
+		"ENV_INPUT_DDTRACE_DEL_MESSAGE",
 		"ENV_INPUT_DDTRACE_TRACE_ID_64_BIT_HEX",
+		"ENV_INPUT_DDTRACE_MAX_SPANS",
+		"ENV_INPUT_DDTRACE_MAX_BODY_MB",
 	} {
 		value, ok := envs[key]
 		if !ok {
 			continue
 		}
 		switch key {
+		case "ENV_INPUT_DDTRACE_MAX_SPANS":
+			if n, err := strconv.ParseInt(value, 10, 64); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TraceMaxSpans = int(n)
+			}
+
+		case "ENV_INPUT_DDTRACE_MAX_BODY_MB":
+			if n, err := strconv.ParseInt(value, 10, 64); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.MaxTraceBodyMB = n
+			}
+
 		case "ENV_INPUT_DDTRACE_ENDPOINTS":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {

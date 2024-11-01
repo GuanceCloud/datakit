@@ -30,7 +30,7 @@ func TestIsGZip(t *T.T) {
 		gz, err := datakit.GZip(data)
 		assert.NoError(t, err)
 
-		assert.Equal(t, int8(1), isGzip(gz))
+		assert.Equal(t, gzipFlag(1), isGzip(gz))
 	})
 }
 
@@ -112,7 +112,7 @@ func TestFailCache(t *T.T) {
 			}
 
 			// check cached data
-			assert.Equal(t, int8(1), isGzip(b.buf()))
+			assert.Equal(t, gzipFlag(1), isGzip(b.buf()))
 			assert.Equal(t, cat, b.cat())
 			assert.Equal(t, point.Protobuf, b.enc())
 

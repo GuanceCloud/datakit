@@ -12,9 +12,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
@@ -28,10 +28,11 @@ var (
 	flagGinLog   = flag.Bool("gin-log", false, "enable or disable gin log")
 	flagMaxBody  = flag.Int("max-body", 0, "set max body size(kb)")
 	flagDecode   = flag.Bool("decode", false, "try decode request")
+	flagHeader   = flag.Bool("header", false, "show HTTP request headers")
 	flag5XXRatio = flag.Int("5xx-ratio", 0, "fail request ratio(minimal is 1/1000)")
 	flagLatency  = flag.Duration("latency", time.Millisecond*10, "latency used on API cost")
 
-	MPts, LPts, TPts, totalReq, req5xx atomic.Int64
+	MPts, LPts, TPts, totalReq, req5xx, decErr, decErrPts atomic.Int64
 )
 
 func benchHTTPServer() {
@@ -53,10 +54,19 @@ func benchHTTPServer() {
 		c.Data(http.StatusOK, "application/json", []byte(`{}`))
 	})
 
+	go func() {
+		showTicker := time.NewTicker(time.Second * 3)
+		defer showTicker.Stop()
+		for {
+			select {
+			case <-showTicker.C:
+				showInfo()
+			}
+		}
+	}()
+
 	router.POST("/v1/write/:category",
 		func(c *gin.Context) {
-			log.Printf("************************************************")
-
 			if *flagLatency > 0 {
 				time.Sleep(*flagLatency)
 			}
@@ -79,31 +89,34 @@ func benchHTTPServer() {
 			}
 
 			var (
-				start     = time.Now()
-				encoding  point.Encoding
-				dec       *point.Decoder
-				headerArr []string
+				//start     = time.Now()
+				encoding point.Encoding
+				dec      *point.Decoder
 			)
 
 			if body, err := io.ReadAll(c.Request.Body); err != nil {
 				c.Status(http.StatusInternalServerError)
 				return
 			} else {
-				elapsed := time.Since(start)
-				if len(body) > 0 {
-					log.Printf("copy elapsed %s, bandwidth %fKB/S", elapsed, float64(len(body))/(float64(elapsed)/float64(time.Second))/1024.0)
+				//elapsed := time.Since(start)
+				//if len(body) > 0 {
+				//	log.Printf("copy elapsed %s, bandwidth %fKB/S", elapsed, float64(len(body))/(float64(elapsed)/float64(time.Second))/1024.0)
+				//}
+
+				var headerPts int64
+				if x := c.Request.Header.Get("X-Points"); x != "" {
+					if n, err := strconv.ParseInt(x, 10, 64); err == nil {
+						headerPts = n
+					}
 				}
 
 				if !*flagDecode {
 					goto end
 				}
 
-				for k, _ := range c.Request.Header {
-					headerArr = append(headerArr, fmt.Sprintf("%s: %s", k, c.Request.Header.Get(k)))
+				if *flagHeader {
+					showHeaders(c)
 				}
-
-				log.Printf("URL: %s", c.Request.URL)
-				log.Printf("headers:\n%s", strings.Join(headerArr, "\n"))
 
 				if c.Request.Header.Get("Content-Encoding") == "gzip" {
 					unzipbody, err := uhttp.Unzip(body)
@@ -114,7 +127,7 @@ func benchHTTPServer() {
 						return
 					}
 
-					log.Printf("[INFO] unzip body: %d => %d(%.4f)", len(body), len(unzipbody), float64(len(body))/float64(len(unzipbody)))
+					//log.Printf("[INFO] unzip body: %d => %d(%.4f)", len(body), len(unzipbody), float64(len(body))/float64(len(unzipbody)))
 
 					body = unzipbody
 				}
@@ -137,6 +150,10 @@ func benchHTTPServer() {
 				if dec != nil {
 					if pts, err := dec.Decode(body); err != nil {
 						log.Printf("[ERROR] decode on %s error: %s", encoding, err)
+						decErr.Add(1)
+						decErrPts.Add(headerPts)
+						showHeaders(c)
+						log.Printf("body: %s", string(body[32]))
 					} else {
 						nwarns := 0
 						for _, pt := range pts {
@@ -144,7 +161,7 @@ func benchHTTPServer() {
 								nwarns++
 							}
 
-							log.Println(pt.LineProto())
+							//log.Println(pt.LineProto())
 						}
 
 						cat := point.CatURL(c.Request.URL.Path)
@@ -158,10 +175,10 @@ func benchHTTPServer() {
 							TPts.Add(int64(len(pts)))
 						}
 
-						log.Printf("[INFO] decode %d points, %d with warnnings", len(pts), nwarns)
+						if nwarns > 0 {
+							log.Printf("[WARN] decode %d points, %d with warnnings", len(pts), nwarns)
+						}
 					}
-
-					showInfo()
 				}
 
 			end:
@@ -183,13 +200,15 @@ func showInfo() {
 	//log.Printf("total M/%s, L/%s, req/%d, 5xx/%d",
 	//humanize.SI(float64(MPts.Load()), ""),
 	//humanize.SI(float64(LPts.Load()), ""),
-	log.Printf("total M/%d, L/%d, T/%d req/%d, 5xx/%d, 5xx ratio: %d/1000",
+	log.Printf("total M/%d, L/%d, T/%d req/%d, 5xx/%d, 5xx ratio: %d/1000, decErr: %d, decErrPts: %d",
 		MPts.Load(),
 		LPts.Load(),
 		TPts.Load(),
 		totalReq.Load(),
 		req5xx.Load(),
 		*flag5XXRatio,
+		decErr.Load(),
+		decErrPts.Load(),
 	)
 }
 
@@ -199,28 +218,39 @@ func showENVs() {
 	}
 }
 
+func showHeaders(c *gin.Context) {
+	var headerArr []string
+	for k, _ := range c.Request.Header {
+		headerArr = append(headerArr, fmt.Sprintf("%s: %s", k, c.Request.Header.Get(k)))
+	}
+
+	log.Println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+	log.Printf("URL: %s", c.Request.URL)
+	log.Printf("headers:\n%s", strings.Join(headerArr, "\n"))
+}
+
 // nolint: typecheck
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	showENVs()
 
-	var rLimit syscall.Rlimit
-	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	if err != nil {
-		panic(fmt.Sprintf("Error Getting Rlimit: %s", err))
-	}
+	//var rLimit syscall.Rlimit
+	//err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Error Getting Rlimit: %s", err))
+	//}
 
-	fmt.Println(rLimit)
-	rLimit.Max = 10240
-	rLimit.Cur = 10240
-	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	if err != nil {
-		panic(fmt.Sprintf("Error Setting Rlimit: %s", err))
-	}
-	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	if err != nil {
-		panic(fmt.Sprintf("Error Getting Rlimit: %s", err))
-	}
+	//fmt.Println(rLimit)
+	//rLimit.Max = 10240
+	//rLimit.Cur = 10240
+	//err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Error Setting Rlimit: %s", err))
+	//}
+	//err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Error Getting Rlimit: %s", err))
+	//}
 
 	flag.Parse()
 	benchHTTPServer()

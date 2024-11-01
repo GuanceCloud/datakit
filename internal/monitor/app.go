@@ -28,7 +28,7 @@ var (
 	walStatsCols     = strings.Split("Cat|Points(mem/disk/drop/total)", "|")
 	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")
 	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
-	httpAPIStatCols  = strings.Split(`API|Status|Total|Latency|BodySize`, "|")
+	httpAPIStatCols  = strings.Split(`API|Status|Total|Latency|BodySize(P90/Total)`, "|")
 	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost", "|")
 	dwptsStatCols    = strings.Split(`Cat|Points(ok/total)|Bytes(ok/total/gz)`, "|")
 	dwCols           = strings.Split(`API|Status|Count|Latency|Retry`, "|")
@@ -209,6 +209,10 @@ func number(i interface{}) string {
 }
 
 func metricWithLabel(mf *dto.MetricFamily, vals ...string) *dto.Metric {
+	if mf == nil {
+		return nil
+	}
+
 	labelMatch := func(lps []*dto.LabelPair) bool {
 		if len(lps) < len(vals) {
 			return false
