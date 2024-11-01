@@ -332,10 +332,10 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
      fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
 ```
 
-磁盘文件位于 Datakit 安装目录的 *data/dw-wal* 目录下：
+磁盘文件位于 Datakit 安装目录的 *cache/dw-wal* 目录下：
 
 ```shell
-/usr/local/datakit/data/dw-wal/
+/usr/local/datakit/cache/dw-wal/
 ├── custom_object
 │   └── data
 ├── dialtesting

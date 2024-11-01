@@ -316,7 +316,7 @@ func (dw *Dataway) doInit() error {
 	}
 
 	if dw.WAL.Path == "" {
-		dw.WAL.Path = filepath.Join(datakit.DataDir, "dw-wal")
+		dw.WAL.Path = filepath.Join(datakit.CacheDir, "dw-wal")
 	}
 
 	return nil

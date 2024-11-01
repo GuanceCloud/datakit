@@ -219,8 +219,8 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_PATH",
 			Type:    doc.String,
-			Desc:    "Set WAL disk path, default path is *data/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *data/dw-wal* [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL disk path, default path is *cache/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *cache/dw-wal* [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
 		},
 
 		{
