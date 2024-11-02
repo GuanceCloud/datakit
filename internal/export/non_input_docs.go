@@ -633,6 +633,8 @@ func envOthers() []*inputs.ENVInfo {
 		{ENVName: "ENV_PIPELINE_DISABLE_APPEND_RUN_INFO", Type: doc.Boolean, Default: "`false`", Desc: "Disable appending the Pipeline run info", DescZh: "禁用追加 Pipeline 运行信息"},
 		{ENVName: "ENV_CRYPTO_AES_KEY", Type: doc.String, Example: "`0123456789abcdef`", Desc: "The crypto key(len 16)", DescZh: "AES 加解密的 key 长度是 16"},
 		{ENVName: "ENV_CRYPTO_AES_KEY_FILE", Type: doc.String, Example: "`/usr/local/datakit/enc4mysql`", Desc: "File path for storing AES encryption and decryption key", DescZh: "AES 加解密的 key 存放的文件路径"},
+
+		{ENVName: "ENV_LOGGING_MAX_OPEN_FILES", Type: doc.Int, Example: "`1000`", Desc: "Specify the maximum number of open files for logging collection, if the value is -1 then there is no limit, default 500", DescZh: "指定日志采集的最大文件个数，如果值是 -1 则没有限制，默认值 500"},
 	}
 
 	for idx := range infos {

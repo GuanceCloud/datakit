@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -34,6 +35,11 @@ import (
 const (
 	defaultSleepDuration = time.Second
 	checkInterval        = time.Second * 3
+)
+
+var (
+	MaxOpenFiles     int64 = 500
+	currentOpenFiles atomic.Int64
 )
 
 type Single struct {
@@ -59,8 +65,11 @@ type Single struct {
 }
 
 func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
-	_ = logtail.InitDefault()
+	if MaxOpenFiles != -1 && currentOpenFiles.Load() > MaxOpenFiles {
+		return nil, fmt.Errorf("too many open files, limit %d", MaxOpenFiles)
+	}
 
+	_ = logtail.InitDefault()
 	c := defaultOption()
 	for _, opt := range opts {
 		opt(c)
@@ -79,6 +88,7 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	}
 
 	openfileVec.WithLabelValues(t.opt.mode.String()).Inc()
+	currentOpenFiles.Add(1)
 	return t, nil
 }
 
@@ -164,6 +174,7 @@ func (t *Single) Close() {
 	t.closeFile()
 
 	openfileVec.WithLabelValues(t.opt.mode.String()).Dec()
+	currentOpenFiles.Add(-1)
 	t.log.Infof("closing: file %s", t.filepath)
 }
 

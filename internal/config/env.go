@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 func (c *Config) loadConfdEnvs() {
@@ -646,6 +647,18 @@ func (c *Config) loadHTTPAPIEnvs() {
 	}
 }
 
+func (c *Config) setOthers() {
+	if v := datakit.GetEnv("ENV_LOGGING_MAX_OPEN_FILES"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid env key ENV_LOGGING_MAX_OPEN_FILES, value %s, err: %s ignored", v, err)
+		} else {
+			l.Infof("set ENV_LOGGING_MAX_OPEN_FILES to %d", n)
+			tailer.MaxOpenFiles = n
+		}
+	}
+}
+
 func (c *Config) setNodenameAsHostname() {
 	for _, x := range []string{
 		"ENV_K8S_NODE_NAME",
@@ -708,6 +721,7 @@ func (c *Config) LoadEnvs() error {
 	c.loadPointPoolEnvs()
 
 	c.setNodenameAsHostname()
+	c.setOthers()
 
 	// Don't Add to ElectionTags.
 	if v := datakit.GetEnv("ENV_CLUSTER_NAME_K8S"); v != "" {
