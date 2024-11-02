@@ -430,6 +430,26 @@ The lookup priority is defined as follows:
 
 2. If not found in *git_repos* , go to the *<Datakit Installation Directory\>/pipeline* directory for the Pipeline script, or go to the *<Datakit Installation Directory\>/python.d* directory for the Python script.
 
+### Locally set Pipeline default script {#pipeline-settings}
+
+[:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)
+
+Supports setting the default Pipeline script locally. If it conflicts with the default script set remotely, the local setting is preferred.
+
+It can be configured in two ways:
+
+- Host deployment, you can specify the default scripts for each category in the DataKit main configuration file, as follows:
+
+    ```toml
+    # default pipeline
+    [pipeline.default_pipeline]
+    # logging = "<your_script.p>"
+    # metric = "<your_script.p>"
+    # tracing = "<your_script.p>"
+    ```
+
+- Container deployment, you can use the environment variable, `ENV_PIPELINE_DEFAULT_PIPELINE`, its value is, for example, `{"logging":"abc.p","metric":"xyz.p"}`
+
 ### Set the Maximum Value of Open File Descriptor {#enable-max-fd}
 
 In a Linux environment, you can configure the ulimit entry in the Datakit main configuration file to set the maximum number of open files for Datakit, as follows:

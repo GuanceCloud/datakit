@@ -74,6 +74,14 @@ func envCommon() []*inputs.ENVInfo {
 			DescZh:  "全局 tag，多个 tag 之间以英文逗号分割",
 		},
 		{
+			ENVName: "ENV_PIPELINE_DEFAULT_PIPELINE",
+			Type:    doc.Map,
+			Example: "`{\"logging\":\"abc.p\",\"metric\":\"xyz.p\"}`",
+			Desc: "Set the default Pipeline script for the specified data category. " +
+				"This setting takes precedence when it conflicts with the remote setting.",
+			DescZh: "为指定数据类别设置默认 Pipeline 脚本；与远程设置冲突时，此设置优先",
+		},
+		{
 			ENVName: "~~ENV_GLOBAL_TAGS~~",
 			Type:    doc.List,
 			Desc:    "Same as ENV_GLOBAL_HOST-TAGS(Deprecated)",

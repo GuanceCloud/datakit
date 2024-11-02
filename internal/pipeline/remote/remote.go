@@ -266,7 +266,8 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 			l.Debug("dumpFiles succeeded")
 
 			loadContentPipeline(mFiles)
-			managerWkr.UpdateDefaultScript(defaultPl)
+			combineLocal := plval.PreferLocalDefaultPipeline(defaultPl)
+			managerWkr.UpdateDefaultScript(combineLocal)
 
 			err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 			if err != nil {
