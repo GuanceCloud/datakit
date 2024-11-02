@@ -101,7 +101,6 @@ A brief description of how this collector operates helps in better understanding
   port       = "__kubernetes_pod_container_nginx_port_metrics_number"
   path       = "/metrics"
   params     = ""
-  interval   = "30s"
 
   [inputs.kubernetesprometheus.instances.custom]
     measurement        = "pod-nginx"
@@ -121,11 +120,12 @@ A brief description of how this collector operates helps in better understanding
       cert_key = "/opt/nginx/peer.key"
 ```
 
-Additionally, there is a type of global configuration, which is the highest-level configuration, mainly responsible for enabling or disabling certain features, such as `node_local` here:
+Additionally, there is a type of global configuration, which is the highest-level configuration, mainly responsible for enabling or disabling certain features, such as `scrape_interval` here:
 
 ```yaml
 [inputs.kubernetesprometheus]
-  node_local = true  # Whether to enable NodeLocal mode, distributing the collection across nodes
+  node_local      = true   # Whether to enable NodeLocal mode, distributing the collection across nodes
+  scrape_interval = "30s"  # Set scrape interval, default 30 seconds
 
   [[inputs.kubernetesprometheus.instances]]
   # ..other
@@ -170,7 +170,6 @@ Using the configuration example provided:
 | `port`             | Yes      | None          | Port of the target address, requires manual configuration.                                                                     | Yes                   |
 | `path`             | No       | "/metrics"    | HTTP access path, default is `/metrics`.                                                                                       | Yes                   |
 | `params`           | No       | None          | HTTP access parameters as a string, e.g., `name=nginx&package=middleware`.                                                     | No                    |
-| `interval`         | No       | 30s           | Collection interval, supports formats like `"30s", "2m", "2d"`.                                                                | No                    |
 
 > `selector` is commonly used in `kubectl` commands. For example, to find Pods with labels `tier=control-plane` and `component=kube-controller-manager`, use:
     `$ kubectl get pod --selector tier=control-plane,component=kube-controller-manager`
@@ -378,7 +377,6 @@ data:
           port       = "__kubernetes_service_port_metrics_targetport"
           path       = "/metrics"
           params     = ""
-          interval   = "15s"
 
           [inputs.kubernetesprometheus.instances.custom]
             measurement        = "prom-svc"

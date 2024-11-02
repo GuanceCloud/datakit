@@ -6,6 +6,8 @@
 package kubernetesprometheus
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -18,12 +20,15 @@ var (
 	managerGo = datakit.G("kubernetesprometheus_manager")
 	// Maximum: 4 * maxConcurrent.
 	workerGo = datakit.G("kubernetesprometheus_worker")
+
+	globalScrapeInterval = time.Second * 30
 )
 
 const (
 	example = `
 [inputs.kubernetesprometheus]
   node_local = true
+  scrape_interval = "30s"
 
   [[inputs.kubernetesprometheus.instances]]
     role       = "node"
@@ -34,7 +39,6 @@ const (
     scheme   = "https"
     port     = "__kubernetes_node_kubelet_endpoint_port"
     path     = "/metrics"
-    interval = "30s"
 
    [inputs.kubernetesprometheus.instances.custom]
      measurement        = "kubernetes_node_metrics"
@@ -51,6 +55,5 @@ const (
 	ca_certs = []
 	cert     = ""
 	cert_key = ""
-
 `
 )

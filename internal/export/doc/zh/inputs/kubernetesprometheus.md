@@ -102,7 +102,6 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
   port       = "__kubernetes_pod_container_nginx_port_metrics_number"
   path       = "/metrics"
   params     = ""
-  interval   = "30s"
 
   [inputs.kubernetesprometheus.instances.custom]
     measurement        = "pod-nginx"
@@ -122,11 +121,12 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
       cert_key = "/opt/nginx/peer.key"
 ```
 
-此外还有一类全局配置，它是最顶层的配置，主要负责一些功能开启或关闭，例如此处的 `node_local`：
+此外还有一类全局配置，它是最顶层的配置，主要负责一些功能开启或关闭，例如此处的 `scrape_interval`：
 
 ```yaml
 [inputs.kubernetesprometheus]
-  node_local = true  # 是否开启 NodeLocal 模式，将采集分散到各个节点
+  node_local      = true   # 是否开启 NodeLocal 模式，将采集分散到各个节点
+  scrape_interval = "30s"  # 指定采集间隔，默认是 30 秒
  
   [[inputs.kubernetesprometheus.instances]]
   # ..other
@@ -169,7 +169,6 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 | `port`      | Yes         | 无         | 目标地址的端口，需要手动配置                                                                                    | Yes            |
 | `path`      | No          | "/metrics" | http 访问路径，默认值是 `/metrics`                                                                              | Yes            |
 | `params`    | No          | 无         | http 访问参数，是一个字符串，例如 `name=nginx&package=middleware`                                               | No             |
-| `interval`  | No          | 30 秒      | 采集间隔，支持 `"30s", "2m", "2d"` 这类写法                                                                     | No             |
 
 > `selector` 在 kubectl 命令行经常使用，例如要查找 labels 包含 `tier=control-plane` 和 `component=kube-controller-manager` 的 Pod，可以使用以下命令：
     `$ kubectl get pod --selector tier=control-plane,component=kube-controller-manager`
@@ -377,7 +376,6 @@ data:
           port       = "__kubernetes_service_port_metrics_targetport"
           path       = "/metrics"
           params     = ""
-          interval   = "15s"
 
           [inputs.kubernetesprometheus.instances.custom]
             measurement        = "prom-svc"

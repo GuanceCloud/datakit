@@ -21,8 +21,9 @@ import (
 )
 
 type PromScraper struct {
-	opt    *option
-	client *http.Client
+	opt       *option
+	client    *http.Client
+	timestamp int64 // unit nanoseconds
 }
 
 func NewPromScraper(opts ...Option) (*PromScraper, error) {
@@ -37,8 +38,9 @@ func NewPromScraper(opts ...Option) (*PromScraper, error) {
 	}
 
 	return &PromScraper{
-		opt:    opt,
-		client: client,
+		opt:       opt,
+		client:    client,
+		timestamp: -1, // not set
 	}, nil
 }
 
@@ -64,6 +66,10 @@ func buildHTTPClient(opt *optionClientConn) (*http.Client, error) {
 	}
 
 	return httpcli.Cli(clientOpts), nil
+}
+
+func (p *PromScraper) SetTimestamp(timestamp int64) {
+	p.timestamp = timestamp
 }
 
 func (p *PromScraper) ScrapeURL(u string) error {
@@ -107,7 +113,7 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 			kvs = kvs.AddTag(tag.Key, tag.Value)
 		}
 
-		pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+		pts = append(pts, point.NewPointV2(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...))
 	}
 
 	return p.opt.callback(pts)

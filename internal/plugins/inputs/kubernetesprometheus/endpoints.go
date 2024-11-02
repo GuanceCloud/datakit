@@ -115,7 +115,7 @@ func (e *Endpoints) process(ctx context.Context) bool {
 	}
 
 	klog.Infof("found new endpoints %s", key)
-	e.terminateScrape(key)
+	// e.terminateScrape(key)
 	e.startScrape(ctx, key, ep)
 	return true
 }
@@ -142,9 +142,12 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 			klog.Warnf("endpoints %s has unexpected url, err %s", key, err)
 			continue
 		}
-		interval := ins.Interval
 
 		for _, cfg := range cfgs {
+			if e.scrape.existScrape(key, cfg.urlstr) {
+				continue
+			}
+
 			if nodeNameExists && cfg.nodeName != "" && cfg.nodeName != nodeName {
 				continue
 			}
@@ -160,19 +163,21 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 				opts = append(opts, tlsOpts...)
 			}
 
-			urlstr := cfg.urlstr
 			checkPausedFunc := func() bool {
 				return checkPaused(ctx, cfg.nodeName == "")
 			}
 
-			prom, err := newPromScraper(RoleEndpoints, key, urlstr, interval, checkPausedFunc, opts)
+			prom, err := newPromScraper(RoleEndpoints, key, cfg.urlstr, checkPausedFunc, opts)
 			if err != nil {
-				klog.Warnf("fail new prom %s for %s", urlstr, err)
+				klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 				continue
 			}
 
 			e.scrape.registerScrape(key, feature, prom)
 		}
+
+		urlstrList := getURLstrListByPromConfigs(cfgs)
+		e.scrape.tryCleanScrapes(key, urlstrList)
 	}
 }
 

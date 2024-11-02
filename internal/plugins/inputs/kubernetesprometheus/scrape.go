@@ -7,6 +7,8 @@ package kubernetesprometheus
 
 import (
 	"context"
+	"math"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -17,7 +19,7 @@ const scraperChanNum = 32
 type scraper interface {
 	targetURL() string
 	shouldScrape() bool
-	scrape() error
+	scrape(int64) error
 	isTerminated() bool
 	markAsTerminated()
 }
@@ -52,7 +54,7 @@ func (s *scrapeManager) registerScrape(key, feature string, sp scraper) {
 	case s.scraperChan <- sp:
 		s.scrapers[key] = append(s.scrapers[key], sp)
 	default:
-		klog.Warnf("manager channel is closed, register failed for key %s", key)
+		klog.Warnf("manager channel is stuffed, register failed for key %s", key)
 		return
 	}
 
@@ -68,6 +70,57 @@ func (s *scrapeManager) matchesKey(key, feature string) bool {
 	return exists && f == feature
 }
 
+func (s *scrapeManager) cleanDeadScrape() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key := range s.scrapers {
+		var newScrapers []scraper
+		var count int
+		for _, sp := range s.scrapers[key] {
+			if !sp.isTerminated() {
+				newScrapers = append(newScrapers, sp)
+				continue
+			}
+			count += 1
+		}
+		if count != 0 {
+			s.scrapers[key] = newScrapers
+			scrapeTargetNumber.WithLabelValues(string(s.role), key).Sub(float64(count))
+			klog.Infof("clean %d scraper for %s", count, key)
+		}
+	}
+}
+
+func (s *scrapeManager) existScrape(key string, urlstr string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, sp := range s.scrapers[key] {
+		if sp.targetURL() == urlstr {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *scrapeManager) tryCleanScrapes(key string, urlstrList []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, sp := range s.scrapers[key] {
+		found := false
+		for _, urlstr := range urlstrList {
+			if sp.targetURL() == urlstr {
+				found = true
+			}
+		}
+		if !found {
+			sp.markAsTerminated()
+		}
+	}
+}
+
 func (s *scrapeManager) terminateScrape(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -80,7 +133,7 @@ func (s *scrapeManager) terminateScrape(key string) {
 		}
 
 		length := len(s.scrapers[key])
-		klog.Infof("terminated scraper len(%d) for key %s", length, key)
+		klog.Infof("%s terminated scraper len(%d) for key %s", s.role, length, key)
 		scrapeTargetNumber.WithLabelValues(string(s.role), key).Sub(float64(length))
 
 		delete(s.scrapers, key)
@@ -89,14 +142,24 @@ func (s *scrapeManager) terminateScrape(key string) {
 
 func (s *scrapeManager) run(ctx context.Context, workerNum int) {
 	managerGo.Go(func(_ context.Context) error {
-		<-ctx.Done()
-		s.stop()
-		klog.Infof("role-%s manager exit", s.role)
-		return nil
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				s.stop()
+				klog.Infof("%s manager exit", s.role)
+				return nil
+			case <-ticker.C:
+				s.cleanDeadScrape()
+			}
+		}
 	})
 
 	for i := 0; i < workerNum; i++ {
 		name := "worker-" + strconv.Itoa(i)
+		randSleep := rand.Intn(100 /*100 ms*/) //nolint:gosec
+		time.Sleep(time.Duration(randSleep) * time.Millisecond)
 		workerGo.Go(func(_ context.Context) error {
 			s.doWork(ctx, name)
 			return nil
@@ -105,57 +168,62 @@ func (s *scrapeManager) run(ctx context.Context, workerNum int) {
 }
 
 func (s *scrapeManager) doWork(ctx context.Context, name string) {
-	var tasks []scraper
-	tick := time.NewTicker(time.Second * 3)
-	defer tick.Stop()
+	tasks := make(map[string]scraper)
+	timestamp := time.Now().UnixNano() / 1e6
+
+	ticker := time.NewTicker(globalScrapeInterval)
+	defer ticker.Stop()
 
 	for {
+		timestamp += globalScrapeInterval.Milliseconds()
 		select {
 		case <-ctx.Done():
 			return
 
 		case sp, ok := <-s.scraperChan:
 			if !ok {
+				klog.Warnf("%s(%s) scrape channel is closed, exit", s.role, name)
 				return
 			}
 			if len(tasks) >= 100 {
-				klog.Warnf("%s scrape is over limit", s.role)
+				klog.Warnf("%s(%s) scrape is over limit", s.role, name)
 			} else {
-				tasks = append(tasks, sp)
-			}
-
-		case <-tick.C:
-			// next
-		}
-
-		removeIndex := []int{}
-		for idx, task := range tasks {
-			if task.isTerminated() {
-				removeIndex = append(removeIndex, idx)
-				continue
-			}
-			if task.shouldScrape() {
-				if err := task.scrape(); err != nil {
-					klog.Warnf("failed to scrape url %s, err %s", task.targetURL(), err)
-					removeIndex = append(removeIndex, idx)
+				if _, ok := tasks[sp.targetURL()]; !ok {
+					tasks[sp.targetURL()] = sp
 				}
 			}
-		}
 
-		if len(removeIndex) != 0 {
-			var newtasks []scraper
-			for _, rmIdx := range removeIndex {
-				for idx := range tasks {
-					if idx == rmIdx {
-						continue
+		case tt := <-ticker.C:
+			t := tt.UnixNano() / 1e6
+			if d := math.Abs(float64(t - timestamp)); d > 0 && d/float64(globalScrapeInterval.Milliseconds()) > 0.1 {
+				timestamp = t
+			}
+
+			var removeTasks []string
+			for _, task := range tasks {
+				if task.isTerminated() {
+					removeTasks = append(removeTasks, task.targetURL())
+					klog.Debugf("%s(%s) urlstr %s terminated", s.role, name, task.targetURL())
+					continue
+				}
+				if task.shouldScrape() {
+					if err := task.scrape(timestamp * 1e6 /* To Nanoseconds */); err != nil {
+						klog.Warnf("failed to scrape url %s, err %s", task.targetURL(), err)
+						task.isTerminated()
+						removeTasks = append(removeTasks, task.targetURL())
 					}
-					newtasks = append(newtasks, tasks[idx])
 				}
 			}
-			tasks = newtasks
-		}
 
-		activeWorkerTasks.WithLabelValues(string(s.role), name).Set(float64(len(tasks)))
+			if len(removeTasks) != 0 {
+				klog.Debugf("%s(%s) remove len(%d) tasks", s.role, name, len(removeTasks))
+				for _, taskURL := range removeTasks {
+					delete(tasks, taskURL)
+				}
+			}
+
+			activeWorkerTasks.WithLabelValues(string(s.role), name).Set(float64(len(tasks)))
+		}
 	}
 }
 
