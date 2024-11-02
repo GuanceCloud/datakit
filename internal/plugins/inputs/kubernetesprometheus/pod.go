@@ -148,9 +148,6 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 			continue
 		}
 
-		interval := ins.Interval
-		urlstr := cfg.urlstr
-
 		opts := buildPromOptions(
 			RolePod, key, p.feeder,
 			promscrape.WithMeasurement(cfg.measurement),
@@ -162,9 +159,9 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		prom, err := newPromScraper(RolePod, key, urlstr, interval, checkPausedFunc, opts)
+		prom, err := newPromScraper(RolePod, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {
-			klog.Warnf("fail new prom %s for %s", urlstr, err)
+			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue
 		}
 

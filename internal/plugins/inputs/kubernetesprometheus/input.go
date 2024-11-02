@@ -21,7 +21,8 @@ import (
 )
 
 type Input struct {
-	NodeLocal bool `toml:"node_local"`
+	NodeLocal      bool          `toml:"node_local"`
+	ScrapeInterval time.Duration `toml:"scrape_interval"`
 	InstanceManager
 
 	chPause chan bool
@@ -41,6 +42,7 @@ func (*Input) Terminate()                              { /* TODO */ }
 
 func (ipt *Input) Run() {
 	klog = logger.SLogger("kubernetesprometheus")
+	ipt.setup()
 
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
@@ -77,6 +79,12 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 			// next
 		}
+	}
+}
+
+func (ipt *Input) setup() {
+	if ipt.ScrapeInterval > 0 {
+		globalScrapeInterval = ipt.ScrapeInterval
 	}
 }
 

@@ -24,16 +24,12 @@ type promScraper struct {
 
 	checkPaused func() bool
 	terminated  atomic.Bool
-
-	interval time.Duration
-	lastTime time.Time
 }
 
 func newPromScraper(
 	role Role,
 	key string,
 	urlstr string,
-	interval time.Duration,
 	checkPaused func() bool,
 	opts []promscrape.Option,
 ) (*promScraper, error) {
@@ -43,7 +39,6 @@ func newPromScraper(
 		key:         key,
 		urlstr:      urlstr,
 		checkPaused: checkPaused,
-		interval:    interval,
 	}
 
 	u, err := url.Parse(urlstr)
@@ -64,13 +59,6 @@ func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
 func (p *promScraper) markAsTerminated()  { p.terminated.Store(true) }
 
 func (p *promScraper) shouldScrape() bool {
-	if p.lastTime.IsZero() {
-		p.lastTime = time.Now()
-		return true
-	}
-	if time.Since(p.lastTime) < p.interval {
-		return false
-	}
 	if p.checkPaused != nil {
 		paused := p.checkPaused()
 		return !paused
@@ -78,10 +66,11 @@ func (p *promScraper) shouldScrape() bool {
 	return true
 }
 
-func (p *promScraper) scrape() error {
-	p.lastTime = time.Now()
+func (p *promScraper) scrape(defaultTimestamp int64) error {
+	start := time.Now()
+	p.pm.SetTimestamp(defaultTimestamp)
 	err := p.pm.ScrapeURL(p.urlstr)
-	scrapeTargetCost.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(p.lastTime)) / float64(time.Second))
+	scrapeTargetCost.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
 }
 

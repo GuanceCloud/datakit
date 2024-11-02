@@ -141,12 +141,11 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 		Namespaces: deepCopySlice(ins.Namespaces),
 		Selector:   buildSelector(s.item.Labels),
 		Target: Target{
-			Scheme:   ins.Target.Scheme,
-			Address:  ins.Target.Address,
-			Port:     ins.Target.Port,
-			Path:     ins.Target.Path,
-			Params:   ins.Target.Params,
-			Interval: ins.Target.Interval,
+			Scheme:  ins.Target.Scheme,
+			Address: ins.Target.Address,
+			Port:    ins.Target.Port,
+			Path:    ins.Target.Path,
+			Params:  ins.Target.Params,
 		},
 		Custom: Custom{
 			Measurement:      ins.Measurement,

@@ -9,7 +9,6 @@ import (
 	"context"
 	"regexp"
 	"sync/atomic"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -51,12 +50,11 @@ type (
 	}
 
 	Target struct {
-		Scheme   string        `toml:"scheme"`
-		Address  string        `toml:"_"` // private
-		Port     string        `toml:"port"`
-		Path     string        `toml:"path"`
-		Params   string        `toml:"params"` // Does not support matches.
-		Interval time.Duration `toml:"interval"`
+		Scheme  string `toml:"scheme"`
+		Address string `toml:"_"` // private
+		Port    string `toml:"port"`
+		Path    string `toml:"path"`
+		Params  string `toml:"params"` // Does not support matches.
 	}
 
 	Custom struct {
@@ -101,9 +99,6 @@ func (ins *Instance) setDefault() {
 	}
 	if ins.Path == "" {
 		ins.Path = "/metrics"
-	}
-	if ins.Interval <= 0 {
-		ins.Interval = time.Second * 30
 	}
 }
 
@@ -268,4 +263,12 @@ func matchInstanceOrHost(str, host string) (bool, string) {
 		return true, splitHost(host)
 	}
 	return false, str
+}
+
+func getURLstrListByPromConfigs(cfgs []*basePromConfig) []string {
+	var res []string
+	for _, cfg := range cfgs {
+		res = append(res, cfg.urlstr)
+	}
+	return res
 }

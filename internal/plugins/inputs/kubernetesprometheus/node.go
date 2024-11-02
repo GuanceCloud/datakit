@@ -148,9 +148,6 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 			continue
 		}
 
-		interval := ins.Interval
-		urlstr := cfg.urlstr
-
 		opts := buildPromOptions(
 			RoleNode, key, n.feeder,
 			promscrape.WithMeasurement(cfg.measurement),
@@ -162,9 +159,9 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		prom, err := newPromScraper(RoleNode, key, urlstr, interval, checkPausedFunc, opts)
+		prom, err := newPromScraper(RoleNode, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {
-			klog.Warnf("fail new prom %s for %s", urlstr, err)
+			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue
 		}
 

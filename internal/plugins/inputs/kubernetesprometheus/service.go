@@ -188,7 +188,6 @@ func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, na
 	s.scrape.terminateScrape(key)
 
 	nodeName, nodeNameExist := nodeNameFrom(ctx)
-	interval := endpointsInstance.Interval
 
 	pr := newEndpointsParser(ep)
 	cfgs, err := pr.parsePromConfig(endpointsInstance)
@@ -198,6 +197,10 @@ func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, na
 	}
 
 	for _, cfg := range cfgs {
+		if s.scrape.existScrape(key, cfg.urlstr) {
+			continue
+		}
+
 		if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
 			continue
 		}
@@ -213,12 +216,11 @@ func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, na
 			opts = append(opts, tlsOpts...)
 		}
 
-		urlstr := cfg.urlstr
 		checkPausedFunc := func() bool {
 			return checkPaused(ctx, cfg.nodeName == "")
 		}
 
-		prom, err := newPromScraper(RoleService, key, urlstr, interval, checkPausedFunc, opts)
+		prom, err := newPromScraper(RoleService, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue
@@ -226,6 +228,9 @@ func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, na
 
 		s.scrape.registerScrape(key, endpointsFeature, prom)
 	}
+
+	urlstrList := getURLstrListByPromConfigs(cfgs)
+	s.scrape.tryCleanScrapes(key, urlstrList)
 }
 
 func (s *Service) terminateScrape(key string) {
