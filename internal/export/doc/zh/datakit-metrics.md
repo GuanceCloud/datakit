@@ -22,6 +22,7 @@ datakit_cpu_usage 4.9920266849857144
 其它指标也能通过类似方式来观察，目前已有的指标如下（当前版本 {{ .Version }}）：
 
 <!-- 以下这些指标，通过执行 make show_metrics 方式能获取 -->
+
 |POSITION|TYPE|NAME|LABELS|HELP|
 |---|---|---|---|---|
 |*internal/config*|GAUGE|`datakit_config_datakit_ulimit`|`status`|Datakit ulimit|
@@ -51,6 +52,7 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_dns_cost_seconds`|`from`|HTTP DNS cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_tls_handshake_seconds`|`from`|HTTP TLS handshake cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_http_connect_cost_seconds`|`from`|HTTP connect cost|
+|*internal/io/dataway*|COUNTER|`datakit_io_dataway_skipped_point_total`|`category`|Skipped point count during encoding(Protobuf) point|
 |*internal/io/dataway*|GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
 |*internal/io/dataway*|SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
 |*internal/io/dataway*|SUMMARY|`datakit_io_build_body_cost_seconds`|`category,encoding,stage`|Build point HTTP body cost|
@@ -59,6 +61,7 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/io/dataway*|SUMMARY|`datakit_io_build_body_batch_points`|`category,encoding`|Batch HTTP body points|
 |*internal/io/dataway*|SUMMARY|`datakit_io_dataway_wal_flush`|`category,gzip,queue`|Dataway WAL worker flushed bytes|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
+|*internal/io/dataway*|COUNTER|`datakit_io_dataway_body_total`|`from,op,type`|Dataway total body|
 |*internal/io/dataway*|COUNTER|`datakit_io_wal_point_total`|`category,status`|WAL queued points|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_http_drop_point_total`|`category,error`|Dataway write drop points|
@@ -110,6 +113,9 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/plugins/inputs/container*|SUMMARY|`datakit_input_container_collect_cost_seconds`|`category`|Container collect cost|
 |*internal/plugins/inputs/container*|COUNTER|`datakit_input_container_collect_pts_total`|`category`|Container collect point total|
 |*internal/plugins/inputs/container*|SUMMARY|`datakit_input_container_total_collect_cost_seconds`|`category`|Total container collect cost|
+|*internal/plugins/inputs/ddtrace*|COUNTER|`datakit_input_ddtrace_truncated_spans_total`|`input`|Truncated trace spans|
+|*internal/plugins/inputs/ddtrace*|COUNTER|`datakit_input_ddtrace_dropped_trace_total`|`url`|Dropped illegal traces|
+|*internal/plugins/inputs/ddtrace*|SUMMARY|`datakit_input_ddtrace_trace_spans`|`input`|Trace spans(include truncated spans)|
 |*internal/plugins/inputs/dialtesting*|SUMMARY|`datakit_dialtesting_task_run_cost_seconds`|`region,protocol`|Task run time|
 |*internal/plugins/inputs/dialtesting*|SUMMARY|`datakit_dialtesting_task_exec_time_interval_seconds`|`region,protocol`|Task execution time interval|
 |*internal/plugins/inputs/dialtesting*|GAUGE|`datakit_dialtesting_worker_job_chan_number`|`type`|The number of the channel for the jobs|
@@ -171,13 +177,14 @@ datakit_cpu_usage 4.9920266849857144
 |*internal/prom*|GAUGE|`datakit_input_prom_stream_size`|`mode,source`|Stream size|
 |*internal/statsd*|SUMMARY|`datakit_input_statsd_collect_points`|`N/A`|Total number of statsd collection points|
 |*internal/statsd*|SUMMARY|`datakit_input_statsd_accept_bytes`|`N/A`|Accept bytes from network|
+|*internal/tailer*|GAUGE|`datakit_input_logging_pending_byte_size`|`source,filepath`|The size of bytes that are pending processing|
 |*internal/tailer*|COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Tailer rotate total|
-|*internal/tailer*|COUNTER|`datakit_tailer_buffer_force_flush_total`|`source,filepath`|Tailer force flush total|
 |*internal/tailer*|COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Tailer parse fail total|
 |*internal/tailer*|GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
-|*internal/tailer*|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|connect and close count for net.conn|
-|*internal/tailer*|COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|socket feed to IO message count|
-|*internal/tailer*|SUMMARY|`datakit_input_logging_socket_log_length`|`network`|record the length of each log line|
+|*internal/tailer*|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|Connect and close count for net.conn|
+|*internal/tailer*|COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|Socket feed to IO message count|
+|*internal/tailer*|SUMMARY|`datakit_input_logging_socket_log_length`|`network`|Record the length of each log line|
+|*internal/tailer*|GAUGE|`datakit_input_logging_pending_block_length`|`source,filepath`|The length of blocks that are pending processing|
 |*internal/trace*|COUNTER|`datakit_input_tracing_total`|`input,service`|The total links number of Trace processed by the trace module|
 |*internal/trace*|COUNTER|`datakit_input_sampler_total`|`input,service`|The sampler number of Trace processed by the trace module|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|SUMMARY|`diskcache_dropped_data`|`path,reason`|Dropped data during Put() when capacity reached.|

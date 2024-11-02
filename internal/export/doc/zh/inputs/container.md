@@ -1,5 +1,5 @@
 ---
-title: '容器基础采集'
+title: 'Kubernetes'
 summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。'
 __int_icon:    'icon/kubernetes/'  
 tags:

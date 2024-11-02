@@ -110,7 +110,7 @@ func init() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "dataway_skipped_point_total",
-			Help:      "Skipped point count during encoding(protobuf) point",
+			Help:      "Skipped point count during encoding(Protobuf) point",
 		},
 		[]string{"category"},
 	)

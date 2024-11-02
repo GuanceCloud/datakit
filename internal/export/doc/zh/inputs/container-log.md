@@ -1,5 +1,5 @@
 ---
-title: '容器日志'
+title: 'Kubernetes 日志'
 summary: '采集 Container 和 Kubernetes 日志数据'
 tags:
   - '日志'

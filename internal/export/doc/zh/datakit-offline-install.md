@@ -149,7 +149,13 @@
 - `installer-<OS-ARCH>` 或 `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
 
-将这些文件拷贝到对应机器上（通过 U 盘或 scp 等命令）。
+将这些文件拷贝到对应机器上（通过 U 盘或 `scp` 等命令）。
+
+<!-- markdownlint-disable MD046 -->
+???+ Attention
+
+    这些文件务必每个都完整下载，在各个版本之间，它们不一定能复用，比如 installer 程序在不同的 Datakit 版本之间，其行为也不同，因为 installer 可能会调整 Datakit 的默认配置，而不同 Datakit 的配置是有不同程度的增删的。最好 1.2.3 版本的 Datakit 就用 1.2.3 版本对应的 installer 程序来安装或升级。
+<!-- markdownlint-enable -->
 
 #### 安装 {#simple-install}
 

@@ -1,5 +1,5 @@
 ---
-title: 'Container Logs'
+title: 'Kubernetes Logs'
 summary: 'Collect container and Kubernetes log'
 tags:
   - 'LOG'

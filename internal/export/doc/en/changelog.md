@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.61.0 (2024/11/02) {#cl-1.61.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.61.0-new}
+
+- Added a maximum log collection limit, defaulting to 500 files, with the limit adjustable in Kubernetes via the `ENV_LOGGING_MAX_OPEN_FILES` environment variable (#2442).
+- Support for configuring default Pipeline scripts in *datakit.conf* (#2355).
+- The dial testing collector now supports HTTP Proxy when pulling tasks from the server (#2438).
+- During the Datakit upgrade process, similar to the installation process, its main configuration can also be modified by passing command-line environment variables (#2418).
+
+### Bug Fixes {#cl-1.61.0-fix}
+
+- Adjusted the default directory for the data sending disk queue (WAL). In version 1.60.0, when installed in Kubernetes, this directory was incorrectly set under the *data* directory, which by default does not mount the host's disk. When the Pod restarts, data would be lost (#2444).
+
+```yaml
+        - mountPath: /usr/local/datakit/cache # The directory should be set to the cache directory
+          name: cache
+          readOnly: false
+      ...
+      - hostPath:
+          path: /root/datakit_cache # WAL disk storage mounted under this host directory
+        name: cache
+```
+
+- Fixed data conversion issues during SQLServer collection (#2429).
+- Fixed several known issues in 1.60.0 (#2437):
+    - Fixed the upgrade program not enabling the point-pool feature by default.
+    - Fixed the issue of double gzip compression of failed retry data, which would cause the center to be unable to parse this data, leading to data being dropped. This issue only triggers when the data fails to send the first time.
+    - A edge case during data encoding might cause a memory leak.
+
+### Improvements {#cl-1.61.0-opt}
+
+- KubernetesPrometheus collected data will adjust the timestamps of each data point according to the collection interval (#2441).
+- Container log collection supports setting the from-beginning property in Annotation/Label (#2443).
+- Optimized data point upload strategy to support ignoring data points that are too large, preventing them from causing the entire data package to fail to send (#2440).
+- Datakit API `/v1/write/:category` improves zlib format encoding support (#2439).
+- Optimized DDTrace data point processing strategy to reduce memory usage (#2434).
+- During log collection, added a cache of about 10MiB(dynamically allocated on each tailing log) to buffer sudden log volumes and prevent data loss (#2432).
+- Optimized resource usage during eBPF collection (#2430).
+- Improved GZip efficiency during upload (#2428).
+- Other optimizations:
+    - Optimized *datakit.yaml*, changed image pull policy to `IfNotPresent` (!3264).
+    - Optimized documentation for metrics generated based on profiling binary files (!3224).
+    - Updated Kafka/Redis dashboard and monitors (!3248/!3263).
+    - Added Ligai version notifications (!3247).
+
+### Compatibility Adjustments {#cl-1.61.0-brk}
+
+- KubernetesPrometheus previously supported configuring collection intervals (`interval`) on different instances, which has been removed in this version. The global interval can be set in the KubernetesPrometheus collector to achieve this.
+
+---
+
 ## 1.60.0 (2024/10/18) {#cl-1.60.0}
 
 This release is an iterative update, with the following main changes:
@@ -17,7 +70,7 @@ This release is an iterative update, with the following main changes:
 - Fixed a timestamp unit issue in the New Relic collector (#2417).
 - Fixed a crash issue caused by the Pipeline function `point_window()` (#2416).
 
-### Performance Improvements {#cl-1.60.0-opt}
+### Improvements {#cl-1.60.0-opt}
 
 - Many performance optimizations have been made in this version (#2414):
 

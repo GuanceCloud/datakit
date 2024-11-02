@@ -148,7 +148,13 @@ After downloading, you should have a few files as below (`<OS-ARCH>` here refers
 - `installer-<OS-ARCH>` or `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
 
-Copy these files to the corresponding machine (via USB flash drive or scp and other commands).
+Copy these files to the corresponding machine (via USB flash drive or `scp` and other commands).
+
+<!-- markdownlint-disable MD046 -->
+???+ Attention
+
+    It is crucial to download each of these files completely. They may not be reusable between different versions. For example, the installer program behaves differently across various Datakit versions because it may adjust the default configurations of Datakit, which can have varying degrees of additions and deletions. It is best to use the installer program corresponding to version 1.2.3 of Datakit for the installation or upgrade of Datakit 1.2.3.
+<!-- markdownlint-enable -->
 
 #### Installation {#simple-install}
 
