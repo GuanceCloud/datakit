@@ -11,6 +11,11 @@ LOCAL_OSS_ADDR          ?= "not-set" # you should export these env in your make 
 LOCAL_UPLOAD_ADDR       ?= ${LOCAL_OSS_ADDR}
 LOCAL_DOWNLOAD_CDN      ?= ${LOCAL_OSS_ADDR} # CDN set as the same OSS bucket
 
+# ligai version notify settings
+LIGAI_CUSTOMFIELD       ?=not_set
+LIGAI_AUTO_DEVOPS_TOKEN ?=not_set
+LIGAI_API               ?=not_set
+
 # Local envs to publish local testing binaries.
 # export LOCAL_OSS_ACCESS_KEY = '<your-oss-AK>'
 # export LOCAL_OSS_SECRET_KEY = '<your-oss-SK>'
@@ -498,3 +503,16 @@ endef
 
 detect_mr_target_branch:
 	$(call check_mr_target_branch,$(MERGE_REQUEST_TARGET_BRANCH))
+
+push_ligai_version:
+	@printf "$(HL)push new datakit version $(VERSION) to ligai...\n$(NC)";
+	@curl -i -X POST \
+		-H 'Content-Type: application/json' \
+		-H "auto_devops_token: $(LIGAI_AUTO_DEVOPS_TOKEN)" \
+		-d '{"version":"$(VERSION)","field_code":"$(LIGAI_CUSTOMFIELD)"}' \
+		$(LIGAI_API)
+	@if [ $$? != 0 ]; then \
+		printf "$(RED) [WARN] push version to ligai failed"; \
+	else \
+		printf "[INFO] push version to ligai ok"; \
+	fi

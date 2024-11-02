@@ -176,6 +176,7 @@ release-stable:
     - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make uos_image_production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true
+    - make push_ligai_version VERSION="$CI_VERSION" LIGAI_CUSTOMFIELD=$LIGAI_CUSTOMFIELD LIGAI_AUTO_DEVOPS_TOKEN=$LIGAI_AUTO_DEVOPS_TOKEN LIGAI_API=$LIGAI_API
   tags:
     - cloudcare-ft
 
