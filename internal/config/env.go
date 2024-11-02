@@ -472,6 +472,16 @@ func (c *Config) loadElectionEnvs() {
 		c.Election.Tags["election_namespace"] = c.Election.Namespace
 	}
 
+	if v := datakit.GetEnv("ENV_PIPELINE_DEFAULT_PIPELINE"); v != "" {
+		var result map[string]string
+		if err := json.Unmarshal([]byte(v), &result); err != nil {
+			l.Errorf("unmarshal `ENV_PIPELINE_DEFAULT_PIPELINE` failed: %s",
+				err.Error())
+		} else {
+			c.Pipeline.DefaultPipeline = result
+		}
+	}
+
 	for _, x := range []string{
 		"ENV_GLOBAL_ELECTION_TAGS",
 		"ENV_GLOBAL_ENV_TAGS", // Deprecated

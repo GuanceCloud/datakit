@@ -351,6 +351,26 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
 
 参见[这里](git-config-how-to.md)
 
+### 本地设置 Pipeline 默认脚本 {#pipeline-settings}
+
+[:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)
+
+支持通过本地设置默认 Pipeline 脚本，如果与远程设置的默认脚本冲突，则倾向本地设置。
+
+可通过两种方式配置：
+
+- 主机方式部署，可在 DataKit 主配置文件中指定各类别的默认脚本，如下：
+
+    ```toml
+    # default pipeline
+    [pipeline.default_pipeline]
+        # logging = "<your_script.p>"
+        # metric  = "<your_script.p>"
+        # tracing = "<your_script.p>"
+    ```
+
+- 容器方式部署，可使用环境变量，`ENV_PIPELINE_DEFAULT_PIPELINE`，其值例如 `{"logging":"abc.p","metric":"xyz.p"}`
+
 ### 设置打开的文件描述符的最大值 {#enable-max-fd}
 
 Linux 环境下，可以在 Datakit 主配置文件中配置 `ulimit` 项，以设置 Datakit 的最大可打开文件数，如下：

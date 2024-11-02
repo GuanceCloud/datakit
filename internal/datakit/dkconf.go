@@ -99,6 +99,12 @@ ulimit = 64000
   # append run info
   disable_append_run_info = false
 
+  # default pipeline
+  [pipeline.default_pipeline]
+    # logging = "<your_script.p>"
+    # metric  = "<your_script.p>"
+    # tracing = "<your_script.p>"
+
   # Offload data processing tasks to post-level data processors.
   [pipeline.offload]
     receiver = "datakit-http"

@@ -89,6 +89,24 @@ func GetOffload() (*offload.OffloadWorker, bool) {
 
 const maxCustomer = 16
 
+var localDefaultPipeline map[point.Category]string
+
+func GetLocalDefaultPipeline() map[point.Category]string {
+	return localDefaultPipeline
+}
+
+func PreferLocalDefaultPipeline(m map[point.Category]string) map[point.Category]string {
+	result := map[point.Category]string{}
+	for k, v := range m {
+		result[k] = v
+	}
+	for k, v := range GetLocalDefaultPipeline() {
+		result[k] = v
+	}
+
+	return result
+}
+
 func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
@@ -122,6 +140,16 @@ func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 
 	if cfg != nil && cfg.EnableDebugFields {
 		_enableAppendRunInfo = true
+	}
+
+	if cfg != nil && len(cfg.DefaultPipeline) > 0 {
+		mp := map[point.Category]string{}
+		for k, v := range cfg.DefaultPipeline {
+			mp[point.CatString(k)] = v
+		}
+		localDefaultPipeline = mp
+		managerIns.UpdateDefaultScript(mp)
+		l.Infof("set default pipeline: %v", mp)
 	}
 
 	// init refer-table
