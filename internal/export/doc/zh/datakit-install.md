@@ -337,6 +337,35 @@ NAME1="value1" NAME2="value2"
 - `DK_LIMIT_CPUMAX`：支持 CPU 的最大功率，默认 30.0
 - `DK_LIMIT_MEMMAX`：限制内存（含 swap）最大用量，默认 4096（4GB）
 
+### APM Instrumentation {#apm-instrumentation}
+
+[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED=host` 即可针对 Java/Python 等应用自动注入 APM：
+
+```shell
+DK_APM_INSTRUMENTATION_ENABLED=host \
+  DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+Datakit 安装完成后，重新开启一个 shell，并重启对应的 Java/Python 应用即可。
+
+开启和关闭该功能，修改 `datakit.conf` 文件中 `[apm_inject]` 下的 `instrumentation_enabled` 配置的值：
+
+- 值 `"host"`，开启
+- 值 `""` 或者 `"disable"`，关闭
+
+运行环境要求：
+
+- Linux 系统
+    - CPU 架构：x86_64 或 arm64
+    - C 标准库：glibc 2.4 及以上版本，或 musl
+    - Java 8 及以上版本
+    - Python 3.7 及以上版本
+
+在 Kubernetes 中，可以通过 [Datakit Operator 来注入 APM](datakit-operator.md#datakit-operator-inject-lib)。
+
 ### 其它安装选项 {#env-others}
 
 | 环境变量名                       | 取值示例                    | 说明                                                                                                                             |
@@ -354,7 +383,6 @@ NAME1="value1" NAME2="value2"
 | `DK_VERBOSE`                     | `on`                        | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
 | `DK_CRYPTO_AES_KEY`              | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
 | `DK_CRYPTO_AES_KEY_FILE`         | `/usr/local/datakit/enc4dk` | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                               |
-| `DK_APM_INSTRUMENTATION_ENABLED` | `host`, `disable`           | 对主机上的新启动的 Java 和 Python 应用开启 APM 自动注入功能                                                                      |
 
 ## FAQ {#faq}
 

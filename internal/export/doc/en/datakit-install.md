@@ -315,6 +315,35 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 - `DK_LIMIT_CPUMAX`: Maximum CPU power, default 30.0
 - `DK_LIMIT_MEMMAX`: Limit memory (including swap), default 4096 (4GB)
 
+### APM Instrumentation {#apm-instrumentation}
+
+[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+
+By specifying `DK_APM_INSTRUMENTATION_ENABLED=host` in the installation command, you can automatically inject APM for Java/Python applications:
+
+```shell
+DK_APM_INSTRUMENTATION_ENABLED=host \
+  DK_DATAWAY=https://openway.guance.com?token=<TOKEN>  \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+After Datakit is installed, reopen a shell and restart the corresponding Java/Python applications.
+
+To enable or disable this feature, modify the value of the `instrumentation_enabled` configuration under `[apm_inject]` in the `datakit.conf` file:
+
+- Value `"host"`, enable
+- Value `""` or `"disable"`, disable
+
+Operating environment requirements:
+
+- Linux system
+    - CPU architecture: x86_64 or arm64
+    - C standard library: glibc 2.4 and above, or musl
+    - Java 8 and above
+    - Python 3.7 and above
+
+In Kubernetes, you can inject APM through the [Datakit Operator](datakit-operator.md#datakit-operator-inject-lib).
+
 ### Other Installation Options {#env-others}
 
 | Environment Variable Name        | Sample                      | Description                                                                                                                                                                                 |
@@ -332,7 +361,6 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 | `DK_VERBOSE`                     | `on`                        | Enable more verbose info during install(only for Linux/Mac)[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)                                                                       |
 | `DK_CRYPTO_AES_KEY`              | `0123456789abcdfg`          | Use the encrypted password decryption key to protect plaintext passwords in the collector.  [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                                      |
 | `DK_CRYPTO_AES_KEY_FILE`         | `/usr/local/datakit/enc4dk` | Another way to configure the secret key takes priority over the previous one. Put the key into the file and configure the configuration file path through environment variables.            |
-| `DK_APM_INSTRUMENTATION_ENABLED` | `host`, `disable`           | Enable APM automatic injection for newly started Java and Python applications on the host.                                                                                                  |
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->

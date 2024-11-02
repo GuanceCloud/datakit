@@ -253,8 +253,8 @@ The following functions are currently supported:
 
 - Injection of `ddtrace` agent and environment
 - Mounting of `logfwd` sidecar and enabling log collection
-- 注入 [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 JVM 程序的 profile 数据
-- 注入 [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 Python 应用的 profile 数据
+- Inject [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"} for JVM profiling [:octicons-beaker-24: Experimental](index.md#experimental)
+- Inject [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} for Python profiling [:octicons-beaker-24: Experimental](index.md#experimental)
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -263,7 +263,7 @@ The following functions are currently supported:
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD013 -->
-### Injection of ddtrace Agent and Relevant Environment Variables {#datakit-operator-inject-lib}
+### DDTrace Agent {#datakit-operator-inject-lib}
 <!-- markdownlint-enable -->
 
 #### Usage {#datakit-operator-inject-lib-usage}
@@ -321,7 +321,7 @@ datakit-lib-init
 ```
 
 <!-- markdownlint-disable MD013 -->
-### Injecting Logfwd Program and Enabling Log Collection {#datakit-operator-inject-logfwd}
+### logfwd {#datakit-operator-inject-logfwd}
 <!-- markdownlint-enable -->
 
 #### Prerequisites {#datakit-operator-inject-logfwd-prerequisites}

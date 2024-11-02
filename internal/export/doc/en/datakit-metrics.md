@@ -51,6 +51,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_dns_cost_seconds`|`from`|HTTP DNS cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_tls_handshake_seconds`|`from`|HTTP TLS handshake cost|
 |*internal/httpcli*|SUMMARY|`datakit_httpcli_http_connect_cost_seconds`|`from`|HTTP connect cost|
+|*internal/io/dataway*|GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
 |*internal/io/dataway*|SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
 |*internal/io/dataway*|SUMMARY|`datakit_io_build_body_cost_seconds`|`category,encoding,stage`|Build point HTTP body cost|
 |*internal/io/dataway*|SUMMARY|`datakit_io_build_body_batches`|`category,encoding`|Batch HTTP body batches|
@@ -58,12 +59,12 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/io/dataway*|SUMMARY|`datakit_io_build_body_batch_points`|`category,encoding`|Batch HTTP body points|
 |*internal/io/dataway*|SUMMARY|`datakit_io_dataway_wal_flush`|`category,gzip,queue`|Dataway WAL worker flushed bytes|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
+|*internal/io/dataway*|COUNTER|`datakit_io_wal_point_total`|`category,status`|WAL queued points|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
 |*internal/io/dataway*|COUNTER|`datakit_io_dataway_http_drop_point_total`|`category,error`|Dataway write drop points|
 |*internal/io/dataway*|SUMMARY|`datakit_io_dataway_api_latency_seconds`|`api,status`|Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status|
 |*internal/io/dataway*|COUNTER|`datakit_io_http_retry_total`|`api,status`|Dataway HTTP retried count|
 |*internal/io/dataway*|SUMMARY|`datakit_io_grouped_request`|`category`|Grouped requests under sinker|
-|*internal/io/dataway*|GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
 |*internal/io/filter*|COUNTER|`datakit_filter_update_total`|`N/A`|Filters(remote) updated count|
 |*internal/io/filter*|GAUGE|`datakit_filter_last_update_timestamp_seconds`|`N/A`|Filter last update time|
 |*internal/io/filter*|COUNTER|`datakit_filter_point_total`|`category,filters,source`|Filter points of filters|
@@ -143,6 +144,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/plugins/inputs/promremote*|SUMMARY|`datakit_input_promremote_collect_points`|`source`|Total number of promremote collection points|
 |*internal/plugins/inputs/promremote*|SUMMARY|`datakit_input_promremote_time_diff_in_second`|`source`|Time diff with local time|
 |*internal/plugins/inputs/promremote*|COUNTER|`datakit_input_promremote_no_time_points_total`|`source`|Total number of promremote collection no time points|
+|*internal/plugins/inputs/promv2*|SUMMARY|`datakit_input_promv2_scrape_points`|`source,remote`|The number of points scrape from endpoint|
 |*internal/plugins/inputs/proxy/bench/client*|GAUGE|`api_elapsed_seconds`|`N/A`|Proxied API elapsed seconds|
 |*internal/plugins/inputs/proxy/bench/client*|COUNTER|`api_post_bytes_total`|`api,status`|Proxied API post bytes total|
 |*internal/plugins/inputs/proxy/bench/client*|SUMMARY|`api_latency_seconds`|`api,status`|Proxied API latency|
@@ -169,14 +171,13 @@ We can also playing other metrics too(change the `grep` string), all available m
 |*internal/prom*|GAUGE|`datakit_input_prom_stream_size`|`mode,source`|Stream size|
 |*internal/statsd*|SUMMARY|`datakit_input_statsd_collect_points`|`N/A`|Total number of statsd collection points|
 |*internal/statsd*|SUMMARY|`datakit_input_statsd_accept_bytes`|`N/A`|Accept bytes from network|
-|*internal/tailer*|COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|socket feed to IO message count|
-|*internal/tailer*|SUMMARY|`datakit_input_logging_socket_log_length`|`network`|record the length of each log line|
-|*internal/tailer*|COUNTER|`datakit_tailer_collect_multiline_state_total`|`source,filepath,multilinestate`|Tailer multiline state total|
 |*internal/tailer*|COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Tailer rotate total|
 |*internal/tailer*|COUNTER|`datakit_tailer_buffer_force_flush_total`|`source,filepath`|Tailer force flush total|
 |*internal/tailer*|COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Tailer parse fail total|
 |*internal/tailer*|GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
 |*internal/tailer*|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|connect and close count for net.conn|
+|*internal/tailer*|COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|socket feed to IO message count|
+|*internal/tailer*|SUMMARY|`datakit_input_logging_socket_log_length`|`network`|record the length of each log line|
 |*internal/trace*|COUNTER|`datakit_input_tracing_total`|`input,service`|The total links number of Trace processed by the trace module|
 |*internal/trace*|COUNTER|`datakit_input_sampler_total`|`input,service`|The sampler number of Trace processed by the trace module|
 |*vendor/github.com/GuanceCloud/cliutils/diskcache*|SUMMARY|`diskcache_dropped_data`|`path,reason`|Dropped data during Put() when capacity reached.|

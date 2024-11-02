@@ -244,7 +244,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 - `logfwd.options.reuse_exist_volume` 允许在注入 logfwd 时，复用相同路径的 volume，避免因为存在同样路径的 volume 而注入报错。注意，路径末尾有斜线和无斜线的意义不同，所以这两个不是相同路径，不能复用。
 
-## 使用 Datakit Operator 注入文件和程序 {#datakit-operator-inject-sidecar}
+## Datakit Operator 注入 {#datakit-operator-inject-sidecar}
 
 在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
 
@@ -252,8 +252,8 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 - 注入 `ddtrace` agent 和 environment 的功能
 - 挂载 `logfwd` sidecar 并开启日志采集的功能
-- 注入 [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 JVM 程序的 profile 数据
-- 注入 [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} *:octicons-beaker-24: Experimental* 采集 Python 应用的 profile 数据
+- 注入 [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"}  采集 JVM 程序的 profile 数据 [:octicons-beaker-24: Experimental](index.md#experimental)
+- 注入 [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} 采集 Python 应用的 profile 数据 [:octicons-beaker-24: Experimental](index.md#experimental)
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -261,7 +261,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 Datakit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
 <!-- markdownlint-enable -->
 
-### 注入 ddtrace agent 和相关的环境变量 {#datakit-operator-inject-lib}
+### DDtrace Agent {#datakit-operator-inject-lib}
 
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
@@ -320,7 +320,7 @@ $ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContai
 datakit-lib-init
 ```
 
-### 注入 logfwd 程序并开启日志采集 {#datakit-operator-inject-logfwd}
+### logfwd {#datakit-operator-inject-logfwd}
 
 #### 前置条件 {#datakit-operator-inject-logfwd-prerequisites}
 
@@ -423,7 +423,7 @@ log-container datakit-logfwd
 
 最终可以在观测云日志平台查看日志是否采集。
 
-### 注入 `async-profiler` 工具采集 JVM 应用性能数据 {#inject-async-profiler}
+### async-profiler {#inject-async-profiler}
 
 #### 前置条件 {#async-profiler-prerequisites}
 
@@ -528,9 +528,7 @@ $ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
     ```
 <!-- markdownlint-enable -->
 
-
-
-### 注入 `py-spy` 工具采集 Python 应用性能数据 {#inject-py-spy}
+### py-spy {#inject-py-spy}
 
 #### 前置条件 {#py-spy-prerequisites}
 

@@ -153,7 +153,7 @@ ulimit = 64000
   # Datakit will upload data points if cached(in memory) points
   #  reached(>=) the max_cache_count or the flush_interval triggered.
   max_cache_count = 1000
-  flush_workers   = 0 # default to (cpu_core * 2 + 1)
+  flush_workers   = 0 # default to (cpu_core * 2)
   flush_interval  = "10s"
 
   # Queue size of feed.

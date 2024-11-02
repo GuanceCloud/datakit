@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.60.0 (2024/10/18) {#cl-1.60.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.60.0-new}
+
+- Added a new Prometheus v2 collector, which significantly optimizes parsing performance compared to the v1 version (#2427).
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the Datakit installation, by setting specific flags, we can automatically inject APM into the corresponding applications (Java/Python) by restarting the applications(#2139).
+- RUM Session Replay add supports for blacklist rules configured in GuanCe console (#2424).
+- The Datakit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats(HTTP `Content-Encoding`) (#2368).
+
+### Bug Fixes {#cl-1.60.0-fix}
+
+- Fixed a crash issue in the HTTP service caused by the Gin timeout middleware(#2423).
+- Fixed a timestamp unit issue in the New Relic collector (#2417).
+- Fixed a crash issue caused by the Pipeline function `point_window()` (#2416).
+
+### Performance Improvements {#cl-1.60.0-opt}
+
+- Many performance optimizations have been made in this version (#2414):
+
+    - The experimental feature point-pool is now enabled by default.
+    - Improved Prometheus exporter data collection performance and reduced memory consumption.
+    - Enabled [HTTP API rate limiting](datakit-conf.md#set-http-api-limit) by default to prevent sudden traffic from consuming too much memory.
+    - Added a [WAL disk queue](datakit-conf.md#dataway-wal) to handle memory occupation that may be caused by upload blocking. The new disk queue *will cache data that fails to upload by default*.
+    - Refined Datakit's own memory usage metrics, adding memory occupation across multiple dimensions.
+    - Added a WAL panel display in the `datakit monitor -V` command.
+    - Improved KubernetesPrometheus collection performance (#2426).
+    - Improved container log collection performance (#2425).
+    - Removed debug-related fields within logging to optimize network traffic and storage.
+
+### Compatibility Adjustments {#cl-1.60.0-brk}
+
+- Due to some performance adjustments, there are compatibility differences in the following areas:
+
+    - The maximum size of a single HTTP body upload has been adjusted to 1MB. At the same time, the maximum size of a single log has also been reduced to 1MB. This adjustment is to reduce the amount of pooled memory used by Datakit under low load conditions.
+    - The original failed retry disk queue has been deprecated (this feature was not enabled by default). The new version will enable a new failed retry disk queue by default.
+
+---
+
 ## 1.39.0 (2024/09/25) {#cl-1.39.0}
 
 This release is an iterative update with the following changes:

@@ -406,7 +406,6 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
     - `http_api.listen` 地址改一下
     - `dataway.urls` 里面的 token 改一下
     - 如有必要，logging 目录/level 都改一下
-    - 没有了
 
 - 启动 DataKit，以 Linux 为例：`DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
 - 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）

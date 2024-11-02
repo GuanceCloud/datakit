@@ -7,9 +7,9 @@
 ### 新加功能 {#cl-1.60.0-new}
 
 - 新加 prom v2 版本采集器，相比 v1 版本，它的解析性能有大幅度优化（#2427）
-- 安装 Datakit 过程中，通过设置特定的开关后，重启对应的应用（Java/Python）即可自动注入 APM（#2139）
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation)：安装 Datakit 过程中，通过设置特定的开关后，重启对应的应用（Java/Python）即可自动自动注入 APM（#2139）
 - RUM Session Replay 数据支持联动中心配置的黑名单规则（#2424）
-- Datakit `/v1/write/:category` 接口增加多种压缩格式支持（#2368）
+- Datakit [`/v1/write/:category` 接口](apis.md#api-v1-write)增加多种压缩格式支持（HTTP `Content-Encoding`）（#2368）
 
 ### 问题修复 {#cl-1.60.0-fix}
 
@@ -24,13 +24,12 @@
     - 实验性功能 point-pool 默认启用
     - 优化 Prometheus exporter 数据采集性能，减少内存消耗
     - 默认开启 [HTTP API 限流](datakit-conf.md#set-http-api-limit)，避免突发流量消耗太多内存
-    - 增加[磁盘队列](datakit-conf.md#dataway-wal)，以处理上传阻塞可能导致的内存占用。新增的磁盘队列*默认会缓存上传失败的数据*。
+    - 增加[WAL 磁盘队列](datakit-conf.md#dataway-wal)，以处理上传阻塞可能导致的内存占用。新增的磁盘队列*默认会缓存上传失败的数据*。
     - 细化 Datakit 自身内存使用指标，指标中增加多个维度的内存占用
     - `datakit monitor -V` 命令中增加 WAL 面板展示
     - 优化 KubernetesPrometheus 采集性能（#2426）
     - 优化容器日志采集性能（#2425）
     - 移除日志调试有关字段，以优化网络流量和存储
-    - 调整 Datakit 自身指标暴露，修复关于自身内存指标暴露的一些错误实现
 
 ### 兼容调整 {#cl-1.60.0-brk}
 
