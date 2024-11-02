@@ -84,7 +84,7 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
 
 ### 生成性能指标 {#metrics}
 
-Datakit 自 [1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-java` 的输出信息中抽取一组 JVM 运行时的相关指标，下面列举其中部分指标加以说明：
+Datakit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-java` 的输出信息中抽取一组 JVM 运行时的相关指标，该组指标被置于 `profiling_metrics` 指标集下，下面列举其中部分指标加以说明：
 
 | 指标名称                                | 说明                                                           | 单位         |
 |-------------------------------------|--------------------------------------------------------------|------------|
@@ -129,7 +129,7 @@ Datakit 自 [1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trac
 <!-- markdownlint-disable MD046 -->
 ???+ tips
 
-    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_HOME\>/datakit/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 Datakit.
+    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_INSTALL_DIR>/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 Datakit.
 
     ```toml
     [[inputs.profile]]
