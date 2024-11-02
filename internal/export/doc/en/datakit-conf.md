@@ -202,10 +202,10 @@ We can also enable `content_encoding = "v2"`([:octicons-tag-24: Version-1.32.0](
     
     ```toml
     [io]
-      feed_chan_size  = 4096  # length of data processing queue (a job typically has multiple points)
-      max_cache_count = 512   # data bulk sending points, beyond which sending is triggered in the cache
+      feed_chan_size  = 1     # length of compact queue
+      max_cache_count = 1000  # data bulk sending points, beyond which sending is triggered in the cache
       flush_interval  = "10s" # threshold for sending data at least once every 10s
-      flush_workers   = 8     # upload workers, default CPU-core * 2 + 1
+      flush_workers   = 0     # upload workers, default is the limited CPU-core * 2
     ```
     
     See [corresponding description in k8s](datakit-daemonset-deploy.md#env-io) for blocking mode
@@ -213,34 +213,6 @@ We can also enable `content_encoding = "v2"`([:octicons-tag-24: Version-1.32.0](
 === "Kubernetes"
 
     See [here](datakit-daemonset-deploy.md#env-io)
-<!-- markdownlint-enable -->
-
-#### IO Disk Cache {#io-disk-cache}
-
-[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8) · [:octicons-beaker-24: Experimental](index.md#experimental)
-
-When DataKit fails to send data, disk cache can be turned on in order not to lose critical data. The purpose of disk cache is to temporarily store the data on disk when upload Dataway failed, and then fetch data from disk and upload again later.
-
-<!-- markdownlint-disable MD046 -->
-=== "`datakit.conf`"
-
-    ```toml
-    [io]
-      enable_cache      = true   # turn on disk caching
-      cache_all         = false  # cache all categories(default metric,object and dial-testing data point not cached)
-      cache_max_size_gb = 5 # specify a disk size of 5GB
-    ```
-
-=== "Kubernetes"
-
-    See [here](datakit-daemonset-deploy.md#env-io)
-<!-- markdownlint-enable -->
-
----
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    The `cache_max_size_gb` used to control max disk capacity of each data category. For there are 10 categories, if each on configured with 5GB, the max disk usage may reach to 50GB.
 <!-- markdownlint-enable -->
 
 ### Resource Limit  {#resource-limit}
@@ -318,6 +290,57 @@ Dataway got following settings to be configured:
     - v2 is the Protobuf protocol. Compared with v1, it has better performance in all aspects
 
 See [here](datakit-daemonset-deploy.md#env-dataway) for configuration under Kubernetes.
+
+#### WAL Queue Configuration {#dataway-wal}
+
+[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
+
+In the `[dataway.wal]` section, we can adjust the configuration of the WAL queue:
+
+```toml
+  [dataway.wal]
+     max_capacity_gb = 2.0             # 2GB reserved disk space for each category (M/L/O/T/...)
+     workers = 0                       # flush workers on WAL (default to CPU limited cores)
+     mem_cap = 0                       # in-memory queue capacity (default to CPU limited cores)
+     fail_cache_clean_interval = "30s" # duration for cleaning failed uploaded data
+```
+
+The disk files are located in the *cache/dw-wal* directory under the Datakit installation directory:
+
+```shell
+/usr/local/datakit/cache/dw-wal/
+├── custom_object
+│   └── data
+├── dialtesting
+│   └── data
+├── dynamic_dw
+│   └── data
+├── fc
+│   └── data
+├── keyevent
+│   └── data
+├── logging
+│   ├── data
+│   └── data.00000000000000000000000000000000
+├── metric
+│   └── data
+├── network
+│   └── data
+├── object
+│   └── data
+├── profiling
+│   └── data
+├── rum
+│   └── data
+├── security
+│   └── data
+└── tracing
+    └── data
+
+13 directories, 14 files
+```
+
+Here, except for the *fc* directory, which is the failure retry queue, the other directories correspond to different data types. When data upload fails, these data will be cached in the *fc* directory, and Datakit will periodically upload them later.
 
 ### Dataway Sinker {#dataway-sink}
 

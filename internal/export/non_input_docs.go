@@ -205,15 +205,15 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_WORKERS",
 			Type:    doc.Int,
-			Desc:    "Set WAL workers, default to limited CPU cores [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL workers, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
 			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_MEM_CAPACITY",
 			Type:    doc.Int,
-			Desc:    "Set WAL memory queue length, default to limited CPU cores [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL memory queue length, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
 		},
 
 		{
@@ -653,8 +653,9 @@ func envPointPool() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_POINT_POOL_RESERVED_CAPACITY",
 			Type:    doc.Int,
-			Desc:    "Specify pool capacity(default 4096)",
-			DescZh:  "指定 point pool 大小（默认 4096）",
+			Default: "4096",
+			Desc:    "Specify the pool size that is immune to GC. if Datakit got too many data to collect, we can increase this reserved pool size(such as 40960) to decrease GC payload.",
+			DescZh:  "指定 point pool 常驻大小，即不会被 GC 回收的 point 保有数，如果所在 Datakit 的采集量非常大，可以酌情将该数值调大一点",
 		},
 	}
 

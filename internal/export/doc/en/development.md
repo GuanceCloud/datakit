@@ -211,7 +211,6 @@ DataKit runs in the specified directory (/usr/local/DataKit under Linux) as ==se
     - `http_api.listen` change the address
     - Change the token in `dataway.urls`
     - Change the logging directory/level if necessary
-    - No more
 
 2. Start the DataKit, taking Linux as an example: `DK_DEBUG_WORKDIR=~/datakit ./dist/datakit-linux-amd64/datakit`
 3. You can add a new alias to your local bash so that you can just run `ddk` each time you compile the DataKit (that is, Debugging-DataKit)
