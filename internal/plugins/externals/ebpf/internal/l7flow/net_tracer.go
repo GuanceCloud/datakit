@@ -34,6 +34,7 @@ type NetTrace struct {
 	threadInnerID  comm.ThreadTrace
 	protocolFilter *protoKernelFilter
 	enabledProto   map[protodec.L7Protocol]struct{}
+	protoSet       *protodec.ProtoSet
 
 	ptsPrv []*point.Point
 	ptsCur []*point.Point
@@ -111,7 +112,7 @@ func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.Netwrk
 		}
 
 		if pipe.Proto == protodec.ProtoUnknown {
-			if proto, dec, ok := protodec.ProtoDetector(d.Payload, d.CaptureSize); ok {
+			if proto, dec, ok := netTrace.protoSet.ProtoDetector(d.Payload, d.CaptureSize); ok {
 				pipe.Proto = proto
 				if _, ok := netTrace.enabledProto[pipe.Proto]; !ok {
 					pipe.detecTimes = maxDetec + 1
@@ -307,6 +308,7 @@ func newConnWatcher(ctx context.Context, cfg *connWatcherConfig) *ConnWatcher {
 			protocolFilter: cfg.protocolFilter,
 			enabledProto:   cfg.protos,
 			allowESPan:     cfg.enableTrace,
+			protoSet:       cfg.protoSet,
 		},
 		aggPool:       cfg.aggPool,
 		tags:          cfg.tags,
@@ -422,6 +424,7 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 
 type connWatcherConfig struct {
 	apiTracerConfig
+	protoSet       *protodec.ProtoSet
 	aggPool        map[protodec.L7Protocol]protodec.AggPool
 	protocolFilter *protoKernelFilter
 }
@@ -466,7 +469,15 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		return nil
 	}
 
-	aggP := protodec.NewProtoAggregators()
+	var protos []protodec.L7Protocol
+	for k := range cfg.protos {
+		protos = append(protos, k)
+	}
+	if len(protos) == 0 {
+		protos = append(protos, protodec.ProtoHTTP)
+	}
+	pset := protodec.SubProtoSet(protos...)
+	aggP := pset.NewProtoAggregators()
 
 	protoFilter := &protoKernelFilter{
 		fn:    make(chan func(uint64)),
@@ -478,6 +489,7 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		connWatcher: newConnWatcher(ctx, &connWatcherConfig{
 			apiTracerConfig: *cfg,
 			aggPool:         aggP,
+			protoSet:        pset,
 			protocolFilter:  protoFilter,
 		}),
 		aggPool:        aggP,

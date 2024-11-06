@@ -34,8 +34,8 @@ const (
 )
 
 var _protoSet = &ProtoSet{
-	protoDect: make([]protoDectFn, 0, 8),
-	protoAgg:  make(map[L7Protocol](func(L7Protocol) AggPool)),
+	protoDect: map[L7Protocol]protoDectFn{},
+	protoAgg:  map[L7Protocol](func(L7Protocol) AggPool){},
 }
 
 type AggPool interface {
@@ -48,16 +48,50 @@ type AggPool interface {
 type protoDectFn func([]byte, int) (L7Protocol, ProtoDecPipe, bool)
 
 type ProtoSet struct {
-	protoDect []protoDectFn
+	protoDect map[L7Protocol]protoDectFn
 	protoAgg  map[L7Protocol](func(L7Protocol) AggPool)
 }
 
-func (p *ProtoSet) RegisterDetector(fnDect protoDectFn) {
-	p.protoDect = append(p.protoDect, fnDect)
+func (p *ProtoSet) RegisterDetector(proto L7Protocol, fnDect protoDectFn) {
+	p.protoDect[proto] = fnDect
 }
 
 func (p *ProtoSet) RegisterAggregator(proto L7Protocol, fn func(L7Protocol) AggPool) {
 	p.protoAgg[proto] = fn
+}
+
+func (p *ProtoSet) ProtoDetector(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
+	for _, fn := range p.protoDect {
+		proto, pipe, ok := fn(data, actSize)
+		if ok {
+			return proto, pipe, ok
+		}
+	}
+	return ProtoUnknown, nil, false
+}
+
+func (p *ProtoSet) NewProtoAggregators() map[L7Protocol]AggPool {
+	r := make(map[L7Protocol]AggPool)
+	for k, v := range p.protoAgg {
+		r[k] = v(k)
+	}
+	return r
+}
+
+func SubProtoSet(protos ...L7Protocol) *ProtoSet {
+	newP := &ProtoSet{
+		protoDect: map[L7Protocol]protoDectFn{},
+		protoAgg:  map[L7Protocol](func(L7Protocol) AggPool){},
+	}
+	for _, proto := range protos {
+		if d, ok := _protoSet.protoDect[proto]; ok {
+			newP.protoDect[proto] = d
+		}
+		if a, ok := _protoSet.protoAgg[proto]; ok {
+			newP.protoAgg[proto] = a
+		}
+	}
+	return newP
 }
 
 func (p L7Protocol) StringLower() string {
@@ -166,37 +200,20 @@ type ProtoDecPipe interface {
 	ConnClose()
 }
 
-func ProtoDetector(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
-	for _, fn := range _protoSet.protoDect {
-		proto, pipe, ok := fn(data, actSize)
-		if ok {
-			return proto, pipe, ok
-		}
-	}
-	return ProtoUnknown, nil, false
-}
-
-func NewProtoAggregators() map[L7Protocol]AggPool {
-	r := make(map[L7Protocol]AggPool)
-	for k, v := range _protoSet.protoAgg {
-		r[k] = v(k)
-	}
-	return r
-}
-
 func Init() {
 	// HTTP
-	_protoSet.RegisterDetector(HTTPProtoDetect)
+	_protoSet.RegisterDetector(ProtoHTTP, HTTPProtoDetect)
 	// HTTP2 and gRPC
-	_protoSet.RegisterDetector(H2ProtoDetect)
+	_protoSet.RegisterDetector(ProtoHTTP2, H2ProtoDetect)
+	_protoSet.RegisterDetector(ProtoGRPC, H2ProtoDetect)
 
-	_protoSet.RegisterDetector(AMQPProtoDetect)
+	_protoSet.RegisterDetector(ProtoAMQP, AMQPProtoDetect)
 
-	_protoSet.RegisterDetector(RedisProtoDetect)
+	_protoSet.RegisterDetector(ProtoRedis, RedisProtoDetect)
 
-	_protoSet.RegisterDetector(MysqlProtoDetect)
+	_protoSet.RegisterDetector(ProtoMySQL, MysqlProtoDetect)
 
-	_protoSet.RegisterDetector(PgsqlProtoDetect)
+	_protoSet.RegisterDetector(ProtoPgsql, PgsqlProtoDetect)
 
 	_protoSet.RegisterAggregator(ProtoHTTP, newHTTPAggP)
 }
