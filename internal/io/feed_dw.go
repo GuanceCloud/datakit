@@ -70,16 +70,16 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 	}
 
 	ch := fo.chans[data.cat]
-
 	start := time.Now()
+	category := data.cat.String()
+	inputName := data.input
 
 	ioChanLen.WithLabelValues(data.cat.String()).Set(float64(len(ch)))
 
 	select {
 	case ch <- data:
 		feedCost.WithLabelValues(
-			data.cat.String(),
-			data.input,
+			category, inputName,
 		).Observe(float64(time.Since(start)) / float64(time.Second))
 		return nil
 	case <-datakit.Exit.Wait():

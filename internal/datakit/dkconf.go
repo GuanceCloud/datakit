@@ -45,7 +45,7 @@ ulimit = 64000
 # point_pool: use point pool for better memory usage
 ################################################
 [point_pool]
-  enable = true
+  enable = false
   reserved_capacity = 4096
 
 ################################################
