@@ -1,361 +1,500 @@
 {
   "checkers": [
     {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "1m",
+        "range": 60,
+        "title": "集群 {{cluster_name_k8s}} {{pod_name}} 重启",
+        "groupBy": [
+          "cluster_name_k8s",
+          "node_name",
+          "pod_name"
+        ],
+        "message": "集群{{cluster_name_k8s}} 节点 {{node_name}} {{pod_name}} 重启，请排查原因。",
+        "range_2": -1,
+        "targets": [
+          {
+            "dql": "M::`kube_pod`:(avg(`restarts`)) BY `cluster_name_k8s`, `node_name`, `pod_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 60,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "up",
+          "infoEvent": false,
+          "threshold": {
+            "value": 0,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
       "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
         "funcName": "",
         "querylist": [
           {
-            "datasource": "dataflux",
+            "uuid": "bf1f9cbe-405c-4bdc-9c6c-cb9a984f02ef",
             "qtype": "dql",
             "query": {
-              "alias": "",
+              "q": "M::`kube_pod`:(avg(`restarts`)) BY `cluster_name_k8s`, `node_name`, `pod_name`",
               "code": "Result",
-              "dataSource": "prom_state_metrics",
-              "field": "kube_pod_status_phase",
+              "type": "simple",
+              "alias": "",
+              "field": "restarts",
+              "groupBy": [
+                "cluster_name_k8s",
+                "node_name",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_pod",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "Container 采集器"
+        },
+        {
+          "name": "Kubernetes 检测库"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "{{cluster_name_k8s}} 集群 {{pod_name}} 内存使用率超过 95%",
+        "groupBy": [
+          "cluster_name_k8s",
+          "pod_name"
+        ],
+        "message": ">等级：{{df_status}}   \n>Pod: {{pod_name}}\n>内容：Pod  {{pod_name}}内存使用率过高，当前使用率{{Result}}\n>建议：登录集群查看 Pod 是否有异常",
+        "targets": [
+          {
+            "dql": "M::`kube_pod`:(last(`mem_used_percent_base_limit`)) BY `cluster_name_k8s`, `pod_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "95"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": true
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "95"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e0eb8c47-4349-4a89-8ad5-5e91c0a19e95",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kube_pod`:(last(`mem_used_percent_base_limit`)) BY `cluster_name_k8s`, `pod_name`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "mem_used_percent_base_limit",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "cluster_name_k8s",
+                "pod_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
               "fieldFunc": "last",
               "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_pod",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": true,
+      "tagInfo": [
+        {
+          "name": "Container 采集器"
+        },
+        {
+          "name": "Kubernetes 检测库"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "{{cluster_name_k8s}} 集群 {{pod_name}} CPU 使用率超过 95%",
+        "groupBy": [
+          "cluster_name_k8s",
+          " pod_name"
+        ],
+        "message": ">等级：{{df_status}}   \n>Pod：{{pod_name}}}}\n>内容：Pod  {{pod_name}} CPU 使用率过高，当前值为 {{Result}}\n>建议：登录集群查看 Pod 是否有异常",
+        "targets": [
+          {
+            "dql": "M::`kube_pod`:(last(`cpu_usage_base100`)) BY `cluster_name_k8s`, ` pod_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 60,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "95"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": true
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "95"
+                ],
+                "operator": ">"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "e0eb8c47-4349-4a89-8ad5-5e91c0a19e95",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kube_pod`:(last(`cpu_usage_base100`)) BY `cluster_name_k8s`, ` pod_name`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_usage_base100",
+              "filters": [],
+              "groupBy": [
+                "cluster_name_k8s",
+                " pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_pod",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": true,
+      "tagInfo": [
+        {
+          "name": "Container 采集器"
+        },
+        {
+          "name": "Kubernetes 检测库"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{ involved_name }} 生成 {{ Result }} 条 {{ reason }} 事件",
+        "groupBy": [
+          "reason",
+          "involved_name"
+        ],
+        "message": "{% set dql_data = DQL(\"L::`kubernetes_events`:(last(`message`) AS `msg`) { `index` = 'default' and ( `reason` = ? and `involved_name` = ? ) } \", reason, involved_name) %}\n\n{% if  df_status != 'ok' %}\n> 等级 ：{{ df_status }}\n> 内容：{{ involved_name }} 生成 {{ Result }} 条 {{ reason }} 事件\n>事件信息：{{ dql_data.msg }}\n{% else %}\n> 等级 ：{{ df_status }}\n>内容：{{ reason }} 事件已恢复\n{% endif %}",
+        "targets": [
+          {
+            "dql": "L('default')::`kubernetes_events`:(count(`*`)) { `reason` IN ['BackOff', 'NodeNotReady', 'NodeNotReady', 'Rebooted', 'OOMKilling', 'FailedScheduling', 'DockerHung', 'ImagePullBackOff', 'TaintManagerEviction', 'SystemOOM', 'FailedMount'] and `involved_name` != re('datakit.*') and `involved_name` != re('snapshot-server.*') } BY `reason`, `involved_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "2e2c1074-09dc-4463-b167-ab6a12bb0191",
+            "qtype": "dql",
+            "query": {
+              "q": "L('default')::`kubernetes_events`:(count(`*`)) { `reason` IN ['BackOff', 'NodeNotReady', 'NodeNotReady', 'Rebooted', 'OOMKilling', 'FailedScheduling', 'DockerHung', 'ImagePullBackOff', 'TaintManagerEviction', 'SystemOOM', 'FailedMount'] and `involved_name` != re('datakit.*') and `involved_name` != re('snapshot-server.*') } BY `reason`, `involved_name`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "*",
+              "fillNum": null,
               "filters": [
                 {
-                  "id": "ca200c10-c04f-11ec-91c9-6f9ff92cfa27",
-                  "logic": "and",
-                  "name": "phase",
-                  "op": "=",
+                  "id": "f0397160-f807-11ee-8ce3-25b33afb42e9",
+                  "op": "in",
+                  "name": "reason",
                   "type": "",
-                  "value": "Failed"
+                  "logic": "and",
+                  "value": "",
+                  "values": [
+                    "BackOff",
+                    "NodeNotReady",
+                    "NodeNotReady",
+                    "Rebooted",
+                    "OOMKilling",
+                    "FailedScheduling",
+                    "DockerHung",
+                    "ImagePullBackOff",
+                    "TaintManagerEviction",
+                    "SystemOOM",
+                    "FailedMount"
+                  ]
                 },
                 {
-                  "id": "7b2b6c10-c051-11ec-91c9-6f9ff92cfa27",
-                  "logic": "or",
-                  "name": "phase",
-                  "op": "=",
-                  "type": "",
-                  "value": "Pending"
+                  "id": "f219a310-f807-11ee-8ce3-25b33afb42e9",
+                  "op": "!=~",
+                  "name": "involved_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "datakit.*",
+                  "values": []
                 },
                 {
-                  "id": "991f92f0-c051-11ec-91c9-6f9ff92cfa27",
+                  "id": "fd264fb0-f807-11ee-8ce3-25b33afb42e9",
+                  "op": "!=~",
+                  "name": "involved_name",
+                  "type": "keyword",
                   "logic": "and",
-                  "name": "phase",
-                  "op": "=",
-                  "type": "",
-                  "value": "Unknown"
+                  "value": "snapshot-server.*",
+                  "values": []
                 }
               ],
-              "funcList": [],
               "groupBy": [
-                "cluster_name",
-                "node",
-                "pod"
+                "reason",
+                "involved_name"
               ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "keyword",
+              "namespace": "logging",
+              "dataSource": "kubernetes_events",
+              "queryFuncs": [],
+              "withLabels": [],
               "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_status_phase`)) { `phase` = 'Failed' or `phase` = 'Pending' and `phase` = 'Unknown' } BY `cluster_name`, `node`, `pod`",
-              "type": "simple"
+              "indexFilter": "default"
             },
-            "uuid": "e0eb8c47-4349-4a89-8ad5-5e91c0a19e95"
+            "datasource": "dataflux"
           }
         ],
-        "rules": [
-          {
-            "conditionLogic": "and",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "0"
-                ],
-                "operator": ">"
-              }
-            ],
-            "status": "critical"
-          }
-        ]
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
       },
       "is_disable": false,
-      "jsonScript": {
-        "checkerOpt": {
-          "rules": [
-            {
-              "conditionLogic": "and",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "0"
-                  ],
-                  "operator": ">"
-                }
-              ],
-              "status": "critical"
-            }
-          ]
+      "tagInfo": [
+        {
+          "name": "Container 采集器"
         },
-        "every": "5m",
-        "groupBy": [
-          "cluster_name",
-          "node",
-          "pod"
-        ],
-        "interval": 300,
-        "message": ">等级：{{df_status}}   \n>集群：{{ cluster_name }}\n>节点：{{ node}}\n>内容：Pod  {{pod}}状态异常\n>建议：登录集群查看 Pod 是否有异常",
-        "recoverNeedPeriodCount": 1,
-        "targets": [
-          {
-            "alias": "Result",
-            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_status_phase`)) { `phase` = 'Failed' or `phase` = 'Pending' and `phase` = 'Unknown' } BY `cluster_name`, `node`, `pod`"
-          }
-        ],
-        "title": "Kubernetes 集群 Pod {{ pod}} 状态异常",
-        "type": "simpleCheck"
-      },
-      "monitorName": "Kubernetes 检测库"
-    },
-    {
-      "extend": {
-        "funcName": "",
-        "querylist": [
-          {
-            "datasource": "dataflux",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "Result",
-              "dataSource": "prom_state_metrics",
-              "field": "kube_pod_container_status_waiting_reason",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "funcList": [],
-              "groupBy": [
-                "cluster_name",
-                "node",
-                "pod"
-              ],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_waiting_reason`)) BY `cluster_name`, `node`, `pod`",
-              "type": "simple"
-            },
-            "uuid": "13e50049-183c-4b6e-85fc-567d16afcb5f"
-          }
-        ],
-        "rules": [
-          {
-            "conditionLogic": "and",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "0"
-                ],
-                "operator": ">"
-              }
-            ],
-            "status": "critical"
-          }
-        ]
-      },
-      "is_disable": false,
-      "jsonScript": {
-        "checkerOpt": {
-          "rules": [
-            {
-              "conditionLogic": "and",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "0"
-                  ],
-                  "operator": ">"
-                }
-              ],
-              "status": "critical"
-            }
-          ]
-        },
-        "every": "1m",
-        "groupBy": [
-          "cluster_name",
-          "node",
-          "pod"
-        ],
-        "interval": 300,
-        "message": ">等级：{{df_status}}  \n>集群：{{ cluster_name }}\n>节点：{{ node}}\n>内容：Pod {{pod}} 启动超时失败\n>建议：登录集群查看 Pod 是否有异常",
-        "recoverNeedPeriodCount": 1,
-        "targets": [
-          {
-            "alias": "Result",
-            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_waiting_reason`)) BY `cluster_name`, `node`, `pod`"
-          }
-        ],
-        "title": "Pod {{pod}} 启动超时失败",
-        "type": "simpleCheck"
-      },
-      "monitorName": "Kubernetes 检测库"
-    },
-    {
-      "extend": {
-        "funcName": "",
-        "querylist": [
-          {
-            "datasource": "dataflux",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "Result",
-              "dataSource": "prom_state_metrics",
-              "field": "kube_pod_container_status_restarts_total",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "filters": [],
-              "funcList": [],
-              "groupBy": [
-                "cluster_name",
-                "node",
-                "pod"
-              ],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_restarts_total`)) BY `cluster_name`, `node`, `pod`",
-              "type": "simple"
-            },
-            "uuid": "c868238f-a97c-40e6-8ee7-d67f5c91f5d7"
-          }
-        ],
-        "rules": [
-          {
-            "conditionLogic": "and",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "3"
-                ],
-                "operator": ">"
-              }
-            ],
-            "status": "error"
-          }
-        ]
-      },
-      "is_disable": false,
-      "jsonScript": {
-        "checkerOpt": {
-          "rules": [
-            {
-              "conditionLogic": "and",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "3"
-                  ],
-                  "operator": ">"
-                }
-              ],
-              "status": "error"
-            }
-          ]
-        },
-        "every": "1m",
-        "groupBy": [
-          "cluster_name",
-          "node",
-          "pod"
-        ],
-        "interval": 300,
-        "message": ">等级：{{df_status}}  \n>集群：{{ cluster_name }}\n>节点：{{ node}}\n>内容：Pod {{pod}} 频繁重启\n>建议：登录集群查看 Pod 是否有异常",
-        "recoverNeedPeriodCount": 1,
-        "targets": [
-          {
-            "alias": "Result",
-            "dql": "M::`prom_state_metrics`:(LAST(`kube_pod_container_status_restarts_total`)) BY `cluster_name`, `node`, `pod`"
-          }
-        ],
-        "title": "Pod {{pod}} 频繁重启",
-        "type": "simpleCheck"
-      },
-      "monitorName": "Kubernetes 检测库"
-    },
-    {
-      "extend": {
-        "funcName": "",
-        "querylist": [
-          {
-            "datasource": "dataflux",
-            "qtype": "dql",
-            "query": {
-              "alias": "",
-              "code": "Result",
-              "dataSource": "prom_state_metrics",
-              "field": "kube_job_status_failed",
-              "fieldFunc": "last",
-              "fieldType": "float",
-              "funcList": [],
-              "groupBy": [
-                "cluster_name",
-                "job_name"
-              ],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`prom_state_metrics`:(LAST(`kube_job_status_failed`)) BY `cluster_name`, `job_name`",
-              "type": "simple"
-            },
-            "uuid": "139a9a2c-9b37-4f58-9858-cef83685bc34"
-          }
-        ],
-        "rules": [
-          {
-            "conditionLogic": "and",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "0"
-                ],
-                "operator": ">"
-              }
-            ],
-            "status": "critical"
-          }
-        ]
-      },
-      "is_disable": false,
-      "jsonScript": {
-        "checkerOpt": {
-          "rules": [
-            {
-              "conditionLogic": "and",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "0"
-                  ],
-                  "operator": ">"
-                }
-              ],
-              "status": "critical"
-            }
-          ]
-        },
-        "every": "1m",
-        "groupBy": [
-          "cluster_name",
-          "job_name"
-        ],
-        "interval": 300,
-        "message": ">等级：{{df_status}}  \n>集群：{{ cluster_name }}\n>节点：{{ job_name}}\n>内容：Job 执行失败\n>建议：登录集群查看 Job 是否有异常",
-        "recoverNeedPeriodCount": 1,
-        "targets": [
-          {
-            "alias": "Result",
-            "dql": "M::`prom_state_metrics`:(LAST(`kube_job_status_failed`)) BY `cluster_name`, `job_name`"
-          }
-        ],
-        "title": "Job 执行失败",
-        "type": "simpleCheck"
-      },
-      "monitorName": "Kubernetes 检测库"
+        {
+          "name": "Kubernetes 检测库"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
     }
   ]
 }

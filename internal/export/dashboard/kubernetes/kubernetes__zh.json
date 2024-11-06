@@ -1,0 +1,4250 @@
+{
+  "title": "Kubernetes 监控视图",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "Overview": true,
+      "---------": false,
+      "节点资源": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://us1-static-res.guance.com/dataflux-template/dashboard/zh/kubernetes_nodes_overview/kubernetes_nodes_overview.png",
+    "icon": "https://us1-static-res.guance.com/dataflux-template/dashboard/zh/kubernetes_nodes_overview/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "Cluster Name",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "cluster_name_k8s",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['cluster_name_k8s'])[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "Node",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "node_name",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['node_name']){cluster_name_k8s='#{cluster_name_k8s}'}[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "Namespace",
+        "seq": 2,
+        "datasource": "dataflux",
+        "code": "namespace",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['namespace']){cluster_name_k8s='#{cluster_name_k8s}'}[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "总节点",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`node`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "node",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "205a59e0-424a-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "custom",
+              "核"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "总核数",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 6
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kube_node`:(last(`cpu_capacity`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node` = '#{node_name}' } BY `cluster_name_k8s`, `node`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "cpu_capacity",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "33ddb410-424c-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "ab503f50-4273-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "node",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "node"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_node",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sum(last(memory_capacity))",
+                "name": "sum(last(memory_capacity))",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "总内存",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 6
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kube_node`:(last(`memory_capacity`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `node`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "memory_capacity",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "91c66220-424c-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "node"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_node",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "Pod 上限",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kube_node`:(last(`pods_capacity`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node` = '#{node_name}' } BY `cluster_name_k8s`, `node`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "pods_capacity",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "92de9340-b1c4-11ed-83c2-37f9ecc6a62c",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "92de9341-b1c4-11ed-83c2-37f9ecc6a62c",
+                  "op": "=",
+                  "name": "node",
+                  "logic": "and",
+                  "value": "#{node_name}"
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "node"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_node",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "CPU使用",
+                "name": "CPU使用",
+                "unit": "核",
+                "units": [
+                  "custom",
+                  "核"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "总 CPU",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 6
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/1000, alias='CPU使用', A=\"series_sum(\\\"M::`kube_pod`:(avg(`cpu_usage_millicores`) AS `CPU使用`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' } BY `pod_name`\\\")\")",
+              "code": "A",
+              "type": "expression",
+              "alias": "CPU使用",
+              "children": [
+                {
+                  "q": "series_sum(\"M::`kube_pod`:(avg(`cpu_usage_millicores`) AS `CPU使用`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' } BY `pod_name`\")",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "CPU使用",
+                  "field": "cpu_usage_millicores",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "bdd6b520-4334-11ef-a7f4-b95df4884451",
+                      "op": "=",
+                      "name": "cluster_name_k8s",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{cluster_name_k8s}",
+                      "values": []
+                    },
+                    {
+                      "id": "bdd6b521-4334-11ef-a7f4-b95df4884451",
+                      "op": "=",
+                      "name": "node_name",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{node_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name"
+                  ],
+                  "labelOp": "",
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "withLabels": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "A/1000"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "内存限额百分比",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 6
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B, A=\"series_sum(\\\"O::`kubelet_pod`:(last(`mem_limit`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' and `namespace` = '#{namespace}' } BY `pod_name`\\\")\", B=\"series_sum(\\\"O::`kubelet_pod`:(last(`mem_capacity`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' and `namespace` = '#{namespace}' } BY `pod_name`\\\")\")",
+              "code": "A",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "series_sum(\"O::`kubelet_pod`:(last(`mem_limit`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' and `namespace` = '#{namespace}' } BY `pod_name`\")",
+                  "code": "A",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "mem_limit",
+                  "search": "",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "7efc51f0-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "cluster_name_k8s",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{cluster_name_k8s}",
+                      "values": []
+                    },
+                    {
+                      "id": "8e2823c0-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "node_name",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{node_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "976c4560-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "long",
+                  "namespace": "object",
+                  "dataSource": "kubelet_pod",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "series_sum(\"O::`kubelet_pod`:(last(`mem_capacity`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `node_name` = '#{node_name}' and `namespace` = '#{namespace}' } BY `pod_name`\")",
+                  "code": "B",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "mem_capacity",
+                  "search": "",
+                  "filters": [
+                    {
+                      "id": "a04fd070-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "cluster_name_k8s",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{cluster_name_k8s}",
+                      "values": []
+                    },
+                    {
+                      "id": "a6e2dbd0-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "node_name",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{node_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "ac39e4c0-9340-11ef-ae14-39daaefc7b71",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "long",
+                  "namespace": "object",
+                  "dataSource": "kubelet_pod",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "总 Pod",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`pod`) AS `Pod`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' and `node_name` = '#{node_name}' } BY `cluster_name_k8s`, `namespace`, `node_name`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Pod",
+              "field": "pod",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "79c59850-4259-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "16f33530-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                },
+                {
+                  "id": "1c2c7cf0-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "node_name",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "node_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sum(avg(total))",
+                "name": "sum(avg(total))",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "磁盘总量",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 12
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`disk`:(avg(`total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d7f01d70-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "d7f01d71-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "disk",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "cluster_name_k8s",
+                "name": "cluster_name_k8s",
+                "alias": "集群"
+              },
+              {
+                "key": "node_name",
+                "name": "node_name",
+                "alias": "节点"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "集群信息",
+        "pos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 20
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_nodes`:(last(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `node_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "运行时长",
+              "field": "age",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "672e6c40-937f-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "node_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_nodes",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_nodes`:(last(`kubelet_version`) AS `版本`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `node_name`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "版本",
+              "field": "kubelet_version",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "b0067e80-937f-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "node_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_nodes",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "CPU使用率",
+                "name": "CPU使用率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "levelArr": [
+              {
+                "max": 30,
+                "min": 0,
+                "color": "#0AF41D"
+              },
+              {
+                "max": 60,
+                "min": 30,
+                "color": "#FFBD5F"
+              },
+              {
+                "max": 80,
+                "min": 60,
+                "color": "#FE9155"
+              },
+              {
+                "max": 90,
+                "min": 80,
+                "color": "#EA5E74"
+              },
+              {
+                "max": null,
+                "min": 90,
+                "color": "#FF0802"
+              }
+            ],
+            "unitType": "custom",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "colorLevel": 3,
+            "globalUnit": [],
+            "isSampling": true,
+            "rangeColor": "",
+            "showLegend": "bottom",
+            "timeInterval": "auto",
+            "rangeColorKey": "dark-green",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "hexgon",
+            "showFieldMapping": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "CPU 使用率",
+        "pos": {
+          "h": 15.5,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "hexgon",
+        "queries": [
+          {
+            "name": "",
+            "type": "hexgon",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cpu`:(avg(`usage_total`) AS `CPU使用率`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "CPU使用率",
+              "field": "usage_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2134db90-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "26f7ecc0-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cpu",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "内存使用率",
+                "name": "内存使用率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "levelArr": [
+              {
+                "max": 30,
+                "min": 0,
+                "color": "#0AF41D"
+              },
+              {
+                "max": 60,
+                "min": 30,
+                "color": "#FFBD5F"
+              },
+              {
+                "max": 80,
+                "min": 60,
+                "color": "#FE9155"
+              },
+              {
+                "max": 90,
+                "min": 80,
+                "color": "#EA5E74"
+              },
+              {
+                "max": null,
+                "min": 90,
+                "color": "#FF0802"
+              }
+            ],
+            "unitType": "custom",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "colorLevel": 3,
+            "globalUnit": [],
+            "isSampling": true,
+            "rangeColor": "",
+            "showLegend": "bottom",
+            "timeInterval": "auto",
+            "rangeColorKey": "dark-green",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "hexgon",
+            "showFieldMapping": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "内存使用率",
+        "pos": {
+          "h": 15.5,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "hexgon",
+        "queries": [
+          {
+            "name": "",
+            "type": "hexgon",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`mem`:(avg(`used_percent`) AS `内存使用率`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "内存使用率",
+              "field": "used_percent",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2134db90-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "26f7ecc0-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "mem",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "磁盘使用率",
+                "name": "磁盘使用率",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "levelArr": [
+              {
+                "max": 30,
+                "min": 0,
+                "color": "#0AF41D"
+              },
+              {
+                "max": 60,
+                "min": 30,
+                "color": "#FFBD5F"
+              },
+              {
+                "max": 80,
+                "min": 60,
+                "color": "#FE9155"
+              },
+              {
+                "max": 90,
+                "min": 80,
+                "color": "#EA5E74"
+              },
+              {
+                "max": null,
+                "min": 90,
+                "color": "#FF0802"
+              }
+            ],
+            "unitType": "custom",
+            "fixedTime": "",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "colorLevel": 3,
+            "globalUnit": [],
+            "isSampling": true,
+            "rangeColor": "",
+            "showLegend": "bottom",
+            "timeInterval": "auto",
+            "rangeColorKey": "dark-green",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "hexgon",
+            "showFieldMapping": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "磁盘使用率",
+        "pos": {
+          "h": 15.5,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "hexgon",
+        "queries": [
+          {
+            "name": "",
+            "type": "hexgon",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`disk`:(avg(`used_percent`) AS `磁盘使用率`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "磁盘使用率",
+              "field": "used_percent",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2134db90-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "26f7ecc0-426f-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "disk",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sum(avg(used))",
+                "name": "sum(avg(used))",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "磁盘使用量",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 12
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`disk`:(avg(`used`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "used",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d7f01d70-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "d7f01d71-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "disk",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "CPU 限额百分比",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B, A=\"series_sum(\\\"O::`kubelet_pod`:(last(`cpu_limit_millicores`)) BY `pod_name`\\\")\", B=\"series_sum(\\\"O::`kubelet_pod`:(last(`cpu_capacity_millicores`)) { `namespace` = 'datakit' } BY `pod_name`\\\")\")",
+              "code": "A",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "series_sum(\"O::`kubelet_pod`:(last(`cpu_limit_millicores`)) BY `pod_name`\")",
+                  "code": "A",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "cpu_limit_millicores",
+                  "search": "",
+                  "fillNum": null,
+                  "filters": [],
+                  "groupBy": [
+                    "pod_name"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "long",
+                  "namespace": "object",
+                  "dataSource": "kubelet_pod",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "series_sum(\"O::`kubelet_pod`:(last(`cpu_capacity_millicores`)) { `namespace` = 'datakit' } BY `pod_name`\")",
+                  "code": "B",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "cpu_capacity_millicores",
+                  "search": "",
+                  "filters": [
+                    {
+                      "id": "f190dc00-3dcc-11ef-a3e0-1d38ab255264",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "datakit",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "long",
+                  "namespace": "object",
+                  "dataSource": "kubelet_pod",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B"
+            },
+            "datasource": "dataflux",
+            "dashboardUUID": "dsbd_53bf8f96c47c4928bbd0f44853d79af9"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sum(avg(read_bytes/sec))",
+                "name": "sum(avg(read_bytes/sec))",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "磁盘读",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 12
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`diskio`:(avg(`read_bytes/sec`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "read_bytes/sec",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d7f01d70-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "d7f01d71-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "diskio",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sum(avg(write_bytes/sec))",
+                "name": "sum(avg(write_bytes/sec))",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#3AB8FF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "节点资源"
+        },
+        "name": "磁盘写",
+        "pos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 12
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`diskio`:(avg(`write_bytes/sec`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "write_bytes/sec",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d7f01d70-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "d7f01d71-4271-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "diskio",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "CPU",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cpu`:(avg(`usage_total`) AS `CPU使用率`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "CPU使用率",
+              "field": "usage_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "cbe3afa0-4317-11ef-9bf3-65917d4cd843",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "cbe3afa1-4317-11ef-9bf3-65917d4cd843",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cpu",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "内存",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`mem`:(avg(`used_percent`) AS `内存使用率`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `host` = '#{node_name}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "内存使用率",
+              "field": "used_percent",
+              "index": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{node_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "mem",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(bytes_recv/sec)",
+                "name": "avg(bytes_recv/sec)",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "网络接收",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`net`:(avg(`bytes_recv/sec`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "bytes_recv/sec",
+              "filters": [
+                {
+                  "id": "1d51dc90-4291-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "net",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux",
+            "dashboardUUID": "dsbd_53bf8f96c47c4928bbd0f44853d79af9"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(bytes_recv/sec)",
+                "name": "avg(bytes_recv/sec)",
+                "unit": "",
+                "units": [
+                  "traffic",
+                  "B/S"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "网络发送",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`net`:(avg(`bytes_sent/sec`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "bytes_sent/sec",
+              "filters": [
+                {
+                  "id": "1d51dc90-4291-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "net",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux",
+            "dashboardUUID": "dsbd_53bf8f96c47c4928bbd0f44853d79af9"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "number",
+                "name": "number",
+                "unit": "个",
+                "units": [
+                  "custom",
+                  "个"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "levelArr": [],
+            "unitType": "custom",
+            "fixedTime": "",
+            "precision": "2",
+            "showLabel": true,
+            "showTitle": true,
+            "titleDesc": "",
+            "colorLevel": 3,
+            "globalUnit": [],
+            "isSampling": true,
+            "rangeColor": "",
+            "showLegend": false,
+            "showPercent": false,
+            "timeInterval": "auto",
+            "rangeColorKey": "light-blue",
+            "isTimeInterval": false,
+            "showLabelValue": true,
+            "changeWorkspace": false,
+            "currentChartType": "treemap",
+            "showFieldMapping": false,
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 50,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "集群空间 Pod 分布",
+        "pos": {
+          "h": 16,
+          "w": 14,
+          "x": 10,
+          "y": 15.5
+        },
+        "type": "treemap",
+        "queries": [
+          {
+            "name": "",
+            "type": "treemap",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(avg(`pod`) AS `number`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `namespace`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "number",
+              "field": "pod",
+              "filters": [
+                {
+                  "id": "9fc1c6d0-9378-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#A6BDFF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Services",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 0,
+          "y": 15.5
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`service`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "service",
+              "filters": [
+                {
+                  "id": "f5079f80-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "ff9928b0-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#57CECF",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Daemonset",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 5,
+          "y": 23.5
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`daemonset`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "daemonset",
+              "filters": [
+                {
+                  "id": "f5079f80-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "ff9928b0-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#5378E5",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Deployments",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 5,
+          "y": 15.5
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`deployment`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "deployment",
+              "filters": [
+                {
+                  "id": "f5079f80-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "ff9928b0-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#C4F3E5",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "ReplicaSet",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 0,
+          "y": 23.5
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`replicaset`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `cluster_name_k8s`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "replicaset",
+              "filters": [
+                {
+                  "id": "f5079f80-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "ff9928b0-937c-11ef-803b-237cc864d6bb",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "cluster_name_k8s",
+                "name": "cluster_name_k8s",
+                "alias": "集群"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "命名空间资源统计",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 28
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(last(`deployment`) AS `Deployment`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Deployment",
+              "field": "deployment",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "87946f00-4255-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "f5dcec50-9339-11ef-a78f-37b40eead58c",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(last(`service`) AS `SVC`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "SVC",
+              "field": "service",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "87946f00-4255-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "febccde0-9339-11ef-a78f-37b40eead58c",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(last(`pod`) AS `Pod`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "Pod",
+              "field": "pod",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "87946f00-4255-11ef-9fc3-e19a21d036e9",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "0340a850-933a-11ef-a78f-37b40eead58c",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "cluster_name_k8s",
+                "name": "cluster_name_k8s",
+                "alias": "集群"
+              },
+              {
+                "key": "service_name",
+                "name": "service_name",
+                "alias": "服务名"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "disableFuncList": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "Service",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 38
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "运行时长",
+              "field": "age",
+              "search": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "335cc200-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "367e2640-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`annotations`) AS `Annotations`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "B",
+              "fill": "",
+              "type": "simple",
+              "alias": "Annotations",
+              "field": "annotations",
+              "search": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "335cc200-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "367e2640-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`cluster_ip`) AS `Cluster IP`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "C",
+              "fill": "",
+              "type": "simple",
+              "alias": "Cluster IP",
+              "field": "cluster_ip",
+              "search": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "335cc200-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "367e2640-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_ips`) AS `External IP`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "D",
+              "fill": "",
+              "type": "simple",
+              "alias": "External IP",
+              "field": "external_ips",
+              "search": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "335cc200-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "367e2640-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_name`) AS `External Name`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "E",
+              "fill": "",
+              "type": "simple",
+              "alias": "External Name",
+              "field": "external_name",
+              "search": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "335cc200-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "367e2640-9392-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_traffic_policy`) AS `外部策略`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "F",
+              "fill": null,
+              "type": "simple",
+              "alias": "外部策略",
+              "field": "external_traffic_policy",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0ce00be0-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "0ce00be1-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`session_affinity`) AS `亲合力`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "G",
+              "fill": null,
+              "type": "simple",
+              "alias": "亲合力",
+              "field": "session_affinity",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0ce00be0-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "0ce00be1-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`message`) AS `Message`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `service_name`",
+              "code": "H",
+              "fill": null,
+              "type": "simple",
+              "alias": "Message",
+              "field": "message",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0ce00be0-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "0ce00be1-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "service_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "cluster_name_k8s",
+                "name": "cluster_name_k8s",
+                "alias": "集群"
+              },
+              {
+                "key": "deployment_name",
+                "name": "deployment_name",
+                "alias": "Deployment "
+              },
+              {
+                "key": "namespace",
+                "name": "namespace",
+                "alias": "Namespace"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "disableFuncList": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "Deployment",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 48
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_deployments`:(last(`available`) AS `Available Pods`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `namespace`, `deployment_name`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "Available Pods",
+              "field": "available",
+              "search": "",
+              "filters": [
+                {
+                  "id": "ff47b5e0-9393-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "deployment_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_deployments",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_deployments`:(last(`ready`) AS `Ready Pods`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `namespace`, `deployment_name`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Ready Pods",
+              "field": "ready",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "1a12fe70-9394-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "deployment_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_deployments",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_deployments`:(last(`unavailable`) AS `UnUavailable Pods`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `namespace`, `deployment_name`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "UnUavailable Pods",
+              "field": "unavailable",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "1a12fe70-9394-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "deployment_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_deployments",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "cluster_name_k8s",
+                "name": "cluster_name_k8s",
+                "alias": "集群"
+              },
+              {
+                "key": "namespace",
+                "name": "namespace",
+                "alias": "Nmaspace"
+              },
+              {
+                "key": "pod_name",
+                "name": "pod_name",
+                "alias": "Pod Name"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "disableFuncList": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "明细"
+        },
+        "name": "Pod",
+        "pos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 58
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`age`) AS `运行时长`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "运行时长",
+              "field": "age",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`available`) AS `Availale`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "B",
+              "fill": "",
+              "type": "simple",
+              "alias": "Availale",
+              "field": "available",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`ready`) AS `Ready`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "C",
+              "fill": "",
+              "type": "simple",
+              "alias": "Ready",
+              "field": "ready",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`restarts`) AS `Restart`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "D",
+              "fill": "",
+              "type": "simple",
+              "alias": "Restart",
+              "field": "restarts",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`pod_ip`) AS `Pod IP`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "E",
+              "fill": "",
+              "type": "simple",
+              "alias": "Pod IP",
+              "field": "pod_ip",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubelet_pod`:(last(`node_name`) AS `Node`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`, `pod_name`",
+              "code": "F",
+              "fill": "",
+              "type": "simple",
+              "alias": "Node",
+              "field": "node_name",
+              "search": "",
+              "filters": [
+                {
+                  "id": "9d693530-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "b99ebc20-9396-11ef-ada0-371cf9ae3af0",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace",
+                "pod_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubelet_pod",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "Overview",
+        "extend": {}
+      },
+      {
+        "name": "节点资源",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "明细",
+        "extend": {
+          "bgColor": ""
+        }
+      }
+    ],
+    "type": "template"
+  }
+}
