@@ -124,6 +124,8 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 	nodeName, nodeNameExists := nodeNameFrom(ctx)
 	feature := endpointsFeature(item)
 
+	urlstrList := []string{}
+
 	for _, ins := range e.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
 			continue
@@ -176,9 +178,11 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 			e.scrape.registerScrape(key, feature, prom)
 		}
 
-		urlstrList := getURLstrListByPromConfigs(cfgs)
-		e.scrape.tryCleanScrapes(key, urlstrList)
+		urlstrList = append(urlstrList, getURLstrListByPromConfigs(cfgs)...)
 	}
+
+	// clean urls
+	e.scrape.tryCleanScrapes(key, urlstrList)
 }
 
 func (e *Endpoints) terminateScrape(key string) {

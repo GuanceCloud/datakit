@@ -133,7 +133,7 @@ func (s *Service) process(ctx context.Context) bool {
 func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Service) {
 	svcFeature := serviceFeature(item)
 
-	for _, ins := range s.instances {
+	for idx, ins := range s.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
 			continue
 		}
@@ -143,9 +143,11 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 			continue
 		}
 
-		// record key
-		klog.Infof("added Service %s", key)
-		s.svcList[key] = svcFeature
+		idxKey := fmt.Sprintf("%s::index%d", key, idx)
+
+		// record idxKey
+		klog.Infof("added Service %s", idxKey)
+		s.svcList[idxKey] = svcFeature
 
 		namespace := item.Namespace
 		name := item.Name
@@ -156,11 +158,11 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 			defer tick.Stop()
 
 			for {
-				s.tryCreateScrapeForEndpoints(ctx, namespace, name, key, endpointsInstance)
+				s.tryCreateScrapeForEndpoints(ctx, namespace, name, idxKey, endpointsInstance)
 
 				select {
 				case <-ctx.Done():
-					klog.Info("svc-ep exit")
+					klog.Infof("svc-ep %s exit", idxKey)
 					return nil
 
 				case <-tick.C:
