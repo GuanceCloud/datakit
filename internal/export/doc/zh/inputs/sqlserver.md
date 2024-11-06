@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'SQLServer'
     path  : 'dashboard/zh/sqlserver'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'SQLServer 监控器'
+    path  : 'monitor/zh/sqlserver'
 ---
 
 {{.AvailableArchs}}
