@@ -1,5 +1,64 @@
 # 更新日志
 
+## 1.62.0(2024/11/06) {#cl-1.62.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.62.0-new}
+
+- 日志采集的读取 buffer 调整成 64KB，优化日志采集构建数据点的性能（#2450）
+- 增加日志最大采集限制，默认最大采集 500 个文件，Kubernetes 中可通过 `ENV_LOGGING_MAX_OPEN_FILES` 来调整该限制（#2442）
+- 支持在 *datakit.conf* 中配置默认 Pipeline 脚本（#2355）
+- 拨测采集器在拉取中心的拨测任务时，支持 HTTP Proxy 代理（#2438）
+- Datakit 在升级的过程中，跟安装过程一样，通过传入命令行环境变量，也支持修改其主配置（#2418）
+- 新加 prom v2 版本采集器，相比 v1 版本，它的解析性能有大幅度优化（#2427）
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation)：安装 Datakit 过程中，通过设置特定的开关后，重启对应的应用（Java/Python）即可自动自动注入 APM（#2139）
+- RUM Session Replay 数据支持联动中心配置的黑名单规则（#2424）
+- Datakit [`/v1/write/:category` 接口](apis.md#api-v1-write)增加多种压缩格式支持（HTTP `Content-Encoding`）（#2368）
+
+### 问题修复 {#cl-1.62.0-fix}
+
+- 修复 SQLServer 采集过程中的数据转换问题（#2429）
+- 修复 HTTP 服务中 timeout 组建可能导致的崩溃问题（#2423）
+- 修复 New Relic 采集中时间单位问题（#2417）
+- 修复 Pipeline `point_window()` 函数可能导致的崩溃问题（#2416）
+- 修复 eBPF 采集时协议识别问题（#2451）
+
+### 功能优化 {#cl-1.62.0-opt}
+
+- KubernetesPrometheus 采集的数据，会按照采集的时间间隔来调整各个数据点的时间戳（#2441）
+- 容器日志采集支持在 Annotation/Label 中设置 from-beginning 属性（#2443）
+- 优化数据点上传策略，支持忽略体积太大的数据点，避免其造成整个数据包发送失败（#2440）
+- Datakit API /v1/write/:category 完善 zlib 格式编码支持（#2439）
+- 优化 DDTrace 数据点处理策略，降低其内存占用（#2434）
+- 优化 eBPF 采集过程中的资源占用（#2430）
+- 优化上传时 GZip 效率（#2428）
+- 本版本做了诸多性能优化（#2414）
+    - 优化 Prometheus exporter 数据采集性能，减少内存消耗
+    - 默认开启 [HTTP API 限流](datakit-conf.md#set-http-api-limit)，避免突发流量消耗太多内存
+    - 增加[WAL 磁盘队列](datakit-conf.md#dataway-wal)，以处理上传阻塞可能导致的内存占用。新增的磁盘队列*默认会缓存上传失败的数据*。
+    - 细化 Datakit 自身内存使用指标，指标中增加多个维度的内存占用
+    - `datakit monitor -V` 命令中增加 WAL 面板展示
+    - 优化 KubernetesPrometheus 采集性能（#2426）
+    - 优化容器日志采集性能（#2425）
+    - 移除日志调试有关字段，以优化网络流量和存储
+- 其它优化
+    - 优化 *datakit.yaml*，镜像拉取策略改成 `IfNotPresent`（!3264）
+    - 优化基于 Profiling 生成的指标文档（!3224）
+    - 更新 Kafka 视图和监控器（!3248）
+    - 更新 Redis 视图和监控器（!3263）
+    - 增加 Ligai 版本通知（!3247）
+    - 增加 SQLServer 内置视图（!3272）
+
+### 兼容调整 {#cl-1.62.0-brk}
+
+- KubernetesPrometheus 之前支持在不同的 instance 上配置采集间隔（`interval`），当前版本移除该功能。通过在 KubernetesPrometheus 采集器中，可设置全局间隔来实现。
+
+<!--
+
+
+NOTE: 以下内容，合并到 1.62.0 版本发布
+
 ## 1.61.0(2024/11/02) {#cl-1.61.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -92,6 +151,8 @@
     - 废弃了原来的失败重传磁盘队列（该功能默认不开启）。新版本默认会开启新的失败重传磁盘队列
 
 ---
+
+-->
 
 ## 1.39.0(2024/09/25) {#cl-1.39.0}
 本次发布属于迭代发布，主要有如下更新：

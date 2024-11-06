@@ -339,7 +339,7 @@ NAME1="value1" NAME2="value2"
 
 ### APM Instrumentation {#apm-instrumentation}
 
-[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
 在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED=host` 即可针对 Java/Python 等应用自动注入 APM：
 

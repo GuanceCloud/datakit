@@ -236,14 +236,12 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
     Once protected mode is disabled, some dangerous configuration parameters can be set, and Datakit will accept any configuration parameters. These parameters may cause some Datakit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.
 <!-- markdownlint-enable -->
 
+<!--
 ### Point Pool Environments {#env-pointpool}
 
 [:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
-
-<!-- markdownlint-disable MD046 -->
-{{ CodeBlock .NonInputENVSample.envPointPool 0}}
-<!-- markdownlint-enable -->
+-->
 
 
 ### Dataway Configuration Environments {#env-dataway}

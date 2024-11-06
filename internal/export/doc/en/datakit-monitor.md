@@ -77,14 +77,14 @@ If the verbose option (`-V`) is specified when Monitor is run, additional inform
 - `Filter`: Pull of blacklist filtering rules
 - `Filter Rules`: Filtering of each type of blacklist
 - `Pipeline Info`: Pipeline running info
-- `WAL Info` WAL Queue Usage [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
+- `WAL Info` WAL Queue Usage [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)
 
     The WAL queue consists of two parts: a small in-memory queue and a default 2GB disk queue. Here, `mem` refers to the number of points processed by the in-memory queue, `disk` refers to the number of points processed by the disk queue, and `drop` refers to the number of points discarded by the disk queue (for example, when the disk queue is full). Total refers to the total number of points.
 
 - `Point Upload Info` Displays the operation of the data upload channel [^point-upload-info-on-160].
 - `DataWay APIs` Displays the invocation situation of Dataway APIs.
 
-[^point-upload-info-on-160]: [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) There have been updates here, and previous versions may show slightly different information.
+[^point-upload-info-on-160]: [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) There have been updates here, and previous versions may show slightly different information.
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->

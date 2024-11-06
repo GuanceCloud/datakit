@@ -60,7 +60,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     
     ### HTTP 请求频率控制 {#set-http-api-limit}
 
-    > [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 已经默认开启该功能。
+    > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能。
     
     由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
     
@@ -172,6 +172,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 [:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0)
 
+> Point 缓存目前有额外的性能问题，不建议使用。
+
 为了优化 Datakit 高负载情况下的内存占用，可以开启 Point Pool 来缓解：
 
 ```toml
@@ -188,7 +190,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
     - 在低负载（Datakit 内存占用 100MB 左右）的情况下，开启 point pool 会增加 Datakit 自身的内存占用。所谓的高负载，一般指占用内存在 2GB+ 的场景。同时开启后也能改善 Datakit 自身的 CPU 消耗
 
-    - [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 已经默认开启了该功能。如果要禁用 point pool，可以将上面的 `enable` 置为 `false`
 <!-- markdownlint-enable -->
 
 ### IO 模块调参 {#io-tuning}

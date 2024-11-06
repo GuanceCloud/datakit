@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.62.0 (2024/11/06) {#cl-1.62.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.62.0-new}
+
+- The log collection read buffer has been adjusted to 64KB, optimizing the performance of building data points during log collection (#2450).
+- Increased the maximum log collection limit, with a default maximum of 500 files collected. In Kubernetes, this limit can be adjusted via the `ENV_LOGGING_MAX_OPEN_FILES` environment variable (#2442).
+- Support for configuring default Pipeline scripts in *datakit.conf* (#2355).
+- The dial testing collector now supports HTTP Proxy when pulling dial testing tasks from the center (#2438).
+- During the Datakit upgrade process, similar to the installation process, it now supports modifying its main configuration through command-line environment variables (#2418).
+- Added a new prom v2 collector, which significantly optimizes parsing performance compared to the v1 version (#2427).
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the Datakit installation process, by setting specific switches, you can automatically inject APM into the corresponding applications (Java/Python) by restarting them (#2139).
+- RUM Session Replay data now supports with the center's configured blacklist rules (#2424).
+- The Datakit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats (HTTP `Content-Encoding`) (#2368).
+
+### Bug Fixes {#cl-1.62.0-fix}
+
+- Fixed data conversion issues during SQLServer collection (#2429).
+- Fixed a crash issue in the HTTP service caused by the timeout component (#2423).
+- Fixed a time unit issue in the New Relic collector (#2417).
+- Fixed a crash issue caused by the Pipeline `point_window()` function (#2416).
+- Fix protocol detection on eBPF (#2451)
+
+### Improvements {#cl-1.62.0-opt}
+
+- KubernetesPrometheus collected data will adjust the timestamps of each data point according to the collection interval (#2441).
+- Container log collection supports setting the from-beginning property in Annotation/Label (#2443).
+- Optimized data point upload strategy to support ignoring data points that are too large, preventing them from causing the entire data package to fail to send (#2440).
+- Datakit API `/v1/write/:category` improves zlib format encoding support (#2439).
+- Optimized DDTrace data point processing strategy to reduce memory usage (#2434).
+- Optimized resource usage during eBPF collection (#2430).
+- Improved GZip efficiency during upload (#2428).
+- Many performance optimizations have been made in this version (#2414):
+    - Improved Prometheus exporter data collection performance and reduced memory consumption.
+    - Enabled [HTTP API rate limiting](datakit-conf.md#set-http-api-limit) by default to prevent sudden traffic from consuming too much memory.
+    - Added [WAL disk queue](datakit-conf.md#dataway-wal) to handle memory occupation that may be caused by upload blocking. The new disk queue *will cache data that fails to upload by default*.
+    - Refined Datakit's own memory usage metrics, adding memory occupation across multiple dimensions.
+    - Added WAL panel display in the `datakit monitor -V` command.
+    - Improved KubernetesPrometheus collection performance (#2426).
+    - Improved container log collection performance by replace Golang JSON with `gjson` (#2425).
+    - Removed logging debug-related fields to optimize network traffic and storage.
+- Other optimizations:
+    - Optimized *datakit.yaml*, changed image pull policy to `IfNotPresent` (!3264).
+    - Optimized documentation for metrics generated based on Profiling (!3224).
+    - Updated Kafka dashboard and monitors (!3248).
+    - Updated Redis dashboard and monitors (!3263).
+    - Added SQLServer built-in dashboard (!3272).
+    - Added Ligai version notifications (!3247).
+
+### Compatibility Adjustments {#cl-1.62.0-brk}
+
+- KubernetesPrometheus previously supported configuring collection intervals (`interval`) on different instances, which has been removed in this version. The global interval can be set in the KubernetesPrometheus collector to achieve this.
+
+---
+
+<!--
+
 ## 1.61.0 (2024/11/02) {#cl-1.61.0}
 
 This release is an iterative update, with the following main changes:
@@ -92,6 +150,7 @@ This release is an iterative update, with the following main changes:
     - The original failed retry disk queue has been deprecated (this feature was not enabled by default). The new version will enable a new failed retry disk queue by default.
 
 ---
+-->
 
 ## 1.39.0 (2024/09/25) {#cl-1.39.0}
 

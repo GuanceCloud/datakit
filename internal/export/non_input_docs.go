@@ -18,21 +18,21 @@ type content map[string]info
 // example: map["doc/datakit-daemonset-deploy.md"]content
 var nonInputDocs = map[string]content{
 	"doc/datakit-daemonset-deploy.md": {
-		"envCommon":    envCommon(),
-		"envDataway":   envDataway(),
-		"envLog":       envLog(),
-		"envPprof":     envPprof(),
-		"envElect":     envElect(),
-		"envHTTPAPI":   envHTTPAPI(),
-		"envConfd":     envConfd(),
-		"envGit":       envGit(),
-		"envSinker":    envSinker(),
-		"envIO":        envIO(),
-		"envDca":       envDca(),
-		"envRefta":     envRefta(),
-		"envRecorder":  envRecorder(),
-		"envOthers":    envOthers(),
-		"envPointPool": envPointPool(),
+		"envCommon":   envCommon(),
+		"envDataway":  envDataway(),
+		"envLog":      envLog(),
+		"envPprof":    envPprof(),
+		"envElect":    envElect(),
+		"envHTTPAPI":  envHTTPAPI(),
+		"envConfd":    envConfd(),
+		"envGit":      envGit(),
+		"envSinker":   envSinker(),
+		"envIO":       envIO(),
+		"envDca":      envDca(),
+		"envRefta":    envRefta(),
+		"envRecorder": envRecorder(),
+		"envOthers":   envOthers(),
+		// "envPointPool": envPointPool(),
 	},
 }
 
@@ -206,36 +206,36 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_CAPACITY",
 			Type:    doc.Float,
-			Desc:    "Set WAL disk cache capacity [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 占用的磁盘大小 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL disk cache capacity [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 占用的磁盘大小 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_WORKERS",
 			Type:    doc.Int,
-			Desc:    "Set WAL workers, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL workers, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_MEM_CAPACITY",
 			Type:    doc.Int,
-			Desc:    "Set WAL memory queue length, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL memory queue length, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_PATH",
 			Type:    doc.String,
-			Desc:    "Set WAL disk path, default path is *cache/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *cache/dw-wal* [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL disk path, default path is *cache/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *cache/dw-wal* [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_FAIL_CACHE_CLEAN_INTERVAL",
 			Type:    doc.TimeDuration,
-			Desc:    "Set WAL fail-cache clean interval, default `30s`[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "设置 WAL 失败队列的重试间隔，默认 `30s` [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
+			Desc:    "Set WAL fail-cache clean interval, default `30s`[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 失败队列的重试间隔，默认 `30s` [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 	}
 
@@ -428,8 +428,8 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Type:    doc.List,
 			Default: "-",
 			Example: "Origin,Access-Control-Allow-Origin,Access-Control-Allow-Methods",
-			Desc:    "Setup CORS on Datakit HTTP APIs(split by `,`) [:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)",
-			DescZh:  "设置 Datakit API CORS 属性（英文逗号分割）[:octicons-tag-24: Version-1.61.0](changelog.md#cl-1.61.0)",
+			Desc:    "Setup CORS on Datakit HTTP APIs(split by `,`) [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 Datakit API CORS 属性（英文逗号分割）[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 	}
 
@@ -548,29 +548,29 @@ func envIO() []*inputs.ENVInfo {
 			ENVName: "~~ENV_IO_ENABLE_CACHE~~",
 			Type:    doc.Boolean,
 			Default: "false",
-			Desc:    "Whether to open the disk cache that failed to send. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "是否开启发送失败的磁盘缓存。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+			Desc:    "Whether to open the disk cache that failed to send. Removed in [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "是否开启发送失败的磁盘缓存。[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 版本已移除",
 		},
 		{
 			ENVName: "~~ENV_IO_CACHE_ALL~~",
 			Type:    doc.Boolean,
 			Default: "false",
-			Desc:    "Cache failed data points of all categories. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "是否 cache 所有发送失败的数据。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+			Desc:    "Cache failed data points of all categories. Removed in [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "是否 cache 所有发送失败的数据。[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 版本已移除",
 		},
 		{
 			ENVName: "~~ENV_IO_CACHE_MAX_SIZE_GB~~",
 			Type:    doc.Int,
 			Default: "10",
-			Desc:    "Disk size of send failure cache (in GB). Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "发送失败缓存的磁盘大小（单位 GB）。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+			Desc:    "Disk size of send failure cache (in GB). Removed in [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "发送失败缓存的磁盘大小（单位 GB）。[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 版本已移除",
 		},
 		{
 			ENVName: "~~ENV_IO_CACHE_CLEAN_INTERVAL~~",
 			Type:    doc.TimeDuration,
 			Default: "5s",
-			Desc:    "Periodically send failed tasks cached on disk. Removed in [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)",
-			DescZh:  "定期发送缓存在磁盘内的失败任务。[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 版本已移除",
+			Desc:    "Periodically send failed tasks cached on disk. Removed in [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "定期发送缓存在磁盘内的失败任务。[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 版本已移除",
 		},
 	}
 
@@ -652,6 +652,7 @@ func envOthers() []*inputs.ENVInfo {
 	return doc.SetENVDoc("", infos)
 }
 
+// nolint:deadcode,unused
 func envPointPool() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{

@@ -60,7 +60,7 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     
     ### HTTP Request Frequency Control {#set-http-api-limit}
 
-    > [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) default enabled this limit.
+    > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) default enabled this limit.
     
     As DataKit needs to receive a large number of external data writes, in order to avoid causing huge overhead to the host node, the following HTTP configuration can be modified (it is not turned on by default):
     
@@ -172,6 +172,8 @@ The following content involves some advanced configuration. If you are not sure 
 
 [:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
+
+> Point pool proved to be slow performance, do not enable it for production.
 
 To optimize Datakit's memory usage under high load conditions, we can enable *Point Pool* to alleviate the pressure:
 

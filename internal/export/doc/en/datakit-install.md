@@ -317,7 +317,7 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 
 ### APM Instrumentation {#apm-instrumentation}
 
-[:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
+[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
 By specifying `DK_APM_INSTRUMENTATION_ENABLED=host` in the installation command, you can automatically inject APM for Java/Python applications:
 

@@ -79,14 +79,14 @@ Datakit 基本 Monitor 页面信息如下图所示：
 - `Filter` 展示 Datakit 中黑名单过滤规则拉取情况
 - `Filter Rules` 展示每类黑名单的过滤情况
 - `Pipeline Info` 展示 Pipeline 运行情况
-- `WAL Info` WAL 队列的使用情况 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
+- `WAL Info` WAL 队列的使用情况 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)
 
     WAL 队列由两部分组成，少量的内存队列以及默认 2GB 的磁盘队列。此处，`mem` 指内存队列处理的点数，`disk` 指磁盘队列处理的点数，`drop` 指磁盘队列丢弃的点数（比如磁盘队列满了）。Total 指总点数。
 
 - `Point Upload Info` 展示数据上传通道的运行情况 [^point-upload-info-on-160]
 - `DataWay APIs` 展示 Dataway API 的调用情况
 
-[^point-upload-info-on-160]: [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0) 对这里有更新，之前的版本在这里的显示稍有差异。
+[^point-upload-info-on-160]: [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 对这里有更新，之前的版本在这里的显示稍有差异。
 
 ## FAQ {#faq}
 
