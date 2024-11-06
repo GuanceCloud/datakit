@@ -71,7 +71,7 @@ func TestLoadEnv(t *testing.T) {
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.PointPool.Enable = true
+				cfg.PointPool.Enable = false
 				cfg.PointPool.ReservedCapacity = 1234
 
 				return cfg

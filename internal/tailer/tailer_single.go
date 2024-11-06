@@ -7,7 +7,6 @@ package tailer
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,7 +22,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/bytechannel"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
@@ -56,7 +54,6 @@ type Single struct {
 
 	offset    int64
 	readLines int64
-	bc        bytechannel.ByteChannel
 
 	partialContentBuff bytes.Buffer
 
@@ -78,7 +75,6 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	t := &Single{
 		opt:      c,
 		filepath: filepath,
-		bc:       bytechannel.NewByteChannel(),
 	}
 	t.buildTags(t.opt.extraTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
@@ -127,46 +123,9 @@ func (t *Single) setup() error {
 	return nil
 }
 
-var processorGo = datakit.G("tailer_processor")
-
 func (t *Single) Run() {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	processorGo.Go(func(_ context.Context) error {
-		for {
-			select {
-			case <-datakit.Exit.Wait():
-				cancel()
-				t.log.Infof("%s processor exit", t.opt.source)
-				return nil
-			case <-t.opt.done:
-				cancel()
-				t.log.Infof("%s processor exit", t.opt.source)
-				return nil
-			case <-ctx.Done():
-				t.log.Infof("%s processor exit", t.opt.source)
-				return nil
-			default:
-				// nil
-			}
-
-			block := t.bc.Receive()
-			if len(block) == 0 {
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			lines := reader.SplitLines(block)
-			t.process(t.opt.mode, lines)
-
-			pendingBlockLength.WithLabelValues(t.opt.source, t.filepath).Set(float64(t.bc.CurrentChannelSize()))
-			pendingByteSize.WithLabelValues(t.opt.source, t.filepath).Set(float64(t.bc.CurrentByteSize()))
-		}
-	})
-
-	t.forwardMessage(ctx)
+	t.forwardMessage()
 	t.Close()
-	cancel()
 }
 
 func (t *Single) Close() {
@@ -279,13 +238,16 @@ func (t *Single) reopen() error {
 }
 
 //nolint:cyclop
-func (t *Single) forwardMessage(ctx context.Context) {
+func (t *Single) forwardMessage() {
 	checkTicker := time.NewTicker(checkInterval)
 	defer checkTicker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-datakit.Exit.Wait():
+			t.log.Infof("exiting: file %s", t.filepath)
+			return
+		case <-t.opt.done:
 			t.log.Infof("exiting: file %s", t.filepath)
 			return
 
@@ -294,7 +256,7 @@ func (t *Single) forwardMessage(ctx context.Context) {
 			exist := openfile.FileExists(t.filepath)
 
 			if did || !exist {
-				t.readToEOF(ctx)
+				t.readToEOF()
 			}
 
 			if did {
@@ -313,7 +275,7 @@ func (t *Single) forwardMessage(ctx context.Context) {
 		default: // nil
 		}
 
-		if err := t.readOnce(ctx); err != nil {
+		if err := t.readOnce(); err != nil {
 			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
@@ -323,14 +285,16 @@ func (t *Single) forwardMessage(ctx context.Context) {
 	}
 }
 
-func (t *Single) readToEOF(ctx context.Context) {
+func (t *Single) readToEOF() {
 	t.log.Infof("file %s has been rotated or removed, current offset %d, try to read EOF", t.filepath, t.offset)
 	for {
 		select {
-		case <-ctx.Done():
+		case <-datakit.Exit.Wait():
+			return
+		case <-t.opt.done:
 			return
 		default:
-			if err := t.readOnce(ctx); err != nil {
+			if err := t.readOnce(); err != nil {
 				if !errors.Is(err, reader.ErrReadEmpty) {
 					t.log.Warnf("read to EOF err: %s", err)
 				}
@@ -340,13 +304,15 @@ func (t *Single) readToEOF(ctx context.Context) {
 	}
 }
 
-func (t *Single) readOnce(ctx context.Context) error {
+func (t *Single) readOnce() error {
 	block, readNum, err := t.reader.ReadLineBlock()
 	if err != nil {
 		return err
 	}
 
-	t.bc.SendSync(ctx, block)
+	lines := reader.SplitLines(block)
+	t.process(t.opt.mode, lines)
+
 	t.offset += int64(readNum)
 	t.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
 	return nil
@@ -442,32 +408,31 @@ func (t *Single) feedToRemote(pending [][]byte) {
 
 func (t *Single) feedToIO(pending [][]byte) {
 	pts := []*point.Point{}
+
+	opts := append(point.DefaultLoggingOptions(), point.WithPrecheck(false), point.WithTimestamp(0))
 	// -1us
 	timeNow := time.Now().Add(-time.Duration(len(pending)) * time.Microsecond)
+
 	for i, cnt := range pending {
 		t.readLines++
 
-		fields := map[string]interface{}{
-			"filepath":            t.filepath,
-			"log_read_lines":      t.readLines,
-			pipeline.FieldMessage: string(cnt),
-			pipeline.FieldStatus:  pipeline.DefaultStatus,
+		kvs := make(point.KVs, 0, len(t.tags)+4)
+		kvs = kvs.AddTag("filepath", t.filepath).
+			Add("log_read_lines", t.readLines, false, false).
+			AddTag(pipeline.FieldMessage, string(cnt)).
+			AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
+
+		for key, value := range t.tags {
+			kvs = kvs.AddTag(key, value)
 		}
+
 		if t.opt.enableDebugFields {
-			fields["log_read_offset"] = t.offset
-			fields["log_file_inode"] = t.inode
+			kvs = kvs.Add("log_read_offset", t.offset, false, false)
+			kvs = kvs.Add("log_file_inode", t.inode, false, false)
 		}
 
-		opts := append(point.DefaultLoggingOptions(),
-			point.WithTime(timeNow.Add(time.Duration(i)*time.Microsecond)),
-			point.WithPrecheck(false),
-		)
-
-		pt := point.NewPointV2(
-			t.opt.source,
-			append(point.NewTags(t.tags), point.NewKVs(fields)...),
-			opts...,
-		)
+		pt := point.NewPointV2(t.opt.source, kvs, opts...)
+		pt.SetTime(timeNow.Add(time.Duration(i) * time.Microsecond))
 		pts = append(pts, pt)
 	}
 

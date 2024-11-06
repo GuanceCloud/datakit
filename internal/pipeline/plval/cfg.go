@@ -39,7 +39,7 @@ type PipelineCfg struct {
 	UseSQLite              bool                   `toml:"use_sqlite"`
 	SQLiteMemMode          bool                   `toml:"sqlite_mem_mode"`
 	Offload                *offload.OffloadConfig `toml:"offload"`
-	EnableDebugFields      bool                   `toml:"_"`
+	EnableDebugFields      bool                   `toml:"-"`
 	DefaultPipeline        map[string]string      `toml:"default_pipeline"`
 
 	DeprecatedDisableAppendRunInfo bool `toml:"disable_append_run_info"`

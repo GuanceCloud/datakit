@@ -124,7 +124,7 @@ func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		DefaultEnabledInputs: []string{},
 		PointPool: &pointPool{
-			Enable:           true,
+			Enable:           false,
 			ReservedCapacity: 4096,
 		},
 

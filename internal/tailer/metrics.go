@@ -17,9 +17,6 @@ var (
 	socketLogConnect *prometheus.CounterVec
 	socketLogCount   *prometheus.CounterVec
 	socketLogLength  *prometheus.SummaryVec
-
-	pendingBlockLength *prometheus.GaugeVec
-	pendingByteSize    *prometheus.GaugeVec
 )
 
 func setupMetrics() {
@@ -95,24 +92,6 @@ func setupMetrics() {
 		},
 		[]string{"network"})
 
-	pendingBlockLength = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "datakit",
-			Subsystem: "input_logging",
-			Name:      "pending_block_length",
-			Help:      "The length of blocks that are pending processing",
-		},
-		[]string{"source", "filepath"})
-
-	pendingByteSize = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "datakit",
-			Subsystem: "input_logging",
-			Name:      "pending_byte_size",
-			Help:      "The size of bytes that are pending processing",
-		},
-		[]string{"source", "filepath"})
-
 	metrics.MustRegister(
 		openfileVec,
 		parseFailVec,
@@ -120,8 +99,6 @@ func setupMetrics() {
 		socketLogLength,
 		socketLogCount,
 		socketLogConnect,
-		pendingBlockLength,
-		pendingByteSize,
 	)
 }
 
