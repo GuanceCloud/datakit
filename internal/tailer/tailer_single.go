@@ -419,7 +419,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 		kvs := make(point.KVs, 0, len(t.tags)+4)
 		kvs = kvs.AddTag("filepath", t.filepath).
 			Add("log_read_lines", t.readLines, false, false).
-			AddTag(pipeline.FieldMessage, string(cnt)).
+			Add(pipeline.FieldMessage, string(cnt), false, false).
 			AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
 
 		for key, value := range t.tags {
