@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.62.0(2024/11/07) {#cl-1.62.1}
+
+This release is a Hotfix release addressing the following issues:
+
+- Fix bug on field `message` that lead to truncate on 1024 bytes
+
+---
+
 ## 1.62.0 (2024/11/06) {#cl-1.62.0}
 
 This release is an iterative update, with the following main changes:
