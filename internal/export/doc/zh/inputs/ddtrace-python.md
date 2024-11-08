@@ -1,5 +1,5 @@
 ---
-title     : 'DDTrace Phthon'
+title     : 'DDTrace Python'
 summary   : 'DDTrace Python 集成'
 tags      :
   - 'DDTRACE'
