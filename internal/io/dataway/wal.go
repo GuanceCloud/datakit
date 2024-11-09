@@ -80,7 +80,7 @@ func (q *WALQueue) Put(b *body) error {
 		if putStatus != "" {
 			walPointCounterVec.WithLabelValues(b.cat().Alias(), putStatus).Add(float64(b.npts()))
 		}
-		defer putBody(b) // b has dump to disk, do not used any more.
+		putBody(b) // b has dump to disk, do not used any more.
 	}()
 
 	if x, err := b.dump(); err != nil {

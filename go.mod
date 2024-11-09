@@ -348,7 +348,6 @@ require (
 
 require (
 	github.com/DataDog/ebpf-manager v0.2.16
-	github.com/GuanceCloud/cliutils v1.1.22-0.20241031061809-f09c1c8d67ef
 	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
@@ -375,7 +374,9 @@ require (
 )
 
 require (
+	github.com/GuanceCloud/cliutils v1.1.22-0.20241109073847-822ded9f9036
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
+	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -383,16 +384,13 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/klauspost/pgzip v1.2.6
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/valyala/fastjson v1.6.3
 )
-
-require github.com/andybalholm/brotli v1.0.4
-
-require github.com/klauspost/pgzip v1.2.6
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

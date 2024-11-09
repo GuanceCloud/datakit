@@ -22,8 +22,13 @@ func WithEncEncoding(enc Encoding) EncoderOption { return func(e *Encoder) { e.e
 func WithEncFn(fn EncodeFn) EncoderOption        { return func(enc *Encoder) { enc.fn = fn } }
 func WithEncBatchSize(size int) EncoderOption    { return func(e *Encoder) { e.batchSize = size } }
 func WithEncBatchBytes(bytes int) EncoderOption  { return func(e *Encoder) { e.bytesSize = bytes } }
+
+// WithIgnoreLargePoint will skip too-large point that can't encoded into buffer.
 func WithIgnoreLargePoint(on bool) EncoderOption { return func(e *Encoder) { e.ignoreLargePoint = on } }
-func WithLoosePointSize(on bool) EncoderOption   { return func(e *Encoder) { e.looseSize = on } }
+
+// WithApproxSize used to calculate the not-precise bytes required for protobuf encoding. Default to true
+// for better performance under busy encoding conditions.
+func WithApproxSize(on bool) EncoderOption { return func(e *Encoder) { e.approxsize = on } }
 
 type Encoder struct {
 	pts []*Point
@@ -47,7 +52,7 @@ type Encoder struct {
 
 	// get point size on pt.Size() instead of pt.PBSize()
 	// pt.Size() is faster(2X) than pt.PBSize(), but the later is more precise.
-	looseSize        bool
+	approxsize       bool
 	ignoreLargePoint bool
 }
 
@@ -96,7 +101,7 @@ func (e *Encoder) reset() {
 	e.pbpts.Arr = e.pbpts.Arr[:0]
 	e.lpPointBuf = e.lpPointBuf[:0]
 	e.ignoreLargePoint = false
-	e.looseSize = false
+	e.approxsize = true
 
 	e.totalBytes = 0
 }
@@ -229,8 +234,7 @@ func (e *Encoder) Encode(pts []*Point) ([][]byte, error) {
 }
 
 var (
-	errTooSmallBuffer    = errors.New("too small buffer")
-	errShouleNotBeenHere = errors.New("should not been here")
+	errTooSmallBuffer = errors.New("too small buffer")
 )
 
 func (e *Encoder) LastErr() error {

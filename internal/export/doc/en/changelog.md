@@ -1,6 +1,14 @@
 # Changelog
 
-## 1.62.0(2024/11/07) {#cl-1.62.1}
+## 1.62.2(2024/11/09) {#cl-1.62.2}
+
+This release is a Hotfix release addressing the following issues:
+
+- Fix bug encoding points that may drop tail-points (#2453)
+
+---
+
+## 1.62.1(2024/11/07) {#cl-1.62.1}
 
 This release is a Hotfix release addressing the following issues:
 
