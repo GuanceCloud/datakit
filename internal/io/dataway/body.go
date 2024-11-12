@@ -275,7 +275,7 @@ func (w *writer) buildPointsBody() error {
 
 		if w.bcb != nil {
 			if err := w.bcb(w, b); err != nil {
-				l.Warnf("%d points to %q bytes failed: %q, ignored",
+				l.Warnf("compact %d points on category %q failed: %q, ignored",
 					nptsArr[parts], w.category, err.Error())
 			}
 		}

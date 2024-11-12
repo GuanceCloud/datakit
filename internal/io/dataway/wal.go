@@ -189,19 +189,17 @@ func (q *WALQueue) DiskGet(fn walBodyCallback, opts ...bodyOpt) error {
 func (dw *Dataway) doSetupWAL(cacheDir string) (*WALQueue, error) {
 	dc, err := diskcache.Open(
 		diskcache.WithPath(cacheDir),
-
-		// drop new data if cache full, no matter normal WAL or fail-cache WAL.
-		diskcache.WithFILODrop(true),
-
-		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30))),
+		diskcache.WithNoLock(true),            // disable .lock file checking
+		diskcache.WithFILODrop(true),          // drop new data if cache full, no matter normal WAL or fail-cache WAL.
 		diskcache.WithWakeup(defaultRotateAt), // short wakeup on wal queue
+		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30))),
 	)
 	if err != nil {
 		l.Errorf("NewWALCache %s with capacity %f GB: %s", cacheDir, dw.WAL.MaxCapacityGB, err.Error())
 		return nil, err
 	}
 
-	l.Infof("diskcache.New ok(%q) of %f GB", dw.WAL.Path, dw.WAL.MaxCapacityGB)
+	l.Infof("diskcache.New ok(%q) of %fGiB", cacheDir, dw.WAL.MaxCapacityGB)
 
 	return NewWAL(dw, dc), nil
 }
