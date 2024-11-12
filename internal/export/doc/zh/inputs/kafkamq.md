@@ -46,9 +46,10 @@ Datakit 支持从 Kafka 中订阅消息采集链路、指标和日志信息。�
 配置文件注意的地方：
 
 1. `kafka_version`: 长度为 3，例如：`1.0.0`，`1.2.1` 等等
-1. `offsets`: 注意是 `Newest` 还是 `Oldest`
-1. `SASL` : 如果开启了安全认证，请正确配置用户和密码，如果 Kafka 监听地址是域名形式，请在 `/etc/hosts` 添加映射 IP
-1. 自 v1.23.0 开始支持多线程模式。
+2. `offsets`: 注意是 `Newest` 还是 `Oldest`
+3. `SASL` : 如果开启了安全认证，请正确配置用户和密码，如果 Kafka 监听地址是域名形式，请在 `/etc/hosts` 添加映射 IP
+4. 当使用 SSL 时，将证书路径配置到 `ssl_cert` 中。
+5. 自 v1.23.0 开始支持多线程模式。
 
 ### 消费组和消息分区 {#consumer_group}
 
