@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	TCP               = "tcp"
-	UDP               = "udp"
-	minInterval       = time.Second
-	maxInterval       = time.Second * 120
-	defaultBufferSize = 100
-	defaultPort       = ":9109"
-	inputName         = "graphite"
-	sampleConfig      = `
+	TCP                = "tcp"
+	UDP                = "udp"
+	minInterval        = time.Second
+	maxInterval        = time.Second * 120
+	defaultBufferSize  = 100
+	defaultPort        = ":9109"
+	defaultMeasurement = "graphite"
+	inputName          = "graphite"
+	sampleConfig       = `
 [[inputs.graphite]]
   ## Address to open UDP/TCP, default 9109
   address = ":9109"
@@ -38,6 +39,7 @@ const (
   # [[inputs.graphite.metric_mapper.mappings]]
   # match = "test.dispatcher.*.*.*"
   # name = "dispatcher_events_total"
+  # measurement_name = "dispatcher_test"
 
   # [inputs.graphite.metric_mapper.mappings.labels]
   # action = "$2"
@@ -48,6 +50,7 @@ const (
   # [[inputs.graphite.metric_mapper.mappings]]
   # match = "*.signup.*.*"
   # name = "signup_events_total"
+  # measurement_name = "signup_set"
 
   # [inputs.graphite.metric_mapper.mappings.labels]
   # job = "${1}_server"
@@ -59,6 +62,7 @@ const (
   # match = '''servers\.(.*)\.networking\.subnetworks\.transmissions\.([a-z0-9-]+)\.(.*)'''
   # match_type = "regex"
   # name = "servers_networking_transmissions_${3}"
+  # measurement_name = "servers_networking"
 
   # [inputs.graphite.metric_mapper.mappings.labels]
   # hostname = "${1}"
@@ -99,9 +103,10 @@ func (m *Measurement) Point() *point.Point {
 }
 
 type graphiteMetric struct {
-	OriginalName string
-	Name         string
-	Value        float64
-	Labels       mapper.Labels
-	Timestamp    time.Time
+	OriginalName    string
+	MeasurementName string // 指标集名
+	Name            string
+	Value           float64
+	Labels          mapper.Labels
+	Timestamp       time.Time
 }

@@ -194,6 +194,11 @@ func (m *MetricMapper) MapperSetup() error {
 			}
 		}
 
+		if currentMapping.MeasurementName == "" {
+			currentMapping.MeasurementName = defaultMeasurement
+			m.logger.Infof("line %d: metric mapping didn't set a measurement name, default to graphite", i)
+		}
+
 		if currentMapping.Name == "" {
 			return fmt.Errorf("line %d: metric mapping didn't set a metric name", i)
 		}
@@ -334,6 +339,10 @@ func copyMetricMapping(in *MetricMapping) *MetricMapping {
 }
 
 type MetricType string
+
+const (
+	defaultMeasurement = "grahite"
+)
 
 const (
 	MetricTypeCounter  MetricType = "counter"

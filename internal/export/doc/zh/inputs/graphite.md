@@ -38,7 +38,7 @@ Graphite 采集器可以接收以 Graphite plaintext protocol 格式的指标数
 
 ## 指标映射配置 {#metric-mapping-configuration}
 
-Graphite 采集器可以通过在配置文件里配置映射格式将 **点格式**(例如 `testA.testB.testC`)的 Graphite plaintext protocol 转为带标记的指标。这个指标的转换规则类似于 `statsd_exporter` 的转换规则，但是在这里是 TOML 格式的配置。
+Graphite 采集器可以通过在配置文件里配置映射格式将 **点格式**(例如 `testA.testB.testC`)的 Graphite plaintext protocol 转为带标记的指标。这个指标的转换规则类似于 `statsd_exporter` 的转换规则，但是在这里是 TOML 格式的配置。 在此处进行配置时，需指定指标集的名称 `measurement_name`，对应映射的指标将归为指标集内，如果未设置指标集名或没有配置映射规则，则默认在 `graphite` 指标集下。
 
 没有配置映射规则的指标，会把除 `_`, `:` 之外的符号的非字母数字符号都替换为 `_`。
 
@@ -50,6 +50,7 @@ name = "test"
 [[inputs.graphite.metric_mapper.mappings]]
 match = "test.dispatcher.*.*.*"
 name = "dispatcher_events_total"
+measurement_name = "dispatcher_test"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 action = "$2"
@@ -60,6 +61,7 @@ processor = "$1"
 [[inputs.graphite.metric_mapper.mappings]]
 match = "*.signup.*.*"
 name = "signup_events_total"
+measurement_name = "signup_set"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 job = "${1}_server"
@@ -70,6 +72,7 @@ provider = "$2"
 match = "servers\\.(.*)\\.networking\\.subnetworks\\.transmissions\\.([a-z0-9-]+)\\.(.*)"
 match_type = "regex"
 name = "servers_networking_transmissions_${3}"
+measurement_name = "servers_networking"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 hostname = "${1}"
@@ -144,6 +147,7 @@ test.web-server.foo.bar
 [[inputs.graphite.metric_mapper.mappings]]
 match = "test.*.*.counter"
 name = "${2}_total"
+measurement_name = "test_counter"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 provider = "$1"
@@ -164,6 +168,7 @@ provider = "$1"
 match = "servers\.(.*)\.networking\.subnetworks\.transmissions\.([a-z0-9-]+)\.(.*)"
 match_type = "regex"
 name = "servers_networking_transmissions_${3}"
+measurement_name = "servers_networking"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 hostname = "${1}"

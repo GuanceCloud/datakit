@@ -44,7 +44,7 @@ The Graphite collector can receive metrics data in Graphite plaintext protocol f
 
 Graphite collector can be configured to translate specific **dot-separated** graphite metrics into labeled metrics via configuration file. The conversion rules for these metrics are similar to the rules in statsd_exporter, but here they are configured in TOML format.
 
-Metrics that don't match any mapping in the configuration file are translated into metrics without any labels and with names in which every non-alphanumeric character except `_` and `:` is replaced with `_`.
+Metrics that don't match any mapping in the configuration file are translated into metrics without any labels and with names in which every non-alphanumeric character except `_` and `:` is replaced with `_`. When configuring here, you need to specify the name of the metric set `measurement_name`, and the mapped metrics will be categorized under this metric set. If the metric set name is not specified or no mapping rules are configured, it will default to the `graphite` metric set.
 
 An example mapping configuration:
 
@@ -54,6 +54,7 @@ name = "test"
 [[inputs.graphite.metric_mapper.mappings]]
 match = "test.dispatcher.*.*.*"
 name = "dispatcher_events_total"
+measurement_name = "dispatcher_test"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 action = "$2"
@@ -64,6 +65,7 @@ processor = "$1"
 [[inputs.graphite.metric_mapper.mappings]]
 match = "*.signup.*.*"
 name = "signup_events_total"
+measurement_name = "signup_set"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 job = "${1}_server"
@@ -74,6 +76,7 @@ provider = "$2"
 match = "servers\\.(.*)\\.networking\\.subnetworks\\.transmissions\\.([a-z0-9-]+)\\.(.*)"
 match_type = "regex"
 name = "servers_networking_transmissions_${3}"
+measurement_name = "servers_networking"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 hostname = "${1}"
@@ -148,6 +151,7 @@ test.web-server.foo.bar
 [[inputs.graphite.metric_mapper.mappings]]
 match = "test.*.*.counter"
 name = "${2}_total"
+measurement_name = "test_counter"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 provider = "$1"
@@ -168,6 +172,7 @@ An example mapping configuration:
 match = "servers\.(.*)\.networking\.subnetworks\.transmissions\.([a-z0-9-]+)\.(.*)"
 match_type = "regex"
 name = "servers_networking_transmissions_${3}"
+measurement_name = "servers_networking"
 
 [inputs.graphite.metric_mapper.mappings.labels]
 hostname = "${1}"

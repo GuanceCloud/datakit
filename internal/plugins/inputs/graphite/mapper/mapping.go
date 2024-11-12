@@ -18,6 +18,7 @@ type Labels map[string]string
 type MetricMapping struct {
 	Match           string `toml:"match"`
 	Name            string `toml:"name"`
+	MeasurementName string `toml:"measurement_name"`
 	nameFormatter   *fsm.TemplateFormatter
 	regex           *regexp.Regexp
 	Labels          Labels `toml:"labels"`
