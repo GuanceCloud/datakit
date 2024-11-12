@@ -234,12 +234,20 @@ func (ipt *Input) processLine(line string) {
 		return
 	}
 
+	var measurementName string
+	if mappingPresent {
+		measurementName = mapping.MeasurementName
+	} else {
+		measurementName = defaultMeasurement
+	}
+
 	m := graphiteMetric{
-		OriginalName: originalName,
-		Name:         name,
-		Value:        value,
-		Labels:       labels,
-		Timestamp:    time.Unix(int64(timestamp), int64(math.Mod(timestamp, 1.0)*1e9)),
+		OriginalName:    originalName,
+		MeasurementName: measurementName,
+		Name:            name,
+		Value:           value,
+		Labels:          labels,
+		Timestamp:       time.Unix(int64(timestamp), int64(math.Mod(timestamp, 1.0)*1e9)),
 	}
 	lastProcessed.Set(float64(time.Now().UnixNano()) / 1e9)
 	ipt.outCh <- &m
@@ -317,7 +325,7 @@ func (ipt *Input) sendMetric(measurements []*graphiteMetric, start time.Time) {
 		kvs = kvs.Add(metric.Name, metric.Value, false, true)
 		kvs = kvs.Add("timestamp", metric.Timestamp, false, true)
 
-		pts = append(pts, point.NewPointV2(metric.Name, kvs, opts...))
+		pts = append(pts, point.NewPointV2(metric.MeasurementName, kvs, opts...))
 	}
 
 	if len(pts) > 0 {
