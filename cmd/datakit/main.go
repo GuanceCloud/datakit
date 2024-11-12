@@ -240,8 +240,13 @@ func startDatawayWorkers() {
 		dataway.WithWALWorkers(n)(dw)
 	}
 
-	if err := dw.StartFlushWorkers(); err != nil {
-		l.Errorf("StartFlushWorkers failed: %s", err)
+	for {
+		if err := dw.StartFlushWorkers(); err != nil {
+			l.Errorf("StartFlushWorkers failed: %s, retrying...", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 }
 

@@ -84,6 +84,9 @@ func (dw *Dataway) newFlusher(cat point.Category) *flusher {
 
 func (dw *Dataway) enqueueBody(w *writer, b *body) error {
 	q := dw.walq[w.category]
+	if q == nil {
+		return fmt.Errorf("WAL on %s not set, should not been here", w.category)
+	}
 
 	l.Debugf("walq pub %s to %s(q: %+#v)", b, w.category.Alias(), q)
 
