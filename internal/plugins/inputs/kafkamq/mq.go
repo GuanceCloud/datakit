@@ -9,6 +9,8 @@ package kafkamq
 import (
 	"crypto/sha256"
 	"crypto/sha512"
+	"crypto/tls"
+	"crypto/x509"
 	"os"
 	"strings"
 
@@ -73,7 +75,7 @@ func withOffset(offset int64) option {
 	}
 }
 
-func withSASL(enable bool, mechanism, username, pw string) option {
+func withSASL(enable bool, protocol, mechanism, username, pw, cert string) option {
 	return func(config *sarama.Config) {
 		if enable {
 			config.Net.SASL.Enable = true
@@ -87,6 +89,24 @@ func withSASL(enable bool, mechanism, username, pw string) option {
 			case sarama.SASLTypeSCRAMSHA256:
 				config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
 			default:
+			}
+
+			if protocol == "SASL_SSL" {
+				bts, err := os.ReadFile(cert) //nolint
+				if err != nil {
+					log.Errorf("can not read file:%s and err=%v", cert, err)
+					return
+				}
+				pool := x509.NewCertPool()
+				if ok := pool.AppendCertsFromPEM(bts); !ok {
+					log.Errorf("failed to parse root certificate file")
+				}
+
+				config.Net.TLS.Config = &tls.Config{
+					RootCAs:            pool,
+					InsecureSkipVerify: true, //nolint
+				}
+				config.Net.TLS.Enable = true
 			}
 		}
 	}

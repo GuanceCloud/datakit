@@ -36,10 +36,14 @@ const mqSampleConfig = `
 
   ## kafka tls config
   # tls_enable = true
+  ## PLAINTEXT/SASL_SSL/SASL_PLAINTEXT
   # tls_security_protocol = "SASL_PLAINTEXT"
+  ## PLAIN/SCRAM-SHA-256/SCRAM-SHA-512/OAUTHBEARER,default is PLAIN.
   # tls_sasl_mechanism = "PLAIN"
   # tls_sasl_plain_username = "user"
   # tls_sasl_plain_password = "pw"
+  ## If tls_security_protocol is SASL_SSL, then ssl_cert must be configured.
+  # ssl_cert = "/path/to/host.cert"
 
   ## -1:Offset Newest, -2:Offset Oldest
   offsets=-1
@@ -123,10 +127,11 @@ type Input struct {
 	LimitSec             int      `toml:"limit_sec"`     // 令牌桶速率限制，每秒多少个.
 	SamplingRate         float64  `toml:"sampling_rate"` // 采集率：主要针对自定义topic
 	TLSEnable            bool     `toml:"tls_enable"`
-	TLSSecurityProtocol  string   `toml:"tls_security_protocol"`
-	TLSSaslMechanism     string   `toml:"tls_sasl_mechanism"`
-	TLSSaslPlainUsername string   `toml:"tls_sasl_plain_username"`
-	TLSSaslPlainPassword string   `toml:"tls_sasl_plain_password"`
+	TLSSecurityProtocol  string   `toml:"tls_security_protocol"`   // 安全协议
+	TLSSaslMechanism     string   `toml:"tls_sasl_mechanism"`      // 传输机制：明文/加密传输
+	TLSSaslPlainUsername string   `toml:"tls_sasl_plain_username"` // 用户名
+	TLSSaslPlainPassword string   `toml:"tls_sasl_plain_password"` // 密码
+	SSLCert              string   `toml:"ssl_cert"`                // 公钥证书
 	Offsets              int64    `toml:"offsets"`
 
 	SkyWalking *skywalking.SkyConsumer   `toml:"skywalking"`    // 命名时 注意区分源
@@ -162,7 +167,8 @@ func (ipt *Input) Run() {
 	config := newSaramaConfig(withVersion(ipt.KafkaVersion),
 		withAssignors(ipt.Assignor),
 		withOffset(ipt.Offsets),
-		withSASL(ipt.TLSEnable, ipt.TLSSaslMechanism, ipt.TLSSaslPlainUsername, ipt.TLSSaslPlainPassword),
+		withSASL(ipt.TLSEnable, ipt.TLSSecurityProtocol, ipt.TLSSaslMechanism,
+			ipt.TLSSaslPlainUsername, ipt.TLSSaslPlainPassword, ipt.SSLCert),
 	)
 
 	ipt.kafka = &kafkaConsumer{

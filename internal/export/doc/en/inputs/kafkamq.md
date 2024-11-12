@@ -49,7 +49,8 @@ Notes on configuration files:
 1. `kafka_version`: The version length is 3, such as 1.0.0, 1.2.1, and so on.
 2. `offsets`: note: Newest or Oldest.
 3. `SASL`: If security authentication is enabled, please configure the user and password correctly.
-4. Starting from v1.23.0, it supports multi-threaded mode.
+4. When using SSL, configure the certificate path into `ssl_cert`.
+5. Starting from v1.23.0, it supports multi-threaded mode.
 
 ### Consumer group mode {#consumer_group}
 
