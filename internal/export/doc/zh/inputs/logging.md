@@ -297,8 +297,6 @@ Traceback (most recent call last):
 | `debug/trace/verbose` | `d`     | `debug`       |
 | `OK`                  | `o`/`s` | `OK`          |
 
-> 注：如果日志等级（status）不属于上述任何一种（含简写），那么 DataKit 会将其 status 字段置为 `unknown`。
-
 示例：假定文本数据如下：
 
 ```not-set

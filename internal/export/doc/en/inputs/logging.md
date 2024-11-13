@@ -301,8 +301,6 @@ Valid `status` field values are as follows (case-insensitive):
 | `debug/trace/verbose` | `d`     | `debug`       |
 | `OK`                  | `o`/`s` | `OK`          |
 
-> Note: DataKit sets its status field to `unknown` if the log level (status) does not belong to any of the above (including abbreviations).
-
 Example: Assume the text data is as follows:
 
 ```not-set
