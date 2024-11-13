@@ -164,7 +164,7 @@ spec:
         - name: ENV_GLOBAL_ELECTION_TAGS
           value: ""                                            # Default not set
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+          value: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,kubernetesprometheus
         - name: ENV_ENABLE_ELECTION
           value: enable
         - name: ENV_HTTP_LISTEN

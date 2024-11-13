@@ -9,6 +9,7 @@ package inputs
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -467,6 +468,14 @@ func MergeTagsWrapper(origin, global, inputTags map[string]string, remote string
 		}
 	}
 	return MergeTags(global, origin, remote)
+}
+
+func AlignTimestamp(tt time.Time, timestamp int64, interval time.Duration) int64 {
+	t := tt.UnixNano() / 1e6
+	if d := math.Abs(float64(t - timestamp)); d > 0 && d/float64(interval.Milliseconds()) > 0.1 {
+		return t
+	}
+	return timestamp
 }
 
 func Init() {

@@ -80,22 +80,27 @@ func (ipt *Input) Run() {
 		return
 	}
 
+	timestamp := time.Now().UnixNano() / 1e6
+
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
-		if !ipt.pause {
-			ipt.scrape()
-		}
+		timestamp += ipt.Interval.Milliseconds()
 
 		select {
 		case <-datakit.Exit.Wait():
 			ipt.log.Info("prom exit")
 			return
+
 		case ipt.pause = <-ipt.chPause:
 			// nil
-		case <-tick.C:
-			// next
+
+		case tt := <-tick.C:
+			timestamp = inputs.AlignTimestamp(tt, timestamp, ipt.Interval)
+			if !ipt.pause {
+				ipt.scrape(timestamp)
+			}
 		}
 	}
 }
@@ -164,11 +169,12 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) scrape() {
+func (ipt *Input) scrape(timestamp int64) {
 	ipt.lastStart = time.Now()
 	// reset count
 	ipt.count = 0
 
+	ipt.scraper.SetTimestamp(timestamp)
 	if err := ipt.scraper.ScrapeURL(ipt.URL); err != nil {
 		ipt.log.Warn(err)
 	}

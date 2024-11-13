@@ -54,8 +54,6 @@ type Kube struct {
 	lastEventResourceVersion string
 	paused                   func() bool
 	done                     <-chan interface{}
-
-	promCollections []kubeMetricsWithProm
 }
 
 func NewKubeCollector(client k8sclient.Client, cfg *Config, paused func() bool, done <-chan interface{}) (*Kube, error) {
@@ -73,34 +71,6 @@ func NewKubeCollector(client k8sclient.Client, cfg *Config, paused func() bool, 
 		return nil, err
 	}
 
-	var promCollections []kubeMetricsWithProm
-	if cfg.EnableK8sSelfMetricByProm {
-		if collection, err := newKubeApiserverCollection(client, cfg.Feeder); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeletCadvisorCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeletMetricsResourceCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeCorednsCollection(client, cfg.Feeder); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeletProxyCollection(cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeControllerManagerCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeSchedulerCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-		if collection, err := newKubeEtcdCollection(client, cfg.Feeder, cfg.NodeName); err == nil {
-			promCollections = append(promCollections, collection)
-		}
-	}
-
 	return &Kube{
 		cfg:             cfg,
 		client:          client,
@@ -108,7 +78,6 @@ func NewKubeCollector(client k8sclient.Client, cfg *Config, paused func() bool, 
 		paused:          paused,
 		done:            done,
 		onWatchingEvent: &atomic.Bool{},
-		promCollections: promCollections,
 	}, nil
 }
 
@@ -129,14 +98,6 @@ func (k *Kube) Metric(feed func([]*point.Point) error, opts ...option.CollectOpt
 		return
 	}
 
-	for _, collection := range k.promCollections {
-		if collection.Election() && c.Paused {
-			continue
-		}
-		if err := collection.Collect(); err != nil {
-			klog.Warnf("collect prom err: %s", err)
-		}
-	}
 	k.gather("metric", feed, c.Paused)
 }
 

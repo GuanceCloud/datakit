@@ -19,35 +19,41 @@ import (
 )
 
 type Pod struct {
+	role     Role
 	informer infov1.PodInformer
 	queue    workqueue.DelayingInterface
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeManager
+	scrape    scrapeManagerInterface
 	feeder    dkio.Feeder
 }
 
-func NewPod(informerFactory informers.SharedInformerFactory, instances []*Instance, feeder dkio.Feeder) (*Pod, error) {
+func NewPod(
+	informerFactory informers.SharedInformerFactory,
+	instances []*Instance,
+	scrape scrapeManagerInterface,
+	feeder dkio.Feeder,
+) (*Pod, error) {
 	informer := informerFactory.Core().V1().Pods()
 	if informer == nil {
 		return nil, fmt.Errorf("cannot get pod informer")
 	}
+
 	return &Pod{
+		role:     RolePod,
 		informer: informer,
 		queue:    workqueue.NewNamedDelayingQueue(string(RolePod)),
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeManager(RolePod),
+		scrape:    scrape,
 		feeder:    feeder,
 	}, nil
 }
 
 func (p *Pod) Run(ctx context.Context) {
 	defer p.queue.ShutDown()
-
-	p.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	p.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -113,24 +119,24 @@ func (p *Pod) process(ctx context.Context) bool {
 		return true
 	}
 
-	if p.scrape.matchesKey(key, podFeature(pod)) {
+	traits := podTraits(pod)
+	if p.scrape.isTraitsExists(p.role, key, traits) {
 		return true
 	}
 
-	klog.Infof("found new pod %s", key)
+	klog.Infof("discovered Pod %s", key)
 	p.terminateScrape(key)
-	p.startScrape(ctx, key, pod)
+	p.startScrape(ctx, key, traits, pod)
 	return true
 }
 
-func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
-	feature := podFeature(item)
+func (p *Pod) startScrape(ctx context.Context, key, traits string, item *corev1.Pod) {
 	checkPausedFunc := func() bool {
 		return checkPaused(ctx, false /* not use election */)
 	}
 
 	for _, ins := range p.instances {
-		if !ins.validator.Matches(item.Namespace, item.Labels) {
+		if ins.validator != nil && !ins.validator.Matches(item.Namespace, item.Labels) {
 			continue
 		}
 
@@ -149,8 +155,9 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 		}
 
 		opts := buildPromOptions(
-			RolePod, key, p.feeder,
+			p.role, key, p.feeder,
 			promscrape.WithMeasurement(cfg.measurement),
+			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
 
 		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
@@ -159,22 +166,22 @@ func (p *Pod) startScrape(ctx context.Context, key string, item *corev1.Pod) {
 			opts = append(opts, tlsOpts...)
 		}
 
-		prom, err := newPromScraper(RolePod, key, cfg.urlstr, checkPausedFunc, opts)
+		prom, err := newPromScraper(p.role, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue
 		}
 
-		p.scrape.registerScrape(key, feature, prom)
+		p.scrape.registerScrape(p.role, key, traits, prom)
 	}
 }
 
 func (p *Pod) terminateScrape(key string) {
-	p.scrape.terminateScrape(key)
+	p.scrape.removeScrape(p.role, key)
 }
 
-func podFeature(item *corev1.Pod) string {
-	return item.Status.HostIP + ":" + item.Status.PodIP
+func podTraits(item *corev1.Pod) string {
+	return item.Status.HostIP + "/" + item.Status.PodIP
 }
 
 func shouldSkipPod(item *corev1.Pod) bool {

@@ -10,7 +10,28 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 )
+
+func isTrue(s string) bool {
+	return s == "true"
+}
+
+func isKeywords(s string) bool {
+	return strings.HasPrefix(s, "__kubernetes")
+}
+
+func unique(slice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, ok := keys[entry]; !ok {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
 
 func buildURLWithParams(scheme, address, port, path, params string) (*url.URL, error) {
 	u := &url.URL{

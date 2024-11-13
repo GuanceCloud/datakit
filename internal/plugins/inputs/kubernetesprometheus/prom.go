@@ -70,7 +70,7 @@ func (p *promScraper) scrape(defaultTimestamp int64) error {
 	start := time.Now()
 	p.pm.SetTimestamp(defaultTimestamp)
 	err := p.pm.ScrapeURL(p.urlstr)
-	scrapeTargetCost.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
+	collectCostVec.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
 }
 
@@ -93,7 +93,7 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}
 
-		collectPtsCounter.WithLabelValues(string(role), key).Add(float64(len(pts)))
+		collectPtsVec.WithLabelValues(string(role), key).Add(float64(len(pts)))
 		return nil
 	}
 

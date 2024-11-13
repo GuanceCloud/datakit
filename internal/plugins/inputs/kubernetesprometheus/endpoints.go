@@ -21,35 +21,41 @@ import (
 )
 
 type Endpoints struct {
+	role     Role
 	informer infov1.EndpointsInformer
 	queue    workqueue.DelayingInterface
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeManager
+	scrape    scrapeManagerInterface
 	feeder    dkio.Feeder
 }
 
-func NewEndpoints(informerFactory informers.SharedInformerFactory, instances []*Instance, feeder dkio.Feeder) (*Endpoints, error) {
+func NewEndpoints(
+	informerFactory informers.SharedInformerFactory,
+	instances []*Instance,
+	scrape scrapeManagerInterface,
+	feeder dkio.Feeder,
+) (*Endpoints, error) {
 	informer := informerFactory.Core().V1().Endpoints()
 	if informer == nil {
 		return nil, fmt.Errorf("cannot get endpoints informer")
 	}
+
 	return &Endpoints{
+		role:     RoleEndpoints,
 		informer: informer,
 		queue:    workqueue.NewNamedDelayingQueue(string(RoleEndpoints)),
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeManager(RoleEndpoints),
+		scrape:    scrape,
 		feeder:    feeder,
 	}, nil
 }
 
 func (e *Endpoints) Run(ctx context.Context) {
 	defer e.queue.ShutDown()
-
-	e.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	e.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -110,24 +116,22 @@ func (e *Endpoints) process(ctx context.Context) bool {
 		return true
 	}
 
-	if e.scrape.matchesKey(key, endpointsFeature(ep)) {
+	traits := endpointsTraits(ep)
+	if e.scrape.isTraitsExists(e.role, key, traits) {
 		return true
 	}
 
-	klog.Infof("found new endpoints %s", key)
-	// e.terminateScrape(key)
-	e.startScrape(ctx, key, ep)
+	klog.Infof("discovered Endpoints %s", key)
+	e.startScrape(ctx, key, traits, ep)
 	return true
 }
 
-func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.Endpoints) {
+func (e *Endpoints) startScrape(ctx context.Context, key, traits string, item *corev1.Endpoints) {
 	nodeName, nodeNameExists := nodeNameFrom(ctx)
-	feature := endpointsFeature(item)
-
 	urlstrList := []string{}
 
 	for _, ins := range e.instances {
-		if !ins.validator.Matches(item.Namespace, item.Labels) {
+		if ins.validator != nil && !ins.validator.Matches(item.Namespace, item.Labels) {
 			continue
 		}
 
@@ -146,7 +150,7 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 		}
 
 		for _, cfg := range cfgs {
-			if e.scrape.existScrape(key, cfg.urlstr) {
+			if e.scrape.isScrapeExists(e.role, key, cfg.urlstr) {
 				continue
 			}
 
@@ -157,6 +161,7 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 			opts := buildPromOptions(
 				RoleEndpoints, key, e.feeder,
 				promscrape.WithMeasurement(cfg.measurement),
+				promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 				promscrape.WithExtraTags(cfg.tags))
 
 			if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
@@ -175,21 +180,21 @@ func (e *Endpoints) startScrape(ctx context.Context, key string, item *corev1.En
 				continue
 			}
 
-			e.scrape.registerScrape(key, feature, prom)
+			e.scrape.registerScrape(e.role, key, traits, prom)
 		}
 
 		urlstrList = append(urlstrList, getURLstrListByPromConfigs(cfgs)...)
 	}
 
 	// clean urls
-	e.scrape.tryCleanScrapes(key, urlstrList)
+	e.scrape.tryCleanScrapes(e.role, key, urlstrList)
 }
 
 func (e *Endpoints) terminateScrape(key string) {
-	e.scrape.terminateScrape(key)
+	e.scrape.removeScrape(e.role, key)
 }
 
-func endpointsFeature(item *corev1.Endpoints) string {
+func endpointsTraits(item *corev1.Endpoints) string {
 	var ips []string
 	for _, sub := range item.Subsets {
 		for _, address := range sub.Addresses {
@@ -201,4 +206,65 @@ func endpointsFeature(item *corev1.Endpoints) string {
 
 func shouldSkipEndpoints(item *corev1.Endpoints) bool {
 	return len(item.Subsets) == 0 || len(item.Subsets[0].Addresses) == 0
+}
+
+func tryCreateScrapeForEndpoints(
+	ctx context.Context,
+	role Role,
+	key string,
+	ep *corev1.Endpoints,
+	endpointsInstance *Instance,
+	scrapeManager scrapeManagerInterface,
+	feeder dkio.Feeder,
+) {
+	epTraits := endpointsTraits(ep)
+	if scrapeManager.isTraitsExists(role, key, epTraits) {
+		return
+	}
+
+	nodeName, nodeNameExist := nodeNameFrom(ctx)
+
+	pr := newEndpointsParser(ep)
+	cfgs, err := pr.parsePromConfig(endpointsInstance)
+	if err != nil {
+		klog.Warnf("endpoints %s has unexpected url, err %s", key, err)
+		return
+	}
+
+	for _, cfg := range cfgs {
+		if scrapeManager.isScrapeExists(role, key, cfg.urlstr) {
+			continue
+		}
+
+		if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
+			continue
+		}
+
+		opts := buildPromOptions(
+			role, key, feeder,
+			promscrape.WithMeasurement(cfg.measurement),
+			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
+			promscrape.WithExtraTags(cfg.tags))
+
+		if tlsOpts, err := buildPromOptionsWithAuth(&endpointsInstance.Auth); err != nil {
+			klog.Warnf("endpoints %s has unexpected tls config %s", key, err)
+		} else {
+			opts = append(opts, tlsOpts...)
+		}
+
+		checkPausedFunc := func() bool {
+			return checkPaused(ctx, cfg.nodeName == "")
+		}
+
+		prom, err := newPromScraper(role, key, cfg.urlstr, checkPausedFunc, opts)
+		if err != nil {
+			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
+			continue
+		}
+
+		scrapeManager.registerScrape(role, key, epTraits, prom)
+	}
+
+	urlstrList := getURLstrListByPromConfigs(cfgs)
+	scrapeManager.tryCleanScrapes(role, key, urlstrList)
 }

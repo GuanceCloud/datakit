@@ -222,7 +222,9 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 					tags[k] = res
 					continue
 				}
-				tags[k] = v
+				if !isKeywords(v) {
+					tags[k] = v
+				}
 			}
 
 			nodeName := ""
@@ -231,10 +233,11 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 			}
 
 			configs = append(configs, &basePromConfig{
-				urlstr:      u.String(),
-				measurement: measurement,
-				tags:        tags,
-				nodeName:    nodeName,
+				urlstr:              u.String(),
+				measurement:         measurement,
+				keepExistMetricName: ins.keepExistMetricName,
+				tags:                tags,
+				nodeName:            nodeName,
 			})
 		}
 	}

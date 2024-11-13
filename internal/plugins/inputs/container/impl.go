@@ -23,7 +23,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/kubernetes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
@@ -56,10 +55,6 @@ func (ipt *Input) Run() {
 
 	l.Info("container input started")
 	ipt.setup()
-
-	if datakit.Docker && config.IsKubernetes() {
-		ipt.startDiscovery()
-	}
 
 	ipt.runCollect()
 }
@@ -191,20 +186,6 @@ func (ipt *Input) collectLogging(collectors []Collector) {
 	}
 }
 
-func (ipt *Input) startDiscovery() {
-	discovery, err := newDiscovery(ipt)
-	if err != nil {
-		l.Errorf("init the auto-discovery fail, err: %s", err)
-		return
-	}
-
-	g := datakit.G("k8s-discovery")
-	g.Go(func(ctx context.Context) error {
-		discovery.Run()
-		return nil
-	})
-}
-
 type Collector interface {
 	Name() string
 	Election() bool
@@ -332,30 +313,6 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	}
 
 	return kubernetes.NewKubeCollector(client, &cfg, checkPaused, ipt.semStop.Wait())
-}
-
-func newDiscovery(ipt *Input) (*discovery.Discovery, error) {
-	client, err := k8sclient.NewKubernetesClientInCluster()
-	if err != nil {
-		return nil, err
-	}
-
-	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
-	opt := buildLabelsOption(nil, config.Cfg.Dataway.GlobalCustomerKeys)
-
-	cfg := discovery.Config{
-		EnablePrometheusPodAnnotations:     ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations,
-		EnablePrometheusServiceAnnotations: ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations,
-		EnablePrometheusPodMonitors:        ipt.EnableAutoDiscoveryOfPrometheusPodMonitors,
-		EnablePrometheusServiceMonitors:    ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors,
-		KeepExistPrometheusMetricName:      ipt.KeepExistPrometheusMetricName,
-		StreamSize:                         ipt.autoDiscoveryOfPromStreamSize,
-		ExtraTags:                          tags,
-		LabelAsTags:                        opt.keys,
-		Feeder:                             ipt.Feeder,
-	}
-
-	return discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait()), nil
 }
 
 func checkEndpoint(endpoint string) error {

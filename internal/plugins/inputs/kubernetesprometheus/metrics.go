@@ -11,18 +11,18 @@ import (
 )
 
 var (
-	collectPtsCounter  *prometheus.CounterVec
-	scrapeTargetNumber *prometheus.GaugeVec
-	scrapeTargetCost   *prometheus.SummaryVec
-	activeWorkerTasks  *prometheus.GaugeVec
+	collectPtsVec    *prometheus.CounterVec
+	collectCostVec   *prometheus.SummaryVec
+	scraperNumberVec *prometheus.GaugeVec
+	taskNumerVec     *prometheus.GaugeVec
 )
 
 func setupMetrics() {
-	collectPtsCounter = prometheus.NewCounterVec(
+	collectPtsVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "input_kubernetesprometheus",
-			Name:      "resource_collect_pts_total",
+			Name:      "collect_pts_total",
 			Help:      "The number of the points which have been sent",
 		},
 		[]string{
@@ -31,25 +31,12 @@ func setupMetrics() {
 		},
 	)
 
-	scrapeTargetNumber = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "datakit",
-			Subsystem: "input_kubernetesprometheus",
-			Name:      "resource_target_number",
-			Help:      "The number of the target",
-		},
-		[]string{
-			"role",
-			"name",
-		},
-	)
-
-	scrapeTargetCost = prometheus.NewSummaryVec(
+	collectCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "input_kubernetesprometheus",
-			Name:      "resource_scrape_cost_seconds",
-			Help:      "The scrape cost in seconds",
+			Name:      "collect_cost_seconds",
+			Help:      "The collect cost in seconds",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
@@ -64,23 +51,35 @@ func setupMetrics() {
 		},
 	)
 
-	activeWorkerTasks = prometheus.NewGaugeVec(
+	scraperNumberVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "input_kubernetesprometheus",
-			Name:      "worker_number",
-			Help:      "The number of the worker",
+			Name:      "scraper_number",
+			Help:      "The number of the scraper",
 		},
 		[]string{
 			"role",
+			"name",
+		},
+	)
+
+	taskNumerVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_kubernetesprometheus",
+			Name:      "task_number",
+			Help:      "The number of the task",
+		},
+		[]string{
 			"worker",
 		},
 	)
 
 	metrics.MustRegister(
-		collectPtsCounter,
-		scrapeTargetNumber,
-		scrapeTargetCost,
-		activeWorkerTasks,
+		collectPtsVec,
+		collectCostVec,
+		scraperNumberVec,
+		taskNumerVec,
 	)
 }

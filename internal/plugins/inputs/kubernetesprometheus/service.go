@@ -11,7 +11,6 @@ import (
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -22,21 +21,24 @@ import (
 )
 
 type Service struct {
+	role      Role
 	clientset *kubernetes.Clientset
 	informer  infov1.ServiceInformer
 	queue     workqueue.DelayingInterface
 	store     cache.Store
 
-	instances []*Instance
-	svcList   map[string]string // It is safe from race conditions
-	scrape    *scrapeManager
-	feeder    dkio.Feeder
+	instances  []*Instance
+	svcTraits  map[string]string // It is safe from race conditions
+	svcCancels map[string]context.CancelFunc
+	scrape     scrapeManagerInterface
+	feeder     dkio.Feeder
 }
 
 func NewService(
 	clientset *kubernetes.Clientset,
 	informerFactory informers.SharedInformerFactory,
 	instances []*Instance,
+	scrape scrapeManagerInterface,
 	feeder dkio.Feeder,
 ) (*Service, error) {
 	informer := informerFactory.Core().V1().Services()
@@ -44,22 +46,22 @@ func NewService(
 		return nil, fmt.Errorf("cannot get service informer")
 	}
 	return &Service{
+		role:      RoleService,
 		clientset: clientset,
 		informer:  informer,
 		queue:     workqueue.NewNamedDelayingQueue(string(RoleService)),
 		store:     informer.Informer().GetStore(),
 
-		instances: instances,
-		svcList:   make(map[string]string),
-		scrape:    newScrapeManager(RoleService),
-		feeder:    feeder,
+		instances:  instances,
+		svcTraits:  make(map[string]string),
+		svcCancels: make(map[string]context.CancelFunc),
+		scrape:     scrape,
+		feeder:     feeder,
 	}, nil
 }
 
 func (s *Service) Run(ctx context.Context) {
 	defer s.queue.ShutDown()
-
-	s.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	s.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -120,18 +122,21 @@ func (s *Service) process(ctx context.Context) bool {
 		return true
 	}
 
-	if feature, ok := s.svcList[key]; ok && feature == serviceFeature(svc) {
+	traits := serviceTraits(svc)
+	if svcTraits, ok := s.svcTraits[key]; ok && svcTraits == traits {
 		return true
 	}
 
-	klog.Infof("found new service %s", key)
-	s.terminateScrape(key)
-	s.startScrape(ctx, key, svc)
+	klog.Infof("discovered Service %s", key)
+	s.startScrape(ctx, key, traits, svc)
 	return true
 }
 
-func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Service) {
-	svcFeature := serviceFeature(item)
+func (s *Service) startScrape(ctx context.Context, key, traits string, item *corev1.Service) {
+	ctx, cancel := context.WithCancel(ctx)
+
+	s.svcTraits[key] = traits
+	s.svcCancels[key] = cancel
 
 	for idx, ins := range s.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
@@ -147,7 +152,6 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 
 		// record idxKey
 		klog.Infof("added Service %s", idxKey)
-		s.svcList[idxKey] = svcFeature
 
 		namespace := item.Namespace
 		name := item.Name
@@ -158,89 +162,36 @@ func (s *Service) startScrape(ctx context.Context, key string, item *corev1.Serv
 			defer tick.Stop()
 
 			for {
-				s.tryCreateScrapeForEndpoints(ctx, namespace, name, idxKey, endpointsInstance)
-
 				select {
 				case <-ctx.Done():
+					s.scrape.removeScrape(s.role, idxKey)
 					klog.Infof("svc-ep %s exit", idxKey)
 					return nil
 
 				case <-tick.C:
-					// next
+					// Maybe the Service Name and Endpoint Name are not the same, so the Selector should be used here.
+					ep, err := s.clientset.CoreV1().Endpoints(namespace).Get(context.Background(), name, metav1.GetOptions{})
+					if err != nil {
+						klog.Warnf("get endpoints fail %s", err)
+					} else {
+						tryCreateScrapeForEndpoints(ctx, s.role, idxKey, ep, endpointsInstance, s.scrape, s.feeder)
+					}
 				}
 			}
 		})
 	}
 }
 
-func (s *Service) tryCreateScrapeForEndpoints(ctx context.Context, namespace, name string, key string, endpointsInstance *Instance) {
-	// Maybe the Service Name and Endpoint Name are not the same, so the Selector should be used here.
-	ep, err := s.clientset.CoreV1().Endpoints(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		klog.Warn("get endpoints fail %s", err)
-		return
-	}
-
-	endpointsFeature := endpointsFeature(ep)
-	if s.scrape.matchesKey(key, endpointsFeature) {
-		// no change
-		return
-	}
-
-	s.scrape.terminateScrape(key)
-
-	nodeName, nodeNameExist := nodeNameFrom(ctx)
-
-	pr := newEndpointsParser(ep)
-	cfgs, err := pr.parsePromConfig(endpointsInstance)
-	if err != nil {
-		klog.Warnf("svc-ep %s has unexpected url, err %s", key, err)
-		return
-	}
-
-	for _, cfg := range cfgs {
-		if s.scrape.existScrape(key, cfg.urlstr) {
-			continue
-		}
-
-		if nodeNameExist && cfg.nodeName != "" && cfg.nodeName != nodeName {
-			continue
-		}
-
-		opts := buildPromOptions(
-			RoleService, key, s.feeder,
-			promscrape.WithMeasurement(cfg.measurement),
-			promscrape.WithExtraTags(cfg.tags))
-
-		if tlsOpts, err := buildPromOptionsWithAuth(&endpointsInstance.Auth); err != nil {
-			klog.Warnf("svc-ep %s has unexpected tls config %s", key, err)
-		} else {
-			opts = append(opts, tlsOpts...)
-		}
-
-		checkPausedFunc := func() bool {
-			return checkPaused(ctx, cfg.nodeName == "")
-		}
-
-		prom, err := newPromScraper(RoleService, key, cfg.urlstr, checkPausedFunc, opts)
-		if err != nil {
-			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
-			continue
-		}
-
-		s.scrape.registerScrape(key, endpointsFeature, prom)
-	}
-
-	urlstrList := getURLstrListByPromConfigs(cfgs)
-	s.scrape.tryCleanScrapes(key, urlstrList)
-}
-
 func (s *Service) terminateScrape(key string) {
-	delete(s.svcList, key)
-	s.scrape.terminateScrape(key)
+	delete(s.svcTraits, key)
+	if cancel, ok := s.svcCancels[key]; ok {
+		cancel()
+	}
+	delete(s.svcCancels, key)
+	klog.Infof("%s for key %s was terminated", s.role, key)
 }
 
-func serviceFeature(item *corev1.Service) string {
+func serviceTraits(item *corev1.Service) string {
 	return item.Spec.ClusterIP
 }
 

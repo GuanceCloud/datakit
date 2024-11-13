@@ -117,7 +117,12 @@ func (m *nodeMetadata) newObject(conf *Config) pointKVs {
 		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
 		obj.SetTag("node_name", item.Name)
-		obj.SetTag("status", fmt.Sprintf("%v", item.Status.Phase))
+		for _, condition := range item.Status.Conditions {
+			if condition.Reason == "KubeletReady" {
+				obj.SetTag("status", fmt.Sprintf("%v", condition.Type))
+				break
+			}
+		}
 
 		obj.SetTag("role", "node")
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {

@@ -148,9 +148,10 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 			Params:  ins.Target.Params,
 		},
 		Custom: Custom{
-			Measurement:      ins.Measurement,
-			JobAsMeasurement: ins.Custom.JobAsMeasurement,
-			Tags:             map[string]string{},
+			Measurement:         ins.Measurement,
+			JobAsMeasurement:    ins.Custom.JobAsMeasurement,
+			keepExistMetricName: ins.keepExistMetricName,
+			Tags:                map[string]string{},
 		},
 		Auth: Auth{
 			BearerTokenFile: ins.Auth.BearerTokenFile,
