@@ -7,12 +7,13 @@ tags      :
 __int_icon: 'icon/kubernetes'
 ---
 
-
 :fontawesome-brands-linux: :material-kubernetes:
 
 ---
 
 ## 介绍 {#intro}
+
+**已废弃，相关功能移动到 [KubernetesPrometheus 采集器](kubernetesprometheus.md)。**
 
 本文档介绍如何采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标，有两种方式：
 

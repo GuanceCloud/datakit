@@ -15,6 +15,8 @@ __int_icon: 'icon/kubernetes'
 
 ## Introduction {#intro}
 
+**This feature is deprecated in Datakit 1.63.0.**
+
 This document describes how to create a DataKit resource in a Kubernetes cluster and configure an extension collector.
 
 ### Add Authentication {#authorization}

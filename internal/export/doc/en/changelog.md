@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.63.0 (2024/11/13) {#cl-1.63.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.63.0-new}
+
+- Added support for Datakit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and Guance Cloud needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from Datakit via commands issued from the workspace web page (#2367).
+
+Under Kubernetes, we need to update the new *datakit.yaml* with new RBAC added.
+
+- Pipeline added a new [string extraction function](../pipeline/use-pipeline/pipeline-built-in-function.md#fn_slice_string) (#2436).
+
+### Bug Fixes {#cl-1.63.0-fix}
+
+- Fixed an issue where Datakit might fail to start due to the default enabling of WAL as the data cache queue, which did not properly handle process mutual exclusion during WAL initialization (#2457).
+- Fixed the installer overwriting some configurations already set in *datakit.conf* (#2454).
+
+### Performance Improvements {#cl-1.63.0-opt}
+
+- The eBPF collector added data sampling rate configuration to reduce the amount of data it generates (#2394).
+- The KafkaMQ collector added SSL support (#2421).
+- Graphite add support on specify measurement (#2448).
+- Adjusted the granularity of Service Monitor collection in CRD, changing the finest granularity from Pod to [Endpoint](https://kubernetes.io/docs/concepts/services-networking/service/#endpoints){:target="_blank"}.
+
+### Compatibility Adjustments {#cl-1.63.0-brk}
+
+- Removed the experimental feature of Kubernetes Self metrics, which can be achieved through KubernetesPrometheus (#2405).
+- Removed the Discovery support for Datakit CRD from the container collector.
+- Moved the Discovery Prometheus feature of the container collector to the KubernetesPrometheus collector to maintain relative compatibility.
+- No longer supports the PodTargetLabel configuration field of Prometheus ServiceMonitor.
+
+---
+
 ## 1.62.2(2024/11/09) {#cl-1.62.2}
 
 This release is a Hotfix release addressing the following issues:

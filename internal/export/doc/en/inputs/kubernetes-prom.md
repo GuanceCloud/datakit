@@ -7,12 +7,13 @@ tags      :
 __int_icon: 'icon/kubernetes'
 ---
 
-
 :fontawesome-brands-linux: :material-kubernetes:
 
 ---
 
 ## Introduction {#intro}
+
+**Deprecated, related functionality moved to [KubernetesPrometheus Collector](kubernetesprometheus.md).**
 
 This document describes how to capture Prometheus metrics exposed by custom Pods in Kubernetes clusters in two ways:
 
