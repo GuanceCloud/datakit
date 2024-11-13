@@ -143,7 +143,7 @@ func init() {
 
 	// DCA flags
 	flag.StringVar(&installer.DCAEnable, "dca-enable", "", "enable DCA")
-	flag.StringVar(&installer.DCAListen, "dca-listen", "0.0.0.0:9531", "DCA listen address and port")
+	flag.StringVar(&installer.DCAListen, "dca-listen", "", "DCA listen address and port")
 	flag.StringVar(&installer.DCAWhiteList, "dca-white-list", "", "DCA white list")
 
 	// global-host-tags flags
@@ -157,8 +157,8 @@ func init() {
 	flag.StringVar(&installer.ElectionNamespace, "namespace", "", "datakit namespace")
 
 	// datakit HTTP flags
-	flag.IntVar(&installer.HTTPPort, "port", 9529, "datakit HTTP port")
-	flag.StringVar(&installer.HTTPListen, "listen", "localhost", "datakit HTTP listen")
+	flag.IntVar(&installer.HTTPPort, "port", 0, "datakit HTTP port")
+	flag.StringVar(&installer.HTTPListen, "listen", "", "datakit HTTP listen")
 
 	flag.StringVar(&installer.HostName, "env_hostname", "", "host name")
 	flag.StringVar(&installer.IPDBType, "ipdb-type", "", "ipdb type")
@@ -207,9 +207,9 @@ func init() {
 
 	// resource limit flags
 	flag.IntVar(&installer.LimitDisabled, "limit-disabled", 0, "enable disable resource limits for CPU and memory in linux and windows")
-	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 30.0, "CPU max usage")
-	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 5.0, "CPU min usage")
-	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 4096, "memory limit")
+	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 0.0, "CPU max usage")
+	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 0.0, "CPU min usage")
+	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 0, "memory limit")
 
 	flag.StringVar(&installer.CryptoAESKey, "crypto-aes_key", "", "ENC crypto for AES key")
 	flag.StringVar(&installer.CryptoAESKeyFile, "crypto-aes_key_file", "", "ENC crypto for AES key filepath")

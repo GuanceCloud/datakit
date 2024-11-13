@@ -221,7 +221,7 @@ func DefaultConfig() *Config {
 		ResourceLimitOptions: &resourcelimit.ResourceLimitOptions{
 			Path:   "/datakit",
 			Enable: true,
-			CPUMax: 20.0,
+			CPUMax: 30.0,
 			MemMax: 4096, // MB
 		},
 

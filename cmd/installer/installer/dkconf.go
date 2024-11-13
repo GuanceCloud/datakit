@@ -220,24 +220,22 @@ func mergeDefaultInputs(defaultList, enabledList []string, appendDefault bool) [
 	return res
 }
 
-func setupDefaultInputs(mc *config.Config, arg string, list []string, upgrade bool) {
+func setupDefaultInputs(mc *config.Config, arg string, defaultList []string, upgrade bool) {
 	if upgrade {
 		if arg == "" {
 			if len(mc.DefaultEnabledInputs) == 0 { // all default inputs disabled
-				mc.DefaultEnabledInputs = mergeDefaultInputs(list, []string{"-"}, true)
+				mc.DefaultEnabledInputs = mergeDefaultInputs(defaultList, []string{"-"}, true)
 			} else {
-				mc.DefaultEnabledInputs = mergeDefaultInputs(list, mc.DefaultEnabledInputs, true)
+				mc.DefaultEnabledInputs = mergeDefaultInputs(defaultList, mc.DefaultEnabledInputs, true)
 			}
 		} else {
-			enabledList := strings.Split(arg, ",")
-			enabledList = append(enabledList, mc.DefaultEnabledInputs...)
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, enabledList, true)
+			mc.DefaultEnabledInputs = mergeDefaultInputs(defaultList, strings.Split(arg, ","), false)
 		}
 	} else {
 		if arg == "" {
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, nil, false)
+			mc.DefaultEnabledInputs = mergeDefaultInputs(defaultList, nil, false)
 		} else {
-			mc.DefaultEnabledInputs = mergeDefaultInputs(list, strings.Split(arg, ","), false)
+			mc.DefaultEnabledInputs = mergeDefaultInputs(defaultList, strings.Split(arg, ","), false)
 		}
 	}
 }
@@ -416,8 +414,8 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 
 	if PProfListen != "" {
 		config.Cfg.PProfListen = PProfListen
+		l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
 	}
-	l.Infof("pprof enabled? %v, listen on %s", config.Cfg.EnablePProf, config.Cfg.PProfListen)
 
 	// Only supports linux and windows
 	if LimitDisabled != 1 && (runtime.GOOS == datakit.OSLinux || runtime.GOOS == datakit.OSWindows) {
@@ -448,7 +446,6 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 
 	if GlobalHostTags != "" {
 		mc.GlobalHostTags = config.ParseGlobalTags(GlobalHostTags)
-
 		l.Infof("set global host tags to %+#v", mc.GlobalHostTags)
 	}
 
@@ -462,11 +459,15 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 		l.Infof("election enabled? %v", true)
 	}
 
-	mc.Election.Namespace = ElectionNamespace
-	l.Infof("set election namespace to %s", mc.Election.Namespace)
+	if ElectionNamespace != "" {
+		mc.Election.Namespace = ElectionNamespace
+		l.Infof("set election namespace to %s", mc.Election.Namespace)
+	}
 
-	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", HTTPListen, HTTPPort)
-	l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+	if HTTPListen != "" || HTTPPort != 0 {
+		mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", HTTPListen, HTTPPort)
+		l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+	}
 
 	mc.InstallVer = DataKitVersion
 	l.Infof("install version %s", mc.InstallVer)
