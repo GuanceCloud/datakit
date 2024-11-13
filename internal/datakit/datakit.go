@@ -58,6 +58,7 @@ const (
 	Profiling           = "/v1/write/profiling"  // write profiling metadata.
 	ProfilingUpload     = "/v1/upload/profiling" // upload profiling binary.
 
+	RemoteJob              = "/v1/write/remote_job"
 	DynamicDatawayCategory = "dynamicDatawayCategory"
 
 	// data category pure name.
@@ -188,6 +189,7 @@ var (
 	PidFile = filepath.Join(InstallDir, ".pid")
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
+	TemplateDir        = filepath.Join(InstallDir, "template")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	CacheDir           = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")

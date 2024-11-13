@@ -389,4 +389,10 @@ ulimit = 64000
 [crypto]
   aes_key = ""
   aes_Key_file = ""
+
+[remote_job]
+  enable=false
+  envs = ["OSS_BUCKET_HOST=host","OSS_ACCESS_KEY_ID=key","OSS_ACCESS_KEY_SECRET=secret","OSS_BUCKET_NAME=bucket"]
+  interval = "30s"
+  java_home=""
 `

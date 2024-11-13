@@ -224,6 +224,7 @@ func startIO() {
 		dkio.WithFilters(c.Filters),
 		dkio.WithCompactWorkers(c.CompactWorkers),
 		dkio.WithRecorder(config.Cfg.Recorder),
+		dkio.WithRemoteJob(config.Cfg.RemoteJob, config.Cfg.Dataway),
 		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
 	}
 

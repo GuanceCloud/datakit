@@ -118,6 +118,8 @@ type Config struct {
 
 	// crypto
 	Crypto *configCrpto `toml:"crypto,omitempty"`
+
+	RemoteJob *io.RemoteJob `toml:"remote_job,omitempty"`
 }
 
 func DefaultConfig() *Config {
@@ -247,6 +249,17 @@ func DefaultConfig() *Config {
 			}
 		}(),
 		Crypto: &configCrpto{},
+		RemoteJob: &io.RemoteJob{
+			Enable: false,
+			ENVs: []string{
+				"OSS_BUCKET_HOST=host",
+				"OSS_ACCESS_KEY_ID=key",
+				"OSS_ACCESS_KEY_SECRET=secret",
+				"OSS_BUCKET_NAME=bucket",
+			},
+			Interval: "30s",
+			JavaHome: "",
+		},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起

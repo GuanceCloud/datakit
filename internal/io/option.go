@@ -11,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/remotejob"
 )
 
 // IOOption used to add various options to setup io module.
@@ -31,6 +32,26 @@ func WithRecorder(r *recorder.Recorder) IOOption {
 				log.Warnf("invalid recorder: %s, ignored", err)
 			} else {
 				x.recorder = r
+			}
+		}
+	}
+}
+
+func WithRemoteJob(rj *RemoteJob, dw *dataway.Dataway) IOOption {
+	log.Infof("WithRemoteJob")
+	return func(x *dkIO) {
+		if rj != nil && rj.Enable {
+			d, err := time.ParseDuration(rj.Interval)
+			if err != nil || d < time.Second {
+				log.Errorf("remoteJob config Interval:%s ,can not parse to duration. use default 10s", rj.Interval)
+				d = time.Second * 10
+			}
+			x.remoteManager = &remotejob.Manager{
+				DWURL:    dw,
+				Envs:     rj.ENVs,
+				Internal: d,
+				PullFunc: x.dw.Pull,
+				JavaHome: rj.JavaHome,
 			}
 		}
 	}

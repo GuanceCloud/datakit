@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -182,6 +184,17 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	}
 
 	c.InstallVer = DataKitVersion
-
+	if javaHome := getJavaHome(); javaHome != "" {
+		if c.RemoteJob == nil {
+			c.RemoteJob = &io.RemoteJob{}
+		}
+		if c.RemoteJob.JavaHome != "" {
+			c.RemoteJob.JavaHome = javaHome
+		}
+	}
 	return c
+}
+
+func getJavaHome() string {
+	return os.Getenv("JAVA_HOME")
 }

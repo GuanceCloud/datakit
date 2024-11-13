@@ -435,3 +435,27 @@ func (dw *Dataway) doTimeDiff() (int64, error) {
 		return 0, fmt.Errorf("ntp failed(status: %d): %s", resp.StatusCode, string(respBody))
 	}
 }
+
+func (dw *Dataway) RemoteJob(bts []byte) (resp *http.Response, err error) {
+	if len(dw.eps) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	reqURL, ok := ep.categoryURL[datakit.RemoteJob]
+	if !ok {
+		return nil, fmt.Errorf("no file upload URL available")
+	}
+	r := bytes.NewReader(bts)
+	req, err := http.NewRequest("POST", reqURL, r)
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	return ep.sendReq(req)
+}

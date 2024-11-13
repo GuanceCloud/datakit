@@ -383,6 +383,14 @@ spec:
 {{ CodeBlock .NonInputENVSampleZh.envRecorder 0}}
 <!-- markdownlint-enable -->
 
+### Remote Job 远程任务 {#remote_job}
+
+[:octicons-tag-24: Version-1.63.0](changelog.md#cl-1.63.0)
+
+<!-- markdownlint-disable MD046 -->
+{{ CodeBlock .NonInputENVSampleZh.remote_job 0}}
+<!-- markdownlint-enable -->
+
 ### 其它杂项 {#env-others}
 
 <!-- markdownlint-disable MD046 -->

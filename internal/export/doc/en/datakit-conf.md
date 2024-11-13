@@ -640,6 +640,116 @@ Note that the cipherText obtained through AES encryption needs to be filled in c
 In a K8S (Kubernetes) environment, private keys can be added through environment variables.
 The environment variables ENV_CRYPTO_AES_KEY and ENV_CRYPTO_AES_KEY_FILEPATH can be referenced for this purpose:[DaemonSet 安装-其他](datakit-daemonset-deploy.md#env-others)
 
+### Remote Job {#remote-job}
+
+---
+
+[:octicons-tag-24: Version-1.63.0](changelog.md#cl-1.63.0)
+
+---
+
+DataKit receives tasks dispatched from the center and executes them. Currently, it supports the `JVM dump` function.
+
+After installing DataKit (DK), two files will be generated in the `template/service-task` directory of the installation folder: `jvm_dump_host_script.py` and `jvm_dump_k8s_script.py`.
+The former is for the host machine mode, and the latter is for the virtual (Kubernetes) environment.
+
+In the host machine environment, the current environment must have `python3` and the `requests` package installed. If not, you need to install it using:
+
+```shell
+pip install requests
+# or
+pip3 install requests
+```
+
+
+In the Kubernetes (K8S) environment, access to the Kubernetes API is required, so Role-Based Access Control (RBAC) is necessary.
+
+### Config {#config}
+
+
+<!-- markdownlint-disable MD046 -->
+=== "host"
+
+    config dir:
+    
+    - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
+    - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
+
+    change conf:
+    ```toml
+    [remote_job]
+      enable=true
+      envs=["OSS_BUCKET_HOST=<bucket_host>","OSS_ACCESS_KEY_ID=<key>","OSS_ACCESS_KEY_SECRET=<secret key>","OSS_BUCKET_NAME=<name>"]
+      interval="100s"
+      java_home=""
+    ```
+
+=== "Kubernetes"
+
+    Add RBAC access:
+
+    ```yaml
+
+    ---
+    
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+    name: datakit
+    rules:
+    - apiGroups: ["rbac.authorization.k8s.io"]
+      resources: ["clusterroles"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["nodes", "nodes/stats", "nodes/metrics", "namespaces", "pods", "pods/log", "events", "services", "endpoints", "persistentvolumes", "persistentvolumeclaims", "pods/exec"]
+      verbs: ["get", "list", "watch", "create"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["batch"]
+      resources: ["jobs", "cronjobs"]
+      verbs: [ "get", "list", "watch"]
+    - apiGroups: ["guance.com"]
+      resources: ["datakits"]
+      verbs: ["get","list"]
+    - apiGroups: ["monitoring.coreos.com"]
+      resources: ["podmonitors", "servicemonitors"]
+      verbs: ["get", "list"]
+    - apiGroups: ["metrics.k8s.io"]
+      resources: ["pods", "nodes"]
+      verbs: ["get", "list"]
+    - nonResourceURLs: ["/metrics"]
+      verbs: ["get"]
+    
+    ---
+    ```
+
+    In the above configuration, "pod/exec" is added, and the rest should be consistent with `datakit.yaml`.
+
+    Add ENV for remote_job:
+
+    ```yaml
+    - name: ENV_REMOTE_JOB_ENABLE
+      value: 'true'
+    - name: ENV_REMOTE_JOB_ENVS
+      value: >-
+        OSS_BUCKET_HOST=<bucket host>,OSS_ACCESS_KEY_ID=<key>,OSS_ACCESS_KEY_SECRET=<secret key>,OSS_BUCKET_NAME=<name>
+    - name: ENV_REMOTE_JOB_JAVA_HOME
+    - name: ENV_REMOTE_JOB_INTERVAL
+      value: 100s
+
+    ```
+
+<!-- markdownlint-enable -->
+
+Configuration file description:
+
+1. `enable  ENV_REMOTE_JOB_ENABLE remote_job` Function switch.
+2. `envs  ENV_REMOTE_JOB_ENVS` OSS configuration, including OSS `host` `access key` `secret key` `bucket` information, and send the obtained JVM dump file to OSS.
+3. `interval ENV_REMOTE_JOB_INTERVAL` The time interval at which DataKit actively calls the interface to obtain the latest tasks.
+4. `java_home ENV_REMOTE_JOB_JAVA_HOME` The host environment is automatically obtained from the environment variable ($JAVA_HOME) and does not need to be configured.
+
+> Please note that the version of the Agent: `dd-java-agent.jar` used should not be lower than `v1.4.0-guance`.
 
 ## Extended Readings {#more-reading}
 

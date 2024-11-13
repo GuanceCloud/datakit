@@ -45,7 +45,6 @@ func Install(svc service.Service, userName string) {
 
 	mc := config.Cfg
 	mc.DatakitUser = userName
-
 	// load DK_XXX env config
 	mc = loadDKEnvCfg(mc)
 

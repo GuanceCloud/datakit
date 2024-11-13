@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
@@ -525,5 +527,11 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 		mc.Logging.GinLog = GinLog
 	}
 
+	if javaHome := getJavaHome(); javaHome != "" {
+		if mc.RemoteJob == nil {
+			mc.RemoteJob = &io.RemoteJob{}
+		}
+		mc.RemoteJob.JavaHome = javaHome
+	}
 	return mc
 }

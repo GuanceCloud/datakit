@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/remotejob"
 )
 
 var (
@@ -46,7 +47,9 @@ type dkIO struct {
 
 	fo FeederOutputer
 
-	lock sync.RWMutex
+	// fcs           map[string]failcache.Cache
+	remoteManager *remotejob.Manager
+	lock          sync.RWMutex
 }
 
 func Start(opts ...IOOption) {
@@ -128,5 +131,14 @@ func (x *dkIO) start() {
 				flushWorkersVec.WithLabelValues(c.String()).Set(1)
 			}
 		}
+	}
+	log.Infof("remote_job x.remotemanager %v", x.remoteManager == nil)
+	if x.remoteManager != nil {
+		g := datakit.G("io/remote_job")
+		g.Go(func(_ context.Context) error {
+			// x.remoteManager.AddJob(remotejob.NewJVMJob(x.remoteManager.Envs, ""))
+			x.remoteManager.Start()
+			return nil
+		})
 	}
 }
