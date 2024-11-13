@@ -184,11 +184,9 @@ type ConnWatcher struct {
 	trace   *NetTrace
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 
-	tags          map[string]string
-	k8sInfo       *k8sinfo.K8sNetInfo
-	metricPostURL string
-	tracePostURL  string
-	enableTrace   bool
+	tags        map[string]string
+	k8sInfo     *k8sinfo.K8sNetInfo
+	enableTrace bool
 
 	sync.Mutex
 }
@@ -253,7 +251,7 @@ func (watcher *ConnWatcher) start(ctx context.Context) {
 				for _, pt := range tracer.ptsPrv {
 					setInnerID(pt, &tracer.threadInnerID)
 				}
-				if err := feed(watcher.tracePostURL, tracer.ptsPrv, false); err != nil {
+				if err := feedEBPFSpan(inputTracing, point.Tracing, tracer.ptsPrv); err != nil {
 					log.Error(err)
 				}
 				// feed("http://0.0.0.0:9529/v1/write/logging?input=ebpf-net%2Fespan", v.ptsPrv, false)
@@ -310,12 +308,10 @@ func newConnWatcher(ctx context.Context, cfg *connWatcherConfig) *ConnWatcher {
 			allowESPan:     cfg.enableTrace,
 			protoSet:       cfg.protoSet,
 		},
-		aggPool:       cfg.aggPool,
-		tags:          cfg.tags,
-		k8sInfo:       cfg.k8sNetInfo,
-		metricPostURL: cfg.datakitPostURL,
-		tracePostURL:  cfg.tracePostURL,
-		enableTrace:   cfg.enableTrace,
+		aggPool:     cfg.aggPool,
+		tags:        cfg.tags,
+		k8sInfo:     cfg.k8sNetInfo,
+		enableTrace: cfg.enableTrace,
 	}
 	go p.start(ctx)
 	return p
@@ -333,9 +329,6 @@ type Tracer struct {
 	protocolFilter *protoKernelFilter
 
 	selfPid int
-
-	metricPostURL string
-	tracePostURL  string
 }
 
 func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
@@ -347,7 +340,7 @@ func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
 				pts := p.Export(tracer.tags, tracer.k8sInfo)
 				if len(pts) > 0 {
 					p.Cleanup()
-					if err := feed(tracer.metricPostURL, pts, false); err != nil {
+					if err := feed(inputHTTPFlow, point.Network, pts); err != nil {
 						log.Error(err)
 					}
 				}
@@ -498,8 +491,6 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		selfPid:        cfg.selfPid,
 		processFilter:  cfg.procFilter,
 		protocolFilter: protoFilter,
-		metricPostURL:  cfg.datakitPostURL,
-		tracePostURL:   cfg.tracePostURL,
 	}
 }
 

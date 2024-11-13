@@ -20,7 +20,6 @@ import (
 type ConnResult struct {
 	result map[ConnectionInfo]ConnFullStats
 	tags   map[string]string
-	ts     time.Time
 }
 
 const connExpirationInterval = 6 * 3600 // 6 * 3600s
@@ -29,6 +28,7 @@ const (
 	srcNameM     = "netflow"
 	transportTCP = "tcp"
 	transportUDP = "udp"
+	inputName    = "ebpf-net/netflow"
 )
 
 var enableUDP bool
@@ -54,7 +54,7 @@ func NewNetFlowTracer(procFilter *sysmonitor.ProcessFilter) *NetFlowTracer {
 }
 
 func (tracer *NetFlowTracer) Run(ctx context.Context, bpfManger *manager.Manager,
-	datakitPostURL string, gTags map[string]string, interval time.Duration,
+	gTags map[string]string, interval time.Duration,
 ) error {
 	connStatsMap, found, err := bpfManger.GetMap("bpfmap_conn_stats")
 	if err != nil || !found {
@@ -66,9 +66,8 @@ func (tracer *NetFlowTracer) Run(ctx context.Context, bpfManger *manager.Manager
 		return err
 	}
 
-	// go tracer.feedHandler(ctx, datakitPostURL)
 	go tracer.connCollectHanllder(ctx, connStatsMap, tcpStatsMap,
-		interval, gTags, datakitPostURL)
+		interval, gTags)
 	return nil
 }
 
@@ -137,7 +136,7 @@ const KernelTaskCommLen = 16
 
 // Lock resource connStatsRecord while scanning connStatMap.
 func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsMap, tcpStatsMap *ebpf.Map,
-	interval time.Duration, gTags map[string]string, datakitPostURL string,
+	interval time.Duration, gTags map[string]string,
 ) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -249,7 +248,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 
 			pts := agg.ToPoint(gTags, k8sNetInfo)
 			agg.Clean()
-			tracer.feedHandler(datakitPostURL, pts, false)
+			tracer.feedHandler(inputName, point.Network, pts)
 		case <-ctx.Done():
 			return
 		}
@@ -257,8 +256,8 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 }
 
 // Receive all connections collected in one cycle and send them to DataKit.
-func (tracer *NetFlowTracer) feedHandler(datakitPostURL string, pts []*point.Point, gzip bool) {
-	if err := exporter.FeedPoint(datakitPostURL, pts, gzip); err != nil {
+func (tracer *NetFlowTracer) feedHandler(name string, cat point.Category, pts []*point.Point) {
+	if err := exporter.FeedPoint(name, cat, pts); err != nil {
 		l.Debug(err)
 	}
 }

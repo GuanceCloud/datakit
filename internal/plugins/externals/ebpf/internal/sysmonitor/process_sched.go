@@ -227,7 +227,7 @@ func (tracer *SchedTracer) Start(ctx context.Context) error {
 	}
 	for _, p := range pses {
 		if err := tracer.attachProcess(p); err != nil {
-			log.Warn(err)
+			log.Debug(err)
 		}
 	}
 

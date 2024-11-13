@@ -57,6 +57,9 @@ const (
 	L7BufferShift     = 12
 	PayloadBufSize    = 1 << L7BufferShift
 	KernelTaskCommLen = 16
+
+	inputHTTPFlow = "ebpf-net/httpflow"
+	inputTracing  = "ebpf-net/bpftracing"
 )
 
 var (
@@ -320,24 +323,19 @@ func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*e
 }
 
 type APIFlowTracer struct {
-	datakitPostURL string
-	tracePostURL   string
-
 	tracer *Tracer
 }
 
 type APITracerOpt func(*apiTracerConfig)
 
 type apiTracerConfig struct {
-	tags           map[string]string
-	datakitPostURL string
-	tracePostURL   string
-	conv2dd        bool
-	enableTrace    bool
-	procFilter     *sysmonitor.ProcessFilter
-	protos         map[protodec.L7Protocol]struct{}
-	k8sNetInfo     *k8sinfo.K8sNetInfo
-	selfPid        int
+	tags        map[string]string
+	conv2dd     bool
+	enableTrace bool
+	procFilter  *sysmonitor.ProcessFilter
+	protos      map[protodec.L7Protocol]struct{}
+	k8sNetInfo  *k8sinfo.K8sNetInfo
+	selfPid     int
 }
 
 func WithSelfPid(pid int) APITracerOpt {
@@ -349,18 +347,6 @@ func WithSelfPid(pid int) APITracerOpt {
 func WithTags(tags map[string]string) APITracerOpt {
 	return func(cfg *apiTracerConfig) {
 		cfg.tags = tags
-	}
-}
-
-func WithDatakitPostURL(datakitPostURL string) APITracerOpt {
-	return func(cfg *apiTracerConfig) {
-		cfg.datakitPostURL = datakitPostURL
-	}
-}
-
-func WithTracePostURL(tracePostURL string) APITracerOpt {
-	return func(cfg *apiTracerConfig) {
-		cfg.tracePostURL = tracePostURL
 	}
 }
 
@@ -403,9 +389,7 @@ func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer 
 	}
 
 	return &APIFlowTracer{
-		datakitPostURL: cfg.datakitPostURL,
-		tracePostURL:   cfg.tracePostURL,
-		tracer:         newTracer(ctx, &cfg),
+		tracer: newTracer(ctx, &cfg),
 	}
 }
 
@@ -459,11 +443,21 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.Cons
 	return nil
 }
 
-func feed(url string, data []*point.Point, gzip bool) error {
+func feed(name string, cat point.Category, data []*point.Point) error {
 	if len(data) == 0 {
 		return nil
 	}
-	if err := exporter.FeedPoint(url, data, gzip); err != nil {
+	if err := exporter.FeedPoint(name, cat, data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func feedEBPFSpan(name string, cat point.Category, data []*point.Point) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if err := exporter.FeedEBPFSpan(name, cat, data); err != nil {
 		return err
 	}
 	return nil

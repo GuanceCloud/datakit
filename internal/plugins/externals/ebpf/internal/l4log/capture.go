@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
@@ -106,9 +107,6 @@ type TCPConns struct {
 
 	tags map[string]string
 
-	url    string
-	aggURL string
-
 	started int64 // -1 stop, 0 wait init, 1 started
 
 	ctrID string
@@ -126,7 +124,7 @@ type TCPConns struct {
 	// cleanUpCh chan map[PktMeta]*PktValue
 }
 
-func NewTCPConns(gtags map[string]string, url, aggURL, ctrID, nsUID string,
+func NewTCPConns(gtags map[string]string, ctrID, nsUID string,
 	nameAddr [2]string, pr *portListen, bl ast.Stmts, runtime *filterRuntime,
 ) *TCPConns {
 	tags := map[string]string{}
@@ -139,8 +137,6 @@ func NewTCPConns(gtags map[string]string, url, aggURL, ctrID, nsUID string,
 		runtime:   runtime,
 		blacklist: bl,
 
-		aggURL:       aggURL,
-		url:          url,
 		ifaceNameMAC: nameAddr,
 		portListen:   pr,
 		tags:         tags,
@@ -614,7 +610,8 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				pts := conns.agg.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
-					if err := exporter.FeedPoint(conns.aggURL, pts, false); err != nil {
+					if err := exporter.FeedPoint("bpf-netlog/netflow",
+						point.Network, pts); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 					}
 				}
@@ -627,7 +624,8 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				pts := conns.aggHTTP.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
-					if err := exporter.FeedPoint(conns.aggURL, pts, false); err != nil {
+					if err := exporter.FeedPoint("bpf-netlog/httpflow",
+						point.Network, pts); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 					}
 				}

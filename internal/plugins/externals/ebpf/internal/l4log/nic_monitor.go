@@ -95,16 +95,12 @@ type netlogMonitor struct {
 	filterRuntime      *filterRuntime
 
 	portListen *portListen
-	url        string
-	aggURL     string
 }
 
-func newNetlogMonitor(gtags map[string]string, url, aggURL, blacklist string, fnG *fnGroup,
+func newNetlogMonitor(gtags map[string]string, blacklist string, fnG *fnGroup,
 ) (*netlogMonitor, error) {
 	m := &netlogMonitor{
 		netnsInfo:     map[string]*netnsInformation{},
-		url:           url,
-		aggURL:        aggURL,
 		gtags:         gtags,
 		portListen:    &portListen{},
 		filterRuntime: &filterRuntime{fnG: fnG},
@@ -235,7 +231,7 @@ func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsInformation) {
 				for k, v := range preNsInf.tags {
 					tags[k] = v
 				}
-				conns := NewTCPConns(tags, m.url, m.aggURL, preNsInf.contianerID, preNsInf.nsUID,
+				conns := NewTCPConns(tags, preNsInf.contianerID, preNsInf.nsUID,
 					idx, m.portListen, m.transportBlacklist, m.filterRuntime)
 
 				if inf, ok := diffTpsNicInfo[idx]; ok && inf != nil {

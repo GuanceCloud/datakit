@@ -48,7 +48,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/gosnmp/gosnmp v1.35.0
 	github.com/grafana/loki v1.6.2-0.20210806161513-f5fd02966003
-	github.com/hashicorp/go-retryablehttp v0.7.4
+	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/influxdata/telegraf v1.16.3
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
