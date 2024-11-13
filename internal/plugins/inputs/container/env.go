@@ -160,13 +160,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.EnableK8sNodeLocal = b
 		}
 	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM to bool: %s, ignore", err)
-		} else {
-			ipt.EnableK8sSelfMetricByProm = b
-		}
-	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS"]; ok {
 		if b, err := strconv.ParseBool(str); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_EXTRACT_K8S_LABEL_AS_TAGS to bool: %s, ignore", err)
@@ -202,52 +195,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_BEARER_TOKEN_STRING"]; ok {
 		ipt.K8sBearerTokenString = str
-	}
-
-	///
-	/// k8s autodiscoery
-	///
-	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableAutoDiscoveryOfPrometheusServiceAnnotations = b
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableAutoDiscoveryOfPrometheusPodAnnotations = b
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_MONITORS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableAutoDiscoveryOfPrometheusPodMonitors = b
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_MONITORS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableAutoDiscoveryOfPrometheusServiceMonitors = b
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME to bool: %s, ignore", err)
-		} else {
-			ipt.KeepExistPrometheusMetricName = b
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE"]; ok {
-		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_AUTO_DISCOVERY_OF_PROM_STREAM_SIZE to int64: %s, ignore", err)
-		} else {
-			ipt.autoDiscoveryOfPromStreamSize = int(size)
-		}
 	}
 
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_MAX_CONCURRENT"]; ok {

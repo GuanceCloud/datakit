@@ -127,6 +127,11 @@ Additionally, there is a type of global configuration, which is the highest-leve
   node_local      = true   # Whether to enable NodeLocal mode, distributing the collection across nodes
   scrape_interval = "30s"  # Set scrape interval, default 30 seconds
 
+  enable_discovery_of_prometheus_pod_annotations     = false  # Whether to enable config for Pod Annotations
+  enable_discovery_of_prometheus_service_annotations = false  # Whether to enable config for Service Annotations
+  enable_discovery_of_prometheus_pod_monitors        = false  # Whether to enable CRD for Pod Monitors of Prometheus
+  enable_discovery_of_prometheus_service_monitors    = false  # Whether to enable CRD for Service Monitors of Prometheus
+
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```

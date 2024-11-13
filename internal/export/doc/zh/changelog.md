@@ -1,5 +1,38 @@
 # 更新日志
 
+## 1.63.0(2024/11/13) {#cl-1.63.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.63.0-new}
+
+- 增加 Datakit [下发任务支持](datakit-conf.md#remote-job)（目前该功能需手动启动，且观测云需升级到 1.98.181 及以上的版本），目前支持通过在前端页面上下发指令给 Datakit 来获取 JVM Dump（#2367）
+
+在 Kubernetes 中执行时，需更新最新的 *datakit.yaml*，这里需要增加额外的 RBAC 权限
+
+- Pipeline 新增[字符串提取提取函数](../pipeline/use-pipeline/pipeline-built-in-function.md#fn_slice_string)（#2436）
+
+### 问题修复 {#cl-1.63.0-fix}
+
+- 修复 Datakit 可能无法启动的问题，该问题因为默认启用了 WAL 作为数据发送的缓存队列，在 WAL 初始化的时候，没有做好进程互斥处理（#2457）
+- 修复安装程序会重制 *datakit.conf* 中已经设置好的一些配置（#2454）
+
+### 功能优化 {#cl-1.63.0-opt}
+
+- eBPF 采集器增加数据采样率配置，以降低其产生的数据量（#2394）  
+- KafkaMQ 采集器增加 SSL 支持（#2421）
+- Graphite 接入的数据支持指定指标集（#2448）
+- 调整 CRD 中 Service Monitor 采集粒度，最细粒度从 Pod 改为 [Endpoint](https://kubernetes.io/docs/concepts/services-networking/service/#endpoints){:target="_blank"}
+
+### 兼容调整 {#cl-1.63.0-brk}
+
+- 移除 Kubernetes Self 指标这个实验性功能，其功能可通过 KubernetesPrometheus 来实现（#2405）
+- 移除容器采集器 Discovery 对 Datakit CRD 的支持
+- 容器采集器的 Discovery Prometheus 功能移动到 KubernetesPrometheus 采集器，保持相对兼容
+- 不再支持 Prometheus ServiceMonitor 的 PodTargetLabel 配置字段
+
+---
+
 ## 1.62.2(2024/11/09) {#cl-1.62.2}
 
 本次发布属于 hotfix 修复，内容如下：

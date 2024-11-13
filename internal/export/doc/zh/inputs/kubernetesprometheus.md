@@ -125,8 +125,13 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
 
 ```yaml
 [inputs.kubernetesprometheus]
-  node_local      = true   # 是否开启 NodeLocal 模式，将采集分散到各个节点
+  node_local      = true   # 开启 NodeLocal 模式，将采集分散到各个节点
   scrape_interval = "30s"  # 指定采集间隔，默认是 30 秒
+
+  enable_discovery_of_prometheus_pod_annotations     = false  # 开启预定义的 Pod Annotations 配置
+  enable_discovery_of_prometheus_service_annotations = false  # 开启预定义的 Service Annotations 配置
+  enable_discovery_of_prometheus_pod_monitors        = false  # 开启 Prometheus PodMonitors CRD 功能
+  enable_discovery_of_prometheus_service_monitors    = false  # 开启 Prometheus ServiceMonitors CRD 功能
  
   [[inputs.kubernetesprometheus.instances]]
   # ..other

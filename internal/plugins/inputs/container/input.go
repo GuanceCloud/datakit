@@ -39,11 +39,10 @@ type Input struct {
 	ExtractK8sLabelAsTagsV2ForMetric      []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`
 	Election                              bool     `toml:"election"`
 
-	K8sURL                        string `toml:"kubernetes_url"`
-	K8sBearerToken                string `toml:"bearer_token"`
-	K8sBearerTokenString          string `toml:"bearer_token_string"`
-	autoDiscoveryOfPromStreamSize int
-	disableCollectK8sJob          bool
+	K8sURL               string `toml:"kubernetes_url"`
+	K8sBearerToken       string `toml:"bearer_token"`
+	K8sBearerTokenString string `toml:"bearer_token_string"`
+	disableCollectK8sJob bool
 
 	ContainerMaxConcurrent                int               `toml:"container_max_concurrent"`
 	ContainerIncludeLog                   []string          `toml:"container_include_log"`

@@ -15,6 +15,8 @@ __int_icon: 'icon/kubernetes'
 
 ## 介绍 {#intro}
 
+**此功能在 Datakit 1.63.0 弃用。**
+
 本文档介绍如何在 Kubernetes 集群中创建 Datakit resource 并配置扩展采集器。
 
 ### 添加鉴权 {#authorization}
