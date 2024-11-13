@@ -114,6 +114,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"pt_kvs_del":             FnPtKvsDel.Call,
 	"pt_kvs_keys":            FnPtKvsKeys.Call,
 	"hash":                   FnHash.Call,
+	"slice_string":           FnSliceString.Call,
 
 	// disable
 	"json_all": JSONAll,
@@ -187,11 +188,12 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"point_window":           PtWindowChecking,
 	"window_hit":             PtWindowHitChecking,
 
-	"pt_kvs_set":  FnPtKvsSet.Check,
-	"pt_kvs_get":  FnPtKvsGet.Check,
-	"pt_kvs_del":  FnPtKvsDel.Check,
-	"pt_kvs_keys": FnPtKvsKeys.Check,
-	"hash":        FnHash.Check,
+	"pt_kvs_set":   FnPtKvsSet.Check,
+	"pt_kvs_get":   FnPtKvsGet.Check,
+	"pt_kvs_del":   FnPtKvsDel.Check,
+	"pt_kvs_keys":  FnPtKvsKeys.Check,
+	"hash":         FnHash.Check,
+	"slice_string": FnSliceString.Check,
 
 	// disable
 	"json_all": JSONAllChecking,

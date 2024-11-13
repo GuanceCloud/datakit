@@ -89,6 +89,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"pt_kvs_del()":             FnPtKvsDel.Doc[0],
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[0],
 	"hash()":                   FnHash.Doc[0],
+	"slice_string()":           FnSliceString.Doc[0],
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -161,6 +162,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"pt_kvs_del()":             FnPtKvsDel.Doc[1],
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[1],
 	"hash()":                   FnHash.Doc[1],
+	"slice_string()":           FnSliceString.Doc[1],
 }
 
 // embed docs.
