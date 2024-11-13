@@ -20,10 +20,12 @@ import (
 type Role string
 
 const (
-	RoleNode      Role = "node"
-	RoleService   Role = "service"
-	RoleEndpoints Role = "endpoints"
-	RolePod       Role = "pod"
+	RoleNode           Role = "node"
+	RoleService        Role = "service"
+	RoleEndpoints      Role = "endpoints"
+	RolePod            Role = "pod"
+	RolePodMonitor     Role = "podmonitor"
+	RoleServiceMonitor Role = "servicemonitor"
 )
 
 const matchedScrape = "true"
@@ -58,9 +60,10 @@ type (
 	}
 
 	Custom struct {
-		Measurement      string            `toml:"measurement"`
-		JobAsMeasurement bool              `toml:"job_as_measurement"`
-		Tags             map[string]string `toml:"tags"`
+		Measurement         string `toml:"measurement"`
+		JobAsMeasurement    bool   `toml:"job_as_measurement"`
+		keepExistMetricName bool
+		Tags                map[string]string `toml:"tags"`
 	}
 
 	Auth struct {
@@ -69,9 +72,10 @@ type (
 	}
 
 	basePromConfig struct {
-		urlstr      string
-		measurement string
-		tags        map[string]string
+		urlstr              string
+		measurement         string
+		tags                map[string]string
+		keepExistMetricName bool
 		// Only used on Endpoints.
 		nodeName string
 	}
@@ -100,6 +104,7 @@ func (ins *Instance) setDefault() {
 	if ins.Path == "" {
 		ins.Path = "/metrics"
 	}
+	ins.keepExistMetricName = true
 }
 
 type InstanceManager struct {
@@ -110,6 +115,7 @@ func (im InstanceManager) Run(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	informerFactory informers.SharedInformerFactory,
+	scrapeManager scrapeManagerInterface,
 	feeder dkio.Feeder,
 ) {
 	roleInstances := make([][]*Instance, len(supportedRoles))
@@ -117,16 +123,13 @@ func (im InstanceManager) Run(
 	for _, ins := range im.Instances {
 		role := Role(ins.Role)
 
-		switch role {
+		switch role { // nolint:exhaustive
 		case RoleNode, RoleService, RoleEndpoints, RolePod:
 			// nil
 		default:
 			klog.Warnf("unexpetced role %s, only supported %v", role, supportedRoles)
 			continue
 		}
-
-		// set default values
-		ins.setDefault()
 
 		v, err := newResourceValidator(ins.Namespaces, ins.Selector)
 		if err != nil {
@@ -150,18 +153,18 @@ func (im InstanceManager) Run(
 		var launcher roleLauncher
 		var err error
 
-		switch supportedRoles[idx] {
+		switch supportedRoles[idx] { // nolint:exhaustive
 		case RoleNode:
-			launcher, err = NewNode(informerFactory, instances, feeder)
+			launcher, err = NewNode(informerFactory, instances, scrapeManager, feeder)
 
 		case RoleService:
-			launcher, err = NewService(clientset, informerFactory, instances, feeder)
+			launcher, err = NewService(clientset, informerFactory, instances, scrapeManager, feeder)
 
 		case RoleEndpoints:
-			launcher, err = NewEndpoints(informerFactory, instances, feeder)
+			launcher, err = NewEndpoints(informerFactory, instances, scrapeManager, feeder)
 
 		case RolePod:
-			launcher, err = NewPod(informerFactory, instances, feeder)
+			launcher, err = NewPod(informerFactory, instances, scrapeManager, feeder)
 		}
 
 		if err != nil {
@@ -203,9 +206,9 @@ func (k keyMatcher) matches(str string) (matched bool, args []string) {
 
 func maxConcurrent(nodeLocal bool) int {
 	if nodeLocal {
-		return datakit.AvailableCPUs + 1
+		return datakit.AvailableCPUs
 	}
-	return datakit.AvailableCPUs*3 + 1
+	return datakit.AvailableCPUs * 2
 }
 
 type ctxKey int

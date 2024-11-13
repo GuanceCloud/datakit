@@ -34,22 +34,16 @@ type Input struct {
 	EnablePodMetric                       bool     `toml:"enable_pod_metric"`
 	EnableK8sEvent                        bool     `toml:"enable_k8s_event"`
 	EnableK8sNodeLocal                    bool     `toml:"enable_k8s_node_local"`
-	EnableK8sSelfMetricByProm             bool     `toml:"enable_k8s_self_metric_by_prom"`
-	KeepExistPrometheusMetricName         bool     `toml:"keep_exist_prometheus_metric_name"`
 	DeprecatedEnableExtractK8sLabelAsTags bool     `toml:"extract_k8s_label_as_tags"`
 	ExtractK8sLabelAsTagsV2               []string `toml:"extract_k8s_label_as_tags_v2"`
 	ExtractK8sLabelAsTagsV2ForMetric      []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`
 	Election                              bool     `toml:"election"`
 
-	K8sURL                                            string `toml:"kubernetes_url"`
-	K8sBearerToken                                    string `toml:"bearer_token"`
-	K8sBearerTokenString                              string `toml:"bearer_token_string"`
-	EnableAutoDiscoveryOfPrometheusPodAnnotations     bool   `toml:"enable_auto_discovery_of_prometheus_pod_annotations"`
-	EnableAutoDiscoveryOfPrometheusServiceAnnotations bool   `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
-	EnableAutoDiscoveryOfPrometheusPodMonitors        bool   `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
-	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool   `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
-	autoDiscoveryOfPromStreamSize                     int
-	disableCollectK8sJob                              bool
+	K8sURL                        string `toml:"kubernetes_url"`
+	K8sBearerToken                string `toml:"bearer_token"`
+	K8sBearerTokenString          string `toml:"bearer_token_string"`
+	autoDiscoveryOfPromStreamSize int
+	disableCollectK8sJob          bool
 
 	ContainerMaxConcurrent                int               `toml:"container_max_concurrent"`
 	ContainerIncludeLog                   []string          `toml:"container_include_log"`

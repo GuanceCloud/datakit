@@ -22,7 +22,7 @@ const sampleConfig = `
 
   ## Keep Exist Metric Name
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
-  keep_exist_metric_name = false
+  keep_exist_metric_name = true
 
   ## TLS config
   # insecure_skip_verify = true

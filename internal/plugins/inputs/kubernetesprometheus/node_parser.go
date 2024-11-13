@@ -129,7 +129,9 @@ func (p *nodeParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 			tags[k] = res
 			continue
 		}
-		tags[k] = v
+		if !isKeywords(v) {
+			tags[k] = v
+		}
 	}
 
 	measurement := ins.Measurement
@@ -138,9 +140,10 @@ func (p *nodeParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 	}
 
 	return &basePromConfig{
-		urlstr:      u.String(),
-		measurement: measurement,
-		tags:        tags,
+		urlstr:              u.String(),
+		measurement:         measurement,
+		keepExistMetricName: ins.keepExistMetricName,
+		tags:                tags,
 	}, nil
 }
 

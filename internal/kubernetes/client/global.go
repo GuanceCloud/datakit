@@ -12,6 +12,7 @@ import (
 )
 
 type APIClient struct {
+	Client          Client
 	Clientset       *kubernetes.Clientset
 	InformerFactory informers.SharedInformerFactory
 }
@@ -21,10 +22,17 @@ func GetAPIClient() (*APIClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	client, err := newKubernetesClient(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
 		clientset,
 		0,
@@ -35,6 +43,7 @@ func GetAPIClient() (*APIClient, error) {
 		),
 	)
 	return &APIClient{
+		Client:          client,
 		Clientset:       clientset,
 		InformerFactory: informerFactory,
 	}, nil

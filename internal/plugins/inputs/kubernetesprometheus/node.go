@@ -19,35 +19,41 @@ import (
 )
 
 type Node struct {
+	role     Role
 	informer infov1.NodeInformer
 	queue    workqueue.DelayingInterface
 	store    cache.Store
 
 	instances []*Instance
-	scrape    *scrapeManager
+	scrape    scrapeManagerInterface
 	feeder    dkio.Feeder
 }
 
-func NewNode(informerFactory informers.SharedInformerFactory, instances []*Instance, feeder dkio.Feeder) (*Node, error) {
+func NewNode(
+	informerFactory informers.SharedInformerFactory,
+	instances []*Instance,
+	scrape scrapeManagerInterface,
+	feeder dkio.Feeder,
+) (*Node, error) {
 	informer := informerFactory.Core().V1().Nodes()
 	if informer == nil {
 		return nil, fmt.Errorf("cannot get node informer")
 	}
+
 	return &Node{
+		role:     RoleNode,
 		informer: informer,
 		queue:    workqueue.NewNamedDelayingQueue(string(RoleNode)),
 		store:    informer.Informer().GetStore(),
 
 		instances: instances,
-		scrape:    newScrapeManager(RoleNode),
+		scrape:    scrape,
 		feeder:    feeder,
 	}, nil
 }
 
 func (n *Node) Run(ctx context.Context) {
 	defer n.queue.ShutDown()
-
-	n.scrape.run(ctx, maxConcurrent(nodeLocalFrom(ctx)))
 
 	n.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -113,24 +119,24 @@ func (n *Node) process(ctx context.Context) bool {
 		return true
 	}
 
-	if n.scrape.matchesKey(key, nodeFeature(node)) {
+	traits := nodeTraits(node)
+	if n.scrape.isTraitsExists(n.role, key, traits) {
 		return true
 	}
 
-	klog.Infof("found new node %s", key)
+	klog.Infof("discovered Node %s", key)
 	n.terminateScrape(key)
-	n.startScrape(ctx, key, node)
+	n.startScrape(ctx, key, traits, node)
 	return true
 }
 
-func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
-	feature := nodeFeature(item)
+func (n *Node) startScrape(ctx context.Context, key, traits string, item *corev1.Node) {
 	checkPausedFunc := func() bool {
 		return checkPaused(ctx, false /* not use election */)
 	}
 
 	for _, ins := range n.instances {
-		if !ins.validator.Matches("", item.Labels) {
+		if ins.validator != nil && !ins.validator.Matches("", item.Labels) {
 			continue
 		}
 
@@ -151,6 +157,7 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 		opts := buildPromOptions(
 			RoleNode, key, n.feeder,
 			promscrape.WithMeasurement(cfg.measurement),
+			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
 
 		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
@@ -165,15 +172,15 @@ func (n *Node) startScrape(ctx context.Context, key string, item *corev1.Node) {
 			continue
 		}
 
-		n.scrape.registerScrape(key, feature, prom)
+		n.scrape.registerScrape(n.role, key, traits, prom)
 	}
 }
 
 func (n *Node) terminateScrape(key string) {
-	n.scrape.terminateScrape(key)
+	n.scrape.removeScrape(n.role, key)
 }
 
-func nodeFeature(item *corev1.Node) string {
+func nodeTraits(item *corev1.Node) string {
 	internalIP := ""
 	for _, address := range item.Status.Addresses {
 		if address.Type == corev1.NodeInternalIP {

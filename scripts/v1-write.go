@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	flagListen   = flag.String("listen", "localhost:54321", "HTTP listen")
+	flagListen   = flag.String("listen", "0.0.0.0:54321", "HTTP listen")
 	flagGinLog   = flag.Bool("gin-log", false, "enable or disable gin log")
 	flagMaxBody  = flag.Int("max-body", 0, "set max body size(kb)")
 	flagDecode   = flag.Bool("decode", false, "try decode request")

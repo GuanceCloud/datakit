@@ -7,110 +7,107 @@ package kubernetesprometheus
 
 import (
 	"context"
-	"math"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-const scraperChanNum = 32
+type scrapeManagerInterface interface {
+	runWorker(ctx context.Context, workerChan int, interval time.Duration)
+	registerScrape(role Role, key string, traits string, sp scraper)
+	isTraitsExists(role Role, key string, traits string) bool
+	isScrapeExists(role Role, key string, targetURL string) bool
+	removeScrape(role Role, key string)
+	tryCleanScrapes(role Role, key string, keepTargetURLs []string)
+}
 
 type scraper interface {
 	targetURL() string
 	shouldScrape() bool
-	scrape(int64) error
+	scrape(timestamp int64) error
 	isTerminated() bool
 	markAsTerminated()
 }
 
 type scrapeManager struct {
-	role     Role
-	keys     map[string]string
-	scrapers map[string][]scraper
+	nodeStore           *scrapeStore
+	serviceStore        *scrapeStore
+	endpointsStore      *scrapeStore
+	podStore            *scrapeStore
+	podmonitorStore     *scrapeStore
+	servicemonitorStore *scrapeStore
 
-	scraperChan chan scraper
-	mu          sync.Mutex
+	workerChan    chan scraper
+	runWorkerOnce sync.Once
+	mu            sync.Mutex
 }
 
-func newScrapeManager(role Role) *scrapeManager {
+const defaultScraperChanNum = 32
+
+func newScrapeManager() scrapeManagerInterface {
 	return &scrapeManager{
-		role:        role,
-		keys:        make(map[string]string),
-		scrapers:    make(map[string][]scraper),
-		scraperChan: make(chan scraper, scraperChanNum),
+		nodeStore:           newScrapeStore(),
+		serviceStore:        newScrapeStore(),
+		endpointsStore:      newScrapeStore(),
+		podStore:            newScrapeStore(),
+		podmonitorStore:     newScrapeStore(),
+		servicemonitorStore: newScrapeStore(),
+		workerChan:          make(chan scraper, defaultScraperChanNum),
 	}
 }
 
-func (s *scrapeManager) registerScrape(key, feature string, sp scraper) {
+func (s *scrapeManager) registerScrape(role Role, key, traits string, sp scraper) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.keys[key]; !ok {
-		s.keys[key] = feature
-	}
-
 	select {
-	case s.scraperChan <- sp:
-		s.scrapers[key] = append(s.scrapers[key], sp)
+	case s.workerChan <- sp:
+		s.store(role).addTraits(key, traits)
+		s.store(role).addScraper(key, sp)
 	default:
 		klog.Warnf("manager channel is stuffed, register failed for key %s", key)
 		return
 	}
 
-	klog.Infof("added scraper url %s for %s, current len(%d)", sp.targetURL(), key, len(s.scrapers[key]))
-	scrapeTargetNumber.WithLabelValues(string(s.role), key).Add(1)
+	klog.Infof("%s added scraper url %s for %s, current len(%d)", role, sp.targetURL(), key, s.store(role).scraperCount(key))
+	scraperNumberVec.WithLabelValues(string(role), key).Add(1)
 }
 
-func (s *scrapeManager) matchesKey(key, feature string) bool {
+func (s *scrapeManager) isTraitsExists(role Role, key string, traits string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	f, exists := s.keys[key]
-	return exists && f == feature
+	return s.store(role).hasTraits(key, traits)
 }
 
-func (s *scrapeManager) cleanDeadScrape() {
+func (s *scrapeManager) isScrapeExists(role Role, key string, targetURL string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for key := range s.scrapers {
-		var newScrapers []scraper
-		var count int
-		for _, sp := range s.scrapers[key] {
-			if !sp.isTerminated() {
-				newScrapers = append(newScrapers, sp)
-				continue
-			}
-			count += 1
-		}
-		if count != 0 {
-			s.scrapers[key] = newScrapers
-			scrapeTargetNumber.WithLabelValues(string(s.role), key).Sub(float64(count))
-			klog.Infof("clean %d scraper for %s", count, key)
-		}
+	return s.store(role).hasScraper(key, targetURL)
+}
+
+func (s *scrapeManager) removeScrape(role Role, key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	count := s.store(role).deleteKeyAndTerminateScrapers(key)
+	if count != 0 {
+		klog.Infof("%s terminated scraper len(%d) for key %s", role, count, key)
+		scraperNumberVec.WithLabelValues(string(role), key).Sub(float64(count))
 	}
 }
 
-func (s *scrapeManager) existScrape(key string, urlstr string) bool {
+func (s *scrapeManager) tryCleanScrapes(role Role, key string, keepTargetURLs []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, sp := range s.scrapers[key] {
-		if sp.targetURL() == urlstr {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *scrapeManager) tryCleanScrapes(key string, urlstrList []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, sp := range s.scrapers[key] {
+	for _, sp := range s.store(role).scrapers[key] {
 		found := false
-		for _, urlstr := range urlstrList {
+		for _, urlstr := range keepTargetURLs {
 			if sp.targetURL() == urlstr {
 				found = true
 			}
@@ -121,72 +118,60 @@ func (s *scrapeManager) tryCleanScrapes(key string, urlstrList []string) {
 	}
 }
 
-func (s *scrapeManager) terminateScrape(key string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInterval time.Duration) {
+	s.runWorkerOnce.Do(func() {
+		managerGo.Go(func(_ context.Context) error {
+			ticker := time.NewTicker(time.Minute)
+			defer ticker.Stop()
 
-	delete(s.keys, key)
+			for {
+				select {
+				case <-ctx.Done():
+					s.stop()
+					klog.Info("manager exit")
+					return nil
 
-	if _, ok := s.scrapers[key]; ok {
-		for _, sp := range s.scrapers[key] {
-			sp.markAsTerminated()
-		}
-
-		length := len(s.scrapers[key])
-		klog.Infof("%s terminated scraper len(%d) for key %s", s.role, length, key)
-		scrapeTargetNumber.WithLabelValues(string(s.role), key).Sub(float64(length))
-
-		delete(s.scrapers, key)
-	}
-}
-
-func (s *scrapeManager) run(ctx context.Context, workerNum int) {
-	managerGo.Go(func(_ context.Context) error {
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				s.stop()
-				klog.Infof("%s manager exit", s.role)
-				return nil
-			case <-ticker.C:
-				s.cleanDeadScrape()
+				case <-ticker.C:
+					s.cleanDeadScraper()
+				}
 			}
+		})
+
+		for i := 0; i < workerNum; i++ {
+			name := "worker-" + strconv.Itoa(i)
+
+			randSleep := rand.Intn(100 /*100 ms*/) //nolint:gosec
+			time.Sleep(time.Duration(randSleep) * time.Millisecond)
+
+			workerGo.Go(func(_ context.Context) error {
+				s.doWork(ctx, name, scrapeInterval)
+				return nil
+			})
 		}
 	})
-
-	for i := 0; i < workerNum; i++ {
-		name := "worker-" + strconv.Itoa(i)
-		randSleep := rand.Intn(100 /*100 ms*/) //nolint:gosec
-		time.Sleep(time.Duration(randSleep) * time.Millisecond)
-		workerGo.Go(func(_ context.Context) error {
-			s.doWork(ctx, name)
-			return nil
-		})
-	}
 }
 
-func (s *scrapeManager) doWork(ctx context.Context, name string) {
+func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval time.Duration) {
 	tasks := make(map[string]scraper)
 	timestamp := time.Now().UnixNano() / 1e6
 
-	ticker := time.NewTicker(globalScrapeInterval)
+	ticker := time.NewTicker(scrapeInterval)
 	defer ticker.Stop()
 
 	for {
-		timestamp += globalScrapeInterval.Milliseconds()
+		timestamp += scrapeInterval.Milliseconds()
 		select {
 		case <-ctx.Done():
 			return
 
-		case sp, ok := <-s.scraperChan:
+		case sp, ok := <-s.workerChan:
 			if !ok {
-				klog.Warnf("%s(%s) scrape channel is closed, exit", s.role, name)
+				klog.Warnf("worker channel %s is closed, exit", name)
 				return
 			}
-			if len(tasks) >= 100 {
-				klog.Warnf("%s(%s) scrape is over limit", s.role, name)
+
+			if len(tasks) > maxTaskNumber {
+				klog.Warnf("tasks is over limit %d", maxTaskNumber)
 			} else {
 				if _, ok := tasks[sp.targetURL()]; !ok {
 					tasks[sp.targetURL()] = sp
@@ -194,44 +179,152 @@ func (s *scrapeManager) doWork(ctx context.Context, name string) {
 			}
 
 		case tt := <-ticker.C:
-			t := tt.UnixNano() / 1e6
-			if d := math.Abs(float64(t - timestamp)); d > 0 && d/float64(globalScrapeInterval.Milliseconds()) > 0.1 {
-				timestamp = t
-			}
+			timestamp = inputs.AlignTimestamp(tt, timestamp, scrapeInterval)
 
 			var removeTasks []string
 			for _, task := range tasks {
 				if task.isTerminated() {
 					removeTasks = append(removeTasks, task.targetURL())
-					klog.Debugf("%s(%s) urlstr %s terminated", s.role, name, task.targetURL())
 					continue
 				}
 				if task.shouldScrape() {
 					if err := task.scrape(timestamp * 1e6 /* To Nanoseconds */); err != nil {
-						klog.Warnf("failed to scrape url %s, err %s", task.targetURL(), err)
-						task.isTerminated()
+						klog.Warnf("failed to scrape url %s, err %s, this task will be removed", task.targetURL(), err)
+						task.markAsTerminated()
 						removeTasks = append(removeTasks, task.targetURL())
 					}
 				}
 			}
 
 			if len(removeTasks) != 0 {
-				klog.Debugf("%s(%s) remove len(%d) tasks", s.role, name, len(removeTasks))
 				for _, taskURL := range removeTasks {
 					delete(tasks, taskURL)
 				}
 			}
 
-			activeWorkerTasks.WithLabelValues(string(s.role), name).Set(float64(len(tasks)))
+			taskNumerVec.WithLabelValues(name).Set(float64(len(tasks)))
 		}
+	}
+}
+
+func (s *scrapeManager) cleanDeadScraper() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var count int
+	count += s.nodeStore.cleanDeadScraper(string(RoleNode))
+	count += s.serviceStore.cleanDeadScraper(string(RoleService))
+	count += s.endpointsStore.cleanDeadScraper(string(RoleEndpoints))
+	count += s.podStore.cleanDeadScraper(string(RolePod))
+	count += s.podmonitorStore.cleanDeadScraper(string(RolePodMonitor))
+	count += s.servicemonitorStore.cleanDeadScraper(string(RoleServiceMonitor))
+
+	if count != 0 {
+		klog.Infof("clean %d scraper", count)
 	}
 }
 
 func (s *scrapeManager) stop() {
 	select {
-	case <-s.scraperChan:
+	case <-s.workerChan:
 		// nil
 	default:
-		close(s.scraperChan)
+		close(s.workerChan)
 	}
+}
+
+func (s *scrapeManager) store(role Role) *scrapeStore {
+	switch role {
+	case RoleNode:
+		return s.nodeStore
+	case RoleService:
+		return s.serviceStore
+	case RoleEndpoints:
+		return s.endpointsStore
+	case RolePod:
+		return s.podStore
+	case RolePodMonitor:
+		return s.podmonitorStore
+	case RoleServiceMonitor:
+		return s.servicemonitorStore
+	default:
+		// unreachable
+		return nil
+	}
+}
+
+type scrapeStore struct {
+	traits   map[string]string
+	scrapers map[string][]scraper
+}
+
+func newScrapeStore() *scrapeStore {
+	return &scrapeStore{
+		traits:   make(map[string]string),
+		scrapers: make(map[string][]scraper),
+	}
+}
+
+func (store *scrapeStore) addTraits(key, traits string) {
+	store.traits[key] = traits
+}
+
+func (store *scrapeStore) hasTraits(key, traits string) bool {
+	tr, exists := store.traits[key]
+	return exists && tr == traits
+}
+
+func (store *scrapeStore) addScraper(key string, sp scraper) {
+	store.scrapers[key] = append(store.scrapers[key], sp)
+}
+
+func (store *scrapeStore) hasScraper(key, targetURL string) bool {
+	for _, sp := range store.scrapers[key] {
+		if sp.targetURL() == targetURL {
+			return true
+		}
+	}
+	return false
+}
+
+func (store *scrapeStore) cleanDeadScraper(roleName string) int {
+	var count int
+
+	for key := range store.scrapers {
+		var newScrapers []scraper
+		var num int
+
+		for _, sp := range store.scrapers[key] {
+			if !sp.isTerminated() {
+				newScrapers = append(newScrapers, sp)
+				continue
+			}
+			num += 1
+		}
+
+		if num != 0 {
+			store.scrapers[key] = newScrapers
+			scraperNumberVec.WithLabelValues(roleName, key).Sub(float64(num))
+			count += num
+		}
+	}
+
+	return count
+}
+
+func (store *scrapeStore) scraperCount(key string) int {
+	return len(store.scrapers[key])
+}
+
+func (store *scrapeStore) deleteKeyAndTerminateScrapers(key string) (cleanCount int) {
+	delete(store.traits, key)
+
+	for _, sp := range store.scrapers[key] {
+		sp.markAsTerminated()
+	}
+
+	cleanCount = len(store.scrapers[key])
+	delete(store.scrapers, key)
+
+	return
 }

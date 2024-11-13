@@ -6,54 +6,64 @@
 package kubernetesprometheus
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
 	inputName = "kubernetesprometheus"
-	klog      = logger.DefaultSLogger(inputName)
 
-	// Maximum: 1 (inputs.Run) + 4 * 2 (resource manager) + N (Services Number).
+	// annotationPrometheusioScheme        = "prometheus.io/scheme".
+	annotationPrometheusioScrape           = "prometheus.io/scrape"
+	annotationPrometheusioPort             = "prometheus.io/port"
+	annotationPrometheusioPath             = "prometheus.io/path"
+	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
+
+	maxTaskNumber = 100
+)
+
+var (
+	klog = logger.DefaultSLogger(inputName)
+
+	// Maximum: role*4  + manager*1 + Services*N.
 	managerGo = datakit.G("kubernetesprometheus_manager")
-	// Maximum: 4 * maxConcurrent.
+	// Maximum: 2*maxConcurrent.
 	workerGo = datakit.G("kubernetesprometheus_worker")
-
-	globalScrapeInterval = time.Second * 30
 )
 
 const (
 	example = `
 [inputs.kubernetesprometheus]
-  node_local = true
+  node_local      = true
   scrape_interval = "30s"
 
-  [[inputs.kubernetesprometheus.instances]]
-    role       = "node"
-    namespaces = []
-    selector   = ""
+  enable_discovery_of_prometheus_pod_annotations     = false
+  enable_discovery_of_prometheus_service_annotations = false
+  enable_discovery_of_prometheus_pod_monitors        = false
+  enable_discovery_of_prometheus_service_monitors    = false
 
-    scrape   = "true"
-    scheme   = "https"
-    port     = "__kubernetes_node_kubelet_endpoint_port"
-    path     = "/metrics"
-
-   [inputs.kubernetesprometheus.instances.custom]
-     measurement        = "kubernetes_node_metrics"
-     job_as_measurement = false
-     [inputs.kubernetesprometheus.instances.custom.tags]
-       instance         = "__kubernetes_mate_instance"
-       host             = "__kubernetes_mate_host"
-       node_name        = "__kubernetes_node_name"
-    
-   [inputs.kubernetesprometheus.instances.auth]
-     bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-     [inputs.kubernetesprometheus.instances.auth.tls_config]
-       insecure_skip_verify = true
-	ca_certs = []
-	cert     = ""
-	cert_key = ""
+  ## Example
+  #[[inputs.kubernetesprometheus.instances]]
+  #  role       = "node"
+  #  namespaces = []
+  #  selector   = ""
+  #  scrape   = "true"
+  #  scheme   = "https"
+  #  port     = "__kubernetes_node_kubelet_endpoint_port"
+  #  path     = "/metrics"
+  #  [inputs.kubernetesprometheus.instances.custom]
+  #    measurement        = "kubernetes_node_metrics"
+  #    job_as_measurement = false
+  #    [inputs.kubernetesprometheus.instances.custom.tags]
+  #      instance         = "__kubernetes_mate_instance"
+  #      host             = "__kubernetes_mate_host"
+  #      node_name        = "__kubernetes_node_name"
+  #  [inputs.kubernetesprometheus.instances.auth]
+  #    bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+  #    [inputs.kubernetesprometheus.instances.auth.tls_config]
+  #      insecure_skip_verify = true
+  #      ca_certs = []
+  #      cert     = ""
+  #      cert_key = ""
 `
 )

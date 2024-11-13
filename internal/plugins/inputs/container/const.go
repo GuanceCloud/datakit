@@ -35,12 +35,6 @@ const sampleCfg = `
   # extract_k8s_label_as_tags_v2 = []
   # extract_k8s_label_as_tags_v2_for_metric = []
 
-  ## Auto-Discovery of PrometheusMonitoring Annotations/CRDs
-  enable_auto_discovery_of_prometheus_pod_annotations = false
-  enable_auto_discovery_of_prometheus_service_annotations = false
-  enable_auto_discovery_of_prometheus_pod_monitors = false
-  enable_auto_discovery_of_prometheus_service_monitors = false
-
   ## Containers logs to include and exclude, default collect all containers. Globs accepted.
   container_include_log = []
   container_exclude_log = ["image:*logfwd*", "image:*datakit*"]
@@ -82,7 +76,13 @@ const sampleCfg = `
 `
 
 type DeprecatedConf struct {
-	LoggingBlockingMode   bool `toml:"logging_blocking_mode"`
-	ExcludePauseContainer bool `toml:"exclude_pause_container"`
-	DisableK8sEvents      bool `toml:"disable_k8s_events"`
+	LoggingBlockingMode                               bool `toml:"logging_blocking_mode"`
+	ExcludePauseContainer                             bool `toml:"exclude_pause_container"`
+	DisableK8sEvents                                  bool `toml:"disable_k8s_events"`
+	EnableAutoDiscoveryOfPrometheusPodAnnotations     bool `toml:"enable_auto_discovery_of_prometheus_pod_annotations"`
+	EnableAutoDiscoveryOfPrometheusServiceAnnotations bool `toml:"enable_auto_discovery_of_prometheus_service_annotations"`
+	EnableAutoDiscoveryOfPrometheusPodMonitors        bool `toml:"enable_auto_discovery_of_prometheus_pod_monitors"`
+	EnableAutoDiscoveryOfPrometheusServiceMonitors    bool `toml:"enable_auto_discovery_of_prometheus_service_monitors"`
+	KeepExistPrometheusMetricName                     bool `toml:"keep_exist_prometheus_metric_name"`
+	EnableK8sSelfMetricByProm                         bool `toml:"enable_k8s_self_metric_by_prom"`
 }

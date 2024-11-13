@@ -85,6 +85,23 @@ var PodValueFroms = []struct {
 			return ""
 		},
 	},
+	{
+		// e.g. __kubernetes_pod_container_port_metrics_number
+		key: newKeyMatcherWithRegexp(regexp.MustCompile(`^__kubernetes_pod_container_port_(.*?)_number$`)),
+		fn: func(item *corev1.Pod, args []string) string {
+			if len(args) != 1 {
+				return ""
+			}
+			for _, container := range item.Spec.Containers {
+				for _, port := range container.Ports {
+					if port.Name == args[0] {
+						return strconv.Itoa(int(port.ContainerPort))
+					}
+				}
+			}
+			return ""
+		},
+	},
 }
 
 type podParser struct{ item *corev1.Pod }
@@ -125,7 +142,9 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 			tags[k] = res
 			continue
 		}
-		tags[k] = v
+		if !isKeywords(v) {
+			tags[k] = v
+		}
 	}
 
 	measurement := ins.Measurement
@@ -134,9 +153,10 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 	}
 
 	return &basePromConfig{
-		urlstr:      u.String(),
-		measurement: measurement,
-		tags:        tags,
+		urlstr:              u.String(),
+		measurement:         measurement,
+		keepExistMetricName: ins.keepExistMetricName,
+		tags:                tags,
 	}, nil
 }
 
