@@ -28,7 +28,10 @@ import "C"
 
 type BashEventC C.struct_bash_event
 
-const srcNameM = "bash"
+const (
+	srcNameM      = "bash"
+	inputNameBash = "ebpf-bash"
+)
 
 var (
 	l = logger.DefaultSLogger(srcNameM)
@@ -128,14 +131,14 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	}
 }
 
-func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string, interval time.Duration) {
+func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	cache := []*point.Point{}
 	for {
 		select {
 		case <-ticker.C:
 			if len(cache) > 0 {
-				if err := exporter.FeedPoint(datakitPostURL, cache, false); err != nil {
+				if err := exporter.FeedPoint(inputNameBash, point.Logging, cache); err != nil {
 					l.Error(err)
 				}
 				cache = make([]*point.Point, 0)
@@ -143,7 +146,7 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 		case pt := <-tracer.ch:
 			cache = append(cache, pt)
 			if len(cache) > 128 {
-				if err := exporter.FeedPoint(datakitPostURL, cache, false); err != nil {
+				if err := exporter.FeedPoint(inputNameBash, point.Logging, cache); err != nil {
 					l.Error(err)
 				}
 				cache = make([]*point.Point, 0)
@@ -155,10 +158,10 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, datakitPostURL string
 }
 
 func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
-	datakitPostURL string, interval time.Duration) error {
+	interval time.Duration) error {
 	tracer.gTags = gTags
 
-	go tracer.feedHandler(ctx, datakitPostURL, interval)
+	go tracer.feedHandler(ctx, interval)
 
 	bpfManger, err := NewBashManger(tracer.readlineCallBack)
 	if err != nil {

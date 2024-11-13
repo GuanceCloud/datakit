@@ -170,7 +170,7 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 		}
 		if count >= maxFeedCount {
 			if len(pts) > 0 && enableNetlog {
-				if err := exporter.FeedPoint(conns.url, pts, false); err != nil {
+				if err := exporter.FeedPoint("bpf-netlog/netlog", point.Logging, pts); err != nil {
 					log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 				}
 			}
@@ -180,7 +180,7 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 	}
 
 	if len(pts) > 0 && enableNetlog {
-		if err := exporter.FeedPoint(conns.url, pts, false); err != nil {
+		if err := exporter.FeedPoint("bpf-netlog/netlog", point.Logging, pts); err != nil {
 			log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
 		}
 	}

@@ -172,8 +172,6 @@ func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, 
 
 type netlogCfg struct {
 	gTags       map[string]string
-	url         string
-	aggURL      string
 	blacklist   string
 	ctrEndpoint []string
 }
@@ -183,18 +181,6 @@ type CfgFn func(cfg *netlogCfg)
 func WithGlobalTags(tags map[string]string) func(cfg *netlogCfg) {
 	return func(cfg *netlogCfg) {
 		cfg.gTags = tags
-	}
-}
-
-func WithURL(url string) func(cfg *netlogCfg) {
-	return func(cfg *netlogCfg) {
-		cfg.url = url
-	}
-}
-
-func WithAggURL(url string) func(cfg *netlogCfg) {
-	return func(cfg *netlogCfg) {
-		cfg.aggURL = url
 	}
 }
 
@@ -274,7 +260,7 @@ func NetLog(ctx context.Context, opts ...CfgFn) {
 		log.Warnf("no container runtime")
 	}
 
-	m, err := newNetlogMonitor(cfg.gTags, cfg.url, cfg.aggURL, cfg.blacklist, _fnList)
+	m, err := newNetlogMonitor(cfg.gTags, cfg.blacklist, _fnList)
 	if err != nil {
 		log.Errorf("create netlog monitor failed: %s", err.Error())
 		return

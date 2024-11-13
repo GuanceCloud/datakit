@@ -79,10 +79,13 @@ type Input struct {
 	TraceNameList      []string `toml:"trace_name_list"`
 	TraceNameBlacklist []string `toml:"trace_name_blacklist"`
 
-	IPv6Disabled  bool          `toml:"ipv6_disabled"`
-	EphemeralPort int32         `toml:"ephemeral_port"`
-	Interval      string        `toml:"interval"`
-	semStop       *cliutils.Sem // start stop signal
+	IPv6Disabled          bool   `toml:"ipv6_disabled"`
+	EphemeralPort         int32  `toml:"ephemeral_port"`
+	Interval              string `toml:"interval"`
+	SamplingRate          string `toml:"sampling_rate"`
+	SamplingRatePtsPerMin string `toml:"sampling_rate_pts_per_min"`
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Singleton() {
@@ -261,6 +264,14 @@ loop:
 			"--res-net", ipt.NetLimit)
 	}
 
+	if ipt.SamplingRate != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--sampling-rate", ipt.SamplingRate)
+	} else if ipt.SamplingRatePtsPerMin != "" {
+		ipt.Input.Args = append(ipt.Input.Args,
+			"--sampling-rate-ptsperminute", ipt.SamplingRatePtsPerMin)
+	}
+
 	if len(ipt.EnabledPlugins) == 0 {
 		ipt.EnabledPlugins = []string{"ebpf-net"}
 	}
@@ -336,7 +347,10 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_TRACE_ENV_LIST       : string
 // ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST  : string
 // ENV_INPUT_EBPF_TRACE_NAME_LIST      : string
-// ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST : string.
+// ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST : string
+//
+// ENV_INPUT_EBPF_SAMPLING_RATE           : string
+// ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN : string.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
 		ipt.PprofHost = v
@@ -488,6 +502,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 	if v, ok := envs["ENV_INPUT_EBPF_NET_LIMIT"]; ok {
 		ipt.NetLimit = v
+	}
+
+	// ENV_INPUT_EBPF_SAMPLING_RATE           : string
+	// ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN : string
+	if v, ok := envs["ENV_INPUT_EBPF_SAMPLING_RATE"]; ok {
+		ipt.SamplingRate = v
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN"]; ok {
+		ipt.SamplingRatePtsPerMin = v
 	}
 }
 

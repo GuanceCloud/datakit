@@ -43,6 +43,13 @@ type Flag struct {
 	EBPFTrace     FlagTrace     `toml:"ebpf_trace"`
 	BPFNetLog     FlagBPFNetLog `toml:"bpf_netlog"`
 	ResourceLimit FlagResLimit  `toml:"resource_limit"`
+
+	Sampling FlagSampling `toml:"sampling"`
+}
+
+type FlagSampling struct {
+	Rate             string `toml:"rate"`
+	RatePtsPerMinute string `toml:"rate_pts_per_min"`
 }
 
 type FlagNet struct {

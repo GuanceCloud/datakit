@@ -17,6 +17,7 @@ import (
 
 const (
 	srcNameM   = "dnsflow"
+	inputName  = "ebpf-net/dnsflow"
 	DNSTIMEOUT = time.Second * 6
 )
 
@@ -116,8 +117,8 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 	}
 }
 
-func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
-	dnsRecord *DNSAnswerRecord, feedAddr string,
+func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
+	gTag map[string]string, dnsRecord *DNSAnswerRecord,
 ) {
 	mCh := make(chan []*point.Point, 256)
 	agg := FlowAgg{}
@@ -161,7 +162,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 		case m := <-mCh:
 			if len(m) == 0 {
 				l.Debug("dnsflow: no data")
-			} else if err := exporter.FeedPoint(feedAddr, m, false); err != nil {
+			} else if err := exporter.FeedPoint(inputName, point.Network, m); err != nil {
 				l.Error(err)
 			}
 		}

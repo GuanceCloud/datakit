@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"github.com/BurntSushi/toml"
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
 	"github.com/spf13/cobra"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bashhistory"
@@ -71,10 +69,6 @@ const (
 
 	pluginNameConntrack = "ebpf-conntrack"
 	pluginNameTracing   = "ebpf-trace"
-
-	inputNameNetNet  = "ebpf-net/netflow"
-	inputNameNetDNS  = "ebpf-net/dnsflow"
-	inputNameNetHTTP = "ebpf-net/httpflow"
 )
 
 // init opt, dkutil.DataKitAPIServer, datakitPostURL.
@@ -238,6 +232,9 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opt.ResourceLimit.LimitMem, "res-mem", "", "set max memory resource limit")
 	cmd.Flags().StringVar(&opt.ResourceLimit.LimitBandwidth, "res-bandwidth", "", "set max bandwidth resource limit")
 
+	cmd.Flags().StringVar(&opt.Sampling.Rate, "sampling-rate", "", "sampling rate, from 0.01 to 1.00")
+	cmd.Flags().StringVar(&opt.Sampling.RatePtsPerMinute, "sampling-rate-ptsperminute", "",
+		"samping rate(pts/min), recommended value is 1500")
 	_ = cmd.MarkFlagRequired("enabled")
 
 	return cmd
@@ -296,8 +293,16 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		log.Fatal(err)
 	}
 
-	exporter.DataKitAPIServer = fl.DataKitAPIServer
-	exporter.DataKitTraceServer = fl.EBPFTrace.TraceServer
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	exporter.Init(
+		ctx,
+		exporter.WithAPIServer(fl.DataKitAPIServer),
+		exporter.WithBPFTracingServer(fl.EBPFTrace.TraceServer),
+		exporter.WithSamplingRate(fl.Sampling.Rate),
+		exporter.WithSamplingRatePtsPerMin(fl.Sampling.RatePtsPerMinute),
+	)
 
 	initResLitmiter(fl, signaIterrrupt)
 
@@ -313,9 +318,6 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	log.Infof("set the time interval to %s", interval)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	log.Info("datakit-ebpf starting ...")
 
@@ -496,14 +498,11 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			log.Error(err)
 		} else {
 			dnsTracer := dnsflow.NewDNSFlowTracer()
-			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetDNS))
+			go dnsTracer.Run(ctx, tp, gTags, dnsRecord)
 		}
 
 		// run netflow
-		err = netflowTracer.Run(ctx, ebpfNetManger, fmt.Sprintf("http://%s%s?input=",
-			exporter.DataKitAPIServer, point.Network.URL())+
-			url.QueryEscape(inputNameNetNet), gTags, interval)
+		err = netflowTracer.Run(ctx, ebpfNetManger, gTags, interval)
 		if err != nil {
 			return fmt.Errorf("run netflow: %w", err)
 		}
@@ -518,20 +517,10 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 			// TODO: append conntrack bpf map
 			bmaps, _ := schedTracer.GetSchedMap()
-			var traceSvc string
-			if exporter.DataKitTraceServer != "" {
-				traceSvc = fmt.Sprintf("http://%s%s", exporter.DataKitTraceServer, "/v1/bpftracing")
-			}
-
-			dkPostURL := fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Network.URL()) +
-				url.QueryEscape(inputNameNetHTTP)
 
 			tracer := l7flow.NewAPIFlowTracer(ctx,
 				l7flow.WithSelfPid(os.Getpid()),
 				l7flow.WithTags(gTags),
-				l7flow.WithDatakitPostURL(dkPostURL),
-				l7flow.WithTracePostURL(traceSvc),
 				l7flow.WithConv2dd(conv2ddID),
 				l7flow.WithEnableTrace(enableTrace),
 				l7flow.WithProcessFilter(procFilter),
@@ -549,9 +538,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	if enableEbpfBash {
 		log.Info(" >>> datakit ebpf-bash tracer(ebpf) starting ...")
 		bashTracer := bashhistory.NewBashTracer()
-		ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+url.QueryEscape(inputNameBash),
-			exporter.DataKitAPIServer, point.Logging.URL())
-		err := bashTracer.Run(ctx, gTags, ebpfBashPostURL, interval)
+		err := bashTracer.Run(ctx, gTags, interval)
 		if err != nil {
 			return fmt.Errorf("run bash tracer: %w", err)
 		}
@@ -577,10 +564,6 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 		go l4log.NetLog(ctx,
 			l4log.WithGlobalTags(gTags),
-			l4log.WithURL(fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Logging.URL())+url.QueryEscape(inputNameNetlog)),
-			l4log.WithAggURL(fmt.Sprintf("http://%s%s?input=",
-				exporter.DataKitAPIServer, point.Network.URL())+url.QueryEscape(inputNameNetlog)),
 			l4log.WithBlacklist(blacklist),
 			fnSetEndpoints,
 		)
@@ -653,7 +636,7 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 	*log = logger.SLogger(name)
 	l := *log
 
-	exporter.Init(l)
+	exporter.SetLogger(l)
 	dkoffset.SetLogger(l)
 	sysmonitor.SetLogger(l)
 

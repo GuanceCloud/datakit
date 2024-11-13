@@ -118,6 +118,9 @@ const configSample = `
 
   # interval = "60s"
 
+  # sampling_rate = "0.50"
+  # sampling_rate_pts_per_min = "1500"
+
   [inputs.ebpf.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"

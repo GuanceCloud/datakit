@@ -64,7 +64,7 @@ func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
 
 	elem.recReqRespTS(txrx, cntSize, ln)
 
-	return elem.handle(v, txrx, cnt, cntSize, ln, k, reqResp, pktState)
+	return elem.handle(txrx, cnt, cntSize, ln, k, reqResp, pktState)
 }
 
 const (
@@ -196,7 +196,7 @@ func (h *HTTPLogElem) recReqRespTS(txrx int8, cntSize int64, ln *PktTCPHdr) {
 	}
 }
 
-func (h *HTTPLogElem) handle(v any, txrx int8, cnt []byte, cntSize int64,
+func (h *HTTPLogElem) handle(txrx int8, cnt []byte, cntSize int64,
 	ln *PktTCPHdr, k *PMeta, reqResp int8, pktState int8,
 ) error {
 	if pktState == 1 {

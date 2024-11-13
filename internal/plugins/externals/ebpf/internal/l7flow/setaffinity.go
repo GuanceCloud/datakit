@@ -32,7 +32,7 @@ func newKpFlushTrigger(ctx context.Context) {
 			if err := SetAffinity(i); err != nil {
 				log.Errorf("set affinity error: %s, cpu id: %d", err.Error(), i)
 			} else {
-				log.Infof("set affinity, thread id: %d, cpu id: %d", unix.Gettid(), i)
+				log.Debugf("set affinity, thread id: %d, cpu id: %d", unix.Gettid(), i)
 			}
 
 			ticker := time.NewTicker(time.Second * 5)

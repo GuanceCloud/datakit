@@ -156,7 +156,6 @@ func TestConvConn2M(t *testing.T) {
 	connR := ConnResult{
 		result: make(map[ConnectionInfo]ConnFullStats),
 		tags:   make(map[string]string),
-		ts:     ts,
 	}
 	cases := []caseConvConn2M{
 		{
