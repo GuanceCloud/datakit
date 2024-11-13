@@ -351,7 +351,7 @@ ulimit = 64000
   path = "/datakit"
 
   # set max CPU usage(%, max 100.0, no matter how many CPU cores here)
-  cpu_max = 20.0
+  cpu_max = 30.0
 
   # set max memory usage(MB)
   mem_max_mb = 4096
