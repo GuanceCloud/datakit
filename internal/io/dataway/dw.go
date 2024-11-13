@@ -68,6 +68,7 @@ var (
 		datakit.TokenCheck,
 		datakit.UsageTrace,
 		datakit.NTPSync,
+		datakit.RemoteJob,
 	}
 
 	AvailableDataways          = []string{}

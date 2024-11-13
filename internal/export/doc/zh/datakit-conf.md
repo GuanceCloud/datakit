@@ -576,6 +576,116 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
 
 K8S 环境下可以通过环境变量方式添加私钥：`ENV_CRYPTO_AES_KEY` 和 `ENV_CRYPTO_AES_KEY_FILEPATH` 可以参考：[DaemonSet 安装-其他](datakit-daemonset-deploy.md#env-others)
 
+### 远程任务 {#remote-job}
+
+---
+
+[:octicons-tag-24: Version-1.63.0](changelog.md#cl-1.63.0)
+
+---
+
+DataKit 接收中心下发任务并执行。目前支持 `JVM dump` 功能。
+
+安装 DK 之后会在安装目录下 `template/service-task` 生成两个文件：`jvm_dump_host_script.py` 和 `jvm_dump_k8s_script.py` 前者是宿主机模式下的脚本，后者是虚拟（k8s）环境下的。
+
+DK 启动之后会定时执行脚本，如果修改脚本 那么 DK 重启之后会覆盖掉。
+
+宿主机环境下，当前的环境需要有 `python3` 以及 `requests` 包。如果没有 需要安装 ：
+
+```shell
+# 有 python3 环境
+pip install requests
+# 或者
+pip3 install requests
+```
+
+K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问控制
+
+配置相关：
+
+<!-- markdownlint-disable MD046 -->
+=== "主机部署"
+
+    其目录一般位于：
+    
+    - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
+    - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
+
+    修改配置，如果没有在最后添加：
+    ```toml
+    [remote_job]
+      enable=true
+      envs=["OSS_BUCKET_HOST=<bucket_host>","OSS_ACCESS_KEY_ID=<key>","OSS_ACCESS_KEY_SECRET=<secret key>","OSS_BUCKET_NAME=<name>"]
+      interval="100s"
+      java_home=""
+    ```
+
+=== "Kubernetes"
+
+    修改 DataKit yaml 文件，添加 RBAC 权限
+
+    ```yaml
+
+    ---
+    
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+    name: datakit
+    rules:
+    - apiGroups: ["rbac.authorization.k8s.io"]
+      resources: ["clusterroles"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["nodes", "nodes/stats", "nodes/metrics", "namespaces", "pods", "pods/log", "events", "services", "endpoints", "persistentvolumes", "persistentvolumeclaims", "pods/exec"]
+      verbs: ["get", "list", "watch", "create"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["batch"]
+      resources: ["jobs", "cronjobs"]
+      verbs: [ "get", "list", "watch"]
+    - apiGroups: ["guance.com"]
+      resources: ["datakits"]
+      verbs: ["get","list"]
+    - apiGroups: ["monitoring.coreos.com"]
+      resources: ["podmonitors", "servicemonitors"]
+      verbs: ["get", "list"]
+    - apiGroups: ["metrics.k8s.io"]
+      resources: ["pods", "nodes"]
+      verbs: ["get", "list"]
+    - nonResourceURLs: ["/metrics"]
+      verbs: ["get"]
+    
+    ---
+    ```
+
+    在上面的配置中，添加了 "pod/exec"，其他的保持和 yaml 一致即可。
+
+    添加 remote_job 环境变量：
+
+    ```yaml
+    - name: ENV_REMOTE_JOB_ENABLE
+      value: 'true'
+    - name: ENV_REMOTE_JOB_ENVS
+      value: >-
+        OSS_BUCKET_HOST=<bucket host>,OSS_ACCESS_KEY_ID=<key>,OSS_ACCESS_KEY_SECRET=<secret key>,OSS_BUCKET_NAME=<name>
+    - name: ENV_REMOTE_JOB_JAVA_HOME
+    - name: ENV_REMOTE_JOB_INTERVAL
+      value: 100s
+
+    ```
+
+<!-- markdownlint-enable -->
+
+配置说明：
+
+1. `enable  ENV_REMOTE_JOB_ENABLE remote_job` 功能开关。
+2. `envs  ENV_REMOTE_JOB_ENVS` OSS 配置，其中包括 OSS `host` `access key` `secret key` `bucket` 信息，将获取到的 JVM dump 文件发送到 OSS 中。
+3. `interval ENV_REMOTE_JOB_INTERVAL` DataKit 主动调用接口获取最新任务的时间间隔。
+4. `java_home ENV_REMOTE_JOB_JAVA_HOME` 宿主机环境自动从环境变量（$JAVA_HOME）中获取，可以不用配置。
+
+> 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-guance`
 
 ## 延伸阅读 {#more-reading}
 

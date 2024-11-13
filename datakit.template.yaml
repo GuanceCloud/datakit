@@ -14,7 +14,7 @@ rules:
   resources: ["clusterroles"]
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats", "nodes/metrics", "namespaces", "pods", "pods/log", "events", "services", "endpoints", "persistentvolumes", "persistentvolumeclaims"]
+  resources: ["nodes", "nodes/stats", "nodes/metrics", "namespaces", "pods", "pods/log", "events", "services", "endpoints", "persistentvolumes", "persistentvolumeclaims", "pods/exec"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
@@ -193,6 +193,12 @@ spec:
         #- name: ENV_IPDB
         #  value: iploc
         # # ---iploc-end
+        #- name: ENV_REMOTE_JOB_ENABLE
+        #  value: 'true'
+        #- name: ENV_REMOTE_JOB_ENVS
+        #  value: OSS_BUCKET_HOST=host,OSS_ACCESS_KEY_ID=key_id,OSS_ACCESS_KEY_SECRET=key_secret,OSS_BUCKET_NAME=name
+        #- name: ENV_REMOTE_JOB_INTERVAL
+        #  value: 10s
         image: pubrepo.guance.com/datakit/datakit:{{.Version}}
         imagePullPolicy: IfNotPresent
         name: datakit

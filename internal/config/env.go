@@ -448,6 +448,26 @@ func (c *Config) loadDatawayEnvs() {
 	}
 }
 
+func (c *Config) loadRemoteJobEnvs() {
+	if s := datakit.GetEnv("ENV_REMOTE_JOB_ENABLE"); s == "" {
+		return
+	}
+	if c.RemoteJob == nil {
+		c.RemoteJob = &io.RemoteJob{}
+	}
+	c.RemoteJob.Enable = true
+	if v := datakit.GetEnv("ENV_REMOTE_JOB_ENVS"); v != "" {
+		c.RemoteJob.ENVs = strings.Split(v, ",")
+	}
+
+	if v := datakit.GetEnv("ENV_REMOTE_JOB_JAVA_HOME"); v != "" {
+		c.RemoteJob.JavaHome = v
+	}
+	if v := datakit.GetEnv("ENV_REMOTE_JOB_INTERVAL"); v != "" {
+		c.RemoteJob.Interval = v
+	}
+}
+
 func (c *Config) loadElectionEnvs() {
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v == "" {
 		return
@@ -731,6 +751,7 @@ func (c *Config) LoadEnvs() error {
 	c.loadPointPoolEnvs()
 
 	c.setNodenameAsHostname()
+	c.loadRemoteJobEnvs()
 	c.setOthers()
 
 	// Don't Add to ElectionTags.

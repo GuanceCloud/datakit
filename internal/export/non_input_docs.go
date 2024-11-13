@@ -32,6 +32,7 @@ var nonInputDocs = map[string]content{
 		"envRefta":    envRefta(),
 		"envRecorder": envRecorder(),
 		"envOthers":   envOthers(),
+		"remote_job":  envRemoteJob(),
 		// "envPointPool": envPointPool(),
 	},
 }
@@ -679,6 +680,40 @@ func envPointPool() []*inputs.ENVInfo {
 		},
 	}
 
+	for idx := range infos {
+		infos[idx].DocType = doc.NonInput
+	}
+
+	return doc.SetENVDoc("", infos)
+}
+
+func envRemoteJob() []*inputs.ENVInfo {
+	infos := []*inputs.ENVInfo{
+		{
+			ENVName: "ENV_REMOTE_JOB_ENABLE",
+			Type:    doc.Boolean,
+			Default: "false",
+			Example: "`true`",
+			Desc:    "Enable remote_job",
+			DescZh:  "开启 remote job 功能",
+		},
+		{
+			ENVName: "ENV_REMOTE_JOB_ENVS",
+			Type:    doc.String,
+			Default: "false",
+			Example: "`true`",
+			Desc:    "Mainly used to send generated files to OSS",
+			DescZh:  "主要作用于将生成的文件发送到 OSS.",
+		},
+		{
+			ENVName: "ENV_REMOTE_JOB_INTERVAL",
+			Type:    doc.String,
+			Default: "10s",
+			Example: "10s",
+			Desc:    "Regularly request the server to obtain tasks, with a default of 10 seconds",
+			DescZh:  "定时请求服务端获取任务，默认 10 秒",
+		},
+	}
 	for idx := range infos {
 		infos[idx].DocType = doc.NonInput
 	}
