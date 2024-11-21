@@ -25,6 +25,8 @@ type config struct {
 	ddJavaLibURL       string
 	pyLib              bool
 
+	cli *http.Client
+
 	forceUpgradeAPMLib bool
 }
 
@@ -58,6 +60,7 @@ func WithInstrumentationEnabled(s string) Opt {
 
 func WithLauncherURL(cli *http.Client, launcherURL string) Opt {
 	return func(c *config) {
+		c.cli = cli
 		c.launcherURL = launcherURL
 	}
 }
