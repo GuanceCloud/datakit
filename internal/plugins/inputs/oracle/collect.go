@@ -425,6 +425,10 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 		makeTagsAndFields(row, isExistedGlobalMetric)
 	}
 
+	if len(fields) > 0 {
+		pts = append(pts, ipt.buildPoint(metricName, tags, fields, false))
+	}
+
 	return category, pts, nil
 }
 
