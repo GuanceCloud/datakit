@@ -22,7 +22,7 @@ const (
 	Hwcloud     = "hwcloud"
 )
 
-var cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
+var cloudCli = &http.Client{Timeout: 3 * time.Second}
 
 //nolint:deadcode,unused
 type synchronizer interface {
