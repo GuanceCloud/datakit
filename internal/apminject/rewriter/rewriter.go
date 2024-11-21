@@ -62,10 +62,8 @@ func main() {
 		envp: envs,
 	})
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		return
 	}
-	// fmt.Fprintf(os.Stderr, "new cmd: %s %v, %s\n", ret.path, ret.argv, ret.envp[0])
 	content := marshal(ret.path, ret.argv, ret.envp)
 
 	//nolint:gosec
@@ -122,10 +120,8 @@ func rewrite(param *reArgs) (*reArgs, error) {
 		cmd := exec.Command(exePath, "-version")
 		o, err := cmd.CombinedOutput()
 		if err != nil {
-			// fmt.Fprintf(os.Stderr, "%s \n", err.Error())
 			return nil, err
 		}
-		// fmt.Fprintf(os.Stderr, "java\n")
 
 		ver, err := getJavaVersion(string(o))
 		if err != nil {

@@ -35,8 +35,6 @@ const (
 
 	launcherName = "apm_launcher"
 
-	jarLibURL = "https://static.guance.com/dd-image/dd-java-agent.jar"
-
 	glibc = "glibc"
 	muslc = "musl"
 )
@@ -54,10 +52,6 @@ func Download(log *logger.Logger, opt ...Opt) error {
 		fn(&c)
 	}
 
-	if !(c.enableHostInject || c.enableDockerInject) {
-		return nil
-	}
-
 	if c.installDir == "" {
 		c.installDir = injectInstallDir
 	}
@@ -72,8 +66,8 @@ func Download(log *logger.Logger, opt ...Opt) error {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint
 		})
 	}
-	fmt.Printf("\n")
 
+	fmt.Printf("\n")
 	dl.CurDownloading = "apm-inject"
 	injTo := filepath.Join(c.installDir, injectDir, subDirInject)
 	cp.Infof("Downloading %s => %s\n", c.launcherURL, injTo)
@@ -82,56 +76,61 @@ func Download(log *logger.Logger, opt ...Opt) error {
 		return err
 	}
 
-	fmt.Printf("\n")
-
-	dl.CurDownloading = "apm-lib-java"
-	injTo = filepath.Join(c.installDir, injectDir, subDirLib,
-		"java", "dd-java-agent.jar")
-	cp.Infof("Downloading %s => %s\n", jarLibURL, injTo)
-	if err := dl.Download(c.cli, jarLibURL, injTo,
-		true, true); err != nil {
-		log.Warn(err)
+	if !(c.enableHostInject || c.enableDockerInject) {
+		return nil
 	}
 
-	fmt.Printf("\n")
-
-	cp.Infof("Installing ddtrace python library\n")
-	py, err := exec.LookPath("python3")
-	if err != nil {
-		py, err = exec.LookPath("python")
-		if err != nil {
-			log.Warn("python not found")
+	if c.ddJavaLibURL != "" {
+		fmt.Printf("\n")
+		dl.CurDownloading = "apm-lib-java"
+		injTo = filepath.Join(c.installDir, injectDir, subDirLib,
+			"java", "dd-java-agent.jar")
+		cp.Infof("Downloading %s => %s\n", c.ddJavaLibURL, injTo)
+		if err := dl.Download(c.cli, c.ddJavaLibURL, injTo,
+			true, true); err != nil {
+			log.Warn(err)
 		}
 	}
-	if py != "" {
-		//nolint:gosec
-		ver, err := exec.Command(py, "-V").CombinedOutput()
+
+	if c.pyLib {
+		fmt.Printf("\n")
+		cp.Infof("Installing ddtrace python library\n")
+		py, err := exec.LookPath("python3")
 		if err != nil {
-			log.Warnf("%s -V error: %s", py, err.Error())
-			goto skip_python_lib
-		}
-		v := py3Regexp.FindStringSubmatch(string(ver))
-		var py3Ver int
-		if len(v) == 2 {
-			py3Ver, _ = strconv.Atoi(v[1])
-		} else {
-			log.Warnf("parse python version error: %s", string(ver))
-			goto skip_python_lib
-		}
-		if py3Ver >= 7 {
-			// set env: PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
-			//nolint:gosec
-			if s, err := exec.Command(py, "-m",
-				"pip", "install", "ddtrace").CombinedOutput(); err != nil {
-				log.Warn(string(s))
-				log.Warnf("pip install ddtrace error: %s", err.Error())
-			} else {
-				log.Info(string(s))
+			py, err = exec.LookPath("python")
+			if err != nil {
+				log.Warn("python not found")
 			}
 		}
+		if py != "" {
+			//nolint:gosec
+			ver, err := exec.Command(py, "-V").CombinedOutput()
+			if err != nil {
+				log.Warnf("%s -V error: %s", py, err.Error())
+				goto skip_python_lib
+			}
+			v := py3Regexp.FindStringSubmatch(string(ver))
+			var py3Ver int
+			if len(v) == 2 {
+				py3Ver, _ = strconv.Atoi(v[1])
+			} else {
+				log.Warnf("parse python version error: %s", string(ver))
+				goto skip_python_lib
+			}
+			if py3Ver >= 7 {
+				// set env: PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+				//nolint:gosec
+				if s, err := exec.Command(py, "-m",
+					"pip", "install", "ddtrace").CombinedOutput(); err != nil {
+					log.Warn(string(s))
+					log.Warnf("pip install ddtrace error: %s", err.Error())
+				} else {
+					log.Info(string(s))
+				}
+			}
+		}
+	skip_python_lib:
 	}
-skip_python_lib:
-
 	return nil
 }
 
