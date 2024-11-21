@@ -11,9 +11,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/common"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/config"
@@ -174,7 +174,7 @@ func NewNetflowServer(ipt *Input) (*Server, error) {
 		return nil, err
 	}
 
-	combinedTags := internal.CopyMapString(ipt.Tags)
+	combinedTags := maputil.CopyMapString(ipt.Tags)
 	// global tags(host/election tags) got the lowest priority.
 	for k, v := range ipt.tagger.HostTags() {
 		if _, ok := combinedTags[k]; !ok {

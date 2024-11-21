@@ -31,21 +31,19 @@ You need to add specific template annotations to the Kubernetes deployment to ca
 
 ```toml
 [[inputs.prom]]
-  url = "http://$IP:9100/metrics"
-
+  urls   = ["http://$IP:9100/metrics"]
   source = "<your-service-name>"
-  measurement_name = "$OWNER"
+  measurement_name = "<measurement-metrics>"
   interval = "30s"
 
   [inputs.prom.tags]
     # namespace = "$NAMESPACE"
-    # pod_name = "$PODNAME"
+    # pod_name  = "$PODNAME"
     # node_name = "$NODENAME"
 ```
 
 The following wildcard characters are supported:
 
-- `$OWNER`: refer from Pod owner name
 - `$IP`: Intranet IP of the Pod
 - `$NAMESPACE`: Pod Namespace
 - `$PODNAME`: Pod Name
@@ -63,15 +61,6 @@ The following wildcard characters are supported:
         node_name = "$NODENAME"
     ```
 <!-- markdownlint-enable -->
-
-### Select Specified Pod IP {#pod-ip}
-
-In some cases, there will be multiple IPs on the Pod, and it is inaccurate to get the Exporter address only by `$IP`. Selecting Pod IP by configuring Annotations is supported.
-
-- Key is fixed `datakit/prom.instances.ip_index`
-- Value is a natural number, such as `0` `1` `2` and so on, which is the subscript of the IP to be used in the entire IP array (Pod IPs).
-
-If this Annotations Key is not available, the default Pod IP is used.
 
 ### Action Steps {#steps}
 
@@ -91,18 +80,14 @@ spec:
       labels:
         app: prom
       annotations:
-        datakit/prom.instances.ip_index: 2
         datakit/prom.instances: |
           [[inputs.prom]]
-            url = "http://$IP:9100/metrics"
-
+            urls   = ["http://$IP:9100/metrics"]
             source = "<your-service-name>"
-            measurement_name = "$OWNER"
             interval = "30s"
-
             [inputs.prom.tags]
               namespace = "$NAMESPACE"
-              pod_name = "$PODNAME"
+              pod_name  = "$PODNAME"
               node_name = "$NODENAME"
 ```
 

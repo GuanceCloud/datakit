@@ -18,9 +18,9 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 )
 
 var muDatakitConf sync.Mutex
@@ -129,7 +129,7 @@ func deleteElectionTags(c *gin.Context) {
 }
 
 func updateMerge(q map[string]string, tags map[string]string) (map[string]string, bool) {
-	m := internal.CopyMapString(tags)
+	m := maputil.CopyMapString(tags)
 	done := false
 	for k, v := range q {
 		if m[k] != v {
@@ -141,7 +141,7 @@ func updateMerge(q map[string]string, tags map[string]string) (map[string]string
 }
 
 func deleteMerge(q []string, tags map[string]string) (map[string]string, bool) {
-	m := internal.CopyMapString(tags)
+	m := maputil.CopyMapString(tags)
 	done := false
 	for _, k := range q {
 		if _, ok := m[k]; ok {

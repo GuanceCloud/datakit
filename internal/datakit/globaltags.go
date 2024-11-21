@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 )
 
 var (
@@ -99,13 +99,13 @@ func SetGlobalElectionTagsByMap(in map[string]string) {
 func GlobalHostTags() map[string]string {
 	rw.RLock()
 	defer rw.RUnlock()
-	return internal.CopyMapString(globalHostTags)
+	return maputil.CopyMapString(globalHostTags)
 }
 
 func GlobalElectionTags() map[string]string {
 	rw.RLock()
 	defer rw.RUnlock()
-	return internal.CopyMapString(globalElectionTags)
+	return maputil.CopyMapString(globalElectionTags)
 }
 
 func ClearGlobalTags() {

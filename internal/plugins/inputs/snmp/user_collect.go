@@ -17,9 +17,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gosnmp/gosnmp"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
@@ -216,7 +216,7 @@ func (ipt *Input) addDevice(idx int, deviceIP string, tags map[string]string) {
 		return
 	}
 	di.UserProfileDefinition = ipt.cloneZabbixDefinition(ipt.UserProfileStore.ZabbixStores[idx])
-	di.UserProfileDefinition.InputTags = internal.MergeMapString(di.UserProfileDefinition.InputTags, tags)
+	di.UserProfileDefinition.InputTags = maputil.MergeMapString(di.UserProfileDefinition.InputTags, tags)
 	di.preProcess()
 
 	ipt.userSpecificDevices.Store(deviceIP, di)

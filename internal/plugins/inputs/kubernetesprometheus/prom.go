@@ -88,7 +88,6 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 			pts,
 			dkio.WithInputName(source),
 			dkio.DisableGlobalTags(true),
-			dkio.WithElection(true),
 		); err != nil {
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}
