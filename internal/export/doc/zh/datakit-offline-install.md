@@ -126,6 +126,7 @@
     - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 位"
 
@@ -140,6 +141,7 @@
     - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 
 下载完后，应该有以下文件（此处 `<OS-ARCH>` 指特定平台的安装包）：
@@ -148,6 +150,7 @@
 - `dk_upgrader-<OS-ARCH>.tar.gz`
 - `installer-<OS-ARCH>` 或 `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
+- `datakit-apm-inject-linux-<ARCH>.tar.gz`
 
 将这些文件拷贝到对应机器上（通过 U 盘或 `scp` 等命令）。
 

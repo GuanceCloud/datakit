@@ -7,6 +7,7 @@ This release includes critical fixes addressing the following issues:
 - **Socket Logging Bug Fix:** Resolved an issue where multi-line logs were not being logged correctly (#2461).
 - **Datakit Restart Issue:** Fixed a problem preventing Datakit from restarting on Windows when encountering Out-Of-Memory (OOM) conditions (#2465).
 - **Oracle Metric Issue:** Resolved a missing metric issue for Oracle (#2464).
+- **APM Automatic Instrumentation:** add offline install support (#2466)
 - **Prometheus Metric Scraping Restoration:** Restored the feature for scraping Prometheus metrics from Kubernetes Pod annotations, which was inadvertently removed in version 1.63.0. This restoration is essential for legacy services deployed under Kubernetes (#2471).
 
 ---

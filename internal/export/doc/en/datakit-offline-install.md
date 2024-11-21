@@ -126,6 +126,7 @@ The address of the following files can be downloaded through wget and other down
     - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 bit"
 
@@ -140,6 +141,7 @@ The address of the following files can be downloaded through wget and other down
     - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
     - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 After downloading, you should have a few files as below (`<OS-ARCH>` here refers to the platform-specific installation package):
 
@@ -147,6 +149,7 @@ After downloading, you should have a few files as below (`<OS-ARCH>` here refers
 - `dk_upgrader-<OS-ARCH>.tar.gz`
 - `installer-<OS-ARCH>` or `installer-<OS-ARCH>.exe`
 - `data.tar.gz`
+- `datakit-apm-inject-linux-<ARCH>.tar.gz`
 
 Copy these files to the corresponding machine (via USB flash drive or `scp` and other commands).
 

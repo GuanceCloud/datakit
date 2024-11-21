@@ -7,6 +7,7 @@
 - 修复 socket logging 采集多行处理导致的问题（#2461）
 - 修复 Windows 上 Datakit OOM 后不会再次重启的问题（#2465）
 - 修复 Oracle 指标缺失问题（#2464）
+- 修复 APM Automatic Instrumentation 离线安装的问题（#2466）
 - 恢复 Pod 通过 Annotation 标记无法暴露 Prometheus Exporter 采集的功能（#2471）
 
     该功能在 1.63.0 版本被移除，但实际上很多已有业务的 Prometheus 指标已经按照这种方式在采集，暂时无法迁移到 KubernetesPrometheus 这种形式。

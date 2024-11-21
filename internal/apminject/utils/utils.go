@@ -25,8 +25,6 @@ type config struct {
 	ddJavaLibURL       string
 	pyLib              bool
 
-	cli *http.Client
-
 	forceUpgradeAPMLib bool
 }
 
