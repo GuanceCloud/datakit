@@ -187,12 +187,16 @@ func (sk *SocketLogger) Close() {
 		sk.cancel()
 	}
 	sk.closeServers()
+	sk.log.Info("closed all")
 }
 
 func (sk *SocketLogger) closeServers() {
 	for _, srv := range sk.servers {
-		if err := srv.close(); err != nil {
-			sk.log.Warnf("closing connect fail %s", err)
+		if srv != nil {
+			if err := srv.close(); err != nil {
+				sk.log.Warnf("closing connect fail %s", err)
+			}
+			continue
 		}
 	}
 }
@@ -232,16 +236,14 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 		socketLogConnect.WithLabelValues("tcp", "ok").Add(1)
 		socketGoroutine.Go(func(_ context.Context) error {
 			defer conn.Close() // nolint
-			rd := reader.NewReader(conn)
 
+			rd := reader.NewReader(conn)
 			// must not error
 			mult, _ := multiline.New(s.opt.multilinePatterns,
 				multiline.WithMaxLifeDuration(s.opt.maxMultilineLifeDuration))
 
 			for {
 				select {
-				case <-datakit.Exit.Wait():
-					return nil
 				case <-ctx.Done():
 					return nil
 				default:
@@ -259,20 +261,24 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 					if len(line) == 0 {
 						continue
 					}
-					if mult != nil {
-						text, _ := mult.ProcessLine(multiline.TrimRightSpace(line))
-						if len(text) == 0 {
-							continue
-						}
-						pending = append(pending, text)
-					} else {
-						pending = append(pending, line)
+
+					text, _ := mult.ProcessLine(multiline.TrimRightSpace(line))
+					if len(text) == 0 {
+						continue
 					}
+					pending = append(pending, text)
 				}
 
 				socketLogCount.WithLabelValues("tcp").Add(1)
 				socketLogLength.WithLabelValues("tcp").Observe(float64(len(pending)))
 				feed(pending)
+			}
+
+			if mult.BuffLength() > 0 {
+				b := mult.Flush()
+				socketLogCount.WithLabelValues("tcp").Add(1)
+				socketLogLength.WithLabelValues("tcp").Observe(float64(1))
+				feed([][]byte{b})
 			}
 			return nil
 		})
@@ -307,8 +313,6 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			return nil
 		case <-ctx.Done():
 			return nil
 		default:

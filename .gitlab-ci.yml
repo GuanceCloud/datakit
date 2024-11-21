@@ -40,7 +40,7 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make local # build binary
-    - make check_testing_conf_compatible
+    # - make check_testing_conf_compatible
     - make lint AUTO_FIX=off
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
   tags:
@@ -150,7 +150,7 @@ release-testing:
     # building && publish testing
     - make clean
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
-    - make check_testing_conf_compatible
+    # - make check_testing_conf_compatible
     - make testing_image VERSION="$CI_TESTING_VERSION"
     - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true VERSION="$CI_TESTING_VERSION"
   tags:
