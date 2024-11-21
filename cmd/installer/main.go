@@ -116,7 +116,7 @@ func init() {
 	flag.StringVar(&flagUpgraderIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
 	flag.StringVar(&flagUpgraderListen, "upgrade-listen", "0.0.0.0:9542", "set datakit upgrade HTTP server bind ip:port")
 
-	flag.StringVar(&flagInstallLog, "install-log", "install.log", "install log")
+	flag.StringVar(&flagInstallLog, "install-log", "dk-install-upgrade.log", "log file during install or upgrade")
 	flag.StringVar(&flagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
@@ -157,7 +157,7 @@ func init() {
 	flag.StringVar(&installer.ElectionNamespace, "namespace", "", "datakit namespace")
 
 	// datakit HTTP flags
-	flag.IntVar(&installer.HTTPPort, "port", 9529, "datakit HTTP port")
+	flag.IntVar(&installer.HTTPPort, "port", 0, "datakit HTTP port")
 	flag.StringVar(&installer.HTTPListen, "listen", "", "datakit HTTP listen")
 
 	flag.StringVar(&installer.HostName, "env_hostname", "", "host name")
@@ -511,18 +511,18 @@ Data           : %s
 	if !flagOffline {
 		dlRetry := 5
 
-		l.Infof("Download installer...")
+		l.Infof("Download installer and data files(with %d retry)...", dlRetry)
 
 		for i := 0; i < dlRetry; i++ {
 			if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
-				l.Warnf("[%d] download failed: %s, retry...", i, err.Error())
+				cp.Warnf("download failed: %s, %dth retry...\n", err.Error(), i)
 				continue
 			}
 
 			goto __downloadOK
 		}
 
-		l.Errorf("Download failed, please check your network settings.")
+		cp.Errorf("Download installer and data files failed, please check your network settings and check installer log at %s.\n", flagInstallLog)
 		return
 	}
 

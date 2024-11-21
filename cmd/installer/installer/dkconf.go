@@ -465,6 +465,19 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 	}
 
 	if HTTPListen != "" || HTTPPort != 0 {
+		taddr, err := net.ResolveTCPAddr("tcp", mc.HTTPAPI.Listen)
+		if err != nil {
+			l.Warnf("invalid lagacy HTTP listen %q", mc.HTTPAPI.Listen)
+		} else {
+			if HTTPPort == 0 && taddr.Port != 0 { // use lagacy port
+				HTTPPort = taddr.Port
+			}
+
+			if HTTPListen == "" && taddr.IP.String() != "" {
+				HTTPListen = taddr.IP.String() // use lagacy ip
+			}
+		}
+
 		mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", HTTPListen, HTTPPort)
 		l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
 	}

@@ -343,23 +343,6 @@ pub_release_win_img:
 	@sudo docker build -t pubrepo.guance.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.guance.com/datakit/datakit-win:$(VERSION)
 
-# Config samples should only be published by production release,
-# because config samples in multiple testing releases may not be compatible to each other.
-pub_conf_samples:
-	@echo "upload config samples to oss..."
-	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -dump-samples -release production
-
-# testing/production downloads config samples from different oss bucket.
-check_testing_conf_compatible:
-	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release testing
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
-
-check_production_conf_compatible:
-	@CGO_CFLAGS=$(CGO_FLAGS) go run cmd/make/make.go -download-samples -release production
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --config --config-dir samples
-	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit check --sample
-
 # 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
 shame_logging:
 	@grep --color=always \
