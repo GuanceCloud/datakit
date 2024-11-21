@@ -259,6 +259,7 @@ nginx -s reload # reload 配置
 #!/bin/bash
 
 mkdir -p /datakit
+mkdir -p /datakit/apm_lib
 wget -P /datakit https://static.guance.com/datakit/install.sh
 wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
@@ -266,6 +267,8 @@ wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{.Vers
 wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
+wget -P /datakit https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit/apm_lib https://static.guance.com/dd-image/dd-java-agent.jar
 
 # 下载其它工具包：sources 是开启 RUM sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载
 sources=(

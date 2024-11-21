@@ -364,6 +364,10 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 		l.Infof("Set dataway global sinker customer keys: %+#v", mc.Dataway.GlobalCustomerKeys)
 	}
 
+	if InstrumentationEnabled != "" {
+		mc.APMInject.InstrumentationEnabled = InstrumentationEnabled
+	}
+
 	if OTA {
 		mc.AutoUpdate = OTA
 		l.Info("set auto update(OTA enabled)")

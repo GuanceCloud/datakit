@@ -22,12 +22,10 @@ type config struct {
 	enableDockerInject bool
 	installDir         string
 	launcherURL        string
+	ddJavaLibURL       string
+	pyLib              bool
 
 	cli *http.Client
-
-	offline             bool
-	offlineLauncherPath string
-	offlineAPMLibPath   string
 
 	forceUpgradeAPMLib bool
 }
@@ -60,19 +58,21 @@ func WithInstrumentationEnabled(s string) Opt {
 	}
 }
 
-func WithOnline(cli *http.Client, launcherURL string) Opt {
+func WithLauncherURL(cli *http.Client, launcherURL string) Opt {
 	return func(c *config) {
 		c.launcherURL = launcherURL
-		c.cli = cli
-		c.offline = false
 	}
 }
 
-func WithOffline(launcher, apmLib string) Opt {
+func WithJavaLibURL(url string) Opt {
 	return func(c *config) {
-		c.offline = true
-		c.offlineLauncherPath = launcher
-		c.offlineAPMLibPath = apmLib
+		c.ddJavaLibURL = url
+	}
+}
+
+func WithPythonLib(ok bool) Opt {
+	return func(c *config) {
+		c.pyLib = ok
 	}
 }
 

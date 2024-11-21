@@ -78,6 +78,8 @@ var (
 			runtime.GOARCH,
 			DataKitVersion))
 
+	datakitAPMInjJavaLibURL = "https://static.guance.com/dd-image/dd-java-agent.jar"
+
 	InstallerBaseURL = ""
 
 	l = logger.DefaultSLogger("installer")
@@ -294,12 +296,20 @@ func downloadFiles(to string) error {
 		}
 	}
 
-	if installer.InstrumentationEnabled != "" && runtime.GOOS == "linux" &&
+	if runtime.GOOS == "linux" &&
 		(runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		if err := apminj.Download(l, apminj.WithOnline(cli, datakitAPMInjectURL),
+		opts := []apminj.Opt{
+			apminj.WithLauncherURL(cli, datakitAPMInjectURL),
 			apminj.WithInstallDir(to),
 			apminj.WithInstrumentationEnabled(installer.InstrumentationEnabled),
-		); err != nil {
+		}
+		if installer.InstrumentationEnabled != "" {
+			opts = append(opts,
+				apminj.WithJavaLibURL(datakitAPMInjJavaLibURL),
+				apminj.WithPythonLib(true))
+		}
+
+		if err := apminj.Download(l, opts...); err != nil {
 			l.Warnf("download apm inject failed: %s", err.Error())
 		} else {
 			config.Cfg.APMInject.InstrumentationEnabled = installer.InstrumentationEnabled
@@ -418,6 +428,14 @@ func applyFlags() {
 			DataKitVersion)
 
 		dkUpgraderURL = InstallerBaseURL + fmt.Sprintf("%s-%s-%s.tar.gz", upgrader.BuildBinName, runtime.GOOS, runtime.GOARCH)
+
+		datakitAPMInjectURL, _ = url.JoinPath(InstallerBaseURL,
+			fmt.Sprintf("datakit-apm-inject-%s-%s-%s.tar.gz",
+				runtime.GOOS,
+				runtime.GOARCH,
+				DataKitVersion))
+
+		datakitAPMInjJavaLibURL = path.Join(InstallerBaseURL, "apm_lib/dd-java-agent.jar")
 	}
 }
 

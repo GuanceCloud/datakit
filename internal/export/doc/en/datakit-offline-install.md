@@ -259,6 +259,7 @@ nginx -s reload # reload configuration
 #!/bin/bash
 
 mkdir -p /datakit
+mkdir -p /datakit/apm_lib
 wget -P /datakit https://static.guance.com/datakit/install.sh
 wget -P /datakit https://static.guance.com/datakit/version
 wget -P /datakit https://static.guance.com/datakit/data.tar.gz
@@ -266,6 +267,8 @@ wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{ .Ver
 wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz
 wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
+wget -P /datakit https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit/apm_lib https://static.guance.com/dd-image/dd-java-agent.jar
 
 # Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
 sources=(
