@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -34,7 +34,7 @@ func (m *etcdMeasurement) Point() *point.Point {
 
 //nolint:lll
 func (m *etcdMeasurement) Info() *inputs.MeasurementInfo {
-	fields := internal.CopyMapStringInterface(etcdFields)
+	fields := maputil.CopyMapStringInterface(etcdFields)
 
 	inputs.AppendGolangGeneralFields(fields)
 

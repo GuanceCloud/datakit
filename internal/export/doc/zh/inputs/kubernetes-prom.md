@@ -31,10 +31,9 @@ __int_icon: 'icon/kubernetes'
 
 ```toml
 [[inputs.prom]]
-  url = "http://$IP:9100/metrics"
-
+  urls   = ["http://$IP:9100/metrics"]
   source = "<your-service-name>"
-  measurement_name = "$OWNER"
+  measurement_name = "<measurement-metrics>"
   interval = "30s"
 
   [inputs.prom.tags]
@@ -45,7 +44,6 @@ __int_icon: 'icon/kubernetes'
 
 其中支持如下几个通配符：
 
-- `$OWNER`：通配 Pod 的 workload 名称（取自第一个 ownerReference name），例如该 Pod 所属的 Deployment 或 DaemonSet 名字
 - `$IP`：通配 Pod 的内网 IP
 - `$NAMESPACE`：Pod Namespace
 - `$PODNAME`：Pod Name
@@ -63,15 +61,6 @@ __int_icon: 'icon/kubernetes'
         node_name = "$NODENAME"
     ```
 <!-- markdownlint-enable -->
-
-### 选择指定 Pod IP {#pod-ip}
-
-某些情况下， Pod 上会存在多个 IP，此时仅仅通过 `$IP` 来获取 Exporter 地址是不准确的。支持通过配置 Annotations 选择 Pod IP。
-
-- Key 为固定的 `datakit/prom.instances.ip_index`
-- Value 是自然数，例如 `0` `1` `2` 等，是要使用的 IP 在整个 IP 数组（Pod IPs）中的位置下标。
-
-如果没有此 Annotations Key，则使用默认 Pod IP。
 
 ### 操作步骤 {#steps}
 
@@ -91,18 +80,14 @@ spec:
       labels:
         app: prom
       annotations:
-        datakit/prom.instances.ip_index: 2
         datakit/prom.instances: |
           [[inputs.prom]]
-            url = "http://$IP:9100/metrics"
-          
+            urls   = ["http://$IP:9100/metrics"]
             source = "<your-service-name>"
-            measurement_name = "$OWNER"
             interval = "30s"
-          
             [inputs.prom.tags]
               namespace = "$NAMESPACE"
-              pod_name = "$PODNAME"
+              pod_name  = "$PODNAME"
               node_name = "$NODENAME"
 ```
 

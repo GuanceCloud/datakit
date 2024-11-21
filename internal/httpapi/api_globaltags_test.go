@@ -17,9 +17,9 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/maputil"
 )
 
 var (
@@ -434,8 +434,8 @@ type mockHandle struct {
 func (m *mockHandle) getDuplicateCfg() (*config.Config, bool) {
 	c := config.DefaultConfig()
 	c.Election.Enable = m.args.globalElection
-	c.GlobalHostTags = internal.CopyMapString(m.args.globalHostTags)
-	c.Election.Tags = internal.CopyMapString(m.args.globalElectionTags)
+	c.GlobalHostTags = maputil.CopyMapString(m.args.globalHostTags)
+	c.Election.Tags = maputil.CopyMapString(m.args.globalElectionTags)
 
 	return c, true
 }
@@ -452,19 +452,19 @@ func (m *mockHandle) initCfgAndTags() {
 	config.Cfg.Hostname = m.args.hostName
 
 	// set config.Cfg and datakit global tags
-	config.Cfg.GlobalHostTags = internal.CopyMapString(m.args.globalHostTags)
+	config.Cfg.GlobalHostTags = maputil.CopyMapString(m.args.globalHostTags)
 	config.Cfg.GlobalHostTags["host"] = config.Cfg.Hostname
 	datakit.SetGlobalHostTagsByMap(config.Cfg.GlobalHostTags)
 	if config.Cfg.Election.Enable {
-		config.Cfg.Election.Tags = internal.CopyMapString(m.args.globalElectionTags)
+		config.Cfg.Election.Tags = maputil.CopyMapString(m.args.globalElectionTags)
 		datakit.SetGlobalElectionTagsByMap(m.args.globalElectionTags)
 	} else {
-		config.Cfg.Election.Tags = internal.MergeMapString(config.Cfg.GlobalHostTags, m.args.globalElectionTags)
+		config.Cfg.Election.Tags = maputil.MergeMapString(config.Cfg.GlobalHostTags, m.args.globalElectionTags)
 		datakit.SetGlobalElectionTagsByMap(config.Cfg.GlobalHostTags)
 	}
 
 	// set dataway global tags
-	config.Cfg.Dataway.UpdateGlobalTags(internal.MergeMapString(config.Cfg.GlobalHostTags, config.Cfg.Election.Tags))
+	config.Cfg.Dataway.UpdateGlobalTags(maputil.MergeMapString(config.Cfg.GlobalHostTags, config.Cfg.Election.Tags))
 }
 
 func (m *mockHandle) getTags() (map[string]string, map[string]string) {

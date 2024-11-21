@@ -23,6 +23,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/discovery"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/kubernetes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/option"
 )
@@ -56,6 +57,7 @@ func (ipt *Input) Run() {
 	l.Info("container input started")
 	ipt.setup()
 
+	ipt.tryStartDiscovery()
 	ipt.runCollect()
 }
 
@@ -184,6 +186,32 @@ func (ipt *Input) collectLogging(collectors []Collector) {
 		}
 		c.Logging(fn)
 	}
+}
+
+func (ipt *Input) tryStartDiscovery() {
+	if !(datakit.Docker && config.IsKubernetes()) {
+		return
+	}
+
+	client, err := k8sclient.NewKubernetesClientInCluster()
+	if err != nil {
+		l.Errorf("failed to create k8s-client: %s", err)
+		return
+	}
+
+	opt := buildLabelsOption(nil, config.Cfg.Dataway.GlobalCustomerKeys)
+	cfg := discovery.Config{
+		ExtraTags:   inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
+		LabelAsTags: opt.keys,
+		Feeder:      ipt.Feeder,
+	}
+
+	dis := discovery.NewDiscovery(client, &cfg, ipt.semStop.Wait())
+	g := datakit.G("k8s-discovery")
+	g.Go(func(ctx context.Context) error {
+		dis.Run()
+		return nil
+	})
 }
 
 type Collector interface {

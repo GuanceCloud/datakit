@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package internal contains functions for internal use.
-package internal
+// Package maputil wraps functions for map.
+package maputil
 
 // CopyMapString returns a copy of incoming map.
 func CopyMapString(in map[string]string) map[string]string {
