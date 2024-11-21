@@ -81,7 +81,7 @@ func (ipt *Input) getVersionAndUptime() {
 		l.Errorf("Database connection is nil")
 		return
 	}
-	versionQuery := "SELECT * FROM v$version WHERE banner LIKE 'Oracle%'"
+	versionQuery := "SELECT BANNER FROM v$version WHERE banner LIKE 'Oracle%'"
 	uptimeQuery := "SELECT (SYSDATE - STARTUP_TIME) * 86400 AS uptime_seconds FROM v$instance"
 
 	// 获取 Oracle 版本
@@ -102,7 +102,7 @@ func (ipt *Input) getVersionAndUptime() {
 	}
 	ipt.Uptime = int(uptimeSeconds)
 
-	l.Infof("Oracle Version: %s, Uptime: %d seconds", ipt.Version, ipt.Uptime)
+	l.Debugf("Oracle Version: %s, Uptime: %d seconds", ipt.Version, ipt.Uptime)
 }
 
 func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
