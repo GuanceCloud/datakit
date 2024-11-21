@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.63.1 (2024/11/21) {#cl-1.63.1}
+
+This release includes critical fixes addressing the following issues:
+
+- **Socket Logging Bug Fix:** Resolved an issue where multi-line logs were not being logged correctly (#2461).
+- **Datakit Restart Issue:** Fixed a problem preventing Datakit from restarting on Windows when encountering Out-Of-Memory (OOM) conditions (#2465).
+- **Oracle Metric Issue:** Resolved a missing metric issue for Oracle (#2464).
+- **Prometheus Metric Scraping Restoration:** Restored the feature for scraping Prometheus metrics from Kubernetes Pod annotations, which was inadvertently removed in version 1.63.0. This restoration is essential for legacy services deployed under Kubernetes (#2471).
+
+---
+
 ## 1.63.0 (2024/11/13) {#cl-1.63.0}
 
 This release is an iterative update, with the following main changes:
@@ -8,7 +19,7 @@ This release is an iterative update, with the following main changes:
 
 - Added support for Datakit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and Guance Cloud needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from Datakit via commands issued from the workspace web page (#2367).
 
-Under Kubernetes, we need to update the new *datakit.yaml* with new RBAC added.
+    Under Kubernetes, we need to update the new *datakit.yaml* with new RBAC added.
 
 - Pipeline added a new [string extraction function](../pipeline/use-pipeline/pipeline-built-in-function.md#fn_slice_string) (#2436).
 

@@ -1,5 +1,18 @@
 # 更新日志
 
+## 1.63.1(2024/11/21) {#cl-1.63.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+- 修复 socket logging 采集多行处理导致的问题（#2461）
+- 修复 Windows 上 Datakit OOM 后不会再次重启的问题（#2465）
+- 修复 Oracle 指标缺失问题（#2464）
+- 恢复 Pod 通过 Annotation 标记无法暴露 Prometheus Exporter 采集的功能（#2471）
+
+    该功能在 1.63.0 版本被移除，但实际上很多已有业务的 Prometheus 指标已经按照这种方式在采集，暂时无法迁移到 KubernetesPrometheus 这种形式。
+
+---
+
 ## 1.63.0(2024/11/13) {#cl-1.63.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -8,7 +21,7 @@
 
 - 增加 Datakit [下发任务支持](datakit-conf.md#remote-job)（目前该功能需手动启动，且观测云需升级到 1.98.181 及以上的版本），目前支持通过在前端页面上下发指令给 Datakit 来获取 JVM Dump（#2367）
 
-在 Kubernetes 中执行时，需更新最新的 *datakit.yaml*，这里需要增加额外的 RBAC 权限
+    在 Kubernetes 中执行时，需更新最新的 *datakit.yaml*，这里需要增加额外的 RBAC 权限
 
 - Pipeline 新增[字符串提取提取函数](../pipeline/use-pipeline/pipeline-built-in-function.md#fn_slice_string)（#2436）
 

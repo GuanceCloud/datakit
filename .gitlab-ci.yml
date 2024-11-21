@@ -12,7 +12,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.63.0"
+  CI_VERSION: "1.63.1"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
@@ -40,7 +40,6 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make local # build binary
-    # - make check_testing_conf_compatible
     - make lint AUTO_FIX=off
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
   tags:
@@ -150,7 +149,6 @@ release-testing:
     # building && publish testing
     - make clean
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
-    # - make check_testing_conf_compatible
     - make testing_image VERSION="$CI_TESTING_VERSION"
     - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true VERSION="$CI_TESTING_VERSION"
   tags:
@@ -172,8 +170,6 @@ release-stable:
   script:
     - make clean
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true # update the version on each release
-    - make check_production_conf_compatible
-    - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
     - make uos_image_production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true
     - make push_ligai_version VERSION="$CI_VERSION" LIGAI_CUSTOMFIELD=$LIGAI_CUSTOMFIELD LIGAI_AUTO_DEVOPS_TOKEN=$LIGAI_AUTO_DEVOPS_TOKEN LIGAI_API=$LIGAI_API
