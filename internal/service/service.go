@@ -86,6 +86,7 @@ func NewService(opts ...serviceOption) (service.Service, error) {
 			"RestartSec":         10, // 重启间隔.
 			"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
 			"StartLimitBurst":    5,
+			"OnFailure":          "restart", // windows
 		},
 		Name:        serviceName,
 		DisplayName: displayName,
