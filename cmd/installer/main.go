@@ -157,7 +157,7 @@ func init() {
 	flag.StringVar(&installer.ElectionNamespace, "namespace", "", "datakit namespace")
 
 	// datakit HTTP flags
-	flag.IntVar(&installer.HTTPPort, "port", 0, "datakit HTTP port")
+	flag.IntVar(&installer.HTTPPort, "port", 9529, "datakit HTTP port")
 	flag.StringVar(&installer.HTTPListen, "listen", "", "datakit HTTP listen")
 
 	flag.StringVar(&installer.HostName, "env_hostname", "", "host name")
