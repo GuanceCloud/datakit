@@ -82,11 +82,11 @@ Prerequisites:
     - If you encounter `InvalidImageName` error, you can manually pull the image.
 <!-- markdownlint-enable -->
 
-### Relevant Configuration {#datakit-operator-jsonconfig}
+## Configuration Explanation {#datakit-operator-jsonconfig}
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-The configuration for the Datakit Operator is in JSON format and is stored as a separate ConfigMap in Kubernetes, which is loaded into the container as an environment variable.
+The Datakit Operator configuration is in JSON format and is stored in Kubernetes as a separate ConfigMap. It is loaded into the container as environment variables.
 
 The default configuration is as follows:
 
@@ -100,8 +100,6 @@ The default configuration is as follows:
             "enabled_labelselectors": [],
             "images": {
                 "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance",
-                "python_agent_image": "pubrepo.guance.com/datakit-operator/dd-lib-python-init:v1.6.2",
-                "js_agent_image":     "pubrepo.guance.com/datakit-operator/dd-lib-js-init:v3.9.2"
             },
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
@@ -142,71 +140,31 @@ The default configuration is as follows:
 }
 ```
 
-The main configuration item is `admission_inject`, which involves various aspects of injecting `ddtrace` and `logfwd`. See details below.
+The main configuration items are `ddtrace`, `logfwd`, and `profiler`, which specify the injected images and environment variables. In addition, `ddtrace` also supports batch injection based on `enabled_namespaces` and `enabled_selectors`, as detailed in the section below.
 
-<!-- markdownlint-disable MD013 -->
-#### Configuration of `enabled_namespaces` and `enabled_labelselectors` {#datakit-operator-config-ddtrace-enabled}
-<!-- markdownlint-enable -->
+### Configuration of Images {#datakit-operator-config-images}
 
-`enabled_namespaces` and `enabled_labelselectors` are specific to `ddtrace` and can inject resources matched by Pod without adding annotations to the Pod. They are configured as follows:
+The primary function of the Datakit Operator is to inject images and environment variables, using the `images` configuration to specify the image addresses. The `images` configuration consists of multiple Key/Value pairs, where the Key is fixed, and the Value is modified to specify the image address.
 
-```json
-{
-    "server_listen": "0.0.0.0:9543",
-    "log_level":     "info",
-    "admission_inject": {
-        "ddtrace": {
-            "enabled_namespaces": [
-                {
-                    "namespace": "testns",  # Specify namespace
-                    "language": "java"      # Specify the agent language to inject
-                }
-            ],
-            "enabled_labelselectors": [
-                {
-                    "labelselector": "app=log-output",  # Specify labelselector
-                    "language": "java"                  # Specify the agent language to inject
-                }
-            ]
-            # other..
-        }
-    }
-}
-```
+Under normal circumstances, images are stored in `pubrepo.guance.com/datakit-operator`. However, for some special environments where accessing this image repository is not convenient, you can use the following method (taking the `dd-lib-java-init` image as an example):
 
-If a Pod satisfies both the `enabled_namespaces` and `enabled_labelselectors` rules, the configuration in `enabled_labelselectors` takes precedence.
-
-For writing labelselectors, refer to this [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}.
+1. In an environment where `pubrepo.guance.com` is accessible, pull the image `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`.
+1. Modify the JSON configuration, changing `admission_inject`->`ddtrace`->`images`->`java_agent_image` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and apply this YAML file.
+1. After this, the Datakit Operator will use the new Java Agent image path.
 
 <!-- markdownlint-disable MD046 -->
-???+ note
+???+ attention
 
-    - In Kubernetes 1.16.9 or earlier, Admission does not record Pod Namespace, so the `enabled_namespaces` feature is not available.
+    The Datakit Operator does not validate the image. If the image path is incorrect, Kubernetes will throw an error when creating the Pod.**
 <!-- markdownlint-enable -->
 
-#### Configuration of Images {#datakit-operator-config-images}
+### Adding Environment Variables {#datakit-operator-config-envs}
 
-`images` is a collection of Key/Value pairs with fixed keys, where modifying the Value allows for customization of image paths.
+All environment variables that need to be injected must be specified in the configuration file, as the Datakit Operator does not add any environment variables by default.
 
-<!-- markdownlint-disable MD046 -->
-???+ info
+The environment variable configuration is called `envs`, `envs` consists of multiple Key/Value pairs: the Key is a fixed value, and the Value can either be a fixed value or a placeholder, depending on the actual situation.
 
-    The Datakit Operator's ddtrace agent image is stored centrally at `pubrepo.guance.com/datakit-operator`. For certain special environments that may not have access to this image repository, it is possible to modify the environment variables and specify an image path, as follows:
-    
-    1. In an environment that can access `pubrepo.guance.com`, pull the image `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.8.4-guance` and save it to your own image repository, for example `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`.
-    1. Modify the JSON configuration by changing admission_inject->ddtrace->images->java_agent_image to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.8.4-guance`, and apply this YAML.
-    1. Thereafter, the Datakit Operator will use the new Java Agent image path.
-    
-    **The Datakit Operator does not check images. If the image path is incorrect, Kubernetes will throw an error when creating the image.**
-    
-    If a version has already been specified in the `admission.datakit/java-lib.version` annotation, for example `admission.datakit/java-lib.version:v2.0.1-guance` or `admission.datakit/java-lib.version:latest`, the v2.0.1-guance version will be used.
-<!-- markdownlint-enable -->
-
-#### Configuration of Envs {#datakit-operator-config-envs}
-
-`envs` is also a collection of Key/Value pairs, but with variable keys and values. The Datakit Operator injects all Key/Value environment variables into the target container.
-
-For example, add FAKE_ENV to envs:
+For example, to add an environment variable `testing-env` in `envs`:
 
 ```json
     "admission_inject": {
@@ -237,11 +195,112 @@ In Datakit Operator v1.4.2 and later versions, `envs` `envs` support for the Kub
 - `status.podIP`:  The pod's primary IP address (usually, its IPv4 address).
 - `status.podIPs`:  The IP addresses is a dual-stack version of status.podIP, the first is always the same as status.podIP.
 
-If that write is not recognized, it is converted to a plain string and added to the environment variable. For example `"POD_NAME":"{fieldRef:metadata.PODNAME}"`, which is the wrong way to write it, ends up in the environment variable being `POD_NAME={fieldRef:metadata.PODNAME}`.
+For example, if there is a Pod with the name `nginx-123` and the namespace `middleware`, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following configuration:
 
-#### Other Configurations {#datakit-operator-config-other}
+```json
+{
+    "admission_inject": {
+        "ddtrace": {
+            "envs": {
+                "POD_NAME":      "{fieldRef:metadata.name}",
+                "POD_NAMESPACE": "{fieldRef:metadata.namespace}"
+            }
+        }
+    }
+}
+```
 
-- `logfwd.options.reuse_exist_volume` allows reusing volumes with the same path when injecting logfwd, avoiding injection errors due to the existence of volumes with the same path. Note that the presence or absence of a trailing slash at the end of the path has different meanings, so these two paths are not the same and cannot be reused.
+Eventually, the environment variables can be seen in the Pod:
+
+``` shell
+$ env | grep POD
+POD_NAME=nginx-123
+POD_NAMESPACE=middleware
+```
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    If the placeholder in the Value is unrecognized, it will be added to the environment variable as a plain string. For example, `"POD_NAME": "{fieldRef:metadata.PODNAME}"` is incorrect, and the environment variable will be set as `POD_NAME={fieldRef:metadata.PODNAME}`.
+<!-- markdownlint-enable -->
+
+## Injection Methods {#datakit-operator-inject}
+
+Datakit-Operator supports two methods for resource injection `global configuration namespaces and selectors`, and adding specific annotations to target Pods. The differences between them are as follows:
+
+- Global Configuration: Namespace and Selector: By modifying the Datakit-Operator configuration, you specify the target Pod's Namespace and Selector. If a Pod matches the criteria, the resource injection will occur.
+    - Advantages: No need to add annotations to the target Pod (but the target Pod must be restarted).
+    - Disadvantages: The scope is not precise enough, which may lead to unnecessary injections.
+
+- Adding Annotations to Target Pods: Add annotations to the target Pod, and Datakit-Operator will check the Pod's annotations to decide whether to perform the injection based on the conditions.
+    - Advantages: Precise scope, preventing unnecessary injections.
+    - Disadvantages: You must manually add annotations to the target Pod, and the Pod needs to be restarted.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    As of Datakit-Operator v1.5.8, the `global configuration namespaces and selectors` method only applies to `DDtrace injection`. It does not apply to `logfwd` and `profiler`, for which annotations are still required.
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD013 -->
+### Global Configuration: Namespaces and Selectors {#datakit-operator-config-ddtrace-enabled}
+<!-- markdownlint-enable -->
+
+The `enabled_namespaces` and `enabled_labelselectors` fields are specific to `ddtrace`. They are object arrays that require the specification of `namespace` and `language`. The relationships between the arrays are "OR" (i.e., any match in the array will trigger injection). The configuration is written as follows (refer to the configuration details later):
+
+```json
+{
+    "server_listen": "0.0.0.0:9543",
+    "log_level":     "info",
+    "admission_inject": {
+        "ddtrace": {
+            "enabled_namespaces": [
+                {
+                    "namespace": "testns",  # Specify the namespace
+                    "language": "java"      # Specify the language for the agent to inject
+                }
+            ],
+            "enabled_labelselectors": [
+                {
+                    "labelselector": "app=log-output",  # Specify the label selector
+                    "language": "java"                  # Specify the language for the agent to inject
+                }
+            ]
+            # other..
+        }
+    }
+}
+```
+
+If a Pod satisfies both the `enabled_namespaces` rule and the `enabled_labelselectors` rule, the configuration in `enabled_labelselectors` will take precedence (usually applied when the `language` value is used).
+
+For guidelines on how to write `labelselector`, please refer to the [official documentation](https://kubernetes.io/en/docs/concepts/overview/working-with-objects/labels/#label-selectors).
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    - In Kubernetes versions 1.16.9 or earlier, Admission does not record the Pod Namespace, so the `enabled_namespaces` feature cannot be used.
+<!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD013 -->
+### Adding Annotation Configuration for Injection {#datakit-operator-config-annotation}
+<!-- markdownlint-enable -->
+
+To inject the `ddtrace` file into a Pod, add the specified annotation to the Deployment. Make sure to add the annotation to the `template` section.
+
+The annotation format is as follows:
+
+- The key is `admission.datakit/%s-lib.version`, where `%s` should be replaced with the desired language. Currently, it supports `java`.
+- The value is the specified version number. By default, it uses the version specified by the Datakit-Operator configuration in the `java_agent_image` setting. For more details, see the configuration explanation below.
+
+For example, to add an annotation:
+
+```yaml
+      annotations:
+        admission.datakit/java-lib.version: "v1.36.2-guance"
+```
+
+This indicates that the image version to be injected for this Pod is `v1.36.2-guance`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-guance"`, similar to `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.36.2-guance`.
 
 <!-- markdownlint-disable MD013 -->
 ## Using Datakit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
@@ -269,13 +328,11 @@ The following functions are currently supported:
 #### Usage {#datakit-operator-inject-lib-usage}
 
 1. On the target Kubernetes cluster, [download and install Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
-2. Add a specified Annotation in deployment, indicating the need to inject ddtrace files. Note that the Annotation needs to be added in the template.
-    - The key is `admission.datakit/%s-lib.version`, where `%s` needs to be replaced with the specified language. Currently supports `java`, `python` and `js`.
-    - The value is the specified version number. If left blank, the default image version of the environment variable will be used.
+1. Add a Annotation `admission.datakit/java-lib.version: ""` in deployment.
 
 #### Example {#datakit-operator-inject-lib-example}
 
-The following is an example of Deployment that injects `dd-js-lib` into all Pods created by Deployment:
+The following is an example of Deployment that injects `dd-java-lib` into all Pods created by Deployment:
 
 ```yaml
 apiVersion: apps/v1
@@ -294,7 +351,7 @@ spec:
       labels:
         app: nginx
       annotations:
-        admission.datakit/js-lib.version: ""
+        admission.datakit/java-lib.version: ""
     spec:
       containers:
       - name: nginx
@@ -374,6 +431,30 @@ Parameter explanation can refer to [logfwd configuration](../integrations/logfwd
     - `character_encoding` selects an encoding. If the encoding is incorrect, the data cannot be viewed. It is recommended to leave it blank. Supported encodings include `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or "".
     - `multiline_match` is for multiline matching, as described in [Datakit Log Multiline Configuration](../integrations/logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
     - `tags` adds additional tags in JSON map format, such as `{ "key1":"value1", "key2":"value2" }`.
+
+When injecting `logfwd`, it is allowed to reuse a volume with the same path to avoid injection errors caused by an existing volume at the same path. To enable this, set the configuration `admission_inject`->`logfwd`->`options`->`reuse_exist_volume` to `true`.
+
+For example, if the target Pod has a volume mounted at the path `/var/log`, and `/var/log` is the directory to be collected:
+
+```yaml
+spec:
+  container:
+    # other...
+    volumeMounts:
+    - name: volume-log
+      mountPath: /var/log
+  volumes:
+  - name: volume-log
+    emptyDir: {}
+```
+
+When `reuse_exist_volume` is enabled, no new volume or volumeMount will be added, and the existing `volume-log` will be reused.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    That there is a difference between paths with and without a trailing slash. `/var/log` and `/var/log/` are considered different paths and cannot be reused.
+<!-- markdownlint-enable -->
 
 #### Example {#datakit-operator-inject-logfwd-example}
 
