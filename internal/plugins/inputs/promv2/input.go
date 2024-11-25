@@ -141,6 +141,7 @@ func (ipt *Input) setup() error {
 	opts := []promscrape.Option{
 		promscrape.WithSource("promv2/" + ipt.Source),
 		promscrape.WithMeasurement(ipt.MeasurementName),
+		promscrape.WithHTTPHeader(ipt.HTTPHeaders),
 		promscrape.WithExtraTags(tags),
 		promscrape.KeepExistMetricName(ipt.KeepExistMetricName),
 		promscrape.WithCallback(ipt.callback),

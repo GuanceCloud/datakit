@@ -10,7 +10,7 @@ const sampleConfig = `
   ## Collector alias.
   source = "prom"
 
-  urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
+  url = "http://127.0.0.1:9100/metrics"
 
   ## (Optional) Collect interval: (defaults to "30s").
   interval = "30s"
