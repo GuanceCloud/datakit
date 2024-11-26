@@ -73,7 +73,7 @@ func TestGatherNodeStats(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if _, err := es.gatherNodeStats(""); err != nil {
+	if _, err := es.gatherNodeStats("", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -132,7 +132,7 @@ func TestCollect(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if err := es.Collect(); err != nil {
+	if err := es.Collect(time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -146,7 +146,7 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth("", ""); err != nil {
+	if err := es.gatherClusterHealth("", "", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -166,7 +166,7 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth("", ""); err != nil {
+	if err := es.gatherClusterHealth("", "", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -194,7 +194,7 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth("", ""); err != nil {
+	if err := es.gatherClusterHealth("", "", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -214,7 +214,7 @@ func TestGatherClusterIndicesStats(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[uu] = defaultServerInfo()
 
-	if err := es.gatherIndicesStats("", ""); err != nil {
+	if err := es.gatherIndicesStats("", "", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -292,7 +292,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	es.Local = true
 	es.client.Transport = newTransportMock(nodeStatsResponse)
 
-	if _, err := es.gatherNodeStats(""); err != nil {
+	if _, err := es.gatherNodeStats("", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -303,7 +303,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 
 	es.client.Transport = newTransportMock(clusterStatsResponse)
 
-	if err := es.gatherClusterStats(""); err != nil {
+	if err := es.gatherClusterStats("", time.Now().UnixNano()); err != nil {
 		t.Fatal(err)
 	}
 

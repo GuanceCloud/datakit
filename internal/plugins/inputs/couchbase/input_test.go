@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,8 +153,7 @@ func TestCollect(t *testing.T) {
 			portInt, _ := getPort(ts.URL)
 			ipt.client.Opt.Port = portInt
 			ipt.client.Opt.AdditionalPort = portInt
-
-			err = ipt.client.GetPts()
+			err = ipt.client.GetPts(time.Now().UnixNano())
 			if err != nil {
 				if tc.wantErr {
 					// It's ok, I want.

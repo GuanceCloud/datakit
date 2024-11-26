@@ -60,7 +60,7 @@ const emptySlabID = "empty_slab_id"
 
 type (
 	getValueFunc func(key, value []byte) (slabID string, fields map[string]interface{}, err error)
-	collectFunc  func(net.Conn, *inputs.MeasurementInfo, map[string]string) ([]*point.Point, error)
+	collectFunc  func(net.Conn, *inputs.MeasurementInfo, map[string]string, int64) ([]*point.Point, error)
 	collectItem  struct {
 		metricInfo *inputs.MeasurementInfo
 		collector  collectFunc
@@ -108,16 +108,16 @@ func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ptTS int64) error {
 	if len(ipt.Servers) == 0 && len(ipt.UnixSockets) == 0 {
-		return ipt.gatherServer(":11211", false)
+		return ipt.gatherServer(":11211", false, ptTS)
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 	for _, serverAddress := range ipt.Servers {
 		func(addr string) {
 			g.Go(func(ctx context.Context) error {
-				return ipt.gatherServer(addr, false)
+				return ipt.gatherServer(addr, false, ptTS)
 			})
 		}(serverAddress)
 	}
@@ -125,7 +125,7 @@ func (ipt *Input) Collect() error {
 	for _, unixAddress := range ipt.UnixSockets {
 		func(unixAddr string) {
 			g.Go(func(ctx context.Context) error {
-				return ipt.gatherServer(unixAddr, true)
+				return ipt.gatherServer(unixAddr, true, ptTS)
 			})
 		}(unixAddress)
 	}
@@ -133,7 +133,7 @@ func (ipt *Input) Collect() error {
 	return g.Wait()
 }
 
-func (ipt *Input) gatherServer(address string, unix bool) error {
+func (ipt *Input) gatherServer(address string, unix bool, ptTS int64) error {
 	var conn net.Conn
 	var err error
 	if unix {
@@ -173,7 +173,7 @@ func (ipt *Input) gatherServer(address string, unix bool) error {
 	}
 
 	for k, v := range ipt.metricCollectorMap {
-		if points, err := v.collector(conn, v.metricInfo, tags); err != nil {
+		if points, err := v.collector(conn, v.metricInfo, tags, ptTS); err != nil {
 			l.Warnf("collect stats %s failed: %s", k, err.Error())
 		} else {
 			ipt.collectCache = append(ipt.collectCache, points...)
@@ -229,12 +229,12 @@ func getResponseReader(conn net.Conn, command string) (reader *bufio.Reader, err
 }
 
 // collectStatsItems collect items stats.
-func (ipt *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string, ptTS int64) (pts []*point.Point, err error) { //nolint:lll
 	reader, err := getResponseReader(conn, "stats items")
 	if err != nil {
 		return
 	}
-	return ipt.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags, ptTS,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			keyParts := bytes.SplitN(key, []byte(":"), 3)
@@ -255,12 +255,12 @@ func (ipt *Input) collectStatsItems(conn net.Conn, info *inputs.MeasurementInfo,
 }
 
 // collectStatsSlabs collect slabs stats.
-func (ipt *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStatsSlabs(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string, ptTS int64) (pts []*point.Point, err error) { //nolint:lll
 	reader, err := getResponseReader(conn, "stats slabs")
 	if err != nil {
 		return
 	}
-	return ipt.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags, ptTS,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			keyParts := bytes.SplitN(key, []byte(":"), 2)
@@ -290,6 +290,7 @@ func (ipt *Input) collectPoints(
 	reader *bufio.Reader,
 	info *inputs.MeasurementInfo,
 	extraTags map[string]string,
+	ptTS int64,
 	getValue getValueFunc,
 ) (pts []*point.Point, err error) {
 	slabFieldsMap := map[string]map[string]interface{}{}
@@ -345,7 +346,7 @@ func (ipt *Input) collectPoints(
 			name:   info.Name,
 			tags:   tags,
 			fields: fields,
-			ts:     time.Now(),
+			ts:     ptTS,
 			ipt:    ipt,
 		}
 
@@ -355,13 +356,13 @@ func (ipt *Input) collectPoints(
 	return pts, err
 }
 
-func (ipt *Input) collectStats(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string) (pts []*point.Point, err error) {
+func (ipt *Input) collectStats(conn net.Conn, info *inputs.MeasurementInfo, extraTags map[string]string, ptTS int64) (pts []*point.Point, err error) {
 	reader, err := getResponseReader(conn, "stats")
 	if err != nil {
 		return
 	}
 
-	return ipt.collectPoints(reader, info, extraTags,
+	return ipt.collectPoints(reader, info, extraTags, ptTS,
 		func(key, value []byte) (slabID string, fields map[string]interface{}, err error) {
 			fields = make(map[string]interface{})
 			slabID = emptySlabID
@@ -428,10 +429,15 @@ func (ipt *Input) Run() {
 	ipt.init()
 
 	tick := time.NewTicker(ipt.duration)
+	defer tick.Stop()
+	intervalMillSec := ipt.duration.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		start := time.Now()
-		if err := ipt.Collect(); err != nil {
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+		if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
 			l.Errorf("Collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

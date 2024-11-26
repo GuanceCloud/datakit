@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func TestInput_checkConf(t *testing.T) {
@@ -270,7 +272,11 @@ func TestInput_getPts(t *testing.T) {
 			assert.NoError(t, err)
 
 			ipt.collectCache = make([]*point.Point, 0)
-			err = ipt.getPts(tt.args.data)
+			intervalMillSec := ipt.Interval.Milliseconds()
+			var lastAlignTime int64
+			tn := ntp.NTPTime()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			err = ipt.getPts(tt.args.data, lastAlignTime*1e6)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.getPts() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -335,7 +341,7 @@ func TestInput_getPts_with_host(t *testing.T) {
 			assert.NoError(t, err)
 
 			ipt.collectCache = make([]*point.Point, 0)
-			err = ipt.getPts(tt.args.data)
+			err = ipt.getPts(tt.args.data, ntp.NTPTime().UnixNano())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.getPts() error = %v, wantErr %v", err, tt.wantErr)
 				return

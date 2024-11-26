@@ -318,6 +318,8 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+	intervalMillSec := ipt.Interval.Duration.Milliseconds()
+	var lastAlignTime int64
 
 	log.Infof("%s input started", inputName)
 
@@ -329,7 +331,9 @@ func (ipt *Input) Run() {
 
 			ipt.FeedCoByPts()
 			log.Debugf("mongodb input gathering...")
-			if err := ipt.gather(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.gather(lastAlignTime * 1e6); err != nil {
 				log.Error(err.Error())
 				ipt.feeder.FeedLastError(err.Error(), metrics.WithLastErrorInput(inputName))
 				ipt.setErrUpState()
@@ -398,7 +402,7 @@ func (ipt *Input) createMgoClient(url string) (*mongo.Client, error) {
 
 // Reads stats from all configured servers.
 // Returns one of the errors encountered while gather stats (if any).
-func (ipt *Input) gather() error {
+func (ipt *Input) gather(ptTS int64) error {
 	if len(ipt.mgoSvrs) == 0 {
 		return fmt.Errorf("no mongodb server")
 	}
@@ -408,7 +412,7 @@ func (ipt *Input) gather() error {
 		func(svr *MongodbServer) {
 			g.Go(func(ctx context.Context) error {
 				return svr.gatherData(ipt.GatherReplicaSetStats, ipt.GatherClusterStats, ipt.GatherPerDBStats,
-					ipt.GatherPerColStats, ipt.ColStatsDBs, ipt.GatherTopStat)
+					ipt.GatherPerColStats, ipt.ColStatsDBs, ipt.GatherTopStat, ptTS)
 			})
 		}(svr)
 	}

@@ -105,12 +105,16 @@ func (j *JolokiaAgent) Collect() {
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
+	intervalMillSec := duration.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
-			if err := j.Gather(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := j.Gather(lastAlignTime * 1e6); err != nil {
 				j.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(j.PluginName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -147,7 +151,7 @@ func (j *JolokiaAgent) Terminate() {
 	}
 }
 
-func (j *JolokiaAgent) Gather() error {
+func (j *JolokiaAgent) Gather(ptTS int64) error {
 	if j.gatherer == nil {
 		j.gatherer = NewGatherer(j.createMetrics())
 	}
@@ -178,7 +182,7 @@ func (j *JolokiaAgent) Gather() error {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
-				err := j.gatherer.Gather(client, j)
+				err := j.gatherer.Gather(client, j, ptTS)
 				if err != nil {
 					client.upState = 0
 					j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
@@ -365,7 +369,7 @@ type JolokiaMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 type JolokiaCustomerObject struct {
@@ -378,7 +382,7 @@ type JolokiaCustomerObject struct {
 // Point implement MeasurementV2.
 func (m *JolokiaMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -458,7 +462,7 @@ func NewGatherer(metrics []Metric) *Gatherer {
 
 // Gather adds points to an accumulator from responses returned
 // by a Jolokia agent.
-func (g *Gatherer) Gather(client *Client, j *JolokiaAgent) error {
+func (g *Gatherer) Gather(client *Client, j *JolokiaAgent, ptTS int64) error {
 	tags := make(map[string]string)
 	if client.config.ProxyConfig != nil {
 		tags["jolokia_proxy_url"] = client.URL
@@ -472,12 +476,12 @@ func (g *Gatherer) Gather(client *Client, j *JolokiaAgent) error {
 		return err
 	}
 
-	return g.gatherResponses(responses, mergeTags(tags, j.Tags), j)
+	return g.gatherResponses(responses, mergeTags(tags, j.Tags), j, ptTS)
 }
 
 // gatherResponses adds points to an accumulator from the ReadResponse objects
 // returned by a Jolokia agent.
-func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, j *JolokiaAgent) error {
+func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, j *JolokiaAgent, ptTS int64) error {
 	series := make(map[string][]jpoint)
 
 	for _, metric := range g.metrics {
@@ -544,7 +548,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				name:   measurement,
 				tags:   tag,
 				fields: field,
-				ts:     time.Now(),
+				ts:     ptTS,
 			}
 			j.collectCache = append(j.collectCache, metric.Point())
 		}

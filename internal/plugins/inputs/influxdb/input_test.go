@@ -64,7 +64,7 @@ func TestCollect(t *testing.T) {
 		Timeout: i.Timeout.Duration,
 	}
 	i.URL = "http://localhost:8086/debug/vars"
-	if err := i.Collect(); err != nil {
+	if err := i.Collect(time.Now().UnixNano()); err != nil {
 		i.collectCache = make([]*point.Point, 0)
 	}
 }

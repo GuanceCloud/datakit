@@ -75,10 +75,15 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
+	intervalMillSec := ipt.Interval.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		start := time.Now()
-		if err := ipt.collect(); err != nil {
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+
+		if err := ipt.collect(tn, lastAlignTime*1e6); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -120,7 +125,7 @@ func (ipt *Input) setup() {
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(tn time.Time, ptTS int64) error {
 	ipt.collectCache = make([]*point.Point, 0)
 	// set disk device filter
 	ipt.deviceFilter = &DevicesFilter{}
@@ -135,9 +140,8 @@ func (ipt *Input) collect() error {
 		return fmt.Errorf("error getting disk io info: %w", err)
 	}
 
-	ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 	for _, stat := range diskio {
 		var kvs point.KVs
 
@@ -188,7 +192,7 @@ func (ipt *Input) collect() error {
 		kvs = kvs.Add("merged_writes", stat.MergedWriteCount, false, true)
 
 		if ipt.lastStat != nil {
-			deltaTime := ts.Unix() - ipt.lastTime.Unix()
+			deltaTime := tn.Unix() - ipt.lastTime.Unix()
 			if v, ok := ipt.lastStat[stat.Name]; ok && deltaTime > 0 {
 				if stat.ReadBytes >= v.ReadBytes {
 					kvs = kvs.Add("read_bytes/sec", int64(stat.ReadBytes-v.ReadBytes)/deltaTime, false, true)
@@ -206,7 +210,7 @@ func (ipt *Input) collect() error {
 		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
 	ipt.lastStat = diskio
-	ipt.lastTime = ts
+	ipt.lastTime = tn
 	return nil
 }
 

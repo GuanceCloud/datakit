@@ -79,7 +79,7 @@ type Measurement struct {
 	Name   string
 	Tags   map[string]string
 	Fields map[string]interface{}
-	TS     time.Time
+	TS     int64
 }
 
 //nolint:lll
@@ -95,7 +95,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 
 func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.TS))
+	opts = append(opts, point.WithTimestamp(m.TS))
 
 	return point.NewPointV2(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
@@ -108,5 +108,5 @@ type graphiteMetric struct {
 	Name            string
 	Value           float64
 	Labels          mapper.Labels
-	Timestamp       time.Time
+	Timestamp       int64
 }

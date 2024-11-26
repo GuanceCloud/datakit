@@ -424,7 +424,7 @@ func (ipt *Input) setServerInfo() error {
 	return nil
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ptTS int64) error {
 	if err := ipt.setServerInfo(); err != nil {
 		return err
 	}
@@ -442,7 +442,7 @@ func (ipt *Input) Collect() error {
 				ipt.setUpState(nodeURL)
 
 				// Always gather node stats
-				if clusterName, err = ipt.gatherNodeStats(nodeURL); err != nil {
+				if clusterName, err = ipt.gatherNodeStats(nodeURL, ptTS); err != nil {
 					ipt.setErrUpState(nodeURL)
 					l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
@@ -452,14 +452,14 @@ func (ipt *Input) Collect() error {
 					if ipt.ClusterHealthLevel != "" {
 						url = url + "?level=" + ipt.ClusterHealthLevel
 					}
-					if err := ipt.gatherClusterHealth(url, s); err != nil {
+					if err := ipt.gatherClusterHealth(url, s, ptTS); err != nil {
 						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
 				if ipt.ClusterStats && (ipt.serverInfo[s].isMaster() || !ipt.ClusterStatsOnlyFromMaster || !ipt.Local) {
-					if err := ipt.gatherClusterStats(s + "/_cluster/stats"); err != nil {
+					if err := ipt.gatherClusterStats(s+"/_cluster/stats", ptTS); err != nil {
 						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
@@ -474,7 +474,7 @@ func (ipt *Input) Collect() error {
 						if err := ipt.gatherIndicesStats(s+
 							"/"+
 							strings.Join(ipt.IndicesInclude, ",")+
-							"/_stats?ignore_unavailable=true", clusterName); err != nil {
+							"/_stats?ignore_unavailable=true", clusterName, ptTS); err != nil {
 							ipt.setErrUpState(nodeURL)
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
@@ -482,14 +482,14 @@ func (ipt *Input) Collect() error {
 						if err := ipt.gatherIndicesStats(s+
 							"/"+
 							strings.Join(ipt.IndicesInclude, ",")+
-							"/_stats?level=shards&ignore_unavailable=true", clusterName); err != nil {
+							"/_stats?level=shards&ignore_unavailable=true", clusterName, ptTS); err != nil {
 							ipt.setErrUpState(nodeURL)
 							l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
 
 					// get settings
-					if err := ipt.gatherIndicesSettings(s, clusterName); err != nil {
+					if err := ipt.gatherIndicesSettings(s, clusterName, ptTS); err != nil {
 						ipt.setErrUpState(nodeURL)
 						l.Warn(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
@@ -580,13 +580,18 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.duration)
 	defer tick.Stop()
+	intervalMillSec := ipt.duration.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
 			start := time.Now()
-			if err := ipt.Collect(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+
+			if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
@@ -636,7 +641,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) gatherIndicesSettings(url string, clusterName string) error {
+func (ipt *Input) gatherIndicesSettings(url string, clusterName string, ptTS int64) error {
 	settingResp := map[string]interface{}{}
 	if err := ipt.gatherJSONData(url+"/"+strings.Join(ipt.IndicesInclude, ",")+"/_settings", &settingResp); err != nil {
 		return err
@@ -672,7 +677,7 @@ func (ipt *Input) gatherIndicesSettings(url string, clusterName string) error {
 				name:     "elasticsearch_indices_stats",
 				tags:     tags,
 				fields:   allFields,
-				ts:       time.Now(),
+				ts:       ptTS,
 				election: ipt.Election,
 			},
 		}
@@ -684,7 +689,7 @@ func (ipt *Input) gatherIndicesSettings(url string, clusterName string) error {
 	return nil
 }
 
-func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
+func (ipt *Input) gatherIndicesStats(url string, clusterName string, ptTS int64) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
@@ -694,7 +699,6 @@ func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
 	if err := ipt.gatherJSONData(url, indicesStats); err != nil {
 		return err
 	}
-	now := time.Now()
 
 	allFields := make(map[string]interface{})
 	// All Stats
@@ -723,7 +727,7 @@ func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
 			name:     "elasticsearch_indices_stats",
 			tags:     tags,
 			fields:   allFields,
-			ts:       now,
+			ts:       ptTS,
 			election: ipt.Election,
 		},
 	}
@@ -765,7 +769,7 @@ func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
 				name:     "elasticsearch_indices_stats",
 				tags:     indexTag,
 				fields:   allFields,
-				ts:       now,
+				ts:       ptTS,
 				election: ipt.Election,
 			},
 		}
@@ -778,7 +782,7 @@ func (ipt *Input) gatherIndicesStats(url string, clusterName string) error {
 	return nil
 }
 
-func (ipt *Input) gatherNodeStats(url string) (string, error) {
+func (ipt *Input) gatherNodeStats(url string, ptTS int64) (string, error) {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
@@ -817,7 +821,6 @@ func (ipt *Input) gatherNodeStats(url string) (string, error) {
 		//nolint:lll
 		const cols = `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
 
-		now := time.Now()
 		allFields := make(map[string]interface{})
 		for p, s := range stats {
 			// if one of the individual node stats is not even in the
@@ -857,7 +860,7 @@ func (ipt *Input) gatherNodeStats(url string) (string, error) {
 				name:     "elasticsearch_node_stats",
 				tags:     tags,
 				fields:   allFields,
-				ts:       now,
+				ts:       ptTS,
 				election: ipt.Election,
 			},
 		}
@@ -869,12 +872,11 @@ func (ipt *Input) gatherNodeStats(url string) (string, error) {
 	return nodeStats.ClusterName, nil
 }
 
-func (ipt *Input) gatherClusterStats(url string) error {
+func (ipt *Input) gatherClusterStats(url string, ptTS int64) error {
 	clusterStats := &clusterStats{}
 	if err := ipt.gatherJSONData(url, clusterStats); err != nil {
 		return err
 	}
-	now := time.Now()
 	tags := map[string]string{
 		"node_name":    clusterStats.NodeName,
 		"cluster_name": clusterStats.ClusterName,
@@ -909,7 +911,7 @@ func (ipt *Input) gatherClusterStats(url string) error {
 			name:     "elasticsearch_cluster_stats",
 			tags:     tags,
 			fields:   allFields,
-			ts:       now,
+			ts:       ptTS,
 			election: ipt.Election,
 		},
 	}
@@ -1003,13 +1005,12 @@ func (ipt *Input) getLifeCycleErrorCount(url string) (errCount int) {
 	return errCount
 }
 
-func (ipt *Input) gatherClusterHealth(url string, serverURL string) error {
+func (ipt *Input) gatherClusterHealth(url string, serverURL string, ptTS int64) error {
 	healthStats := &clusterHealth{}
 	if err := ipt.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
 	indicesErrorCount := ipt.getLifeCycleErrorCount(serverURL)
-	now := time.Now()
 	clusterFields := map[string]interface{}{
 		"active_primary_shards":            healthStats.ActivePrimaryShards,
 		"active_shards":                    healthStats.ActiveShards,
@@ -1050,7 +1051,7 @@ func (ipt *Input) gatherClusterHealth(url string, serverURL string) error {
 			name:     "elasticsearch_cluster_health",
 			tags:     tags,
 			fields:   allFields,
-			ts:       now,
+			ts:       ptTS,
 			election: ipt.Election,
 		},
 	}

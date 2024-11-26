@@ -206,7 +206,7 @@ func (svr *MongodbServer) gatherTopStatData() (*TopStats, error) {
 	return topStats, nil
 }
 
-func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDBStats bool, gatherPerColStats bool, colStatsDBs []string, gatherTopStat bool) error { // nolint:lll
+func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDBStats bool, gatherPerColStats bool, colStatsDBs []string, gatherTopStat bool, ptTS int64) error { // nolint:lll
 	start := time.Now()
 	serverStatus, err := svr.gatherServerStats()
 	if err != nil {
@@ -296,12 +296,12 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 		DBStats:      dbStats,
 		ColStats:     colStats,
 		TopStats:     topStatData,
-		SampleTime:   time.Now(),
+		SampleTime:   ptTS,
 	}
 	log.Debugf("### collect result: %#v", *result)
 
 	if svr.lastResult != nil {
-		duration := result.SampleTime.Sub(svr.lastResult.SampleTime)
+		duration := time.Duration(result.SampleTime - svr.lastResult.SampleTime)
 		durationInSeconds := int64(duration.Seconds())
 		if durationInSeconds == 0 {
 			durationInSeconds = 1

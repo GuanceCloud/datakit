@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -127,8 +128,12 @@ func TestInput_collect(t *testing.T) {
 			}
 
 			ipt.setup()
+			intervalMillSec := ipt.Interval.Milliseconds()
+			var lastAlignTime int64
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
 
-			err := ipt.collect()
+			err := ipt.collect(tn, lastAlignTime*1e6)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -219,7 +224,12 @@ func TestInput_rw_rate(t *testing.T) {
 			ipt.setup()
 
 			ipt.diskIO = DiskIO4Test
-			err := ipt.collect()
+			intervalMillSec := ipt.Interval.Milliseconds()
+			var lastAlignTime int64
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+
+			err := ipt.collect(tn, lastAlignTime*1e6)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -240,7 +250,9 @@ func TestInput_rw_rate(t *testing.T) {
 			testData["sdb2"] = temp02
 
 			ipt.diskIO = DiskIO4Test
-			err = ipt.collect()
+			tn = time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			err = ipt.collect(tn, lastAlignTime*1e6)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return

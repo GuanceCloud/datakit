@@ -10,6 +10,7 @@ package cpu
 import (
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/stretchr/testify/assert"
@@ -139,13 +140,14 @@ func TestCollect(t *testing.T) {
 		tagger: datakit.DefaultGlobalTagger(),
 	}
 	i.setup()
-	if err := i.collect(); err != nil {
+
+	if err := i.collect(time.Now().UnixNano()); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 0 {
 		assert.True(t, 0 != len(i.collectCache))
 	}
 
-	if err := i.collect(); err != nil {
+	if err := i.collect(time.Now().UnixNano()); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 1 {
 		assert.Equal(t, 1, len(i.collectCache))

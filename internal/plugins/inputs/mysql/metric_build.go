@@ -7,7 +7,6 @@ package mysql
 
 import (
 	"fmt"
-	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
@@ -159,7 +158,7 @@ func (ipt *Input) buildMysqlReplicationLog() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlSchema(ptTS int64) ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
 	// SchemaSize
@@ -180,7 +179,7 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 
 		m.fields["schema_size"] = size
 		m.tags["schema_name"] = k
-		m.ts = time.Now()
+		m.ts = ptTS
 
 		if len(m.fields) > 0 {
 			ms = append(ms, m)
@@ -204,7 +203,7 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 
 		m.fields["query_run_time_avg"] = size
 		m.tags["schema_name"] = k
-		m.ts = time.Now()
+		m.ts = ptTS
 
 		if len(m.fields) > 0 {
 			ms = append(ms, m)
@@ -454,7 +453,7 @@ func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 	return []*gcPoint.Point{}, nil
 }
 
-func (ipt *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlCustomQueries(ptTS int64) ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
 
 	for hs, items := range ipt.mCustomQueries {
@@ -496,7 +495,7 @@ func (ipt *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
 				}
 			}
 
-			m.ts = time.Now()
+			m.ts = ptTS
 
 			if len(m.fields) > 0 {
 				ms = append(ms, m)

@@ -45,9 +45,12 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-
+	intervalMillSec := ipt.Interval.Duration.Milliseconds()
+	var lastAlignTime int64
 	for {
-		ipt.getMetric()
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+		ipt.getMetric(lastAlignTime * 1e6)
 		if ipt.lastErr != nil {
 			metrics.FeedLastError(inputName, ipt.lastErr.Error(), point.Metric)
 		}
@@ -71,7 +74,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) getMetric() {
+func (ipt *Input) getMetric(ptTS int64) {
 	resp, err := ipt.client.Get(ipt.URL)
 	if err != nil {
 		l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
@@ -80,7 +83,7 @@ func (ipt *Input) getMetric() {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	pts, err := ipt.parse(resp.Body)
+	pts, err := ipt.parse(resp.Body, ptTS)
 	if err != nil {
 		ipt.lastErr = err
 		l.Error(err.Error())
@@ -96,7 +99,7 @@ func (ipt *Input) getMetric() {
 	}
 }
 
-func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
+func (ipt *Input) parse(reader io.Reader, ptTS int64) ([]*point.Point, error) {
 	var (
 		parse expfmt.TextParser
 		pts   []*point.Point
@@ -110,7 +113,7 @@ func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
 			measurement := &Measurement{
 				tags:   map[string]string{},
 				fields: map[string]interface{}{},
-				ts:     datakit.TimestampMsToTime(metric.GetTimestampMs()),
+				ts:     ptTS,
 			}
 			for k, v := range ipt.Tags {
 				measurement.tags[k] = v
@@ -136,7 +139,7 @@ func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
 			}
 
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(measurement.ts))
+			opts = append(opts, point.WithTimestamp(measurement.ts))
 
 			measurement.tags = inputs.MergeTags(ipt.Tagger.HostTags(), measurement.tags, ipt.URL)
 

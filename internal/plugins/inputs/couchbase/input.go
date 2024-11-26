@@ -79,14 +79,17 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
+	intervalMillSec := ipt.Interval.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else {
 			start := time.Now()
-
-			if err := ipt.collect(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
@@ -145,12 +148,12 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	if ipt.client == nil {
 		return fmt.Errorf("i.client is nil")
 	}
 
-	if err := ipt.client.GetPts(); err != nil {
+	if err := ipt.client.GetPts(ptTS); err != nil {
 		return err
 	}
 

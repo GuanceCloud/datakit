@@ -130,13 +130,17 @@ func (ipt *Input) Run() {
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
+	intervalMillSec := ipt.Interval.Duration.Milliseconds()
+	var lastAlignTime int64
 
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
-			if err := ipt.Collect(); err == nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.Collect(lastAlignTime * 1e6); err == nil {
 				if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithInputName(inputName),
@@ -175,7 +179,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ptTS int64) error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
 		for objName := range metricCounterMap {
 			// measurement name -> instance name -> metric name -> counter query handle list index
@@ -270,7 +274,7 @@ func (ipt *Input) Collect() error {
 				}
 
 				opts := point.DefaultMetricOptions()
-				opts = append(opts, point.WithTime(time.Now()))
+				opts = append(opts, point.WithTimestamp(ptTS))
 
 				tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
 

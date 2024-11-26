@@ -118,6 +118,8 @@ func (ipt *Input) Run() {
 
 	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
+	intervalMillSec := ipt.duration.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		select {
@@ -134,7 +136,9 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			ipt.gather()
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			ipt.gather(lastAlignTime * 1e6)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
@@ -179,10 +183,10 @@ func (ipt *Input) loadCfg() {
 	ipt.duration = dur
 }
 
-func (ipt *Input) gather() {
+func (ipt *Input) gather(ptTS int64) {
 	start := time.Now()
 
-	pts, err := ipt.gatherMetrics()
+	pts, err := ipt.gatherMetrics(ptTS)
 	if err != nil {
 		l.Error(err)
 		return
@@ -198,7 +202,7 @@ func (ipt *Input) gather() {
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
+func (ipt *Input) gatherMetrics(ptTS int64) ([]*point.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -235,7 +239,7 @@ func (ipt *Input) gatherMetrics() ([]*point.Point, error) {
 		}
 
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(time.Now()))
+		opts = append(opts, point.WithTimestamp(ptTS))
 		points = append(points, point.NewPointV2(measurement,
 			append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...),
 		)

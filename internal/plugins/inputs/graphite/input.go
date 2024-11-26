@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -247,7 +246,7 @@ func (ipt *Input) processLine(line string) {
 		Name:            name,
 		Value:           value,
 		Labels:          labels,
-		Timestamp:       time.Unix(int64(timestamp), int64(math.Mod(timestamp, 1.0)*1e9)),
+		Timestamp:       int64(timestamp * 1e9),
 	}
 	lastProcessed.Set(float64(time.Now().UnixNano()) / 1e9)
 	ipt.outCh <- &m

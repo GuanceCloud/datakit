@@ -42,7 +42,7 @@ func TestPerfObjMetricMap(t *testing.T) {
 
 func TestCollect(t *testing.T) {
 	i := Input{Interval: datakit.Duration{Duration: time.Second * 15}}
-	if err := i.Collect(); err != nil {
+	if err := i.Collect(time.Now().UnixNano()); err != nil {
 		t.Error(err)
 	}
 }

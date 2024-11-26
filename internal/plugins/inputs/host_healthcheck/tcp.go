@@ -8,7 +8,6 @@ package healthcheck
 import (
 	"net"
 	"strings"
-	"time"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
@@ -16,9 +15,7 @@ import (
 
 const tcpMetricName = "host_tcp_exception"
 
-func (ipt *Input) collectTCP() error {
-	ts := time.Now()
-
+func (ipt *Input) collectTCP(ptTS int64) error {
 	for _, tcp := range ipt.tcp {
 		for _, ip := range tcp.HostPorts {
 			host, port, err := net.SplitHostPort(ip)
@@ -75,7 +72,7 @@ func (ipt *Input) collectTCP() error {
 			}
 
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ts))
+			opts = append(opts, point.WithTimestamp(ptTS))
 
 			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(tcpMetricName, kvs, opts...))
 		}

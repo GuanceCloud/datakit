@@ -26,9 +26,7 @@ type processInfo struct {
 	cmdLine       string
 }
 
-func (ipt *Input) collectProcess() error {
-	ts := time.Now()
-
+func (ipt *Input) collectProcess(ptTS int64) error {
 	pses, err := pr.Processes()
 	if err != nil {
 		return fmt.Errorf("get process err: %w", err)
@@ -56,7 +54,7 @@ func (ipt *Input) collectProcess() error {
 			}
 
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ts))
+			opts = append(opts, point.WithTimestamp(ptTS))
 			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(processMetricName, kvs, opts...))
 		}
 		process.processes = runningProcesses

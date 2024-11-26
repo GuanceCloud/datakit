@@ -58,10 +58,14 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
+	intervalMillSec := ipt.Interval.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		start := time.Now()
-		if err := ipt.collect(); err != nil {
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+		if err := ipt.collect(lastAlignTime * 1e6); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -102,11 +106,10 @@ func (ipt *Input) setup() {
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	ipt.collectCache = make([]*point.Point, 0)
-	ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 
 	vm, err := ipt.vmStat()
 	if err != nil {

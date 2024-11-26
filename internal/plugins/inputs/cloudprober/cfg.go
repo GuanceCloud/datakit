@@ -60,7 +60,7 @@ type Measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 func (m *Measurement) Point() *point.Point {

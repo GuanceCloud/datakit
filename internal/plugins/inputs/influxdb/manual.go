@@ -6,8 +6,6 @@
 package influxdb
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -28,13 +26,13 @@ type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -50,7 +48,7 @@ type InfluxdbCqM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbCqM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -79,7 +77,7 @@ type InfluxdbHttpdM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbHttpdM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -131,7 +129,7 @@ type InfluxdbMemstatsM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbMemstatsM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -186,7 +184,7 @@ type InfluxdbQueryExecutorM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbQueryExecutorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -218,7 +216,7 @@ type InfluxdbRuntimeM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbRuntimeM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -260,7 +258,7 @@ type InfluxdbSubscriberM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbSubscriberM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -290,7 +288,7 @@ type InfluxdbWriteM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbWriteM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -326,7 +324,7 @@ type InfluxdbDatabaseM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbDatabaseM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -356,7 +354,7 @@ type InfluxdbShardM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbShardM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -401,7 +399,7 @@ type InfluxdbTsm1EngineM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbTsm1EngineM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -469,7 +467,7 @@ type InfluxdbTsm1CacheM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbTsm1CacheM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -512,7 +510,7 @@ type InfluxdbTsm1FilestoreM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbTsm1FilestoreM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -548,7 +546,7 @@ type InfluxdbTsm1WalM measurement
 // Point implement MeasurementV2.
 func (m *InfluxdbTsm1WalM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
