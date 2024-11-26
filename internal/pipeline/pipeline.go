@@ -88,7 +88,7 @@ func (p *Pipeline) Run(cat point.Category, pt *point.Point, plOpt *plmanager.Opt
 		return nil, fmt.Errorf("no data")
 	}
 
-	plpt := ptinput.WrapPoint(cat, pt)
+	plpt := ptinput.PtWrap(cat, pt)
 
 	if v, ok := plval.GetRefTb(); ok {
 		plpt.SetPlReferTables(v.Tables())

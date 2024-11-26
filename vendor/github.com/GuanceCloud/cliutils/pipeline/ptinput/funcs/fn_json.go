@@ -6,10 +6,11 @@
 package funcs
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/ast"

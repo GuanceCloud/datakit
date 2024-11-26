@@ -19,7 +19,6 @@ import (
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/utils"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
-	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 
 	"github.com/spf13/cast"
 )
@@ -45,6 +44,8 @@ type PlInputPt interface {
 
 	PtTime() time.Time
 
+	KeyTime2Time()
+
 	GetAggBuckets() *plmap.AggBuckets
 	SetAggBuckets(*plmap.AggBuckets)
 
@@ -56,8 +57,6 @@ type PlInputPt interface {
 	AppendSubPoint(PlInputPt)
 	GetSubPoint() []PlInputPt
 	Category() point.Category
-
-	KeyTime2Time()
 
 	MarkDrop(bool)
 	Dropped() bool
@@ -211,25 +210,13 @@ func (pt *PlPoint) Get(key string) (any, ast.DType, error) {
 	return nil, ast.Nil, ErrKeyNotExist
 }
 
-func (pt *PlPoint) GetWithIsTag(key string) (any, bool, bool) {
-	if v, ok := pt.tags[key]; ok {
-		return v, true, true
-	}
-
-	if v, ok := pt.fields[key]; ok {
-		v, _ := valueDtype(v)
-		return v, false, true
-	}
-	return nil, false, false
-}
-
 func (pt *PlPoint) Set(key string, value any, dtype ast.DType) bool {
 	if _, ok := pt.tags[key]; ok { // is tag
 		if dtype == ast.Void || dtype == ast.Invalid {
 			delete(pt.tags, key)
 			return true
 		}
-		if v, err := plruntime.Conv2String(value, dtype); err == nil {
+		if v, err := Conv2String(value, dtype); err == nil {
 			pt.tags[key] = v
 			return true
 		} else {
@@ -241,7 +228,7 @@ func (pt *PlPoint) Set(key string, value any, dtype ast.DType) bool {
 			pt.fields[key] = nil
 			return true
 		case ast.List, ast.Map:
-			if v, err := plruntime.Conv2String(value, dtype); err == nil {
+			if v, err := Conv2String(value, dtype); err == nil {
 				pt.fields[key] = v
 			} else {
 				pt.fields[key] = nil
@@ -278,7 +265,7 @@ func (pt *PlPoint) RenameKey(from, to string) error {
 func (pt *PlPoint) SetTag(key string, value any, dtype ast.DType) bool {
 	delete(pt.fields, key)
 
-	if str, err := plruntime.Conv2String(value, dtype); err == nil {
+	if str, err := Conv2String(value, dtype); err == nil {
 		pt.tags[key] = str
 		return true
 	} else {

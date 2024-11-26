@@ -9,3 +9,5 @@ dist/
 *.exe
 *.out
 *.test
+memprofile.ou
+cpuprofile.ou

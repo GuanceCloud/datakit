@@ -832,7 +832,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	opt := point.DefaultLoggingOptions()
 	pt := point.NewPointV2("default", kvs, opt...)
 
-	plpt := ptinput.WrapPoint(point.Logging, pt)
+	plpt := ptinput.PtWrap(point.Logging, pt)
 	err = pl.Run(plpt, nil, nil)
 	if err != nil {
 		return "", err
@@ -955,7 +955,7 @@ func dcaTestPipelines(c *gin.Context) {
 	var runResult []*pipelineResult
 
 	for _, pt := range pts {
-		plpt := ptinput.WrapPoint(category, pt)
+		plpt := ptinput.PtWrap(category, pt)
 		err := pl.Run(plpt, newPlTestSingal(), nil)
 		if err != nil {
 			plerr, ok := err.(*errchain.PlError) //nolint:errorlint
