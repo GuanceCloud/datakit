@@ -46,10 +46,14 @@ func CreatePointChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.Pl
 }
 
 func CreatePoint(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+	ptIn, errg := getPoint(ctx.InData())
+	if errg != nil {
+		return nil
+	}
+
 	var ptName string
 	var ptTags map[string]string
 	ptFields := map[string]any{}
-	ptTime := time.Now()
 	ptCat := point.Metric
 
 	name, _, err := runtime.RunStmt(ctx, funcExpr.Param[0])
@@ -117,6 +121,7 @@ func CreatePoint(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
+	var ptTime time.Time
 	if arg := funcExpr.Param[3]; arg != nil {
 		if pTS, _, err := runtime.RunStmt(ctx, arg); err != nil {
 			return nil
@@ -150,7 +155,11 @@ func CreatePoint(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
-	plpt := ptinput.NewPlPoint(ptCat, ptName, ptTags, ptFields, ptTime)
+	if ptTime.IsZero() {
+		ptTime = ptIn.PtTime()
+	}
+
+	plpt := ptinput.NewPlPt(ptCat, ptName, ptTags, ptFields, ptTime)
 	if arg := funcExpr.Param[5]; arg != nil {
 		if refCall, ok := funcExpr.PrivateData.(*ast.CallExpr); ok {
 			if srcipt, ok := refCall.PrivateData.(*runtime.Script); ok {
@@ -161,7 +170,7 @@ func CreatePoint(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
-	if ptIn, err := getPoint(ctx.InData()); err == nil {
+	if ptIn != nil {
 		ptIn.AppendSubPoint(plpt)
 	}
 

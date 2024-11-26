@@ -13,7 +13,6 @@ import (
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -97,7 +96,7 @@ func RunPl(category point.Category, pts []*point.Point,
 			pt.AddTag(plTagNS, script.NS())
 		}
 
-		inputData := ptinput.WrapPoint(category, pt)
+		inputData := ptinput.PtWrap(category, pt)
 
 		if v, ok := plval.GetRefTb(); ok {
 			inputData.SetPlReferTables(v.Tables())
@@ -136,10 +135,6 @@ func RunPl(category point.Category, pts []*point.Point,
 		if ctxPts := inputData.CallbackPtWinMove(); len(ctxPts) > 0 {
 			subPt[category] = append(subPt[category], ctxPts...)
 		}
-
-		// oldPt will next be replaced or dropped
-		// put the old point back into the pool
-		datakit.PutbackPoints(pt)
 
 		if inputData.Dropped() { // drop
 			continue

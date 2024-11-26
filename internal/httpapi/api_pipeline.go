@@ -172,7 +172,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	for _, pt := range pts {
 		// run pipeline
-		plpt := ptinput.WrapPoint(category, pt)
+		plpt := ptinput.PtWrap(category, pt)
 		err := plRunner.Run(plpt, newPlTestSingal(), nil)
 
 		if err != nil {
@@ -274,7 +274,7 @@ func benchPipeline(runner *manager.PlScript, cat point.Category, pt *point.Point
 	benchmarkResult := testing.Benchmark(func(b *testing.B) {
 		b.Helper()
 		for n := 0; n < b.N; n++ {
-			plpt := ptinput.WrapPoint(cat, pt)
+			plpt := ptinput.PtWrap(cat, pt)
 			_ = runner.Run(plpt, newPlTestSingal(), nil)
 		}
 	})

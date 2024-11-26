@@ -209,7 +209,7 @@ func TestPipeline(t *testing.T) {
 			opt := point.DefaultLoggingOptions()
 			pt := point.NewPointV2(source, kvs, opt...)
 
-			ptD := ptinput.WrapPoint(point.Logging, pt)
+			ptD := ptinput.PtWrap(point.Logging, pt)
 			err := p.Run(ptD, nil, nil)
 			assert.NoError(t, err)
 			assert.False(t, ptD.Dropped())
