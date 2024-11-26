@@ -84,14 +84,17 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-
+	intervalMillSec := ipt.Interval.Milliseconds()
+	var lastAlignTime int64
 	for {
 		start := time.Now()
 
 		if ipt.pause {
 			l.Debugf("not leader, %s skipped", inputName)
 		} else {
-			if err := ipt.collect(); err != nil {
+			tn := ntp.NTPTime()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
 				l.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -180,7 +183,7 @@ func (ipt *Input) checkConf() error {
 	return nil
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	ipt.collectCache = make([]*point.Point, 0)
 
 	data, err := ipt.getData()
@@ -188,7 +191,7 @@ func (ipt *Input) collect() error {
 		return err
 	}
 
-	if err = ipt.getPts(data); err != nil {
+	if err = ipt.getPts(data, ptTS); err != nil {
 		return err
 	}
 
@@ -230,10 +233,9 @@ func (ipt *Input) getData() ([]*getdatassh.SSHData, error) {
 	return nil, fmt.Errorf("%s got no data", inputName)
 }
 
-func (ipt *Input) getPts(data []*getdatassh.SSHData) error {
-	ts := ntp.NTPTime()
+func (ipt *Input) getPts(data []*getdatassh.SSHData, ptTS int64) error {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 
 	for _, sshData := range data {
 		fields, tags, err := getFields(string(sshData.Data))

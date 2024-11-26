@@ -7,6 +7,7 @@ package hostobject
 
 import (
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
@@ -21,7 +22,7 @@ func TestCollect(t *testing.T) {
 	// ipt.OnlyPhysicalDevice = true
 
 	datakit.IsTestMode = true
-	if err := ipt.collect(); err != nil {
+	if err := ipt.collect(time.Now().UnixNano()); err != nil {
 		t.Error(err)
 	}
 

@@ -33,7 +33,7 @@ func TestProcess(t *testing.T) {
 
 	input.initConfig()
 
-	assert.NoError(t, input.Collect())
+	assert.NoError(t, input.Collect(time.Now().UnixNano()))
 	assert.NotEmpty(t, input.collectCache)
 	assert.Equal(t, input.collectCache[0].Name(), processMetricName)
 }
@@ -99,7 +99,7 @@ func TestTCP(t *testing.T) {
 		input.TCP = cs.TCP
 		input.initConfig()
 
-		assert.NoError(t, input.Collect())
+		assert.NoError(t, input.Collect(time.Now().UnixNano()))
 
 		assert.NotEmpty(t, input.collectCache)
 		p := input.collectCache[0]
@@ -196,7 +196,7 @@ func TestHTTP(t *testing.T) {
 
 		input.initConfig()
 
-		assert.NoError(t, input.Collect())
+		assert.NoError(t, input.Collect(time.Now().UnixNano()))
 		assert.NotEmpty(t, input.collectCache)
 
 		if !cs.IsFail {

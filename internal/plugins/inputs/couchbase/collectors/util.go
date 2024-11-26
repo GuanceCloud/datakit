@@ -18,7 +18,7 @@ import (
 func (c *Client) addPoint(measurementName, field string, val any, labels []string) {
 	var kvs point.KVs
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(c.ts))
+	opts = append(opts, point.WithTimestamp(c.ts))
 
 	kvs = kvs.Add(field, val, false, true)
 

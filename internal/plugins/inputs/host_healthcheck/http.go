@@ -7,7 +7,6 @@ package healthcheck
 
 import (
 	"fmt"
-	"time"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
@@ -15,9 +14,7 @@ import (
 
 const httpMetricName = "host_http_exception"
 
-func (ipt *Input) collectHTTP() error {
-	ts := time.Now()
-
+func (ipt *Input) collectHTTP(ptTS int64) error {
 	for _, http := range ipt.http {
 		statusCode := fmt.Sprintf("%d", http.ExpectStatus)
 		for _, url := range http.HTTPURLs {
@@ -71,7 +68,7 @@ func (ipt *Input) collectHTTP() error {
 			}
 
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ts))
+			opts = append(opts, point.WithTimestamp(ptTS))
 
 			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(httpMetricName, kvs, opts...))
 		}

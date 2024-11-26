@@ -8,12 +8,19 @@ package disk
 import (
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func TestCollect(t *testing.T) {
 	i := defaultInput()
+	intervalMillSec := i.Interval.Milliseconds()
+	var lastAlignTime int64
+
 	for x := 0; x < 1; x++ {
-		if err := i.collect(); err != nil {
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+		if err := i.collect(lastAlignTime * 1e6); err != nil {
 			t.Error(err)
 		}
 		time.Sleep(time.Second * 1)

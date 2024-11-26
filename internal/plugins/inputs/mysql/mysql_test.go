@@ -424,7 +424,7 @@ func TestCollect(t *testing.T) {
 		Tags: make(map[string]string),
 	}
 
-	pts, err := input.Collect()
+	pts, err := input.Collect(time.Now().UnixNano())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, pts, "collect empty!")
 
@@ -460,7 +460,9 @@ func TestMetricCollectMysqlGeneral(t *testing.T) {
 		},
 		{
 			name: "CollectMysqlSchema",
-			fun:  input.metricCollectMysqlSchema,
+			fun: func() ([]*point.Point, error) {
+				return input.metricCollectMysqlSchema(time.Now().UnixNano())
+			},
 		},
 		{
 			name: "CollectMysqlTableSschema",

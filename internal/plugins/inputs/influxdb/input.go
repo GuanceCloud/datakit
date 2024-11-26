@@ -181,12 +181,16 @@ func (ipt *Input) Run() {
 	ipt.tryInit()
 
 	tick := time.NewTicker(ipt.Interval.Duration)
-
 	defer tick.Stop()
+	intervalMillSec := ipt.Interval.Duration.Milliseconds()
+	var lastAlignTime int64
+
 	for {
 		if !ipt.pause {
 			start := time.Now()
-			if err := ipt.Collect(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
 				l.Errorf("Collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -242,12 +246,10 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ptTS int64) error {
 	if ipt.client == nil {
 		return fmt.Errorf("ipt.client is nil, un initialized")
 	}
-
-	ts := time.Now()
 
 	req, err := http.NewRequest("GET", ipt.URL, nil)
 	if err != nil {
@@ -302,7 +304,7 @@ func (ipt *Input) Collect() error {
 				name:   metricNamePrefix + pt.Name,
 				tags:   pt.Tags,
 				fields: pt.Values,
-				ts:     ts,
+				ts:     ptTS,
 			}
 			ipt.collectCache = append(ipt.collectCache, metric.Point())
 		}

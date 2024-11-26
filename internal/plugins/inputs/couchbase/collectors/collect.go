@@ -8,7 +8,6 @@ package collectors
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -45,13 +44,13 @@ type Client struct {
 	MergedTags map[string]string
 
 	config *objects.CollectorConfig
-	ts     time.Time
+	ts     int64
 }
 
-func (c *Client) GetPts() error {
+func (c *Client) GetPts(ptTS int64) error {
 	c.Pts = make([]*point.Point, 0)
 	c.Ctx = &MetricContext{}
-	c.ts = time.Now()
+	c.ts = ptTS
 
 	if err := c.nodeCollect(); err != nil {
 		return err

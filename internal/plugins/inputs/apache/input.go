@@ -172,7 +172,8 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-
+	intervalMillSec := ipt.Interval.Duration.Milliseconds()
+	var lastAlignTime int64
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -192,7 +193,9 @@ func (ipt *Input) Run() {
 			}
 			ipt.setUpState()
 			ipt.FeedCoPts()
-			m, err := ipt.getMetric()
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			m, err := ipt.getMetric(tn, lastAlignTime*1e6)
 			if err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -248,8 +251,8 @@ func (ipt *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (ipt *Input) getMetric() (*point.Point, error) {
-	ipt.start = time.Now()
+func (ipt *Input) getMetric(tn time.Time, ptTS int64) (*point.Point, error) {
+	ipt.start = tn
 	req, err := http.NewRequest("GET", ipt.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error on new request to %s : %w", ipt.URL, err)
@@ -268,10 +271,10 @@ func (ipt *Input) getMetric() (*point.Point, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 	}
-	return ipt.parse(resp.Body)
+	return ipt.parse(resp.Body, ptTS)
 }
 
-func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
+func (ipt *Input) parse(body io.Reader, ptTS int64) (*point.Point, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
@@ -286,7 +289,7 @@ func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 	metric := &Measurement{
 		name:   inputName,
 		fields: map[string]interface{}{},
-		ts:     time.Now(),
+		ts:     ptTS,
 	}
 
 	for sc.Scan() {

@@ -103,10 +103,15 @@ func (ipt *Input) Run() {
 			procRecorder := newProcRecorder()
 			tick := time.NewTicker(ipt.MetricInterval.Duration)
 			defer tick.Stop()
+			intervalMS := ipt.MetricInterval.Duration.Milliseconds()
+			var lastAlignTimeMS int64
 			for {
 				processList := ipt.getProcesses(true)
 				tn := time.Now().UTC()
-				ipt.WriteMetric(processList, procRecorder, tn)
+
+				lastAlignTimeMS = inputs.AlignTimeMillSec(tn, lastAlignTimeMS, intervalMS)
+
+				ipt.WriteMetric(processList, procRecorder, tn, lastAlignTimeMS*1e6)
 				procRecorder.flush(processList, tn)
 				select {
 				case <-tick.C:
@@ -429,7 +434,7 @@ func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, 
 	}
 }
 
-func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
+func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time, ptTS int64) {
 	var collectCache []*point.Point
 
 	for _, ps := range processList {
@@ -454,7 +459,7 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, 
 			name:   inputName,
 			tags:   tags,
 			fields: fields,
-			ts:     tn,
+			ts:     ptTS,
 		}
 		if len(fields) == 0 {
 			continue

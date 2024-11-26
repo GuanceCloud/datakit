@@ -12,6 +12,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -71,7 +72,7 @@ func TestGatherServer(t *testing.T) {
 
 	// err := memcached.gatherServer(address, false)
 	memcached.init()
-	err := memcached.Collect()
+	err := memcached.Collect(time.Now().UnixNano())
 	assert.Nil(t, err)
 
 	if len(memcached.collectCache) == 0 {
@@ -87,9 +88,9 @@ func TestGatherServer(t *testing.T) {
 	}
 	checkValues(t, values)
 
-	assert.NotNil(t, memcached.gatherServer(address, true))
+	assert.NotNil(t, memcached.gatherServer(address, true, time.Now().UnixNano()))
 
-	err = memcached.gatherServer("invalid url", false)
+	err = memcached.gatherServer("invalid url", false, time.Now().UnixNano())
 	assert.NotNil(t, err)
 }
 

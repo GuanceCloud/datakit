@@ -72,7 +72,7 @@ type Input struct {
 	collectCache []*point.Point
 	tagger       datakit.GlobalTagger
 	mergedTags   map[string]string
-	collectFuncs map[string]func() error
+	collectFuncs map[string]func(ptTS int64) error
 	tcp          []*tcp
 	http         []*http
 	process      []*process
@@ -88,11 +88,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&ProcessMetric{}, &TCPMetric{}, &HTTPMetric{}}
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ptTS int64) error {
 	ipt.collectCache = make([]*point.Point, 0)
 
 	for k, f := range ipt.collectFuncs {
-		if err := f(); err != nil {
+		if err := f(ptTS); err != nil {
 			l.Warnf("check %s failed: %s", k, err.Error())
 		}
 	}
@@ -184,17 +184,23 @@ func (ipt *Input) initConfig() {
 		ipt.http = append(ipt.http, http)
 	}
 
-	ipt.collectFuncs = make(map[string]func() error, 0)
+	ipt.collectFuncs = make(map[string]func(t int64) error, 0)
 	if len(ipt.process) > 0 {
-		ipt.collectFuncs["process"] = ipt.collectProcess
+		ipt.collectFuncs["process"] = func(t int64) error {
+			return ipt.collectProcess(t)
+		}
 	}
 
 	if len(ipt.tcp) > 0 {
-		ipt.collectFuncs["tcp"] = ipt.collectTCP
+		ipt.collectFuncs["tcp"] = func(t int64) error {
+			return ipt.collectTCP(t)
+		}
 	}
 
 	if len(ipt.http) > 0 {
-		ipt.collectFuncs["http"] = ipt.collectHTTP
+		ipt.collectFuncs["http"] = func(t int64) error {
+			return ipt.collectHTTP(t)
+		}
 	}
 }
 
@@ -210,17 +216,20 @@ func (ipt *Input) Run() {
 		l.Error("invalid interval, cannot be less than zero")
 		return
 	}
-
 	ipt.initConfig()
 
 	duration = config.ProtectedInterval(minMetricInterval, maxMetricInterval, duration)
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
+	intervalMillSec := duration.Milliseconds()
+	var lastAlignTime int64
 
 	for {
 		start := time.Now()
-		if err := ipt.Collect(); err != nil {
+		tn := time.Now()
+		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+		if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 			)

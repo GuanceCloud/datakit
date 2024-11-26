@@ -7,6 +7,7 @@ package mem
 
 import (
 	"testing"
+	"time"
 
 	"github.com/shirou/gopsutil/mem"
 	"github.com/stretchr/testify/assert"
@@ -79,7 +80,7 @@ func TestMemCollect(t *testing.T) {
 
 	i.setup()
 
-	if err := i.collect(); err != nil {
+	if err := i.collect(time.Now().UnixNano()); err != nil {
 		t.Error(err)
 	}
 

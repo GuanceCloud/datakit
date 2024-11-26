@@ -109,12 +109,15 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-
+	intervalMillSec := ipt.Interval.Milliseconds()
+	var lastAlignTime int64
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else {
-			if err := ipt.collect(); err != nil {
+			tn := time.Now()
+			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
+			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
 				ipt.l.Warn(err)
 			}
 		}
@@ -201,9 +204,9 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	start := time.Now()
-	pts, err := ipt.doCollect()
+	pts, err := ipt.doCollect(ptTS)
 	if err != nil {
 		return err
 	}
@@ -225,7 +228,7 @@ func (ipt *Input) collect() error {
 	return nil
 }
 
-func (ipt *Input) doCollect() ([]*point.Point, error) {
+func (ipt *Input) doCollect(ptTS int64) ([]*point.Point, error) {
 	ipt.l.Debugf("collect URLs %v", ipt.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -238,7 +241,7 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 		return nil, nil
 	}
 
-	pts, err := ipt.getPts()
+	pts, err := ipt.getPts(ptTS)
 	if err != nil {
 		ipt.l.Errorf("getPts: %s", err)
 		ipt.feeder.FeedLastError(err.Error(),
@@ -264,7 +267,7 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 }
 
 // get points from all URLs.
-func (ipt *Input) getPts() ([]*point.Point, error) {
+func (ipt *Input) getPts(ptTS int64) ([]*point.Point, error) {
 	if ipt.pm == nil {
 		return nil, fmt.Errorf("ipt.pm is nil")
 	}
@@ -297,18 +300,16 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 		points = append(points, pts...)
 	}
 
-	return ipt.formatPointSuffixes(points), nil
+	return ipt.formatPointSuffixes(points, ptTS), nil
 }
 
 // formatPointSuffixes modify all points who have suffix.
-func (ipt *Input) formatPointSuffixes(pts []*point.Point) []*point.Point {
+func (ipt *Input) formatPointSuffixes(pts []*point.Point, ptTS int64) []*point.Point {
 	if len(pts) < 1 {
 		return pts
 	}
 	// All suffix info, store average/total message, every loop is new.
 	suffixes := suffixInfos()
-	// The points timestamp, will use in average/total point.
-	ts := pts[0].Time()
 
 	instance := pts[0].GetTag("instance")
 
@@ -354,7 +355,7 @@ func (ipt *Input) formatPointSuffixes(pts []*point.Point) []*point.Point {
 		// Add average/total point.
 		pt := point.NewPointV2(clickHouseAsyncMetrics,
 			append(point.NewTags(suffixes[j].tags), point.NewKVs(fields)...),
-			append(point.DefaultMetricOptions(), point.WithTime(ts))...)
+			append(point.DefaultMetricOptions(), point.WithTimestamp(ptTS))...)
 		pts = append(pts, pt)
 	}
 	return pts

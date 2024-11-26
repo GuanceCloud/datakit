@@ -6,8 +6,6 @@
 package db2
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -26,7 +24,7 @@ type measurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 var (
@@ -45,7 +43,7 @@ type instanceMeasurement struct {
 
 func (m *instanceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -75,7 +73,7 @@ type databaseMeasurement struct {
 
 func (m *databaseMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -119,7 +117,7 @@ type bufferPoolMeasurement struct {
 
 func (m *bufferPoolMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -169,7 +167,7 @@ type tableSpaceMeasurement struct {
 
 func (m *tableSpaceMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -203,7 +201,7 @@ type transactionLogMeasurement struct {
 
 func (m *transactionLogMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

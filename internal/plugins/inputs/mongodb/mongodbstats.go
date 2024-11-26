@@ -42,7 +42,7 @@ type MongoStatus struct {
 	DBStats      *DBStats
 	ColStats     *ColStats
 	TopStats     *TopStats
-	SampleTime   time.Time
+	SampleTime   int64
 }
 
 type StorageEngine struct {
@@ -711,10 +711,10 @@ type StatLine struct {
 	UptimeNanos int64
 
 	// The time at which this StatLine was generated.
-	Time time.Time
+	Time int64
 
 	// The last time at which this StatLine was printed to output.
-	LastPrinted time.Time
+	LastPrinted int64
 
 	// Opcounter fields
 	Insert, InsertCnt   int64
