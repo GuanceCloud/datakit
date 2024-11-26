@@ -374,7 +374,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	l.Debugf("get host meta...")
 	hostMeta, err := getHostMeta()
 	if err != nil {
-		return nil, err
+		l.Warnf("getHostMeta failed: %s, ignored", err.Error())
 	}
 
 	l.Debugf("get CPU info...")
@@ -389,19 +389,19 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	l.Debugf("get mem info...")
 	mem, err := getMemInfo()
 	if err != nil {
-		return nil, err
+		l.Warnf("getMemInfo failed: %s, ignored", err.Error())
 	}
 
 	l.Debugf("get net info...")
 	net, err := getNetInfo(ipt.EnableNetVirtualInterfaces)
 	if err != nil {
-		return nil, err
+		l.Warnf("getNetInfo failed: %s, ignored", err.Error())
 	}
 
 	l.Debugf("get disk info...")
 	disk, diskUsedPercent, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
 	if err != nil {
-		return nil, err
+		l.Warnf("getDiskInfo failed: %s, ignored", err.Error())
 	}
 
 	l.Debugf("get conntrack info...")
@@ -437,7 +437,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		_, has := ipt.Tags["cloud_provider"]
 		if !has && time.Since(ipt.lastSync) > time.Hour*24 {
 			if err := ipt.SetCloudProvider(); err != nil {
-				l.Warn(err)
+				l.Warnf("SetCloudProvider: %s, ignored", err.Error())
 			} else {
 				// set cloud provider tag successfully
 				has = true
@@ -451,7 +451,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 			} else {
 				j, err := json.Marshal(info)
 				if err != nil {
-					l.Warn(err)
+					l.Warnf("json.Marshal: %s, ignored", err.Error())
 				} else {
 					info["extra_cloud_meta"] = string(j)
 				}
