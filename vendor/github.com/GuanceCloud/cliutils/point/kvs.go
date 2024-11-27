@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	"golang.org/x/exp/slices"
 )
 
 type KVs []*Field
@@ -321,15 +320,22 @@ func (x KVs) FieldCount() (i int) {
 
 // Del delete field from x with Key == k.
 func (x KVs) Del(k string) KVs {
-	for i, f := range x {
-		if f.Key == k {
-			x = slices.Delete(x, i, i+1)
+	lenx := len(x)
+	n := lenx
+	for i := 0; i < lenx; i++ {
+		if i >= n {
+			break
+		}
+		if x[i] != nil && x[i].Key == k {
 			if defaultPTPool != nil {
-				defaultPTPool.PutKV(f)
+				defaultPTPool.PutKV(x[i])
 			}
+			x[i], x[n-1] = x[n-1], nil
+			n--
+			i--
 		}
 	}
-
+	x = x[:n]
 	return x
 }
 
