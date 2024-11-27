@@ -9,19 +9,33 @@
 package openfile
 
 import (
+	"fmt"
 	"strconv"
 	"syscall"
 )
 
 func FileKey(file string) string {
-	return file + "::" + FileInode(file)
+	return file + "::" + Inode(file)
 }
 
-func FileInode(file string) string {
-	inodeStr := "inode"
+func UniqueID(file string) string {
+	return fmt.Sprintf("dev:%s/ino:%s", Device(file), Inode(file))
+}
+
+func Inode(file string) string {
+	ino := "inode"
 	var stat syscall.Stat_t
 	if err := syscall.Stat(file, &stat); err == nil {
-		inodeStr = strconv.Itoa(int(stat.Ino))
+		ino = strconv.Itoa(int(stat.Ino))
 	}
-	return inodeStr
+	return ino
+}
+
+func Device(file string) string {
+	dev := "driveD"
+	var stat syscall.Stat_t
+	if err := syscall.Stat(file, &stat); err == nil {
+		dev = strconv.Itoa(int(stat.Dev))
+	}
+	return dev
 }

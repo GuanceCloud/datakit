@@ -403,7 +403,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error

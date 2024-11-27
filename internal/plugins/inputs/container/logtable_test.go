@@ -19,7 +19,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 	}{
 		{
 			inTable: &logTable{
-				table: map[string]map[string]chan interface{}{
+				table: map[string]map[string]func(){
 					"id-01": nil,
 					"id-02": nil,
 				},
@@ -32,7 +32,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 		},
 		{
 			inTable: &logTable{
-				table: map[string]map[string]chan interface{}{
+				table: map[string]map[string]func(){
 					"id-01": nil,
 					"id-02": nil,
 				},
@@ -46,7 +46,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 		},
 		{
 			inTable: &logTable{
-				table: map[string]map[string]chan interface{}{
+				table: map[string]map[string]func(){
 					"id-01": nil,
 					"id-02": nil,
 				},
@@ -62,7 +62,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 		},
 		{
 			inTable: &logTable{
-				table: map[string]map[string]chan interface{}{},
+				table: map[string]map[string]func(){},
 			},
 			inIDs: []string{
 				"id-01",
@@ -71,7 +71,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 		},
 		{
 			inTable: &logTable{
-				table: map[string]map[string]chan interface{}{},
+				table: map[string]map[string]func(){},
 			},
 			inIDs: []string{},
 			out:   nil,
@@ -87,7 +87,7 @@ func TestLogTableFindDifferences(t *testing.T) {
 func TestLogTableString(t *testing.T) {
 	t.Run("logtable-string", func(t *testing.T) {
 		in := &logTable{
-			table: map[string]map[string]chan interface{}{
+			table: map[string]map[string]func(){
 				"id-01": {
 					"/var/log/01/1": nil,
 					"/var/log/01/2": nil,
@@ -115,7 +115,7 @@ func TestLogTableString(t *testing.T) {
 func TestLogTableRemoveID(t *testing.T) {
 	t.Run("logtable-remove-path", func(t *testing.T) {
 		in := &logTable{
-			table: map[string]map[string]chan interface{}{
+			table: map[string]map[string]func(){
 				"id-01": {
 					"/var/log/01/1": nil,
 				},
@@ -126,7 +126,7 @@ func TestLogTableRemoveID(t *testing.T) {
 		}
 
 		out := &logTable{
-			table: map[string]map[string]chan interface{}{
+			table: map[string]map[string]func(){
 				"id-02": {
 					"/var/log/02/1": nil,
 				},
@@ -141,7 +141,7 @@ func TestLogTableRemoveID(t *testing.T) {
 func TestLogTableRemovePath(t *testing.T) {
 	t.Run("logtable-remove-path", func(t *testing.T) {
 		in := &logTable{
-			table: map[string]map[string]chan interface{}{
+			table: map[string]map[string]func(){
 				"id-01": {
 					"/var/log/01/1": nil,
 					"/var/log/01/2": nil,
@@ -150,7 +150,7 @@ func TestLogTableRemovePath(t *testing.T) {
 		}
 
 		out := &logTable{
-			table: map[string]map[string]chan interface{}{
+			table: map[string]map[string]func(){
 				"id-01": {
 					"/var/log/01/1": nil,
 				},

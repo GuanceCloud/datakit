@@ -7,6 +7,7 @@ package tailer
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -43,10 +44,10 @@ var (
 type Single struct {
 	opt *option
 
-	file      *os.File
-	inode     string
-	recordKey string
-	filepath  string
+	file                     *os.File
+	inode                    string
+	recordKey                string
+	filepath, insideFilepath string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -75,6 +76,9 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	t := &Single{
 		opt:      c,
 		filepath: filepath,
+	}
+	if c.insideFilepathFunc != nil {
+		t.insideFilepath = c.insideFilepathFunc(filepath)
 	}
 	t.buildTags(t.opt.extraTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
@@ -113,7 +117,7 @@ func (t *Single) setup() error {
 	}
 
 	t.reader = reader.NewReader(t.file)
-	t.inode = openfile.FileInode(t.filepath)
+	t.inode = openfile.Inode(t.filepath)
 	t.recordKey = openfile.FileKey(t.filepath)
 
 	if err := t.seekOffset(); err != nil {
@@ -123,8 +127,8 @@ func (t *Single) setup() error {
 	return nil
 }
 
-func (t *Single) Run() {
-	t.forwardMessage()
+func (t *Single) Run(ctx context.Context) {
+	t.forwardMessage(ctx)
 	t.Close()
 }
 
@@ -134,7 +138,7 @@ func (t *Single) Close() {
 
 	openfileVec.WithLabelValues(t.opt.mode.String()).Dec()
 	currentOpenFiles.Add(-1)
-	t.log.Infof("closing: file %s", t.filepath)
+	t.log.Infof("closing file %s", t.filepath)
 }
 
 func (t *Single) seekOffset() error {
@@ -229,7 +233,7 @@ func (t *Single) reopen() error {
 
 	t.reader.SetReader(t.file)
 	t.offset = ret
-	t.inode = openfile.FileInode(t.filepath)
+	t.inode = openfile.Inode(t.filepath)
 	t.recordKey = openfile.FileKey(t.filepath)
 
 	t.log.Infof("reopen file %s, offset %d", t.filepath, t.offset)
@@ -238,16 +242,13 @@ func (t *Single) reopen() error {
 }
 
 //nolint:cyclop
-func (t *Single) forwardMessage() {
+func (t *Single) forwardMessage(ctx context.Context) {
 	checkTicker := time.NewTicker(checkInterval)
 	defer checkTicker.Stop()
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			t.log.Infof("exiting: file %s", t.filepath)
-			return
-		case <-t.opt.done:
+		case <-ctx.Done():
 			t.log.Infof("exiting: file %s", t.filepath)
 			return
 
@@ -290,8 +291,6 @@ func (t *Single) readToEOF() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return
-		case <-t.opt.done:
 			return
 		default:
 			if err := t.readOnce(); err != nil {
@@ -394,6 +393,7 @@ func (t *Single) feedToRemote(pending [][]byte) {
 			"log_read_lines":     t.readLines,
 			pipeline.FieldStatus: pipeline.DefaultStatus,
 		}
+
 		if t.opt.enableDebugFields {
 			fields["log_read_offset"] = t.offset
 			fields["log_file_inode"] = t.inode
@@ -421,6 +421,10 @@ func (t *Single) feedToIO(pending [][]byte) {
 			Add("log_read_lines", t.readLines, false, false).
 			Add(pipeline.FieldMessage, string(cnt), false, false).
 			AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
+
+		if t.insideFilepath != "" {
+			kvs = kvs.Add("inside_filepath", t.insideFilepath, false, false)
+		}
 
 		for key, value := range t.tags {
 			kvs = kvs.AddTag(key, value)

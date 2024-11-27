@@ -9,11 +9,13 @@ package tailer
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"os"
+	"runtime"
 	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/fsnotify/fsnotify"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
@@ -24,153 +26,188 @@ const (
 	scanNewFileInterval = time.Second * 10
 )
 
-var tailerGoroutine = datakit.G("tailer")
+var g = datakit.G("tailer")
 
 type Tailer struct {
-	opt     *option
 	options []Option
 
-	fileList map[string]interface{}
+	source        string
+	fromBeginning bool
+	ignoreDeadLog time.Duration
 
-	filePatterns   []string
-	ignorePatterns []string
+	fileList map[string]context.CancelFunc
 
-	stop chan interface{}
+	fileScanner *fileprovider.Scanner
+	fileFilter  *fileprovider.GlobFilter
+	fileInotify fileprovider.InotifyInterface
+
+	done chan interface{}
 	mu   sync.Mutex
 
 	log *logger.Logger
 }
 
-func NewTailer(filePatterns []string, opts ...Option) (*Tailer, error) {
-	if len(filePatterns) == 0 {
-		return nil, fmt.Errorf("filePatterns cannot be empty")
-	}
-
+func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 	c := defaultOption()
 	for _, opt := range opts {
 		opt(c)
 	}
-	stop := make(chan interface{})
-	if !c.setDone {
-		c.done = stop
+
+	tailer := &Tailer{
+		options:       opts,
+		source:        c.source,
+		fromBeginning: c.fromBeginning,
+		ignoreDeadLog: c.ignoreDeadLog,
+		fileList:      make(map[string]context.CancelFunc),
+
+		done: make(chan interface{}),
+		log:  logger.SLogger("tailer/" + c.source),
 	}
 
-	return &Tailer{
-		opt:            c,
-		options:        opts,
-		filePatterns:   filePatterns,
-		ignorePatterns: c.ignorePatterns,
-		stop:           stop,
-		fileList:       make(map[string]interface{}),
-		log:            logger.SLogger("tailer/" + c.source),
-	}, nil
+	var err error
+
+	tailer.fileScanner, err = fileprovider.NewScanner(patterns)
+	if err != nil {
+		return nil, fmt.Errorf("failed to new scanner, err: %w", err)
+	}
+
+	tailer.fileFilter, err = fileprovider.NewGlobFilter(patterns, c.ignorePatterns)
+	if err != nil {
+		return nil, fmt.Errorf("failed to new filter, err: %w", err)
+	}
+
+	if runtime.GOOS == datakit.OSLinux {
+		tailer.fileInotify, err = fileprovider.NewInotify(patterns)
+	} else {
+		tailer.fileInotify = fileprovider.NewNopInotify()
+	}
+
+	return tailer, err
 }
 
 func (t *Tailer) Start() {
+	defer func() {
+		t.closeAllFiles()
+		_ = g.Wait()
+		t.log.Info("all exit")
+	}()
+
 	ticker := time.NewTicker(scanNewFileInterval)
 	defer ticker.Stop()
 
+	ctx := context.Background()
+
 	for {
-		if t.scan() {
-			t.log.Infof("all tailers end...")
-			_ = tailerGoroutine.Wait()
-			t.log.Info("all exit")
-			return
+		files, err := t.fileScanner.ScanFiles()
+		if err != nil {
+			t.log.Warn(err)
+		} else {
+			t.tryCreateWorkFromFiles(ctx, files)
 		}
 
 		t.log.Debugf("list of recivering: %v", t.getFileList())
 
 		select {
-		case <-t.stop:
-			t.log.Infof("waiting for all tailers to exit")
-			_ = tailerGoroutine.Wait()
-			t.log.Info("all exit")
+		case <-datakit.Exit.Wait():
+			return
+		case <-t.done:
 			return
 
+		case event, ok := <-t.fileInotify.Events():
+			if !(ok || event.Has(fsnotify.Create)) {
+				continue
+			}
+			if stat, err := os.Stat(event.Name); err != nil || stat.IsDir() {
+				continue
+			}
+			t.tryCreateWorkFromFiles(ctx, []string{event.Name})
+
 		case <-ticker.C:
+			// next
 		}
 	}
 }
 
-func (t *Tailer) scan() (ended bool) {
-	filelist, err := fileprovider.NewProvider().
-		SearchFiles(t.filePatterns).
-		IgnoreFiles(t.ignorePatterns).
-		Result()
-	if err != nil {
-		t.log.Warn(err)
-	}
+func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
+	files = t.fileFilter.IncludeFilterFiles(files)
+	files = t.fileFilter.ExcludeFilterFiles(files)
 
-	for _, fn := range filelist {
-		filename := filepath.Clean(fn)
-
-		if !t.opt.fromBeginning {
-			if t.opt.ignoreDeadLog > 0 && !openfile.FileIsActive(filename, t.opt.ignoreDeadLog) {
-				continue
-			}
-		}
-
-		if t.inFileList(filename) {
+	for _, file := range files {
+		if t.ignoreDeadLog > 0 && !openfile.FileIsActive(file, t.ignoreDeadLog) {
 			continue
 		}
 
-		t.log.Infof("new logging file %s with source %s", filename, t.opt.source)
+		if t.inFileList(file) {
+			continue
+		}
 
-		func(filename string) {
-			tailerGoroutine.Go(func(ctx context.Context) error {
-				defer t.removeFromFileList(filename)
+		t.log.Infof("new logging file %s with source %s", file, t.source)
 
-				tl, err := NewTailerSingle(filename, t.options...)
-				if err != nil {
-					t.log.Errorf("new tailer file %s error: %s", filename, err)
-					return nil
-				}
+		single, err := NewTailerSingle(file, t.options...)
+		if err != nil {
+			t.log.Warnf("new tailer file %s error: %s", file, err)
+			continue
+		}
 
-				t.addToFileList(filename)
+		ctx, cancel := context.WithCancel(ctx)
+		t.addToFileList(file, cancel)
 
-				tl.Run()
+		func(file string) {
+			g.Go(func(_ context.Context) error {
+				single.Run(ctx)
+				t.removeFromFileList(file)
+				t.log.Infof("file %s exit", file)
 				return nil
 			})
-		}(filename)
+		}(file)
 	}
-
-	return false
 }
 
 func (t *Tailer) Close() {
 	select {
-	case <-t.stop:
+	case <-t.done:
 		return
 	default:
-		close(t.stop)
+		close(t.done)
 	}
 }
 
-func (t *Tailer) addToFileList(filename string) {
+func (t *Tailer) addToFileList(file string, cancel context.CancelFunc) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.fileList[filename] = nil
+	t.fileList[file] = cancel
 }
 
-func (t *Tailer) removeFromFileList(filename string) {
+func (t *Tailer) removeFromFileList(file string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	delete(t.fileList, filename)
+	delete(t.fileList, file)
 }
 
-func (t *Tailer) inFileList(filename string) bool {
+func (t *Tailer) inFileList(file string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	_, ok := t.fileList[filename]
+	_, ok := t.fileList[file]
 	return ok
+}
+
+func (t *Tailer) closeAllFiles() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for _, cancel := range t.fileList {
+		if cancel != nil {
+			cancel()
+		}
+	}
 }
 
 func (t *Tailer) getFileList() []string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	var list []string
-	for filename := range t.fileList {
-		list = append(list, filename)
+	for file := range t.fileList {
+		list = append(list, file)
 	}
 	return list
 }

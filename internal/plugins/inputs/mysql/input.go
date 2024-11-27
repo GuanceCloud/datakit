@@ -673,7 +673,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 	var err error
 	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
@@ -732,14 +731,11 @@ func (ipt *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			if ipt.tail != nil {
-				ipt.tail.Close() //nolint:errcheck
-			}
-			l.Info("mysql exit")
-
+			ipt.exit()
 			return
 
 		case <-ipt.semStop.Wait():
+			ipt.exit()
 			return
 
 		case <-tick.C:

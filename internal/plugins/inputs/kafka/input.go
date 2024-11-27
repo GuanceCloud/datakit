@@ -58,6 +58,13 @@ func (ipt *Input) Run() {
 	ipt.JolokiaAgent.Collect()
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
+	}
+	ipt.JolokiaAgent.Terminate()
+}
+
 func (ipt *Input) RunPipeline() {
 	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
@@ -73,7 +80,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.SemStop.Wait()), // nolint:typecheck
 	}
 
 	var err error

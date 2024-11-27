@@ -13,8 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -32,10 +30,12 @@ func (c *container) cleanMissingContainerLog(newIDs []string) {
 
 func (c *container) tailingLogs(ins *logInstance) {
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-logs/" + ins.containerName})
-	done := make(chan interface{})
 
 	for _, cfg := range ins.configs {
 		if cfg.Disable {
+			continue
+		}
+		if c.logTable.inTable(ins.id, cfg.Path) {
 			continue
 		}
 
@@ -46,6 +46,18 @@ func (c *container) tailingLogs(ins *logInstance) {
 		}
 
 		mergedTags := inputs.MergeTags(c.extraTags, cfg.Tags, "")
+		pathAtRootfs := joinLogsAtRootfs(path)
+
+		hostDir := cfg.hostDir
+		insideDir := cfg.insideDir
+
+		insideFilepathFunc := func(filepath string) string {
+			pathAtInside := trimLogsFromRootfs(filepath)
+			if insidePath := joinInsideFilepath(hostDir, insideDir, pathAtInside); insidePath != pathAtInside {
+				return insidePath
+			}
+			return ""
+		}
 
 		opts := []tailer.Option{
 			tailer.WithSource(cfg.Source),
@@ -63,7 +75,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithFromBeginning(cfg.FromBeginning || c.ipt.LoggingFileFromBeginning),
 			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
 			tailer.WithIgnoreDeadLog(defaultActiveDuration),
-			tailer.WithDone(done),
+			tailer.WithInsideFilepathFunc(insideFilepathFunc),
 		}
 
 		switch cfg.Type {
@@ -75,55 +87,23 @@ func (c *container) tailingLogs(ins *logInstance) {
 			opts = append(opts, tailer.WithTextParserMode(tailer.CriLogdMode))
 		}
 
-		pathAtRootfs := joinLogsAtRootfs(path)
-
-		filelist, err := fileprovider.NewProvider().SearchFiles([]string{pathAtRootfs}).Result()
+		tail, err := tailer.NewTailer([]string{pathAtRootfs}, opts...)
 		if err != nil {
-			l.Warnf("failed to scan container-log collection %s(%s) for %s, err: %s", cfg.Path, pathAtRootfs, ins.containerName, err)
+			l.Warnf("failed to create container-tailer %s for %s, err: %s", pathAtRootfs, ins.containerName, err)
 			continue
 		}
 
-		if len(filelist) == 0 {
-			l.Infof("container %s not found any log file for path %s, skip", ins.containerName, pathAtRootfs)
-			continue
-		}
+		l.Infof("add container log collection with path %s from source %s", pathAtRootfs, cfg.Source)
 
-		for _, file := range filelist {
-			if c.logTable.inTable(ins.id, file) {
-				continue
-			}
-
-			if !openfile.FileIsActive(file, defaultActiveDuration) {
-				continue
-			}
-
-			l.Infof("add container log collection with path %s from source %s", file, cfg.Source)
-
-			newOpts := opts
-			pathAtInside := trimLogsFromRootfs(file)
-			if insidePath := joinInsideFilepath(cfg.hostDir, cfg.insideDir, pathAtInside); insidePath != pathAtInside {
-				newOpts = append(newOpts, tailer.WithTag("inside_filepath", insidePath))
-			}
-
-			tail, err := tailer.NewTailerSingle(file, newOpts...)
-			if err != nil {
-				l.Errorf("failed to create container-log collection %s for %s, err: %s", file, ins.containerName, err)
-				continue
-			}
-
-			c.logTable.addToTable(ins.id, file, done)
-
-			func(file string) {
-				g.Go(func(ctx context.Context) error {
-					defer func() {
-						c.logTable.removePathFromTable(ins.id, file)
-						l.Infof("remove container log collection from source %s", cfg.Source)
-					}()
-					tail.Run()
-					return nil
-				})
-			}(file)
-		}
+		c.logTable.addToTable(ins.id, cfg.Path, tail.Close)
+		g.Go(func(ctx context.Context) error {
+			defer func() {
+				c.logTable.removePathFromTable(ins.id, cfg.Path)
+				l.Infof("remove container log collection from source %s", cfg.Source)
+			}()
+			tail.Start()
+			return nil
+		})
 	}
 }
 

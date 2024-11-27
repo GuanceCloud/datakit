@@ -860,7 +860,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
@@ -997,14 +996,12 @@ func (ipt *Input) Run() {
 		}
 		select {
 		case <-datakit.Exit.Wait():
-			if ipt.tail != nil {
-				ipt.tail.Close() //nolint:errcheck
-			}
+			ipt.exit()
 			l.Infof(fmt.Sprintf("%s exit", inputName))
-
 			return
 
 		case <-ipt.semStop.Wait():
+			ipt.exit()
 			return
 
 		case <-tick.C:
