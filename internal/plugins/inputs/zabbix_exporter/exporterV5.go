@@ -255,14 +255,13 @@ func (fr *FileReader) readFromFileV2() {
 	tailOpts := []tailer.Option{
 		tailer.WithForwardFunc(fn),
 		tailer.WithFromBeginning(false),
-		tailer.WithDone(fr.stop),
 		tailer.WithFileFromBeginningThresholdSize(math.MaxInt64), // 设置最大值，从不开头读。
 	}
 
-	singel, err := tailer.NewTailerSingle(fr.fileName, tailOpts...)
+	tail, err := tailer.NewTailer([]string{fr.fileName}, tailOpts...)
 	if err != nil {
 		log.Errorf("new single err=%v", err)
 		return
 	}
-	singel.Run()
+	tail.Start()
 }

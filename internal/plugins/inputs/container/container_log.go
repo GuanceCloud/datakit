@@ -75,6 +75,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithFromBeginning(cfg.FromBeginning || c.ipt.LoggingFileFromBeginning),
 			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
 			tailer.WithIgnoreDeadLog(defaultActiveDuration),
+			tailer.WithFieldWhiteList(c.ipt.LoggingFieldWhiteList),
 			tailer.WithInsideFilepathFunc(insideFilepathFunc),
 		}
 

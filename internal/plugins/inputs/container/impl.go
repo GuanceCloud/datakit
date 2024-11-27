@@ -40,27 +40,6 @@ func getCollectorMeasurement() []inputs.Measurement {
 	return res
 }
 
-func (ipt *Input) setup() {
-	if ipt.DeprecatedDockerEndpoint != "" {
-		ipt.Endpoints = append(ipt.Endpoints, ipt.DeprecatedDockerEndpoint)
-	}
-	if ipt.DeprecatedContainerdAddress != "" {
-		ipt.Endpoints = append(ipt.Endpoints, "unix://"+ipt.DeprecatedContainerdAddress)
-	}
-	ipt.Endpoints = unique(ipt.Endpoints)
-	l.Infof("endpoints: %v", ipt.Endpoints)
-}
-
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-
-	l.Info("container input started")
-	ipt.setup()
-
-	ipt.tryStartDiscovery()
-	ipt.runCollect()
-}
-
 func (ipt *Input) runCollect() {
 	objectTick := time.NewTicker(objectInterval)
 	defer objectTick.Stop()

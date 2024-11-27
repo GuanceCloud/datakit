@@ -54,6 +54,8 @@ type option struct {
 	// 添加额外tag
 	extraTags map[string]string
 	//
+	fieldWhiteList map[string]interface{}
+
 	insideFilepathFunc func(string) string
 
 	// 连续 N 次采集为空，就强制 flush 已有数据
@@ -75,6 +77,15 @@ func WithCharacterEncoding(s string) Option  { return func(opt *option) { opt.ch
 func WithFromBeginning(b bool) Option        { return func(opt *option) { opt.fromBeginning = b } }
 func EnableDebugFields(b bool) Option        { return func(opt *option) { opt.enableDebugFields = b } }
 func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mode = mode } }
+
+func WithFieldWhiteList(list []string) Option {
+	return func(opt *option) {
+		opt.fieldWhiteList = make(map[string]interface{}, len(list))
+		for _, fieldKey := range list {
+			opt.fieldWhiteList[fieldKey] = nil
+		}
+	}
+}
 
 func WithSource(s string) Option {
 	return func(opt *option) {

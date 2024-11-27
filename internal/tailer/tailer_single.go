@@ -417,10 +417,17 @@ func (t *Single) feedToIO(pending [][]byte) {
 		t.readLines++
 
 		kvs := make(point.KVs, 0, len(t.tags)+4)
-		kvs = kvs.AddTag("filepath", t.filepath).
-			Add("log_read_lines", t.readLines, false, false).
-			Add(pipeline.FieldMessage, string(cnt), false, false).
-			AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
+		kvs = kvs.Add(pipeline.FieldMessage, string(cnt), false, false)
+
+		if t.shouldAddField("filepath") {
+			kvs = kvs.Add("filepath", t.filepath, false, false)
+		}
+		if t.shouldAddField("log_read_lines") {
+			kvs = kvs.Add("log_read_lines", t.readLines, false, false)
+		}
+		if t.shouldAddField(pipeline.FieldStatus) {
+			kvs = kvs.AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
+		}
 
 		if t.insideFilepath != "" {
 			kvs = kvs.Add("inside_filepath", t.insideFilepath, false, false)
@@ -435,6 +442,13 @@ func (t *Single) feedToIO(pending [][]byte) {
 			kvs = kvs.Add("log_file_inode", t.inode, false, false)
 		}
 
+		// only the message field is present, with no match in the whitelist
+		// discard this data
+		if len(kvs) == 1 {
+			discardVec.WithLabelValues(t.opt.source, t.filepath).Inc()
+			continue
+		}
+
 		pt := point.NewPointV2(t.opt.source, kvs, opts...)
 		pt.SetTime(timeNow.Add(time.Duration(i) * time.Microsecond))
 		pts = append(pts, pt)
@@ -444,7 +458,9 @@ func (t *Single) feedToIO(pending [][]byte) {
 		return
 	}
 
-	if err := t.opt.feeder.FeedV2(point.Logging, pts,
+	if err := t.opt.feeder.FeedV2(
+		point.Logging,
+		pts,
 		dkio.WithInputName("logging/"+t.opt.source),
 		dkio.WithPipelineOption(&manager.Option{
 			DisableAddStatusField: t.opt.disableAddStatusField,
@@ -462,9 +478,20 @@ func (t *Single) wait() {
 
 func (t *Single) buildTags(extraTags map[string]string) {
 	t.tags = make(map[string]string)
+
 	for k, v := range extraTags {
-		t.tags[k] = v
+		if t.shouldAddField(k) {
+			t.tags[k] = v
+		}
 	}
+}
+
+func (t *Single) shouldAddField(key string) bool {
+	if len(t.opt.fieldWhiteList) == 0 {
+		return true
+	}
+	_, exist := t.opt.fieldWhiteList[key]
+	return exist
 }
 
 func (t *Single) decode(text []byte) ([]byte, error) {
