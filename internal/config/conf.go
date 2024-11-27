@@ -20,6 +20,7 @@ import (
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	gctoml "github.com/GuanceCloud/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
@@ -415,6 +416,15 @@ func (c *Config) setupGlobalTags() {
 	}
 }
 
+func (c *Config) setupPublicWriteAPIs() {
+	if len(c.HTTPAPI.PublicAPIs) == 0 {
+		// default enable all data upload APIs.
+		for _, cat := range point.AllCategories() {
+			c.HTTPAPI.PublicAPIs = append(c.HTTPAPI.PublicAPIs, cat.URL())
+		}
+	}
+}
+
 func (c *Config) ApplyMainConfig() error {
 	c.setLogging()
 
@@ -429,6 +439,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	c.setupGlobalTags()
+	c.setupPublicWriteAPIs()
 
 	if c.Dataway != nil && len(c.Dataway.URLs) > 0 {
 		if err := c.setupDataway(); err != nil {

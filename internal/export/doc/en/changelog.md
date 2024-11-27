@@ -27,42 +27,7 @@ This release is an iterative update, with the following main changes:
 
 ### Compatibility Adjustments {#cl-1.64.0-brk}
 
-Due to the update of API whitelist controls, some APIs that were enabled by default in older versions may longer working and need to be manually enabled:
-
-- APIs related to Pipeline/Dial-testing debugging will not working on Guance Cloud web UI if they are not manually added to the whitelist.
-- For RUM data upload that has been enabled but not yet added to the whitelist, it is now mandatory to add the RUM write interface to the API whitelist; otherwise, it will break in this version.
-
-### Security Adjustments {#cl-1.64.0-sec}
-
-- The Datakit API whitelist feature is enabled by default, which means that when access from non-localhost is enabled, most of APIs cannot be accessed via non-localhost. (#2479).
-
-<!-- markdownlint-disable MD046 -->
-???+ info
-
-    In earlier versions of DataKit, when non-localhost access was enabled (for example, by listening to APIs on `0.0.0.0:9529`), without manually adding an API whitelist, there was a risk of data leakage and serious security vulnerabilities.
-
-    1. Unauthorized data access
-    1. Potential data leakage
-    1. Remote attack risks
-    1. Server resources being maliciously exploited
-
-    **Security Hardening Recommendations**
-
-    - Strongly recommend upgrading to the latest version of DataKit, which defaults to disabling remote access and provides a safer access control mechanism.
-    - If you do need to configure Datakit to be accessible from the public network (for example, for RUM data reporting), in the front Nginx:
-
-        1. Only expose data writing APIs
-        1. Add IP address whitelist restrictions
-
-    **Security Risk Level**: High
-
-    **Recommended Actions**
-
-    1. Immediately assess the current Datakit configuration
-    1. Upgrade to the latest version
-    1. Configure strict access control
-    1. Regularly audit and check access log(*gin.log*)
-<!-- markdownlint-enable -->
+Due to the update of API whitelist controls, some APIs that were enabled by default in older versions may longer working and need to be manually enabled(#2479).
 
 ---
 

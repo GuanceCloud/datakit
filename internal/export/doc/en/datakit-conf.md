@@ -87,17 +87,17 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
 
 [:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
 
-For security reasons, Datakit defaults to restricting access to some of its own APIs, which can only be accessed via localhost. If Datakit is deployed in a public network environment and there is a need to request these APIs over the public network (or from other machines in the local LAN), you can modify the following *public_apis* field configuration in the *datakit.conf*:
+For security reasons, Datakit defaults to restricting access to some of its own APIs, which can only be accessed via localhost. If Datakit is deployed in a public network environment and there is a need to request these APIs over the public network (or from other machines in the local LAN), you can modify the following `public_apis` field configuration in the *datakit.conf*:
 
 ```toml
 [http_api]
   public_apis = [
-    # Allow access to the RUM interface
-    "/v1/write/rum",
+    # Allow access to the /metrics endpoint
+    "/metrics",
   ]
 ```
 
-By default, only the Ping interface is accessible, and all data writing interfaces (such as the `/v1/write/:category` series of interfaces) are prohibited from external access. For collector-specific interfaces, such as those for trace collectors, they are accessible externally by default once the collector is enabled. For adding API whitelists in Kubernetes, refer to [here](datakit-daemonset-deploy.md#env-http-api).
+By default, only the Ping interface and basic data upload interfaces are accessible from external sources, while all other interfaces are prohibited from external access. For collector-specific interfaces, such as those for trace collectors, they are accessible externally by default once the collector is enabled. For instructions on adding API whitelists in Kubernetes, refer to [this section](datakit-daemonset-deploy.md#env-http-api).
 
 ## Global Tag Modification {#set-global-tag}
 
