@@ -111,7 +111,10 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
+	lastTS := time.Now()
 	for {
+		ipt.alignTS = lastTS.UnixNano()
+
 		if !ipt.pause {
 			ipt.setUpState()
 
@@ -129,7 +132,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -154,7 +157,9 @@ func (ipt *Input) Run() {
 			l.Info("rabbitmq return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

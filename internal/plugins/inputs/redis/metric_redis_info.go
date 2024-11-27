@@ -312,7 +312,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (m *infoMeasurement) getData() ([]*point.Point, error) {
+func (m *infoMeasurement) getData(alignTS int64) ([]*point.Point, error) {
 	start := time.Now()
 	ctx := context.Background()
 
@@ -327,13 +327,13 @@ func (m *infoMeasurement) getData() ([]*point.Point, error) {
 
 	latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
 
-	return m.parseInfoData(info, latencyMs, nextTS)
+	return m.parseInfoData(info, latencyMs, nextTS, alignTS)
 }
 
-func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS time.Time) ([]*point.Point, error) {
+func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS time.Time, alignTS int64) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(alignTS))
 
 	var kvs point.KVs
 
@@ -355,11 +355,11 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 		val := strings.TrimSpace(parts[1])
 
 		if strings.HasPrefix(key, "errorstat_") {
-			collectCache = append(collectCache, m.getErrorPoints(key, val)...)
+			collectCache = append(collectCache, m.getErrorPoints(key, val, alignTS)...)
 			continue
 		}
 		if strings.HasPrefix(key, "latency_percentiles_usec_") {
-			collectCache = append(collectCache, m.getLatencyPoints(key, val)...)
+			collectCache = append(collectCache, m.getLatencyPoints(key, val, alignTS)...)
 			continue
 		}
 
@@ -431,10 +431,10 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 
 // example data: errorstat_ERR:count=188
 // want point: `redis_info,count_type=count,error_type=ERR errorstat=188i timestamp`.
-func (m *infoMeasurement) getErrorPoints(k, v string) []*point.Point {
+func (m *infoMeasurement) getErrorPoints(k, v string, alignTS int64) []*point.Point {
 	pts := make([]*point.Point, 0)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(alignTS))
 	var kvs point.KVs
 
 	s := v[strings.LastIndex(v, "=")+1:]
@@ -463,15 +463,14 @@ func (m *infoMeasurement) getErrorPoints(k, v string) []*point.Point {
 // want point: `redis_info,command_type=client|list,quantile=0.99 latency_percentiles_usec=70.143 timestamp`
 // want point: `redis_info,command_type=client|list,quantile=0.999 latency_percentiles_usec=70.143 timestamp`
 // ...
-func (m *infoMeasurement) getLatencyPoints(k, v string) []*point.Point {
+func (m *infoMeasurement) getLatencyPoints(k, v string, alignTS int64) []*point.Point {
 	if !m.latencyPercentiles {
 		return make([]*point.Point, 0)
 	}
 
 	pts := make([]*point.Point, 0)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
-
+	opts = append(opts, point.WithTimestamp(alignTS))
 	// get tag in k
 	// example data: latency_percentiles_usec_client|list
 	commandType := "unknow"

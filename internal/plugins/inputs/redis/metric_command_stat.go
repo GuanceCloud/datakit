@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -46,7 +45,7 @@ func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
 		collectCache = []*point.Point{}
 		rdr          = strings.NewReader(list)
 		scanner      = bufio.NewScanner(rdr)
-		opts         = append(point.DefaultMetricOptions(), point.WithTime(time.Now()))
+		opts         = append(point.DefaultMetricOptions(), point.WithTimestamp(ipt.alignTS))
 	)
 
 	for scanner.Scan() {

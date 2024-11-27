@@ -71,6 +71,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+	alignTS int64
 }
 
 var errSSHCfg = errors.New("both password and privateKeyFile missed")
@@ -192,8 +193,10 @@ func (ipt *Input) gather() {
 		}
 	}
 
+	lastTS := time.Now()
 	for {
-		start := time.Now()
+		ipt.alignTS = lastTS.UnixNano()
+
 		collectCache, err := ipt.getMetrics(clientCfg)
 		if err != nil {
 			l.Errorf("getMetrics: %s", err.Error())
@@ -202,7 +205,7 @@ func (ipt *Input) gather() {
 
 		if len(collectCache) != 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(lastTS)),
 				dkio.WithInputName(inputName),
 			); err != nil {
 				l.Errorf("Feed failed: %s", err.Error())
@@ -210,7 +213,9 @@ func (ipt *Input) gather() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), d.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 
 		case <-datakit.Exit.Wait():
 			l.Infof("input %v exit", inputName)
@@ -276,7 +281,7 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	pt := point.NewPointV2(ipt.MetricsName,
 		append(point.NewTags(tags), point.NewKVs(fields)...),

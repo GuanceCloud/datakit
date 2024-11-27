@@ -79,8 +79,9 @@ type Input struct {
 	// HTTP client
 	client *http.Client
 
-	start time.Time
-	tail  *tailer.Tailer
+	// alignTS   int64
+	// startTime time.Time
+	tail *tailer.Tailer
 
 	lastErr error
 

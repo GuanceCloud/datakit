@@ -205,6 +205,7 @@ func (fr *FileReader) Read(feeder chan []*point.Point, cd *CacheData) {
 	})
 
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-fr.stop:

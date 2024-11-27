@@ -69,6 +69,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+	alignTS int64
 }
 
 func (ipt *Input) Singleton() {
@@ -98,7 +99,7 @@ func (ipt *Input) Collect() error {
 	// clear collectCache
 	ipt.collectCache = make([]*point.Point, 0)
 
-	ts := time.Now()
+	// ts := time.Now()
 
 	loadAvg, err := load.Avg()
 
@@ -135,7 +136,7 @@ func (ipt *Input) Collect() error {
 				"stat_search_restart": conntrackStat.SearchRestart,
 			},
 			tags: tags,
-			ts:   ts,
+			ts:   ipt.alignTS,
 		}
 
 		ipt.collectCache = append(ipt.collectCache, conntrackM.Point())
@@ -151,7 +152,7 @@ func (ipt *Input) Collect() error {
 					"maximum_mega": filefdStat.MaximumMega,
 				},
 				tags: tags,
-				ts:   ts,
+				ts:   ipt.alignTS,
 			}
 
 			ipt.collectCache = append(ipt.collectCache, filefdM.Point())
@@ -196,7 +197,7 @@ func (ipt *Input) Collect() error {
 		name:   metricNameSystem,
 		fields: fields,
 		tags:   tags,
-		ts:     ts,
+		ts:     ipt.alignTS,
 	}
 
 	users, err := host.Users()
@@ -222,8 +223,11 @@ func (ipt *Input) Run() {
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
+	lastTS := time.Now()
 	for {
-		start := time.Now()
+		ipt.alignTS = lastTS.UnixNano()
+
 		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
@@ -233,7 +237,7 @@ func (ipt *Input) Run() {
 
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(lastTS)),
 				dkio.WithInputName(inputName),
 			); err != nil {
 				l.Errorf("Feed failed: %v", err)
@@ -241,7 +245,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Info("system input exit")
 			return

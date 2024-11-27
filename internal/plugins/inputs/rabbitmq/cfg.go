@@ -105,6 +105,7 @@ type Input struct {
 	tail    *tailer.Tailer
 	lastErr error
 	start   time.Time
+	alignTS int64
 
 	Election     bool `toml:"election"`
 	pause        bool

@@ -63,7 +63,7 @@ func Test_infoMeasurement_getErrorPoints(t *testing.T) {
 				tags:        tt.fields.tags,
 				lastCollect: tt.fields.lastCollect,
 			}
-			got := m.getErrorPoints(tt.args.k, tt.args.v)
+			got := m.getErrorPoints(tt.args.k, tt.args.v, time.Now().UnixMilli()*1e6)
 
 			gotStr := []string{}
 			for _, v := range got {
@@ -149,7 +149,7 @@ func Test_infoMeasurement_getLatencyPoints(t *testing.T) {
 				lastCollect:        tt.fields.lastCollect,
 				latencyPercentiles: tt.fields.latencyPercentiles,
 			}
-			got := m.getLatencyPoints(tt.args.k, tt.args.v)
+			got := m.getLatencyPoints(tt.args.k, tt.args.v, time.Now().UnixNano())
 
 			gotStr := []string{}
 			for _, v := range got {
@@ -393,7 +393,7 @@ func Test_infoMeasurement_parseInfoData(t *testing.T) {
 
 			latencyMs := Round(float64(elapsed)/float64(time.Millisecond), 2)
 
-			_, err := m.parseInfoData(info, latencyMs, nextTS)
+			_, err := m.parseInfoData(info, latencyMs, nextTS, time.Now().UnixMilli()*1e6)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("infoMeasurement.parseInfoData() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -411,7 +411,7 @@ func Test_infoMeasurement_parseInfoData(t *testing.T) {
 
 			latencyMs = Round(float64(elapsed)/float64(time.Millisecond), 2)
 
-			got, err := m.parseInfoData(info, latencyMs, nextTS)
+			got, err := m.parseInfoData(info, latencyMs, nextTS, time.Now().UnixNano())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("infoMeasurement.parseInfoData() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -82,6 +82,8 @@ type Input struct {
 
 	gpus   []gpuInfo // online GPU card list
 	gpusMu sync.Mutex
+
+	AlignTS int64
 }
 
 // Run Start the process of timing acquisition.
@@ -96,13 +98,12 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
+	lastTS := time.Now()
 	for {
-		start := time.Now()
-
 		if ipt.pause {
 			l.Debugf("not leader, %s skipped", inputName)
 		} else {
-			if err := ipt.collect(); err != nil {
+			if err := ipt.collect(lastTS.UnixNano()); err != nil {
 				l.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -112,7 +113,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -125,7 +126,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCacheLog) > 0 {
 				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCacheLog,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -138,7 +139,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCacheWarn) > 0 {
 				if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCacheWarn,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -151,7 +152,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -216,12 +219,12 @@ func (ipt *Input) checkConf() error {
 	return nil
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	ipt.collectCache = make([]*point.Point, 0)
 	ipt.collectCacheLog = make([]*point.Point, 0)
 	ipt.collectCacheWarn = make([]*point.Point, 0)
 
-	ipt.gpuDropWarning()
+	ipt.gpuDropWarning(ptTS)
 
 	data, err := ipt.getData()
 	if err != nil {
@@ -283,13 +286,13 @@ func (ipt *Input) getData() ([]*getdatassh.SSHData, error) {
 }
 
 // Handle GPU online info.
-func (ipt *Input) gpuOnlineInfo(uuid, server string) {
+func (ipt *Input) gpuOnlineInfo(uuid, server string, ptTS int64) {
 	ipt.gpusMu.Lock()
 	defer ipt.gpusMu.Unlock()
 
-	ts := time.Now()
+	// ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 
 	for i := 0; i < len(ipt.gpus); i++ {
 		if ipt.gpus[i].uuid == uuid {
@@ -297,6 +300,7 @@ func (ipt *Input) gpuOnlineInfo(uuid, server string) {
 			return
 		}
 	}
+	// time.Now().UnixNano()是不是要替换
 	ipt.gpus = append(ipt.gpus, gpuInfo{uuid, server, time.Now().UnixNano()}) // new card
 
 	// send info
@@ -317,13 +321,13 @@ func (ipt *Input) gpuOnlineInfo(uuid, server string) {
 }
 
 // Handle GPU drop warning.
-func (ipt *Input) gpuDropWarning() {
+func (ipt *Input) gpuDropWarning(ptTS int64) {
 	ipt.gpusMu.Lock()
 	defer ipt.gpusMu.Unlock()
 
-	ts := time.Now()
+	// ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 
 	for i := 0; i < len(ipt.gpus); {
 		// Several items may be deleted, so i++ is placed later

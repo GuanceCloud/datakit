@@ -19,7 +19,7 @@ import (
 )
 
 // 默认 http stub status module 模块的数据.
-func (ipt *Input) getStubStatusModuleMetric(port int) {
+func (ipt *Input) getStubStatusModuleMetric(port int, alignTS int64) {
 	u := ipt.host + ":" + strconv.Itoa(port) + ipt.path
 	resp, err := ipt.client.Get(u)
 	if err != nil {
@@ -105,7 +105,7 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 
 	kvs := make(point.KVs, 0, 9)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+	opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range ipt.Tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -125,7 +125,7 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
 }
 
-func (ipt *Input) getVTSMetric(port int) {
+func (ipt *Input) getVTSMetric(port int, alignTS int64) {
 	u := ipt.host + ":" + strconv.Itoa(port) + ipt.path
 	resp, err := ipt.client.Get(u)
 	if err != nil {
@@ -142,13 +142,13 @@ func (ipt *Input) getVTSMetric(port int) {
 	contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
 	switch contentType {
 	case "application/json":
-		ipt.handVTSResponse(resp.Body, port)
+		ipt.handVTSResponse(resp.Body, port, alignTS)
 	default:
 		l.Errorf("%s returned unexpected content type %s", u, contentType)
 	}
 }
 
-func (ipt *Input) handVTSResponse(r io.Reader, port int) {
+func (ipt *Input) handVTSResponse(r io.Reader, port int, alignTS int64) {
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		l.Errorf(err.Error())
@@ -167,16 +167,16 @@ func (ipt *Input) handVTSResponse(r io.Reader, port int) {
 		vtsResp.tags[k] = v
 	}
 
-	ipt.makeConnectionsLine(vtsResp)
-	ipt.makeServerZoneLine(vtsResp)
-	ipt.makeUpstreamZoneLine(vtsResp)
-	ipt.makeCacheZoneLine(vtsResp)
+	ipt.makeConnectionsLine(vtsResp, alignTS)
+	ipt.makeServerZoneLine(vtsResp, alignTS)
+	ipt.makeUpstreamZoneLine(vtsResp, alignTS)
+	ipt.makeCacheZoneLine(vtsResp, alignTS)
 }
 
-func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse) {
+func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse, alignTS int64) {
 	kvs := make(point.KVs, 0, 12)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+	opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range vtsResp.tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -194,11 +194,11 @@ func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse) {
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
 }
 
-func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse) {
+func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
 	for k, v := range vtsResp.ServerZones {
 		kvs := make(point.KVs, 0, 13)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+		opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -218,12 +218,12 @@ func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse) {
 	}
 }
 
-func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse) {
+func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
 	for upsteamName, upstreams := range vtsResp.UpstreamZones {
 		for _, upstream := range upstreams {
 			kvs := make(point.KVs, 0, 14)
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+			opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range vtsResp.tags {
 				kvs = kvs.MustAddTag(kk, vv)
@@ -245,11 +245,11 @@ func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse) {
 	}
 }
 
-func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse) {
+func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
 	for cacheName, cacheZone := range vtsResp.CacheZones {
 		kvs := make(point.KVs, 0, 17)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+		opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -273,7 +273,7 @@ func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse) {
 	}
 }
 
-func (ipt *Input) getPlusMetric() {
+func (ipt *Input) getPlusMetric(alignTS int64) {
 	plusAPIResp := NginxPlusAPIResponse{tags: make(map[string]string)}
 	for _, plusAPI := range PlusAPIEndpoints {
 		resp, err := ipt.client.Get(ipt.PlusAPIURL + "/" + plusAPI.endpoint)
@@ -290,14 +290,14 @@ func (ipt *Input) getPlusMetric() {
 		contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
 		switch contentType {
 		case "application/json":
-			ipt.handlePlusAPIResponse(resp.Body, &plusAPIResp, plusAPI.nest)
+			ipt.handlePlusAPIResponse(resp.Body, &plusAPIResp, plusAPI.nest, alignTS)
 		default:
 			l.Errorf("%s returned unexpected content type %s", ipt.URL, contentType)
 		}
 	}
 }
 
-func (ipt *Input) handlePlusAPIResponse(r io.Reader, plusAPIResp *NginxPlusAPIResponse, nest string) {
+func (ipt *Input) handlePlusAPIResponse(r io.Reader, plusAPIResp *NginxPlusAPIResponse, nest string, alignTS int64) {
 	body, err := io.ReadAll(r)
 	if err != nil {
 		l.Errorf(err.Error())
@@ -310,38 +310,38 @@ func (ipt *Input) handlePlusAPIResponse(r io.Reader, plusAPIResp *NginxPlusAPIRe
 			l.Errorf("decoding JSON response err:%s", err.Error())
 			return
 		}
-		ipt.makeNginxLine(*plusAPIResp)
+		ipt.makeNginxLine(*plusAPIResp, alignTS)
 	case NestServerZone:
 		if err := json.Unmarshal(body, &plusAPIResp.Servers); err != nil {
 			l.Errorf("decoding JSON response err:%s", err.Error())
 			return
 		}
-		ipt.makeServerLine(*plusAPIResp)
+		ipt.makeServerLine(*plusAPIResp, alignTS)
 	case NestUpstreams:
 		if err := json.Unmarshal(body, &plusAPIResp.Upstreams); err != nil {
 			l.Errorf("decoding JSON response err:%s", err.Error())
 			return
 		}
-		ipt.makeUpStreamLine(*plusAPIResp)
+		ipt.makeUpStreamLine(*plusAPIResp, alignTS)
 	case NestCaches:
 		if err := json.Unmarshal(body, &plusAPIResp.Caches); err != nil {
 			l.Errorf("decoding JSON response err:%s", err.Error())
 			return
 		}
-		ipt.makeCacheLine(*plusAPIResp)
+		ipt.makeCacheLine(*plusAPIResp, alignTS)
 	case NestLocationZones:
 		if err := json.Unmarshal(body, &plusAPIResp.Locations); err != nil {
 			l.Errorf("decoding JSON response err:%s", err.Error())
 			return
 		}
-		ipt.makeLocationLine(*plusAPIResp)
+		ipt.makeLocationLine(*plusAPIResp, alignTS)
 	}
 }
 
-func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse) {
+func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
 	kvs := make(point.KVs, 0, 10)
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+	opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range plusAPIResp.tags {
 		kvs = kvs.MustAddTag(k, v)
@@ -354,11 +354,11 @@ func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse) {
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
 }
 
-func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse) {
+func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
 	for k, v := range plusAPIResp.Servers {
 		kvs := make(point.KVs, 0, 20)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+		opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -387,12 +387,12 @@ func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse) {
 	}
 }
 
-func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse) {
+func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
 	for upsteamName, upstreams := range plusAPIResp.Upstreams {
 		for _, upstream := range upstreams.Peers {
 			kvs := make(point.KVs, 0, 20)
 			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+			opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range plusAPIResp.tags {
 				kvs = kvs.MustAddTag(kk, vv)
@@ -420,11 +420,11 @@ func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse) {
 	}
 }
 
-func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse) {
+func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
 	for k, v := range plusAPIResp.Caches {
 		kvs := make(point.KVs, 0, 15)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+		opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)
@@ -446,11 +446,11 @@ func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse) {
 	}
 }
 
-func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse) {
+func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
 	for locationName, location := range plusAPIResp.Locations {
 		kvs := make(point.KVs, 0, 20)
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ipt.start), point.WithExtraTags(ipt.mergedTags))
+		opts = append(opts, point.WithTimestamp(alignTS), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.MustAddTag(kk, vv)

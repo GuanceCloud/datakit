@@ -99,10 +99,9 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
+	lastTS := time.Now()
 	for {
-		start := time.Now()
-
-		if err := ipt.collect(); err != nil {
+		if err := ipt.collect(lastTS.UnixNano()); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -112,7 +111,7 @@ func (ipt *Input) Run() {
 		// If there is data in the collectCache, submit it
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(lastTS)),
 				dkio.WithInputName(metricName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -125,7 +124,7 @@ func (ipt *Input) Run() {
 		// If there is data in the collectCachePort, submit it
 		if len(ipt.collectCachePort) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCachePort,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(lastTS)),
 				dkio.WithInputName(metricNamePort)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -136,7 +135,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -156,13 +157,13 @@ func (ipt *Input) setup() {
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
-func (ipt *Input) collect() error {
+func (ipt *Input) collect(ptTS int64) error {
 	ipt.netInfos = make([]*NetInfos, 0)
 	ipt.collectCache = make([]*point.Point, 0)
 	ipt.collectCachePort = make([]*point.Point, 0)
-	ts := time.Now()
+	// ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ptTS))
 
 	// get data
 	netConns, err := ipt.netConnections()

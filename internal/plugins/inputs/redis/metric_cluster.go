@@ -10,7 +10,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -84,7 +83,7 @@ func (ipt *Input) CollectClusterMeasurement() ([]*point.Point, error) {
 func (ipt *Input) parseClusterData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	var kvs point.KVs
 	kvs = kvs.AddTag("server_addr", ipt.Addr)

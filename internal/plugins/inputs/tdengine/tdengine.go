@@ -85,7 +85,7 @@ func (t *tdEngine) CheckHealth(sql selectSQL) bool {
 	return err == nil // When err = nil, TD is health and can subsequent operations.
 }
 
-func (t *tdEngine) getSTablesNum() []*point.Point {
+func (t *tdEngine) getSTablesNum(alignTS int64) []*point.Point {
 	// show databases.
 	databases := t.getDatabase()
 
@@ -99,7 +99,7 @@ func (t *tdEngine) getSTablesNum() []*point.Point {
 				"created_time":  databases[i].creatTime,
 			},
 			fields: map[string]interface{}{},
-			ts:     time.Now(),
+			ts:     alignTS,
 		}
 		sql := "show " + databases[i].name + ".stables"
 		body, err := query(t.adapter, t.basic, "", []byte(sql))
@@ -117,7 +117,7 @@ func (t *tdEngine) getSTablesNum() []*point.Point {
 		msm.fields["stable_count"] = res.Rows
 
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(msm.ts))
+		opts = append(opts, point.WithTimestamp(msm.ts))
 
 		if t.Ipt.Election {
 			msm.tags = inputs.MergeTagsWrapper(msm.tags, t.Ipt.Tagger.ElectionTags(), t.Ipt.Tags, t.Ipt.AdapterEndpoint)
@@ -142,13 +142,19 @@ func (t *tdEngine) run() {
 			g.Go(func(ctx context.Context) error {
 				ticker := time.NewTicker(metric.TimeSeries)
 				defer ticker.Stop()
+
+				lastTS := time.Now()
 				for {
+					t.Ipt.alignTS = lastTS.UnixNano()
+
 					select {
 					case <-datakit.Exit.Wait():
 						return nil
 					case <-t.stop:
 						return nil
-					case <-ticker.C:
+					case tt := <-ticker.C:
+						nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), metric.TimeSeries.Milliseconds())
+						lastTS = time.UnixMilli(nextts)
 						if !t.upstream {
 							l.Debugf("not leader, skipped")
 							continue
@@ -181,7 +187,10 @@ func (t *tdEngine) run() {
 	g.Go(func(ctx context.Context) error {
 		ticker := time.NewTicker(time.Minute * 5)
 		defer ticker.Stop()
+		var lastTS int64
 		for {
+			startTime := time.Now()
+			lastTS = inputs.AlignTimeMillSec(startTime, lastTS, (time.Minute * 5).Milliseconds())
 			select {
 			case <-datakit.Exit.Wait():
 				return nil
@@ -192,7 +201,7 @@ func (t *tdEngine) run() {
 					continue
 				}
 				l.Debugf("run getSTablesNum")
-				msmC <- t.getSTablesNum()
+				msmC <- t.getSTablesNum(lastTS * 1e6)
 			}
 		}
 	})
@@ -306,7 +315,7 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, ipt *
 		msm := &Measurement{
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
-			ts:       time.Time{},
+			ts:       ipt.alignTS,
 			election: ipt.Election,
 		}
 		if host != "" {
@@ -343,26 +352,39 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, ipt *
 			}
 
 			if name == "ts" {
-				tsLayout := res.Data[i][j].(string)
-				if timeLayout, err := dateparse.ParseFormat(tsLayout); err != nil {
-					l.Errorf("ts parse layout error %s", tsLayout)
-					continue
-				} else {
-					msm.ts, _ = time.Parse(timeLayout, res.Data[i][j].(string))
+				switch t := res.Data[i][j].(type) {
+				case string:
+					tsLayout := res.Data[i][j].(string)
+					if timeLayout, err := dateparse.ParseFormat(tsLayout); err != nil {
+						l.Errorf("ts parse layout error %s", tsLayout)
+						continue
+					} else {
+						parsedTime, _ := time.Parse(timeLayout, tsLayout)
+						msm.ts = parsedTime.UnixNano()
+					}
+				case int64:
+					msm.ts = res.Data[i][j].(int64)
+				default:
+					l.Errorf("unexpected type for ts: %T", t)
 				}
 			}
 		}
 
-		if msm.ts.IsZero() {
-			msm.ts = time.Now()
+		// if msm.ts.IsZero() {
+		// 	msm.ts = time.Now()
+		// }
+
+		if msm.ts == 0 {
+			msm.ts = time.Now().UnixNano()
 		}
+
 		if sql.unit != "" {
 			msm.tags["unit"] = sql.unit
 		}
 		msm.name = metricName(subMetricName, sql.title)
 
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(msm.ts))
+		opts = append(opts, point.WithTimestamp(msm.ts))
 
 		if ipt.Election {
 			msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)

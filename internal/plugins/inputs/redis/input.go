@@ -126,6 +126,7 @@ type Input struct {
 	feeder      dkio.Feeder
 	mergedTags  map[string]string
 	tagger      datakit.GlobalTagger
+	alignTS     int64
 }
 
 type redisCPUUsage struct {
@@ -330,7 +331,7 @@ func (ipt *Input) collectInfoMeasurement() ([]*point.Point, error) {
 		m.tags[k] = v
 	}
 
-	return m.getData()
+	return m.getData(ipt.alignTS)
 }
 
 func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
@@ -456,7 +457,10 @@ func (ipt *Input) Run() {
 		ipt.goroutineBigKey(ctxKey)
 	}
 
+	lastTS := time.Now()
 	for {
+		ipt.alignTS = lastTS.UnixNano()
+
 		if !ipt.pause {
 			ipt.tryInit()
 
@@ -484,7 +488,9 @@ func (ipt *Input) Run() {
 			l.Info("redis return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}

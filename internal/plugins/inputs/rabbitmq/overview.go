@@ -6,8 +6,6 @@
 package rabbitmq
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -21,7 +19,7 @@ func getOverview(n *Input) {
 		n.lastErr = err
 		return
 	}
-	ts := time.Now()
+	// ts := time.Now()
 	if overview.QueueTotals == nil || overview.ObjectTotals == nil || overview.MessageStats == nil {
 		l.Errorf("Wrong answer from rabbitmq. Probably auth issue")
 		return
@@ -80,7 +78,7 @@ func getOverview(n *Input) {
 		name:   OverviewMetric,
 		tags:   tags,
 		fields: fields,
-		ts:     ts,
+		ts:     n.alignTS,
 	}
 	n.metricAppend(metric.Point())
 }
@@ -89,13 +87,13 @@ type OverviewMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *OverviewMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

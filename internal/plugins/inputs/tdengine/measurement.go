@@ -7,8 +7,6 @@
 package tdengine
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -16,7 +14,7 @@ type Measurement struct {
 	name     string
 	tags     map[string]string
 	fields   map[string]interface{}
-	ts       time.Time
+	ts       int64
 	election bool
 }
 

@@ -29,7 +29,7 @@ import (
 //
 // like: database_system_pool_transaction_system_used_heap -> database_pool_used_heap
 // tags: db->system, pool->transaction, database->system
-func formatPoint(pt *point.Point) error {
+func formatPoint(pt *point.Point, ptTS int64) error {
 	willRenameFields := map[string]string{}
 	willAddTags := map[string]string{}
 
@@ -41,7 +41,7 @@ func formatPoint(pt *point.Point) error {
 			willRenameFields[kv.Key] = key
 		}
 
-		rebuildPoint(pt, newMetricName, willRenameFields, willAddTags)
+		rebuildPoint(pt, newMetricName, willRenameFields, willAddTags, ptTS)
 
 		willRenameFields = map[string]string{}
 	}
@@ -68,7 +68,7 @@ func formatPoint(pt *point.Point) error {
 	}
 
 	// Step 3: do add tag, do rename field(KV).
-	rebuildPoint(pt, "", willRenameFields, willAddTags)
+	rebuildPoint(pt, "", willRenameFields, willAddTags, ptTS)
 
 	return nil
 }
@@ -170,12 +170,12 @@ func modifyName(willAddTags, willRenameFields map[string]string, key string, fin
 }
 
 // rebuildPoint rename (add/delete) metric name, add tag, rename (add/delete) field(KV).
-func rebuildPoint(pt *point.Point, newMetricName string, willRenameFields, willAddTags map[string]string) {
+func rebuildPoint(pt *point.Point, newMetricName string, willRenameFields, willAddTags map[string]string, ptTS int64) {
 	if newMetricName != "" {
 		kvs := pt.KVs()
-		ts := pt.Time()
+		// ts := pt.Time()
 		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(ts))
+		opts = append(opts, point.WithTimestamp(ptTS))
 		*pt = *point.NewPointV2(newMetricName, kvs, opts...)
 	}
 

@@ -8,7 +8,6 @@ package rabbitmq
 import (
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -22,7 +21,7 @@ func getQueues(n *Input) {
 		n.lastErr = err
 		return
 	}
-	ts := time.Now()
+	// ts := time.Now()
 	for _, queue := range Queues {
 		tags := map[string]string{
 			"url":        n.URL,
@@ -74,7 +73,7 @@ func getQueues(n *Input) {
 			name:   QueueMetric,
 			tags:   tags,
 			fields: fields,
-			ts:     ts,
+			ts:     n.alignTS,
 		}
 		n.metricAppend(metric.Point())
 	}
@@ -94,13 +93,13 @@ type QueueMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *QueueMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
