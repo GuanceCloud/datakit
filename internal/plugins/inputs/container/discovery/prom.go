@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
@@ -21,9 +22,11 @@ var (
 )
 
 type promRunner struct {
-	conf     *promConfig
-	pm       *iprom.Prom
-	feeder   dkio.Feeder
+	conf   *promConfig
+	pm     *iprom.Prom
+	feeder dkio.Feeder
+
+	tick     *time.Ticker
 	lastTime time.Time
 
 	currentURL   string
@@ -43,6 +46,14 @@ func newPromRunnerWithTomlConfig(discovery *Discovery, configStr string) ([]*pro
 		if err != nil {
 			return nil, err
 		}
+
+		if p.conf.Interval > 0 {
+			p.tick = time.NewTicker(p.conf.Interval)
+		} else {
+			klog.Warnf("ignore prom scrap due to invalid interval(%v), ignored", p.conf.Interval)
+			continue
+		}
+
 		res = append(res, p)
 	}
 
@@ -145,24 +156,29 @@ func newPromRunnerWithConfig(discovery *Discovery, c *promConfig) (*promRunner, 
 	return p, nil
 }
 
-func (p *promRunner) runOnce() {
+func (p *promRunner) scrapOnce() {
 	if p.conf == nil {
 		return
 	}
-	if time.Since(p.lastTime) < p.conf.Interval {
-		return
-	}
 
-	klog.Debugf("running collect from source %s", p.conf.Source)
-	p.lastTime = time.Now()
+	select {
+	case tt := <-p.tick.C:
+		nextts := inputs.AlignTimeMillSec(tt, p.lastTime.UnixMilli(), p.conf.Interval.Milliseconds())
+		p.lastTime = time.UnixMilli(nextts)
 
-	for _, u := range p.conf.URLs {
-		p.currentURL = u
-		// use callback processor, not return pts
-		_, err := p.pm.CollectFromHTTPV2(u)
-		if err != nil {
-			klog.Warnf("failed to collect prom: %s", err)
-			return
+		klog.Debugf("running collect from source %s", p.conf.Source)
+
+		for _, u := range p.conf.URLs {
+			p.currentURL = u
+			// use callback processor, not return pts
+			_, err := p.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(p.lastTime.UnixNano()))
+			if err != nil {
+				klog.Warnf("failed to collect prom: %s", err)
+				return
+			}
 		}
+
+	default: // pass: not on current scrap tick
+		return
 	}
 }

@@ -93,6 +93,8 @@ type (
 		pauseCh  chan bool
 		pause    bool
 
+		start time.Time
+
 		urls []*url.URL
 
 		l *logger.Logger
@@ -110,6 +112,8 @@ func (ipt *Input) Run() {
 
 	ipt.l.Info(inputName + " start")
 
+	ipt.start = time.Now()
+
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
@@ -120,7 +124,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
+
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -202,7 +208,6 @@ func (ipt *Input) setup() error {
 }
 
 func (ipt *Input) collect() error {
-	start := time.Now()
 	pts, err := ipt.doCollect()
 	if err != nil {
 		return err
@@ -212,7 +217,7 @@ func (ipt *Input) collect() error {
 	}
 
 	if err := ipt.feeder.FeedV2(point.Metric, pts,
-		dkio.WithCollectCost(time.Since(start)),
+		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
@@ -280,7 +285,7 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = ipt.pm.CollectFromFileV2(u)
 		} else {
-			pts, err = ipt.pm.CollectFromHTTPV2(u)
+			pts, err = ipt.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(ipt.start.UnixNano()))
 		}
 		if err != nil {
 			return nil, err

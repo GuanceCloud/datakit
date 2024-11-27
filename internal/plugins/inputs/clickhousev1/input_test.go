@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
@@ -77,7 +76,7 @@ election = false
 			ipt.pm.SetClient(&http.Client{Transport: newTransportMock(tc.mockData)})
 
 			// collect points
-			pts, err := ipt.getPts(time.Now().UnixNano())
+			pts, err := ipt.getPts()
 			assert.NoError(t, err)
 			_ = pts
 

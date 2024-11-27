@@ -234,10 +234,11 @@ func (ipt *Input) Run() {
 	}
 
 	tick := time.NewTicker(ipt.Interval)
+	defer tick.Stop()
 
+	start := time.Now()
 	for {
-		start := time.Now()
-		pts, err := ipt.prom.CollectFromHTTPV2(ipt.url)
+		pts, err := ipt.prom.CollectFromHTTPV2(ipt.url, prom.WithTimestamp(start.UnixNano()))
 		if err != nil {
 			l.Warnf("prom.CollectFromHTTPV2: %s, ignored", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
@@ -259,7 +260,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			start = time.UnixMilli(inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds()))
+
 		case <-datakit.Exit.Wait():
 			return
 		}
