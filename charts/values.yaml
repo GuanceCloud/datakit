@@ -24,7 +24,7 @@ datakit:
   log_level: info
   ## @param http_listen - string
   ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
-  http_listen: 0.0.0.0:9529
+  http_listen: $(POD_IP):9529
 
 
 image:
