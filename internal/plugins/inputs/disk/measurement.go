@@ -67,6 +67,7 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 			"device":      &inputs.TagInfo{Desc: "Disk device name. (on /dev/mapper return symbolic link, like `readlink /dev/mapper/*` result)"},
 			"fstype":      &inputs.TagInfo{Desc: "File system name."},
 			"mount_point": &inputs.TagInfo{Desc: "Mount point."},
+			"disk_name":   &inputs.TagInfo{Desc: "Disk name."},
 		},
 	}
 }
