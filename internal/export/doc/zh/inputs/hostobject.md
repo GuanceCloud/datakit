@@ -46,7 +46,7 @@ monitor   :
 
 ### 开启云同步 {#cloudinfo}
 
-Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/微软云。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 Datakit 自动进行探测：
+Datakit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/微软云/火山引擎。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 Datakit 自动进行探测：
 
 ```toml
 [inputs.hostobject.tags]

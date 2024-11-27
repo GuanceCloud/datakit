@@ -47,7 +47,7 @@ In general, the host object is turned on by default and does not need to be conf
 
 ### Turn on Cloud Synchronization {#cloudinfo}
 
-Datakit turns on cloud synchronization by default, and currently supports Alibaba Cloud/Tencent Cloud/AWS/Huawei Cloud/Microsoft Cloud. You can specify the cloud vendor explicitly by setting the cloud_provider tag, or you can detect it automatically by Datakit:
+Datakit turns on cloud synchronization by default, and currently supports Alibaba Cloud/Tencent Cloud/AWS/Huawei Cloud/Microsoft Cloud/Volcano Engine. You can specify the cloud vendor explicitly by setting the cloud_provider tag, or you can detect it automatically by Datakit:
 
 ```toml
 [inputs.hostobject.tags]
