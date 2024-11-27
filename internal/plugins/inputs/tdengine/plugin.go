@@ -6,8 +6,6 @@
 package tdengine
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -65,14 +63,14 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 		fields: map[string]interface{}{
 			"table_count": counts,
 		},
-		ts: time.Now(),
+		ts: ipt.alignTS,
 	}
 	if host := getHostTagIfNotLoopback(ipt.AdapterEndpoint); host != "" {
 		msm.tags["host"] = host
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(msm.ts))
+	opts = append(opts, point.WithTimestamp(msm.ts))
 
 	if ipt.Election {
 		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)
@@ -98,14 +96,14 @@ func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, s
 		fields: map[string]interface{}{
 			"database_count": counts,
 		},
-		ts: time.Now(),
+		ts: ipt.alignTS,
 	}
 	if host := getHostTagIfNotLoopback(ipt.AdapterEndpoint); host != "" {
 		msm.tags["host"] = host
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(msm.ts))
+	opts = append(opts, point.WithTimestamp(msm.ts))
 
 	if ipt.Election {
 		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.AdapterEndpoint)

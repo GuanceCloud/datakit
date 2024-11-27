@@ -174,11 +174,12 @@ func (ipt *Input) FeedCoPts() {
 }
 
 func (ipt *Input) FeedCoByErr(err error) {
+	tn := time.Now()
 	ipt.setInptErrCOMsg(err.Error())
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
+		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(inputName),
 	); err != nil {

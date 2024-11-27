@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -100,7 +99,7 @@ var slaveMatch = regexp.MustCompile(`^slave\d+`)
 func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 	var masterIP, masterPort string
 
 	rdr := strings.NewReader(list)

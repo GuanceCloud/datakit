@@ -109,6 +109,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+	alignTS int64
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -208,7 +209,11 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
+	lastTS := time.Now()
 	for {
+		ipt.alignTS = lastTS.UnixNano()
+
 		select {
 		case <-datakit.Exit.Wait():
 			ipt.exit()
@@ -220,15 +225,16 @@ func (ipt *Input) Run() {
 			l.Infof("solr input return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			start := time.Now()
 			if err := ipt.Collect(); err == nil {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -320,7 +326,7 @@ func (ipt *Input) Collect() error {
 							fields: fieldSearcher,
 							tags:   tagsSearcher,
 							name:   metricNameSearcher,
-							ts:     ts,
+							ts:     ipt.alignTS,
 						}
 						ipt.appendM(metric.Point())
 					}

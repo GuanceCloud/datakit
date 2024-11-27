@@ -368,7 +368,6 @@ func compileAPMInject(goos, goarch, dir string) error {
 		_ = os.Mkdir(filepath.Join(dir, "/datakit-apm-inject-linux-"+goarch), 0o755)
 		l.Warnf("skip building apm auto-inject launcher: %s",
 			err.Error())
-		return nil
 	}
 
 	cmdArgs := []string{

@@ -79,6 +79,7 @@ type Input struct {
 	lastActiveTime string
 	collectors     map[string]func() (point.Category, []*point.Point, error)
 	cacheSQL       map[string]string
+	alignTS        int64
 
 	UpState int
 }
@@ -268,7 +269,9 @@ func (ipt *Input) Run() {
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 
+	lastTS := time.Now()
 	for {
+		ipt.alignTS = lastTS.UnixNano()
 		if ipt.pause {
 			l.Info("not leader, skipped")
 		} else {
@@ -317,7 +320,9 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

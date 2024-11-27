@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -66,7 +65,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 func (ipt *Input) parseClientData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	rdr := strings.NewReader(list)
 

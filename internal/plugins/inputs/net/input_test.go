@@ -9,6 +9,7 @@ import (
 	"net"
 	"runtime"
 	"testing"
+	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,7 @@ func TestCollect(t *testing.T) {
 		}
 
 		tc.i.setup()
-		if err := tc.i.collect(); err != nil {
+		if err := tc.i.collect(time.Now().UnixNano()); err != nil {
 			t.Errorf("Error collecting network statistics: %s", err)
 		}
 

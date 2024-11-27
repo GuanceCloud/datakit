@@ -6,8 +6,6 @@
 package rabbitmq
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -20,7 +18,7 @@ func getNode(n *Input) {
 		n.lastErr = err
 		return
 	}
-	ts := time.Now()
+	// ts := time.Now()
 	for _, node := range Nodes {
 		tags := map[string]string{
 			"url":       n.URL,
@@ -58,7 +56,7 @@ func getNode(n *Input) {
 			name:   NodeMetric,
 			tags:   tags,
 			fields: fields,
-			ts:     ts,
+			ts:     n.alignTS,
 		}
 		n.metricAppend(metric.Point())
 	}
@@ -68,13 +66,13 @@ type NodeMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *NodeMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

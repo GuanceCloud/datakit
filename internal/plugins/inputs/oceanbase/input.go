@@ -74,6 +74,7 @@ type Input struct {
 	slowQueryTime      time.Duration
 	collectors         map[string]func() (point.Category, []*point.Point, error)
 	tenantNames        map[string]string
+	alignTS            int64
 }
 
 func (ipt *Input) initCfg() error {
@@ -285,12 +286,14 @@ func (ipt *Input) Run() {
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 
+	lastTS := time.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("oceanbase input gathering...")
 
+			ipt.alignTS = lastTS.UnixNano()
 			mpts, err := ipt.Collect()
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
@@ -324,7 +327,9 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

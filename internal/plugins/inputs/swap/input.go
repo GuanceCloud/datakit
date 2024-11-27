@@ -97,6 +97,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+	alignTS int64
 }
 
 func (ipt *Input) Singleton() {
@@ -104,7 +105,7 @@ func (ipt *Input) Singleton() {
 
 func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	pt := point.NewPointV2(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
@@ -164,13 +165,16 @@ func (ipt *Input) Run() {
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
+	lastTS := time.Now()
 	for {
+		ipt.alignTS = lastTS.UnixNano()
+
 		select {
-		case <-tick.C:
-			start := time.Now()
+		case tt := <-tick.C:
 			if err := ipt.Collect(); err == nil {
 				if errFeed := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithInputName(metricName),
 				); errFeed != nil {
 					ipt.feeder.FeedLastError(errFeed.Error(),
@@ -185,6 +189,8 @@ func (ipt *Input) Run() {
 				)
 				l.Error(err)
 			}
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("system input exit")
 			return

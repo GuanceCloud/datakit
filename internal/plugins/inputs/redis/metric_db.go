@@ -10,7 +10,6 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -49,7 +48,7 @@ func (ipt *Input) collectDBMeasurement() ([]*point.Point, error) {
 func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)

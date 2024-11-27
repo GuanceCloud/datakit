@@ -90,6 +90,8 @@ type Input struct {
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
+
+	alignTS int64 //
 }
 
 func (ipt *Input) ElectionEnabled() bool {

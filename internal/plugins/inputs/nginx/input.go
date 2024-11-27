@@ -196,16 +196,18 @@ func (ipt *Input) Run() {
 
 	l.Infof("merged tags: %+#v", ipt.mergedTags)
 
+	lastTS := time.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
 			ipt.setUpState()
 			ipt.FeedCoPts()
-			ipt.collect()
+
+			ipt.collect(lastTS.UnixNano())
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithCollectCost(time.Since(lastTS)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -222,7 +224,7 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 			}
 
-			ipt.FeedUpMetric()
+			ipt.FeedUpMetric(lastTS)
 		}
 
 		select {
@@ -234,7 +236,9 @@ func (ipt *Input) Run() {
 			ipt.exit()
 			l.Info("nginx return")
 			return
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
+			lastTS = time.UnixMilli(nextts)
 		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
@@ -253,16 +257,15 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) getMetric() {
-	ipt.start = time.Now()
+func (ipt *Input) getMetric(alignTS int64) {
 	for i := ipt.Ports[0]; i <= ipt.Ports[1]; i++ {
 		if ipt.UsePlusAPI { //nolint
-			ipt.getPlusMetric()
-			ipt.getStubStatusModuleMetric(i)
+			ipt.getPlusMetric(alignTS)
+			ipt.getStubStatusModuleMetric(i, alignTS)
 		} else if ipt.UseVts {
-			ipt.getVTSMetric(i)
+			ipt.getVTSMetric(i, alignTS)
 		} else {
-			ipt.getStubStatusModuleMetric(i)
+			ipt.getStubStatusModuleMetric(i, alignTS)
 		}
 	}
 }
@@ -376,8 +379,8 @@ func (ipt *Input) checkPortsAndURL() error {
 	return nil
 }
 
-func (ipt *Input) collect() {
-	ipt.getMetric()
+func (ipt *Input) collect(alignTS int64) {
+	ipt.getMetric(alignTS)
 }
 
 func defaultInput() *Input {

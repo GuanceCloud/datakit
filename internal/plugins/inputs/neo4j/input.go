@@ -126,7 +126,6 @@ func (ipt *Input) Run() {
 		select {
 		case tt := <-tick.C:
 			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
-
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -293,7 +292,7 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 
 		for _, pt := range pts {
 			// some field name -> tag
-			if err := formatPoint(pt); err != nil {
+			if err := formatPoint(pt, ipt.start.UnixNano()); err != nil {
 				ipt.l.Debugf("formatPoint err: %v", err)
 			}
 
