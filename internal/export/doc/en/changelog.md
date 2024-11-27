@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.64.0 (2024/11/27) {#cl-1.64.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.64.0-new}
+
+- Added disk information collection based on lsblk (#2408).
+- The host object collection has increased the configuration file information collection, supporting the collection of text file contents not exceeding 4KiB in size (#2453).
+- Log collection has added a field whitelist mechanism, allowing us to choose to retain only fields of interest, reducing network and storage overhead (#2469).
+- Refactored the existing DCA implementation, changing from HTTP (Datakit as the server) to WebSocket (Datakit as the client) (#2333).
+- Added support for Volcano Cloud meta in the host object (#2472).
+
+### Bug Fixes {#cl-1.64.0-fix}
+
+- Fixed issue where the host object collection could terminated due to errors in some information collection (#2478).
+- Other bug fixes (#2474).
+
+### Performance Improvements {#cl-1.64.0-opt}
+
+- Further improved the timestamp value acquisition for existing metric collection (#2445).
+- Optimized the Zabbix data importing, improved the full update logic, adjusted metric naming, and synchronized some tags read from MySQL to Zabbix data points (#2455).
+- Optimized Pipeline processing performance (memory consumption reduced by over 30%), where the `load_json()` function, due to the replacement of more efficient library, has improved JSON processing performance by about 16% (#2459).
+- Optimized the file discovery strategy in log collection, adding the IONotify mechanism for more efficient handling of new file discoveries, avoiding delayed collection (#2462).
+- Optimized the timestamp alignment mechanism for mainstream metric collection to improve time series storage efficiency (#2445).
+
+### Compatibility Adjustments {#cl-1.64.0-brk}
+
+Due to the update of API whitelist controls, some APIs that were enabled by default in older versions may longer working and need to be manually enabled:
+
+- APIs related to Pipeline/Dial-testing debugging will not working on Guance Cloud web UI if they are not manually added to the whitelist.
+- For RUM data upload that has been enabled but not yet added to the whitelist, it is now mandatory to add the RUM write interface to the API whitelist; otherwise, it will break in this version.
+
+### Security Adjustments {#cl-1.64.0-sec}
+
+- The Datakit API whitelist feature is enabled by default. When access from non-localhost is enabled, most of the APIs cannot be accessed via non-localhost (#2479).
+- The Datakit API whitelist feature is enabled by default, which means that when access from non-localhost is enabled, most of APIs cannot be accessed via non-localhost. Additionally, when Datakit installing under Kubernetes as DaemonSet, it no longer defaults to listening on the `0.0.0.0` address; instead, it listens on the Pod IP of Datakit itself (#2479).
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    In earlier versions of DataKit, when non-localhost access was enabled (for example, by listening to APIs on `0.0.0.0:9529`), without manually adding an API whitelist, there was a risk of data leakage and serious security vulnerabilities.
+
+    1. Unauthorized data access
+    1. Potential data leakage
+    1. Remote attack risks
+    1. Server resources being maliciously exploited
+
+    **Security Hardening Recommendations**
+
+    - Strongly recommend upgrading to the latest version of DataKit(or apply the new Datakit Helm/yaml), which defaults to disabling remote access and provides a safer access control mechanism.
+    - If you do need to configure Datakit to be accessible from the public network (for example, for RUM data reporting), in the front Nginx:
+
+        1. Only expose data writing APIs
+        1. Add IP address whitelist restrictions
+
+    **Security Risk Level**: High
+
+    **Recommended Actions**
+
+    1. Immediately assess the current Datakit configuration
+    1. Upgrade to the latest version
+    1. Configure strict access control
+    1. Regularly audit and check access log(*gin.log*)
+<!-- markdownlint-enable -->
+
+---
+
 ## 1.63.1 (2024/11/21) {#cl-1.63.1}
 
 This release includes critical fixes addressing the following issues:
