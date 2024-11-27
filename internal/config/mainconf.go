@@ -186,9 +186,8 @@ func DefaultConfig() *Config {
 		},
 
 		DCAConfig: &DCAConfig{
-			Enable:    false,
-			Listen:    "0.0.0.0:9531",
-			WhiteList: []string{},
+			Enable:          false,
+			WebsocketServer: "ws://localhost:8000/ws",
 		},
 
 		APMInject: &APMInject{},

@@ -8,14 +8,27 @@ package upgrader
 import (
 	"net/http"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/atomic"
 
+	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
-var httpServClosed = make(chan error, 4)
+var (
+	httpServClosed = make(chan error, 4)
+	ui             = &upgraderImpl{
+		upgradeStatus: atomic.NewInt32(0),
+	}
+)
+
+type RegisterData struct {
+	Datakit *ws.DataKit       `json:"datakit"`
+	DCA     *config.DCAConfig `json:"dca"`
+}
 
 func apiDKVersion(w http.ResponseWriter, r *http.Request, args ...interface{}) (interface{}, error) {
 	if args == nil || len(args) != 1 {
@@ -68,6 +81,19 @@ func apiUpgrade(w http.ResponseWriter, r *http.Request, args ...interface{}) (in
 	return uhttp.RawJSONBody(`{"msg": "success"}`), nil
 }
 
+func DebugRun() {
+	if err := Cfg.LoadMainTOML(MainConfigFile); err != nil {
+		l.Warnf("unable to load main config file: %s", err)
+	}
+	Cfg.SetLogging()
+	l = logger.SLogger("main")
+
+	_ = startHTTPServer()
+	if err := startDCA(&serviceImpl{done: make(chan struct{})}); err != nil {
+		l.Errorf("startDCA failed: %s", err.Error())
+	}
+}
+
 func startHTTPServer() *http.Server {
 	gin.DefaultErrorWriter = getGinErrLogger()
 	gin.SetMode(gin.ReleaseMode)
@@ -83,10 +109,7 @@ func startHTTPServer() *http.Server {
 		router.Use(getIPVerifyMiddleware())
 	}
 
-	ui := &upgraderImpl{
-		c:             Cfg,
-		upgradeStatus: atomic.NewInt32(0),
-	}
+	ui.c = Cfg
 
 	router.POST("/v1/datakit/upgrade",
 		httpapi.RawHTTPWrapper(nil, apiUpgrade, ui))
@@ -101,7 +124,7 @@ func startHTTPServer() *http.Server {
 
 	go func() {
 		if err := serv.ListenAndServe(); err != nil {
-			l.Infof("ListenAndServe: %s", err)
+			l.Infof("ListenAndServe: %s", err.Error())
 			httpServClosed <- err
 		}
 	}()

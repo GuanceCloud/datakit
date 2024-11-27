@@ -167,7 +167,7 @@ func (c *Config) TryUpgradeCfg(p string) error {
 	// check if the toml file has been modified
 	if ok, err := ifTOMLEqual(replacedText, string(newTomlText)); err == nil && ok {
 		if c.Hostname == "" {
-			if err := c.setHostname(); err != nil {
+			if err := c.SetHostname(); err != nil {
 				return err
 			}
 		}
@@ -201,7 +201,7 @@ func (c *Config) TryUpgradeCfg(p string) error {
 
 func (c *Config) InitCfgOutput() ([]byte, error) {
 	if c.Hostname == "" {
-		if err := c.setHostname(); err != nil {
+		if err := c.SetHostname(); err != nil {
 			return nil, err
 		}
 	}
@@ -244,7 +244,7 @@ func ifTOMLEqual(toml1, toml2 string) (bool, error) {
 
 func (c *Config) InitCfgWithComments(path string, meta gctoml.MetaData) error {
 	if c.Hostname == "" {
-		if err := c.setHostname(); err != nil {
+		if err := c.SetHostname(); err != nil {
 			return err
 		}
 	}
@@ -300,7 +300,7 @@ func (c *Config) parseGlobalHostTags() {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			hostName := ""
 			if c.Hostname == "" {
-				if err := c.setHostname(); err != nil {
+				if err := c.SetHostname(); err != nil {
 					l.Warnf("setHostname: %s, ignored", err)
 				} else {
 					hostName = c.Hostname
@@ -423,7 +423,7 @@ func (c *Config) ApplyMainConfig() error {
 	c.setupUlimit()
 
 	if c.Hostname == "" {
-		if err := c.setHostname(); err != nil {
+		if err := c.SetHostname(); err != nil {
 			return err
 		}
 	}
@@ -496,7 +496,7 @@ func (c *Config) setupUlimit() {
 	}
 }
 
-func (c *Config) setHostname() error {
+func (c *Config) SetHostname() error {
 	if hn, err := c.getHostName(); err != nil {
 		return err
 	} else {

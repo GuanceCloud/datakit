@@ -1,0 +1,80 @@
+.title {
+  color: #222222;
+  font-weight: 700;
+  margin-bottom: 5px;
+
+}
+
+.info {
+  padding: 5px 5px 5px 10px;
+
+  .reload {
+    padding: 0 5px;
+
+    .icon {}
+
+    .text {
+
+      margin-left: 5px;
+      color: #222222;
+    }
+  }
+
+  .detail {
+    // border-top: 1px solid #E1E4E8;
+    // margin-top: 10px;
+    position: relative;
+
+    .refresh {
+      position: absolute;
+      right: 10px;
+      top: 0
+    }
+
+    .row {
+      display: flex
+    }
+
+    .basic {
+      margin-bottom: 10px;
+      margin-left: 10px;
+
+      .title {
+        @extend .title
+      }
+
+      .content {
+        display: flex;
+        margin-bottom: 20px;
+        display: flex;
+        color: #222222;
+        flex-direction: column;
+
+        .label {
+          text-align: right;
+          margin-bottom: 5px;
+        }
+
+        .item {
+          display: flex;
+          margin-top: 5px;
+          flex-direction: row;
+
+          .key {
+            width: 100px;
+          }
+        }
+      }
+    }
+
+    .table {
+      margin-left: 10px;
+
+      .title {
+        @extend .title
+      }
+
+      margin-bottom: 20px;
+    }
+  }
+}

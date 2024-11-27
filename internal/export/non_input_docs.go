@@ -585,8 +585,7 @@ func envIO() []*inputs.ENVInfo {
 func envDca() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_DCA_LISTEN", Type: doc.URL, Default: "localhost:9531", Desc: "The address can be modified so that the [DCA](dca.md) client can manage the DataKit. Once `ENV_DCA_LISTEN` is turned on, the DCA function is enabled by default", DescZh: "可修改改地址，使得 [DCA](dca.md) 客户端能管理该 Datakit，一旦开启 ENV_DCA_LISTEN 即默认启用 DCA 功能"},
-		{ENVName: "ENV_DCA_WHITE_LIST", Type: doc.List, Desc: "Configure DCA white list, separated by English commas", DescZh: "配置 DCA 白名单，以英文逗号分隔"},
+		{ENVName: "ENV_DCA_WEBSOCKET_SERVER", Type: doc.URL, Default: "", Desc: "The server address that the the DataKit can connect to. Once `ENV_DCA_WEBSOCKET_SERVER` is set, the DCA function is enabled by default", DescZh: "DataKit 可以连接该地址，使得 DCA 可以进行管理该 DataKit，一旦开启 ENV_DCA_WEBSOCKET_SERVER 即默认启用 DCA 功能"},
 	}
 
 	for idx := range infos {

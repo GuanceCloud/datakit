@@ -27,6 +27,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
@@ -36,6 +37,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 var (
@@ -101,27 +104,18 @@ func Start(opts ...option) {
 		}
 	}
 
+	if err := setWorkspace(hs); err != nil {
+		l.Errorf("set workspace failed: %s", err.Error())
+	}
+
+	startDCA(hs)
+
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
 		HTTPStart(hs)
 		l.Info("http goroutine exit")
 		return nil
 	})
-
-	// DCA server require dataway
-	if hs.dcaConfig != nil {
-		if hs.dcaConfig.Enable {
-			if hs.dw == nil {
-				l.Warn("Ignore to start DCA server because dataway is not set!")
-			} else {
-				g.Go(func(ctx context.Context) error {
-					dcaHTTPStart(hs)
-					l.Info("DCA http goroutine exit")
-					return nil
-				})
-			}
-		}
-	}
 
 	// start pprof if enabled
 	if hs.pprof {
@@ -208,6 +202,8 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	applyHTTPRoute(router)
 
+	createDCARouter(router, hs)
+
 	router.GET("/v1/ping", RawHTTPWrapper(reqLimiter, apiPing))
 	router.POST("/v1/write/:category", RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
@@ -282,7 +278,9 @@ func HTTPStart(hs *httpServerConf) {
 	l.Debug("http server started")
 
 	stopFunc := func() {
-		if err := srv.Shutdown(context.Background()); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
 			l.Errorf("Failed of http server shutdown, err: %s", err.Error())
 		} else {
 			l.Info("http server shutdown ok")
@@ -512,4 +510,86 @@ func checkTokens(dw *dataway.Dataway, req *http.Request) error {
 // IsNil test if x is a nil pointer or nil interface.
 func IsNil(x any) bool {
 	return x == nil || (reflect.ValueOf(x).Kind() == reflect.Ptr && reflect.ValueOf(x).IsNil())
+}
+
+// ReloadDataKit will reload datakit modules wihout restart datakit process.
+func ReloadDataKit(ctx context.Context) error {
+	round := 0 // 循环次数
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("reload timeout")
+
+		default:
+			switch round {
+			case 0:
+				l.Info("before ReloadCheckInputCfg")
+
+				_, err := config.ReloadCheckInputCfg()
+				if err != nil {
+					l.Errorf("ReloadCheckInputCfg failed: %v", err)
+					return err
+				}
+
+				l.Info("before ReloadCheckPipelineCfg")
+
+			case 1:
+				l.Info("before StopInputs")
+
+				if err := inputs.StopInputs(); err != nil {
+					l.Errorf("StopInputs failed: %v", err)
+					return err
+				}
+
+			case 2:
+				l.Info("before ReloadInputConfig")
+
+				if err := config.ReloadInputConfig(); err != nil {
+					l.Errorf("ReloadInputConfig failed: %v", err)
+					return err
+				}
+
+			case 3:
+				l.Info("before set pipelines")
+				if m, ok := plval.GetManager(); ok && m != nil {
+					// git
+					if config.GitHasEnabled() {
+						m.LoadScriptsFromWorkspace(manager.NSGitRepo,
+							filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
+					}
+					// local
+					plPath := filepath.Join(datakit.InstallDir, "pipeline")
+					m.LoadScriptsFromWorkspace(manager.NSDefault, plPath, nil)
+				}
+
+			case 4:
+				l.Info("before RunInputs")
+
+				CleanHTTPHandler()
+				if err := inputs.RunInputs(); err != nil {
+					l.Errorf("RunInputs failed: %v", err)
+					return err
+				}
+
+			case 5:
+				l.Info("before ReloadTheNormalServer")
+
+				ReloadTheNormalServer(
+					WithAPIConfig(config.Cfg.HTTPAPI),
+					WithDCAConfig(config.Cfg.DCAConfig),
+					WithGinLog(config.Cfg.Logging.GinLog),
+					WithGinRotateMB(config.Cfg.Logging.Rotate),
+					WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
+					WithDataway(config.Cfg.Dataway),
+					WithPProf(config.Cfg.EnablePProf),
+					WithPProfListen(config.Cfg.PProfListen),
+				)
+			}
+		}
+
+		round++
+		if round > 6 {
+			return nil
+		}
+	}
 }

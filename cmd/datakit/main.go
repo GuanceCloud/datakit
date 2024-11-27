@@ -55,7 +55,6 @@ var (
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano()) // rand seed global
 
-	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
 	}
@@ -211,6 +210,8 @@ func tryLoadConfig() {
 	l = logger.SLogger("main")
 
 	runtimeID = cliutils.XID("dkrun_")
+
+	datakit.RuntimeID = runtimeID
 
 	l.Infof("datakit run ID: %s, version: %s", runtimeID, datakit.Version)
 }
@@ -372,14 +373,6 @@ func doRun() error {
 				return arr[0] // only use the 1st token configured.
 			}
 			return "datakit's workspace token not set"
-		}()),
-
-		usagetrace.WithDCAAPIServer(func() string {
-			if !config.Cfg.DCAConfig.Enable {
-				return ""
-			} else {
-				return config.Cfg.DCAConfig.Listen
-			}
 		}()),
 
 		usagetrace.WithDatakitPodname(func() string {

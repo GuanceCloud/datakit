@@ -145,8 +145,7 @@ func init() {
 
 	// DCA flags
 	flag.StringVar(&installer.DCAEnable, "dca-enable", "", "enable DCA")
-	flag.StringVar(&installer.DCAListen, "dca-listen", "", "DCA listen address and port")
-	flag.StringVar(&installer.DCAWhiteList, "dca-white-list", "", "DCA white list")
+	flag.StringVar(&installer.DCAWebsocketServer, "dca-websocket-server", "", "DCA websocket server")
 
 	// global-host-tags flags
 	flag.StringVar(&installer.GlobalHostTags, "global-tags", "", "Deprecated, use global-host-tag")

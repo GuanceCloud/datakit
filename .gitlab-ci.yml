@@ -14,7 +14,7 @@ variables:
   PROJECT: "datakit"
   CI_VERSION: "1.63.1"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
-  DISABLED_MR_TARGET_BRANCHES: '/^master|main/'
+  DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
 
 stages:
@@ -23,7 +23,7 @@ stages:
   - deploy
 
 # run lint and unit test for most of the branches
-ci_lint_and_ut: 
+ci_lint_and_ut:
   stage: deploy
   resource_group: production
   rules:
@@ -189,7 +189,6 @@ current-testing:
   tags:
     - cloudcare-ft
 
-
 build-profiling-image:
   stage: deploy
   resource_group: production
@@ -199,5 +198,44 @@ build-profiling-image:
     - pwd
     - cd k8s-profilers && make build
     - pwd
+  tags:
+    - cloudcare-ft
+
+build-dca-testing-image:
+  stage: deploy
+  resource_group: production
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^testing-.*$/ "
+      changes:
+        - dca/**/*
+    - if: "$CI_COMMIT_BRANCH =~ /^dca-testing-.*$/"
+  script:
+    - nvm use v16.14.0
+    - tag=`git describe --tags --always`
+    - make clean
+    - make local
+    - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
+    - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
+    - cd ../..
+    - make pub_dca_testing IMAGE_TAG=${CI_COMMIT_REF_NAME}-${tag}
+  tags:
+    - cloudcare-ft
+
+build-dca-production-image:
+  stage: deploy
+  resource_group: production
+  rules:
+    - if: "$CI_COMMIT_BRANCH == 'master'"
+      changes:
+        - dca/**/*
+  script:
+    - nvm use v16.14.0
+    - tag=`git describe --tags --always`
+    - make clean
+    - make local
+    - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
+    - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
+    - cd ../..
+    - make pub_dca_production
   tags:
     - cloudcare-ft

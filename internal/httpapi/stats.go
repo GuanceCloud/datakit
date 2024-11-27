@@ -7,13 +7,16 @@ package httpapi
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
+	"github.com/dustin/go-humanize"
 	dto "github.com/prometheus/client_model/go"
+	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
@@ -21,6 +24,7 @@ import (
 	dkm "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/usagetrace"
 )
 
 type DatakitStats struct {
@@ -51,8 +55,10 @@ type DatakitStats struct {
 	IOStats     *Stats                `json:"io_stats"`
 	FilterStats *FilterStats          `json:"filter_stats"`
 
-	WithinDocker bool `json:"docker"`
-	AutoUpdate   bool `json:"auto_update"`
+	WithinDocker       bool                   `json:"docker"`
+	AutoUpdate         bool                   `json:"auto_update"`
+	UsageTrace         *usagetrace.UsageTrace `json:"usage_trace"`
+	DatakitRuntimeInfo *ws.DataKitRuntimeInfo `json:"datakit_runtime_info"`
 
 	// markdown options
 	DisableMonofont bool `json:"-"`
@@ -159,6 +165,8 @@ type inputsStat struct {
 	Version        string        `json:"version,omitempty"`
 	MaxCollectCost time.Duration `json:"max_collect_cost"`
 	AvgCollectCost time.Duration `json:"avg_collect_cost"`
+	P90Lat         string        `json:"p90_lat"`
+	P90Pts         string        `json:"p90_pts"`
 }
 
 type RuntimeInfo struct {
@@ -236,18 +244,20 @@ func GetStats() (*DatakitStats, error) {
 		WithinDocker:  datakit.Docker,
 		Elected:       fmt.Sprintf("%s::%s|%s", elecMetric.Status, elecMetric.Namespace, elecMetric.WhoElected),
 		AutoUpdate:    datakit.AutoUpdate,
+		UsageTrace:    usagetrace.GetUsageTraceInstance(),
 		HostName:      datakit.DatakitHostName,
 		ResourceLimit: resourcelimit.Info(),
 		OpenFiles:     datakit.OpenFiles(),
 		GolangRuntime: getRuntimeInfo(),
 
-		IOStats:         &Stats{ChanUsage: make(map[string][2]int, 5)},
-		AvailableInputs: []string{},
-		FilterStats:     &FilterStats{},
-		GoroutineStats:  &goroutineSummary{Items: make(map[string]goroutine.RunningStatInfo, 10)},
-		HTTPMetrics:     make(map[string]*APIStat),
-		InputsStats:     make(map[string]inputsStat),
-		EnabledInputs:   make(map[string]*enabledInput),
+		IOStats:            &Stats{ChanUsage: make(map[string][2]int, 5)},
+		AvailableInputs:    []string{},
+		FilterStats:        &FilterStats{},
+		GoroutineStats:     &goroutineSummary{Items: make(map[string]goroutine.RunningStatInfo, 10)},
+		HTTPMetrics:        make(map[string]*APIStat),
+		InputsStats:        make(map[string]inputsStat),
+		EnabledInputs:      make(map[string]*enabledInput),
+		DatakitRuntimeInfo: &ws.DataKitRuntimeInfo{},
 	}
 
 	prefix := "datakit_"
@@ -255,6 +265,11 @@ func GetStats() (*DatakitStats, error) {
 	for _, mfamily := range family {
 		name := mfamily.GetName()
 		pts := mfamily.GetMetric()
+
+		if name == "datakit_cpu_usage" && len(pts) == 1 {
+			stats.DatakitRuntimeInfo.CPUUsage = fmt.Sprintf("%.2f", pts[0].GetGauge().GetValue())
+			continue
+		}
 
 		if strings.HasPrefix(name, prefix+"io_dataway_") || strings.HasPrefix(name, prefix+"io_chan_") {
 			l.Debugf("get io stats...")
@@ -430,6 +445,8 @@ func getInputsStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 				inputName = la.GetValue()
 			case "source":
 				inputName = la.GetValue()
+			case "from":
+				inputName = la.GetValue()
 			case "category":
 				cat = la.GetValue()
 			case "error":
@@ -437,16 +454,29 @@ func getInputsStats(name string, stats *DatakitStats, pts []*dto.Metric) {
 			}
 		}
 
-		if len(inputName) == 0 {
+		if len(inputName) == 0 || inputName == "unknown" {
 			continue
 		}
 
 		item, ok := stats.InputsStats[inputName]
 		if !ok {
-			item = inputsStat{Category: cat}
+			item = inputsStat{
+				Category: cat,
+				P90Lat:   "-",
+				P90Pts:   "-",
+			}
 		}
 
 		switch name {
+		case "datakit_io_feed_cost_seconds":
+			q := pt.GetSummary().GetQuantile()[1]
+			if v := q.GetValue(); math.IsNaN(v) {
+				item.P90Lat = "NaN"
+			} else {
+				item.P90Lat = time.Duration(v * float64(time.Second)).String()
+			}
+		case "datakit_io_feed_point":
+			item.P90Pts = number(pt.GetSummary().GetQuantile()[1].GetValue())
 		case "datakit_io_feed_total":
 			item.FeedTotal = int64(pt.GetCounter().GetValue())
 		case "datakit_io_feed_point_total":
@@ -746,4 +776,23 @@ var chanUsage = map[string]string{
 	"rum":           "/v1/write/rum",
 	"security":      "/v1/write/security",
 	"profiling":     "/v1/write/profiling",
+}
+
+func number(i interface{}) string {
+	switch x := i.(type) {
+	case int:
+		return humanize.SIWithDigits(float64(x), 3, "")
+	case uint:
+		return humanize.SIWithDigits(float64(x), 3, "")
+	case int64:
+		return humanize.SIWithDigits(float64(x), 3, "")
+	case uint64:
+		return humanize.SIWithDigits(float64(x), 3, "")
+	case float32:
+		return humanize.SIWithDigits(float64(x), 3, "")
+	case float64:
+		return humanize.SIWithDigits(x, 3, "")
+	default:
+		return ""
+	}
 }

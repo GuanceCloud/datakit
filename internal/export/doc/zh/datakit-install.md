@@ -281,8 +281,7 @@ NAME1="value1" NAME2="value2"
 ### DCA 相关 {#env-dca}
 
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
-- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认 `0.0.0.0:9531`）
-- `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
+- `DK_DCA_WEBSOCKET_SERVER`：支持安装阶段自定义配置 DCA 的 websocket 地址
 
 ### 外部采集器相关 {#env-external-inputs}
 

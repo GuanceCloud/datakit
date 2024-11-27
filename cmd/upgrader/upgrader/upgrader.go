@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/kardianos/service"
@@ -27,6 +28,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
+
+var Docker = false
 
 const (
 	statusNoUpgrade = 0
@@ -101,7 +104,7 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 	}
 
 	if uo.version == "" { // version not specified, we use online(maybe PAAS offline version) latest version.
-		onlineVer, err := cmds.GetOnlineVersions(baseURL, u.c.Proxy)
+		onlineVer, err := cmds.GetOnlineVersions(baseURL, u.c.Proxy, 30*time.Second)
 		if err != nil {
 			return uhttp.Errorf(httpapi.ErrUpgradeFailed, "unable to get online version: %s", err)
 		}
@@ -252,6 +255,14 @@ func (u *upgraderImpl) forceStopService() error {
 		}
 	} else {
 		l.Warnf("get status of datakit service failed: %s, ignored", err.Error())
+	}
+
+	return nil
+}
+
+func (u *upgraderImpl) restartService() error {
+	if err := cmds.RestartDatakit(); err != nil {
+		return err
 	}
 
 	return nil

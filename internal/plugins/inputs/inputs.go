@@ -31,10 +31,19 @@ const (
 	ElectionPauseChannelLength = 8
 )
 
+type ConfigInfoItem struct {
+	Inputs  map[string]*Config `json:"inputs"`
+	DataKit *Config            `json:"datakit"`
+}
+
 var (
-	Inputs         = map[string]Creator{}
-	InputsInfo     = map[string][]*inputInfo{}
-	ConfigInfo     = map[string]*Config{}
+	Inputs     = map[string]Creator{}
+	InputsInfo = map[string][]*inputInfo{}
+	ConfigInfo = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
+		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
+		ConfigDir:    datakit.ConfdDir,
+		SampleConfig: datakit.DatakitConfSample,
+	}}
 	ConfigFileHash = map[string]struct{}{}
 	panicInputs    = map[string]int{}
 	mtx            = sync.RWMutex{}
@@ -200,7 +209,10 @@ func GetInput() ([]byte, error) {
 //
 //	if fp is empty, add new config when inputName not exist, or set ConfigPaths empty when exist.
 func AddConfigInfoPath(inputName string, fp string, loaded int8) {
-	if c, ok := ConfigInfo[inputName]; ok {
+	mtx.Lock()
+	defer mtx.Unlock()
+	inputsConfig := ConfigInfo.Inputs
+	if c, ok := inputsConfig[inputName]; ok {
 		if len(fp) == 0 {
 			c.ConfigPaths = []*ConfigPathStat{} // set empty for reload datakit
 			return
@@ -224,8 +236,16 @@ func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 			if len(fp) > 0 {
 				config.ConfigPaths = append(config.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
 			}
-			ConfigInfo[inputName] = config
+			inputsConfig[inputName] = config
 		}
+	}
+}
+
+func UpdateDatakitConfigInfo(loaded int8) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	if ConfigInfo.DataKit != nil && len(ConfigInfo.DataKit.ConfigPaths) == 1 {
+		ConfigInfo.DataKit.ConfigPaths[0].Loaded = loaded
 	}
 }
 
@@ -233,7 +253,7 @@ func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 func DeleteConfigInfoPath(inputName, fp string) {
 	mtx.Lock()
 	defer mtx.Unlock()
-	if i, ok := ConfigInfo[inputName]; ok {
+	if i, ok := ConfigInfo.Inputs[inputName]; ok {
 		for j, f := range i.ConfigPaths {
 			if f.Path == fp {
 				i.ConfigPaths = append(i.ConfigPaths[:j], i.ConfigPaths[j+1:]...)
@@ -285,7 +305,7 @@ func ResetInputs() {
 	InputsInfo = map[string][]*inputInfo{}
 
 	// only reset input config path
-	for _, v := range ConfigInfo {
+	for _, v := range ConfigInfo.Inputs {
 		v.ConfigPaths = v.ConfigPaths[0:0]
 		v.ConfigDir = datakit.ConfdDir
 	}

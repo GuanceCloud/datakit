@@ -37,6 +37,7 @@ type MainConfig struct {
 	Logging          *LoggerCfg `toml:"logging"`
 	InstallDir       string     `toml:"install_dir"`
 	Username         string     `toml:"username"`
+	DCAWebsocketURL  string     `toml:"dca_websocket_url"`
 
 	upgradeUpgraderService,
 	dkUpgrade,
@@ -115,6 +116,7 @@ func (c *MainConfig) LoadMainTOML(f string) error {
 	if _, err := bstoml.DecodeFile(f, c); err != nil {
 		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
+
 	return nil
 }
 

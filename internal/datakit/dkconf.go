@@ -55,12 +55,8 @@ ulimit = 64000
   # Enable or disable DCA
   enable = false
 
-  # set DCA HTTP api server
-  listen = "0.0.0.0:9531"
-
-  # DCA client white list(raw IP or CIDR ip format)
-  # Example: [ "1.2.3.4", "192.168.1.0/24" ]
-  white_list = []
+  # DCA websocket server address
+  websocket_server = "ws://localhost:8000/ws"
 
 ################################################
 # Upgrader 

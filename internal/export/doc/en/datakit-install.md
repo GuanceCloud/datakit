@@ -259,8 +259,7 @@ The environment variables supported by the installation script are as follows (s
 ### On DCA  {#env-dca}
 
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
-- `DK_DCA_LISTEN`: Support custom configuration of DCA service listening addresses and ports during installation (default `0.0.0.0:9531`）
-- `DK_DCA_WHITE_LIST`: Support setup of DCA service access whitelist, multiple whitelists split (e.g. `192.168.0.1/24,10.10.0.1/24`)
+- `DK_DCA_WEBSOCKET_SERVER`:  DCA websocket server address that can be accessed by DataKit
 
 ### On External Collector  {#env-external-inputs}
 

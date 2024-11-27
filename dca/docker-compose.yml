@@ -1,0 +1,6 @@
+services:
+  dca:
+    image: registry.jiagouyun.com/cloudcare-tools-pub/dca:0.0.1 
+    ports:
+      - "8000:80"
+  

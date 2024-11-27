@@ -18,11 +18,11 @@ import (
 )
 
 type refresherMock struct {
-	ut *usageTrace
+	ut *UsageTrace
 }
 
 func (r *refresherMock) UsageTrace(body []byte) error {
-	var ut usageTrace
+	var ut UsageTrace
 	if err := json.Unmarshal(body, &ut); err != nil {
 		return err
 	} else {
@@ -126,7 +126,6 @@ func TestUsageTrace(t *T.T) {
 				WithCPULimits(3.14),
 				WithInputNames("rum"),
 				WithDatakitStartTime(0),
-				WithDCAAPIServer("dca-host:9530"),
 				WithDatakitPodname("dk-pod-xxx"),
 			)
 		}()
@@ -139,7 +138,6 @@ func TestUsageTrace(t *T.T) {
 		assert.Equal(t, runtimeID, r.ut.RuntimeID)
 		assert.Equal(t, "my-host", r.ut.Host)
 		assert.Equal(t, "tkn_xxx", r.ut.Token)
-		assert.Equal(t, "dca-host:9530", r.ut.DCAServer)
 		assert.Equal(t, runtime.GOOS, r.ut.OS)
 		assert.Equal(t, runtime.GOARCH, r.ut.Arch)
 		assert.Equal(t, "dk-pod-xxx", r.ut.PodName)
