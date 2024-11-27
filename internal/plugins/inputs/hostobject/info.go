@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -84,6 +86,7 @@ type (
 		Conntrack              *conntrackutil.Info    `json:"conntrack"`
 		FileFd                 *filefdutil.Info       `json:"filefd"`
 		Election               *election.ElectionInfo `json:"election"`
+		ConfigFile             map[string]string      `json:"config_file"`
 		cpuPercent             float64
 		load5                  float64
 		cloudInfo              map[string]interface{}
@@ -413,6 +416,9 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	ipt.getNetIORate(net) // net is the real interfaces
 	ipt.getDiskIORate()
 
+	l.Debugf("get config file message...")
+	configFile := ipt.getConfigFile()
+
 	msg.Host = &HostInfo{
 		HostMeta:               hostMeta,
 		CPU:                    cpuInfo,
@@ -424,6 +430,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Conntrack:              conntrack,
 		FileFd:                 fileFd,
 		Election:               election,
+		ConfigFile:             configFile,
 		diskUsedPercent:        diskUsedPercent,
 		diskIOReadBytesPerSec:  ipt.lastDiskIOInfo.readBytesPerSec,
 		diskIOWriteBytesPerSec: ipt.lastDiskIOInfo.writeBytesPerSec,
@@ -480,4 +487,46 @@ func getHostConfig() *HostConfig {
 
 func (ipt *Input) getElectionInfo() *election.ElectionInfo {
 	return election.GetElectionInfo(ipt.mfs)
+}
+
+func (ipt *Input) getConfigFile() map[string]string {
+	files := make(map[string]string)
+
+	// read config file from ipt.ConfigPath
+	for _, path := range ipt.ConfigPath {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			l.Warnf("failed to get file info for %s: %v", path, err)
+			continue
+		}
+
+		// only read file size <= 4KB
+		if fileInfo.Size() > 4*1024 {
+			l.Warnf("file size too large, skip reading: %s", path)
+			continue
+		}
+
+		content, err := os.ReadFile(path) // nolint:gosec
+		if err != nil {
+			l.Warnf("failed to read file %s: %v", path, err)
+			continue
+		}
+
+		// check file is text file
+		if !IsTextFile(content) {
+			l.Warnf("file is not text file, skip reading: %s", path)
+			continue
+		}
+
+		files[path] = string(content)
+	}
+
+	return files
+}
+
+func IsTextFile(data []byte) bool {
+	if len(data) == 0 {
+		return true
+	}
+	return strings.Contains(http.DetectContentType(data), "text/")
 }

@@ -6,10 +6,13 @@
 package hostobject
 
 import (
+	"io/ioutil"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetNetInfo(t *testing.T) {
@@ -49,4 +52,53 @@ func TestGetNetInfo(t *testing.T) {
 		infos = append(infos, i)
 	}
 	assert.NotEmpty(t, infos, "infos should not be empty")
+}
+
+func createTempFile(t *testing.T, content []byte) string {
+	t.Helper()
+
+	tempFile, err := ioutil.TempFile("", "testfile*.txt")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer tempFile.Close()
+
+	if _, err := tempFile.Write(content); err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+
+	return tempFile.Name()
+}
+
+func TestGetConfigFile(t *testing.T) {
+	testCases := []struct {
+		name    string
+		content []byte
+		isValid bool
+	}{
+		{"ValidTextFile", []byte("This is a text file."), true},
+		{"LargeFile", make([]byte, 5*1024), false}, // 大于 4KB 的文件
+		{"NonTextFile", []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F}, false}, // 非文本文件
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			filePath := createTempFile(t, tc.content)
+			defer os.Remove(filePath)
+
+			ipt := &Input{
+				ConfigPath: []string{filePath},
+			}
+
+			files := ipt.getConfigFile()
+
+			require.Equal(t, tc.isValid, len(files) == 1)
+
+			if tc.isValid {
+				if content, ok := files[filePath]; !ok || content != string(tc.content) {
+					t.Errorf("failed to read content from %s", filePath)
+				}
+			}
+		})
+	}
 }

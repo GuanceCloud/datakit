@@ -116,6 +116,7 @@ The basic structure of the `message` field is as follows:
     "conntrack": ...,
     "filefd": ...,
     "election": ...,
+    "config_file": ...,
   },
 
   "collectors": [ # Operation of each collector
@@ -224,6 +225,15 @@ The basic structure of the `message` field is as follows:
 | `allocated`    | Number of allocated file handles                                 | int   |
 | `maximum`      | Maximum number of file handles (deprecated, replaced by `maximum_mega`) | int   |
 | `maximum_mega` | Maximum number of file handles in M(10^6)                     | float |
+
+#### `host.config_file` {#host-config-file}
+
+config_file is a map of `file-path`: `file-content`, with the following meaning for each field:
+
+| 字段名         | 描述                                                 | 类型  |
+| -------------- | ---------------------------------------------------- | :---: |
+| `file-path`    | The absolute path of the configuration file           |  string  |
+| `file-content` | The contents of the configuration file                |  string  |
 
 #### Collector Performance Field List {#inputs-stats}
 
