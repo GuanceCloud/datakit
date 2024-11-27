@@ -416,12 +416,12 @@ func (ipt *Input) metricCollectMysqlReplication() ([]*point.Point, error) {
 }
 
 // mysql_schema.
-func (ipt *Input) metricCollectMysqlSchema(ptTS int64) ([]*point.Point, error) {
+func (ipt *Input) metricCollectMysqlSchema() ([]*point.Point, error) {
 	if err := ipt.collectMysqlSchema(); err != nil {
 		return []*point.Point{}, err
 	}
 
-	pts, err := ipt.buildMysqlSchema(ptTS)
+	pts, err := ipt.buildMysqlSchema()
 	if err != nil {
 		return []*point.Point{}, err
 	}
@@ -455,12 +455,12 @@ func (ipt *Input) metricCollectMysqlUserStatus() ([]*point.Point, error) {
 }
 
 // mysql_custom_queries.
-func (ipt *Input) metricCollectMysqlCustomQueries(ptTS int64) ([]*point.Point, error) {
+func (ipt *Input) metricCollectMysqlCustomQueries() ([]*point.Point, error) {
 	if err := ipt.collectMysqlCustomQueries(); err != nil {
 		return []*point.Point{}, err
 	}
 
-	pts, err := ipt.buildMysqlCustomQueries(ptTS)
+	pts, err := ipt.buildMysqlCustomQueries()
 	if err != nil {
 		return []*point.Point{}, err
 	}
@@ -530,23 +530,21 @@ func (ipt *Input) handleLastError() {
 	}
 }
 
-func (ipt *Input) Collect(ptTS int64) (map[point.Category][]*point.Point, error) {
+func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 	if err := ipt.initDBConnect(); err != nil {
 		return map[point.Category][]*point.Point{}, err
 	}
 
 	if len(ipt.collectors) == 0 {
 		ipt.collectors = []func() ([]*point.Point, error){
-			ipt.metricCollectMysql,            // mysql
-			ipt.metricCollectMysqlReplication, // mysql_replication
-			func() ([]*point.Point, error) { return ipt.metricCollectMysqlSchema(ptTS) },        // mysql_schema
-			ipt.metricCollectMysqlTableSschema,                                                  // mysql_table_schema
-			ipt.metricCollectMysqlUserStatus,                                                    // mysql_user_status
-			func() ([]*point.Point, error) { return ipt.metricCollectMysqlCustomQueries(ptTS) }, // mysql_custom_queries
+			ipt.metricCollectMysql,              // mysql
+			ipt.metricCollectMysqlReplication,   // mysql_replication
+			ipt.metricCollectMysqlSchema,        // mysql_schema
+			ipt.metricCollectMysqlTableSschema,  // mysql_table_schema
+			ipt.metricCollectMysqlUserStatus,    // mysql_user_status
+			ipt.metricCollectMysqlCustomQueries, // mysql_custom_queries
 		}
 	}
-
-	ipt.start = time.Now()
 
 	var ptsMetric,
 		ptsLoggingMetric,
@@ -701,8 +699,6 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
 
 	// Try until init OK.
 	for {
@@ -751,6 +747,7 @@ func (ipt *Input) Run() {
 	}
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
+	ipt.start = time.Now()
 
 	for {
 		if ipt.pause {
@@ -762,9 +759,7 @@ func (ipt *Input) Run() {
 
 			ipt.resetLastError()
 
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			mpts, err := ipt.Collect(lastAlignTime * 1e6)
+			mpts, err := ipt.Collect()
 			if err != nil {
 				ipt.setErrUpState()
 				l.Warnf("i.Collect failed: %v", err)
@@ -815,8 +810,9 @@ func (ipt *Input) Run() {
 			l.Info("mysql return")
 			return
 
-		case <-tick.C:
-
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			ipt.start = time.UnixMilli(nextts)
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}

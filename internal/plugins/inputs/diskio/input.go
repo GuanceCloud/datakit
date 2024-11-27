@@ -58,6 +58,7 @@ type Input struct {
 
 	collectCache []*point.Point
 	lastStat     map[string]disk.IOCountersStat
+	start        time.Time
 	lastTime     time.Time
 	diskIO       DiskIO
 	feeder       dkio.Feeder
@@ -75,15 +76,10 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
+	ipt.start = time.Now()
 
 	for {
-		start := time.Now()
-		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-
-		if err := ipt.collect(tn, lastAlignTime*1e6); err != nil {
+		if err := ipt.collect(); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -93,7 +89,7 @@ func (ipt *Input) Run() {
 
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(ipt.start)),
 				dkio.WithElection(false),
 				dkio.WithInputName(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
@@ -105,7 +101,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds())
+			ipt.start = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -125,7 +123,7 @@ func (ipt *Input) setup() {
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 
-func (ipt *Input) collect(tn time.Time, ptTS int64) error {
+func (ipt *Input) collect() error {
 	ipt.collectCache = make([]*point.Point, 0)
 	// set disk device filter
 	ipt.deviceFilter = &DevicesFilter{}
@@ -141,7 +139,7 @@ func (ipt *Input) collect(tn time.Time, ptTS int64) error {
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ptTS))
+	opts = append(opts, point.WithTimestamp(ipt.start.UnixNano()))
 	for _, stat := range diskio {
 		var kvs point.KVs
 
@@ -192,7 +190,7 @@ func (ipt *Input) collect(tn time.Time, ptTS int64) error {
 		kvs = kvs.Add("merged_writes", stat.MergedWriteCount, false, true)
 
 		if ipt.lastStat != nil {
-			deltaTime := tn.Unix() - ipt.lastTime.Unix()
+			deltaTime := ipt.start.Unix() - ipt.lastTime.Unix()
 			if v, ok := ipt.lastStat[stat.Name]; ok && deltaTime > 0 {
 				if stat.ReadBytes >= v.ReadBytes {
 					kvs = kvs.Add("read_bytes/sec", int64(stat.ReadBytes-v.ReadBytes)/deltaTime, false, true)
@@ -210,7 +208,7 @@ func (ipt *Input) collect(tn time.Time, ptTS int64) error {
 		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
 	ipt.lastStat = diskio
-	ipt.lastTime = tn
+	ipt.lastTime = ipt.start
 	return nil
 }
 

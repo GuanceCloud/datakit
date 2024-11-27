@@ -172,8 +172,8 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
+	ipt.start = time.Now()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -186,16 +186,16 @@ func (ipt *Input) Run() {
 			l.Info("apache return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 			ipt.setUpState()
 			ipt.FeedCoPts()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			m, err := ipt.getMetric(tn, lastAlignTime*1e6)
+			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			ipt.start = time.UnixMilli(nextts)
+			m, err := ipt.getMetric()
 			if err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -251,8 +251,7 @@ func (ipt *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (ipt *Input) getMetric(tn time.Time, ptTS int64) (*point.Point, error) {
-	ipt.start = tn
+func (ipt *Input) getMetric() (*point.Point, error) {
 	req, err := http.NewRequest("GET", ipt.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error on new request to %s : %w", ipt.URL, err)
@@ -271,10 +270,10 @@ func (ipt *Input) getMetric(tn time.Time, ptTS int64) (*point.Point, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 	}
-	return ipt.parse(resp.Body, ptTS)
+	return ipt.parse(resp.Body)
 }
 
-func (ipt *Input) parse(body io.Reader, ptTS int64) (*point.Point, error) {
+func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
@@ -289,7 +288,7 @@ func (ipt *Input) parse(body io.Reader, ptTS int64) (*point.Point, error) {
 	metric := &Measurement{
 		name:   inputName,
 		fields: map[string]interface{}{},
-		ts:     ptTS,
+		ts:     ipt.start.UnixNano(),
 	}
 
 	for sc.Scan() {

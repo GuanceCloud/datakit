@@ -317,7 +317,12 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 	p.swapTypeInfoToFront(filteredMetricFamilies)
 
-	opts := point.DefaultMetricOptions()
+	ptts := p.opt.ptts
+	if ptts == 0 {
+		ptts = time.Now().UnixNano()
+	}
+
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(ptts))
 	for _, nf := range filteredMetricFamilies {
 		name, value := nf.metricName, nf.metricFamily
 		measurementName, fieldName := p.getNames(name)
@@ -337,13 +342,11 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 				kvs = kvs.Add(fieldName, v, false, false)
 
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-					opts = point.DefaultLoggingOptions()
+					opts = point.DefaultLoggingOptions() // we do not need timestamp alignment on logging
 					kvs = kvs.Add("status", statusInfo, false, false)
 				}
 
-				pt := point.NewPointV2(measurementName, kvs, opts...)
-
-				pts = append(pts, pt)
+				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
 			}
 
 		case dto.MetricType_SUMMARY:

@@ -56,17 +56,12 @@ func (ipt *Input) Run() {
 
 	tick := dktime.NewAlignedTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
+	ipt.start = time.Now()
 
 	l.Infof("%s input started at timestamp: %d", inputName, time.Now().UnixNano())
 
 	for {
-		ipt.start = time.Now()
-		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-
-		if err := ipt.collect(lastAlignTime * 1e6); err != nil {
+		if err := ipt.collect(); err != nil {
 			l.Errorf("collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -88,7 +83,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds())
+			ipt.start = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -116,7 +113,7 @@ func (ipt *Input) setup() {
 	}
 }
 
-func (ipt *Input) collect(ptTS int64) error {
+func (ipt *Input) collect() error {
 	ipt.collectCache = make([]*point.Point, 0)
 
 	var (
@@ -162,7 +159,7 @@ func (ipt *Input) collect(ptTS int64) error {
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ptTS))
+	opts = append(opts, point.WithTimestamp(ipt.start.UnixNano()))
 	var kvs point.KVs
 
 	path := ipt.Dir

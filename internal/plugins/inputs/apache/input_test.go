@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -53,7 +52,7 @@ Scoreboard: W_________________________________________________..................
 func TestParse(t *testing.T) {
 	body := strings.NewReader(testdata)
 	n := Input{Tagger: testutils.NewTaggerHost()}
-	if _, err := n.parse(body, time.Now().UnixNano()); err != nil {
+	if _, err := n.parse(body); err != nil {
 		t.Error(err)
 	}
 }
@@ -74,7 +73,7 @@ func TestGetMetric(t *testing.T) {
 	assert.NoError(t, err)
 	n.client = client
 
-	m, err := n.getMetric(time.Now(), time.Now().UnixNano())
+	m, err := n.getMetric()
 	assert.NoError(t, err)
 
 	assert.Truef(t, m != nil, "Measurement should not nil")

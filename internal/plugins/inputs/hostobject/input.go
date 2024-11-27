@@ -100,15 +100,11 @@ func (ipt *Input) Run() {
 	ipt.setup()
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		l.Debugf("start collecting...")
-		start := time.Now()
-		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-		if err := ipt.collect(lastAlignTime * 1e6); err != nil {
+		if err := ipt.collect(start.UnixNano()); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				dkmetrics.WithLastErrorInput(inputName),
 				dkmetrics.WithLastErrorCategory(point.Object),
@@ -133,7 +129,9 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("%s return on sem", inputName)
 			return
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
+			start = time.UnixMilli(nextts)
 		}
 	}
 }

@@ -45,18 +45,18 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
+	ipt.start = time.Now()
+
 	for {
-		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-		ipt.getMetric(lastAlignTime * 1e6)
+		ipt.getMetric()
 		if ipt.lastErr != nil {
 			metrics.FeedLastError(inputName, ipt.lastErr.Error(), point.Metric)
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			ipt.start = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Info("cloudprober exit")
 			return
@@ -74,7 +74,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) getMetric(ptTS int64) {
+func (ipt *Input) getMetric() {
 	resp, err := ipt.client.Get(ipt.URL)
 	if err != nil {
 		l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
@@ -83,7 +83,7 @@ func (ipt *Input) getMetric(ptTS int64) {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	pts, err := ipt.parse(resp.Body, ptTS)
+	pts, err := ipt.parse(resp.Body)
 	if err != nil {
 		ipt.lastErr = err
 		l.Error(err.Error())
@@ -99,7 +99,7 @@ func (ipt *Input) getMetric(ptTS int64) {
 	}
 }
 
-func (ipt *Input) parse(reader io.Reader, ptTS int64) ([]*point.Point, error) {
+func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
 	var (
 		parse expfmt.TextParser
 		pts   []*point.Point
@@ -113,7 +113,7 @@ func (ipt *Input) parse(reader io.Reader, ptTS int64) ([]*point.Point, error) {
 			measurement := &Measurement{
 				tags:   map[string]string{},
 				fields: map[string]interface{}{},
-				ts:     ptTS,
+				ts:     ipt.start.UnixNano(),
 			}
 			for k, v := range ipt.Tags {
 				measurement.tags[k] = v

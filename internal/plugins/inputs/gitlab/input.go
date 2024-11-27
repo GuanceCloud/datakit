@@ -118,8 +118,7 @@ func (ipt *Input) Run() {
 
 	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
-	intervalMillSec := ipt.duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		select {
@@ -131,14 +130,13 @@ func (ipt *Input) Run() {
 			l.Info("gitlab returned")
 			return
 
-		case <-ticker.C:
+		case tt := <-ticker.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			ipt.gather(lastAlignTime * 1e6)
+			start = time.UnixMilli(inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.duration.Milliseconds()))
+			ipt.gather(start.UnixNano())
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

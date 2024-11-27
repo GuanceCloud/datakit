@@ -580,18 +580,13 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			start := time.Now()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-
-			if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
+			if err := ipt.Collect(start.UnixNano()); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
@@ -620,7 +615,9 @@ func (ipt *Input) Run() {
 			l.Info("elasticsearch return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.duration.Milliseconds())
+			start = time.UnixMilli(nextts)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
