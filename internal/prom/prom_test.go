@@ -3899,3 +3899,69 @@ up 1
 		}
 	})
 }
+
+func TestWithTimestamp(t *testing.T) {
+	mockBody := `
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 15143
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP go_gc_duration_seconds A summary of the GC invocation durations.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+# HELP http_request_duration_seconds duration histogram of http responses labeled with: status_code, method
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.003",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.03",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.1",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="0.3",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.5",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="10",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="1.2",status_code="404",method="GET"} 1
+http_request_duration_seconds_bucket{le="+Inf",status_code="403",method="GET"} 1
+http_request_duration_seconds_sum{status_code="404",method="GET"} 0.002451013
+http_request_duration_seconds_count{status_code="404",method="GET"} 1
+# HELP up 1 = up, 0 = not up
+# TYPE up untyped
+up 1
+`
+
+	t.Run("no-batch", func(t *testing.T) {
+		p, err := NewProm()
+		require.NoError(t, err)
+
+		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+		pts, err := p.CollectFromHTTPV2(promURL, WithTimestamp(123))
+		require.NoError(t, err)
+
+		for _, pt := range pts {
+			assert.Equal(t, int64(123), pt.Time().UnixNano())
+		}
+	})
+
+	t.Run("batch", func(t *testing.T) {
+		p, err := NewProm(WithMaxBatchCallback(1, func(pts []*point.Point) error {
+			for _, pt := range pts {
+				assert.Equal(t, int64(123), pt.Time().UnixNano())
+
+				t.Logf("%s", pt.Pretty())
+			}
+			return nil
+		}))
+		require.NoError(t, err)
+
+		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+		_, err = p.CollectFromHTTPV2(promURL, WithTimestamp(123))
+		require.NoError(t, err)
+	})
+}

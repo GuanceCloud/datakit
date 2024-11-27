@@ -103,18 +103,18 @@ func (ipt *Input) Run() {
 			procRecorder := newProcRecorder()
 			tick := time.NewTicker(ipt.MetricInterval.Duration)
 			defer tick.Stop()
-			intervalMS := ipt.MetricInterval.Duration.Milliseconds()
-			var lastAlignTimeMS int64
+			start := time.Now()
+
 			for {
 				processList := ipt.getProcesses(true)
 				tn := time.Now().UTC()
 
-				lastAlignTimeMS = inputs.AlignTimeMillSec(tn, lastAlignTimeMS, intervalMS)
-
-				ipt.WriteMetric(processList, procRecorder, tn, lastAlignTimeMS*1e6)
+				ipt.WriteMetric(processList, procRecorder, tn, start.UnixNano())
 				procRecorder.flush(processList, tn)
 				select {
-				case <-tick.C:
+				case tt := <-tick.C:
+					nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.MetricInterval.Duration.Milliseconds())
+					start = time.UnixMilli(nextts)
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return nil

@@ -84,17 +84,13 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
-	for {
-		start := time.Now()
+	start := ntp.NTPTime()
 
+	for {
 		if ipt.pause {
 			l.Debugf("not leader, %s skipped", inputName)
 		} else {
-			tn := ntp.NTPTime()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
+			if err := ipt.collect(start.UnixNano()); err != nil {
 				l.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -118,7 +114,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
+			start = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return

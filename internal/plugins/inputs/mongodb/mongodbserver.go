@@ -313,7 +313,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 		data.AddDBStats()
 		data.AddColStats()
 		data.AddTopStats()
-		data.append()
+		data.append(ptTS)
 		data.flush(time.Since(start))
 	}
 

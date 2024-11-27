@@ -130,17 +130,15 @@ func (ipt *Input) Run() {
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	defer tick.Stop()
 	for {
 		select {
-		case <-tick.C:
-			start := time.Now()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.Collect(lastAlignTime * 1e6); err == nil {
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			start = time.UnixMilli(nextts)
+			if err := ipt.Collect(start.UnixNano()); err == nil {
 				if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithInputName(inputName),

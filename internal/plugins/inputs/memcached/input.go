@@ -430,14 +430,10 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
-		start := time.Now()
-		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-		if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
+		if err := ipt.Collect(start.UnixNano()); err != nil {
 			l.Errorf("Collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -467,7 +463,9 @@ func (ipt *Input) Run() {
 			l.Info("memcached return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.duration.Milliseconds())
+			start = time.UnixMilli(nextts)
 		}
 	}
 }

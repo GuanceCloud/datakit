@@ -164,7 +164,11 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 }
 
 // CollectFromHTTPV2 collect points.
-func (p *Prom) CollectFromHTTPV2(u string) ([]*point.Point, error) {
+func (p *Prom) CollectFromHTTPV2(u string, opts ...PromOption) ([]*point.Point, error) {
+	for _, opt := range opts {
+		opt(p.opt)
+	}
+
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.ignoreReqErr {

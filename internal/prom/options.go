@@ -51,6 +51,7 @@ type option struct {
 
 	batchCallback func([]*point.Point) error
 	streamSize    int
+	ptts          int64
 
 	l *logger.Logger
 }
@@ -71,6 +72,15 @@ func WithTimeout(dur time.Duration) PromOption {
 	return func(opt *option) {
 		if minimumHTTPTimeout < dur {
 			opt.timeout = dur
+		}
+	}
+}
+
+// WithTimestamp set point's timestamp(nano-seconds) on each scrap.
+func WithTimestamp(ts int64) PromOption {
+	return func(opt *option) {
+		if ts > 0 {
+			opt.ptts = ts
 		}
 	}
 }

@@ -6,8 +6,6 @@
 package mongodb
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -24,13 +22,13 @@ type mongodbMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *mongodbMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -222,13 +220,13 @@ type mongodbDBMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *mongodbDBMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -286,13 +284,13 @@ type mongodbColMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *mongodbColMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -349,13 +347,13 @@ type mongodbShardMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *mongodbShardMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -384,13 +382,13 @@ type mongodbTopMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
+	ts     int64
 }
 
 // Point implement MeasurementV2.
 func (m *mongodbTopMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
+	opts = append(opts, point.WithTimestamp(m.ts))
 
 	return point.NewPointV2(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),

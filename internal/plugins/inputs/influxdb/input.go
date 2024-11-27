@@ -182,15 +182,11 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		if !ipt.pause {
-			start := time.Now()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.Collect(lastAlignTime * 1e6); err != nil {
+			if err := ipt.Collect(start.UnixNano()); err != nil {
 				l.Errorf("Collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -225,7 +221,9 @@ func (ipt *Input) Run() {
 			l.Infof("influxdb input return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			start = time.UnixMilli(nextts)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

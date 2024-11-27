@@ -318,8 +318,7 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	log.Infof("%s input started", inputName)
 
@@ -331,9 +330,7 @@ func (ipt *Input) Run() {
 
 			ipt.FeedCoByPts()
 			log.Debugf("mongodb input gathering...")
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.gather(lastAlignTime * 1e6); err != nil {
+			if err := ipt.gather(start.UnixNano()); err != nil {
 				log.Error(err.Error())
 				ipt.feeder.FeedLastError(err.Error(), metrics.WithLastErrorInput(inputName))
 				ipt.setErrUpState()
@@ -354,7 +351,9 @@ func (ipt *Input) Run() {
 			log.Info("mongodb input return")
 
 			return
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
+			start = time.UnixMilli(nextts)
 		case ipt.pause = <-ipt.pauseCh:
 		}
 	}

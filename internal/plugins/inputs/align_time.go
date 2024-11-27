@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-func AlignTimeMillSec(triggerTime time.Time, lastAlignTime int64, intervalMillSec int64) int64 {
-	tT := triggerTime.UnixMilli()
-	lastAlignTime += intervalMillSec
-	if d := math.Abs(float64(tT - lastAlignTime)); d > 0 && d/float64(intervalMillSec) > 0.1 {
-		return tT
+func AlignTimeMillSec(triggerTime time.Time, lastts, intervalMillSec int64) (nextts int64) {
+	tt := triggerTime.UnixMilli()
+	nextts = lastts + intervalMillSec
+	if d := math.Abs(float64(tt - nextts)); d > 0 && d/float64(intervalMillSec) > 0.1 {
+		nextts = tt
 	}
-	return lastAlignTime
+	return nextts
 }

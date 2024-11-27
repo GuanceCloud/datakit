@@ -105,16 +105,13 @@ func (j *JolokiaAgent) Collect() {
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
-	intervalMillSec := duration.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		select {
-		case <-tick.C:
-			start := time.Now()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := j.Gather(lastAlignTime * 1e6); err != nil {
+		case tt := <-tick.C:
+			start = time.UnixMilli(inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds()))
+			if err := j.Gather(start.UnixNano()); err != nil {
 				j.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(j.PluginName),
 					metrics.WithLastErrorCategory(point.Metric),

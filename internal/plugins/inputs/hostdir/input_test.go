@@ -9,7 +9,6 @@ import (
 	"os"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/GuanceCloud/cliutils"
 
@@ -26,7 +25,7 @@ func TestInput_Collect(t *testing.T) {
 		feeder:   io.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
 	}
-	if err := i.collect(time.Now().UnixNano()); err != nil {
+	if err := i.collect(); err != nil {
 		t.Error(err)
 	}
 	t.Log(i.collectCache)

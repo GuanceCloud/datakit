@@ -170,19 +170,18 @@ func (d *MongodbData) add(key string, val interface{}) {
 	d.Fields[key] = val
 }
 
-func (d *MongodbData) append() {
+func (d *MongodbData) append(ptTS int64) {
 	if d.ipt.Election {
 		d.Tags = inputs.MergeTagsWrapper(d.Tags, d.ipt.Tagger.ElectionTags(), d.ipt.Tags, "")
 	} else {
 		d.Tags = inputs.MergeTagsWrapper(d.Tags, d.ipt.Tagger.HostTags(), d.ipt.Tags, "")
 	}
 
-	now := time.Now()
 	metric := &mongodbMeasurement{
 		name:   MongoDB,
 		tags:   copyTags(d.Tags),
 		fields: d.Fields,
-		ts:     now,
+		ts:     ptTS,
 	}
 	d.collectCache = append(d.collectCache, metric.Point())
 
@@ -193,7 +192,7 @@ func (d *MongodbData) append() {
 			name:   MongoDBStats,
 			tags:   tmp,
 			fields: db.Fields,
-			ts:     now,
+			ts:     ptTS,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -206,7 +205,7 @@ func (d *MongodbData) append() {
 			name:   MongoDBColStats,
 			tags:   tmp,
 			fields: col.Fields,
-			ts:     now,
+			ts:     ptTS,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -218,7 +217,7 @@ func (d *MongodbData) append() {
 			name:   MongoDBShardStats,
 			tags:   tmp,
 			fields: host.Fields,
-			ts:     now,
+			ts:     ptTS,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}
@@ -230,7 +229,7 @@ func (d *MongodbData) append() {
 			name:   MongoDBTopStats,
 			tags:   tmp,
 			fields: col.Fields,
-			ts:     now,
+			ts:     ptTS,
 		}
 		d.collectCache = append(d.collectCache, metric.Point())
 	}

@@ -79,17 +79,13 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
+	start := time.Now()
 
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else {
-			start := time.Now()
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
+			if err := ipt.collect(start.UnixNano()); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
@@ -111,7 +107,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
+			start = time.UnixMilli(nextts)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
