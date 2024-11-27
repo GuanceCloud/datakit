@@ -228,6 +228,7 @@ build-dca-production-image:
     - if: "$CI_COMMIT_BRANCH == 'master'"
       changes:
         - dca/**/*
+    - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
     - nvm use v16.14.0
     - tag=`git describe --tags --always`
