@@ -34,8 +34,7 @@ Due to the update of API whitelist controls, some APIs that were enabled by defa
 
 ### Security Adjustments {#cl-1.64.0-sec}
 
-- The Datakit API whitelist feature is enabled by default. When access from non-localhost is enabled, most of the APIs cannot be accessed via non-localhost (#2479).
-- The Datakit API whitelist feature is enabled by default, which means that when access from non-localhost is enabled, most of APIs cannot be accessed via non-localhost. Additionally, when Datakit installing under Kubernetes as DaemonSet, it no longer defaults to listening on the `0.0.0.0` address; instead, it listens on the Pod IP of Datakit itself (#2479).
+- The Datakit API whitelist feature is enabled by default, which means that when access from non-localhost is enabled, most of APIs cannot be accessed via non-localhost. (#2479).
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -49,7 +48,7 @@ Due to the update of API whitelist controls, some APIs that were enabled by defa
 
     **Security Hardening Recommendations**
 
-    - Strongly recommend upgrading to the latest version of DataKit(or apply the new Datakit Helm/yaml), which defaults to disabling remote access and provides a safer access control mechanism.
+    - Strongly recommend upgrading to the latest version of DataKit, which defaults to disabling remote access and provides a safer access control mechanism.
     - If you do need to configure Datakit to be accessible from the public network (for example, for RUM data reporting), in the front Nginx:
 
         1. Only expose data writing APIs

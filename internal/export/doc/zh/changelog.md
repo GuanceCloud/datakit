@@ -33,7 +33,7 @@
 
 ### 安全调整 {#cl-1.64.0-sec}
 
-- 默认即开启了 Datakit API 白名单功能，当开放非 localhost 访问时，绝大部份接口都不能通过非 localhost 访问。同时 Kubernetes DaemonSet 安装时，不再默认监听 `0.0.0.0` 地址，改为监听 Datakit 自身的 Pod IP（#2479）
+- 默认即开启了 Datakit API 白名单功能，当开放非 localhost 访问时，绝大部份接口都不能通过非 localhost 访问（#2479）
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
@@ -47,7 +47,7 @@
     
     **安全加固建议**
     
-    - 强烈建议升级到最新版本的 DataKit（或采用新的 Datakit Helm/yaml 配置），新版本默认已禁用远程访问，并提供更安全的访问控制机制。
+    - 强烈建议升级到最新版本的 DataKit，新版本默认已禁用远程访问，并提供更安全的访问控制机制。
     - 如果确实有需要将 Datakit 配置成外网可访问（比如 RUM 数据上报），在前置的 Nginx 中：
     
         1. 仅开放数据写入接口
