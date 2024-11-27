@@ -7,13 +7,17 @@
 package exporter
 
 import (
-	"bufio"
+	"context"
 	"fmt"
-	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
@@ -25,15 +29,21 @@ type ExporterV5 struct {
 	items      map[string]*FileReader
 	metricChan chan []*point.Point
 	stopChan   chan struct{}
+	cacheData  *CacheData
+
+	CollectItem,
+	CollectTrigger,
+	CollectTrends bool // 三种数据类型开关。
 
 	feeder dkio.Feeder
 }
 
-func (ex *ExporterV5) InitExporter(feeder dkio.Feeder, tags map[string]string) error {
+func (ex *ExporterV5) InitExporter(feeder dkio.Feeder, tags map[string]string, cd *CacheData, objects string) error {
 	ex.items = make(map[string]*FileReader)
 	ex.metricChan = make(chan []*point.Point, 10)
 	ex.stopChan = make(chan struct{})
 	ex.feeder = feeder
+	ex.cacheData = cd
 
 	stat, err := os.Stat(ex.ExDir)
 	if err != nil {
@@ -43,7 +53,31 @@ func (ex *ExporterV5) InitExporter(feeder dkio.Feeder, tags map[string]string) e
 		return fmt.Errorf("ExporterDir:%s is not dir", ex.ExDir)
 	}
 
-	go ex.checkFileList(tags)
+	collectModules := strings.Split(objects, ",")
+	if len(collectModules) == 3 || objects == "" {
+		ex.CollectTrigger = true
+		ex.CollectTrends = true
+		ex.CollectItem = true
+	} else {
+		for _, module := range collectModules {
+			switch strings.ToLower(module) {
+			case modules[Items]:
+				ex.CollectItem = true
+			case modules[Trigger]:
+				ex.CollectTrigger = true
+			case modules[Trends]:
+				ex.CollectTrends = true
+			default:
+				log.Errorf("unknown object =%s", module)
+			}
+		}
+	}
+	g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+	g.Go(func(ctx context.Context) error {
+		ex.checkFileList(tags)
+		return nil
+	})
+
 	return nil
 }
 
@@ -71,15 +105,32 @@ func (ex *ExporterV5) checkFileList(tags map[string]string) {
 					model := CheckModel(entry.Name())
 					switch model {
 					case Items:
-						log.Infof("add items file to export, full name =%s", fullName)
-						ex.items[fullName] = NewFileReader(fullName, Items, tags)
-						go ex.items[fullName].Read(ex.metricChan)
-						time.Sleep(time.Second) // 文件多，错峰读取 items 文件。
+						if ex.CollectItem {
+							log.Infof("add items file to export, full name =%s", fullName)
+							ZabbixCollectFiles.WithLabelValues("item").Add(1)
+							ex.items[fullName] = NewFileReader(fullName, Items, tags)
+
+							g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+							g.Go(func(ctx context.Context) error {
+								ex.items[fullName].Read(ex.metricChan, ex.cacheData)
+								return nil
+							})
+							time.Sleep(time.Second) // 文件多，错峰读取 items 文件。
+						}
 					case Trends:
-						log.Infof("add trends file to export, full name =%s", fullName)
-						ex.items[fullName] = NewFileReader(fullName, Trends, tags)
-						go ex.items[fullName].Read(ex.metricChan)
-					case Unknown:
+						if ex.CollectTrends {
+							log.Infof("add trends file to export, full name =%s", fullName)
+							ZabbixCollectFiles.WithLabelValues("trends").Add(1)
+							ex.items[fullName] = NewFileReader(fullName, Trends, tags)
+
+							g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+							g.Go(func(ctx context.Context) error {
+								ex.items[fullName].Read(ex.metricChan, ex.cacheData)
+								return nil
+							})
+						}
+
+					case Trigger, Unknown:
 					default:
 						log.Infof("unknown mode, filename=%s", fullName)
 					}
@@ -115,11 +166,11 @@ func (ex *ExporterV5) collect() {
 type FileReader struct {
 	exportType ExportType
 	fileName   string
-	offset     int64
 	tags       map[string]string
 	log        *logger.Logger
+	lines      chan string
 
-	stop      chan struct{}
+	stop      chan interface{}
 	firstOpen bool
 }
 
@@ -135,95 +186,83 @@ func NewFileReader(fileName string, eType ExportType, tags map[string]string) *F
 		exportType: eType,
 		tags:       tags,
 		log:        logger.SLogger(logName),
-		stop:       make(chan struct{}),
+		stop:       make(chan interface{}),
 		firstOpen:  true,
+		lines:      make(chan string, 100),
 	}
 }
 
-func (fr *FileReader) Read(feeder chan []*point.Point) {
+func (fr *FileReader) Read(feeder chan []*point.Point, cd *CacheData) {
 	fr.log.Infof("start to read file:%s", fr.fileName)
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(time.Second * 10)
+	itemsC := make([]string, 0, 20)
+	trendsC := make([]string, 0, 20)
+
+	g := goroutine.NewGroup(goroutine.Option{Name: inputName})
+	g.Go(func(ctx context.Context) error {
+		fr.readFromFileV2()
+		return nil
+	})
+
 	defer ticker.Stop()
 	for {
 		select {
 		case <-fr.stop:
 			return
-		case <-ticker.C:
-			lines, err := fr.readFromFile()
-			if err != nil {
-				fr.log.Errorf("read file:%s , err=%v or lines==0", fr.fileName, err)
-				continue
-			}
-			if len(lines) == 0 {
-				continue
-			}
-
+		case text := <-fr.lines:
 			switch fr.exportType {
 			case Items:
-				pts := itemsToPoints(lines, fr.tags, fr.log)
-				if len(pts) > 0 {
-					fr.log.Debugf("read from file:%s to point.len=%d", fr.fileName, len(pts))
-					feeder <- pts
-				}
+				log.Debugf("add item data to cache")
+				itemsC = append(itemsC, text)
 			case Trends:
-				pts := trendsToPoints(lines, fr.tags, fr.log)
+				trendsC = append(trendsC, text)
+			case Trigger, Unknown:
+			default:
+			}
+
+		case <-ticker.C:
+			// 将数据组装 points 发送
+			if len(itemsC) > 0 {
+				pts := itemsToPoints(itemsC, fr.tags, fr.log, cd)
 				if len(pts) > 0 {
+					fr.log.Debugf("read from file:%s to point.len=%d", fr.fileName, len(pts))
+					ZabbixCollectMetrics.WithLabelValues("item").Add(1)
+					feeder <- pts
+				}
+				itemsC = make([]string, 0, 20)
+			}
+			if len(trendsC) > 0 {
+				pts := trendsToPoints(trendsC, fr.tags, fr.log, cd)
+				if len(pts) > 0 {
+					ZabbixCollectMetrics.WithLabelValues("trends").Add(float64(len(pts)))
 					fr.log.Debugf("read from file:%s to point.len=%d", fr.fileName, len(pts))
 					feeder <- pts
 				}
-			case Unknown:
-			default:
+				trendsC = make([]string, 0, 20)
 			}
 		}
 	}
 }
 
-func (fr *FileReader) readFromFile() ([]string, error) {
-	lines := make([]string, 0)
+func (fr *FileReader) readFromFileV2() {
+	var err error
+	fn := func(filename, text string, fields map[string]interface{}) error {
+		log.Debugf("read from tailer")
+		fr.lines <- text
+		return nil
+	}
 
-	file, err := os.Open(fr.fileName)
+	tailOpts := []tailer.Option{
+		tailer.WithForwardFunc(fn),
+		tailer.WithFromBeginning(false),
+		tailer.WithDone(fr.stop),
+		tailer.WithFileFromBeginningThresholdSize(math.MaxInt64), // 设置最大值，从不开头读。
+	}
+
+	singel, err := tailer.NewTailerSingle(fr.fileName, tailOpts...)
 	if err != nil {
-		return lines, err
+		log.Errorf("new single err=%v", err)
+		return
 	}
-	defer file.Close() //nolint
-
-	if fr.firstOpen {
-		firstSeek, err := file.Seek(0, io.SeekEnd)
-		if err != nil {
-			return lines, err
-		}
-		fr.log.Infof("offset =0 set to %d", firstSeek)
-		fr.offset = firstSeek
-		fr.firstOpen = false
-		return lines, err
-	}
-
-	// 如果有seek offset，就从末尾开始读取
-	if fr.offset > 0 {
-		_, err = file.Seek(fr.offset, io.SeekStart)
-		if err != nil {
-			fr.log.Warnf("-- file offset change!! file=%s ,offset set to 0(start offset)", fr.fileName)
-			fr.offset = 0
-			return lines, err
-		}
-	}
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		bts := scanner.Text()
-		lines = append(lines, bts)
-	}
-
-	if err = scanner.Err(); err != nil {
-		fr.log.Warnf("scanner err=%v", err)
-	}
-
-	// 记录当前文件结尾的位置
-	newOffset, err := file.Seek(0, io.SeekEnd)
-	if err != nil {
-		return lines, err
-	}
-	fr.offset = newOffset
-	fr.log.Debugf("lines len=%d", len(lines))
-	return lines, nil
+	singel.Run()
 }

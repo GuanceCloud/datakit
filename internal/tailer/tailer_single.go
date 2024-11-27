@@ -186,7 +186,7 @@ func (t *Single) seekOffset() error {
 
 	// use tail
 	t.offset, err = t.file.Seek(0, io.SeekEnd)
-	t.log.Infof("set end position for file %s", t.filepath)
+	t.log.Infof("set end position for file %s and offset=%d", t.filepath, t.offset)
 
 	return err
 }

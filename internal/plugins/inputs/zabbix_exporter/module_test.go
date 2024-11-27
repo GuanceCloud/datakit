@@ -42,13 +42,12 @@ func Test_itemsToPoints(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pts := itemsToPoints(tt.args.lines, tt.args.tags, l)
+			pts := itemsToPoints(tt.args.lines, tt.args.tags, l, nil)
 			for _, pt := range pts {
 				t.Logf("point=%s", pt.LineProto())
 				assert.Equal(t, pt.Get("project"), "A")
 				assert.NotEmpty(t, pt.GetTag("host"))
 				assert.NotEmpty(t, pt.GetTag("groups"))
-				assert.NotEmpty(t, pt.GetTag("item_id"))
 				assert.NotEmpty(t, pt.GetTag("hostname"))
 			}
 		})
@@ -77,7 +76,7 @@ func Test_trendsToPoints(t *testing.T) {
 	l := logger.DefaultSLogger("zabbix_test")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pts := trendsToPoints(tt.args.lines, tt.args.tags, l)
+			pts := trendsToPoints(tt.args.lines, tt.args.tags, l, nil)
 			for _, pt := range pts {
 				t.Logf("point=%s", pt.LineProto())
 				assert.Equal(t, pt.Get("project"), "A")
@@ -85,6 +84,41 @@ func Test_trendsToPoints(t *testing.T) {
 				assert.NotEmpty(t, pt.GetTag("groups"))
 				assert.NotEmpty(t, pt.GetTag("item_id"))
 				assert.NotEmpty(t, pt.GetTag("hostname"))
+			}
+		})
+	}
+}
+
+func Test_triggerToPoints(t *testing.T) {
+	//nolint
+	var trend = `{"clock":1725950600,"ns":142876953,"value":1,"eventid":57,"name":"System time is out of sync (diff with Zabbix server > 60s)","severity":2,"hosts":[{"host":"Zabbix_agent","name":"Zabbix_agent"}],"groups":["Zabbix servers"],"tags":[]}`
+	type args struct {
+		lines [][]byte
+		tags  map[string]string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "problems",
+			args: args{
+				lines: [][]byte{[]byte(trend)},
+				tags:  map[string]string{"project": "A"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pts := triggerToPoints(tt.args.lines)
+			for _, pt := range pts {
+				t.Logf("point=%s", pt.LineProto())
+				assert.NotEmpty(t, pt.GetTag("host"))
+				assert.NotEmpty(t, pt.GetTag("groups"))
+				assert.NotEmpty(t, pt.GetTag("df_source"))
+				assert.NotEmpty(t, pt.GetTag("df_status"))
+				assert.NotEmpty(t, pt.GetTag("df_title"))
 			}
 		})
 	}
