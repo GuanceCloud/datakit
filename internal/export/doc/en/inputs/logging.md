@@ -377,6 +377,43 @@ PASS
 
 The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
 
+### Retain Specific Fields Based on Whitelist {#field-whitelist}
+
+Log collection includes the following basic fields:
+
+| Field Name               | Only Present in Container Logs |
+| --------------------     | ------------------------------ |
+| `service`                |                                |
+| `status`                 |                                |
+| `filepath`               |                                |
+| `host`                   |                                |
+| `log_read_lines`         |                                |
+| `container_id`           | Yes                            |
+| `container_name`         | Yes                            |
+| `namespace`              | Yes                            |
+| `pod_name`               | Yes                            |
+| `pod_ip`                 | Yes                            |
+| `deployment`/`daemonset` | Yes                            |
+
+In specific scenarios, many of the basic fields are not necessary. A whitelist feature is provided to retain only the specified fields.
+
+The field whitelist only supports environment variable configuration, such as `ENV_LOGGING_FIELD_WHITE_LIST = '["host", "service", "filepath", "container_name"]'`. The details are as follows:
+
+- If the whitelist is empty, all basic fields will be included.
+- If the whitelist is not empty and the value is valid, such as `["filepath", "container_name"]`, only these two fields will be retained.
+- If the whitelist is not empty and all fields are invalid, such as `["no-exist"]` or `["no-exist-key1", "no-exist-key2"]`, the data will be discarded.
+
+For tags from other sources, the following situations apply:
+
+- The whitelist does not work on Datakit's `global tags`.
+- Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    The field whitelist is a global configuration that applies to both container logs and logging collectors.
+<!-- markdownlint-enable -->
+
 ## Metric {#metric}
 
 For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.logging.tags]`:

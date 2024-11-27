@@ -8,6 +8,8 @@ package logging
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path"
 	"time"
 
@@ -137,6 +139,13 @@ func (ipt *Input) Run() {
 		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
+	fieldWhiteList := []string{}
+	if str := os.Getenv("ENV_LOGGING_FIELD_WHITE_LIST"); str != "" {
+		if err := json.Unmarshal([]byte(str), &fieldWhiteList); err != nil {
+			l.Warnf("parse ENV_INPUT_LOGGING_FIELD_WHITE_LIST to slice: %s, ignore", err)
+		}
+	}
+
 	var ignoreDuration time.Duration
 	if dur, err := timex.ParseDuration(ipt.IgnoreDeadLog); err == nil {
 		ignoreDuration = dur
@@ -157,6 +166,7 @@ func (ipt *Input) Run() {
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
+		tailer.WithFieldWhiteList(fieldWhiteList),
 	}
 
 	switch ipt.Mode {
@@ -332,7 +342,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: inputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
+			Tagger:    datakit.DynamicGlobalTagger(),
 			semStop:   cliutils.NewSem(),
 		}
 	})
@@ -340,7 +350,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
+			Tagger:    datakit.DynamicGlobalTagger(),
 			semStop:   cliutils.NewSem(),
 		}
 	})

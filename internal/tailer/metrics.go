@@ -11,39 +11,26 @@ import (
 )
 
 var (
+	discardVec       *prometheus.CounterVec
+	openfileVec      *prometheus.GaugeVec
 	rotateVec        *prometheus.CounterVec
 	parseFailVec     *prometheus.CounterVec
-	openfileVec      *prometheus.GaugeVec
 	socketLogConnect *prometheus.CounterVec
 	socketLogCount   *prometheus.CounterVec
 	socketLogLength  *prometheus.SummaryVec
 )
 
 func setupMetrics() {
-	rotateVec = prometheus.NewCounterVec(
+	discardVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
-			Name:      "file_rotate_total",
-			Help:      "Tailer rotate total",
+			Name:      "discard_log_total",
+			Help:      "Total logs discarded based on the whitelist",
 		},
 		[]string{
 			"source",
 			"filepath",
-		},
-	)
-
-	parseFailVec = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "datakit",
-			Subsystem: "tailer",
-			Name:      "parse_fail_total",
-			Help:      "Tailer parse fail total",
-		},
-		[]string{
-			"source",
-			"filepath",
-			"mode",
 		},
 	)
 
@@ -58,6 +45,34 @@ func setupMetrics() {
 			"mode",
 		},
 	)
+
+	rotateVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "file_rotate_total",
+			Help:      "Total tailer rotated",
+		},
+		[]string{
+			"source",
+			"filepath",
+		},
+	)
+
+	parseFailVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "parse_fail_total",
+			Help:      "Total tailer parsing failed",
+		},
+		[]string{
+			"source",
+			"filepath",
+			"mode",
+		},
+	)
+
 	socketLogConnect = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -65,7 +80,8 @@ func setupMetrics() {
 			Name:      "connect_status_total",
 			Help:      "Connect and close count for net.conn",
 		},
-		[]string{"network", "status"})
+		[]string{"network", "status"},
+	)
 
 	socketLogCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -76,7 +92,8 @@ func setupMetrics() {
 		},
 		[]string{
 			"network",
-		})
+		},
+	)
 
 	socketLogLength = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
@@ -90,9 +107,11 @@ func setupMetrics() {
 				0.99: 0.001,
 			},
 		},
-		[]string{"network"})
+		[]string{"network"},
+	)
 
 	metrics.MustRegister(
+		discardVec,
 		openfileVec,
 		parseFailVec,
 		rotateVec,

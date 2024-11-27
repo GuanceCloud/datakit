@@ -7,11 +7,14 @@
 package container
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -59,6 +62,7 @@ type Input struct {
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
+	LoggingFieldWhiteList                 []string          `toml:"-"`
 
 	CollectMetricInterval time.Duration `toml:"-"`
 
@@ -73,27 +77,45 @@ type Input struct {
 	chPause chan bool
 }
 
-func (*Input) SampleConfig() string { return sampleCfg }
-
-func (*Input) Catalog() string { return "container" }
-
-func (*Input) PipelineConfig() map[string]string { return nil }
-
-func (*Input) GetPipeline() []*tailer.Option { return nil }
-
-func (*Input) RunPipeline() { /*nil*/ }
-
-func (*Input) Singleton() { /*nil*/ }
-
+func (*Input) SampleConfig() string                    { return sampleCfg }
+func (*Input) Catalog() string                         { return "container" }
+func (*Input) PipelineConfig() map[string]string       { return nil }
+func (*Input) GetPipeline() []*tailer.Option           { return nil }
+func (*Input) RunPipeline()                            { /*nil*/ }
+func (*Input) Singleton()                              { /*nil*/ }
+func (*Input) SampleMeasurement() []inputs.Measurement { return getCollectorMeasurement() }
+func (ipt *Input) ElectionEnabled() bool               { return ipt.Election }
 func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelK8s, datakit.LabelDocker}
 }
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return getCollectorMeasurement()
+func (ipt *Input) Run() {
+	l = logger.SLogger(inputName)
+
+	l.Info("container input started")
+	ipt.setup()
+
+	ipt.tryStartDiscovery()
+	ipt.runCollect()
 }
 
-func (ipt *Input) ElectionEnabled() bool { return ipt.Election }
+func (ipt *Input) setup() {
+	if ipt.DeprecatedDockerEndpoint != "" {
+		ipt.Endpoints = append(ipt.Endpoints, ipt.DeprecatedDockerEndpoint)
+	}
+	if ipt.DeprecatedContainerdAddress != "" {
+		ipt.Endpoints = append(ipt.Endpoints, "unix://"+ipt.DeprecatedContainerdAddress)
+	}
+
+	if str := os.Getenv("ENV_LOGGING_FIELD_WHITE_LIST"); str != "" {
+		if err := json.Unmarshal([]byte(str), &ipt.LoggingFieldWhiteList); err != nil {
+			l.Warnf("parse ENV_INPUT_LOGGING_FIELD_WHITE_LIST to slice: %s, ignore", err)
+		}
+	}
+
+	ipt.Endpoints = unique(ipt.Endpoints)
+	l.Infof("endpoints: %v", ipt.Endpoints)
+}
 
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
