@@ -365,11 +365,11 @@ pub_dca_testing: prepare_dca
 	--release=testing
 
 pub_dca_production: prepare_dca
-	@cd dca \ 
+	@cd dca \
 	&& node build.js build_image --image-tag=latest \
 	--image-url=pubrepo.guance.com/tools/dca \
 	--upload-addr=$(PRODUCTION_UPLOAD_ADDR) \
-	--download-cdn=$(PRODUCTION_DOWNLOAD_CDN)
+	--download-cdn=$(PRODUCTION_DOWNLOAD_CDN) \
 	--release=production
 
 prepare_dca:

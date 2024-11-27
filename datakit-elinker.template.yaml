@@ -43,10 +43,6 @@ spec:
         image: pubrepo.guance.com/datakit/datakit-elinker:{{.Version}}
         imagePullPolicy: IfNotPresent
         env:
-          - name: POD_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP
           - name: POD_NAME
             valueFrom:
               fieldRef:
@@ -78,11 +74,11 @@ spec:
           - name: ENV_INPUT_EBPFTRACE_DB_PATH
             value: /usr/local/datakit/ebpf_spandb/
           - name: ENV_HTTP_LISTEN
-            value: $(POD_IP):9529
+            value: 0.0.0.0:9529
           - name: ENV_ENABLE_PPROF
             value: 'true'
           - name: ENV_PPROF_LISTEN
-            value: $(POD_IP):6060
+            value: 0.0.0.0:6060
         ports:
           - containerPort: 9529
             name: port
