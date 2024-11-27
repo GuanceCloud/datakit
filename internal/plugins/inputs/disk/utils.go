@@ -6,8 +6,11 @@
 package disk
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 
 	//nolint
@@ -134,4 +137,82 @@ func unique(strSlice []string) []string {
 		}
 	}
 	return list
+}
+
+func hostSys(combineWith ...string) string {
+	value := os.Getenv("HOST_SYS")
+	if value == "" {
+		value = "/sys"
+	}
+
+	switch len(combineWith) {
+	case 0:
+		return value
+	case 1:
+		return filepath.Join(value, combineWith[0])
+	default:
+		all := make([]string, len(combineWith)+1)
+		all[0] = value
+		copy(all[1:], combineWith)
+		return filepath.Join(all...)
+	}
+}
+
+func findDiskFromDM(dmDevice string) ([]string, error) {
+	if !strings.HasPrefix(dmDevice, "dm-") {
+		return nil, fmt.Errorf("invalid dm partition path: %s", dmDevice)
+	}
+	sysBlockPath := hostSys("block")
+	slavesPath := filepath.Join(sysBlockPath, dmDevice, "slaves")
+
+	slaveList, err := os.ReadDir(slavesPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", slavesPath, err)
+	}
+
+	var physicalDisks []string
+	for _, slave := range slaveList {
+		diskNameList, err := findDiskFromBlock(slave.Name())
+		if err != nil {
+			return nil, err
+		}
+		physicalDisks = append(physicalDisks, diskNameList...)
+	}
+	return physicalDisks, nil
+}
+
+func findDiskFromBlock(partitionName string) ([]string, error) {
+	sysBlockPath := hostSys("block")
+	blockDeviceList, err := os.ReadDir(sysBlockPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", sysBlockPath, err)
+	}
+
+	// sort block devices by name in descending order.
+	sort.Slice(blockDeviceList, func(i, j int) bool { return blockDeviceList[i].Name() > blockDeviceList[j].Name() })
+	for _, blockDevice := range blockDeviceList {
+		blockDeviceName := blockDevice.Name()
+		if strings.HasPrefix(partitionName, blockDeviceName) {
+			return []string{"/dev/" + blockDeviceName}, nil
+		}
+	}
+	return nil, fmt.Errorf("no disk found matching partition %s", partitionName)
+}
+
+func GetMapperPath(dmID string) (string, error) {
+	dmID = strings.TrimPrefix(dmID, "/dev/")
+	sysBlockPath := hostSys("block")
+	dmPath := filepath.Join(sysBlockPath, dmID, "dm", "name")
+
+	data, err := os.ReadFile(dmPath) //nolint:gosec
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s", dmPath)
+	}
+
+	mapperPath := fmt.Sprintf("/dev/mapper/%s", strings.TrimSpace(string(data)))
+	_, err = os.Stat(mapperPath)
+	if os.IsNotExist(err) {
+		return "", fmt.Errorf("mapper path %s does not exist", mapperPath)
+	}
+	return mapperPath, nil
 }

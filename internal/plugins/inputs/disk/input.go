@@ -37,6 +37,11 @@ var (
 	l                  = logger.DefaultSLogger(inputName)
 )
 
+type DiskCacheEntry struct {
+	Disks       []string
+	LastUpdated time.Time
+}
+
 type Input struct {
 	Interval time.Duration
 
@@ -46,6 +51,7 @@ type Input struct {
 
 	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
+	EnableLVMMapperPath bool `toml:"enable_lvm_mapper_path"`
 
 	semStop      *cliutils.Sem
 	collectCache []*point.Point
@@ -53,6 +59,8 @@ type Input struct {
 	feeder       dkio.Feeder
 	mergedTags   map[string]string
 	tagger       datakit.GlobalTagger
+
+	diskCache map[string]DiskCacheEntry
 }
 
 func (ipt *Input) Run() {
@@ -153,6 +161,22 @@ func (ipt *Input) collect(ptTS int64) error {
 			kvs = kvs.Add("inodes_free", du.InodesFree, false, true)                // Deprecated
 			kvs = kvs.Add("inodes_used", du.InodesUsed, false, true)                // Deprecated
 			kvs = kvs.Add("mount_point", partitions[index].Mountpoint, true, true)
+
+			physicalDevices, err := ipt.findDisk(partitions[index].Device)
+			if err == nil {
+				kvs = kvs.Add("disk_name", strings.Join(physicalDevices, " "), true, true)
+
+				if ipt.EnableLVMMapperPath && strings.HasPrefix(partitions[index].Device, "/dev/dm-") {
+					mapperPath, err := GetMapperPath(partitions[index].Device)
+					if err == nil {
+						kvs.Add("device", mapperPath, true, true)
+					} else {
+						l.Error(err)
+					}
+				}
+			} else {
+				l.Error(err)
+			}
 		}
 
 		for k, v := range ipt.mergedTags {
@@ -163,6 +187,42 @@ func (ipt *Input) collect(ptTS int64) error {
 	}
 
 	return nil
+}
+
+func (ipt *Input) findDisk(partition string) ([]string, error) {
+	if !strings.HasPrefix(partition, "/dev/") {
+		return nil, fmt.Errorf("invalid partition path: %s", partition)
+	}
+	partitionName := strings.TrimPrefix(partition, "/dev/")
+
+	if ipt.diskCache == nil {
+		return nil, fmt.Errorf("diskCache cannot be nil")
+	}
+
+	// get disks from cache.
+	if cachedEntry, ok := ipt.diskCache[partitionName]; ok {
+		if time.Since(cachedEntry.LastUpdated) < 60*time.Second {
+			return cachedEntry.Disks, nil
+		}
+	}
+
+	var (
+		disks []string
+		err   error
+	)
+
+	if strings.HasPrefix(partitionName, "dm-") {
+		disks, err = findDiskFromDM(partitionName)
+	} else {
+		disks, err = findDiskFromBlock(partitionName)
+	}
+	if err != nil {
+		return nil, err
+	}
+	// update cache.
+	ipt.diskCache[partitionName] = DiskCacheEntry{Disks: disks, LastUpdated: time.Now()}
+
+	return disks, nil
 }
 
 func (*Input) Singleton() {}
@@ -195,6 +255,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ExtraDevice", Type: doc.List, Example: "`/nfsdata,other_data`", Desc: "Additional device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "额外的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
 		{FieldName: "ExcludeDevice", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Excluded device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "排除的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
 		{FieldName: "OnlyPhysicalDevice", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only (e.g. hard disks, cd-rom drives, USB keys), and ignore all others (e.g. memory partitions such as /dev/shm)", DescZh: "忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）"},
+		{FieldName: "EnableLVMMapperPath", Type: doc.Boolean, Default: `false`, Desc: "View the soft link corresponding to the device mapper (e.g. /dev/dm-0 -> /dev/mapper/vg/lv)", DescZh: "查看设备映射器对应的软链接（如/dev/dm-0 -> /dev/mapper/vg/lv）"},
 		{FieldName: "Tags"},
 	}
 
@@ -243,6 +304,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				da)
 		}
 	}
+
+	if str := envs["ENV_INPUT_ENABLE_LVM_MAPPER_PATH"]; str != "" {
+		ipt.EnableLVMMapperPath = true
+	}
 }
 
 func defaultInput() *Input {
@@ -256,6 +321,8 @@ func defaultInput() *Input {
 
 	x := &PSDisk{ipt: ipt}
 	ipt.diskStats = x
+
+	ipt.diskCache = make(map[string]DiskCacheEntry)
 	return ipt
 }
 
