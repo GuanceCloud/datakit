@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'MySQL'
     path  : 'dashboard/zh/mysql'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'MySQL'
+    path  : 'monitor/zh/mysql'
 ---
 
 {{.AvailableArchs}}
