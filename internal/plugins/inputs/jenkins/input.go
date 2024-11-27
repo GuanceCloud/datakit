@@ -185,7 +185,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error

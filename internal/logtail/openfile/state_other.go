@@ -8,10 +8,7 @@
 
 package openfile
 
-func FileKey(file string) string {
-	return file
-}
-
-func FileInode(file string) string {
-	return ""
-}
+func FileKey(file string) string  { return file }
+func UniqueID(file string) string { return file }
+func Inode(_ string) string       { return "not-supported" }
+func Device(_ string) string      { return "not-supported" }

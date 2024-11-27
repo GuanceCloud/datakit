@@ -157,7 +157,6 @@ func (ipt *Input) Run() {
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	switch ipt.Mode {
@@ -231,20 +230,16 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
-	ipt.Stop()
+	if ipt.process != nil {
+		for _, proce := range ipt.process {
+			proce.Close()
+		}
+	}
 }
 
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-	}
-}
-
-func (ipt *Input) Stop() {
-	if ipt.process != nil {
-		for _, proce := range ipt.process {
-			proce.Close()
-		}
 	}
 }
 

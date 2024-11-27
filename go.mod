@@ -16,7 +16,7 @@ require (
 	github.com/antchfx/xmlquery v1.3.18 // indirect
 	github.com/apache/thrift v0.16.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
-	github.com/bmatcuk/doublestar/v4 v4.6.0
+	github.com/bmatcuk/doublestar/v4 v4.7.0
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
 	github.com/containerd/cgroups/v3 v3.0.1
@@ -158,7 +158,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/garyburd/redigo v1.6.4 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -394,6 +394,7 @@ require (
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
+	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.0
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8

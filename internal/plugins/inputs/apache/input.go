@@ -131,7 +131,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{`^\[\w+ \w+ \d+`}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error

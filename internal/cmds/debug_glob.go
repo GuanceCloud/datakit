@@ -44,7 +44,11 @@ func globPath(configFile string) error {
 		return err
 	}
 
-	paths, err := fileprovider.NewProvider().SearchFiles(globPaths).Result()
+	sc, err := fileprovider.NewScanner(globPaths)
+	if err != nil {
+		return fmt.Errorf("invalid patterns, err: %w", err)
+	}
+	paths, err := sc.ScanFiles()
 	if err != nil {
 		return fmt.Errorf("unable to parse glob rules, err: %w", err)
 	}

@@ -358,7 +358,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
@@ -422,10 +421,6 @@ func (ipt *Input) Run() {
 		if err := ipt.db.Close(); err != nil {
 			l.Warnf("Close: %s", err)
 		}
-
-		if ipt.tail != nil {
-			ipt.tail.Close()
-		}
 	}()
 
 	for {
@@ -474,6 +469,7 @@ func (ipt *Input) Run() {
 			select {
 			case <-tick.C:
 			case <-datakit.Exit.Wait():
+				ipt.exit()
 				l.Info("sqlserver exit")
 				return
 

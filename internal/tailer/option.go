@@ -53,16 +53,15 @@ type option struct {
 	ignoreDeadLog time.Duration
 	// 添加额外tag
 	extraTags map[string]string
+	//
+	insideFilepathFunc func(string) string
 
 	// 连续 N 次采集为空，就强制 flush 已有数据
 	maxForceFlushLimit int
 	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
 	fileFromBeginningThresholdSize int64
 
-	setDone bool
-	done    <-chan interface{}
-	mode    Mode
-
+	mode   Mode
 	feeder dkio.Feeder
 }
 
@@ -171,9 +170,12 @@ func WithTag(key, value string) Option {
 	}
 }
 
-func WithDone(ch <-chan interface{}) Option {
-	return func(opt *option) { opt.setDone = true; opt.done = ch }
+func WithInsideFilepathFunc(fn func(path string) string) Option {
+	return func(opt *option) {
+		opt.insideFilepathFunc = fn
+	}
 }
+
 func WithForwardFunc(fn ForwardFunc) Option { return func(opt *option) { opt.forwardFunc = fn } }
 func WithFeeder(feeder dkio.Feeder) Option  { return func(opt *option) { opt.feeder = feeder } }
 
@@ -183,7 +185,6 @@ func defaultOption() *option {
 		extraTags:                      map[string]string{"service": "default"},
 		maxForceFlushLimit:             10,
 		fileFromBeginningThresholdSize: 1000 * 1000 * 20, // 20 MB
-		done:                           make(<-chan interface{}),
 		feeder:                         dkio.DefaultFeeder(),
 	}
 }

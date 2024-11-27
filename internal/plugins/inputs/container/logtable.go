@@ -13,33 +13,33 @@ import (
 )
 
 type logTable struct {
-	table map[string]map[string]chan interface{}
+	table map[string]map[string]func()
 	mu    sync.Mutex
 }
 
 func newLogTable() *logTable {
 	return &logTable{
-		table: make(map[string]map[string]chan interface{}),
+		table: make(map[string]map[string]func()),
 	}
 }
 
-func (t *logTable) addToTable(id, path string, done chan interface{}) {
+func (t *logTable) addToTable(id, path string, cancel func()) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.table[id] == nil {
-		t.table[id] = make(map[string]chan interface{})
+		t.table[id] = make(map[string]func())
 	}
-	t.table[id][path] = done
+	t.table[id][path] = cancel
 }
 
 func (t *logTable) closeFromTable(id string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	for _, done := range t.table[id] {
-		if !IsClosed(done) {
-			close(done)
+	for _, cancel := range t.table[id] {
+		if cancel != nil {
+			cancel()
 		}
 	}
 }

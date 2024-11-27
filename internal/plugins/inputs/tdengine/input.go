@@ -138,7 +138,6 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithPipeline(ipt.Pipeline),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
-		tailer.WithDone(ipt.semStop.Wait()),
 	}
 
 	var err error
@@ -176,9 +175,8 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 func (ipt *Input) exit() {
 	ipt.tdengine.Stop()
 	if ipt.tail != nil {
-		// stop log 采集
-		l.Info("stop tailer")
 		ipt.tail.Close()
+		l.Info("tdengine log exit")
 	}
 }
 
