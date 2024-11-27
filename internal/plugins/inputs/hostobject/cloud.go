@@ -20,6 +20,7 @@ const (
 	Tencent     = "tencent"
 	Azure       = "azure"
 	Hwcloud     = "hwcloud"
+	VolcEngine  = "volcengine"
 )
 
 var cloudCli = &http.Client{Timeout: 3 * time.Second}
@@ -86,6 +87,14 @@ func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error)
 			p = &hwcloud{baseURL: "http://169.254.169.254/latest/meta-data"}
 		}
 		return p.Sync()
+	case VolcEngine:
+		var p *volcEcs
+		if url, ok := ipt.CloudMetaURL[VolcEngine]; ok {
+			p = &volcEcs{baseURL: url}
+		} else {
+			p = &volcEcs{baseURL: volcMetaRootURL}
+		}
+		return p.Sync()
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
 	}
@@ -112,7 +121,7 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 }
 
 func (ipt *Input) SetCloudProvider() error {
-	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud}
+	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud, VolcEngine}
 	for _, cp := range cloudProviders {
 		if ipt.matchCloudProvider(cp) {
 			ipt.Tags["cloud_provider"] = cp
