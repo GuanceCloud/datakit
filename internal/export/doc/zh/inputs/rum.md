@@ -72,25 +72,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ### 安全限制 {#security-setting}
 
-由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](../datakit/apis.md) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
-
-```toml
-[http_api]
-  rum_origin_ip_header = "X-Forwarded-For"
-  listen = "0.0.0.0:9529"
-  disable_404page = true
-  rum_app_id_white_list = []
-
-  public_apis = [  # 如果该列表为空，则所有 API 不做访问控制
-    "/v1/write/rum",
-    "/some/other/apis/..."
-
-    # 除此之外的其他 API，只能 localhost 访问，比如 datakit -M 就需要访问 /stats 接口
-    # 另外，DCA 不受这个影响，因为它是独立的 HTTP server
-  ]
-```
-
-其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](../datakit/datakit-dql-how-to.md) 或者查看 [DataKit 运行状态](../datakit/datakit-tools-how-to.md#using-monitor)。
+参见 [Datakit API 访问控制](../datakit/datakit-conf.md#public-apis)。
 
 ### 禁用 DataKit 404 页面 {#disable-404}
 

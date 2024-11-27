@@ -48,8 +48,20 @@ func WithPProfListen(listen string) option {
 
 func WithAPIConfig(c *config.APIConfig) option {
 	return func(s *httpServerConf) {
-		if c != nil {
-			s.apiConfig = c
+		httpConfMtx.Lock()
+		defer httpConfMtx.Unlock()
+
+		if c != nil { // deep copy
+			s.apiConfig.RUMOriginIPHeader = c.RUMOriginIPHeader
+			s.apiConfig.Listen = c.Listen
+			s.apiConfig.Disable404Page = c.Disable404Page
+			s.apiConfig.RUMAppIDWhiteList = append(s.apiConfig.RUMAppIDWhiteList, c.RUMAppIDWhiteList...)
+			s.apiConfig.PublicAPIs = append(s.apiConfig.PublicAPIs, c.PublicAPIs...)
+			s.apiConfig.RequestRateLimit = c.RequestRateLimit
+			s.apiConfig.Timeout = c.Timeout
+			s.apiConfig.CloseIdleConnection = c.CloseIdleConnection
+			s.apiConfig.TLSConf = c.TLSConf
+			s.apiConfig.AllowedCORSOrigins = append(s.apiConfig.AllowedCORSOrigins, c.AllowedCORSOrigins...)
 		}
 	}
 }

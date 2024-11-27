@@ -137,21 +137,19 @@ datakit monitor --refresh 1s
 
     Note that the units here must be the following: s (seconds)/m (minutes)/h (hours). If the time range is less than 1s, refresh according to 1s. 
 <!-- markdownlint-enable -->
+
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: How to Monitor other DataKits? {#remote-monitor}
 <!-- markdownlint-enable -->
 
-Sometimes, the Datakit installed does not use the default 9529 port, and this time, an error like the following will occur:
+We can specify other Datakit's IP to show it's monitor:
 
 ```shell
-request stats failed: Get "http://localhost:9528/stats": dial tcp ...
+datakit monitor --to <remote-ip>:9529
 ```
 
-We can view its monitor data by specifying the Datakit address:
+<!-- markdownlint-disable MD046 -->
+???+ info
 
-```shell
-datakit monitor --to localhost:19528
-
-# We can also view the monitor of another remote Datakit
-datakit monitor --to <remote-ip>:9528
-```
+    By default, metrics data used by monitor are not accessible for non-localhost, we can [add API `/metrics` to API white list](datakit-conf.md#public-apis).
+<!-- markdownlint-enable -->
