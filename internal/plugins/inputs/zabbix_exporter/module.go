@@ -22,8 +22,16 @@ type ExportType int
 const (
 	Items ExportType = iota
 	Trends
+	Trigger
 	Unknown
 )
+
+var modules = map[ExportType]string{
+	Items:   "item",
+	Trends:  "trends",
+	Trigger: "trigger",
+	Unknown: "unknown",
+}
 
 var ProblemStatus = map[int]string{
 	0: "ok",
@@ -33,6 +41,8 @@ var ProblemStatus = map[int]string{
 	4: "critical",
 	5: "critical",
 }
+
+var opts = point.DefaultMetricOptions()
 
 type Host struct {
 	Host string `json:"host"`
@@ -48,7 +58,7 @@ type HistorySyncer struct {
 	Host         *Host       `json:"host"`
 	Group        []string    `json:"groups"`
 	Applications []string    `json:"applications"`
-	Itemid       int         `json:"itemid"`
+	Itemid       int64       `json:"itemid"`
 	Name         string      `json:"name"`
 	Clock        int64       `json:"clock"`
 	Ns           int64       `json:"ns"`
@@ -56,7 +66,7 @@ type HistorySyncer struct {
 	Itype        int         `json:"type"`
 }
 
-func itemsToPoints(lines []string, tags map[string]string, log *logger.Logger) []*point.Point {
+func itemsToPoints(lines []string, tags map[string]string, log *logger.Logger, cd *CacheData) []*point.Point {
 	pts := make([]*point.Point, 0)
 	var err error
 
@@ -84,19 +94,28 @@ func itemsToPoints(lines []string, tags map[string]string, log *logger.Logger) [
 			continue
 		}
 		var kvs point.KVs
+		keyName := item.Name
+		if cd != nil {
+			keyName = cd.getKeyName(keyName, item.Itemid)
+			iTags := cd.getTagsByItemID(item.Itemid)
+			for k, v := range iTags {
+				kvs = kvs.AddTag(k, v)
+			}
+		}
+
 		kvs = kvs.AddTag("host", host).
 			AddTag("hostname", hostName).
 			AddTag("groups", group).
 			AddTag("applications", apps).
 			AddTag("resource", "zabbix-server").
-			AddTag("item_id", strconv.Itoa(item.Itemid)).
-			Add(item.Name, value, false, false)
+			AddTag("data_source", "history").
+			Add(keyName, value, false, false)
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
-		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(t))
+
 		pt := point.NewPointV2("zabbix-server", kvs, opts...)
+		pt.SetTime(t)
 		pts = append(pts, pt)
 	}
 	return pts
@@ -160,12 +179,12 @@ func triggerToPoints(lines [][]byte) []*point.Point { //nolint
 				Add("df_check_range_start", ps.Clock, false, false).
 				Add("df_check_range_end", ps.Clock, false, false).
 				Add("df_issue_duration", 1, false, false).
-				Add("df_source", "custom", false, false).
-				Add("df_status", ProblemStatus[ps.Severity], false, false).
+				Add("df_source", "custom", true, false).
+				Add("df_status", ProblemStatus[ps.Severity], true, false).
 				Add("df_sub_status", ps.Severity, false, false).
 				Add("df_event_id", ps.EventID, false, false).
-				Add("df_title", ps.Name, false, false).
-				Add("df_message", ps.Name, false, false)
+				Add("df_title", ps.Name, true, false).
+				Add("df_message", ps.Name, true, false)
 
 			opts := point.CommonLoggingOptions()
 			opts = append(opts, point.WithTime(t))
@@ -191,9 +210,10 @@ type TrendsSyncs struct {
 	Itype        int      `json:"type"` // 0:float 1:int
 }
 
-func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger) []*point.Point {
+func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger, cd *CacheData) []*point.Point {
 	pts := make([]*point.Point, 0)
 	var err error
+
 	for _, line := range lines {
 		trends := &TrendsSyncs{}
 		err = json.Unmarshal([]byte(line), trends)
@@ -207,6 +227,7 @@ func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger) 
 		apps := strings.Join(trends.Applications, ",")
 		t := time.Unix(trends.Clock, 0)
 
+		// todo cacheData
 		var kvs point.KVs
 		kvs = kvs.AddTag("host", host).
 			AddTag("hostname", hostName).
@@ -220,10 +241,9 @@ func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger) 
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
-		opts := point.DefaultMetricOptions()
-		opts = append(opts, point.WithTime(t))
+
 		pt := point.NewPointV2("zabbix-server", kvs, opts...)
-		// log.Infof("trends point=%s", pt.LineProto())
+		pt.SetTime(t)
 		pts = append(pts, pt)
 	}
 	return pts

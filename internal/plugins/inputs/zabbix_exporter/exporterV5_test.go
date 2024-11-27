@@ -10,80 +10,86 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/stretchr/testify/assert"
+	"github.com/GuanceCloud/cliutils/point"
+	assert "github.com/stretchr/testify/require"
 )
 
-func TestFileReader_readFromFile(t *testing.T) {
-	l := logger.DefaultSLogger("testing_zabbix")
-	testData := `{"host":{"host":"Zabbix server","name":"Zabbix server"},"groups":["Zabbix servers"],"applications":["Status"],"itemid":29557,"name":"Zabbix agent availability","clock":1724745517,"ns":457429437,"value":1,"type":3}
-{"host":{"host":"Zabbix server","name":"Zabbix server"},"groups":["Zabbix servers"],"applications":["Zabbix server"],"itemid":23259,"name":"Zabbix server: Utilization of http poller data collector processes, in %","clock":1724745519,"ns":463054770,"value":1.074169,"type":0}
-`
-
-	t.Logf("tmp file dir=%s", t.TempDir())
-
-	type args struct {
-		fr        *FileReader
-		wantErr   bool
-		wantLines int
+func Test_InitExporter(t *testing.T) {
+	dir := t.TempDir()
+	v5 := &ExporterV5{
+		ExDir: dir,
 	}
-	tests := []struct {
-		name string
-		arg  args
-	}{
-		{
-			name: "2 lines",
-			arg: args{
-				fr: &FileReader{
-					exportType: Items,
-					fileName:   filepath.Join(t.TempDir(), "item.ndjson"),
-					offset:     0,
-					tags:       map[string]string{"set_k": "v"},
-					log:        l,
-					stop:       make(chan struct{}),
-					firstOpen:  false,
-				},
-				wantErr:   false,
-				wantLines: 2,
-			},
-		},
-		{
-			name: "first open",
-			arg: args{
-				fr: &FileReader{
-					exportType: Items,
-					fileName:   filepath.Join(t.TempDir(), "item1.ndjson"),
-					offset:     0,
-					tags:       map[string]string{"set_k": "v"},
-					log:        l,
-					stop:       make(chan struct{}),
-					firstOpen:  true,
-				},
-				wantErr:   true,
-				wantLines: 0,
-			},
-		},
+	err := v5.InitExporter(nil, map[string]string{"taga": "keya"}, &CacheData{}, "item")
+	if err != nil {
+		t.Errorf("InitExporter err=%v", err)
+	} else {
+		close(v5.stopChan)
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			err := os.WriteFile(test.arg.fr.fileName, []byte(testData), os.ModePerm)
-			if err != nil {
-				t.Errorf("write to file err%v", err)
-				return
-			}
-			lines, err := test.arg.fr.readFromFile()
-			if err != nil {
-				t.Errorf("read from file err=%v", err)
-				return
-			}
-			assert.Equal(t, len(lines), test.arg.wantLines, "lines error")
-			assert.Equal(t, test.arg.fr.firstOpen, false)
-			if test.arg.wantLines != 0 {
-				for _, line := range lines {
-					t.Logf("read line=%s", line)
+}
+
+func TestFileReader_Read(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "test_read.ndjson")
+	mockFeeder := make(chan []*point.Point)
+	fr := &FileReader{
+		exportType: Items,
+		fileName:   filename,
+		tags:       map[string]string{"tagA": "keyA"},
+		log:        logger.SLogger("testRead"),
+		lines:      make(chan string, 100),
+		stop:       make(chan interface{}),
+		firstOpen:  true,
+	}
+	writeToFile(t, fr, filename)
+	time.Sleep(time.Second * 2)
+
+	go fr.Read(mockFeeder, nil)
+	count := 0
+	for {
+		select {
+		case pts := <-mockFeeder:
+			count++
+			if len(pts) > 0 {
+				for _, p := range pts {
+					t.Logf("point=%s", p.LineProto())
+					assert.Equal(t, p.GetTag("host"), "Zabbix server")
+					assert.Equal(t, p.GetTag("groups"), "Zabbix servers")
+					assert.Equal(t, p.GetTag("applications"), "Interface ens192")
+					assert.Equal(t, p.GetTag("data_source"), "history")
+					assert.Equal(t, p.GetTag("tagA"), "keyA")
 				}
 			}
-		})
+		default:
+		}
+		if count > 2 {
+			close(fr.stop)
+			return
+		}
 	}
+}
+
+func writeToFile(t *testing.T, fr *FileReader, name string) {
+	t.Helper()
+	var item = "{\"host\":{\"host\":\"Zabbix server\",\"name\":\"Zabbix server\"},\"groups\":[\"Zabbix servers\"],\"applications\":[\"Interface ens192\"],\"itemid\":37372,\"name\":\"Interface ens192: Operational status\",\"clock\":1731654832,\"ns\":343990640,\"value\":6,\"type\":3}\n" //nolint
+	ticker := time.NewTicker(time.Second)
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return
+	}
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				_, err = f.Write([]byte(item))
+				if err != nil {
+					return
+				}
+			case <-fr.stop:
+				f.Close()
+				return
+			}
+		}
+	}()
 }
