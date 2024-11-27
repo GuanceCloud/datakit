@@ -75,6 +75,8 @@ type Input struct {
 	ExtraDevice                []string `toml:"extra_device"`
 	ExcludeDevice              []string `toml:"exclude_device"`
 
+	ConfigPath []string `toml:"config_path"`
+
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 	lastSync                 time.Time

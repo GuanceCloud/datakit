@@ -13,6 +13,9 @@ const (
 ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
+## absolute path to the configuration file
+# config_path = ["/usr/local/datakit/conf.d/datakit.conf"]
+
 ##############################
 # Disk related options
 ##############################
