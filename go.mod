@@ -338,7 +338,7 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.25.0 // indirect
+	modernc.org/sqlite v1.25.0
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
@@ -374,7 +374,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20241125063521-080c05b72106
+	github.com/GuanceCloud/cliutils v1.1.22-0.20241127152101-5f7f54f6f303
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -387,7 +387,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/valyala/fastjson v1.6.3
 )
