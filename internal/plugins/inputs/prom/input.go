@@ -98,7 +98,7 @@ type Input struct {
 	// Input holds logger because prom have different types of instances.
 	l *logger.Logger
 
-	startTime    time.Time
+	start        time.Time
 	currentURL   string
 	callbackFunc func([]*point.Point) error
 
@@ -129,6 +129,7 @@ func (i *Input) Run() {
 	defer tick.Stop()
 
 	i.l.Info("prom start")
+	i.start = time.Now()
 
 	for {
 		if i.pause {
@@ -149,7 +150,8 @@ func (i *Input) Run() {
 			i.l.Info("prom return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			i.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, i.start.UnixMilli(), i.Interval.Milliseconds()))
 
 		case i.pause = <-i.chPause:
 			// nil
@@ -173,7 +175,7 @@ func (i *Input) collect() error {
 		return fmt.Errorf("un initialized")
 	}
 
-	i.startTime = time.Now()
+	i.start = time.Now()
 	i.l.Debugf("collect URLs %v", i.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -234,7 +236,7 @@ func (i *Input) collectFormURLs() error {
 					// We need to feed each point separately because
 					// each point might have different measurement name.
 					if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
-						dkio.WithCollectCost(time.Since(i.startTime)),
+						dkio.WithCollectCost(time.Since(i.start)),
 						dkio.WithElection(i.Election),
 						dkio.WithInputName(pt.Name()),
 					); err != nil {
@@ -246,7 +248,7 @@ func (i *Input) collectFormURLs() error {
 					}
 				}
 			} else if err := i.Feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(i.startTime)),
+				dkio.WithCollectCost(time.Since(i.start)),
 				dkio.WithElection(i.Election),
 				dkio.WithInputName(inputName+"/"+i.Source),
 			); err != nil {
@@ -293,7 +295,7 @@ func (i *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
 	if i.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromHTTPV2(u)
+	return i.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(i.start.UnixNano()))
 }
 
 func (i *Input) CollectFromFile(filepath string) ([]*point.Point, error) {
@@ -374,7 +376,7 @@ func (i *Input) defaultHandleCallback() promHandleCallback {
 				// We need to feed each point separately because
 				// each point might have different measurement name.
 				if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
-					dkio.WithCollectCost(time.Since(i.startTime)),
+					dkio.WithCollectCost(time.Since(i.start)),
 					dkio.WithElection(i.Election),
 					dkio.WithInputName(pt.Name()),
 				); err != nil {
@@ -386,7 +388,7 @@ func (i *Input) defaultHandleCallback() promHandleCallback {
 				}
 			}
 		} else if err := i.Feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(i.startTime)),
+			dkio.WithCollectCost(time.Since(i.start)),
 			dkio.WithElection(i.Election),
 			dkio.WithInputName(inputName+"/"+i.Source),
 		); err != nil {

@@ -66,6 +66,8 @@ type Input struct {
 
 	urlTags map[string]urlTags
 
+	start time.Time
+
 	// Input holds logger because prom have different types of instances.
 	l *logger.Logger
 }
@@ -98,6 +100,8 @@ func (ipt *Input) Run() {
 
 	ipt.l.Info("etcd start")
 
+	ipt.start = time.Now()
+
 	for {
 		if ipt.pause {
 			ipt.l.Debug("etcd paused")
@@ -116,7 +120,8 @@ func (ipt *Input) Run() {
 			ipt.l.Info("etcd return")
 			return
 
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
 
 		case ipt.pause = <-ipt.chPause:
 			// nil
@@ -201,7 +206,7 @@ func (ipt *Input) Collect() ([]*point.Point, error) {
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = ipt.CollectFromFile(u)
 		} else {
-			pts, err = ipt.CollectFromHTTP(u)
+			pts, err = ipt.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(ipt.start.UnixNano()))
 		}
 		if err != nil {
 			return nil, err
@@ -218,13 +223,6 @@ func (ipt *Input) Collect() ([]*point.Point, error) {
 	}
 
 	return points, nil
-}
-
-func (ipt *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
-	if ipt.pm == nil {
-		return nil, nil
-	}
-	return ipt.pm.CollectFromHTTPV2(u)
 }
 
 func (ipt *Input) CollectFromFile(filepath string) ([]*point.Point, error) {

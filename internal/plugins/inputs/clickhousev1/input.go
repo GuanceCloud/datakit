@@ -96,7 +96,8 @@ type Input struct {
 
 	urls []*url.URL
 
-	l *logger.Logger
+	l     *logger.Logger
+	start time.Time
 
 	upStates map[string]int
 }
@@ -109,21 +110,21 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	intervalMillSec := ipt.Interval.Milliseconds()
-	var lastAlignTime int64
+
+	ipt.start = time.Now()
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else {
-			tn := time.Now()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			if err := ipt.collect(lastAlignTime * 1e6); err != nil {
+			if err := ipt.collect(); err != nil {
 				ipt.l.Warn(err)
 			}
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
+
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -204,9 +205,8 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) collect(ptTS int64) error {
-	start := time.Now()
-	pts, err := ipt.doCollect(ptTS)
+func (ipt *Input) collect() error {
+	pts, err := ipt.doCollect()
 	if err != nil {
 		return err
 	}
@@ -214,8 +214,9 @@ func (ipt *Input) collect(ptTS int64) error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	if err := ipt.feeder.FeedV2(point.Metric, pts,
-		dkio.WithCollectCost(time.Since(start)),
+	if err := ipt.feeder.FeedV2(point.Metric,
+		pts,
+		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
@@ -228,7 +229,7 @@ func (ipt *Input) collect(ptTS int64) error {
 	return nil
 }
 
-func (ipt *Input) doCollect(ptTS int64) ([]*point.Point, error) {
+func (ipt *Input) doCollect() ([]*point.Point, error) {
 	ipt.l.Debugf("collect URLs %v", ipt.URLs)
 
 	// If Output is configured, data is written to local file specified by Output.
@@ -241,7 +242,7 @@ func (ipt *Input) doCollect(ptTS int64) ([]*point.Point, error) {
 		return nil, nil
 	}
 
-	pts, err := ipt.getPts(ptTS)
+	pts, err := ipt.getPts()
 	if err != nil {
 		ipt.l.Errorf("getPts: %s", err)
 		ipt.feeder.FeedLastError(err.Error(),
@@ -267,7 +268,7 @@ func (ipt *Input) doCollect(ptTS int64) ([]*point.Point, error) {
 }
 
 // get points from all URLs.
-func (ipt *Input) getPts(ptTS int64) ([]*point.Point, error) {
+func (ipt *Input) getPts() ([]*point.Point, error) {
 	if ipt.pm == nil {
 		return nil, fmt.Errorf("ipt.pm is nil")
 	}
@@ -280,9 +281,9 @@ func (ipt *Input) getPts(ptTS int64) ([]*point.Point, error) {
 		}
 		var pts []*point.Point
 		if uu.Scheme != "http" && uu.Scheme != "https" {
-			pts, err = ipt.CollectFromFile(u)
+			pts, err = ipt.pm.CollectFromFileV2(u)
 		} else {
-			pts, err = ipt.CollectFromHTTP(u)
+			pts, err = ipt.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(ipt.start.UnixNano()))
 		}
 		if err != nil {
 			ipt.setErrUpState(u)
@@ -300,11 +301,11 @@ func (ipt *Input) getPts(ptTS int64) ([]*point.Point, error) {
 		points = append(points, pts...)
 	}
 
-	return ipt.formatPointSuffixes(points, ptTS), nil
+	return ipt.formatPointSuffixes(points), nil
 }
 
 // formatPointSuffixes modify all points who have suffix.
-func (ipt *Input) formatPointSuffixes(pts []*point.Point, ptTS int64) []*point.Point {
+func (ipt *Input) formatPointSuffixes(pts []*point.Point) []*point.Point {
 	if len(pts) < 1 {
 		return pts
 	}
@@ -319,6 +320,8 @@ func (ipt *Input) formatPointSuffixes(pts []*point.Point, ptTS int64) []*point.P
 			ipt.formatPointSuffix(suffixes, pts[j])
 		}
 	}
+
+	ptts := ipt.start.UnixNano()
 
 	// Add average/total point.
 	for j := 0; j < len(suffixes); j++ {
@@ -353,10 +356,10 @@ func (ipt *Input) formatPointSuffixes(pts []*point.Point, ptTS int64) []*point.P
 		}
 
 		// Add average/total point.
-		pt := point.NewPointV2(clickHouseAsyncMetrics,
-			append(point.NewTags(suffixes[j].tags), point.NewKVs(fields)...),
-			append(point.DefaultMetricOptions(), point.WithTimestamp(ptTS))...)
-		pts = append(pts, pt)
+		pts = append(pts,
+			point.NewPointV2(clickHouseAsyncMetrics,
+				append(point.NewTags(suffixes[j].tags), point.NewKVs(fields)...),
+				append(point.DefaultMetricOptions(), point.WithTimestamp(ptts))...))
 	}
 	return pts
 }
@@ -440,13 +443,6 @@ func (ipt *Input) formatPointSuffix(suffixes []suffixInfo, pt *point.Point) {
 		// Delete old field(KV).
 		pt.Del(v.key)
 	}
-}
-
-func (ipt *Input) CollectFromHTTP(u string) ([]*point.Point, error) {
-	if ipt.pm == nil {
-		return nil, nil
-	}
-	return ipt.pm.CollectFromHTTPV2(u)
 }
 
 func (ipt *Input) CollectFromFile(filepath string) ([]*point.Point, error) {

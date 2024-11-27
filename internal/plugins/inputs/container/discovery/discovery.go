@@ -69,11 +69,11 @@ func (d *Discovery) start() {
 	collectTicker := time.NewTicker(time.Second * 1)
 	defer collectTicker.Stop()
 
-	runners := d.getRunners()
+	eps := d.getPromEndpoints()
 
 	for {
-		for _, r := range runners {
-			r.runOnce()
+		for _, ep := range eps {
+			ep.scrapOnce()
 		}
 
 		select {
@@ -86,7 +86,11 @@ func (d *Discovery) start() {
 			return
 
 		case <-updateTicker.C:
-			runners = d.getRunners()
+			for _, ep := range eps {
+				ep.tick.Stop() // clear tick on lagacy endpoints
+			}
+
+			eps = d.getPromEndpoints()
 
 		case <-collectTicker.C:
 			// nil
@@ -94,7 +98,7 @@ func (d *Discovery) start() {
 	}
 }
 
-func (d *Discovery) getRunners() []*promRunner {
+func (d *Discovery) getPromEndpoints() []*promRunner {
 	return d.newPromFromPodAnnotationExport()
 }
 

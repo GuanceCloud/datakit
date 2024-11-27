@@ -90,7 +90,7 @@ func (i *Input) FeedUpMetric(server string) {
 	pts, _ := i.buildUpPoints(server)
 	if len(pts) > 0 {
 		if err := i.Feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(i.startTime)),
+			dkio.WithCollectCost(time.Since(i.start)),
 			dkio.WithElection(i.Election),
 			dkio.WithInputName(inputName+"/"+i.Source),
 		); err != nil {
