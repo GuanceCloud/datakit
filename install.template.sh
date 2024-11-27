@@ -243,27 +243,13 @@ if [ -n "$DK_INSTALL_ONLY" ]; then
 	printf "* Set install_only => ON \n"
 fi
 
-dca_white_list=""
-if [ -n "$DK_DCA_WHITE_LIST" ]; then
-	dca_white_list=$DK_DCA_WHITE_LIST
-	cmd+=("--dca-white-list=$DK_DCA_WHITE_LIST")
-	printf "* Set dca_white_list => ${DK_DCA_WHITE_LIST} \n"
+if [ -n "$DK_DCA_WEBSOCKET_SERVER" ]; then
+	cmd+=("--dca-websocket-server=$DK_DCA_WEBSOCKET_SERVER")
+	printf "* Set dca_websocket_server => ${DK_DCA_WEBSOCKET_SERVER} \n"
 fi
 
-if [ -n "$DK_DCA_LISTEN" ]; then
-	cmd+=("--dca-listen=$DK_DCA_LISTEN")
-	printf "* Set dca_listen => ${DK_DCA_LISTEN} \n"
-fi
-
-dca_enable=""
 if [ -n "$DK_DCA_ENABLE" ]; then
-
-	cmd+=("--dca-enable="$DK_DCA_ENABLE)
-	if [ -z "$dca_white_list" ]; then
-		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
-		exit 1;
-	fi
-
+	cmd+=("--dca-enable=$DK_DCA_ENABLE")
 	printf "* Set dca_enable => ON \n"
 fi
 

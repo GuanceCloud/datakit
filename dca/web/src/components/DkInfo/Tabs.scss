@@ -1,0 +1,21 @@
+.dkinfo {
+  // background: red;
+  .ant-tabs {
+    .ant-tabs-nav {
+      background: #F3F3F3;
+      margin-bottom: 10px;
+    }
+    .ant-tabs-tab {
+      padding: 12px 15px;
+    }
+    .ant-tabs-ink-bar {
+      background: #FF6600;
+    }
+    .ant-tabs-tab-active {
+      background: #fff;
+      .ant-tabs-tab-btn{
+        color: #FF6600;
+      }
+    } 
+  }
+}

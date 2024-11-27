@@ -1,0 +1,134 @@
+$fontSize: 14px;
+$marginBottom: 15px;
+
+@mixin name {
+  font-size: $fontSize;
+  font-weight: 400;
+  margin-bottom: $marginBottom;
+  color: #666666;
+}
+
+.pipeline_test-container {
+  .text {
+    padding-top: 20px;
+    background-color: #fff;
+    margin-bottom: $marginBottom;
+    padding-left: 10px;
+    padding-right: 10px;
+
+    .text-content {
+      font-family: monospace;
+      color: #555555;
+      position: relative;
+      background-color: #fff;
+      border: none;
+      margin-bottom: 25px;
+
+      .delete {
+        position: absolute;
+        cursor: pointer;
+        right: 0;
+        top: -16px;
+        width: 22px;
+        height: 16px;
+        line-height: 16px;
+        text-align: center;
+        background: #FAFBFC;
+      }
+      textarea{
+        border-radius: 0;
+      }
+    }
+
+    .name {
+      @include name;
+    }
+  }
+
+  .setting-content {
+    margin-bottom: $marginBottom;
+    padding-left: 10px;
+    padding-right: 10px;
+
+    .ant-btn {
+      font-size: 12px;
+    }
+
+    .add-sample {
+      height: 28px;
+      background: #FFFFFF;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #2F61CC;
+      font-weight: 400;
+      border: 1px dashed #AFC1E8;
+      margin-bottom: $marginBottom;
+
+      &.disabled {
+
+        color: #C6C6C6;
+        cursor: not-allowed;
+      }
+
+    }
+  }
+
+  .result {
+    .header {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .title {
+        color: #222222;
+        font-weight: 600;
+        padding-left: 12px;
+      }
+
+      .sample-tabs {
+        list-style: none;
+        display: flex;
+        padding-right: 10px;
+        margin: 0;
+
+        li {
+          width: 62px;
+          cursor: pointer;
+          height: 28px;
+          line-height: 28px;
+          text-align: center;
+          border-radius: 2px 0px 0px 2px;
+          border: 1px solid #E8E8E8;
+          border-right: none;
+
+          &.active {
+            color: #fff;
+            background: #2F61CC;
+          }
+
+          &:nth-last-child(1) {
+            border-right: 1px solid #E8E8E8;
+          }
+        }
+      }
+    }
+
+    border-top: 1px solid #E1E4E8;
+
+    .name {
+      @include name;
+    }
+
+    .result-content {
+      min-height: 100px;
+      max-height: 500px;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid #d9d9d9;
+      border-left: none;
+    }
+  }
+}

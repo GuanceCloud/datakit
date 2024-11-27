@@ -82,9 +82,8 @@ var (
 
 	InstallRUMSymbolTools int
 
-	DCAWhiteList,
 	DCAEnable,
-	DCAListen string
+	DCAWebsocketServer string
 
 	HTTPPort int
 	HTTPListen,
@@ -392,28 +391,13 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 
 	if DCAEnable != "" {
 		config.Cfg.DCAConfig.Enable = true
-		if DCAWhiteList != "" {
-			config.Cfg.DCAConfig.WhiteList = strings.Split(DCAWhiteList, ",")
-		}
+		l.Infof("set dca enabled")
+	}
 
-		// check white list whether is empty or invalid
-		if len(config.Cfg.DCAConfig.WhiteList) == 0 {
-			l.Fatalf("DCA service is enabled, but white list is empty! ")
-		}
-
-		for _, cidr := range config.Cfg.DCAConfig.WhiteList {
-			if _, _, err := net.ParseCIDR(cidr); err != nil {
-				if net.ParseIP(cidr) == nil {
-					l.Fatalf("DCA white list set error, invalid IP: %s", cidr)
-				}
-			}
-		}
-
-		if DCAListen != "" {
-			config.Cfg.DCAConfig.Listen = DCAListen
-		}
-
-		l.Infof("DCA enabled, listen on %s, whiteliste: %s", DCAListen, DCAWhiteList)
+	if DCAWebsocketServer != "" {
+		config.Cfg.DCAConfig.WebsocketServer = DCAWebsocketServer
+		config.Cfg.DCAConfig.Enable = true // enable dca if websocket server is set
+		l.Infof("set dca enabe: %v, websocket server: %s", config.Cfg.DCAConfig.Enable, config.Cfg.DCAConfig.WebsocketServer)
 	}
 
 	if PProfListen != "" {

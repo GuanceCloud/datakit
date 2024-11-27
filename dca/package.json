@@ -1,0 +1,24 @@
+{
+  "name": "dca",
+  "version": "0.1.0",
+  "description": "DataKit Control App",
+  "scripts": {
+    "dev": "npm run start:client",
+    "start:client": "cd web && DANGEROUSLY_DISABLE_HOST_CHECK=true npm start",
+    "build": "cd web && npm run build"
+  },
+  "author": "Zhengbo",
+  "license": "ISC",
+  "devDependencies": {
+    "lodash": "^4.17.21"
+  },
+  "dependencies": {
+    "ali-oss": "^6.16.0",
+    "argparse": "^2.0.1",
+    "axios": "^1.7.7",
+    "inquirer": "^8.1.2",
+    "prettier": "2.3.2",
+    "rimraf": "^3.0.2",
+    "shelljs": "^0.8.4"
+  }
+}

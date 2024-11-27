@@ -145,13 +145,9 @@ func (c *Config) loadPprofEnvs() {
 
 func (c *Config) loadDCAEnvs() {
 	// DCA settings
-	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
+	if v := datakit.GetEnv("ENV_DCA_WEBSOCKET_SERVER"); v != "" {
 		c.DCAConfig.Enable = true
-		c.DCAConfig.Listen = v
-	}
-
-	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
-		c.DCAConfig.WhiteList = strings.Split(v, ",")
+		c.DCAConfig.WebsocketServer = v
 	}
 }
 

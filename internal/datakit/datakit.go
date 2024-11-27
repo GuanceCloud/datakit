@@ -131,6 +131,7 @@ var (
 
 	Docker     = false
 	Version    = git.Version
+	RuntimeID  = ""
 	Commit     = git.Commit
 	Lite       = false
 	ELinker    = false

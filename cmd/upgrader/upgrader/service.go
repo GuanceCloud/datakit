@@ -68,6 +68,7 @@ var (
 		"RestartSec":         10, // 重启间隔.
 		"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
 		"StartLimitBurst":    5,
+		"OnFailure":          "restart", // windows
 	}
 
 	defaultServiceImpl = newProgram()
@@ -158,6 +159,12 @@ func NewService(program service.Interface, username string, args []string) (serv
 
 func entryFunc(p *serviceImpl) {
 	serv := startHTTPServer()
+
+	go func() {
+		if err := startDCA(p); err != nil {
+			l.Errorf("startDCA failed: %s", err.Error())
+		}
+	}()
 
 	go func() {
 		select {

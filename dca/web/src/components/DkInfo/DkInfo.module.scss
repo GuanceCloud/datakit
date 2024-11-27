@@ -1,0 +1,51 @@
+.nodata {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+
+  .img {
+    background: url('../../assets/no-data.png');
+    background-size: 143px 111px;
+    width: 143px;
+    height: 111px;
+  }
+
+  .text {
+    padding-top: 10px;
+    color: #555555;
+
+    text-align: center;
+  }
+}
+
+.dkinfo {
+  height: 100%;
+  padding-right: 10px;
+
+  .nav {
+    padding-top: 10px;
+    padding-left: 10px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #E1E4E8;
+    margin-bottom: 10px;
+
+    .tabs {
+      flex: 1;
+    }
+
+    .buttons {
+      margin-right: 10px;
+    }
+  }
+
+  .content {
+    border: 1px solid #E1E4E8;
+    margin-left: 10px;
+    border-bottom: none;
+    height: 100%;
+  }
+}

@@ -5,7 +5,7 @@
 
 ---
 
-:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+:fontawesome-brands-linux: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
@@ -14,48 +14,74 @@ DCA(Datakit Control App) is mainly used to manage DataKit, such as DataKit list 
 DCA network topology model explained:
 
 ```mermaid
-flowchart LR;
+flowchart TB;
 
-dca(DCA);
+dca_server(DCA Server);
+dca_web(DCA Web);
+dk_upgrader1(Upgrader);
+dk_upgrader2(Upgrader);
+dk_upgrader3(Upgrader);
 dk1(Datakit);
 dk2(Datakit);
 dk3(Datakit);
-guance(Guance Cloud);
-dca_web(Web);
-%%%
+k8s_dk1(Datakit);
+k8s_dk2(Datakit);
+k8s_dk3(Datakit);
+guance(Guance);
 
-subgraph "Cluster"
-direction BT
-dca_web --> |Update Datakit config|dca;
-
-dca --> dk1;
-dca --> dk2;
-dca --> dk3;
+subgraph HOST DataKit
+    direction TB;
+    subgraph host_sub1 ["host1"]
+        dk_upgrader1 --> dk1;         
+    end
+    subgraph host_sub2 ["host2"]
+        dk_upgrader2 --> dk2;    
+    end
+    subgraph host_sub3 ["host3"]
+        dk_upgrader3 --> dk3;       
+    end
 end
 
-dk1 -.-> |Upload data|guance;
-dk2 -.-> |Upload data|guance;
-dk3 -.-> |Upload data|guance;
-dca -.-> |Login|guance;
-guance -.-> |Datakit list| dca
+subgraph k8s DataKit
+ k8s_dk1
+ k8s_dk2
+ k8s_dk3
+end
+    
+dk1 -.-> |upload data|guance;
+dk2 -.-> |upload data|guance;
+dk3 -.-> |upload data|guance;
+k8s_dk1 -.-> |upload data|guance;
+k8s_dk2 -.-> |upload data|guance;
+k8s_dk3 -.-> |upload data|guance;
+
+dca_server <--> |websocket| dk_upgrader1 & dk_upgrader2 & dk_upgrader3 & k8s_dk1 & k8s_dk2 & k8s_dk3
+dca_web -- HTTP --- dca_server;
+
+dca_server -.-> |login/auth| guance;
 ```
 
 ## Start DCA Service {#config}
+
 <!-- markdownlint-disable MD046 -->
 === "DCA enabled on host installation"
 
     Add the following environment variables before installing the command:
     
     - `DK_DCA_ENABLE`: Whether to turn on, turn on set to `on`
-    - `DK_DCA_WHITE_LIST`: Access service whitelist, support IP address or CIDR format address, multiple addresses separated by commas.
+    - `DK_DCA_WEBSOCKET_SERVER`: DCA websocket server address.([:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0))
     
     Example:
     
     ```shell
-    DK_DCA_ENABLE=on DK_DCA_WHITE_LIST="192.168.1.101,10.100.68.101/24" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://127.0.0.1:8000/ws" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
     
-    After successful installation, the DCA service will start, and the default port is 9531. To modify the listening address and port, set the environment variable `DK_DCA_LISTEN`, for example `DK_DCA_LISTEN=192.168.1.101:9531`。
+    After successful installation, the DataKit will automatically connect to the DCA service.。
+
+=== "Kubernetes"
+
+    Can be turned on by [setting DCA related environment variable](../datakit/datakit-daemonset-deploy.md#env-dca).
 
 === "`datakit.conf`"
 
@@ -66,11 +92,9 @@ guance -.-> |Datakit list| dca
         # Open
         enable = true
     
-        # Listening for addresses and ports
-        listen = "0.0.0.0:9531"
+        # websocket server address
+        websocket_server = "ws://127.0.0.1:8000/ws"
     
-        # Whitelist, support specified IP address or CIDR network address
-        white_list = ["0.0.0.0/0", "192.168.1.0/24"]
     ```
     
     Once configured, [restart DataKit](datakit-service-how-to.md#manage-service).
@@ -81,9 +105,6 @@ guance -.-> |Datakit list| dca
 
 ---
 
-???+ Attention
-
-    To open the DCA service, you must configure a whitelist, and if you need to allow access to all addresses, you can either set `DK_DCA_WHITE_LIST=0.0.0.0/0` during installation or `white_list = ["0.0.0.0/0"]` in *datakit.conf*.
 <!-- markdownlint-enable -->
 ## DCA Web Service {#dca-web}
 <!-- markdownlint-disable MD046 -->
@@ -119,111 +140,7 @@ DCA Web is the Web version of DCA client, which provides the interface proxy of 
 
 === "k8s"
 
-    Create a `dca.yaml` file with the following content:
-
-    ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: utils-dca
-      name: dca
-      namespace: datakit
-    spec:
-      replicas: 1
-      revisionHistoryLimit: 10
-      selector:
-        matchLabels:
-          app: utils-dca
-      strategy:
-        rollingUpdate:
-          maxSurge: 25%
-          maxUnavailable: 25%
-        type: RollingUpdate
-      template:
-        metadata:
-          labels:
-            app: utils-dca
-        spec:
-          affinity: {}
-          containers:
-            - env:
-                - name: DCA_CONSOLE_API_URL 
-                  # 杭州 https://console-api.guance.com
-                  # 宁夏 https://aws-console-api.guance.com
-                  # 广州 https://cn4-console-api.guance.com
-                  # 俄勒冈 https://us1-console-api.guance.com
-                  value: https://console-api.guance.com
-                - name: DCA_CONSOLE_WEB_URL 
-                  value: https://console.guance.com
-                - name: DCA_LOG_ENABLE_STDOUT
-                  value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.9
-              imagePullPolicy: Always
-              name: dca
-              ports:
-                - containerPort: 80
-                  name: http
-                  protocol: TCP
-              resources:
-                limits:
-                  cpu: 500m
-                  memory: 256Mi   
-                requests:
-                  cpu: 250m
-                  memory: 100Mi              
-              resources: {}
-              terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File
-          dnsPolicy: ClusterFirst
-          restartPolicy: Always
-          schedulerName: default-scheduler
-          securityContext: {}
-          terminationGracePeriodSeconds: 30
-
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: dca
-      namespace: datakit
-    spec:
-      ports:
-        - name: web
-          port: 80
-          protocol: TCP
-          targetPort: 80
-      selector:
-        app: utils-dca
-      sessionAffinity: None
-      type: ClusterIP
-
-    ---
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: dca
-      namespace: datakit
-    spec:
-      rules:
-        - host: dca.xxxx.com
-          http:
-            paths:
-              - backend:
-                  service:
-                    name: dca
-                    port:
-                      number: 80
-                path: /
-                pathType: Prefix
-      # tls:
-      #   - hosts:
-      #       - dca.xxxx.com
-      #     secretName: xxxx
-
-    ```
-
-    Apply `dca.yaml` to your Kubernetes cluster.
+    Download [*dca.yaml*](https://static.guance.com/datakit/dca/dca.yaml){:target="_blank"}. Edit the configuration parameters in the file and apply `dca.yaml` to your Kubernetes cluster.
 
     ```shell
     $ kubectl apply -f dca.yaml
@@ -238,14 +155,18 @@ By default, DCA will adopt the default configuration of the system. If you need 
 | :---------              | ----:  | :---                           | ------                                                                                          |
 | `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | Guance Cloud console API address                                                                         |
 | `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | Guance Cloud page address                                                                         |
+| `DCA_STATIC_BASE_URL`        | string | `https://static.guance.com` | static resource address                                                                         |
 | `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, but does not proxy the DataKit API |
-| `DCA_LOG_LEVEL`         | string |                                | Log level, the value is NONE/DEBUG/INFO/WARN/ERROR. If logging is not required, it can be set to NONE.                  |
-| `DCA_LOG_ENABLE_STDOUT` | bool   | false                          | The log is output to a file under `/usr/src/dca/logs`. If you need to write the log to `stdout`, you can set it to `true` |
+| `DCA_LOG_LEVEL`         | string |                                | Log level, the value is debug/info/warn/error.                  |
+| `DCA_LOG_PATH` | string   |                | The log path. If you need to write the log to `stdout`, you can set it to `stdout` |
+| `DCA_TLS_ENABLE`         | string |                              | enable TLS when the value is not empty                  |
+| `DCA_TLS_CERT_FILE`         | string |                              | the cert file path, such as `/etc/ssl/certs/server.crt`                  |
+| `DCA_TLS_KEY_FILE`         | string |                              | the key file path, such as `/etc/ssl/certs/server.key`                  |
 
 Example:
 
 ```shell
-docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
+docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.guance.com/tools/dca
 ```
 
 ### Log in to DCA {#login}
@@ -262,9 +183,11 @@ After logging in to DCA, you can select the workspace in the upper left corner t
 
 Hosts remotely managed through DCA are divided into three states:
 
-- online: indicating that the data report is normal, you can view the operation of DataKit and configure the collector through DCA;
-- unknown: indicates that the remote management configuration is not turned on;
-- offline: It means that the host has not reported data for more than 10 minutes.
+- running: indicating that the data report is normal, you can view the operation of DataKit and configure the collector through DCA;
+- offline: It means that the DataKit is off line.
+- stopped: It means that the DataKit is stopped.
+- upgrading: It means that the DataKit is upgrading.
+- restarting: It means that the DataKit is restarting.
 
 By default, you can only view information of the DataKit in the current workspace. If you need to manage DataKit, such as upgrading it, creating, deleting, or modifying DataKit collector config file, pipelines, you need to grant current user DCA configuration management permission. Please refer to [role management](../management/role-management.md) for specific settings.
 
@@ -319,3 +242,12 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca/dca-log-1.png){ width="800" }
 </figure>
+
+## Changelog {#change-log}
+
+### 0.1.0(2024/11/27) {#cl-0.1.0}
+
+- Refactored the DCA underlying framework to use WebSocket protocol for communication, making it easier to manage DataKit in different network environments.
+- Added the functionality to manage the main configuration of DataKit.
+- Added support for TLS configuration.
+- Changed the "Reload" feature of DataKit to "Restart".

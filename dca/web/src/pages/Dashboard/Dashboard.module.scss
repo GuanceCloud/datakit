@@ -1,0 +1,121 @@
+$height: 50px;
+
+.container {
+  height: 100%;
+
+  .header {
+    border-bottom: 1px solid #e1e4e8;
+    background-color: #101319;
+    padding-right: 10px;
+    height: $height;
+
+    .icon {
+      float: left;
+      width: 50px;
+      height: 50px;
+      background: url("../../assets/icon.png") no-repeat center;
+    }
+
+    .list {
+      float: left;
+      display: flex;
+      align-items: center;
+      width: 180px;
+      height: $height;
+      line-height: $height;
+      margin-right: 15px;
+
+      // :global {
+      //   .ant-select {
+      //     .ant-select-selector {
+      //       .ant-select-selection-item {
+      //         color: #fff
+      //       }
+      //     }
+
+      //     &.ant-selector-focused {
+      //       .ant-select-selection-item {
+      //         color: rgba(0, 0, 0, 0.88)
+      //       }
+
+      //     }
+      //   }
+      // }
+
+      .menu {
+        width: 100%;
+        position: relative;
+        height: 28px;
+        line-height: 28px;
+        padding-left: 5px;
+        // border: 1px solid #e1e4e8;
+        cursor: pointer;
+
+        .name {
+          .text {
+            max-width: 150px;
+            color: #F0F6FC;
+            font-size: 12px;
+            line-height: 28px;
+          }
+        }
+
+        .arrow {
+          position: absolute;
+          top: 0;
+          right: 5px;
+          color: #F0F6FC;
+        }
+      }
+    }
+
+    .nav {
+      float: left;
+      margin-left: 5px;
+    }
+
+    .right {
+      display: flex;
+      float: right;
+      cursor: pointer;
+      line-height: $height;
+      color: #F0F6FC;
+
+      .help {
+        a {
+          color: #F0F6FC;
+        }
+      }
+    }
+  }
+
+  .body {
+    display: flex;
+    height: calc(100% - $height);
+
+    &>div {
+      // height: 100vh;
+      overflow: hidden;
+    }
+
+    .list {
+      min-width: 200px;
+      min-height: 500px;
+
+      // border-right: 1px solid #e1e4e8;
+      .search {
+        display: flex;
+      }
+
+      .list-item {
+        height: 100px;
+      }
+    }
+
+    .info {
+      flex: 1;
+      border-left: 1px solid #e1e4e8;
+      overflow-y: scroll;
+    }
+  }
+}

@@ -89,7 +89,7 @@ func CheckNewVersion(curverStr string) (*newVersionInfo, error) {
 		proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
-	ver, err := GetOnlineVersions(OnlineBaseURL, proxy)
+	ver, err := GetOnlineVersions(OnlineBaseURL, proxy, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("GetOnlineVersions: %w", err)
 	}
@@ -160,9 +160,11 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 	return v, nil
 }
 
-func getVersionInfo(addr, proxy string) (*version.VerInfo, error) {
+func getVersionInfo(addr, proxy string, timeout time.Duration) (*version.VerInfo, error) {
 	cli := GetHTTPClient(proxy)
-	cli.Timeout = time.Second * 5
+	if timeout > 0 {
+		cli.Timeout = timeout
+	}
 
 	urladdr := addr
 	if strings.HasSuffix(addr, "/") {
@@ -220,8 +222,8 @@ func CanonicalInstallBaseURL(installBaseURL string) string {
 	return sb.String()
 }
 
-func GetOnlineVersions(baseURL, proxy string) (*version.VerInfo, error) {
-	vi, err := getVersionInfo(CanonicalInstallBaseURL(baseURL), proxy)
+func GetOnlineVersions(baseURL, proxy string, timeout time.Duration) (*version.VerInfo, error) {
+	vi, err := getVersionInfo(CanonicalInstallBaseURL(baseURL), proxy, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("get version from %s failed: %w", baseURL, err)
 	}

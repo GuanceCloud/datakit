@@ -17,6 +17,7 @@ import (
 	"github.com/kardianos/service"
 	"github.com/shirou/gopsutil/v3/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var l = logger.DefaultSLogger("main")
@@ -50,6 +51,12 @@ func isServiceRunning() (int, bool) {
 
 func main() {
 	upgrader.ParseAndRunSubCommand()
+
+	// only set debug mode by env
+	if v := datakit.GetEnv("DK_UPGRADER_DEBUG"); v != "" {
+		upgrader.DebugRun()
+		return
+	}
 
 	pid, ok := isServiceRunning()
 	if ok {

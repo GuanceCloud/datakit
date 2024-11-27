@@ -1,0 +1,36 @@
+.container{
+    padding: 8px 5px 5px 10px;
+    height: 100%;
+    .log {
+        display: flex;
+        justify-content: space-between;
+        .log-type {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            .menu {
+                display: flex;
+                width: 120px;
+                align-items: center;
+                margin-right: 10px;
+                border: 1px solid #e1e4e8;
+                border-radius: 2px;
+                padding-right: 5px;
+                &>button{
+                    width: 110px;
+                    text-align: left;
+                    height: 30px;
+                    border: none;
+                    &:hover{color: inherit}
+                }
+            }
+            .description{
+                color: #888888;
+            }
+        }
+    }
+    .content {
+        height: calc(100% - 30px);
+        border: 1px solid #e1e4e8;
+    }
+}

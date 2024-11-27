@@ -24,7 +24,7 @@ import (
 
 func runServiceFlags() error {
 	if *flagServiceRestart {
-		if err := restartDatakit(); err != nil {
+		if err := RestartDatakit(); err != nil {
 			cp.Errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
@@ -172,7 +172,7 @@ func startDatakit() error {
 	return nil
 }
 
-func restartDatakit() error {
+func RestartDatakit() error {
 	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Restart-Service", "datakit"}...)
 		return cmd.Run()

@@ -250,6 +250,12 @@ func Compile() error {
 			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
 		}
 
+		// build dca binary
+		dcaDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, "dca", goos, goarch)
+		if err := compileArch("dca", goos, goarch, dcaDir, "cmd/dca/main.go", "not-set"); err != nil {
+			return fmt.Errorf("unable to build dca : %w", err)
+		}
+
 		// build externals
 		if err := buildExternals(dir, goos, goarch, false); err != nil {
 			return err

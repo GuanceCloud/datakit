@@ -41,7 +41,7 @@ func (r *nopRefresher) UsageTrace([]byte) error {
 	return nil
 }
 
-type usageTrace struct {
+type UsageTrace struct {
 	Host      string `json:"hostname"`
 	RuntimeID string `json:"runtime_id"`
 	Token     string `json:"token"`
@@ -65,7 +65,6 @@ type usageTrace struct {
 	ServerListens []string `json:"server_listens,omitempty"`
 	Inputs        []string `json:"inputs,omitempty"`
 
-	DCAServer      string `json:"dca_server,omitempty"`
 	UpgraderServer string `json:"upgrader_server,omitempty"`
 
 	reservedInputs []string
@@ -76,10 +75,10 @@ type usageTrace struct {
 	exit      <-chan any
 }
 
-type UsageTraceOption func(*usageTrace)
+type UsageTraceOption func(*UsageTrace)
 
 func doClearServerListens() UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		if len(ut.ServerListens) > 0 { // clear
 			l.Infof("clear %d listen servers: %+#v", len(ut.ServerListens), ut.ServerListens)
 			ut.ServerListens = ut.ServerListens[:0]
@@ -88,7 +87,7 @@ func doClearServerListens() UsageTraceOption {
 }
 
 func doClearInputNames() UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		if len(ut.Inputs) > 0 { // clear
 			l.Infof("clear %d inputs: %+#v", len(ut.Inputs), ut.Inputs)
 			ut.Inputs = ut.Inputs[:0]
@@ -161,14 +160,14 @@ func isDomainLoopback(domain string) bool {
 }
 
 func WithUpgraderServer(s string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		l.Infof("setup upgrader server to %q", s)
 		ut.UpgraderServer = s
 	}
 }
 
 func WithServerListens(listens ...string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		for _, urlStr := range listens {
 			if ok, err := checkLoopbackServerListen(urlStr); err != nil {
 				l.Warnf("checkLoopbackServerListen: %s, ignored", err.Error())
@@ -182,14 +181,14 @@ func WithServerListens(listens ...string) UsageTraceOption {
 }
 
 func WithReservedInputs(ri ...string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		l.Infof("add reserved inputs %+#v", ri)
 		ut.reservedInputs = append(ut.reservedInputs, ri...)
 	}
 }
 
 func WithInputNames(names ...string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		for _, name := range names {
 			if !slices.Contains(ut.reservedInputs, name) { // ignore non-reseved inputs
 				return
@@ -204,14 +203,14 @@ func WithInputNames(names ...string) UsageTraceOption {
 }
 
 func WithRefreshDuration(du time.Duration) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		l.Infof("setup refresh interval %s", du)
 		ut.refreshInterval = du
 	}
 }
 
 func WithCPULimits(limits float64) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		if limits < 1.0 {
 			ut.CPULimites = 1
 			l.Infof("set CPULimites from %f to %d", limits, ut.CPULimites)
@@ -223,79 +222,72 @@ func WithCPULimits(limits float64) UsageTraceOption {
 }
 
 func WithRefresher(r refresher) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.refresher = r
 	}
 }
 
 func WithDatakitHostname(hostname string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.Host = hostname
 		l.Infof("set host to %q", ut.Host)
 	}
 }
 
 func WithDatakitRuntimeID(id string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.RuntimeID = id
 		l.Infof("set runtimeID to %q", ut.RuntimeID)
 	}
 }
 
 func WithDatakitPodname(podname string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.PodName = podname
 		l.Infof("set pod name to %q", ut.PodName)
 	}
 }
 
 func WithRunInContainer(on bool) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.RunInContainer = on
 		l.Infof("is run in docker? %v", ut.RunInContainer)
 	}
 }
 
 func WithWorkspaceToken(token string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.Token = token
 	}
 }
 
 func WithMainIP(ip string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.IP = ip
 		l.Infof("set main IP to %q", ut.IP)
 	}
 }
 
-func WithDCAAPIServer(ipPort string) UsageTraceOption {
-	return func(ut *usageTrace) {
-		ut.DCAServer = ipPort
-		l.Infof("set DCA server to %q", ut.DCAServer)
-	}
-}
-
 func WithDatakitVersion(version string) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.DatakitVersion = version
 		l.Infof("set Datakit version to %q", ut.DatakitVersion)
 	}
 }
 
 func WithDatakitStartTime(ts int64) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.startTime = ts
 	}
 }
 
 func WithExitChan(ch <-chan any) UsageTraceOption {
-	return func(ut *usageTrace) {
+	return func(ut *UsageTrace) {
 		ut.exit = ch
 	}
 }
 
-func (ut *usageTrace) refreshInfo() {
+func (ut *UsageTrace) refreshInfo() {
 	ut.Uptime = int64(time.Since(time.Unix(ut.startTime, 0)) / time.Second)
 
 	// go some reserved inputs in use, or enabled multiple servers
@@ -307,7 +299,7 @@ func (ut *usageTrace) refreshInfo() {
 	}
 }
 
-func (ut *usageTrace) doRefresh() error {
+func (ut *UsageTrace) doRefresh() error {
 	ut.refreshInfo()
 
 	j, err := json.Marshal(ut)
@@ -342,7 +334,7 @@ func ClearInputNames() {
 	UpdateTraceOptions(doClearInputNames())
 }
 
-func (ut *usageTrace) loop() error {
+func (ut *UsageTrace) loop() error {
 	tick := time.NewTicker(ut.refreshInterval)
 	defer tick.Stop()
 
@@ -364,7 +356,7 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func (ut *usageTrace) applyOptions(opts ...UsageTraceOption) {
+func (ut *UsageTrace) applyOptions(opts ...UsageTraceOption) {
 	for _, opt := range opts {
 		if opt != nil {
 			l.Infof("apply option %s", getFunctionName(opt))
@@ -376,7 +368,7 @@ func (ut *usageTrace) applyOptions(opts ...UsageTraceOption) {
 }
 
 func doStart(opts ...UsageTraceOption) error {
-	ut := &usageTrace{
+	ut := &UsageTrace{
 		CPUCores:        runtime.NumCPU(),
 		refresher:       &nopRefresher{},
 		UsageCores:      1,
@@ -386,8 +378,16 @@ func doStart(opts ...UsageTraceOption) error {
 	}
 
 	ut.applyOptions(opts...)
+	defaultUsageTraceInstance = ut
 
 	return ut.loop()
+}
+
+var defaultUsageTraceInstance *UsageTrace
+
+// GetUsageTraceInstance returns the default usage trace instance.
+func GetUsageTraceInstance() *UsageTrace {
+	return defaultUsageTraceInstance
 }
 
 func Start(opts ...UsageTraceOption) {

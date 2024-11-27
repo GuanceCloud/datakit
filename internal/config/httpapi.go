@@ -49,7 +49,6 @@ func (conf *APIConfig) HTTPSEnabled() bool {
 
 // DCAConfig used to unmarshal DCA HTTP API server configurations.
 type DCAConfig struct {
-	Enable    bool     `toml:"enable" json:"enable"`
-	Listen    string   `toml:"listen" json:"listen"`
-	WhiteList []string `toml:"white_list" json:"white_list"`
+	Enable          bool   `toml:"enable" json:"enable"`
+	WebsocketServer string `toml:"websocket_server" json:"websocket_server"`
 }

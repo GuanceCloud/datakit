@@ -235,30 +235,16 @@ if ($x -ne $null) {
 	Write-COutput green "* Set limit_memmax => $x"
 }
 
-$dca_white_list=
-$x = [Environment]::GetEnvironmentVariable("DK_DCA_WHITE_LIST")
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_WEBSOCKET_SERVER")
 if ($x -ne $null) {
-	$dca_white_list = $x
-	$cmd += "--dca-white-list=$x"
-	Write-COutput green "* Set dca_white_list => $x"
+	$cmd += "--dca-websocket-server=$x"
+	Write-COutput green "* Set dca_websocket_server => $x"
 }
 
-$x = [Environment]::GetEnvironmentVariable("DK_DCA_LISTEN")
-if ($x -ne $null) {
-	$cmd += "--dca-listen=$x"
-	Write-COutput green "* Set dca_listen => $x"
-}
-
-$dca_enable=
 $x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE")
 if ($x -ne $null) {
-	$dca_enable = $x
-	$cmd += "--dca-enable=$dca_enable"
+	$cmd += "--dca-enable=$x"
 	Write-COutput green "* Set dca_enable => ON"
-	if ($dca_white_list -eq $null) {
-		Write-COutput red "* DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!"
-		Exit
-	}
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_PPROF_LISTEN")

@@ -1,0 +1,13 @@
+.tab-container {
+  display: flex;
+  padding: 5px 5px 5px 10px;
+  .tab-container-left {
+    min-width: 150px;
+    border: 1px solid #E1E4E8;
+    min-height: 300px;
+    max-height: 800px;
+    overflow: auto;
+    margin-right: 10px;
+    padding: 8px;
+  }
+}

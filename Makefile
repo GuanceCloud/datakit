@@ -356,6 +356,28 @@ shame_logging:
 ip2isp:
 	$(call build_ip2isp)
 
+pub_dca_testing: prepare_dca
+	@cd dca \
+	&& node build.js build_image \
+	--image-tag=$(IMAGE_TAG) \
+	--upload-addr=$(TESTING_UPLOAD_ADDR) \
+	--download-cdn=$(TESTING_DOWNLOAD_CDN) \
+	--release=testing
+
+pub_dca_production: prepare_dca
+	@cd dca \ 
+	&& node build.js build_image --image-tag=latest \
+	--image-url=pubrepo.guance.com/tools/dca \
+	--upload-addr=$(PRODUCTION_UPLOAD_ADDR) \
+	--download-cdn=$(PRODUCTION_DOWNLOAD_CDN)
+	--release=production
+
+prepare_dca:
+	@cd dca \
+	&& rm -rf ./dist \
+	&& mkdir -p ./dist \
+	&& cp -r ../dist/dca-* ./dist
+
 deps: prepare gofmt 
 
 # ignore files under vendor/.git/git

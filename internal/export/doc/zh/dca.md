@@ -5,7 +5,7 @@
 
 ---
 
-:fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
+:fontawesome-brands-linux: :fontawesome-brands-apple: :material-kubernetes: :material-docker:
 
 ---
 
@@ -14,30 +14,51 @@ DCA（Datakit Control App）主要用于管理 Datakit，如 Datakit 列表查�
 DCA 基本网络拓扑结构如下：
 
 ```mermaid
-flowchart LR;
+flowchart TB;
 
-dca(DCA);
+dca_server(DCA Server);
+dca_web(DCA Web);
+dk_upgrader1(Upgrader);
+dk_upgrader2(Upgrader);
+dk_upgrader3(Upgrader);
 dk1(Datakit);
 dk2(Datakit);
 dk3(Datakit);
-guance(观测云);
-dca_web(Web);
-%%%
+k8s_dk1(Datakit);
+k8s_dk2(Datakit);
+k8s_dk3(Datakit);
+guance(Guance);
 
-subgraph "局域网/Cluster"
-direction BT
-dca_web --> |更新 Datakit 配置|dca;
-
-dca --> dk1;
-dca --> dk2;
-dca --> dk3;
+subgraph HOST DataKit
+    direction TB;
+    subgraph host_sub1 ["host1"]
+        dk_upgrader1 --> dk1;         
+    end
+    subgraph host_sub2 ["host2"]
+        dk_upgrader2 --> dk2;    
+    end
+    subgraph host_sub3 ["host3"]
+        dk_upgrader3 --> dk3;       
+    end
 end
 
-dk1 -.-> |上报数据|guance;
-dk2 -.-> |上报数据|guance;
-dk3 -.-> |上报数据|guance;
-dca -.-> |登录/认证|guance;
-guance -.-> |Datakit 列表| dca
+subgraph k8s DataKit
+ k8s_dk1
+ k8s_dk2
+ k8s_dk3
+end
+    
+dk1 -.-> |upload data|guance;
+dk2 -.-> |upload data|guance;
+dk3 -.-> |upload data|guance;
+k8s_dk1 -.-> |upload data|guance;
+k8s_dk2 -.-> |upload data|guance;
+k8s_dk3 -.-> |upload data|guance;
+
+dca_server <--> |websocket| dk_upgrader1 & dk_upgrader2 & dk_upgrader3 & k8s_dk1 & k8s_dk2 & k8s_dk3
+dca_web -- HTTP --- dca_server;
+
+dca_server -.-> |login/auth| guance;
 ```
 
 ## 开启 DCA 服务 {#config}
@@ -48,15 +69,19 @@ guance -.-> |Datakit 列表| dca
     在安装命令前添加以下环境变量：
     
     - `DK_DCA_ENABLE`: 是否开启，开启设置为 `on`
-    - `DK_DCA_WHITE_LIST`: 访问服务白名单，支持 IP 地址或 CIDR 格式地址，多个地址请以逗号分割。
+    - `DK_DCA_WEBSOCKET_SERVER`: 配置 DCA 的 websocket 服务地址 ([:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0))
     
     示例：
     
     ```shell
-    DK_DCA_ENABLE=on DK_DCA_WHITE_LIST="192.168.1.101,10.100.68.101/24" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://127.0.0.1:9000/ws" DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     ```
 
-    安装成功后，DCA 服务将启动，默认端口是 9531。如需修改监听地址和端口，可设置环境变量 `DK_DCA_LISTEN`，如 `DK_DCA_LISTEN=192.168.1.101:9531`。
+    安装成功后，DataKit 将自动连接 DCA 服务。
+
+=== "Kubernetes"
+
+    可通过 [设置 DCA 相关环境变量](../datakit/datakit-daemonset-deploy.md#env-dca) 来开启 DCA 功能。
 
 === "*datakit.conf*"
 
@@ -67,40 +92,23 @@ guance -.-> |Datakit 列表| dca
         # 开启
         enable = true
 
-        # 监听地址和端口
-        listen = "0.0.0.0:9531"
+        # DCA 服务地址
+        websocket_server = "ws://127.0.0.1:8000/ws"
 
-        # 白名单，支持指定 IP 地址或者 CIDR 格式网络地址
-        white_list = ["0.0.0.0/0", "192.168.1.0/24"]
     ```
 
     配置好后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。
 
-=== "Kubernetes"
-
-    参见[这里](datakit-daemonset-deploy.md#env-dca)
 <!-- markdownlint-enable -->
 
 ---
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    开启 DCA 服务，必须要配置白名单，如果需要允许所有地址访问，可在安装过程中设置 `DK_DCA_WHITE_LIST=0.0.0.0/0`，或者在 *datakit.conf* 中配置 `white_list`，如：
-
-    ```toml
-    [dca]
-      ...
-      white_list = ["0.0.0.0/0"]
-    ```
-<!-- markdownlint-enable -->
 
 ## DCA web 服务 {#dca-web}
 
 <!-- markdownlint-disable MD046 -->
 ???+ Attention
 
-    不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。另外，Web 版的 DCA 跟桌面版之间还存在一些功能的缺失，后面会慢慢增补进来，*并逐步弃用现在的桌面版*。
+    不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。
 
 <!-- markdownlint-enable -->
 
@@ -133,111 +141,7 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
 
 === "k8s"
 
-    创建 `dca.yaml` 文件，内容如下：
-
-    ```yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: utils-dca
-      name: dca
-      namespace: datakit
-    spec:
-      replicas: 1
-      revisionHistoryLimit: 10
-      selector:
-        matchLabels:
-          app: utils-dca
-      strategy:
-        rollingUpdate:
-          maxSurge: 25%
-          maxUnavailable: 25%
-        type: RollingUpdate
-      template:
-        metadata:
-          labels:
-            app: utils-dca
-        spec:
-          affinity: {}
-          containers:
-            - env:
-                - name: DCA_CONSOLE_API_URL 
-                  # 杭州 https://console-api.guance.com
-                  # 宁夏 https://aws-console-api.guance.com
-                  # 广州 https://cn4-console-api.guance.com
-                  # 俄勒冈 https://us1-console-api.guance.com
-                  value: https://console-api.guance.com
-                - name: DCA_CONSOLE_WEB_URL 
-                  value: https://console.guance.com
-                - name: DCA_LOG_ENABLE_STDOUT
-                  value: 'true'
-              image: pubrepo.guance.com/tools/dca:0.0.9
-              imagePullPolicy: Always
-              name: dca
-              ports:
-                - containerPort: 80
-                  name: http
-                  protocol: TCP
-              resources:
-                limits:
-                  cpu: 500m
-                  memory: 256Mi   
-                requests:
-                  cpu: 250m
-                  memory: 100Mi              
-              resources: {}
-              terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File
-          dnsPolicy: ClusterFirst
-          restartPolicy: Always
-          schedulerName: default-scheduler
-          securityContext: {}
-          terminationGracePeriodSeconds: 30
-
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: dca
-      namespace: datakit
-    spec:
-      ports:
-        - name: web
-          port: 80
-          protocol: TCP
-          targetPort: 80
-      selector:
-        app: utils-dca
-      sessionAffinity: None
-      type: ClusterIP
-
-    ---
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: dca
-      namespace: datakit
-    spec:
-      rules:
-        - host: dca.xxxx.com
-          http:
-            paths:
-              - backend:
-                  service:
-                    name: dca
-                    port:
-                      number: 80
-                path: /
-                pathType: Prefix
-      # tls:
-      #   - hosts:
-      #       - dca.xxxx.com
-      #     secretName: xxxx
-
-    ```
-
-    应用 `dca.yaml` 文件到 Kubernetes 集群中
+    下载 [*dca.yaml*](https://static.guance.com/datakit/dca/dca.yaml){:target="_blank"}，并修改文件里面的相应配置，应用 `dca.yaml` 文件到 Kubernetes 集群中。
 
     ```shell
     kubectl apply -f dca.yaml
@@ -253,14 +157,18 @@ DCA web 是 DCA 客户端的 web 版本，它通过部署一个后端服务来�
 | ---------:              | ----:  | ---:                             | ------                                                                                          |
 | `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | 观测云 console API 地址                                                                         |
 | `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | 观测云平台地址                                                                         |
+| `DCA_STATIC_BASE_URL`        | string | `https://static.guance.com` | 静态文件服务器地址                                                                         |
 | `DCA_CONSOLE_PROXY`     | string | 无                               | 观测云 API 代理，不代理 DataKit 接口                                                            |
-| `DCA_LOG_LEVEL`         | string | INFO                             | 日志等级，取值为 NONE/DEBUG/INFO/WARN/ERROR，如果不需要记录日志，可设置为 NONE                  |
-| `DCA_LOG_ENABLE_STDOUT` | bool   | false                            | 日志会输出至文件中，位于 `/usr/src/dca/logs` 下。如果需要将日志写到 `stdout`，可以设置为 `true` |
+| `DCA_LOG_LEVEL`         | string | INFO                             | 日志等级，取值为 debug/info/warn/error                  |
+| `DCA_LOG_PATH`         | string | INFO                             | 日志路径，如果需要输出到 stdout，则设置为 `stdout`                  |
+| `DCA_TLS_ENABLE`         | string |                              | 是否开启 TLS，设置该值表示开启                  |
+| `DCA_TLS_CERT_FILE`         | string |                              | 证书文件路径，如： `/etc/ssl/certs/server.crt`                  |
+| `DCA_TLS_KEY_FILE`         | string |                              | 私钥文件路径，如： `/etc/ssl/certs/server.key`                  |
 
 示例：
 
 ```shell
-docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
+docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
 ```
 
 ### 登录 DCA {#login}
@@ -277,9 +185,11 @@ DCA 开启和安装以后，您可在浏览器输入地址 `localhost:8000` 进�
 
 通过 DCA 远程管理的主机分成三种状态：
 
-- online：说明数据上报正常，可通过 DCA 查看 DataKit 的运行情况和配置采集器；
-- unknown：说明远程管理配置未开启；
-- offline：说明主机已经超过 10 分钟未上报数据。
+- running：说明数据上报正常，可通过 DCA 查看 DataKit 的运行情况和配置采集器；
+- offline：说明 DataKit 离线状态。
+- stopped: DataKit 处于停止状态。
+- upgrading： DataKit 处于升级状态。
+- restarting： DataKit 处于重启状态。
 
 默认情况下，只能查看当前工作空间里的 DataKit 相关信息，如果需要对 DataKit 进行管理，如 DataKit 升级、采集器、Pipeline 的 新建、删除、修改等，则需要赋予当前帐号**DCA 配置管理**权限，具体设置可参考[角色管理](../management/role-management.md)。
 
@@ -332,3 +242,12 @@ DCA 开启和安装以后，您可在浏览器输入地址 `localhost:8000` 进�
 <figure markdown>
   ![](https://static.guance.com/images/datakit/dca/dca-log-1.png){ width="800" }
 </figure>
+
+## 更新日志 {#change-log}
+
+### 0.1.0(2024/11/27) {#cl-0.1.0}
+
+- 重构 DCA 底层框架，使用 websocket 协议进行通信，便于管理不同网络环境下的 DataKit。
+- 新增管理 DataKit 主配置的功能。
+- 新增支持 TLS 配置。
+- 调整 DataKit 的”重新加载“功能为“重启“。
