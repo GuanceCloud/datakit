@@ -26,6 +26,9 @@ var httpRouteList = make(map[string]*httpRouteInfo)
 
 // RegHTTPHandler deprecated, use RegHTTPRoute instead.
 func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
 		l.Warnf("failed to register %s %q by handler %s to HTTP server: route exists",
@@ -41,6 +44,9 @@ func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
 }
 
 func RegHTTPRoute(method, path string, handler APIHandler) {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
 		l.Warnf("failed to register %s@%s to router: route exist.", path, method)
@@ -54,10 +60,23 @@ func RegHTTPRoute(method, path string, handler APIHandler) {
 }
 
 func CleanHTTPHandler() {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
 	httpRouteList = make(map[string]*httpRouteInfo)
 }
 
-func applyHTTPRoute(router *gin.Engine) {
+func addNewRegistedAPIs(hs *httpServerConf) {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+
+	for _, x := range httpRouteList {
+		l.Infof("add %q(method %q) to API white list", x.Path, x.Method)
+		// Because API whitelist defauled enabled, we should add new registered APIs to white list.
+		hs.apiConfig.PublicAPIs = append(hs.apiConfig.PublicAPIs, x.Path)
+	}
+}
+
+func applyRegistedAPIs(router *gin.Engine) {
 	for _, routeInfo := range httpRouteList {
 		method := routeInfo.Method
 		path := routeInfo.Path

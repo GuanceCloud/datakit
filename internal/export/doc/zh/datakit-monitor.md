@@ -145,17 +145,14 @@ datakit monitor --refresh 1s
 ### :material-chat-question: 如何 Monitor 其它 Datakit？ {#remote-monitor}
 <!-- markdownlint-enable -->
 
-有时候，安装的 Datakit 并不是使用默认的 9529 端口，这时候就会出现类似如下的错误：
-
-```shell
-request stats failed: Get "http://localhost:9528/stats": dial tcp ...
-```
-
 可通过指定 Datakit 地址来查看其 monitor 数据：
 
 ```shell
-datakit monitor --to localhost:19528
-
-# 也能查看另一个远程 Datakit 的 monitor
-datakit monitor --to <remote-ip>:9528
+datakit monitor --to <remote-ip>:9529
 ```
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    默认情况下，monitor 数据是不能通过非 localhost 访问的，可以[手动将其添加到 API 白名单中](datakit-conf.md#public-apis)。
+<!-- markdownlint-enable -->

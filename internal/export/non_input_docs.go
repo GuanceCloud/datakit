@@ -419,7 +419,7 @@ func envHTTPAPI() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_RUM_APP_ID_WHITE_LIST",
 			Type:    doc.String,
-			Example: "appid-1, appid-2",
+			Example: "/appid-1,/appid-2",
 			Desc:    "RUM app-id white list, split by `,`.",
 			DescZh:  "RUM app-id 白名单列表，以 `,` 分割。",
 		},

@@ -70,25 +70,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 <!-- markdownlint-enable -->
 ### Security Restrictions {#security-setting}
 
-Because RUM DataKit is generally deployed in a public network environment, but only uses a specific [DataKit API](../datakit/apis.md) interface, other interfaces cannot be opened. API access control can be tightened by modifying the following *public_apis* field configuration in *datakit.conf*:
-
-```toml
-[http_api]
-  rum_origin_ip_header = "X-Forwarded-For"
-  listen = "0.0.0.0:9529"
-  disable_404page = true
-  rum_app_id_white_list = []
-
-  public_apis = [  # If the list is empty, all APIs do not do access control
-    "/v1/write/rum",
-    "/some/other/apis/..."
-
-    # Other APIs can only be accessed by localhost, for example, datakit-M needs to access the/stats interface.
-    # In addition, DCA is not affected by this because it is a stand-alone HTTP server.
-  ]
-```
-
-Other interfaces are still available, but can only be accessed natively through the DataKit, such as [query DQL](../datakit/datakit-dql-how-to.md) or view [DataKit running status](../datakit/datakit-tools-how-to.md#using-monitor).
+See [Datakit API access control](../datakit/datakit-conf.md#public-apis).
 
 ### Disable DataKit 404 Page {#disable-404}
 

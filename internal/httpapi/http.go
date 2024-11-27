@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -30,9 +31,9 @@ import (
 	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -50,6 +51,8 @@ var (
 
 	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
+
+	httpConfMtx sync.Mutex
 )
 
 type httpServerConf struct {
@@ -69,7 +72,9 @@ type httpServerConf struct {
 
 func defaultHTTPServerConf() *httpServerConf {
 	return &httpServerConf{
-		apiConfig: &config.APIConfig{},
+		apiConfig: &config.APIConfig{
+			PublicAPIs: []string{"/v1/ping"}, // Default enable ping API.
+		},
 	}
 }
 
@@ -180,11 +185,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	// DON'T CHANGE ITS ORDER!
 	router.Use(dkHTTPTimeout(hs.timeout))
 
-	// use whitelist config
-	if len(hs.apiConfig.PublicAPIs) != 0 {
-		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
-	}
-
 	router.Use(setDKInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
@@ -200,7 +200,13 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 		router.NoRoute(page404)
 	}
 
-	applyHTTPRoute(router)
+	addNewRegistedAPIs(hs)
+	// use whitelist config
+	if len(hs.apiConfig.PublicAPIs) != 0 {
+		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
+	}
+
+	applyRegistedAPIs(router)
 
 	createDCARouter(router, hs)
 
@@ -234,14 +240,14 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 	publicAPITable := make(map[string]struct{}, len(apis))
 	for _, apiPath := range apis {
+		l.Infof("apply API %q to white list(maybe duplicated)", apiPath)
+
 		apiPath = strings.TrimSpace(apiPath)
 		if len(apiPath) > 0 && apiPath[0] != '/' {
 			apiPath = "/" + apiPath
 		}
 		publicAPITable[apiPath] = struct{}{}
 	}
-
-	l.Debugf("public API list: %+#v", publicAPITable)
 
 	return func(c *gin.Context) {
 		cliIP := net.ParseIP(c.ClientIP())
