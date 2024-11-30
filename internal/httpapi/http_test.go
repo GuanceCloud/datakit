@@ -505,7 +505,150 @@ func TestIsNil(t *T.T) {
 	})
 }
 
+func newPubListener(t *T.T) net.Listener {
+	t.Helper()
+	ln, err := net.Listen("tcp", "0.0.0.0:0") // listen for public access
+
+	require.NoError(t, err)
+	return ln
+}
+
 func TestSetuptRouter(t *T.T) {
+	t.Run("api-white-list-on-xforward", func(t *T.T) {
+		hs := defaultHTTPServerConf()
+		hs.apiConfig = &config.APIConfig{
+			PublicAPIs: []string{"/enabled_api"},
+		}
+
+		r := setupRouter(hs)
+		r.POST("/disabled_api", func(c *gin.Context) {
+			c.Data(http.StatusOK, "", []byte("disabled api ok"))
+		})
+		r.POST("/enabled_api", func(c *gin.Context) {
+			c.Data(http.StatusOK, "", []byte("enabled api ok"))
+		})
+
+		ts := httptest.NewUnstartedServer(r)
+		ts.Listener = newPubListener(t)
+		ts.Start()
+		defer ts.Close()
+
+		t.Logf("test server: %q", ts.URL)
+		time.Sleep(time.Second)
+
+		// use non-loopback IP to request
+		ip, err := datakit.GetFirstGlobalUnicastIP()
+		assert.NoError(t, err)
+		tcpAddr := &net.TCPAddr{
+			IP: net.ParseIP(ip),
+		}
+
+		transport := &http.Transport{
+			Dial: (&net.Dialer{LocalAddr: tcpAddr}).Dial,
+		}
+
+		cli := &http.Client{
+			Transport: transport,
+		}
+
+		// x-Forwarded-for
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+
+		req.Header.Set("X-Forwarded-For", "127.0.0.1")
+
+		assert.NoError(t, err)
+		resp, err := cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
+
+		t.Logf("resp body: %s", string(respBody))
+
+		// x-real-ip
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+
+		req.Header.Set("X-Real-IP", "127.0.0.1")
+
+		assert.NoError(t, err)
+		resp, err = cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		respBody, err = ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
+
+		t.Logf("resp body: %s", string(respBody))
+
+		// forward ip not loopback are blocked
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+		req.Header.Set("X-Real-IP", "1.1.1.1")
+
+		assert.NoError(t, err)
+		resp, err = cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		respBody, err = ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		t.Logf("resp body: %s", string(respBody))
+
+		// real loopback
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+		assert.NoError(t, err)
+		localcli := http.Client{}
+		resp, err = localcli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		respBody, err = ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		t.Logf("resp body: %s", string(respBody))
+
+		// on enabled-api
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/enabled_api", ts.URL), nil)
+
+		req.Header.Set("X-Real-IP", "1.1.1.1")
+
+		assert.NoError(t, err)
+		resp, err = cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		respBody, err = ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		t.Logf("resp body: %s", string(respBody))
+
+		// faked loopback on enabled-api
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/enabled_api", ts.URL), nil)
+
+		req.Header.Set("X-Real-IP", "localhost")
+
+		assert.NoError(t, err)
+		resp, err = cli.Do(req)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		respBody, err = ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		t.Logf("resp body: %s", string(respBody))
+	})
+
 	t.Run("api-white-list", func(t *T.T) {
 		hs := defaultHTTPServerConf()
 		hs.apiConfig = &config.APIConfig{
@@ -515,7 +658,12 @@ func TestSetuptRouter(t *T.T) {
 		r := setupRouter(hs)
 		r.POST("/disabled_api", func(c *gin.Context) {})
 
-		ts := httptest.NewServer(r)
+		ts := httptest.NewUnstartedServer(r)
+		ts.Listener = newPubListener(t)
+		ts.Start()
+		defer ts.Close()
+
+		t.Logf("test server: %q", ts.URL)
 		time.Sleep(time.Second)
 
 		// use non-loopback IP to request
@@ -555,9 +703,12 @@ func TestSetuptRouter(t *T.T) {
 
 		router.POST("/timeout", func(c *gin.Context) {})
 
-		ts := httptest.NewServer(router)
+		ts := httptest.NewUnstartedServer(router)
+		ts.Listener = newPubListener(t)
+		ts.Start()
 		defer ts.Close()
 
+		t.Logf("test server: %q", ts.URL)
 		time.Sleep(time.Second)
 
 		req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)

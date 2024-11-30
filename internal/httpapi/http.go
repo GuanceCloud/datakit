@@ -237,6 +237,34 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	return router
 }
 
+func isLoopbackClient(c *gin.Context) bool {
+	xff := c.GetHeader("X-Forwarded-For")
+	xri := c.GetHeader("X-Real-IP")
+	if xff == "" && xri == "" {
+		return net.ParseIP(c.ClientIP()).IsLoopback()
+	}
+
+	if xff != "" {
+		if ip := net.ParseIP(xff); ip != nil {
+			if ip.IsLoopback() { // fake loopback
+				l.Warnf("forwarded loopback IP(forwarded-ip) not accepted")
+				return false
+			}
+		}
+	}
+
+	if xri != "" {
+		if ip := net.ParseIP(xri); ip != nil {
+			if ip.IsLoopback() { // fake loopback
+				l.Warnf("forwarded loopback(x-real-ip) IP not accepted")
+				return false
+			}
+		}
+	}
+
+	return false
+}
+
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 	publicAPITable := make(map[string]struct{}, len(apis))
 	for _, apiPath := range apis {
@@ -250,11 +278,10 @@ func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		cliIP := net.ParseIP(c.ClientIP())
-		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !cliIP.IsLoopback() {
+		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !isLoopbackClient(c) {
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
-				"api %s disabled from IP %s, only loopback(localhost) allowed",
-				c.Request.URL.Path, cliIP.String()))
+				"api %s disabled from external IP, only loopback(localhost) allowed",
+				c.Request.URL.Path))
 			c.Abort()
 			return
 		}
