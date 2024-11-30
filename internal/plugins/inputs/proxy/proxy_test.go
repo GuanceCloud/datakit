@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -40,7 +41,7 @@ func (r *slowReader) Read(p []byte) (n int, err error) {
 	return copy(p, r.data), nil
 }
 
-func TestProxyHTTPSNoMITM(t *T.T) {
+func TestNoMITMProxyHTTPS(t *T.T) {
 	t.Run(`https`, func(t *T.T) {
 		resetMetrics()
 
@@ -55,15 +56,14 @@ func TestProxyHTTPSNoMITM(t *T.T) {
 		t.Logf("real host: %s", ts.URL)
 
 		// proxy server
-		randPort := testutils.RandPort("tcp")
-		p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: true, MITM: false} // no MITM
-		p.doInitProxy()
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: true, MITM: false} // no MITM
+		require.NoError(t, p.doInitProxy())
 
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
 		t.Logf("proxy URL: %q", proxyURLString)
 
 		go func() {
-			if err := p.proxyServer.ListenAndServe(); err != nil {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
 				t.Errorf("ListenAndServe: %s", err.Error())
 			}
 		}()
@@ -86,13 +86,13 @@ func TestProxyHTTPSNoMITM(t *T.T) {
 		require.NoError(t, err)
 
 		resp, err := cli.Do(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_ = resp
 
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(allMetrics()...)
 		mfs, err := reg.Gather()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		m := metrics.GetMetricOnLabels(mfs,
 			`datakit_input_proxy_api_total`,
@@ -158,20 +158,19 @@ func TestProxyHTTPS(t *T.T) {
 		t.Logf("real host: %s", ts.URL)
 
 		// proxy server
-		randPort := testutils.RandPort("tcp")
-		p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: true, MITM: true}
-		p.doInitProxy()
-
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
-		t.Logf("proxy URL: %q", proxyURLString)
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: true, MITM: true}
+		require.NoError(t, p.doInitProxy())
 
 		go func() {
-			if err := p.proxyServer.ListenAndServe(); err != nil {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
 				t.Errorf("ListenAndServe: %s", err.Error())
 			}
 		}()
 
 		time.Sleep(time.Millisecond * 10) // wait ok
+
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
+		t.Logf("proxy URL: %q", proxyURLString)
 
 		// client
 		cli := http.Client{
@@ -262,17 +261,14 @@ func TestProxyWarns(t *T.T) {
 		time.Sleep(time.Millisecond * 10) // wait ok
 
 		// proxy server
-		randPort := testutils.RandPort("tcp")
-		p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: true, MITM: true}
-		p.doInitProxy()
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: true, MITM: true}
+		require.NoError(t, p.doInitProxy())
 
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
 		t.Logf("proxy URL: %q", proxyURLString)
 
 		go func() {
-			if err := p.proxyServer.ListenAndServe(); err != nil {
-				t.Errorf("ListenAndServe: %s", err.Error())
-			}
+			require.NoError(t, p.proxyServer.Serve(p.ln))
 		}()
 
 		time.Sleep(time.Millisecond * 10) // wait ok
@@ -321,14 +317,14 @@ func TestProxy(t *T.T) {
 		time.Sleep(time.Second)
 
 		// proxy server
-		randPort := testutils.RandPort("tcp")
-		p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: false, MITM: true}
-		p.doInitProxy()
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: true}
+		require.NoError(t, p.doInitProxy())
 
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
+		t.Logf("proxy URL: %q", proxyURLString)
 
 		go func() {
-			if err := p.proxyServer.ListenAndServe(); err != nil {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
 				t.Errorf("ListenAndServe: %s", err.Error())
 			}
 		}()
@@ -374,11 +370,11 @@ func TestProxy(t *T.T) {
 		time.Sleep(time.Second)
 
 		// proxy server
-		randPort := testutils.RandPort("tcp")
-		p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: false, MITM: true}
-		p.doInitProxy()
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: true}
+		require.NoError(t, p.doInitProxy())
 
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
+		t.Logf("proxy URL: %q", proxyURLString)
 
 		go func() {
 			if err := p.proxyServer.ListenAndServe(); err != nil {
@@ -505,12 +501,12 @@ func BenchmarkProxy(b *T.B) {
 			// proxy server
 			randPort := testutils.RandPort("tcp")
 			p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: false, MITM: bc.mitm}
-			p.doInitProxy()
+			require.NoError(b, p.doInitProxy())
 
-			proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", randPort)
+			proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
 
 			go func() {
-				if err := p.proxyServer.ListenAndServe(); err != nil {
+				if err := p.proxyServer.Serve(p.ln); err != nil {
 					b.Logf("ListenAndServe: %s", err.Error())
 				}
 			}()
