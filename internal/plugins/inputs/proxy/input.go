@@ -57,6 +57,7 @@ type Input struct {
 
 	proxyServer *http.Server
 	proxy       *goproxy.ProxyHttpServer
+	ln          net.Listener
 
 	PathDeprecated   string `toml:"path,omitempty"`
 	WSBindDeprecated string `toml:"ws_bind,omitempty"`
@@ -99,7 +100,7 @@ func (ipt *Input) HandleConnect(req string, ctx *goproxy.ProxyCtx) (*goproxy.Con
 	}
 }
 
-func (ipt *Input) doInitProxy() {
+func (ipt *Input) doInitProxy() error {
 	p := goproxy.NewProxyHttpServer()
 	p.Verbose = ipt.Verbose
 	p.Logger = &proxyLogger{}
@@ -153,26 +154,35 @@ func (ipt *Input) doInitProxy() {
 			return resp
 		})
 
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ipt.Bind, ipt.Port))
+	if err != nil {
+		return err
+	}
+
+	ipt.ln = ln
 	ipt.proxyServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%v", ipt.Bind, ipt.Port),
 		Handler: p,
 	}
 
 	ipt.proxy = p
+	return nil
 }
 
 func (ipt *Input) Run() {
 	log = logger.SLogger("input-proxy")
 	log.Infof("HTTP proxy input started...")
 
-	ipt.doInitProxy()
+	if err := ipt.doInitProxy(); err != nil {
+		log.Error("doInitProxy: %s", err)
+		return
+	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_proxy"})
 
 	g.Go(func(ctx context.Context) error {
 		log.Infof("http proxy server listening on %s", ipt.proxyServer.Addr)
 		for {
-			if err := ipt.proxyServer.ListenAndServe(); err != nil {
+			if err := ipt.proxyServer.Serve(ipt.ln); err != nil {
 				if errors.Is(err, http.ErrServerClosed) {
 					log.Info("proxy server closed")
 					break
