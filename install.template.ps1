@@ -58,7 +58,7 @@ $installer_base_url="https://{{.InstallBaseURL}}"
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL")
 if ($x -ne $null) {
 	$installer_base_url = $x
-	$cmd += "--installer_base_url=$DK_INSTALLER_BASE_URL"
+	$cmd += "--installer_base_url='$x'"
 	Write-COutput green "* Set installer_base_url => $x"
 }
 
@@ -90,7 +90,7 @@ if ($x -ne $null) {
 
 $x = [Environment]::GetEnvironmentVariable("DK_HTTP_PUBLIC_APIS")
 if ($x -ne $null) {
-	$cmd += "--http-public-apis=$x"
+	$cmd += "--http-public-apis='$x'"
 	Write-COutput green ("* Set http_public_apis => $x" )
 }
 
@@ -102,25 +102,25 @@ if ( ($x -ne $null) -and ($x -gt 0) ) {
 
 $x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
 if ($x -ne $null) {
-	$cmd += "--upgrade-ip-whitelist=$x"
+	$cmd += "--upgrade-ip-whitelist='$x'"
 	Write-COutput green ("* Set upgrade_ip_whitelist => $x" )
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_LISTEN")
 if ($x -ne $null) {
-	$cmd += "--upgrade-listen=$x"
+	$cmd += "--upgrade-listen='$x'"
 	Write-COutput green ("* Set upgrade_listen => $x" )
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY")
 if ($x -ne $null) {
-	$cmd += "--dataway=$x"
+	$cmd += "--dataway='$x'"
 	Write-COutput green ("* Set dataway => $x" )
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_HTTP_LISTEN")
 if ($x -ne $null) {
-	$cmd += "--listen=$x"
+	$cmd += "--listen='$x'"
 	Write-COutput green "* Set http_listen => $x"
 }
 
@@ -132,19 +132,19 @@ if ($x -ne $null) {
 
 $x = [Environment]::GetEnvironmentVariable("DK_NAMESPACE")
 if ($x -ne $null) {
-	$cmd += "--namespace=$x"
+	$cmd += "--namespace='$x'"
 	Write-COutput green "* Set namespace => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_CLOUD_PROVIDER")
 if ($x -ne $null) {
-	$cmd += "--cloud-provider=$x"
+	$cmd += "--cloud-provider='$x'"
 	Write-COutput green "* Set cloud_provider => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DEF_INPUTS")
 if ($x -ne $null) {
-	$cmd += "--enable-inputs=$x"
+	$cmd += "--enable-inputs='$x'"
 	Write-COutput green "* Set def_inputs => $x"
 }
 
@@ -167,7 +167,6 @@ $x = [Environment]::GetEnvironmentVariable("DK_PROXY_TYPE")
 if ($x -ne $null) {
 	$proxy_type = $x
 	$proxy_type.ToLower()
-	$cmd += "--proxy_type=$proxy_type"
 	Write-COutput green "* Set proxy_type => $proxy_type"
 	if ($proxy_type -eq "nginx") {
 		# env DK_NGINX_IP has highest priority on proxy level
@@ -186,28 +185,27 @@ if ($x -ne $null) {
 				$proxy=""
 			}
 	}
-	c
 }
 
 if ($proxy -ne "") {
-	$cmd += "--proxy=$proxy"
+	$cmd += "--proxy='$proxy'"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")
 if ($x -ne $null) {
-	$cmd += "--env_hostname=$x"
+	$cmd += "--env_hostname='$x'"
 	Write-COutput green "* Set hostname => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_HOST_TAGS")
 if ($x -ne $null) {
-	$cmd += "--global-host-tags=$x"
+	$cmd += "--global-host-tags='$x'"
 	Write-COutput green "* Set global_host_tags => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_ELECTION_TAGS")
 if ($x -ne $null) {
-	$cmd += "--global-election-tags=$x"
+	$cmd += "--global-election-tags='$x'"
 	Write-COutput green "* Set global_election_tags => $x"
 }
 
@@ -237,99 +235,99 @@ if ($x -ne $null) {
 
 $x = [Environment]::GetEnvironmentVariable("DK_DCA_WEBSOCKET_SERVER")
 if ($x -ne $null) {
-	$cmd += "--dca-websocket-server=$x"
+	$cmd += "--dca-websocket-server='$x'"
 	Write-COutput green "* Set dca_websocket_server => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE")
 if ($x -ne $null) {
-	$cmd += "--dca-enable=$x"
+	$cmd += "--dca-enable='$x'"
 	Write-COutput green "* Set dca_enable => ON"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_PPROF_LISTEN")
 if ($x -ne $null) {
-	$cmd += "--pprof-listen=$x"
+	$cmd += "--pprof-listen='$x'"
 	Write-COutput green "* Set pprof_listen => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALL_LOG")
 if ($x -ne $null) {
-	$cmd += "--install-log=$x"
+	$cmd += "--install-log='$x'"
 	Write-COutput green "* Set install_log => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_LITE")
 if ($x -ne $null) {
-	$cmd += "--lite=$x"
+	$cmd += "--lite='$x'"
 	Write-COutput green "* Set lite => ON"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_ELINKER")
 if ($x -ne $null) {
-	$cmd += "--elinker=$x"
+	$cmd += "--elinker='$x'"
 	Write-COutput green "* Set elinker => ON"
 }
 
 
 $x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND")
 if ($x -ne $null) {
-	$cmd += "--confd-backend=$x"
+	$cmd += "--confd-backend='$x'"
 	Write-COutput green "* Set confd backend"
 
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BASIC_AUTH")
 	if ($x -ne $null) {
-		$cmd += "--confd-basic-auth=$x"
+		$cmd += "--confd-basic-auth='$x'"
 		Write-COutput green "* Set confd_basic_auth"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CA_KEYS")
 	if ($x -ne $null) {
-		$cmd += "--confd-client-ca-keys=$x"
+		$cmd += "--confd-client-ca-keys='$x'"
 		Write-COutput green "* Set confd_client_ca_keys"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_CERT")
 	if ($x -ne $null) {
-		$cmd += "--confd-client-cert=$x"
+		$cmd += "--confd-client-cert='$x'"
 		Write-COutput green "* Set confd_client_cert"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CLIENT_KEY")
 	if ($x -ne $null) {
-		$cmd += "--confd-client-key=$x"
+		$cmd += "--confd-client-key='$x'"
 		Write-COutput green "* Set confd_client_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_BACKEND_NODES")
 	if ($x -ne $null) {
-		$cmd += "--confd-backend-nodes=$x"
+		$cmd += "--confd-backend-nodes='$x'"
 		Write-COutput green "* Set confd_backend_nodes"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PASSWORD")
 	if ($x -ne $null) {
-		$cmd += "--confd-password=$x"
+		$cmd += "--confd-password='$x'"
 		Write-COutput green "* Set confd_password"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SCHEME")
 	if ($x -ne $null) {
-		$cmd += "--confd-scheme=$x"
+		$cmd += "--confd-scheme='$x'"
 		Write-COutput green "* Set confd_scheme"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SEPARATOR")
 	if ($x -ne $null) {
-		$cmd += "--confd-separator=$x"
+		$cmd += "--confd-separator='$x'"
 		Write-COutput green "* Set confd_separator"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_USERNAME")
 	if ($x -ne $null) {
-		$cmd += "--confd-username=$x"
+		$cmd += "--confd-username='$x'"
 		Write-COutput green "* Set confd_username"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_ACCESS_KEY")
 	if ($x -ne $null) {
-		$cmd += "--confd-access-key=$x"
+		$cmd += "--confd-access-key='$x'"
 		Write-COutput green "* Set confd_access_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_SECRET_KEY")
 	if ($x -ne $null) {
-		$cmd += "--confd-secret-key=$x"
+		$cmd += "--confd-secret-key='$x'"
 		Write-COutput green "* Set confd_secret_key"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CIRCLE_INTERVAL")
@@ -339,114 +337,114 @@ if ($x -ne $null) {
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_CONFD_NAMESPACE")
 	if ($x -ne $null) {
-		$cmd += "--confd-confd-namespace=$x"
+		$cmd += "--confd-confd-namespace='$x'"
 		Write-COutput green "* set confd_confd_namespace"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_PIPELINE_NAMESPACE")
 	if ($x -ne $null) {
-		$cmd += "--confd-pipeline-namespace=$x"
+		$cmd += "--confd-pipeline-namespace='$x'"
 		Write-COutput green "* Set confd_pipeline_namespace"
 	}
 	$x = [Environment]::GetEnvironmentVariable("DK_CONFD_REGION")
 	if ($x -ne $null) {
-		$cmd += "--confd-region=$x"
+		$cmd += "--confd-region='$x'"
 		Write-COutput green "* Set confd_region"
 	}
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_URL")
 if ($x -ne $null) {
-	$cmd += "--git-url=$x"
+	$cmd += "--git-url='$x'"
 	Write-COutput green "* Set git_url => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PATH")
 if ($x -ne $null) {
-	$cmd += "--git-key-path=$x"
+	$cmd += "--git-key-path='$x'"
 	Write-COutput green "* Set git_key_path => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PW")
 if ($x -ne $null) {
-	$cmd += "--git-key-pw=$x"
+	$cmd += "--git-key-pw='$x'"
 	Write-COutput green "* Set git_key_pw => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_BRANCH")
 if ($x -ne $null) {
-	$cmd += "--git-branch=$x"
+	$cmd += "--git-branch='$x'"
 	Write-COutput green "* Set git_branch => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIT_INTERVAL")
 if ($x -ne $null) {
-	$cmd += "--git-pull-interval=$x"
+	$cmd += "--git-pull-interval='$x'"
 	Write-COutput green "* Set git_pull_interval => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_ENABLE_ELECTION")
 if ($x -ne $null) {
-	$cmd += "--enable-election=$x"
+	$cmd += "--enable-election='$x'"
 	Write-COutput green "* Set enable_election => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DISABLE_404PAGE")
 if ($x -ne $null) {
-	$cmd += "--disable-404page=$x"
+	$cmd += "--disable-404page='$x'"
 	Write-COutput green "* Set disable_404page => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_RUM_ORIGIN_IP_HEADER")
 if ($x -ne $null) {
-	$cmd += "--rum-origin-ip-header=$x"
+	$cmd += "--rum-origin-ip-header='$x'"
 	Write-COutput green "* Set rum_origin_ip_header => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_LOG_LEVEL")
 if ($x -ne $null) {
-	$cmd += "--log-level=$x"
+	$cmd += "--log-level='$x'"
 	Write-COutput green "* Set log_level => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_LOG")
 if ($x -ne $null) {
-	$cmd += "--log=$x"
+	$cmd += "--log='$x'"
 	Write-COutput green "* Set log => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_GIN_LOG")
 if ($x -ne $null) {
-	$cmd += "--gin-log=$x"
+	$cmd += "--gin-log='$x'"
 	Write-COutput green "* Set gin_log => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALL_IPDB")
 if ($x -ne $null) {
-	$cmd += "--ipdb-type=$x"
+	$cmd += "--ipdb-type='$x'"
 	Write-COutput green "* Set ipdb_type => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY_ENABLE_SINKER")
 if ($x -ne $null) {
-	$cmd += "--enable-dataway-sinker=$x"
+	$cmd += "--enable-dataway-sinker='$x'"
 	Write-COutput green "* Set dataway_sinker => ON"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_SINKER_GLOBAL_CUSTOMER_KEYS")
 if ($x -ne $null) {
-	$cmd += "--sinker-global-customer-keys=$x"
+	$cmd += "--sinker-global-customer-keys='$x'"
 	Write-COutput green "* Set global_customer_keys => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_CRYPTO_AES_KEY")
 if ($x -ne $null) {
-	$cmd += "--crypto-aes_key=$x"
+	$cmd += "--crypto-aes_key='$x'"
 	Write-COutput green "* Set crypto_aes_key => $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_CRYPTO_AES_KEY_FILE")
 if ($x -ne $null) {
-	$cmd += "--crypto-aes_key_file=$x"
+	$cmd += "--crypto-aes_key_file='$x'"
 	Write-COutput green "* Set crypto_aes_key_file => $x"
 }
 

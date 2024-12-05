@@ -284,7 +284,6 @@ proxy_type=""
 if [ -n "$DK_PROXY_TYPE" ]; then
 	proxy_type=$DK_PROXY_TYPE
 	proxy_type=$(echo "$proxy_type" | tr '[:upper:]' '[:lower:]') # => lowercase
-	cmd+=("--proxy-type=$proxy_type")
 	printf "* Set proxy type => $proxy_type\n"
 
 	if [ "$proxy_type" = "nginx" ]; then
