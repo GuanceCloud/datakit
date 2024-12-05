@@ -220,8 +220,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	router.POST("/v1/pipeline/debug", RawHTTPWrapper(reqLimiter, apiPipelineDebugHandler))
 
-	router.GET("/v1/workspace", RawHTTPWrapper(reqLimiter, apiWorkspace, hs.dw))
-
 	router.POST("/v1/lasterror", RawHTTPWrapper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
 	router.GET("/restart", RawHTTPWrapper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
 

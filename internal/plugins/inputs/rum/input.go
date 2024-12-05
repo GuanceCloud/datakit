@@ -363,53 +363,56 @@ func (ipt *Input) Run() {
 		},
 		PanicTimes: 3,
 	})
+
 	group.Go(func(ctx context.Context) error {
 		tick := time.NewTicker(time.Minute * 3)
 		defer tick.Stop()
+
 		for {
+			if err := ipt.extractArchives(false); err != nil {
+				log.Errorf("extract zip archives encounter err: %s", err)
+			}
+
+			sourceMapDirs := ipt.getWebSourceMapDirs()
+
+			var webSourcemapCacheFile map[string]struct{}
+			func() {
+				webSourcemapLock.RLock()
+				defer webSourcemapLock.RUnlock()
+				webSourcemapCacheFile = make(map[string]struct{}, len(webSourcemapCache))
+				for file := range webSourcemapCache {
+					webSourcemapCacheFile[file] = struct{}{}
+				}
+			}()
+
+			func() {
+				for webDir := range sourceMapDirs {
+					archives, err := scanArchives(webDir)
+					if err != nil {
+						log.Warnf("unable to find zip archive in dir [%s]: %s", webDir, err)
+						return
+					}
+
+					for _, archive := range archives {
+						delete(webSourcemapCacheFile, filepath.Base(archive.Filepath))
+					}
+				}
+
+				// delete removed zip archive from cache
+				if len(webSourcemapCacheFile) > 0 {
+					removedFiles := make([]string, 0, len(webSourcemapCacheFile))
+					for file := range webSourcemapCacheFile {
+						removedFiles = append(removedFiles, file)
+					}
+					deleteSourcemapCache(removedFiles...)
+				}
+				webSourcemapCacheFile = nil
+			}()
+
 			select {
 			case <-datakit.Exit.Wait():
 				return nil
-			case <-tick.C:
-				if err := ipt.extractArchives(false); err != nil {
-					log.Errorf("extract zip archives encounter err: %s", err)
-				}
-
-				sourceMapDirs := ipt.getWebSourceMapDirs()
-
-				var webSourcemapCacheFile map[string]struct{}
-				func() {
-					webSourcemapLock.RLock()
-					defer webSourcemapLock.RUnlock()
-					webSourcemapCacheFile = make(map[string]struct{}, len(webSourcemapCache))
-					for file := range webSourcemapCache {
-						webSourcemapCacheFile[file] = struct{}{}
-					}
-				}()
-
-				func() {
-					for webDir := range sourceMapDirs {
-						archives, err := scanArchives(webDir)
-						if err != nil {
-							log.Warnf("unable to find zip archive in dir [%s]: %s", webDir, err)
-							return
-						}
-
-						for _, archive := range archives {
-							delete(webSourcemapCacheFile, filepath.Base(archive.Filepath))
-						}
-					}
-
-					// delete removed zip archive from cache
-					if len(webSourcemapCacheFile) > 0 {
-						removedFiles := make([]string, 0, len(webSourcemapCacheFile))
-						for file := range webSourcemapCacheFile {
-							removedFiles = append(removedFiles, file)
-						}
-						deleteSourcemapCache(removedFiles...)
-					}
-					webSourcemapCacheFile = nil
-				}()
+			case <-tick.C: // wait...
 			}
 		}
 	})

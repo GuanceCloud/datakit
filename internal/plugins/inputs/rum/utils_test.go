@@ -6,14 +6,18 @@
 package rum
 
 import (
+	"archive/zip"
 	"net"
-	"testing"
+	"os"
+	"path/filepath"
+	T "testing"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestIsDomainName(t *testing.T) {
+func TestIsDomainName(t *T.T) {
 	assert.False(t, isDomainName("127.0.0.1"))
 	assert.False(t, isDomainName("172.16.1.10"))
 	assert.False(t, isDomainName("114.114.114.114"))
@@ -23,7 +27,7 @@ func TestIsDomainName(t *testing.T) {
 	assert.True(t, isDomainName("cdn.cnbj1.fds.api.mi-img.com"))
 }
 
-func TestLruCDNCache(t *testing.T) {
+func TestLruCDNCache(t *T.T) {
 	cache := expirable.NewLRU[string, *cdnResolved](8, nil, cdnCacheTTL)
 
 	domains := []string{
@@ -85,11 +89,119 @@ func TestLruCDNCache(t *testing.T) {
 	assert.True(t, ok, "")
 }
 
-func TestIsPrivateIP(t *testing.T) {
+func TestIsPrivateIP(t *T.T) {
 	assert.True(t, isPrivateIP(net.ParseIP("10.200.14.195")), "10.200.14.195 is a private ip")
 	assert.True(t, isPrivateIP(net.ParseIP("127.0.0.1")), "127.0.0.1 is a private ip")
 	assert.True(t, isPrivateIP(net.ParseIP("192.168.100.1")), "192.168.100.1 is a private ip")
 	assert.True(t, isPrivateIP(net.ParseIP("172.16.2.14")), "172.16.2.14 is a private ip")
 	assert.True(t, isPrivateIP(net.ParseIP("172.17.2.14")), "172.17.2.14 is a private ip")
 	assert.True(t, !isPrivateIP(net.ParseIP("8.8.8.8")), "8.8.8.8 is not a private ip")
+}
+
+func Test_loadZipFile(t *T.T) {
+	t.Run(`ignore`, func(t *T.T) {
+		zipEntryName := "../../some-source.map"
+		zipFileName := filepath.Join(t.TempDir(), "some.zip")
+
+		newZipFile, err := os.Create(zipFileName)
+		require.NoError(t, err)
+		defer newZipFile.Close()
+
+		zipWriter := zip.NewWriter(newZipFile)
+
+		content := "some sourcemap binary data"
+		fileHeader := &zip.FileHeader{
+			Name: zipEntryName,
+		}
+		fileHeader.Method = zip.Store // no compression
+
+		zipEntry, err := zipWriter.CreateHeader(fileHeader)
+		require.NoError(t, err)
+
+		_, err = zipEntry.Write([]byte(content))
+		require.NoError(t, err)
+
+		zipWriter.Close() // Close is required, or zip.OpenReader() error: zip: not a valid zip file
+
+		res, err := loadZipFile(zipFileName, 1024, ".map")
+		require.NoError(t, err)
+		assert.Empty(t, res)
+	})
+
+	t.Run(`basic`, func(t *T.T) {
+		zipEntryName := "some-source.map"
+		zipFileName := filepath.Join(t.TempDir(), "some.zip")
+
+		newZipFile, err := os.Create(zipFileName)
+		require.NoError(t, err)
+		defer newZipFile.Close()
+
+		zipWriter := zip.NewWriter(newZipFile)
+
+		fileHeader := &zip.FileHeader{
+			Name: zipEntryName,
+		}
+		fileHeader.Method = zip.Store // no compression
+
+		zipEntry, err := zipWriter.CreateHeader(fileHeader)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile("testdata/mapfile.json")
+		require.NoError(t, err)
+
+		_, err = zipEntry.Write(content)
+		require.NoError(t, err)
+
+		zipWriter.Close() // Close is required, or zip.OpenReader() error: zip: not a valid zip file
+
+		res, err := loadZipFile(zipFileName, 1<<20, ".map")
+		require.NoError(t, err)
+		assert.Len(t, res, 1)
+
+		t.Logf("source map: %+#v", res[zipEntryName])
+	})
+
+	t.Run(`mix`, func(t *T.T) {
+		entries := []string{
+			"some-source.map",
+			"../../abc/../some-source-1.map",
+			"../../some-source-2.map",
+			"../..//some-source-3.map",
+			"/etc/crontab/some-source-4.map",
+			"abc/../some-source-5.map", // it's ok: filename is some-source-5.map
+		}
+
+		zipFileName := filepath.Join(t.TempDir(), "some.zip")
+
+		newZipFile, err := os.Create(zipFileName)
+		require.NoError(t, err)
+		defer newZipFile.Close()
+
+		zipWriter := zip.NewWriter(newZipFile)
+		content, err := os.ReadFile("testdata/mapfile.json")
+		require.NoError(t, err)
+
+		for _, ent := range entries {
+			fileHeader := &zip.FileHeader{
+				Name: ent,
+			}
+			fileHeader.Method = zip.Store // no compression
+
+			zipEntry, err := zipWriter.CreateHeader(fileHeader)
+			require.NoError(t, err)
+
+			_, err = zipEntry.Write(content)
+			require.NoError(t, err)
+		}
+
+		zipWriter.Close() // Close is required, or zip.OpenReader() error: zip: not a valid zip file
+
+		res, err := loadZipFile(zipFileName, 1<<20, ".map")
+		require.NoError(t, err)
+		assert.Len(t, res, 2)
+
+		for k := range res {
+			t.Logf("source map: %+#v", res[k])
+		}
+	})
 }
