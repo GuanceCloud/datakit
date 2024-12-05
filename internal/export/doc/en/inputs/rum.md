@@ -96,6 +96,14 @@ The RUM collector collects the following metric sets by default:
 Usually, js files in production environment or App code on mobile side will be confused and compressed to reduce the size of application. The call stack when an error occurs is quite different from the source code at development time, which is inconvenient for debugging (`troubleshoot`). If you need to locate errors in the source code, you have to rely on the `sourcemap` file.
 
 DataKit supports this mapping of source code file information by zipping the corresponding symbol table file, named *<app_id\>-<env\>-<version\>.zip* and uploading it to *<DataKit Installation Directory\>/data/rum/<platform\>* so that the reported `error` measurement data can be automatically converted and the `error_stack_source` field appended to the metric set.
+
+
+<!-- markdownlint-disable MD046 -->
+???+ attention "Limits on Sourcemap files"
+
+    All Sourcemap files must with extension *.map*, and single *.map* file(after unzip) should not exceed 4GiB.
+<!-- markdownlint-enable -->
+
 <!-- markdownlint-disable MD025 -->
 ### Install the sourcemap tools {#install-tools}
 <!-- markdownlint-enable -->

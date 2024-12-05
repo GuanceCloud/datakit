@@ -132,6 +132,9 @@ func GetSourcemapZipFileName(appID, env, version string) string {
 }
 
 func (ipt *Input) extractArchives(loose bool) error {
+	// set path again: datakit.DataRUMDir may changed after main()
+	archiveDictFile = filepath.Join(datakit.DataRUMDir, ".--source-map-archive-dict.json")
+
 	if !ExtractZipLock.TryLock() {
 		log.Warnf("unable to get lock, skip this interval")
 		return nil
@@ -760,11 +763,15 @@ func (ipt *Input) handleSourcemapUpload(w http.ResponseWriter, r *http.Request, 
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
+		log.Errorf("FormFile: %s", err)
+
 		sendResponse(&sourcemapResponse{
 			ErrorMsg: err.Error(),
 			Success:  false,
 		}, w)
+		return nil, nil
 	}
+
 	defer file.Close() //nolint:errcheck
 
 	fileName := GetSourcemapZipFileName(appID, env, version)

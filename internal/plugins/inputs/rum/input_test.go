@@ -11,15 +11,16 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"testing"
+	T "testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLimitReaderClose(t *testing.T) {
+func TestLimitReaderClose(t *T.T) {
 	r := io.NopCloser(strings.NewReader("hello world!!!!!"))
 
 	lr := newLimitReader(r, 10)
@@ -89,4 +90,25 @@ func buildSessionReplayRequest() (string, []byte) {
 	}
 
 	return w.FormDataContentType(), buf.Bytes()
+}
+
+func TestZipInject(t *T.T) {
+	t.Run(`clean-path`, func(t *T.T) {
+		cases := []string{
+			"../a/../b",
+			"./a//../b",
+			"./a//./b",
+			"./a/../..",
+			"a/../../../../../b/..",
+		}
+
+		for _, c := range cases {
+			t.Logf("%s -> %s", c, filepath.Clean(c))
+		}
+	})
+
+	t.Run(`join-path`, func(t *T.T) {
+		t.Logf("%s", filepath.Join("/a/b/c", "/d/e"))
+		t.Logf("%s", filepath.Join("a/b/c", "/d/e"))
+	})
 }

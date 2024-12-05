@@ -99,6 +99,13 @@ RUM 采集器默认会采集如下几个指标集：
 
 DataKit 支持这种源代码文件信息的映射，方法是将对应符号表文件进行 zip 压缩打包，命名格式为 *[app_id]-[env]-[version].zip*，上传至 *[DataKit 安装目录]/data/rum/[platform]*，这样就可以对上报的 `error` 指标集数据自动进行转换，并追加 `error_stack_source` 字段至该指标集中。
 
+
+<!-- markdownlint-disable MD046 -->
+???+ attention "Sourcemap 文件限制"
+
+    所有 Sourcemap 文件必须以 (*.map*) 作为扩展名，且单个 *.map* 文件（解压后）不超过 4GiB。
+<!-- markdownlint-enable -->
+
 ### 安装 sourcemap 工具集 {#install-tools}
 
 首先需要安装相应的符号还原工具，Datakit 提供了一键安装命令来简化工具的安装：

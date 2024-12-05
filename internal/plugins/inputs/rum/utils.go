@@ -131,7 +131,7 @@ func (ipt *Input) loadSourcemapFile() error {
 	for dir := range sourceMapDirs {
 		archives, err := scanArchives(dir)
 		for _, archive := range archives {
-			sourcemapItem, err := loadZipFile(archive.Filepath)
+			sourcemapItem, err := loadZipFile(archive.Filepath, MaxSourceMapFileSize, ".map")
 			if err != nil {
 				log.Warnf("load zip file %s failed, %s", archive.Filepath, err.Error())
 				continue
@@ -427,14 +427,13 @@ func copyZipItem(item *zip.File, dst string) error {
 	if err != nil {
 		return fmt.Errorf("open zip item fail: %w", err)
 	}
-	defer func() {
-		_ = reader.Close()
-	}()
+
+	defer reader.Close() //nolint:errcheck
 
 	dstDir := filepath.Dir(dst)
-	if !path.IsDir(dstDir) {
+	if !path.IsDir(dstDir) { // path not exist
 		if err := os.MkdirAll(dstDir, 0o750); err != nil {
-			return fmt.Errorf("mkdir [%s] fail: %w", dstDir, err)
+			return fmt.Errorf("mkdir %q fail: %w", dstDir, err)
 		}
 	}
 
@@ -442,9 +441,10 @@ func copyZipItem(item *zip.File, dst string) error {
 	if err != nil {
 		return fmt.Errorf("create dst file fail: %w", err)
 	}
-	defer func() {
-		_ = writer.Close()
-	}()
+
+	defer writer.Close() //nolint:errcheck,gosec
+
+	log.Infof("copy zip file to %q", dst)
 
 	_, err = io.Copy(writer, reader) // nolint:gosec
 	if err != nil {
@@ -463,22 +463,28 @@ func extractZipFile(zipFileAbsPath string) error {
 	if err != nil {
 		return fmt.Errorf("open zip file [%s] fail: %w", zipFileAbsPath, err)
 	}
-	defer func() {
-		_ = reader.Close()
-	}()
+
+	defer reader.Close() // nolint:errcheck
 
 	for _, item := range reader.File {
+		fname := checkZipEntry(item)
+		if fname == "" {
+			continue
+		}
+
 		var absItemPath string
-		if !strings.HasPrefix(filepath.Clean(item.Name), extractTo) {
-			absItemPath = filepath.Join(zipFileDir, tmpExtractTo, item.Name) // nolint:gosec
+		if !strings.HasPrefix(filepath.Clean(fname), extractTo) {
+			absItemPath = filepath.Join(zipFileDir, tmpExtractTo, fname) // nolint:gosec
 		} else {
-			itemName := strings.Replace(item.Name, extractTo, tmpExtractTo, 1)
+			itemName := strings.Replace(fname, extractTo, tmpExtractTo, 1)
 			absItemPath = filepath.Join(zipFileDir, itemName) // nolint:gosec
 		}
 
 		if item.FileInfo().IsDir() {
 			if err := os.MkdirAll(absItemPath, 0o750); err != nil {
 				return fmt.Errorf("can not mkdir: %w", err)
+			} else {
+				continue
 			}
 		} else if err := copyZipItem(item, absItemPath); err != nil {
 			return err
@@ -508,61 +514,131 @@ func extractZipFile(zipFileAbsPath string) error {
 	return nil
 }
 
-func loadZipFile(zipFile string) (map[string]*sourcemap.Consumer, error) {
+// checkSourcemapZipEntry check if filename in zip are valid.
+//
+// Only *.map file are checked, subdir in zip ignored.
+func checkSourcemapZipEntry(f *zip.File, maxSize uint64, suffix string) string {
+	if f.FileInfo().IsDir() {
+		log.Infof("ignore zip dir %q", f.Name)
+		return ""
+	}
+
+	if !strings.HasSuffix(f.Name, suffix) {
+		log.Infof("ignore zip file %q, not suffix with %q", f.Name, suffix)
+		return ""
+	}
+
+	// TODO: is dir in zip got UncompressedSize64?
+	if f.UncompressedSize64 > maxSize {
+		log.Warnf("ignore zip file %q with size %d(>%d)", f.Name, f.UncompressedSize64, MaxSourceMapFileSize)
+		return ""
+	}
+
+	fname := checkZipEntry(f)
+	if fname == "" {
+		return ""
+	}
+
+	return fname
+}
+
+// checkZipEntry check if filename(include subdir) in zip are valid.
+//
+// We check for file name start with ../ or abstract path, these files
+// may cause security issue and is not valid sourcemap upload.
+func checkZipEntry(f *zip.File) string {
+	fname := filepath.Clean(f.Name)
+
+	if strings.HasPrefix(fname, "..") {
+		log.Warnf("ignore zip file with dir inject %q(%q)", fname, f.Name)
+		return ""
+	}
+
+	if filepath.IsAbs(fname) {
+		log.Warnf("ignore zip file with abs path %q(%q)", fname, f.Name)
+		return ""
+	}
+
+	return fname
+}
+
+func readZipSourcemap(f *zip.File, maxSize uint64, suffix string) (string, *sourcemap.Consumer, error) {
+	fname := checkSourcemapZipEntry(f, maxSize, suffix)
+	if fname == "" {
+		return "", nil, nil
+	}
+
+	file, err := f.Open()
+	if err != nil {
+		return "", nil, err
+	}
+	defer file.Close() // nolint:errcheck
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return "", nil, err
+	}
+
+	smap, err := sourcemap.Parse(fname, content)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return fname, smap, nil
+}
+
+func loadZipFile(zipFile string, maxZipFileSize uint64, suffix string) (map[string]*sourcemap.Consumer, error) {
 	sourcemapItem := make(map[string]*sourcemap.Consumer)
 
 	zipReader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("zip.OpenReader(%q): %w", zipFile, err)
 	}
 	defer zipReader.Close() //nolint:errcheck
 
 	for _, f := range zipReader.File {
-		if !f.FileInfo().IsDir() && strings.HasSuffix(f.Name, ".map") {
-			file, err := f.Open()
-			if err != nil {
-				log.Debugf("ignore sourcemap %s, %s", f.Name, err.Error())
-				continue
-			}
-			defer file.Close() // nolint:errcheck
+		fname, smap, err := readZipSourcemap(f, maxZipFileSize, suffix)
+		if err != nil {
+			log.Errorf("parse sourcemap %q failed: %s", f.Name, err.Error())
+			continue
+		}
 
-			content, err := io.ReadAll(file)
-			if err != nil {
-				log.Debugf("ignore sourcemap %s, %s", f.Name, err.Error())
-				continue
-			}
-
-			smap, err := sourcemap.Parse(f.Name, content)
-			if err != nil {
-				log.Debugf("sourcemap parse failed, %s", err.Error())
-				continue
-			}
-
-			sourcemapItem[f.Name] = smap
+		if smap != nil && fname != "" {
+			log.Infof("load sourcemap file %q", fname)
+			sourcemapItem[fname] = smap
 		}
 	}
 
 	return sourcemapItem, nil
 }
 
+const (
+	MaxSourceMapFileSize = uint64(4 * (1 << 30))
+)
+
 func updateSourcemapCache(zipFile string) error {
 	fileName := filepath.Base(zipFile)
 	if !strings.HasSuffix(fileName, ZipExt) {
 		return fmt.Errorf(`suffix name is not ".zip" [%s]`, zipFile)
 	}
+
 	log.Infof("reload source map archive: %s", zipFile)
-	sourcemapItem, err := loadZipFile(zipFile)
+	sourcemapItem, err := loadZipFile(zipFile, MaxSourceMapFileSize, ".map")
 	if err != nil {
 		log.Errorf("load zip file error: %s", err.Error())
 		return fmt.Errorf("load zip file [%s] err: %w", zipFile, err)
 	}
+
 	webSourcemapLock.Lock()
 	defer webSourcemapLock.Unlock()
+
 	if _, ok := webSourcemapCache[fileName]; !ok {
 		loadedZipGauge.WithLabelValues(SourceMapDirWeb).Inc()
 	}
+
 	webSourcemapCache[fileName] = sourcemapItem
 	webSourceCacheLoadTime[fileName] = time.Now()
+
 	log.Infof("load sourcemap success: %s", fileName)
 
 	return nil
