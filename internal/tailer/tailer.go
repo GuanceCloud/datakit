@@ -78,6 +78,11 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 
 	if runtime.GOOS == datakit.OSLinux {
 		tailer.fileInotify, err = fileprovider.NewInotify(patterns)
+		if err != nil {
+			tailer.log.Warnf("failed to new inotify, err: %s, ingored", err)
+			tailer.fileInotify = fileprovider.NewNopInotify()
+			return tailer, nil
+		}
 	} else {
 		tailer.fileInotify = fileprovider.NewNopInotify()
 	}
@@ -98,15 +103,6 @@ func (t *Tailer) Start() {
 	ctx := context.Background()
 
 	for {
-		files, err := t.fileScanner.ScanFiles()
-		if err != nil {
-			t.log.Warn(err)
-		} else {
-			t.tryCreateWorkFromFiles(ctx, files)
-		}
-
-		t.log.Debugf("list of recivering: %v", t.getFileList())
-
 		select {
 		case <-datakit.Exit.Wait():
 			return
@@ -114,16 +110,22 @@ func (t *Tailer) Start() {
 			return
 
 		case event, ok := <-t.fileInotify.Events():
-			if !(ok || event.Has(fsnotify.Create)) {
+			if !ok || !event.Has(fsnotify.Create) {
 				continue
 			}
 			if stat, err := os.Stat(event.Name); err != nil || stat.IsDir() {
 				continue
 			}
 			t.tryCreateWorkFromFiles(ctx, []string{event.Name})
+			ticker.Reset(scanNewFileInterval)
 
 		case <-ticker.C:
-			// next
+			files, err := t.fileScanner.ScanFiles()
+			if err != nil {
+				t.log.Warn(err)
+			} else {
+				t.tryCreateWorkFromFiles(ctx, files)
+			}
 		}
 	}
 }
@@ -200,14 +202,4 @@ func (t *Tailer) closeAllFiles() {
 			cancel()
 		}
 	}
-}
-
-func (t *Tailer) getFileList() []string {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	var list []string
-	for file := range t.fileList {
-		list = append(list, file)
-	}
-	return list
 }

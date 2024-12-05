@@ -19,8 +19,8 @@ func DisablePreviousBlock() Option   { return func(opt *option) { opt.disablePre
 
 func defaultOption() *option {
 	return &option{
-		bufSize:              1024 * 64,  // 64 KB
-		maxLineLength:        1024 * 512, // 512 KB
+		bufSize:              1024 * 64,  // 64 KiB
+		maxLineLength:        1024 * 512, // 512 KiB
 		disablePreviousBlock: false,
 	}
 }

@@ -222,7 +222,7 @@ func fetchPodMonitor(
 				continue
 			}
 
-			key := fmt.Sprintf("%s::podMetricsEndpoints[%d]/%s", item.Name, idx, podItem.Name)
+			key := fmt.Sprintf("podMonitor:%s/pod:%s", item.Name, podItem.Name)
 			traits := podTraits(podItem)
 
 			if p.scrape.isTraitsExists(p.role, key, traits) {
@@ -321,8 +321,8 @@ func fetchServiceMonitor(
 		}
 
 		for _, ep := range endpointsList {
-			for _, ins := range instances {
-				key := fmt.Sprintf("%s::endpoints[%d]/%s", item.Name, idx, ep.Name)
+			for insIdx, ins := range instances {
+				key := fmt.Sprintf("serviceMonitor:%s/endpoints:%s/ins[%d]", item.Name, ep.Name, insIdx)
 				tryCreateScrapeForEndpoints(ctx, RoleServiceMonitor, key, ep, ins, scrapeManager, feeder)
 			}
 		}
