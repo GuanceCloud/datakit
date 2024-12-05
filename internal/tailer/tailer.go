@@ -102,6 +102,14 @@ func (t *Tailer) Start() {
 
 	ctx := context.Background()
 
+	// first scan
+	files, err := t.fileScanner.ScanFiles()
+	if err != nil {
+		t.log.Warn(err)
+	} else {
+		t.tryCreateWorkFromFiles(ctx, files)
+	}
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
