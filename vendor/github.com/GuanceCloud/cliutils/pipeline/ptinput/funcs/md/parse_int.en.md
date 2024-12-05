@@ -1,6 +1,6 @@
 ### `parse_int()` {#fn-parse-int}
 
-Function prototype: `fn parse_int(val: int, base: int) str`
+Function prototype: `fn parse_int(val: int, base: int) int`
 
 Function description: Converts the string representation of a numeric value to a numeric value.
 

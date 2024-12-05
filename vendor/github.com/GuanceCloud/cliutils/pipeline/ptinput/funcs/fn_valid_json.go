@@ -6,9 +6,8 @@
 package funcs
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/goccy/go-json"
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"

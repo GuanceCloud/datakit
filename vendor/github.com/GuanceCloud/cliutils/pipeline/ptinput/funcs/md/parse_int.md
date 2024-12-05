@@ -1,6 +1,6 @@
 ### `parse_int()` {#fn-parse-int}
 
-函数原型：`fn parse_int(val: int, base: int) str`
+函数原型：`fn parse_int(val: int, base: int) int`
 
 函数说明：将数值的字符串表示转换为数值。
 
