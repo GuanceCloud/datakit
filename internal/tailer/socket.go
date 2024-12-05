@@ -119,8 +119,7 @@ func (sk *SocketLogger) Start() {
 		return
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	sk.cancel = cancel
 
 	for _, srv := range sk.servers {
@@ -325,10 +324,6 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 				continue
 			}
 			return err
-		}
-
-		for _, line := range lines {
-			fmt.Println(line)
 		}
 
 		if len(lines) == 0 {
