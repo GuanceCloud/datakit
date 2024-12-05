@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.64.1 (2024/12/05) {#cl-1.64.1}
+
+This release is a hotfix update, with the following changes:
+
+- Fixed known security issues (#2497).
+- Fix Pipeline performance issue on `valid_json()` (#2494).
+- Fix issues with Windows installation script for PowerShell 4 (#2491).
+- Fixed high CPU consumption issue in log collection since version 1.64.0 (#2498).
+
+---
+
 ## 1.64.0 (2024/11/27) {#cl-1.64.0}
 
 This release is an iterative update, with the following main changes:
@@ -19,10 +30,9 @@ This release is an iterative update, with the following main changes:
 
 ### Performance Improvements {#cl-1.64.0-opt}
 
-- Further improved the timestamp value acquisition for existing metric collection (#2445).
 - Optimized the Zabbix data importing, improved the full update logic, adjusted metric naming, and synchronized some tags read from MySQL to Zabbix data points (#2455).
 - Optimized Pipeline processing performance (memory consumption reduced by over 30%), where the `load_json()` function, due to the replacement of more efficient library, has improved JSON processing performance by about 16% (#2459).
-- Optimized the file discovery strategy in log collection, adding the IONotify mechanism for more efficient handling of new file discoveries, avoiding delayed collection (#2462).
+- Optimized the file discovery strategy in log collection, adding the inotify mechanism for more efficient handling of new file discoveries, avoiding delayed collection (#2462).
 - Optimized the timestamp alignment mechanism for mainstream metric collection to improve time series storage efficiency (#2445).
 
 ### Compatibility Adjustments {#cl-1.64.0-brk}
@@ -401,7 +411,7 @@ This release is an iterative update with the following main changes:
 
 - The `up` measurement now supports the automatic addition of custom tags from collector's configure (#2334)
 - The cloud-meta synchronization for host object collection supports specifying a meta address, facilitating private cloud deployment environments (#2331)
-- The DDTrace collector now supports collecting basic information of traced services and upload them to the resource object(`CO::`) with `class:traceing_service` (#2307)
+- The DDTrace collector now supports collecting basic information of traced services and upload them to the resource object(`CO::`) with `class:tracing_service` (#2307)
 - In the dial-testing collection data, the dial-node's name `node_name` has been added (#2324)
 - In the Kubernetes-Prometheus metrics collection, add tag placeholder `__kubernetes_mate_instance` and `__kubernetes_mate_host` (#2341)[^2341]
 - Optimized TLS configurations for multiple collectors (#2225/#2204/#2192/#2342)

@@ -149,6 +149,7 @@ goyacc
 guance
 hotspots
 inodes
+inotify
 ipfix
 jemalloc
 kafkamq
