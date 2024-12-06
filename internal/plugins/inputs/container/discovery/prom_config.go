@@ -16,6 +16,7 @@ import (
 
 const (
 	annotationPromExport = "datakit/prom.instances"
+	defaultInterval      = time.Second * 30
 )
 
 type promConfig struct {
@@ -106,6 +107,9 @@ func parsePromConfigs(str string) ([]*promConfig, error) {
 	for _, cfg := range c.Inputs.Prom {
 		if cfg.URL != "" {
 			cfg.URLs = append(cfg.URLs, cfg.URL)
+		}
+		if cfg.Interval <= 0 {
+			cfg.Interval = defaultInterval
 		}
 	}
 	return c.Inputs.Prom, nil
