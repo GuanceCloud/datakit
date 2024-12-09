@@ -41,7 +41,7 @@ func NewInotify(patterns []string) (*Inotify, error) {
 	}
 
 	for _, dir := range dirs {
-		err := watcher.Add(dir)
+		err := watcher.AddWith(dir, fsnotify.WithOps(fsnotify.Create))
 		if err != nil {
 			_ = watcher.Close()
 			return nil, fmt.Errorf("failed to add watcher %s, err: %w", dir, err)

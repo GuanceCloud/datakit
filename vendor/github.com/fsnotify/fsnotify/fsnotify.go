@@ -319,7 +319,7 @@ func (w *Watcher) Add(path string) error { return w.b.Add(path) }
 //
 //   - [WithBufferSize] sets the buffer size for the Windows backend; no-op on
 //     other platforms. The default is 64K (65536 bytes).
-func (w *Watcher) AddWith(path string, opts ...addOpt) error { return w.b.AddWith(path, opts...) }
+func (w *Watcher) AddWith(path string, opts ...AddOpt) error { return w.b.AddWith(path, opts...) }
 
 // Remove stops monitoring the path for changes.
 //
@@ -398,14 +398,14 @@ func (e Event) String() string {
 type (
 	backend interface {
 		Add(string) error
-		AddWith(string, ...addOpt) error
+		AddWith(string, ...AddOpt) error
 		Remove(string) error
 		WatchList() []string
 		Close() error
 		xSupports(Op) bool
 	}
-	addOpt   func(opt *withOpts)
-	withOpts struct {
+	AddOpt   func(opt *WithOpts)
+	WithOpts struct {
 		bufsize    int
 		op         Op
 		noFollow   bool
@@ -420,12 +420,12 @@ var debug = func() bool {
 	return os.Getenv("FSNOTIFY_DEBUG") == "1"
 }()
 
-var defaultOpts = withOpts{
+var defaultOpts = WithOpts{
 	bufsize: 65536, // 64K
 	op:      Create | Write | Remove | Rename | Chmod,
 }
 
-func getOptions(opts ...addOpt) withOpts {
+func getOptions(opts ...AddOpt) WithOpts {
 	with := defaultOpts
 	for _, o := range opts {
 		if o != nil {
@@ -445,8 +445,8 @@ func getOptions(opts ...addOpt) withOpts {
 // you're hitting "queue or buffer overflow" errors ([ErrEventOverflow]).
 //
 // [ReadDirectoryChangesW]: https://learn.microsoft.com/en-gb/windows/win32/api/winbase/nf-winbase-readdirectorychangesw
-func WithBufferSize(bytes int) addOpt {
-	return func(opt *withOpts) { opt.bufsize = bytes }
+func WithBufferSize(bytes int) AddOpt {
+	return func(opt *WithOpts) { opt.bufsize = bytes }
 }
 
 // WithOps sets which operations to listen for. The default is [Create],
@@ -463,19 +463,19 @@ func WithBufferSize(bytes int) addOpt {
 //
 // AddWith returns an error when using an unportable operation that's not
 // supported. Use [Watcher.Support] to check for support.
-func withOps(op Op) addOpt {
-	return func(opt *withOpts) { opt.op = op }
+func WithOps(op Op) AddOpt {
+	return func(opt *WithOpts) { opt.op = op }
 }
 
 // WithNoFollow disables following symlinks, so the symlinks themselves are
 // watched.
-func withNoFollow() addOpt {
-	return func(opt *withOpts) { opt.noFollow = true }
+func WithNoFollow() AddOpt {
+	return func(opt *WithOpts) { opt.noFollow = true }
 }
 
 // "Internal" option for recursive watches on inotify.
-func withCreate() addOpt {
-	return func(opt *withOpts) { opt.sendCreate = true }
+func WithCreate() AddOpt {
+	return func(opt *WithOpts) { opt.sendCreate = true }
 }
 
 var enableRecurse = true

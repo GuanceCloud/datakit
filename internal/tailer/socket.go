@@ -36,11 +36,7 @@ type SocketLogger struct {
 }
 
 func NewSocketLogWithOptions(opts ...Option) (*SocketLogger, error) {
-	c := defaultOption()
-	for _, opt := range opts {
-		opt(c)
-	}
-
+	c := getOption(opts...)
 	sk := &SocketLogger{
 		opt: c,
 	}

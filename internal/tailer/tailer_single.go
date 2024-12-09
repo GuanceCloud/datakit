@@ -68,15 +68,13 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 	}
 
 	_ = logtail.InitDefault()
-	c := defaultOption()
-	for _, opt := range opts {
-		opt(c)
-	}
 
+	c := getOption(opts...)
 	t := &Single{
 		opt:      c,
 		filepath: filepath,
 	}
+
 	if c.insideFilepathFunc != nil {
 		t.insideFilepath = c.insideFilepathFunc(filepath)
 	}

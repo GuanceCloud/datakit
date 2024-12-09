@@ -100,7 +100,7 @@ func (w *fen) Close() error {
 
 func (w *fen) Add(name string) error { return w.AddWith(name) }
 
-func (w *fen) AddWith(name string, opts ...addOpt) error {
+func (w *fen) AddWith(name string, opts ...AddOpt) error {
 	if w.isClosed() {
 		return ErrClosed
 	}
