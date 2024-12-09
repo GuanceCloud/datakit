@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/fsnotify/fsnotify"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
@@ -48,10 +47,7 @@ type Tailer struct {
 }
 
 func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
-	c := defaultOption()
-	for _, opt := range opts {
-		opt(c)
-	}
+	c := getOption(opts...)
 
 	tailer := &Tailer{
 		options:       opts,
@@ -118,12 +114,19 @@ func (t *Tailer) Start() {
 			return
 
 		case event, ok := <-t.fileInotify.Events():
-			if !ok || !event.Has(fsnotify.Create) {
+			if !ok {
 				continue
 			}
-			if stat, err := os.Stat(event.Name); err != nil || stat.IsDir() {
+			stat, err := os.Stat(event.Name)
+			if err != nil {
+				t.log.Warnf("invalid event name: %s", err)
 				continue
 			}
+			if stat.IsDir() {
+				receiveCreateEventVec.WithLabelValues(t.source, "directory").Inc()
+				continue
+			}
+			receiveCreateEventVec.WithLabelValues(t.source, "file").Inc()
 			t.tryCreateWorkFromFiles(ctx, []string{event.Name})
 			ticker.Reset(scanNewFileInterval)
 

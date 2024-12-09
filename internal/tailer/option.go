@@ -200,6 +200,16 @@ func defaultOption() *option {
 	}
 }
 
+func getOption(opts ...Option) *option {
+	with := defaultOption()
+	for _, o := range opts {
+		if o != nil {
+			o(with)
+		}
+	}
+	return with
+}
+
 type ForwardFunc func(filename, text string, fields map[string]interface{}) error
 
 type Mode uint8

@@ -149,8 +149,8 @@ github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/Z
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
 github.com/GuanceCloud/dockertest/v3 v3.9.4/go.mod h1:LDdHEB2bc9HxRQuXuMJOqesEasilevqVsFd5rnVb07I=
-github.com/GuanceCloud/fsnotify v1.8.0 h1:eF6eOeGq6MWK1Zm7IqM8QJNk1VO6ejbJ/SdIzdMgWJo=
-github.com/GuanceCloud/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
+github.com/GuanceCloud/fsnotify v1.8.1 h1:ytpTOus9zNuuuGnUj3wL57ZB7qQ8wD5D61xTHXwBjrc=
+github.com/GuanceCloud/fsnotify v1.8.1/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/GuanceCloud/go-ora/v2 v2.8.20 h1:RE+wYOcx3rxvdUk2Gn8rFmfqmdDicASmWIIqgkCC+wY=
 github.com/GuanceCloud/go-ora/v2 v2.8.20/go.mod h1:EHxlY6x7y9HAsdfumurRfTd+v8NrEOTR3Xl4FWlH6xk=
 github.com/GuanceCloud/gopacket v0.0.1 h1:3hb9ssiAiQxOvSliaLZNz5DJ2GzJGbFAlo3BocDM0/8=

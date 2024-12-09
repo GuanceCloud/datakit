@@ -252,7 +252,7 @@ func (w *inotify) Close() error {
 
 func (w *inotify) Add(name string) error { return w.AddWith(name) }
 
-func (w *inotify) AddWith(path string, opts ...addOpt) error {
+func (w *inotify) AddWith(path string, opts ...AddOpt) error {
 	if w.isClosed() {
 		return ErrClosed
 	}
@@ -296,7 +296,7 @@ func (w *inotify) AddWith(path string, opts ...addOpt) error {
 	return w.add(path, with, false)
 }
 
-func (w *inotify) add(path string, with withOpts, recurse bool) error {
+func (w *inotify) add(path string, with WithOpts, recurse bool) error {
 	var flags uint32
 	if with.noFollow {
 		flags |= unix.IN_DONT_FOLLOW
