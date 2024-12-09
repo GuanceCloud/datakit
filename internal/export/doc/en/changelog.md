@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.64.2(2024/12/09) {#cl-1.64.2}
+
+This release is a hotfix update, with the following changes:
+
+- Fix known security issue (#2502).
+- Removed unnecessary event listening on inotify, this may cause extra CPU wast (#2500).
+
+---
+
 ## 1.64.1 (2024/12/05) {#cl-1.64.1}
 
 This release is a hotfix update, with the following changes:
