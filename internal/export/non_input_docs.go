@@ -83,6 +83,12 @@ func envCommon() []*inputs.ENVInfo {
 			DescZh: "为指定数据类别设置默认 Pipeline 脚本；与远程设置冲突时，此设置优先",
 		},
 		{
+			ENVName: "ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC",
+			Type:    doc.Boolean,
+			Desc:    "Disable Pipeline `http_request` function",
+			DescZh:  "禁用 Pipeline `http_request` 函数",
+		},
+		{
 			ENVName: "~~ENV_GLOBAL_TAGS~~",
 			Type:    doc.List,
 			Desc:    "Same as ENV_GLOBAL_HOST-TAGS(Deprecated)",

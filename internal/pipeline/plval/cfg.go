@@ -42,6 +42,8 @@ type PipelineCfg struct {
 	EnableDebugFields      bool                   `toml:"-"`
 	DefaultPipeline        map[string]string      `toml:"default_pipeline"`
 
+	DisableHTTPRequestFunc bool `toml:"disable_http_request_func"`
+
 	DeprecatedDisableAppendRunInfo bool `toml:"disable_append_run_info"`
 }
 
