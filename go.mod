@@ -394,7 +394,7 @@ require (
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
-	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.1
+	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
