@@ -11,16 +11,30 @@ import (
 )
 
 var (
-	discardVec       *prometheus.CounterVec
-	openfileVec      *prometheus.GaugeVec
-	rotateVec        *prometheus.CounterVec
-	parseFailVec     *prometheus.CounterVec
-	socketLogConnect *prometheus.CounterVec
-	socketLogCount   *prometheus.CounterVec
-	socketLogLength  *prometheus.SummaryVec
+	receiveCreateEventVec *prometheus.CounterVec
+	discardVec            *prometheus.CounterVec
+	openfileVec           *prometheus.GaugeVec
+	rotateVec             *prometheus.CounterVec
+	parseFailVec          *prometheus.CounterVec
+	socketLogConnect      *prometheus.CounterVec
+	socketLogCount        *prometheus.CounterVec
+	socketLogLength       *prometheus.SummaryVec
 )
 
 func setupMetrics() {
+	receiveCreateEventVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "receive_create_event_total",
+			Help:      "Total number of 'CREATE' events received",
+		},
+		[]string{
+			"source",
+			"type",
+		},
+	)
+
 	discardVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -111,6 +125,7 @@ func setupMetrics() {
 	)
 
 	metrics.MustRegister(
+		receiveCreateEventVec,
 		discardVec,
 		openfileVec,
 		parseFailVec,

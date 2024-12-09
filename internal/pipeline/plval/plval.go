@@ -16,10 +16,14 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/pipeline"
 	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/pipeline/ptinput/refertable"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/platypus/pkg/ast"
+	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
+	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/offload"
@@ -107,10 +111,21 @@ func PreferLocalDefaultPipeline(m map[point.Category]string) map[point.Category]
 	return result
 }
 
+func DisableExternalRequestsFunc() {
+	funcs.FuncsMap["http_request"] = func(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
+		ctx.Regs.ReturnAppend(nil, ast.Nil)
+		return nil
+	}
+}
+
 func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
 	l = logger.SLogger("plval")
+
+	if cfg != nil && cfg.DisableHTTPRequestFunc {
+		DisableExternalRequestsFunc()
+	}
 
 	offload.InitOffload()
 	pipeline.InitLog()

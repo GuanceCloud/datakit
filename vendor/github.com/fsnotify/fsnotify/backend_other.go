@@ -18,6 +18,6 @@ func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error
 func (w *other) Close() error                              { return nil }
 func (w *other) WatchList() []string                       { return nil }
 func (w *other) Add(name string) error                     { return nil }
-func (w *other) AddWith(name string, opts ...addOpt) error { return nil }
+func (w *other) AddWith(name string, opts ...AddOpt) error { return nil }
 func (w *other) Remove(name string) error                  { return nil }
 func (w *other) xSupports(op Op) bool                      { return false }

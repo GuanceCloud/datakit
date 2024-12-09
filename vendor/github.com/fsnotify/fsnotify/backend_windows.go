@@ -110,7 +110,7 @@ func (w *readDirChangesW) Close() error {
 
 func (w *readDirChangesW) Add(name string) error { return w.AddWith(name) }
 
-func (w *readDirChangesW) AddWith(name string, opts ...addOpt) error {
+func (w *readDirChangesW) AddWith(name string, opts ...AddOpt) error {
 	if w.isClosed() {
 		return ErrClosed
 	}
