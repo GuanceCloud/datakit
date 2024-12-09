@@ -420,13 +420,15 @@ var debug = func() bool {
 	return os.Getenv("FSNOTIFY_DEBUG") == "1"
 }()
 
-var defaultOpts = WithOpts{
-	bufsize: 65536, // 64K
-	op:      Create | Write | Remove | Rename | Chmod,
+func defaultOpts() WithOpts{
+	return WithOpts {
+		bufsize: 65536, // 64K
+		op:      Create | Write | Remove | Rename | Chmod,
+	}
 }
 
 func getOptions(opts ...AddOpt) WithOpts {
-	with := defaultOpts
+	with := defaultOpts()
 	for _, o := range opts {
 		if o != nil {
 			o(&with)

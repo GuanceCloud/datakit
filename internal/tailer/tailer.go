@@ -177,6 +177,11 @@ func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
 }
 
 func (t *Tailer) Close() {
+	if t.fileInotify != nil {
+		if err := t.fileInotify.Close(); err != nil {
+			t.log.Warnf("close inotify error: %s", err)
+		}
+	}
 	select {
 	case <-t.done:
 		return
