@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -19,6 +20,27 @@ func isTrue(s string) bool {
 
 func isKeywords(s string) bool {
 	return strings.HasPrefix(s, "__kubernetes")
+}
+
+var environmentValueRegex = regexp.MustCompile(`\$\((\w+)\)`)
+
+func convertToEnvironmentValue(str string) string {
+	if !environmentValueRegex.MatchString(str) {
+		return str
+	}
+
+	args := environmentValueRegex.FindStringSubmatch(str)
+	if len(args) < 2 {
+		return str
+	}
+
+	expr := args[0]
+	key := args[1]
+
+	if s := os.Getenv(key); s != "" {
+		return strings.Replace(str, expr, s, 1)
+	}
+	return str
 }
 
 func unique(slice []string) []string {
