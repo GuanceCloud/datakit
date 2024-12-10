@@ -1,0 +1,664 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "RabbitMQ 消息重传次数过多",
+        "groupBy": [
+          "host_ip",
+          "url"
+        ],
+        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq队列消息数过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常",
+        "targets": [
+          {
+            "dql": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_unacknowledged_rate`)) BY `host_ip`, `url`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "30"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "30"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "bb0f9bbe-867f-4d78-ad0a-16d9e6ace049",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_unacknowledged_rate`)) BY `host_ip`, `url`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "queue_totals_messages_unacknowledged_rate",
+              "index": "default",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host_ip",
+                "url"
+              ],
+              "indexes": [
+                "default"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "rabbitmq_overview",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "rabbitmq队列消息数过高",
+        "groupBy": [
+          "queue_name"
+        ],
+        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq队列消息数过高\n>建议：登录集群查看是否有异常",
+        "targets": [
+          {
+            "dql": "M::`rabbitmq_queue`:(last(`messages`)) BY `queue_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "20000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "15000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "20000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "15000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "bb0f9bbe-867f-4d78-ad0a-16d9e6ace049",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`rabbitmq_queue`:(last(`messages`)) BY `queue_name`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "messages",
+              "groupBy": [
+                "queue_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "rabbitmq_queue",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "RabbitMQ 队列新增速率过高",
+        "groupBy": [
+          "host_ip"
+        ],
+        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq 队列新增速率过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常",
+        "targets": [
+          {
+            "dql": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_rate`) AS `消息速率`) BY `host_ip`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "30"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "30"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "bb0f9bbe-867f-4d78-ad0a-16d9e6ace049",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_rate`) AS `消息速率`) BY `host_ip`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "消息速率",
+              "field": "queue_totals_messages_rate",
+              "index": "default",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host_ip"
+              ],
+              "indexes": [
+                "default"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "rabbitmq_overview",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "RabbitMQ 不可用路由突增过高",
+        "groupBy": [
+          "host_ip",
+          "url"
+        ],
+        "message": ">等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq 不可用路由突增过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常",
+        "targets": [
+          {
+            "dql": "M::`rabbitmq_overview`:(avg(`message_return_unroutable_count_rate`)) BY `host_ip`, `url`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "200"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "40"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "200"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "40"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "bb0f9bbe-867f-4d78-ad0a-16d9e6ace049",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`rabbitmq_overview`:(avg(`message_return_unroutable_count_rate`)) BY `host_ip`, `url`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "message_return_unroutable_count_rate",
+              "index": "default",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host_ip",
+                "url"
+              ],
+              "indexes": [
+                "default"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "rabbitmq_overview",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
