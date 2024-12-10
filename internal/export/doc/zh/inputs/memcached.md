@@ -9,8 +9,8 @@ dashboard :
   - desc  : 'Memcached'
     path  : 'dashboard/zh/memcached'
 monitor   :
-  - desc  : '暂无'            # 缺少监控视图示例
-    path  : '-' 
+  - desc  : 'Memcached'
+    path  : 'monitor/zh/memcached' 
 ---
 
 {{.AvailableArchs}}

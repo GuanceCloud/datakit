@@ -1,0 +1,629 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "memcached 内存使用超配置",
+        "groupBy": [
+          "host"
+        ],
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 等级：{{ df_status | to_status_human }} \n- 检测对象：memcached\n- 内容：memcached 内存使用超配置为{{result}} ，已超出设置范围，请重点关注。\n- 建议：查看 memcached  是否有异常。",
+        "targets": [
+          {
+            "dql": "eval(A/B*100, A=\"M::`memcached`:(count(`bytes`)) BY `host`\", B=\"M::`memcached`:(count(`limit_maxbytes`)) BY `host`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "47e1e6ec-bfba-46ee-b5f0-bb4921dbb432",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B*100, A=\"M::`memcached`:(count(`bytes`)) BY `host`\", B=\"M::`memcached`:(count(`limit_maxbytes`)) BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`memcached`:(count(`bytes`)) BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "bytes",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "count",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "memcached",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`memcached`:(count(`limit_maxbytes`)) BY `host`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "limit_maxbytes",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "count",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "memcached",
+                  "groupByTime": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B*100"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "memcached 命中率异常",
+        "groupBy": [
+          "host"
+        ],
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 等级：{{ df_status | to_status_human }} \n- 检测对象：memcached\n- 内容：memcached 命中率异常为{{result}} ，已超出设置范围，请重点关注。\n- 建议：查看 memcached  是否有异常。",
+        "targets": [
+          {
+            "dql": "eval(A/B*100, A=\"M::`memcached`:(count(`get_hits`)) BY `host`\", B=\"M::`memcached`:(count(`cmd_get`)) BY `host`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80"
+                  ],
+                  "operator": "<"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50",
+                    "60"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80"
+                ],
+                "operator": "<"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50",
+                  "60"
+                ],
+                "operator": "between"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "47e1e6ec-bfba-46ee-b5f0-bb4921dbb432",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B*100, A=\"M::`memcached`:(count(`get_hits`)) BY `host`\", B=\"M::`memcached`:(count(`cmd_get`)) BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`memcached`:(count(`get_hits`)) BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "get_hits",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "count",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "memcached",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`memcached`:(count(`cmd_get`)) BY `host`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "cmd_get",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "count",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "memcached",
+                  "groupByTime": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B*100"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 900,
+        "title": "memcached 驱逐对象异常",
+        "groupBy": [
+          "host"
+        ],
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 等级：{{ df_status | to_status_human }} \n- 检测对象：memcached\n- 内容：memcached 驱逐对象异常，增长为{{result}} ，已超出设置范围，请重点关注。\n- 建议：查看 memcached  是否有异常。",
+        "range_2": 1800,
+        "targets": [
+          {
+            "dql": "M::`memcached`:(avg(`evictions`)) BY `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "up",
+          "threshold": {
+            "value": 1,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "31b27921-e96f-4163-8d0b-fd7a61cb8055",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`memcached`:(avg(`evictions`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "evictions",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "memcached",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 900,
+        "title": "memcached uptime异常",
+        "groupBy": [
+          "host"
+        ],
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 等级：{{ df_status | to_status_human }} \n- 检测对象：memcached\n- 内容：memcached uptime异常 ，已超出设置范围，请重点关注。\n- 建议：查看 memcached  是否有异常。",
+        "range_2": 1800,
+        "targets": [
+          {
+            "dql": "M::`memcached`:(avg(`uptime`)) BY `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "50"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "down",
+          "infoEvent": false,
+          "threshold": {
+            "value": 1,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "50"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "31b27921-e96f-4163-8d0b-fd7a61cb8055",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`memcached`:(avg(`uptime`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "uptime",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "memcached",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "memcached 连接数异常",
+        "groupBy": [
+          "host"
+        ],
+        "message": "- 所属空间：{{ df_workspace_name }}\n- 等级：{{ df_status | to_status_human }} \n- 检测对象：memcached\n- 内容：memcached 连接数异常为{{result}} ，已超出设置范围，请重点关注。\n- 建议：查看 memcached  是否有异常。",
+        "targets": [
+          {
+            "dql": "M::`memcached`:(count(`curr_connections`)) BY `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1"
+                ],
+                "operator": "<="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "47e1e6ec-bfba-46ee-b5f0-bb4921dbb432",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`memcached`:(count(`curr_connections`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "curr_connections",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "memcached",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
