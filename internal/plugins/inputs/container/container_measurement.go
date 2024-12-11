@@ -108,6 +108,7 @@ func (*containerObject) Info() *inputs.MeasurementInfo {
 			"network_bytes_sent":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes send to the network (only count the usage of the main process in the container, excluding loopback)."},
 			"block_read_byte":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes read from the container file system (only supported docker)."},
 			"block_write_byte":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Total number of bytes wrote to the container file system (only supported docker)."},
+			"message":                     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
 }

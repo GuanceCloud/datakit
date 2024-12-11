@@ -14,6 +14,8 @@ const (
 
 	objectInterval = time.Minute * 5
 	metricInterval = time.Second * 60
+
+	maxMessageLength = 256 * 1024 // 256KB
 )
 
 const sampleCfg = `
