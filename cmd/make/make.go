@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -49,10 +50,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
 	flag.StringVar(&build.UTOnly, "ut-only", "", "select packages for testing")
 
-	flag.BoolVar(&downloadSamples, "download-samples", false, "download samples from OSS to samples/")
-	flag.BoolVar(&dumpSamples, "dump-samples", false, "download and dump local samples to OSS")
-
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
+	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")
 	flag.StringVar(&mdAutofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 
@@ -72,6 +71,7 @@ func init() { //nolint:gochecknoinits
 var (
 	mdCheck, mdMetaDir, mdAutofix string
 
+	sampleConfCheck = false
 	doPub           = false
 	doPubeBPF       = false
 	notifyAWSLambda = false
@@ -81,9 +81,6 @@ var (
 	ut              = false
 	export          = false
 	dwURL           = "not-set"
-
-	downloadSamples = false
-	dumpSamples     = false
 
 	l = logger.DefaultSLogger("make")
 )
@@ -110,6 +107,15 @@ func applyFlags() {
 		}
 
 		if len(res) > 0 {
+			os.Exit(-1)
+		}
+
+		return
+	}
+
+	if sampleConfCheck {
+		if err := build.CheckSampleConf(inputs.Inputs); err != nil {
+			cp.Errorf("sample conf check: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -175,19 +181,6 @@ func applyFlags() {
 	}
 
 	l.Infof("use version %s", build.ReleaseVersion)
-
-	if dumpSamples {
-		build.DumpSamples()
-
-		l.Infof("upload datakit-conf-samples.tar.gz to OSS successfully")
-		return
-	}
-
-	if downloadSamples {
-		build.DownloadSamples()
-		l.Infof("download samples from OSS successfully")
-		return
-	}
 
 	if build.NotifyOnly {
 		build.NotifyStartBuild()

@@ -81,8 +81,8 @@ const (
   # it will match "kunluna.com", "kunlunab.com" and "kunlunabc.com" but not "kunlunab.c.com".
   # cdn_map = '''
   # [
-  #   {"domain":"15cdn.com","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"},
-  #   {"domain":"tzcdn.cn","name":"腾正安全加速(原 15CDN)","website":"https://www.15cdn.com"}
+  #   {"domain":"15cdn.com","name":"some-CDN-name","website":"https://www.15cdn.com"},
+  #   {"domain":"tzcdn.cn","name":"some-CDN-name","website":"https://www.15cdn.com"}
   # ]
   # '''
 

@@ -414,7 +414,7 @@ endif
 	fi
 
 # lint code and document
-lint: code_lint md_lint
+lint: sample_conf_lint code_lint md_lint
 
 prepare:
 	@mkdir -p internal/git
@@ -476,6 +476,9 @@ md_lint:
 		go run cmd/make/make.go -mdcheck $(docs_dir) \
 		--mdcheck-autofix off # disable autofix on checking generated documents
 	$(call check_docs,$(docs_dir))
+
+sample_conf_lint:
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go --sample-conf-check
 
 project_words:
 	cspell -c cspell/cspell.json --words-only --unique internal/export/doc/zh/** | sort --ignore-case >> project-words.txt
