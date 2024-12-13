@@ -437,6 +437,12 @@ define check_docs
 		-c scripts/cspell.json \
 		--no-progress $(1)/**/*.md | tee dist/cspell.lint
 
+	@if [ -s dist/cspell.lint ]; then \
+		printf "$(RED) [FAIL] dist/cspell.lint not empty \n$(NC)"; \
+		cat dist/cspell.lint; \
+		exit -1; \
+	fi
+
   # check markdown style
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
 	@echo 'version of markdownlint: $(shell markdownlint --version)'
@@ -448,12 +454,6 @@ define check_docs
 	@if [ -s dist/md-lint.json ]; then \
 		printf "$(RED) [FAIL] dist/md-lint.json not empty \n$(NC)"; \
 		cat dist/md-lint.json; \
-		exit -1; \
-	fi
-
-	@if [ -s dist/cspell.lint ]; then \
-		printf "$(RED) [FAIL] dist/cspell.lint not empty \n$(NC)"; \
-		cat dist/cspell.lint; \
 		exit -1; \
 	fi
 endef

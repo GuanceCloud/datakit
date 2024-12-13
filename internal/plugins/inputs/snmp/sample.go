@@ -68,6 +68,9 @@ const sampleCfg = `
   ## This is optional.
   # workers = 100
 
+  ## Number of max OIDs during walk(default 1000)
+  # max_oids = 1000
+
   ## Interval between each auto discovery in seconds. Default is "1h".
   ## Only worked in auto discovery feature.
   ## This is optional.

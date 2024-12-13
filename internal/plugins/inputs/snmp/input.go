@@ -87,6 +87,7 @@ type Input struct {
 	V3ContextEngineID   string            `toml:"v3_context_engine_id"`
 	V3ContextName       string            `toml:"v3_context_name"`
 	Workers             int               `toml:"workers"`
+	MaxOIDs             int               `toml:"max_oids"`
 	DiscoveryInterval   time.Duration     `toml:"discovery_interval"`
 	DiscoveryIgnoredIPs []string          `toml:"discovery_ignored_ip"`
 	Tags                map[string]string `toml:"tags"`
@@ -1247,6 +1248,7 @@ func defaultInput() *Input {
 		semStop: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
 		Tagger:  datakit.DefaultGlobalTagger(),
+		MaxOIDs: 1000,
 	}
 }
 
