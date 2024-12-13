@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	apmInj "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -112,7 +113,39 @@ func runToolFlags() error {
 			}
 		}
 		os.Exit(0)
+
+	case *flagToolRemoveApmAutoInject:
+		// cleanup apm inject
+		if err := apmInj.Uninstall(
+			apmInj.WithInstallDir(datakit.InstallDir)); err != nil {
+			cp.Errorf("remove failed: %s", err.Error())
+		}
+		if err := unsetDKConfAPMInst(datakit.MainConfPath); err != nil {
+			cp.Errorf("clean up datakit config failed: %s", err.Error())
+		}
+		os.Exit(0)
 	}
 
 	return fmt.Errorf("unknown tool option: %s", os.Args[2])
+}
+
+func unsetDKConfAPMInst(path string) error {
+	var cfg config.Config
+	err := cfg.LoadMainTOML(path)
+	if err != nil {
+		return err
+	}
+
+	if cfg.APMInject != nil &&
+		cfg.APMInject.InstrumentationEnabled != "" &&
+		cfg.APMInject.InstrumentationEnabled != "disable" {
+		cfg.APMInject.InstrumentationEnabled = ""
+	} else {
+		return nil
+	}
+
+	if err := cfg.TryUpgradeCfg(path); err != nil {
+		return err
+	}
+	return nil
 }
