@@ -141,9 +141,9 @@ func (*input) Catalog() string { return "testing" }
 func (*input) SampleConfig() string {
 	return `
 [inputs.demo]
-  ## 这里是一些测试配置
+  ## this is a testing configure
 
-  # 是否开启 CPU 爆满
+  # eat all CPU?
   eat_cpu = false
 
   ## Set true to enable election
@@ -153,7 +153,7 @@ func (*input) SampleConfig() string {
 
 	interval = "0.1s"
 
-[inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
+[inputs.demo.tags]
   # tag_a = "val1"
   # tag_b = "val2"
 `

@@ -33,7 +33,7 @@ const sampleCfg = `
   ## Always add 'measurement_prefix' prefix at last.
   # measurement_name = "prom"
 
-  ## Collect interval, support "ns", "us" (or "µs"), "ms", "s", "m", "h".
+  ## Collect interval, support "ns", "us", "ms", "s", "m", "h".
   interval = "10s"
 
   ## Ignore tags. Multi supported.

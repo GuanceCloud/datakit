@@ -163,6 +163,8 @@ func Add(name string, creator Creator) {
 		l.Fatalf("inputs %s exist(from datakit)", name)
 	}
 
+	l.Infof("register input %q", name)
+
 	Inputs[name] = creator
 
 	AddConfigInfoPath(name, "", 0)

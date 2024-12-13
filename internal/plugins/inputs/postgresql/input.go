@@ -75,7 +75,7 @@ const sampleConfig = `
   # outputaddress = "db01"
 
   ## Collect interval
-  # Time unit: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  # Time unit: "ns", "us", "ms", "s", "m", "h"
   #
   interval = "10s"
 

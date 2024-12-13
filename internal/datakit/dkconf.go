@@ -150,7 +150,6 @@ ulimit = 64000
 # io configures
 ################################################
 [io]
-
   # How often Datakit flush data to dataway.
   # Datakit will upload data points if cached(in memory) points
   #  reached(>=) the max_cache_count or the flush_interval triggered.
@@ -164,17 +163,6 @@ ulimit = 64000
   # Set blocking if queue is full.
   # NOTE: Global blocking mode may consume more memory on large metric points.
   global_blocking = false
-
-  # Disk cache on datakit upload failed
-  enable_cache = false
-  # Cache all categories data point into disk
-  cache_all = false
-  # Max disk cache size(in GB), if cache size reached
-  # the limit, old data dropped(FIFO).
-  cache_max_size_gb = 10
-  # Cache clean interval: Datakit will try to clean these
-  # failed-data-point at specified interval.
-  cache_clean_interval = "5s"
 
   # Data point filter configures.
   # NOTE: Most of the time, you should use web-side filter, it's a debug helper for developers.
@@ -228,7 +216,7 @@ ulimit = 64000
   # valid minimum value is 1 (NOT 0) and maximum value is 10.
   max_retry_count = 1
 
-  # The interval between two retry operation, valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  # The interval between two retry operation, valid time units are "ns", "us", "ms", "s", "m", "h"
   retry_delay = "1s"
 
   # HTTP Proxy
