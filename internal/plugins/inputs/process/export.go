@@ -11,33 +11,25 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
-			"cpu_usage":          "CPU 使用占比",
-			"mem_usage":          "内存使用占比",
-			"open_files":         "打开的文件个数",
-			"open_files_note":    "仅支持 Linux,且需开启 enable_open_files 选项",
-			"rss":                "常驻内存大小",
-			"threads":            "线程数",
-			"top_n_cpu_usage":    "Top(n) CPU%",
-			"top_n_memory_usage": "Top(n) 内存占用",
-			"host_name":          "主机名",
-			"process_name":       "进程名",
-			"container_id":       "进程所属的容器 ID，仅支持 Linux",
-			"host":               "主机",
+			// single process
+			"sp_title_cpu_usage":  "CPU 使用率",
+			"sp_x_title_mem":      "内存",
+			"sp_title_mem_usage":  "内存使用率",
+			"sp_title_rss":        "RSS",
+			"sp_title_open_files": "打开文件数",
+			"sp_desc_open_files":  "仅支持 Linux",
+			"sp_title_threads":    "线程数",
 		}
 	case inputs.I18nEn:
 		return map[string]string{
-			"cpu_usage":          "Cpu Usage",
-			"mem_usage":          "Mem Usage",
-			"open_files":         "Open Files",
-			"open_files_note":    "Only for Linux.'enable_open_files' need be true",
-			"rss":                "Resident Set Size",
-			"threads":            "Threads",
-			"top_n_cpu_usage":    "Top(n) CPU%",
-			"top_n_memory_usage": "Top(n) Memory Usage",
-			"host_name":          "Host Name",
-			"process_name":       "Process Name",
-			"container_id":       "Container ID of the process, only supported Linux",
-			"host":               "Host",
+			// single process
+			"sp_title_cpu_usage":  "CPU usage",
+			"sp_x_title_mem":      "Memory",
+			"sp_title_mem_usage":  "Memory usage",
+			"sp_title_rss":        "RSS",
+			"sp_title_open_files": "Open files",
+			"sp_desc_open_files":  "Linux only",
+			"sp_title_threads":    "Threads",
 		}
 	default:
 		return nil

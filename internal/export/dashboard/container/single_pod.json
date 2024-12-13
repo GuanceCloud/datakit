@@ -1,0 +1,1655 @@
+{
+  "title": "Kubernetes Pod",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "inner",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/object__pod/object__pod.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/object__pod/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "Namespace",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "namespace",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "O::kubelet_pod:(distinct('namespace'))[10m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "Pod",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "pod_name",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "O::kubelet_pod:(distinct('pod_name')){`namespace`=`#{namespace}`}[10m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "re(`.*`)"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "tableSortMetricName": "last(mem_usage_percent)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.spod_x_title_mem}}",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 360025,
+            "name": "{{.Dashboard.spod_title_mem_usage}}",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(mem_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`memory_usage_bytes`) AS `used`) { `namespace` = '#{namespace}' and `pod` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "used",
+                  "field": "memory_usage_bytes",
+                  "filters": [
+                    {
+                      "id": "30a64530-ed37-11ec-89ce-efa94b428251",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}"
+                    },
+                    {
+                      "id": "33104050-ed37-11ec-89ce-efa94b428251",
+                      "op": "=",
+                      "name": "pod",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1732007574,
+            "deleteAt": -1,
+            "updateAt": 1733213438,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 381927,
+            "pos": {
+              "h": 14,
+              "w": 12,
+              "x": 0,
+              "y": 27
+            },
+            "name": "{{.Dashboard.spod_title_mem_limit}}",
+            "type": "sequence",
+            "uuid": "4a447701a044449ebcbefa3b86f0fad4",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(mem_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true,
+              "isCombineChart": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`mem_limit`) AS `limit`) { `pod_name` = '#{pod_name}' and `namespace` = '#{namespace}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "limit",
+                  "field": "mem_limit",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "19b8c680-b14e-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "19b8c681-b14e-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1733213440,
+            "deleteAt": -1,
+            "updateAt": 1733213461,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "avg(network_bytes_rcvd)",
+                "name": "avg(network_bytes_rcvd)",
+                "alias": ""
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "1h",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "30s",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "tableSortMetricName": "last(cpu_usage_percent)",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.spod_x_title_net}}",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 15
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 360026,
+            "name": "{{.Dashboard.spod_title_net_recv}}",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [
+                  {
+                    "key": "avg(network_bytes_rcvd)",
+                    "name": "avg(network_bytes_rcvd)",
+                    "alias": ""
+                  }
+                ],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "aliasVersion": 2,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(cpu_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`network_bytes_rcvd`) AS `bytes`) { `pod_name` = '#{pod_name}' and `namespace` = '#{namespace}' }[:::irate] BY `pod_name`, `namespace`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "bytes",
+                  "field": "network_bytes_rcvd",
+                  "rollup": "irate",
+                  "filters": [
+                    {
+                      "id": "c0100100-a655-11ef-9959-2582d204284c",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "bf0150a0-b14c-11ef-af56-f74c7aec63ea",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1732007574,
+            "deleteAt": -1,
+            "updateAt": 1733212890,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 360071,
+            "pos": {
+              "h": 14,
+              "w": 12,
+              "x": 12,
+              "y": 13
+            },
+            "name": "{{.Dashboard.spod_title_net_sent}}",
+            "type": "sequence",
+            "uuid": "71e8b35b335946978414d9c4395d1a9b",
+            "extend": {
+              "settings": {
+                "alias": [
+                  {
+                    "key": "avg(network_bytes_rcvd)",
+                    "name": "avg(network_bytes_rcvd)",
+                    "alias": ""
+                  }
+                ],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "aliasVersion": 2,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(cpu_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true,
+              "isCombineChart": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`network_bytes_sent`) AS `bytes`) { `pod_name` = '#{pod_name}' and `namespace` = '#{namespace}' }[:::irate] BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "bytes",
+                  "field": "network_bytes_sent",
+                  "rollup": "irate",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "e31b9040-b14c-11ef-af56-f74c7aec63ea",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "ee7ac9b0-b14c-11ef-af56-f74c7aec63ea",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1732008045,
+            "deleteAt": -1,
+            "updateAt": 1733212969,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.spod_x_title_storage}}",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 15
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 381944,
+            "name": "{{.Dashboard.spod_title_pod_used_storage}}",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`ephemeral_storage_used_bytes`) AS `bytes`) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "bytes",
+                  "field": "ephemeral_storage_used_bytes",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "dc192f00-b151-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    },
+                    {
+                      "id": "dc192f01-b151-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1733215033,
+            "deleteAt": -1,
+            "updateAt": 1733215203,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 381946,
+            "pos": {
+              "h": 10,
+              "w": 8
+            },
+            "name": "{{.Dashboard.spod_title_pod_available_storage}}",
+            "type": "sequence",
+            "uuid": "9fade9edee16450281ea0b7595baeee9",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "isCombineChart": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "uuid": "5f254f50-b152-11ef-80cc-bdbce09d1e50",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`ephemeral_storage_available_bytes`) AS `bytes`) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "bytes",
+                  "field": "ephemeral_storage_available_bytes",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "1c20f010-b152-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    },
+                    {
+                      "id": "1c20f011-b152-11ef-80cc-bdbce09d1e50",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "checked": true,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1733215221,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_ee8cdff6c9f64a0781b07eadd9b32de4",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "{{.Dashboard.desc_node_cpu_usage_base100}}",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.spod_x_title_cpu}}",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 383300,
+            "name": "{{.Dashboard.spod_title_node_cpu_usage_base100}}",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "{{.Dashboard.spod_desc_node_cpu_usage_base100}}",
+                "globalUnit": [
+                  "percent",
+                  "percent"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": ""
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`cpu_usage_base100`) AS `usage`) { `pod_name` = '#{pod_name}' and `namespace` = '#{namespace}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "usage",
+                  "field": "cpu_usage_base100",
+                  "filters": [
+                    {
+                      "id": "ed1750d0-b3b7-11ef-995b-4ba16c3ce9c8",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "f3003980-b3b7-11ef-995b-4ba16c3ce9c8",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1733478897,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_b25c3c0caa334fda8a6336d22d9769a3",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 383293,
+            "pos": {
+              "h": 13,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            },
+            "name": "{{.Dashboard.spod_title_base_100_cpu_usage}}",
+            "type": "sequence",
+            "uuid": "ae70442864174fe0967a82fc469ebea9",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "{{.Dashboard.spod_desc_base_100_cpu_usage}}",
+                "globalUnit": [
+                  "percent",
+                  "percent_decimal"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(cpu_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "B"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "isCombineChart": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "eval(A/B, alias='usage', A=\"M::`kube_pod`:(avg(`cpu_usage_millicores`)) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`\", B=\"M::`kube_pod`:(avg(`cpu_limit_millicores`)) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`\")",
+                  "code": "B",
+                  "type": "expression",
+                  "alias": "usage",
+                  "children": [
+                    {
+                      "q": "M::`kube_pod`:(avg(`cpu_usage_millicores`)) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                      "code": "A",
+                      "fill": null,
+                      "type": "simple",
+                      "alias": "",
+                      "field": "cpu_usage_millicores",
+                      "fillNum": null,
+                      "filters": [
+                        {
+                          "id": "7af727a0-b1f0-11ef-8894-6ff789ac0669",
+                          "op": "=",
+                          "name": "namespace",
+                          "type": "",
+                          "logic": "and",
+                          "value": "#{namespace}",
+                          "values": []
+                        },
+                        {
+                          "id": "7af727a1-b1f0-11ef-8894-6ff789ac0669",
+                          "op": "=",
+                          "name": "pod_name",
+                          "type": "",
+                          "logic": "and",
+                          "value": "#{pod_name}",
+                          "values": []
+                        }
+                      ],
+                      "groupBy": [
+                        "pod_name",
+                        "namespace",
+                        "node_name"
+                      ],
+                      "labelOp": "",
+                      "funcList": [],
+                      "fieldFunc": "avg",
+                      "fieldType": "float",
+                      "namespace": "metric",
+                      "dataSource": "kube_pod",
+                      "queryFuncs": [],
+                      "withLabels": [],
+                      "groupByTime": "",
+                      "indexFilter": "default"
+                    },
+                    {
+                      "q": "M::`kube_pod`:(avg(`cpu_limit_millicores`)) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                      "code": "B",
+                      "fill": null,
+                      "type": "simple",
+                      "alias": "",
+                      "field": "cpu_limit_millicores",
+                      "fillNum": null,
+                      "filters": [
+                        {
+                          "id": "490f46a0-b1f0-11ef-8894-6ff789ac0669",
+                          "op": "=",
+                          "name": "namespace",
+                          "type": "",
+                          "logic": "and",
+                          "value": "#{namespace}",
+                          "values": []
+                        },
+                        {
+                          "id": "490f46a1-b1f0-11ef-8894-6ff789ac0669",
+                          "op": "=",
+                          "name": "pod_name",
+                          "type": "",
+                          "logic": "and",
+                          "value": "#{pod_name}",
+                          "values": []
+                        }
+                      ],
+                      "groupBy": [
+                        "pod_name",
+                        "namespace",
+                        "node_name"
+                      ],
+                      "labelOp": "",
+                      "funcList": [],
+                      "fieldFunc": "avg",
+                      "fieldType": "float",
+                      "namespace": "metric",
+                      "dataSource": "kube_pod",
+                      "queryFuncs": [],
+                      "withLabels": [],
+                      "groupByTime": "",
+                      "indexFilter": "default"
+                    }
+                  ],
+                  "funcList": [],
+                  "expression": "A/B"
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1733478321,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_b25c3c0caa334fda8a6336d22d9769a3",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 383298,
+            "pos": {
+              "h": 13,
+              "w": 12
+            },
+            "name": "{{.Dashboard.spod_title_per_cpu_usage}}",
+            "type": "sequence",
+            "uuid": "512a9d2af0ff4c468fa39b29f26e7a76",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "{{.Dashboard.spod_desc_per_cpu_usage}}",
+                "globalUnit": [
+                  "percent",
+                  "percent"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "last(cpu_usage_percent)",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "isCombineChart": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`cpu_usage`) AS `usage`) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "usage",
+                  "field": "cpu_usage",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "bcadf840-b1f0-11ef-8894-6ff789ac0669",
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    },
+                    {
+                      "id": "bcadf841-b1f0-11ef-8894-6ff789ac0669",
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1733478871,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_b25c3c0caa334fda8a6336d22d9769a3",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 383299,
+            "pos": {
+              "h": 10,
+              "w": 8
+            },
+            "name": "{{.Dashboard.spod_title_cpu_limit}}",
+            "type": "sequence",
+            "uuid": "cf14d0fc5fa645759633c07b6a95bca9",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": "",
+                "timeInterval": "auto",
+                "legendPostion": "none",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`kube_pod`:(avg(`cpu_limit_millicores`)/1000 AS `cores`) { `namespace` = '#{namespace}' and `pod_name` = '#{pod_name}' } BY `pod_name`, `namespace`, `node_name`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "dql",
+                  "alias": "cores",
+                  "field": "",
+                  "index": "default",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "op": "=",
+                      "name": "namespace",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{namespace}",
+                      "values": []
+                    },
+                    {
+                      "op": "=",
+                      "name": "pod_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pod_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "pod_name",
+                    "namespace",
+                    "node_name"
+                  ],
+                  "indexes": [
+                    "default"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "interval": "",
+                  "fieldFunc": "",
+                  "namespace": "metric",
+                  "dataSource": "kube_pod",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default",
+                  "dataSourceFunc": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1733478871,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_b25c3c0caa334fda8a6336d22d9769a3",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "type": "template"
+  }
+}

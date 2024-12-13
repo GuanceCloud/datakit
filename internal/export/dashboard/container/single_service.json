@@ -1,0 +1,211 @@
+{
+  "title": "Kubernetes Service",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "inner",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "service",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "service",
+        "type": "TAG",
+        "definition": {
+          "tag": "service",
+          "field": "",
+          "value": "",
+          "metric": "kube_service",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "namespace",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "namespace",
+        "type": "TAG",
+        "definition": {
+          "tag": "namespace",
+          "field": "",
+          "value": "",
+          "metric": "kube_service",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "cluster",
+        "seq": 2,
+        "datasource": "ftinfluxdb",
+        "code": "cluster",
+        "type": "TAG",
+        "definition": {
+          "tag": "cluster_name_k8s",
+          "field": "",
+          "value": "",
+          "metric": "kube_service",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.ss_title_service_port}}",
+        "pos": {
+          "h": 16,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kube_service`:(avg(`ports`) AS `ports`) { `service` = '#{service}' and `namespace` = '#{namespace}' and `cluster_name_k8s` = '#{cluster}' } BY `service`, `namespace`, `cluster_name_k8s`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "ports",
+              "field": "ports",
+              "filters": [
+                {
+                  "id": "50f4b720-b3a7-11ef-9ea4-238c02ec7b8d",
+                  "op": "=",
+                  "name": "service",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{service}",
+                  "values": []
+                },
+                {
+                  "id": "53a75400-b3a7-11ef-9ea4-238c02ec7b8d",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                },
+                {
+                  "id": "5757d8e0-b3a7-11ef-9ea4-238c02ec7b8d",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "service",
+                "namespace",
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kube_service",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "type": "template"
+  }
+}
+
