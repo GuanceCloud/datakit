@@ -107,6 +107,7 @@ func (ipt *Input) BuildSNMPParams(deviceIP string) (*gosnmp.GoSNMP, error) {
 
 	return &gosnmp.GoSNMP{
 		Target:          deviceIP,
+		MaxOids:         ipt.MaxOIDs,
 		Port:            ipt.Port,
 		Community:       ipt.V2CommunityString,
 		Transport:       "udp",

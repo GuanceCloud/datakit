@@ -643,7 +643,7 @@ func (di *deviceInfo) getUserDiscoveryPoints(item *snmputil.Item, ip string, tn 
 
 		snmpPacket, err := di.Session.Get(item.OIDs[i:end])
 		if err != nil {
-			l.Debugf("get snmp: failed: %v", err)
+			l.Errorf("SNMP session.Get: %v", err)
 			return nil
 		}
 
