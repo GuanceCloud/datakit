@@ -333,6 +333,8 @@ To enable or disable this feature, modify the value of the `instrumentation_enab
 - Value `"host"`, enable
 - Value `""` or `"disable"`, disable
 
+When deleting files in the DataKit installation directory, you need to uninstall the feature first. Please execute `datakit tool --remove-apm-auto-inject` to clean up the files related to APM automatic injection.
+
 Operating environment requirements:
 
 - Linux system

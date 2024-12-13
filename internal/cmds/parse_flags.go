@@ -234,6 +234,8 @@ var (
 	flagToolJSON              = fsTool.Bool("json", false, "output in JSON format(partially supported)")
 	flagToolUpdateIPDB        = fsTool.Bool("update-ipdb", false, "update local IPDB")
 
+	flagToolRemoveApmAutoInject = fsTool.Bool("remove-apm-auto-inject", false, "remove apm-auto-inject")
+
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
 		fmt.Printf("Various tools for DataKit\n\n")

@@ -9,6 +9,7 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/tls"
 	"debug/elf"
 	"fmt"
@@ -28,10 +29,10 @@ import (
 const (
 	preloadConfigFilePath = "/etc/ld.so.preload"
 
-	injectInstallDir = "/usr/local/datakit"
-	injectDir        = "apm_inject"
-	subDirLib        = "lib"
-	subDirInject     = "inject"
+	dirDkInstall       = "/usr/local/datakit"
+	dirInject          = "apm_inject"
+	dirInjectSubInject = "inject"
+	dirInjectSubLib    = "lib"
 
 	launcherName = "apm_launcher"
 
@@ -53,7 +54,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	}
 
 	if c.installDir == "" {
-		c.installDir = injectInstallDir
+		c.installDir = dirDkInstall
 	}
 
 	if c.launcherURL == "" {
@@ -69,7 +70,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 
 	fmt.Printf("\n")
 	dl.CurDownloading = "apm-inject"
-	injTo := filepath.Join(c.installDir, injectDir, subDirInject)
+	injTo := filepath.Join(c.installDir, dirInject, dirInjectSubInject)
 	cp.Infof("Downloading %s => %s\n", c.launcherURL, injTo)
 	if err := dl.Download(c.cli, c.launcherURL, injTo,
 		true, false); err != nil {
@@ -83,7 +84,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	if c.ddJavaLibURL != "" {
 		fmt.Printf("\n")
 		dl.CurDownloading = "apm-lib-java"
-		injTo = filepath.Join(c.installDir, injectDir, subDirLib,
+		injTo = filepath.Join(c.installDir, dirInject, dirInjectSubLib,
 			"java", "dd-java-agent.jar")
 		cp.Infof("Downloading %s => %s\n", c.ddJavaLibURL, injTo)
 		if err := dl.Download(c.cli, c.ddJavaLibURL, injTo,
@@ -141,12 +142,11 @@ func Install(opt ...Opt) error {
 	}
 
 	if c.installDir == "" {
-		c.installDir = injectInstallDir
+		c.installDir = dirDkInstall
 	}
 
 	if !c.enableHostInject && !c.enableDockerInject {
-		unsetPreload(c.installDir)
-		return nil
+		return unsetPreload(c.installDir)
 	}
 
 	// TODO: check docker inject
@@ -154,36 +154,40 @@ func Install(opt ...Opt) error {
 	if c.enableHostInject {
 		libc, hostVersion, err := lddInfo()
 		if err != nil {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return err
 		}
-		launcherSoPath := laucnherSoPath(libc, c.installDir)
+		launcherSoPath, err := laucnherSoPath(libc, c.installDir)
+		if err != nil {
+			_ = unsetPreload(c.installDir)
+			return err
+		}
 		elfFile, err := elf.Open(launcherSoPath)
 		if err != nil {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return err
 		}
 		dynSyms, err := elfFile.DynamicSymbols()
 		if err != nil {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return err
 		}
 		required, err := requiredGLIBCVersion(dynSyms)
 		if err != nil && libc == glibc {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return err
 		}
 		if hostVersion.LessThan(required) {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return fmt.Errorf("host libc version %s is less than required %s",
 				hostVersion, required)
 		}
 		if err := setPreload(c.installDir, launcherSoPath); err != nil {
-			unsetPreload(c.installDir)
+			_ = unsetPreload(c.installDir)
 			return err
 		}
 	} else {
-		unsetPreload(c.installDir)
+		return unsetPreload(c.installDir)
 	}
 
 	return nil
@@ -195,70 +199,108 @@ func Uninstall(opt ...Opt) error {
 		fn(&c)
 	}
 	if c.installDir == "" {
-		c.installDir = injectInstallDir
+		c.installDir = dirDkInstall
 	}
 
-	unsetPreload(c.installDir)
+	if err := unsetPreload(c.installDir); err != nil {
+		return err
+	}
+	if err := removeInjFiles(c.installDir); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func readPreloadWithoutLanucher(installDir string) (libs []byte) {
-	f, err := os.ReadFile(preloadConfigFilePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read %s: %s",
-			preloadConfigFilePath, err.Error())
-		return
-	}
-
-	prefix := filepath.Join(installDir, injectDir, subDirInject, launcherName)
-	for _, ln := range strings.Split(string(f), "\n") {
-		if ln == "" {
-			continue
-		}
-		if !strings.HasPrefix(ln, prefix) {
-			libs = append(libs, []byte(ln)...)
-			libs = append(libs, '\n')
-		}
-	}
-	return libs
+func removeInjFiles(path string) error {
+	path = filepath.Join(path, dirInject, dirInjectSubInject)
+	return os.RemoveAll(path)
 }
 
-func unsetPreload(installDir string) {
-	if _, err := os.Stat(preloadConfigFilePath); err != nil {
-		return
+func readPreloadWithoutLanucher(preloadPath, installDir string) (string, error) {
+	if _, err := os.Stat(preloadPath); err != nil {
+		return "", err
 	}
 
-	lines := readPreloadWithoutLanucher(installDir)
-	//nolint:gosec
-	if err := os.WriteFile(preloadConfigFilePath, lines, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to clean %s: %s",
-			preloadConfigFilePath, err.Error())
-		return
+	f, err := os.Open(preloadConfigFilePath)
+	if err != nil {
+		err = fmt.Errorf("failed to read %s: %w",
+			preloadConfigFilePath, err)
+		return "", err
 	}
+
+	var lns []string
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		t := s.Text()
+		lns = append(lns, t)
+	}
+
+	soPath := filepath.Join(installDir, dirInject, dirInjectSubInject, launcherName)
+
+	var outLns []string
+	for _, ln := range lns {
+		if !strings.HasPrefix(ln, soPath) {
+			if ln == "" && len(outLns) == 0 {
+				continue
+			}
+			outLns = append(outLns, ln)
+		}
+	}
+
+	if len(outLns) == 0 {
+		return "", nil
+	}
+
+	return strings.Join(outLns, "\n") + "\n", nil
+}
+
+func unsetPreload(installDir string) error {
+	lines, err := readPreloadWithoutLanucher(
+		preloadConfigFilePath, installDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	//nolint:gosec
+	if err := os.WriteFile(preloadConfigFilePath, []byte(lines), 0o644); err != nil {
+		return fmt.Errorf("failed to clean %s: %w",
+			preloadConfigFilePath, err)
+	}
+	return nil
 }
 
 func setPreload(installDir, soPath string) error {
-	lines := readPreloadWithoutLanucher(installDir)
-	lines = append(lines, []byte(soPath)...)
-	lines = append(lines, '\n')
+	lines, err := readPreloadWithoutLanucher(
+		preloadConfigFilePath, installDir)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	lines += soPath + "\n"
 
 	//nolint:gosec
-	if err := os.WriteFile(preloadConfigFilePath, lines, 0o644); err != nil {
+	if err := os.WriteFile(preloadConfigFilePath, []byte(lines), 0o644); err != nil {
 		return err
 	}
 	return nil
 }
 
-func laucnherSoPath(kind, installDir string) string {
+func laucnherSoPath(kind, installDir string) (string, error) {
 	var soPath string
-	bp := filepath.Join(installDir, injectDir, subDirInject)
+	bp := filepath.Join(installDir, dirInject, dirInjectSubInject)
 	switch kind {
 	case glibc:
 		soPath = filepath.Join(bp, launcherName+".so")
 	case muslc:
 		soPath = filepath.Join(bp, launcherName+"_musl.so")
 	}
-	return soPath
+	if _, err := os.Stat(soPath); err != nil {
+		return "", err
+	}
+	return soPath, nil
 }
 
 func lddInfo() (string, Version, error) {

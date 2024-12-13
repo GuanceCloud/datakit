@@ -355,6 +355,8 @@ Datakit 安装完成后，重新开启一个 shell，并重启对应的 Java/Pyt
 - 值 `"host"`，开启
 - 值 `""` 或者 `"disable"`，关闭
 
+删除 DataKit 安装目录下的文件时，需要先卸载该功能，请执行 `datakit tool --remove-apm-auto-inject` 清理 APM 自动注入的相关文件。
+
 运行环境要求：
 
 - Linux 系统
