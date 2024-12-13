@@ -1,0 +1,764 @@
+{
+  "title": "Process",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "inner",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/object__process/object__process.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/object__process/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "host",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "host",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['host'])[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "pname",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "process_name",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['process_name']){host='#{host}'}",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "pid",
+        "seq": 2,
+        "datasource": "dataflux",
+        "code": "pid",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['host_processes'], keyin=['pid']){process_name='#{process_name}', host='#{host}'}",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "default",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sp_title_cpu_usage}}",
+        "pos": {
+          "h": 21,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`host_processes`:(avg(`cpu_usage_top`) AS `usage`) { `host` = '#{host}' } BY `process_name`, `host`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "usage",
+              "field": "cpu_usage_top",
+              "search": "",
+              "filters": [
+                {
+                  "id": "4f9063f0-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                }
+              ],
+              "groupBy": [
+                "process_name",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "host_processes",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "default",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sp_x_title_mem}}",
+        "pos": {
+          "h": 21,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 383041,
+            "name": "{{.Dashboard.sp_title_mem_usage}}",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "percent",
+                  "percent"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "default",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "fixedGroupByTime": null
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`host_processes`:(avg(`mem_used_percent`) AS `usage`) { `host` = '#{host}' and `process_name` = '#{process_name}' and `pid` = '#{pid}' } BY `process_name`, `host`",
+                  "code": "A",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "usage",
+                  "field": "mem_used_percent",
+                  "search": "",
+                  "filters": [
+                    {
+                      "id": "4f9063f0-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "host",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{host}"
+                    },
+                    {
+                      "id": "52393cd0-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "process_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{process_name}"
+                    },
+                    {
+                      "id": "553ba760-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "pid",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pid}"
+                    }
+                  ],
+                  "groupBy": [
+                    "process_name",
+                    "host"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "host_processes",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1733465755,
+            "deleteAt": -1,
+            "updateAt": 1733469017,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_1570f4486f8c4feb9c5b19c8895cd059",
+            "workspaceUUID": "wksp_7e8c976d42af4c9596ecefb5e5dbfa3a",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 383040,
+            "pos": {
+              "h": 20,
+              "w": 8,
+              "x": 16,
+              "y": 0
+            },
+            "name": "{{.Dashboard.sp_title_rss}}",
+            "type": "sequence",
+            "uuid": "0f5ea50f12ef41c2af603a3491df4714",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": "medium",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": "",
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "compareTitle": "",
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "default",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true,
+              "fixedGroupByTime": null
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`host_processes`:(avg(`rss`) AS `rss`) { `host` = '#{host}' and `process_name` = '#{process_name}' and `pid` = '#{pid}' } BY `process_name`, `host`",
+                  "code": "A",
+                  "fill": "",
+                  "type": "simple",
+                  "alias": "rss",
+                  "field": "rss",
+                  "search": "",
+                  "filters": [
+                    {
+                      "id": "4f9063f0-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "host",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{host}"
+                    },
+                    {
+                      "id": "52393cd0-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "process_name",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{process_name}"
+                    },
+                    {
+                      "id": "553ba760-fcd1-11ec-b3f3-b763c729e7c3",
+                      "op": "=",
+                      "name": "pid",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{pid}"
+                    }
+                  ],
+                  "groupBy": [
+                    "process_name",
+                    "host"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "host_processes",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1733465755,
+            "deleteAt": -1,
+            "updateAt": 1733469090,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_1570f4486f8c4feb9c5b19c8895cd059",
+            "workspaceUUID": "wksp_7e8c976d42af4c9596ecefb5e5dbfa3a",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "default",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sp_title_open_files}}",
+        "pos": {
+          "h": 19,
+          "w": 12,
+          "x": 12,
+          "y": 21
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`host_processes`:(avg(`open_files`) AS `files`) { `host` = '#{host}' and `process_name` = '#{process_name}' and `pid` = '#{pid}' } BY `process_name`, `host`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "files",
+              "field": "open_files",
+              "search": "",
+              "filters": [
+                {
+                  "id": "4f9063f0-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "52393cd0-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "process_name",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{process_name}"
+                },
+                {
+                  "id": "553ba760-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "pid",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{pid}"
+                }
+              ],
+              "groupBy": [
+                "process_name",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "host_processes",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "default",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": null
+        },
+        "name": "{{.Dashboard.sp_title_threads}}",
+        "pos": {
+          "h": 19,
+          "w": 12,
+          "x": 0,
+          "y": 21
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`host_processes`:(avg(`threads`) AS `threads`) { `host` = '#{host}' and `process_name` = '#{process_name}' and `pid` = '#{pid}' } BY `process_name`, `host`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "threads",
+              "field": "threads",
+              "search": "",
+              "filters": [
+                {
+                  "id": "4f9063f0-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "host",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{host}"
+                },
+                {
+                  "id": "52393cd0-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "process_name",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{process_name}"
+                },
+                {
+                  "id": "553ba760-fcd1-11ec-b3f3-b763c729e7c3",
+                  "op": "=",
+                  "name": "pid",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{pid}"
+                }
+              ],
+              "groupBy": [
+                "process_name",
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "host_processes",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "type": "template"
+  }
+}
