@@ -153,6 +153,10 @@ func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.Netwrk
 		if v := pipe.Decoder.Export(connClose); len(v) > 0 {
 			if p := aggPool[pipe.Proto]; p != nil {
 				for i := 0; i < len(v); i++ {
+					// Maybe the connection was closed before the response was sent.
+					if v[i].Cost <= 0 {
+						continue
+					}
 					p.Obs(&data.Conn, v[i])
 				}
 			}
