@@ -134,6 +134,9 @@ func (c *Cache) getPosAndCircle(d time.Duration) (pos, circle int) {
 }
 
 func (c *Cache) Get(key string) (any, bool, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
 	select {
 	case <-c.stopChannel:
 		return nil, false, ErrClosed
