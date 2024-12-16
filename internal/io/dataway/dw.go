@@ -275,6 +275,14 @@ func (dw *Dataway) doInit() error {
 		dw.MaxIdleConnsPerHost = 64
 	}
 
+	if dw.MaxRetryCount <= 0 {
+		dw.MaxRetryCount = 1
+	}
+
+	if dw.MaxRetryCount > 10 {
+		dw.MaxRetryCount = 10
+	}
+
 	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
 		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
