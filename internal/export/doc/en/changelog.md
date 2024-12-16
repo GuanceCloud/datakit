@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.64.3 (2024/12/13) {#cl-1.64.3}
+## 1.64.3 (2024/12/16) {#cl-1.64.3}
 
 This release is a hotfix update, with the following enhancements and fixes:
 
