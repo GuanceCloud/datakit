@@ -16,7 +16,7 @@ monitor   :
 
 ---
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+[:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda 的指标与日志。
 
@@ -27,8 +27,8 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 - [通过 Zip 创建层](https://docs.aws.amazon.com/zh_cn/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 
     - zip 下载地址：
-        - amd64： <https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip>
-        - arm64：<https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip>
+        - [Linux amd64](https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip)
+        - [Linux arm64](https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip)
 
     - 打开 Lambda 控制台的 [Layers page](https://console.amazonaws.cn/lambda/home#/layers){:target="_blank"}（层页面）。
     - 选择 **Create layer**（创建层）。

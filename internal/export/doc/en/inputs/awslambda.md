@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+[:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
 The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda extension.
 
@@ -28,8 +28,8 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 - [Create a Layer via Zip](https://docs.aws.amazon.com/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 
     - Zip download links:
-        - amd64: <https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip>
-        - arm64: <https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip>
+        - [Linux amd64](https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip)
+        - [Linux arm64](https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip)
 
     - Open the Lambda console [Layers page](https://console.aws.amazon.com/lambda/home#/layers){:target="_blank"}.
     - Select **Create layer**.
