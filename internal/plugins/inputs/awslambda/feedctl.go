@@ -16,11 +16,13 @@ type FeedControl struct {
 func (f *FeedControl) ShouldFeed() bool {
 	now := time.Now()
 	oldTime := f.q.Enqueue(now)
+
 	if f.q.Len() < f.cycle || now.Sub(oldTime) >= time.Minute*2 || now.Sub(f.lastFeedTime) >= time.Second*20 {
-		f.lastFeedTime = now
 		l.Debug("should feed true")
+		f.lastFeedTime = now
 		return true
 	}
+
 	l.Debug("should feed false")
 	return false
 }

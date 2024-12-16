@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 
@@ -227,6 +226,26 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 		x = append(x, k8sDeploymentELinkerTemplete)
 	}
 
+	// for lambda extension
+	x = append(x, "") // empty line
+	x = append(x, `### AWS Lambda extension`)
+	for _, arch := range archs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			panic(fmt.Sprintf("invalid arch: %s", arch))
+		}
+
+		goos, goarch := parts[0], parts[1]
+
+		if goos == "windows" { // lambda extension not available under windows
+			continue
+		}
+
+		x = append(x, fmt.Sprintf("- %s/%s 下载：%s", goos, goos,
+			"https://"+filepath.Join(DownloadCDN,
+				fmt.Sprintf("datakit_aws_extension-%s-%s-%s.zip", goos, goarch, ReleaseVersion))))
+	}
+
 	return strings.Join(x, "\n")
 }
 
@@ -290,16 +309,23 @@ func NotifyPubEBpfDone() {
 
 	switch ReleaseType {
 	case ReleaseLocal, ReleaseTesting:
-
 		content := func() []string {
 			x := []string{
 				fmt.Sprintf(`{{.Uploader}} 发布了 DataKit eBPF %d 个平台测试版({{.Version}})。`, len(curEBpfArchs)),
 			}
+
 			for _, arch := range curEBpfArchs {
+				parts := strings.Split(arch, "/")
+				if len(parts) != 2 {
+					panic(fmt.Sprintf("invalid arch: %s", arch))
+				}
+
+				goos, goarch := parts[0], parts[1]
+
 				x = append(x, "--------------------------")
 				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
 				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
-					"datakit-ebpf-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
+					"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, ReleaseVersion)))
 			}
 			return x
 		}()
@@ -334,67 +360,5 @@ func NotifyPubEBpfDone() {
 				"content": "%s 发布了 DataKit eBPF %s 新版本(%s)"
 			}
 		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion)))
-	}
-}
-
-func NotifyPubAWSLambdaDone() {
-	if NotifyToken == "" {
-		return
-	}
-
-	x := struct {
-		Uploader, Version, DownloadCDN string
-	}{
-		Uploader:    git.Uploader,
-		Version:     ReleaseVersion,
-		DownloadCDN: DownloadCDN,
-	}
-
-	switch ReleaseType {
-	case ReleaseLocal, ReleaseTesting:
-
-		content := func() []string {
-			x := []string{
-				fmt.Sprintf(`{{.Uploader}} 发布了 DataKit aws lambda %d 个平台测试版({{.Version}})。`, len(curArchs)),
-			}
-			for _, arch := range curArchs {
-				x = append(x, "--------------------------")
-				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
-				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
-					"datakit_aws_extension-%s-%s-%s.zip", runtime.GOOS, runtime.GOARCH, ReleaseVersion)))
-			}
-			return x
-		}()
-
-		CINotifyNewAWSVersion := fmt.Sprintf(`
-{
-	"msgtype": "text",
-	"text": {
-		"content": "%s"
-		}
-}`, strings.Join(content, "\n"))
-
-		var buf bytes.Buffer
-		t, err := template.New("").Parse(CINotifyNewAWSVersion)
-		if err != nil {
-			l.Fatal(err)
-		}
-
-		if err := t.Execute(&buf, x); err != nil {
-			l.Fatal(err)
-		}
-
-		l.Debugf("NotifyPubAWSLambdaDone...")
-		notify(NotifyToken, &buf)
-	case ReleaseProduction:
-
-		l.Debugf("NotifyPubAWSLambdaDone for release...")
-		notify(NotifyToken, bytes.NewBufferString(fmt.Sprintf(`
-		{
-			"msgtype": "text",
-			"text": {
-				"content": "%s 发布了 DataKit aws lambda %s 新版本(%s)"
-			}
-		}`, git.Uploader, strings.Join(curArchs, ", "), ReleaseVersion)))
 	}
 }

@@ -40,7 +40,6 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&build.NotifyOnly, "notify-only", false, "notify CI process")
 	flag.BoolVar(&doPub, "pub", false, `publish binaries to OSS: local/testing/production`)
 	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
-	flag.BoolVar(&notifyAWSLambda, "ny-aws", false, `notify datakit-aws-lambda`)
 	flag.BoolVar(&pkgEBPF, "pkg-ebpf", false, `add datakit-ebpf to datakit tarball`)
 	flag.BoolVar(&downloadEBPF, "dl-ebpf", false, `download datakit-ebpf from OSS: local/testing/production`)
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
@@ -74,7 +73,6 @@ var (
 	sampleConfCheck = false
 	doPub           = false
 	doPubeBPF       = false
-	notifyAWSLambda = false
 	pkgEBPF         = false
 	downloadEBPF    = false
 	buildISP        = false
@@ -209,9 +207,6 @@ func applyFlags() {
 			build.NotifyFail(err.Error())
 		} else {
 			build.NotifyPubDone()
-			if notifyAWSLambda {
-				build.NotifyPubAWSLambdaDone()
-			}
 		}
 		return
 	} else {

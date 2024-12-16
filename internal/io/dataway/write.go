@@ -6,6 +6,8 @@
 package dataway
 
 import (
+	"fmt"
+
 	"github.com/GuanceCloud/cliutils/point"
 )
 
@@ -53,6 +55,12 @@ func WithGzip(on gzipFlag) WriteOption {
 	}
 }
 
+func WithGzipDuringBuildBody(on bool) WriteOption {
+	return func(w *writer) {
+		w.gzipDuringBuildBody = on
+	}
+}
+
 func WithBatchSize(n int) WriteOption {
 	return func(w *writer) {
 		w.batchSize = n
@@ -79,6 +87,12 @@ func WithBodyCallback(cb bodyCallback) WriteOption {
 	}
 }
 
+func WithNoWAL(on bool) WriteOption {
+	return func(w *writer) {
+		w.noWAL = on
+	}
+}
+
 type writer struct {
 	category   point.Category
 	dynamicURL string
@@ -91,8 +105,11 @@ type writer struct {
 
 	httpEncoding point.Encoding
 
-	gzip                 gzipFlag
-	cacheClean, cacheAll bool
+	gzip gzipFlag
+	cacheClean,
+	cacheAll,
+	noWAL,
+	gzipDuringBuildBody bool
 
 	httpHeaders map[string]string
 
@@ -106,6 +123,8 @@ func (w *writer) reset() {
 	w.gzip = gzipNotSet
 	w.cacheClean = false
 	w.cacheAll = false
+	w.noWAL = false
+	w.gzipDuringBuildBody = false
 	w.batchBytesSize = defaultBatchSize
 	w.batchSize = 0
 	w.bcb = nil
@@ -166,7 +185,16 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 	}
 
 	if w.bcb == nil { // set default callback
-		w.bcb = dw.enqueueBody
+		if w.noWAL {
+			if len(dw.eps) == 0 {
+				return fmt.Errorf("no endpoints on dataway, should not been here")
+			}
+
+			// NOTE: only send to 1st dataway endpoint.
+			w.bcb = dw.eps[0].writePointData
+		} else {
+			w.bcb = dw.enqueueBody // enqueu to WAL
+		}
 	}
 
 	// split single point array into multiple part according to

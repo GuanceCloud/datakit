@@ -247,6 +247,21 @@ func (w *writer) buildPointsBody() error {
 		// setup body info.
 		b.from = walFromMem
 		b.CacheData.Payload = encodeBytes
+
+		if w.gzipDuringBuildBody {
+			gz := getZipper()
+			defer putZipper(gz)
+
+			if zbuf, err := gz.zip(b.buf()); err != nil {
+				l.Errorf("gzip: %s", err.Error())
+				return err
+			} else {
+				ncopy := copy(b.sendBuf, zbuf)
+				l.Debugf("copy %d(origin: %d) zipped bytes to buf", ncopy, len(b.buf()))
+				b.CacheData.Payload = b.sendBuf[:ncopy]
+			}
+		}
+
 		b.CacheData.Category = int32(w.category)
 		b.CacheData.Pts = int32(nptsArr[parts])
 		b.CacheData.RawLen = int32(len(encodeBytes))

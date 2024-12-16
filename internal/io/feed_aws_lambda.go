@@ -44,7 +44,7 @@ func (a *awsLambdaOutput) flush() {
 			if len(pts) == 0 {
 				continue
 			}
-			err := defIO.doCompact(pts, cat)
+			err := defIO.compactAndUpload(pts, cat)
 			if err != nil {
 				log.Warnf("post %d points to %s failed: %s, ignored", len(pts), cat, err)
 			}
@@ -53,7 +53,7 @@ func (a *awsLambdaOutput) flush() {
 	}
 }
 
-func NewAwsLambdaOutput() FeederOutputer {
+func NewAwsLambdaOutput() *awsLambdaOutput {
 	fo := &awsLambdaOutput{
 		cache: map[point.Category]*SafeSlice[[]*point.Point, *point.Point]{},
 	}

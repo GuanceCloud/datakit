@@ -211,13 +211,17 @@ func Compile() error {
 				return err
 			}
 		}
+
 		if isExtraELinker() {
 			dir := fmt.Sprintf("%s/%s_elinker-%s-%s", BuildDir, AppName, goos, goarch)
 			if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "datakit_elinker && with_inputs"); err != nil {
 				return err
 			}
 		}
-		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
+
+		if isExtraAWSLambda() &&
+			(goarch == AMD64 || goarch == ARM64) && // enable build under macOS for debugging.
+			goos != "windows" { // windows not need currently
 			dir := fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", BuildDir, AppName, goos, goarch)
 			mainEntry := filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "main.go")
 			if err := compileArch(AppBin, goos, goarch, dir, mainEntry, "datakit_aws_lambda && with_inputs"); err != nil {
@@ -229,7 +233,10 @@ func Compile() error {
 			if err != nil {
 				return fmt.Errorf("failed to run: %w, msg: %s", err, string(output))
 			}
+		} else {
+			l.Infof("skip datakit lambda extensions under %s/%s", goos, goarch)
 		}
+
 		if err := compileArch(AppBin, goos, goarch, dir, MainEntry, "with_inputs"); err != nil {
 			return err
 		}
@@ -424,7 +431,7 @@ func isExtraAWSLambda() bool {
 	awsLambdaDisable := os.Getenv("AWS_LAMBDA_DISABLE")
 	if len(awsLambdaDisable) > 0 {
 		if v, err := strconv.ParseBool(awsLambdaDisable); err != nil {
-			l.Warnf("parse ELINKER_DISABLE error: %s, ignore", err.Error())
+			l.Warnf("parse AWS_LAMBDA_DISABLE error: %s, ignore", err.Error())
 		} else {
 			extraAWSLambda = !v
 		}

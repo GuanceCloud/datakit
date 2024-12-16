@@ -63,7 +63,9 @@ func NewClient(awsLambdaRuntimeAPI string) *Client {
 func (e *Client) Register(ctx context.Context, filename string) (*RegisterResponse, error) {
 	const action = "/register"
 	url := e.baseURL + action
+
 	l.Info("[client:Register] Registering using baseURL ", url)
+
 	reqBody, err := json.Marshal(map[string]interface{}{
 		"events": []model.EventType{model.Invoke, model.Shutdown},
 	})
@@ -75,33 +77,39 @@ func (e *Client) Register(ctx context.Context, filename string) (*RegisterRespon
 	if err != nil {
 		return nil, err
 	}
+
 	httpReq.Header.Set(consts.ExtensionNameHeader, filename)
 	httpRes, err := e.httpClient.Do(httpReq)
 	if err != nil {
 		l.Error("[client:Register] Registration failed ", err)
 		return nil, err
 	}
+
 	if httpRes.StatusCode < 200 && httpRes.StatusCode >= 300 {
 		l.Error("[client:Register] Registration failed with statusCode ", httpReq.Response.StatusCode)
 		return nil, fmt.Errorf("request failed with status %s", httpRes.Status)
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(httpRes.Body)
+
+	defer httpRes.Body.Close() // nolint: errcheck
+
 	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	if l.Level() <= zap.DebugLevel {
-		l.Debug("reg body", string(body))
+		l.Debug("req body", string(body))
 	}
+
 	res := RegisterResponse{}
 	err = json.Unmarshal(body, &res)
 	if err != nil {
 		return nil, err
 	}
+
 	e.ExtensionID = httpRes.Header.Get(consts.ExtensionIdentifierHeader)
 	l.Info("[client:Register] Registration success with extensionId ", e.ExtensionID)
+
 	return &res, nil
 }
 
@@ -110,38 +118,44 @@ func (e *Client) NextEvent(ctx context.Context) (*NextEventResponse, error) {
 	const action = "/event/next"
 	url := e.baseURL + action
 
+	l.Debugf("request GET %q", url)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	httpReq.Header.Set(consts.ExtensionIdentifierHeader, e.ExtensionID)
 	httpRes, err := e.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("request %q failed: %w", url, err)
 	}
+
 	if httpRes.StatusCode < 200 && httpRes.StatusCode >= 300 {
 		return nil, fmt.Errorf("request failed with status %s", httpRes.Status)
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(httpRes.Body)
+
+	defer httpRes.Body.Close() // nolint:errcheck
+
 	body, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}
-	res := NextEventResponse{}
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		return nil, err
+
+	var res NextEventResponse
+	if err := json.Unmarshal(body, &res); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal %q failed: %w", string(body), err)
 	}
+
 	return &res, nil
 }
 
 func (e *Client) AsyncNextEventLoop(ctx context.Context, eventDone <-chan struct{}) (<-chan *NextEventResponse, error) {
 	resChan := make(chan *NextEventResponse)
+
 	go func() {
 		for {
 			<-eventDone
+
 			select {
 			case <-ctx.Done():
 				return
@@ -158,6 +172,7 @@ func (e *Client) AsyncNextEventLoop(ctx context.Context, eventDone <-chan struct
 			}
 		}
 	}()
+
 	return resChan, nil
 }
 
