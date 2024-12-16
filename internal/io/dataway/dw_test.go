@@ -39,4 +39,26 @@ func TestDWInit(t *T.T) {
 		require.NoError(t, dw.Init(WithURLs(urls...)))
 		assert.Equal(t, 30*time.Second, dw.HTTPTimeout)
 	})
+
+	t.Run("invalid-max-retry-count", func(t *T.T) {
+		dw := NewDefaultDataway()
+		urls := []string{
+			"https://host.com?token=tkn_11111111111111111111",
+			"https://host.com?token=tkn_22222222222222222222",
+		}
+		dw.HTTPTimeout = -30 * time.Second
+		dw.MaxRetryCount = 100
+
+		require.NoError(t, dw.Init(WithURLs(urls...)))
+		assert.Equal(t, 30*time.Second, dw.HTTPTimeout)
+		assert.Equal(t, 10, dw.MaxRetryCount)
+
+		dw.MaxRetryCount = -1
+		require.NoError(t, dw.Init(WithURLs(urls...)))
+		assert.Equal(t, 1, dw.MaxRetryCount)
+
+		dw.MaxRetryCount = 0
+		require.NoError(t, dw.Init(WithURLs(urls...)))
+		assert.Equal(t, 1, dw.MaxRetryCount)
+	})
 }

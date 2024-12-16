@@ -212,8 +212,10 @@ ulimit = 64000
   # Dataway HTTP timeout
   timeout_v2 = "30s"
 
-  # max_retry_count specifies at most how many times the data sending operation will be tried when it fails,
-  # valid minimum value is 1 (NOT 0) and maximum value is 10.
+  # max_retry_count specifies at most how many times will be tried when dataway API fails(not 4xx),
+  # default value(and minimal) is 1 and maximum value is 10.
+  #
+  # The default set to 1 to makes the API fails ASAP to release memroy.
   max_retry_count = 1
 
   # The interval between two retry operation, valid time units are "ns", "us", "ms", "s", "m", "h"
