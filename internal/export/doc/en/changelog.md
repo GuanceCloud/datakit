@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.64.3 (2024/12/13) {#cl-1.64.3}
+
+This release is a hotfix update, with the following enhancements and fixes:
+
+- Added an remove command for APM automatic instrumentation (#2509).
+- Fixed the issue where the AWS lambda collector not working since version 1.62 (#2505).
+- Fix Pipeline crash for concurrent read and write on map (#2503).
+- Update some built-in(Pod/Host/Process/Container) dashboards (#2489).
+- Add max-OID (now default set to 1000, old version default only 64) configure on SNMP collector to preventing excessive OIDs (#2488).
+- Fix negative network latency in the eBPF collector (#2467).
+- Add [disclaimer](index.md#disclaimer) about Datakit.
+- Other fix and documents improvements (#2507/!3347/!3345/#2501).
+
+---
+
 ## 1.64.2(2024/12/09) {#cl-1.64.2}
 
 This release is a hotfix update, with the following changes:
