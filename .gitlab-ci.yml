@@ -205,9 +205,9 @@ build-dca-testing-image:
   stage: deploy
   resource_group: production
   rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^testing-.*$/ "
+    - if: "$CI_COMMIT_BRANCH =~ /^testing-.*$/"
       changes:
-        - dca/**/*
+        - dca/package.json
     - if: "$CI_COMMIT_BRANCH =~ /^dca-testing-.*$/"
   script:
     - nvm use v16.14.0
@@ -227,7 +227,7 @@ build-dca-production-image:
   rules:
     - if: "$CI_COMMIT_BRANCH == 'master'"
       changes:
-        - dca/**/*
+        - dca/package.json
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
     - nvm use v16.14.0
