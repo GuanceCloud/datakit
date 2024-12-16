@@ -51,7 +51,7 @@ func listenOnAddress() string {
 // Start Starts the server in a goroutine where the log events will be sent.
 func (s *Listener) Start() (string, error) {
 	address := listenOnAddress()
-	l.Info("[listener:Start] Starting on address", address)
+	l.Infof("[listener:Start] Starting on address: %q", address)
 	s.httpServer = &http.Server{Addr: address}
 	http.HandleFunc("/", s.Handler)
 	go func() {
@@ -85,19 +85,22 @@ func (s *Listener) HandlerTelemetry(_ http.ResponseWriter, r *http.Request) erro
 		l.Error("[listener:http_handler] Error reading body:", err)
 		return err
 	}
+
 	if l.Level() <= zap.DebugLevel {
 		l.Debug("telemetry body\n", string(body))
 	}
+
 	// Parse and put the log messages into the queue.
 	var events []*Event
 	err = json.Unmarshal(body, &events)
 	if err != nil {
-		l.Error("[listener:http_handler] Error unmarshalling body:", err)
+		l.Error("[listener:http_handler] Error unmarshalling body(%q):", string(body), err)
 		return err
 	}
+
+	l.Debugf("send %d events to eventsChan", len(events))
 	s.eventsChan <- events
 
-	l.Info("[listener:http_handler] events received:", len(events))
 	return nil
 }
 

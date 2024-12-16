@@ -81,7 +81,9 @@ func (c *Client) Subscribe(ctx context.Context) error {
 			TimeoutMS: 25,
 		},
 	}
-	l.Info("subscribe conf", *payload)
+
+	l.Infof("subscribe conf: %+#v", payload)
+
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		l.Errorf("[client:Subscribe] Failed to marshal SubscribeRequest. err: %s", err)
@@ -90,7 +92,7 @@ func (c *Client) Subscribe(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.BaseURL, bytes.NewReader(payloadBytes))
 	if err != nil {
-		return err
+		return fmt.Errorf("new subscribe request(PUT: %q) failed: %w", c.BaseURL, err)
 	}
 
 	req.Header.Set(consts.ExtensionIdentifierHeader, c.ExtensionID)
@@ -102,26 +104,30 @@ func (c *Client) Subscribe(ctx context.Context) error {
 		l.Error("[client:Subscribe] Subscription failed:", err)
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
+
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusAccepted {
 		l.Error("[client:Subscribe] Subscription failed. Logs API is not supported! Is this extension running in a local sandbox?")
 	} else if resp.StatusCode != http.StatusOK {
 		l.Error("[client:Subscribe] Subscription failed")
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			l.Errorf("[client:Subscribe] %s failed: %d[%s]", c.BaseURL, resp.StatusCode, resp.Status)
 			return err
 		}
+
 		l.Errorf("[client:Subscribe] %s failed: %d[%s] %s", c.BaseURL, resp.StatusCode, resp.Status, string(body))
 		return err
 	}
 
-	body, _ := io.ReadAll(resp.Body)
-	l.Info("[client:Subscribe] Subscription success:", string(body))
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		l.Errorf("[client:Subscribe] io.ReadAll: %s", err)
+		return err
+	}
 
-	l.Infof("Subscribed to telemetry: %+v", resp)
+	l.Infof("[client:Subscribe] Subscription success: %s, Subscribed to telemetry: %+v", string(body), resp)
 	return nil
 }

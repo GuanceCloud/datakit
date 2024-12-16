@@ -79,22 +79,25 @@ func (ipt *Input) toMetricPoint(e *telemetry.Event) (metric *point.Point) {
 			})
 		}
 	case telemetry.TypePlatformRuntimeDone:
-		r := e.Record.(*telemetry.PlatformRuntimeDone)
-		if v, ok := ipt.lambdaCtxCache.Get(r.RequestID); ok {
-			v.funDurationMs -= r.Metrics.DurationMs
-			v.flag |= flagRuntimeDone
-			kvsMetric = ipt.addPostRuntimeDurationMetric(v, kvsMetric, r.RequestID)
-		} else {
-			ipt.lambdaCtxCache.Set(r.RequestID, &lambdaCtx{
-				funDurationMs: -r.Metrics.DurationMs,
-				flag:          flagRuntimeDone,
-			})
-		}
-		kvsMetric = append(kvsMetric, point.NewKV(metrics.RuntimeDurationMetric, r.Metrics.DurationMs))
-		if r.Status != model.StatusSuccess {
-			kvsMetric = append(kvsMetric, point.NewKV(metrics.ErrorsMetric, 1))
-			if r.Status == model.StatusTimeout {
-				kvsMetric = append(kvsMetric, point.NewKV(metrics.TimeoutsMetric, 1))
+		if r, ok := e.Record.(*telemetry.PlatformRuntimeDone); ok {
+			if r.Metrics != nil {
+				if v, ok := ipt.lambdaCtxCache.Get(r.RequestID); ok {
+					v.funDurationMs -= r.Metrics.DurationMs
+					v.flag |= flagRuntimeDone
+					kvsMetric = ipt.addPostRuntimeDurationMetric(v, kvsMetric, r.RequestID)
+				} else {
+					ipt.lambdaCtxCache.Set(r.RequestID, &lambdaCtx{
+						funDurationMs: -r.Metrics.DurationMs,
+						flag:          flagRuntimeDone,
+					})
+				}
+				kvsMetric = append(kvsMetric, point.NewKV(metrics.RuntimeDurationMetric, r.Metrics.DurationMs))
+				if r.Status != model.StatusSuccess {
+					kvsMetric = append(kvsMetric, point.NewKV(metrics.ErrorsMetric, 1))
+					if r.Status == model.StatusTimeout {
+						kvsMetric = append(kvsMetric, point.NewKV(metrics.TimeoutsMetric, 1))
+					}
+				}
 			}
 		}
 
@@ -134,13 +137,16 @@ func (ipt *Input) addPostRuntimeDurationMetric(v *lambdaCtx, kvsMetric point.KVs
 }
 
 func (ipt *Input) toMetricPointArr(es []*telemetry.Event) (metrics []*point.Point) {
-	l.Debugf("%#v to point arr", es)
+	l.Debugf("convert %d event to point arr", len(es))
 
 	for _, v := range es {
+		l.Debugf("event: %+#v", v)
+
 		metricPoint := ipt.toMetricPoint(v)
 		if l.Level() <= zap.DebugLevel {
 			l.Debugf("metricPoint: %s", metricPoint.Pretty())
 		}
+
 		metrics = append(metrics, metricPoint)
 	}
 	return

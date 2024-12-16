@@ -55,6 +55,7 @@ func main() {
 	if v := datakit.GetEnv("DK_DEBUG_WORKDIR"); v != "" {
 		datakit.SetWorkDir(v)
 	} else {
+		// only /tmp dir are write-able under AWS lambda.
 		v = "/tmp/datakit"
 		datakit.SetWorkDir(v)
 	}
@@ -69,13 +70,18 @@ func main() {
 }
 
 func loadLambdaDefaultConf() {
-	datakit.Docker = true
+	datakit.Docker = true // set docker mode under lambda
+
+	// All logs default write to stdout. Other log related settings
+	// should set via ENV_LOG_XXX envs.
 	config.Cfg.Logging.GinLog = "stdout"
 	config.Cfg.Logging.Log = "stdout"
+
+	// Default listen to non-localhost: we may accept trace related API request from user lambda apps.
 	config.Cfg.HTTPAPI.Listen = "0.0.0.0:9529"
 	config.Cfg.DefaultEnabledInputs = []string{"awslambda", "ddtrace", "opentelemetry", "statsd"}
-	config.Cfg.Dataway.MaxRawBodySize = dataway.MinimalRawBodySize
-	config.Cfg.IO.CompactWorkers = 1
+	config.Cfg.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
+	config.Cfg.IO.CompactWorkers = 1 // limit workers to save CPU cost
 }
 
 func run() {

@@ -8,6 +8,7 @@ package awslambda
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -72,6 +73,7 @@ func (ipt *Input) Run() {
 		l.Errorf("setup failed: %s", err)
 		return
 	}
+
 	ipt.g.Go(func(ctx context.Context) error {
 		ipt.collect()
 		return nil
@@ -83,39 +85,49 @@ func (ipt *Input) Run() {
 				ipt.exit()
 				return
 			}
-			l.Infof("got event: %v", eventResponse)
+
+			l.Infof("got event: %+#v", eventResponse)
 			if eventResponse.EventType == model.Shutdown {
 				ipt.exit()
 				return
 			}
 		case <-ipt.ctx.Done():
+			l.Infof("input context done")
 			return
 		}
 	}
 }
 
 func (ipt *Input) collect() {
-	var metricEvents []*telemetry.Event
-	var logEvents []*telemetry.LogEvent
+	var (
+		metricEvents []*telemetry.Event
+		logEvents    []*telemetry.LogEvent
+	)
+
 	for arr := range ipt.telemetryListener.GetPullChan() {
 		arr, delData := telemetry.SeparateEvents(arr)
 		logEvents = append(logEvents, delData...)
 		metricEvents = append(metricEvents, arr...)
+
+		sizeL, sizeM := len(logEvents), len(metricEvents)
+		l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
+
 		if slicesContainsWithType(arr, telemetry.TypePlatformRuntimeDone) {
-			sizeL := len(logEvents)
-			sizeM := len(metricEvents)
-			l.Debug("size of log events: ", sizeL)
-			l.Debug("size of metric events: ", sizeM)
+			l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
+
 			syncFeed := ipt.feedControl.ShouldFeed()
+
 			ipt.feedMetric(metricEvents, syncFeed)
 			ipt.feedLog(logEvents, syncFeed)
+
 			logEvents = make([]*telemetry.LogEvent, 0, sizeL)
 			metricEvents = make([]*telemetry.Event, 0, sizeM)
+
 			ipt.eventDoneChan <- struct{}{}
 		}
 	}
-	l.Debug("size of log events: ", len(logEvents))
-	l.Debug("size of metric events: ", len(metricEvents))
+
+	l.Debugf("tail size of log events: %d, size of metric events: %d", len(logEvents), len(metricEvents))
 	ipt.feedLog(logEvents, true)
 	ipt.feedMetric(metricEvents, true)
 }
@@ -133,11 +145,13 @@ func (ipt *Input) feedLog(logEvent []*telemetry.LogEvent, syncSend bool) {
 	if !ipt.EnableLogCollection {
 		return
 	}
+
 	if l.Level() <= -1 {
 		for _, event := range logEvent {
 			l.Debugf("log event fields: %v", event.Record.GetFields())
 		}
 	}
+
 	pts := ipt.toLogPointArr(logEvent)
 
 	if err := ipt.feeder.FeedV2(point.Logging, pts,
@@ -221,14 +235,16 @@ func (ipt *Input) setup() error {
 	if err != nil {
 		l.Errorf("register extension client failed: %s", err)
 		ipt.exit()
-		return err
+		return fmt.Errorf("extensionClient.Register: %w", err)
 	}
 	if r.AccountID != "" {
 		ipt.tags[AccountID] = r.AccountID
 	}
 
-	telemetryClient := telemetry.NewTelemetryClient(extension.GetAwsLambdaRuntimeAPI(), extensionClient.ExtensionID,
-		strings.Split(config.Cfg.HTTPAPI.Listen, ":")[1], "awslambda")
+	telemetryClient := telemetry.NewTelemetryClient(extension.GetAwsLambdaRuntimeAPI(),
+		extensionClient.ExtensionID,
+		strings.Split(config.Cfg.HTTPAPI.Listen, ":")[1],
+		"awslambda")
 	err = telemetryClient.Subscribe(ipt.ctx)
 	if err != nil {
 		l.Errorf("subscribe telemetry client failed: %s", err)
@@ -243,6 +259,8 @@ func (ipt *Input) setup() error {
 		return err
 	}
 	ipt.eventDoneChan <- struct{}{}
+
+	l.Infof("setup ok")
 	return nil
 }
 
@@ -273,6 +291,7 @@ func (ipt *Input) exit() {
 		l.Error("Error finding process:", err)
 		return
 	}
+
 	l.Info("Sending SIGTERM to self")
 	if err := p.Signal(syscall.SIGTERM); err != nil {
 		l.Error("Error sending signal:", err)

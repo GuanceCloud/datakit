@@ -65,6 +65,26 @@ func benchHTTPServer() {
 		}
 	}()
 
+	router.GET("/2020-01-01/extension/event/next", func(c *gin.Context) { //mock aws lambda telemetry API
+		//c.Data(http.StatusOK, "", []byte(`{ "eventType": "SHUTDOWN" }`)) // mock shut down event
+		c.Data(http.StatusOK, "", []byte(`{}`))
+	})
+
+	router.PUT("/2022-07-01/telemetry", func(c *gin.Context) { //mock aws lambda telemetry API
+		c.Data(http.StatusOK, "", nil)
+	})
+
+	router.POST("/2020-01-01/extension/register", // mock aws lambda register API
+		func(c *gin.Context) {
+			c.Header("Lambda-Extension-Identifier", "dk-lambda-ext")
+			c.Data(http.StatusOK, "application/json", []byte(`{
+"functionName": "dk-lambda-ext-testing",
+"functionVersion": "0.1.0",
+"accountId": "tester-007",
+"handler": "mock"
+			}`))
+		})
+
 	router.POST("/v1/write/:category",
 		func(c *gin.Context) {
 			if *flagLatency > 0 {
@@ -158,6 +178,7 @@ func benchHTTPServer() {
 						nwarns := 0
 						for _, pt := range pts {
 							if len(pt.Warns()) > 0 {
+								log.Printf("[WARN] point warn: %s", pt.Warns()[0].String())
 								nwarns++
 							}
 

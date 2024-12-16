@@ -145,3 +145,25 @@ func (x *dkIO) doCompact(points []*point.Point, cat point.Category, dynamicURL .
 
 	return x.dw.Write(opts...)
 }
+
+// compactAndUpload build body then upload to dataway directly.
+func (x *dkIO) compactAndUpload(points []*point.Point, cat point.Category) error {
+	if x.dw == nil {
+		return fmt.Errorf("dataway not set")
+	}
+
+	if len(points) == 0 {
+		return nil
+	}
+
+	opts := []dataway.WriteOption{
+		dataway.WithPoints(points),
+		// max cache size(in memory) upload as a batch
+		dataway.WithBatchSize(x.compactAt),
+		dataway.WithCategory(cat),
+		dataway.WithNoWAL(true), // send body directly(without WAL)
+		dataway.WithGzipDuringBuildBody(true),
+	}
+
+	return x.dw.Write(opts...)
+}

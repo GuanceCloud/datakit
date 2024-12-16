@@ -1,0 +1,27 @@
+[
+  {
+    "time": "2022-10-12T00:03:50.000Z",
+    "type": "function",
+    "record": "[INFO] Hello world, I am a function!"
+  },
+  {
+    "time": "2022-10-12T00:03:50.000Z",
+    "type": "function",
+    "record": {
+      "timestamp": "2022-10-12T00:03:50.000Z",
+      "level": "INFO",
+      "requestId": "79b4f56e-95b1-4643-9700-2807f4e68189",
+      "message": "Hello world, I am a function!"
+    }
+  },
+  {
+    "time": "2022-10-12T00:03:50.000Z",
+    "type": "platform.runtimeDone",
+    "record": {
+      "timestamp": "2022-10-12T00:03:50.000Z",
+      "level": "INFO",
+      "requestId": "79b4f56e-95b1-4643-9700-2807f4e68189",
+      "message": "Hello world, I am a function!"
+    }
+  }
+]
