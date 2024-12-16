@@ -871,13 +871,15 @@ func normalizeResultArray(in []map[string]interface{}) {
 	}
 }
 
-func obfuscateSQL(text string) string {
-	reg := regexp.MustCompile(`\n|\s+`)
-	sql := strings.TrimSpace(reg.ReplaceAllString(text, " "))
+var reg = regexp.MustCompile(`\n|\s+`)
 
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", sql); err != nil {
-		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
-		return sql
+func obfuscateSQL(text string) (sql string) {
+	defer func() {
+		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
+	}()
+
+	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
+		return fmt.Sprintf("ERROR: failed to obfuscate: %s", err.Error())
 	} else {
 		return out.Query
 	}

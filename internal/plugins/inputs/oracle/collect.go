@@ -975,17 +975,14 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	return err
 }
 
-func obfuscateSQL(text string) (string, error) {
-	reg, err := regexp.Compile(`\n|\s+`) //nolint:gocritic
-	if err != nil {
-		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
-		return text, err
-	}
+var reg = regexp.MustCompile(`\n|\s+`) //nolint:gocritic
 
-	sql := strings.TrimSpace(reg.ReplaceAllString(text, " "))
+func obfuscateSQL(text string) (sql string, err error) {
+	defer func() {
+		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
+	}()
 
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", sql); err != nil {
-		l.Debugf("Failed to obfuscate, err: %s \n", err.Error())
+	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
 		return text, err
 	} else {
 		return out.Query, nil
