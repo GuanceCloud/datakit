@@ -205,6 +205,11 @@ func (w *writer) buildPointsBody() error {
 
 	enc.EncodeV2(w.points)
 
+	buildBodyPointsVec.WithLabelValues(
+		w.category.String(),
+		w.httpEncoding.String(),
+	).Observe(float64(len(w.points)))
+
 	// for panic logging, when panics, we know:
 	// - what these points are
 	// - how points encoded and sent

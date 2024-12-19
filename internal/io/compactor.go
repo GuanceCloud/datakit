@@ -77,18 +77,15 @@ func (x *dkIO) cacheData(c *compactor, d *feedOption, tryClean bool) {
 		return
 	}
 
-	defer func() {
-		queuePtsVec.WithLabelValues(d.cat.String()).Set(float64(len(c.points)))
-	}()
-
 	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.cat, d.input)
 
 	x.recordPoints(d)
 	c.points = append(c.points, d.pts...)
 
+	queuePtsVec.WithLabelValues(d.cat.String()).Add(float64(len(d.pts)))
+
 	if tryClean && x.compactAt > 0 && len(c.points) > x.compactAt {
 		x.compact(c)
-
 		// reset compact ticker to prevent small packages
 		c.compactTicker.Reset(x.flushInterval)
 	}
@@ -109,8 +106,10 @@ func (x *dkIO) recordPoints(d *feedOption) {
 func (x *dkIO) compact(c *compactor) {
 	c.lastCompact = time.Now()
 
+	npts := float64(len(c.points))
 	defer func() {
 		flushVec.WithLabelValues(c.category.String()).Inc()
+		queuePtsVec.WithLabelValues(c.category.String()).Sub(npts)
 	}()
 
 	if err := x.doCompact(c.points, c.category); err != nil {
