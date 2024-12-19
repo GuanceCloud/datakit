@@ -21,9 +21,11 @@ datakit_cpu_usage 4.9920266849857144
 
 We can also playing other metrics too(change the `grep` string), all available metrics list below(current Datakit version is {{ .Version }}):
 
-<!-- we can run `make show_metrics` go export all these metrics -->
+<!-- we can run `make metrics` go export all these metrics -->
+
 |TYPE|NAME|LABELS|HELP|
 |---|---|---|---|
+|GAUGE|`connection_number`|`N/A`|The total number of connections.|
 |GAUGE|`datakit_config_datakit_ulimit`|`status`|Datakit ulimit|
 |COUNTER|`datakit_dns_domain_total`|`N/A`|DNS watched domain counter|
 |COUNTER|`datakit_dns_ip_updated_total`|`domain`|Domain IP updated counter|
@@ -51,15 +53,10 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_httpcli_dns_cost_seconds`|`from`|HTTP DNS cost|
 |SUMMARY|`datakit_httpcli_tls_handshake_seconds`|`from`|HTTP TLS handshake cost|
 |SUMMARY|`datakit_httpcli_http_connect_cost_seconds`|`from`|HTTP connect cost|
-|COUNTER|`datakit_io_dataway_skipped_point_total`|`category`|Skipped point count during encoding(Protobuf) point|
-|GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
-|SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
-|SUMMARY|`datakit_io_build_body_cost_seconds`|`category,encoding,stage`|Build point HTTP body cost|
-|SUMMARY|`datakit_io_build_body_batches`|`category,encoding`|Batch HTTP body batches|
-|SUMMARY|`datakit_io_build_body_batch_bytes`|`category,encoding,type`|Batch HTTP body size|
 |SUMMARY|`datakit_io_build_body_batch_points`|`category,encoding`|Batch HTTP body points|
 |SUMMARY|`datakit_io_dataway_wal_flush`|`category,gzip,queue`|Dataway WAL worker flushed bytes|
 |COUNTER|`datakit_io_dataway_point_total`|`category,status`|Dataway uploaded points, partitioned by category and send status(HTTP status)|
+|COUNTER|`datakit_io_dataway_skipped_point_total`|`category`|Skipped point count during encoding(Protobuf) point|
 |COUNTER|`datakit_io_dataway_body_total`|`from,op,type`|Dataway total body|
 |COUNTER|`datakit_io_wal_point_total`|`category,status`|WAL queued points|
 |COUNTER|`datakit_io_dataway_point_bytes_total`|`category,enc,status`|Dataway uploaded points bytes, partitioned by category and pint send status(HTTP status)|
@@ -67,6 +64,12 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_io_dataway_api_latency_seconds`|`api,status`|Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status|
 |COUNTER|`datakit_io_http_retry_total`|`api,status`|Dataway HTTP retried count|
 |SUMMARY|`datakit_io_grouped_request`|`category`|Grouped requests under sinker|
+|GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
+|SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
+|SUMMARY|`datakit_io_build_body_cost_seconds`|`category,encoding,stage`|Build point HTTP body cost|
+|SUMMARY|`datakit_io_build_body_batches`|`category,encoding`|Batch HTTP body batches|
+|SUMMARY|`datakit_io_build_body_points`|`category,encoding`|Point count for single compact|
+|SUMMARY|`datakit_io_build_body_batch_bytes`|`category,encoding,type`|Batch HTTP body size|
 |COUNTER|`datakit_filter_update_total`|`N/A`|Filters(remote) updated count|
 |GAUGE|`datakit_filter_last_update_timestamp_seconds`|`N/A`|Filter last update time|
 |COUNTER|`datakit_filter_point_total`|`category,filters,source`|Filter points of filters|
@@ -85,6 +88,8 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_io_feed_point`|`name,category`|Input feed point|
 |GAUGE|`datakit_io_flush_workers`|`category`|IO flush workers|
 |COUNTER|`datakit_io_flush_total`|`category`|IO flush total|
+|SUMMARY|`datakit_input_tailer_scanner_cost_seconds`|`pattern`|Scanning costs seconds|
+|SUMMARY|`datakit_input_tailer_scanner_files`|`pattern`|Total number of scanned files|
 |COUNTER|`datakit_error_total`|`source,category`|Total errors, only count on error source, not include error message|
 |GAUGE|`datakit_goroutines`|`N/A`|Goroutine count within Datakit|
 |GAUGE|`datakit_mem_stat`|`type`|Datakit memory system bytes|
@@ -94,7 +99,7 @@ We can also playing other metrics too(change the `grep` string), all available m
 |GAUGE|`datakit_cpu_usage`|`N/A`|Datakit CPU usage(%)|
 |GAUGE|`datakit_open_files`|`N/A`|Datakit open files(only available on Linux)|
 |GAUGE|`datakit_cpu_cores`|`N/A`|Datakit CPU cores|
-|GAUGE|`datakit_uptime_seconds`|`auto_update,docker,hostname,lite,elinker,resource_limit,version=?,build_at=?,branch=?,os_arch=?`|Datakit uptime|
+|GAUGE|`datakit_uptime_seconds`|`auto_update,docker,hostname,lite,elinker,resource_limit,os_arch=?,version=?,build_at=?,branch=?`|Datakit uptime|
 |GAUGE|`datakit_data_overuse`|`N/A`|Does current workspace's data(metric/logging) usage(if 0 not beyond, or with a unix timestamp when overuse occurred)|
 |COUNTER|`datakit_process_ctx_switch_total`|`type`|Datakit process context switch count(Linux only)|
 |COUNTER|`datakit_process_io_count_total`|`type`|Datakit process IO count|
@@ -171,6 +176,9 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_input_snmp_collect_cost`|`N/A`|Every loop collect cost(in second)|
 |SUMMARY|`datakit_input_snmp_device_collect_cost`|`class`|Device collect cost(in second)|
 |GAUGE|`datakit_input_snmp_alive_devices`|`class`|Alive devices|
+|COUNTER|`datakit_input_zabbix_exporter_collect_metric_total`|`object`|exporter metric count number from start|
+|COUNTER|`datakit_input_zabbix_exporter_collect_file_total`|`object`|The files number of exporter file|
+|SUMMARY|`datakit_input_zabbix_exporter_request_api`|`status`|The time of success or failed API requests|
 |SUMMARY|`datakit_input_prom_collect_points`|`mode,source`|Total number of prom collection points|
 |SUMMARY|`datakit_input_prom_http_get_bytes`|`mode,source`|HTTP get bytes|
 |SUMMARY|`datakit_input_prom_http_latency_in_second`|`mode,source`|HTTP latency(in second)|
@@ -178,12 +186,14 @@ We can also playing other metrics too(change the `grep` string), all available m
 |SUMMARY|`datakit_remote_job_jvm_dump`|`name,status`|JVM dump job execution time statistics|
 |SUMMARY|`datakit_input_statsd_collect_points`|`N/A`|Total number of statsd collection points|
 |SUMMARY|`datakit_input_statsd_accept_bytes`|`N/A`|Accept bytes from network|
-|COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Tailer rotate total|
-|COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Tailer parse fail total|
-|GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
-|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|Connect and close count for net.conn|
 |COUNTER|`datakit_input_logging_socket_feed_message_count_total`|`network`|Socket feed to IO message count|
 |SUMMARY|`datakit_input_logging_socket_log_length`|`network`|Record the length of each log line|
+|COUNTER|`datakit_tailer_receive_create_event_total`|`source,type`|Total number of 'CREATE' events received|
+|COUNTER|`datakit_tailer_discard_log_total`|`source,filepath`|Total logs discarded based on the whitelist|
+|GAUGE|`datakit_tailer_open_file_num`|`mode`|Tailer open file total|
+|COUNTER|`datakit_tailer_file_rotate_total`|`source,filepath`|Total tailer rotated|
+|COUNTER|`datakit_tailer_parse_fail_total`|`source,filepath,mode`|Total tailer parsing failed|
+|COUNTER|`datakit_input_logging_socket_connect_status_total`|`network,status`|Connect and close count for net.conn|
 |COUNTER|`datakit_input_tracing_total`|`input,service`|The total links number of Trace processed by the trace module|
 |COUNTER|`datakit_input_sampler_total`|`input,service`|The sampler number of Trace processed by the trace module|
 |SUMMARY|`diskcache_dropped_data`|`path,reason`|Dropped data during Put() when capacity reached.|

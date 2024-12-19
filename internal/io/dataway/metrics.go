@@ -11,100 +11,6 @@ import (
 )
 
 var (
-	skippedPointVec,
-	bodyCounterVec,
-	ptsCounterVec,
-	bytesCounterVec,
-	writeDropPointsCounterVec,
-	walPointCounterVec,
-	httpRetry *prometheus.CounterVec
-
-	walWorkerFlush,
-	flushFailCacheVec,
-	buildBodyCostVec,
-	buildBodyBatchBytesVec,
-	buildBodyBatchPointsVec,
-	buildBodyBatchCountVec,
-	groupedRequestVec,
-	apiSumVec *prometheus.SummaryVec
-
-	walQueueMemLenVec *prometheus.GaugeVec
-)
-
-func HTTPRetry() *prometheus.CounterVec {
-	return httpRetry
-}
-
-func APISumVec() *prometheus.SummaryVec {
-	return apiSumVec
-}
-
-// Metrics get all metrics aboud dataway.
-func Metrics() []prometheus.Collector {
-	return []prometheus.Collector{
-		skippedPointVec,
-		walWorkerFlush,
-		bodyCounterVec,
-		ptsCounterVec,
-		walPointCounterVec,
-		bytesCounterVec,
-		writeDropPointsCounterVec,
-		apiSumVec,
-		httpRetry,
-		buildBodyCostVec,
-		buildBodyBatchBytesVec,
-		buildBodyBatchPointsVec,
-		buildBodyBatchCountVec,
-		groupedRequestVec,
-		flushFailCacheVec,
-		walQueueMemLenVec,
-	}
-}
-
-func metricsReset() {
-	skippedPointVec.Reset()
-	walWorkerFlush.Reset()
-	bodyCounterVec.Reset()
-	ptsCounterVec.Reset()
-	walPointCounterVec.Reset()
-	bytesCounterVec.Reset()
-	writeDropPointsCounterVec.Reset()
-	apiSumVec.Reset()
-
-	httpRetry.Reset()
-	flushFailCacheVec.Reset()
-	walQueueMemLenVec.Reset()
-	buildBodyCostVec.Reset()
-	buildBodyBatchBytesVec.Reset()
-	buildBodyBatchPointsVec.Reset()
-	buildBodyBatchCountVec.Reset()
-	groupedRequestVec.Reset()
-}
-
-func doRegister() {
-	metrics.MustRegister(
-		skippedPointVec,
-		walWorkerFlush,
-		bodyCounterVec,
-		ptsCounterVec,
-		walPointCounterVec,
-		bytesCounterVec,
-		writeDropPointsCounterVec,
-		apiSumVec,
-
-		flushFailCacheVec,
-		walQueueMemLenVec,
-		httpRetry,
-		buildBodyCostVec,
-		buildBodyBatchBytesVec,
-		buildBodyBatchPointsVec,
-		buildBodyBatchCountVec,
-		groupedRequestVec,
-	)
-}
-
-// nolint:gochecknoinits
-func init() {
 	skippedPointVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -163,6 +69,22 @@ func init() {
 			Subsystem: "io",
 			Name:      "build_body_batches",
 			Help:      "Batch HTTP body batches",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"category", "encoding"},
+	)
+
+	buildBodyPointsVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "build_body_points",
+			Help:      "Point count for single compact",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
@@ -321,6 +243,84 @@ func init() {
 			"category",
 		},
 	)
+)
 
+func HTTPRetry() *prometheus.CounterVec {
+	return httpRetry
+}
+
+func APISumVec() *prometheus.SummaryVec {
+	return apiSumVec
+}
+
+// Metrics get all metrics aboud dataway.
+func Metrics() []prometheus.Collector {
+	return []prometheus.Collector{
+		skippedPointVec,
+		walWorkerFlush,
+		bodyCounterVec,
+		ptsCounterVec,
+		walPointCounterVec,
+		bytesCounterVec,
+		writeDropPointsCounterVec,
+		apiSumVec,
+		httpRetry,
+		buildBodyCostVec,
+		buildBodyBatchBytesVec,
+		buildBodyBatchPointsVec,
+		buildBodyBatchCountVec,
+		buildBodyPointsVec,
+		groupedRequestVec,
+		flushFailCacheVec,
+		walQueueMemLenVec,
+	}
+}
+
+func metricsReset() {
+	skippedPointVec.Reset()
+	walWorkerFlush.Reset()
+	bodyCounterVec.Reset()
+	ptsCounterVec.Reset()
+	walPointCounterVec.Reset()
+	bytesCounterVec.Reset()
+	writeDropPointsCounterVec.Reset()
+	apiSumVec.Reset()
+
+	httpRetry.Reset()
+	flushFailCacheVec.Reset()
+	walQueueMemLenVec.Reset()
+	buildBodyCostVec.Reset()
+	buildBodyBatchBytesVec.Reset()
+	buildBodyBatchPointsVec.Reset()
+	buildBodyBatchCountVec.Reset()
+	buildBodyPointsVec.Reset()
+	groupedRequestVec.Reset()
+}
+
+func doRegister() {
+	metrics.MustRegister(
+		skippedPointVec,
+		walWorkerFlush,
+		bodyCounterVec,
+		ptsCounterVec,
+		walPointCounterVec,
+		bytesCounterVec,
+		writeDropPointsCounterVec,
+		apiSumVec,
+
+		flushFailCacheVec,
+		walQueueMemLenVec,
+		httpRetry,
+		buildBodyCostVec,
+		buildBodyBatchBytesVec,
+		buildBodyBatchPointsVec,
+		buildBodyBatchCountVec,
+		buildBodyPointsVec,
+		groupedRequestVec,
+	)
+}
+
+// nolint:gochecknoinits
+func init() {
 	doRegister()
 }
