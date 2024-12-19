@@ -41,6 +41,8 @@ type option struct {
 	maxMultilineLifeDuration time.Duration
 	maxMultilineLength       int64
 
+	// 最大文件打开数量
+	maxOpenFiles int
 	// 是否从文件起始处开始读取，如果打开此项，可能会导致大量数据重复
 	fromBeginning bool
 	// 是否删除文本中的ansi转义码，默认为false，即不删除
@@ -58,8 +60,6 @@ type option struct {
 
 	insideFilepathFunc func(string) string
 
-	// 连续 N 次采集为空，就强制 flush 已有数据
-	maxForceFlushLimit int
 	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
 	fileFromBeginningThresholdSize int64
 
@@ -112,10 +112,7 @@ func WithService(s string) Option {
 	}
 }
 
-func EnableMultiline(b bool) Option {
-	return func(opt *option) { opt.enableMultiline = b }
-}
-
+func EnableMultiline(b bool) Option { return func(opt *option) { opt.enableMultiline = b } }
 func WithMultilinePatterns(arr []string) Option {
 	return func(opt *option) { opt.multilinePatterns = arr }
 }
@@ -127,17 +124,21 @@ func WithMaxMultilineLifeDuration(dur time.Duration) Option {
 		}
 	}
 }
-
-func WithMaxMultilineLength(n int64) Option {
-	return func(opt *option) { opt.maxMultilineLength = n }
-}
-
+func WithMaxMultilineLength(n int64) Option { return func(opt *option) { opt.maxMultilineLength = n } }
 func WithRemoveAnsiEscapeCodes(b bool) Option {
 	return func(opt *option) { opt.removeAnsiEscapeCodes = b }
 }
 
 func WithDisableAddStatusField(b bool) Option {
 	return func(opt *option) { opt.disableAddStatusField = b }
+}
+
+func WithMaxOpenFiles(n int) Option {
+	return func(opt *option) {
+		if n > 0 || n == -1 {
+			opt.maxOpenFiles = n
+		}
+	}
 }
 
 func WithIgnoreDeadLog(dur time.Duration) Option {
@@ -152,14 +153,6 @@ func WithFileFromBeginningThresholdSize(n int64) Option {
 	return func(opt *option) {
 		if n > 0 {
 			opt.fileFromBeginningThresholdSize = n
-		}
-	}
-}
-
-func WithMaxForceFlushLimit(n int) Option {
-	return func(opt *option) {
-		if n > 0 {
-			opt.maxForceFlushLimit = n
 		}
 	}
 }
@@ -194,8 +187,8 @@ func defaultOption() *option {
 	return &option{
 		source:                         "default",
 		extraTags:                      map[string]string{"service": "default"},
-		maxForceFlushLimit:             10,
 		fileFromBeginningThresholdSize: 1000 * 1000 * 20, // 20 MB
+		maxOpenFiles:                   500,
 		feeder:                         dkio.DefaultFeeder(),
 	}
 }

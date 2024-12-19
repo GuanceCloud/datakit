@@ -7,9 +7,7 @@
 package container
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -56,13 +54,12 @@ type Input struct {
 	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingSearchInterval                 time.Duration     `toml:"logging_search_interval"`
-	DeprecatedLoggingMinFlushInterval     time.Duration     `toml:"logging_min_flush_interval"`
-	LoggingForceFlushLimit                int               `toml:"logging_force_flush_limit"`
 	LoggingMaxMultilineLifeDuration       time.Duration     `toml:"logging_max_multiline_life_duration"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
-	LoggingFieldWhiteList                 []string          `toml:"-"`
+	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
+	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`
 
 	CollectMetricInterval time.Duration `toml:"-"`
 
@@ -105,12 +102,6 @@ func (ipt *Input) setup() {
 	}
 	if ipt.DeprecatedContainerdAddress != "" {
 		ipt.Endpoints = append(ipt.Endpoints, "unix://"+ipt.DeprecatedContainerdAddress)
-	}
-
-	if str := os.Getenv("ENV_LOGGING_FIELD_WHITE_LIST"); str != "" {
-		if err := json.Unmarshal([]byte(str), &ipt.LoggingFieldWhiteList); err != nil {
-			l.Warnf("parse ENV_INPUT_LOGGING_FIELD_WHITE_LIST to slice: %s, ignore", err)
-		}
 	}
 
 	ipt.Endpoints = unique(ipt.Endpoints)

@@ -58,6 +58,9 @@ const (
   ##   "emerg","alert","critical","error","warning","info","debug","OK"
   ignore_status = []
 
+  ## Only retain the fields specified in the whitelist.
+  field_white_list = []
+
   ## optional encodings:
   ##    "utf-8", "utf-16le", "utf-16be", "gbk", "gb18030" or ""
   character_encoding = ""
@@ -71,6 +74,9 @@ const (
 
   ## Removes ANSI escape codes from text strings.
   remove_ansi_escape_codes = false
+
+  ## The maximum allowed number of open files, default is 500. If it is -1, it means no limit.
+  # max_open_files = 500
 
   ## If file is inactive, it is ignored.
   ## time units are "ms", "s", "m", "h"
@@ -93,6 +99,7 @@ type Input struct {
 	Service                    string            `toml:"service"`
 	Pipeline                   string            `toml:"pipeline"`
 	IgnoreStatus               []string          `toml:"ignore_status"`
+	FieldWhiteList             []string          `toml:"field_white_list"`
 	CharacterEncoding          string            `toml:"character_encoding"`
 	MultilineMatch             string            `toml:"multiline_match"`
 	AutoMultilineDetection     bool              `toml:"auto_multiline_detection"`
@@ -100,10 +107,12 @@ type Input struct {
 	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
 	Tags                       map[string]string `toml:"tags"`
 	FromBeginning              bool              `toml:"from_beginning,omitempty"`
+	MaxOpenFiles               int               `toml:"max_open_files"`
 	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
-	MinFlushInterval           time.Duration     `toml:"-"`
-	MaxMultilineLifeDuration   time.Duration     `toml:"-"`
-	Mode                       string            `toml:"mode,omitempty"`
+
+	MinFlushInterval         time.Duration `toml:"-"`
+	MaxMultilineLifeDuration time.Duration `toml:"-"`
+	Mode                     string        `toml:"mode,omitempty"`
 
 	DeprecatedBlockingMode    bool   `toml:"blocking_mode"`
 	DeprecatedEnableDiskCache bool   `toml:"enable_diskcache,omitempty"`
@@ -159,6 +168,8 @@ func (ipt *Input) Run() {
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithSockets(ipt.Sockets),
 		tailer.WithIgnoreStatus(ipt.IgnoreStatus),
+		tailer.WithFieldWhiteList(ipt.FieldWhiteList),
+		tailer.WithMaxOpenFiles(ipt.MaxOpenFiles),
 		tailer.WithFromBeginning(ipt.FromBeginning),
 		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
 		tailer.WithIgnoreDeadLog(ignoreDuration),
@@ -342,7 +353,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: inputName,
-			Tagger:    datakit.DynamicGlobalTagger(),
+			Tagger:    datakit.DefaultGlobalTagger(),
 			semStop:   cliutils.NewSem(),
 		}
 	})
@@ -350,7 +361,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
-			Tagger:    datakit.DynamicGlobalTagger(),
+			Tagger:    datakit.DefaultGlobalTagger(),
 			semStop:   cliutils.NewSem(),
 		}
 	})

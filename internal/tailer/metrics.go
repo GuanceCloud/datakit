@@ -13,7 +13,7 @@ import (
 var (
 	receiveCreateEventVec *prometheus.CounterVec
 	discardVec            *prometheus.CounterVec
-	openfileVec           *prometheus.GaugeVec
+	openfilesVec          *prometheus.GaugeVec
 	rotateVec             *prometheus.CounterVec
 	parseFailVec          *prometheus.CounterVec
 	socketLogConnect      *prometheus.CounterVec
@@ -48,15 +48,16 @@ func setupMetrics() {
 		},
 	)
 
-	openfileVec = prometheus.NewGaugeVec(
+	openfilesVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
-			Name:      "open_file_num",
-			Help:      "Tailer open file total",
+			Name:      "open_files",
+			Help:      "Total number of currently open files",
 		},
 		[]string{
-			"mode",
+			"source",
+			"max",
 		},
 	)
 
@@ -127,7 +128,7 @@ func setupMetrics() {
 	metrics.MustRegister(
 		receiveCreateEventVec,
 		discardVec,
-		openfileVec,
+		openfilesVec,
 		parseFailVec,
 		rotateVec,
 		socketLogLength,

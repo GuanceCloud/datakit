@@ -430,6 +430,38 @@ In the container environment, the log `source` setting is a very important confi
 - Container name specified by Kubernetes: Obtained from the `io.kubernetes.container.name` label of the container.
 - `default`: Default `source`.
 
+### Retain Specific Fields Based on Whitelist {#field-whitelist}
+
+Container logs collection includes the following basic fields:
+
+| Field Name                             |
+| --------------------                   |
+| `service`                              |
+| `status`                               |
+| `filepath`                             |
+| `log_read_lines`                       |
+| `container_id`                         |
+| `container_name`                       |
+| `namespace`                            |
+| `pod_name`                             |
+| `pod_ip`                               |
+| `deployment`/`daemonset`/`statefulset` |
+| `inside_filepath`                      |
+
+In specific scenarios, many of the basic fields are not necessary. A whitelist feature is provided to retain only the specified fields.
+
+The field whitelist configuration such as `ENV_INPUT_CONTAINER_LOGGING_FIELD_WHITE_LIST = '["service", "filepath", "container_name"]'`. The details are as follows:
+
+- If the whitelist is empty, all basic fields will be included.
+- If the whitelist is not empty and the value is valid, such as `["filepath", "container_name"]`, only these two fields will be retained.
+- If the whitelist is not empty and all fields are invalid, such as `["no-exist"]` or `["no-exist-key1", "no-exist-key2"]`, the data will be discarded.
+
+For tags from other sources, the following situations apply:
+
+- The whitelist does not work on Datakit's `global tags`.
+- Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
+
+
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: Wildcard Collection of Log Files in Containers {#config-logging-source}
 <!-- markdownlint-enable -->

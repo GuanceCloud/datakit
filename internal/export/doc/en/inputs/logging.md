@@ -84,6 +84,10 @@ This document focuses on local disk log collection and Socket log collection:
       ## Removes ANSI escape codes from text strings.
       remove_ansi_escape_codes = false
 
+      ## The maximum number of open files allowed, default is 500.
+      ## This is a global configuration, and if there are multiple values, the maximum value will be used.
+      # max_open_files = 500
+
       ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
       ## Time unit supports "ms", "s", "m", "h"
       ignore_dead_log = "1h"
@@ -379,28 +383,21 @@ The processing time of each text increases by 1700 ns. If this function is not t
 
 ### Retain Specific Fields Based on Whitelist {#field-whitelist}
 
-Log collection includes the following basic fields:
+Container logs collection includes the following basic fields:
 
-| Field Name               | Only Present in Container Logs |
-| --------------------     | ------------------------------ |
-| `service`                |                                |
-| `status`                 |                                |
-| `filepath`               |                                |
-| `host`                   |                                |
-| `log_read_lines`         |                                |
-| `container_id`           | Yes                            |
-| `container_name`         | Yes                            |
-| `namespace`              | Yes                            |
-| `pod_name`               | Yes                            |
-| `pod_ip`                 | Yes                            |
-| `deployment`/`daemonset` | Yes                            |
+| Field Name           |
+| -------------------- |
+| `service`            |
+| `status`             |
+| `filepath`           |
+| `log_read_lines`     |
 
 In specific scenarios, many of the basic fields are not necessary. A whitelist feature is provided to retain only the specified fields.
 
-The field whitelist only supports environment variable configuration, such as `ENV_LOGGING_FIELD_WHITE_LIST = '["host", "service", "filepath", "container_name"]'`. The details are as follows:
+The field whitelist configuration such as `'["service", "filepath"]'`. The details are as follows:
 
 - If the whitelist is empty, all basic fields will be included.
-- If the whitelist is not empty and the value is valid, such as `["filepath", "container_name"]`, only these two fields will be retained.
+- If the whitelist is not empty and the value is valid, such as `["service", "filepath"]`, only these two fields will be retained.
 - If the whitelist is not empty and all fields are invalid, such as `["no-exist"]` or `["no-exist-key1", "no-exist-key2"]`, the data will be discarded.
 
 For tags from other sources, the following situations apply:
@@ -408,11 +405,6 @@ For tags from other sources, the following situations apply:
 - The whitelist does not work on Datakit's `global tags`.
 - Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
 
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    The field whitelist is a global configuration that applies to both container logs and logging collectors.
-<!-- markdownlint-enable -->
 
 ## Metric {#metric}
 

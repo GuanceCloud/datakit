@@ -428,6 +428,37 @@ Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，�
 - 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - `default`: 默认的 `source`
 
+### :material-chat-question: 根据白名单保留指定字段 {#field-whitelist}
+
+容器日志采集有以下基础字段：
+
+| 字段名                                 |
+| -----------                            |
+| `service`                              |
+| `status`                               |
+| `filepath`                             |
+| `log_read_lines`                       |
+| `container_id`                         |
+| `container_name`                       |
+| `namespace`                            |
+| `pod_name`                             |
+| `pod_ip`                               |
+| `deployment`/`daemonset`/`statefulset` |
+| `inside_filepath`                      |
+
+在特殊场景下，很多基础字段不是必要的。现在提供一个白名单（whitelist）功能，只保留指定的字段。
+
+字段白名单配置例如 `ENV_INPUT_CONTAINER_LOGGING_FIELD_WHITE_LIST = '["service", "filepath", "container_name"]'`，具体细节如下：
+
+- 如果 whitelist 为空，则添加所有基础字段
+- 如果 whitelist 不为空，且值有效，例如 `["filepath", "container_name"]`，则只保留这两个字段
+- 如果 whitelist 不为空，且全部是无效字段，例如 `["no-exist"]` 或 `["no-exist-key1", "no-exist-key2"]`，则这条数据被丢弃
+
+对于其他来源的 tags 字段，有以下几种情况：
+
+- whitelist 对 Datakit 的全局标签（`global tags`）不生效
+- 通过 `ENV_ENABLE_DEBUG_FIELDS = "true"` 开启的 debug 字段不受影响，包括日志采集的 `log_read_offset` 和 `log_file_inode` 两个字段，以及 `pipeline` 的 debug 字段
+
 ### :material-chat-question: 容器内日志文件的通配采集 {#config-logging-source}
 
 采集容器内的日志文件，需要在 Annotations/Labels 添加一个配置，并且写明 `path`，如下：

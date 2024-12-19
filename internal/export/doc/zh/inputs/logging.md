@@ -82,6 +82,10 @@ monitor   :
       ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
       remove_ansi_escape_codes = false
 
+      ## 限制最大打开文件个数，默认 500
+      ## 这是一个全局配置，如果多个采集器都配置此项，会使用最大值
+      # max_open_files = 500
+
       ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
       ## 时间单位支持 "ms", "s", "m", "h"
       ignore_dead_log = "1h"
@@ -399,40 +403,27 @@ ok      ansi      2.422s
 
 ### 根据白名单保留指定字段 {#field-whitelist}
 
-日志采集有以下基础字段：
+容器日志采集有以下基础字段：
 
-| 字段名                   | 是否仅在容器日志存在 |
-| -----------              | -----------          |
-| `service`                |                      |
-| `status`                 |                      |
-| `filepath`               |                      |
-| `host`                   |                      |
-| `log_read_lines`         |                      |
-| `container_id`           | 是                   |
-| `container_name`         | 是                   |
-| `namespace`              | 是                   |
-| `pod_name`               | 是                   |
-| `pod_ip`                 | 是                   |
-| `deployment`/`daemonset` | 是                   |
+| 字段名           |
+| -----------      |
+| `service`        |
+| `status`         |
+| `filepath`       |
+| `log_read_lines` |
 
 在特殊场景下，很多基础字段不是必要的。现在提供一个白名单（whitelist）功能，只保留指定的字段。
 
-字段白名单只支持环境变量配置，例如 `ENV_LOGGING_FIELD_WHITE_LIST = '["host", "service", "filepath", "container_name"]'`，具体细节如下：
+字段白名单配置例如 `'["service", "filepath"]'`，具体细节如下：
 
 - 如果 whitelist 为空，则添加所有基础字段
-- 如果 whitelist 不为空，且值有效，例如 `["filepath", "container_name"]`，则只保留这两个字段
+- 如果 whitelist 不为空，且值有效，例如 `["service", "filepath"]`，则只保留这两个字段
 - 如果 whitelist 不为空，且全部是无效字段，例如 `["no-exist"]` 或 `["no-exist-key1", "no-exist-key2"]`，则这条数据被丢弃
 
 对于其他来源的 tags 字段，有以下几种情况：
 
 - whitelist 对 Datakit 的全局标签（`global tags`）不生效
 - 通过 `ENV_ENABLE_DEBUG_FIELDS = "true"` 开启的 debug 字段不受影响，包括日志采集的 `log_read_offset` 和 `log_file_inode` 两个字段，以及 `pipeline` 的 debug 字段
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    字段白名单是一个全局配置，同时对容器日志和 logging 采集器生效。
-<!-- markdownlint-enable -->
 
 ## 日志 {#logging}
 
