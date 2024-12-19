@@ -130,19 +130,19 @@
 
 字段说明：
 
-| 字段名           | 取值       | 说明                                                                                |
-| -----           | ----       | ----                                                                                |
-| `disable`         | true/false    | 是否禁用该容器的日志采集，默认是 `false`                                                              |
-| `type`           | `file`/不填   | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                         |
-| `path`           | 字符串      | 配置文件路径。如果是采集容器内文件，必须填写 Volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填           |
-| `source`          | 字符串      | 日志来源，参见[容器日志采集的 source 设置](inputs/container.md#config-logging-source)                                           |
-| `service`         | 字符串      | 日志隶属的服务，默认值为日志来源（source）                                                             |
-| `pipeline`         | 字符串      | 适用该日志的 pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                             |
-| `remove_ansi_escape_codes` | true/false    | 是否删除日志数据的颜色字符                                                                     |
-| `from_beginning`      | true/false    | 是否从文件首部采集日志                                                                       |
-| `multiline_match`     | 正则表达式字符串 | 用于[多行日志匹配](inputs/logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
-| `character_encoding`    | 字符串      | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                        |
-| `tags`           | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: version-1.4.6](datakit/changelog.md#cl-1.4.6) ）                     |
+| 字段名                     | 取值             | 说明                                                                                                                                                                       |
+| -----                      | ----             | ----                                                                                                                                                                       |
+| `disable`                  | true/false       | 是否禁用该容器的日志采集，默认是 `false`                                                                                                                                   |
+| `type`                     | `file`/不填      | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                                                                        |
+| `path`                     | 字符串           | 配置文件路径。如果是采集容器内文件，必须填写 Volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填                             |
+| `source`                   | 字符串           | 日志来源，参见[容器日志采集的 source 设置](../integrations/container.md#config-logging-source)                                                                                      |
+| `service`                  | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                                 |
+| `pipeline`                 | 字符串           | 适用该日志的 pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                                 |
+| `remove_ansi_escape_codes` | true/false       | 是否删除日志数据的颜色字符                                                                                                                                                 |
+| `from_beginning`           | true/false       | 是否从文件首部采集日志                                                                                                                                                     |
+| `multiline_match`          | 正则表达式字符串 | 用于[多行日志匹配](../integrations/logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
+| `character_encoding`       | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                       |
+| `tags`                     | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: version-1.4.6](changelog.md#cl-1.4.6) ）                                                    |
 
 完整示例如下：
 
@@ -342,7 +342,7 @@ $ kubectl apply -f logging.yaml
 #...
 ```
 
-对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](inputs/logfwd.md)。
+对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](../integrations/logfwd.md)。
 
 ### tcp/udp 数据接收
 
@@ -723,7 +723,7 @@ ok   ansi   2.422s
 
 ### Pipeline 字段切割
 
-[Pipeline](pipeline/use-pipeline/index.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](../pipeline/use-pipeline/index.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
 对日志数据而言，主要提取两个字段：
 
@@ -916,7 +916,7 @@ bytes * 2 * 8 /1024/1024 = xxx mbit
 <!-- markdownlint-disable md046 -->
 ??? info
 
-此处 `*2` 考虑到了 [Pipeline 切割](pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
+此处 `*2` 考虑到了 [Pipeline 切割](../pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
 <!-- markdownlint-enable -->
 
 ### 日志目录的软链接问题

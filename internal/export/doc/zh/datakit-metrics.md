@@ -25,7 +25,6 @@ datakit_cpu_usage 4.9920266849857144
 
 |TYPE|NAME|LABELS|HELP|
 |---|---|---|---|
-|GAUGE|`connection_number`|`N/A`|The total number of connections.|
 |GAUGE|`datakit_config_datakit_ulimit`|`status`|Datakit ulimit|
 |COUNTER|`datakit_dns_domain_total`|`N/A`|DNS watched domain counter|
 |COUNTER|`datakit_dns_ip_updated_total`|`domain`|Domain IP updated counter|

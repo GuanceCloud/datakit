@@ -1,5 +1,33 @@
 # 更新日志
 
+## 1.65.0(2024/12/19) {#cl-1.65.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.65.0-new}
+
+- APM Automatic Instrumentation 增加 Docker 支持（目前仅支持 Java）（#2480）
+- Kubernetes 中对象采集增加 label selector 支持（#2492）
+- 容器对象新增 `message` 字段（#2508）
+- 新增[日志采集配置指南文档](datakit-logging.md)
+
+### 问题修复 {#cl-1.65.0-fix}
+
+- 修复自 1.64.2 以来环境变量 `ENV_PIPELINE_DEFAULT_PIPELINE` 不生效的问题（!3354）
+- 修复 OceanBase 慢日志截断问题（#2513）
+- 修复自 1.62.0 版本以来尾部最后一条日志无法采集的问题（!3352）
+
+### 功能优化 {#cl-1.65.0-opt}
+
+- KubernetesPrometheus 采集的指标支持额外配置 global-tag（#2504）
+- 日志采集器（*logging.conf*）支持配置超过 500 个文件的采集，自 1.62.0 之后的的版本是不支持配置的（#2516）
+- 日志采集器（*logging.conf*）支持配置日志白名单字段，该白名单功能原来只能在 Kubernetes 中生效（!3352）
+
+### 兼容调整 {#cl-1.65.0-brk}
+
+- 环境变量 `ENV_LOGGING_FIELD_WHITE_LIST/ENV_LOOGING_MAX_OPEN_FILES` 只能影响 Kubernetes 中的日志采集，单独通过 *logging.conf* 配置的采集**不再受这两个 ENV 的影响**，因为本版本已经单独给 *logging.conf* 设置了对应的入口。
+
+---
+
 ## 1.64.3(2024/12/16) {#cl-1.64.3}
 
 本次发布属于 hotfix 修复，内容如下：

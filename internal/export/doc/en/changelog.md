@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.65.0 (2024/12/19) {#cl-1.65.0}
+
+This release is an iterative update, with the following main changes:
+
+### New Features {#cl-1.65.0-new}
+
+- Added support for label selector in Kubernetes object collection (#2492).
+- A new `message` field has been added to the container object (#2508).
+
+### Bug Fixes {#cl-1.65.0-fix}
+
+- Fixed the issue where the environment variable `ENV_PIPELINE_DEFAULT_PIPELINE` was not taking effect since version 1.64.2 (!3354).
+- Fixed the truncation issue with OceanBase slow logs (#2513).
+- Fixed the bug where the last log missing(not uploaded) since version 1.62.0 (!3352).
+
+### Features Improvements {#cl-1.65.0-opt}
+
+- Metrics collected by KubernetesPrometheus now support additional configuration of global tags (#2504).
+- The log collector (*logging.conf*) now supports configuration for collecting more than 500 files, which was not supported since version 1.62.0 (#2516).
+- The log collector (*logging.conf*) now supports configuration of log field whitelists, a feature that was previously only available in Kubernetes (!3352).
+
+### Compatibility Adjustments {#cl-1.65.0-brk}
+
+- The environment variables `ENV_LOGGING_FIELD_WHITE_LIST/ENV_LOGGING_MAX_OPEN_FILES` now only affect log collection in Kubernetes. *logging.conf* are **no longer influenced by these two ENVs**, as this version has set up corresponding entries specifically for *logging.conf*.
+
+---
+
 ## 1.64.3 (2024/12/16) {#cl-1.64.3}
 
 This release is a hotfix update, with the following enhancements and fixes:

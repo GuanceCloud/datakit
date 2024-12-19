@@ -14,7 +14,6 @@ nav:
     - 'AWS EKS 集成': datakit-eks-deploy.md
 
   - 'DataKit 使用':
-    - 日志采集指南: datakit-logging.md
     - 服务管理: datakit-service-how-to.md
     - 状态查看: datakit-monitor.md
     - '更新': datakit-update.md
