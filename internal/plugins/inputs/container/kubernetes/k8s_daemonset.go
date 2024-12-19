@@ -121,7 +121,11 @@ func (m *daemonsetMetadata) newObject(conf *Config) pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		if item.Spec.Selector != nil {
+			obj.SetTags(item.Spec.Selector.MatchLabels)
+		}
 		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+
 		res = append(res, obj)
 	}
 
@@ -163,11 +167,12 @@ func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes DaemonSet.",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":             inputs.NewTagInfo("The UID of DaemonSet."),
-			"uid":              inputs.NewTagInfo("The UID of DaemonSet."),
-			"daemonset_name":   inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"name":                       inputs.NewTagInfo("The UID of DaemonSet."),
+			"uid":                        inputs.NewTagInfo("The UID of DaemonSet."),
+			"daemonset_name":             inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":                  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s":           inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"<all_selector_matchlabels>": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
 			"age":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

@@ -116,6 +116,9 @@ func (m *serviceMetadata) newObject(conf *Config) pointKVs {
 		obj.DeleteField("annotations")
 		obj.DeleteField("yaml")
 
+		if item.Spec.Selector != nil {
+			obj.SetTags(item.Spec.Selector)
+		}
 		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 		res = append(res, obj)
 	}
@@ -158,6 +161,7 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"type":             inputs.NewTagInfo("Type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"<all_selector>":   inputs.NewTagInfo("Represents the selector for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
 			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
