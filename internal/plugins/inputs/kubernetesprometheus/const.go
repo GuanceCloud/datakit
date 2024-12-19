@@ -42,6 +42,11 @@ const (
   enable_discovery_of_prometheus_pod_monitors        = false
   enable_discovery_of_prometheus_service_monitors    = false
 
+  [inputs.kubernetesprometheus.global_tags]
+    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
+    instance         = "__kubernetes_mate_instance"
+    host             = "__kubernetes_mate_host"
+
   ## Example
   #[[inputs.kubernetesprometheus.instances]]
   #  role       = "node"
@@ -55,8 +60,6 @@ const (
   #    measurement        = "kubernetes_node_metrics"
   #    job_as_measurement = false
   #    [inputs.kubernetesprometheus.instances.custom.tags]
-  #      instance         = "__kubernetes_mate_instance"
-  #      host             = "__kubernetes_mate_host"
   #      node_name        = "__kubernetes_node_name"
   #  [inputs.kubernetesprometheus.instances.auth]
   #    bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"

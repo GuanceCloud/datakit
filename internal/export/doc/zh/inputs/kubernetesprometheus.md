@@ -121,7 +121,7 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
       cert_key = "/opt/nginx/peer.key"
 ```
 
-此外还有一类全局配置，它是最顶层的配置，主要负责一些功能开启或关闭，例如此处的 `scrape_interval`：
+此外还有一类全局配置，它是最顶层的配置，主要负责一些功能开启或关闭，以及给全部 instances 添加标签：
 
 ```yaml
 [inputs.kubernetesprometheus]
@@ -132,10 +132,23 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
   enable_discovery_of_prometheus_service_annotations = false  # 开启预定义的 Service Annotations 配置
   enable_discovery_of_prometheus_pod_monitors        = false  # 开启 Prometheus PodMonitors CRD 功能
   enable_discovery_of_prometheus_service_monitors    = false  # 开启 Prometheus ServiceMonitors CRD 功能
+
+  [inputs.kubernetesprometheus.global_tags]
+    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
+    instance         = "__kubernetes_mate_instance"
+    host             = "__kubernetes_mate_host"
  
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```
+
+`global_tags` 会给全部 instance 添加 tags，有以下几点要说明：
+
+- 只支持 `__kubernetes_mate_instance` 和 `__kubernetes_mate_host` 两个占位符，具体功能请查看后文
+- 支持环境变量配置方式，例如 `$(NAME)` 和 `myname=$(NAME)`，如果能找到 `NAME` 这个环境变量，就进行替换。如果找不到，保持 `$(NAME)` 字符串原样
+- 环境变量方式只支持小括号
+- 不支持同一个字符串有多个环境变量，例如写成 `name=$(NAME),namespace=$(NAMESPACE)`，只有 `$(NAME)` 有效
+
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

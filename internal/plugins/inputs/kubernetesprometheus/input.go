@@ -22,12 +22,13 @@ import (
 )
 
 type Input struct {
-	NodeLocal                                     bool          `toml:"node_local"`
-	ScrapeInterval                                time.Duration `toml:"scrape_interval"`
-	EnableDiscoveryOfPrometheusPodAnnotations     bool          `toml:"enable_discovery_of_prometheus_pod_annotations"`
-	EnableDiscoveryOfPrometheusServiceAnnotations bool          `toml:"enable_discovery_of_prometheus_service_annotations"`
-	EnableDiscoveryOfPrometheusPodMonitors        bool          `toml:"enable_discovery_of_prometheus_pod_monitors"`
-	EnableDiscoveryOfPrometheusServiceMonitors    bool          `toml:"enable_discovery_of_prometheus_service_monitors"`
+	NodeLocal                                     bool              `toml:"node_local"`
+	ScrapeInterval                                time.Duration     `toml:"scrape_interval"`
+	EnableDiscoveryOfPrometheusPodAnnotations     bool              `toml:"enable_discovery_of_prometheus_pod_annotations"`
+	EnableDiscoveryOfPrometheusServiceAnnotations bool              `toml:"enable_discovery_of_prometheus_service_annotations"`
+	EnableDiscoveryOfPrometheusPodMonitors        bool              `toml:"enable_discovery_of_prometheus_pod_monitors"`
+	EnableDiscoveryOfPrometheusServiceMonitors    bool              `toml:"enable_discovery_of_prometheus_service_monitors"`
+	GlobalTags                                    map[string]string `toml:"global_tags"`
 	InstanceManager
 
 	nodeName string
@@ -91,7 +92,7 @@ func (ipt *Input) Run() {
 	}
 }
 
-func (ipt *Input) setup() (err error) {
+func (ipt *Input) setup() error {
 	if str := os.Getenv("ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"); isTrue(str) {
 		ipt.EnableDiscoveryOfPrometheusPodAnnotations = true
 		klog.Info("enable pod annotations")
@@ -109,14 +110,23 @@ func (ipt *Input) setup() (err error) {
 		klog.Info("enable service monitor")
 	}
 
+	// convert to environment value
+	for k, v := range ipt.GlobalTags {
+		ipt.GlobalTags[k] = convertToEnvironmentValue(v)
+	}
+	klog.Infof("use global tags: %s", ipt.GlobalTags)
+
 	for _, ins := range ipt.Instances {
 		// set default values
-		ins.setDefault()
+		ins.setDefault(ipt)
 	}
 
 	ipt.applyPredefinedInstances()
+
+	var err error
 	ipt.nodeName, err = getLocalNodeName()
-	return
+
+	return err
 }
 
 func (ipt *Input) start() error {

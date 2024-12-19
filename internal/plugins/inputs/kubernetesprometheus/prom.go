@@ -75,7 +75,7 @@ func (p *promScraper) scrape(defaultTimestamp int64) error {
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
-	source := "kubernetesprometheus/" + string(role)
+	source := fmt.Sprintf("kubernetesprometheus/%s:%s", role, key)
 	remote := key
 
 	callbackFn := func(pts []*point.Point) error {

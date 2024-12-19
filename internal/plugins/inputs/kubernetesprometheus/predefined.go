@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	apicorev1 "k8s.io/api/core/v1"
@@ -51,7 +50,7 @@ func (ipt *Input) applyPredefinedInstances() {
 			ins.Custom.Tags[key] = "__kubernetes_pod_label_" + key
 		}
 
-		ins.setDefault()
+		ins.setDefault(ipt)
 		ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 		ipt.InstanceManager.Instances = append(ipt.InstanceManager.Instances, ins)
 
@@ -85,7 +84,7 @@ func (ipt *Input) applyPredefinedInstances() {
 			ins.Custom.Tags[key] = "__kubernetes_service_label_" + key
 		}
 
-		ins.setDefault()
+		ins.setDefault(ipt)
 		ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 		ipt.InstanceManager.Instances = append(ipt.InstanceManager.Instances, ins)
 
@@ -110,13 +109,13 @@ func (ipt *Input) applyCRDs(ctx context.Context, client client.Client, scrapeMan
 
 				case <-tick.C:
 					if ipt.EnableDiscoveryOfPrometheusPodMonitors {
-						if err := fetchPodMonitor(ctx, ipt.nodeName, client, scrapeManager, ipt.feeder, asTags); err != nil {
+						if err := fetchPodMonitor(ctx, ipt, client, scrapeManager, asTags); err != nil {
 							klog.Warn(err)
 						}
 					}
 
 					if ipt.EnableDiscoveryOfPrometheusServiceMonitors {
-						if err := fetchServiceMonitor(ctx, ipt.nodeName, client, scrapeManager, ipt.feeder, asTags); err != nil {
+						if err := fetchServiceMonitor(ctx, ipt, client, scrapeManager, asTags); err != nil {
 							klog.Warn(err)
 						}
 					}
@@ -128,10 +127,9 @@ func (ipt *Input) applyCRDs(ctx context.Context, client client.Client, scrapeMan
 
 func fetchPodMonitor(
 	ctx context.Context,
-	nodeName string,
+	ipt *Input,
 	client client.Client,
 	scrapeManager scrapeManagerInterface,
-	feeder dkio.Feeder,
 	asTags []string,
 ) error {
 	list, err := client.GetPrmetheusPodMonitors("").List(context.Background(), metav1.ListOptions{ResourceVersion: "0"})
@@ -187,7 +185,7 @@ func fetchPodMonitor(
 				ins.Custom.Tags[labelName] = "__kubernetes_pod_label_" + labelName
 			}
 
-			ins.setDefault()
+			ins.setDefault(ipt)
 			ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 			instances = append(instances, ins)
 		}
@@ -195,14 +193,14 @@ func fetchPodMonitor(
 		pods := []*apicorev1.Pod{}
 
 		if item.Spec.NamespaceSelector.Any {
-			pods = getLocalPodsFromLabelSelector(client, nodeName, "", &list.Items[idx].Spec.Selector)
+			pods = getLocalPodsFromLabelSelector(client, ipt.nodeName, "", &list.Items[idx].Spec.Selector)
 		} else {
 			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
 				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					pods = append(pods, getLocalPodsFromLabelSelector(client, nodeName, namespace, &list.Items[idx].Spec.Selector)...)
+					pods = append(pods, getLocalPodsFromLabelSelector(client, ipt.nodeName, namespace, &list.Items[idx].Spec.Selector)...)
 				}
 			} else {
-				pods = getLocalPodsFromLabelSelector(client, nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
+				pods = getLocalPodsFromLabelSelector(client, ipt.nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
 			}
 		}
 
@@ -214,7 +212,7 @@ func fetchPodMonitor(
 			role:      RolePodMonitor,
 			instances: instances,
 			scrape:    scrapeManager,
-			feeder:    feeder,
+			feeder:    ipt.feeder,
 		}
 
 		for _, podItem := range pods {
@@ -238,10 +236,9 @@ func fetchPodMonitor(
 
 func fetchServiceMonitor(
 	ctx context.Context,
-	nodeName string,
+	ipt *Input,
 	client client.Client,
 	scrapeManager scrapeManagerInterface,
-	feeder dkio.Feeder,
 	asTags []string,
 ) error {
 	list, err := client.GetPrmetheusServiceMonitors("").List(context.Background(), metav1.ListOptions{ResourceVersion: "0"})
@@ -297,7 +294,7 @@ func fetchServiceMonitor(
 				ins.Custom.Tags[labelName] = "__kubernetes_endpoints_label_" + labelName
 			}
 
-			ins.setDefault()
+			ins.setDefault(ipt)
 			ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 			instances = append(instances, ins)
 		}
@@ -305,14 +302,16 @@ func fetchServiceMonitor(
 		endpointsList := []*apicorev1.Endpoints{}
 
 		if item.Spec.NamespaceSelector.Any {
-			endpointsList = getLocalEndpointsFromLabelSelector(client, nodeName, "", &list.Items[idx].Spec.Selector)
+			endpointsList = getLocalEndpointsFromLabelSelector(client, ipt.nodeName, "", &list.Items[idx].Spec.Selector)
 		} else {
 			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
 				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					endpointsList = append(endpointsList, getLocalEndpointsFromLabelSelector(client, nodeName, namespace, &list.Items[idx].Spec.Selector)...)
+					endpointsList = append(endpointsList,
+						getLocalEndpointsFromLabelSelector(client, ipt.nodeName, namespace, &list.Items[idx].Spec.Selector)...,
+					)
 				}
 			} else {
-				endpointsList = getLocalEndpointsFromLabelSelector(client, nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
+				endpointsList = getLocalEndpointsFromLabelSelector(client, ipt.nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
 			}
 		}
 
@@ -323,7 +322,7 @@ func fetchServiceMonitor(
 		for _, ep := range endpointsList {
 			for insIdx, ins := range instances {
 				key := fmt.Sprintf("serviceMonitor:%s/endpoints:%s/ins[%d]", item.Name, ep.Name, insIdx)
-				tryCreateScrapeForEndpoints(ctx, RoleServiceMonitor, key, ep, ins, scrapeManager, feeder)
+				tryCreateScrapeForEndpoints(ctx, RoleServiceMonitor, key, ep, ins, scrapeManager, ipt.feeder)
 			}
 		}
 	}

@@ -120,7 +120,7 @@ A brief description of how this collector operates helps in better understanding
       cert_key = "/opt/nginx/peer.key"
 ```
 
-Additionally, there is a type of global configuration, which is the highest-level configuration, mainly responsible for enabling or disabling certain features, such as `scrape_interval` here:
+Additionally, there is a type of global configuration, which is the highest-level configuration, mainly responsible for enabling or disabling certain features, and add labels to all instances:
 
 ```yaml
 [inputs.kubernetesprometheus]
@@ -132,9 +132,22 @@ Additionally, there is a type of global configuration, which is the highest-leve
   enable_discovery_of_prometheus_pod_monitors        = false  # Whether to enable CRD for Pod Monitors of Prometheus
   enable_discovery_of_prometheus_service_monitors    = false  # Whether to enable CRD for Service Monitors of Prometheus
 
+  [inputs.kubernetesprometheus.global_tags]
+    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
+    instance         = "__kubernetes_mate_instance"
+    host             = "__kubernetes_mate_host"
+
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```
+
+`global_tags` will add tags to all instances. The following points need to be noted:
+
+- Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
+- Environment variable configuration is supported, such as `$(NAME)` and `myname=$(NAME)`. If the environment variable `NAME` is found, it will be replaced. If not, the `$(NAME)` string will remain unchanged.
+- Only parentheses are supported for environment variables.
+- Multiple environment variables in the same string are not supported. For example, writing `name=$(NAME),namespace=$(NAMESPACE)` will only make `$(NAME)` effective."
+
 
 ```markdown
 <!-- markdownlint-disable MD046 -->

@@ -81,7 +81,7 @@ type (
 	}
 )
 
-func (ins *Instance) setDefault() {
+func (ins *Instance) setDefault(ipt *Input) {
 	switch ins.Role {
 	case string(RoleNode):
 		ins.Address = "__kubernetes_node_address_InternalIP"
@@ -104,7 +104,17 @@ func (ins *Instance) setDefault() {
 	if ins.Path == "" {
 		ins.Path = "/metrics"
 	}
+	if ins.Tags == nil {
+		ins.Tags = make(map[string]string)
+	}
+
 	ins.keepExistMetricName = true
+
+	for k, v := range ipt.GlobalTags {
+		if _, ok := ins.Tags[k]; !ok {
+			ins.Tags[k] = v
+		}
+	}
 }
 
 type InstanceManager struct {
