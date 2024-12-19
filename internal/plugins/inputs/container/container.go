@@ -220,6 +220,8 @@ func (c *container) gatherResource(category string, opts []point.Option, feed fu
 					pt.SetFields(transLabels(info.Labels))
 					pt.SetTag("name", info.ID)
 					pt.SetField("age", time.Since(time.Unix(0, info.CreatedAt)).Milliseconds()/1e3)
+					pt.SetField("message", typed.TrimString(pt.String(), maxMessageLength))
+
 				default:
 					// nil
 				}
