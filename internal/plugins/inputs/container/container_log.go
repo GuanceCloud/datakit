@@ -71,7 +71,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 			tailer.WithMaxMultilineLifeDuration(c.ipt.LoggingMaxMultilineLifeDuration),
 			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
-			tailer.WithMaxForceFlushLimit(c.ipt.LoggingForceFlushLimit),
+			tailer.WithMaxOpenFiles(c.ipt.LoggingMaxOpenFiles),
 			tailer.WithFromBeginning(cfg.FromBeginning || c.ipt.LoggingFileFromBeginning),
 			tailer.WithFileFromBeginningThresholdSize(int64(c.ipt.LoggingFileFromBeginningThresholdSize)),
 			tailer.WithIgnoreDeadLog(defaultActiveDuration),

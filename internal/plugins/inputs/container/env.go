@@ -50,7 +50,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "LoggingRemoveAnsiEscapeCodes", Type: doc.Boolean, Default: `false`, Desc: "Remove `ansi` escape codes and color characters, referred to [`ansi-decode` doc](logging.md#ansi-decode)", DescZh: `日志采集删除包含的颜色字符，详见[日志特殊字符处理说明](logging.md#ansi-decode)`},
 		{FieldName: "LoggingFileFromBeginningThresholdSize", Type: doc.Int, Default: `20,000,000`, Desc: "Decide whether or not to from_beginning based on the file size, if the file size is smaller than this value when the file is found, start the collection from the begin", DescZh: `根据文件 size 决定是否 from_beginning，如果发现该文件时，文件 size 小于这个值，就使用 from_beginning 从头部开始采集`},
 		{FieldName: "LoggingFileFromBeginning", Type: doc.Boolean, Default: `false`, Desc: "Whether to collect logs from the begin of the file", DescZh: `是否从文件首部采集日志`},
-		{FieldName: "LoggingForceFlushLimit", Type: doc.Int, Default: `5`, Desc: `If there are consecutive N empty collections, the existing data will be uploaded to prevent memory occupation caused by accumulated`, DescZh: `日志采集上传限制，如果连续 N 次都采集为空，会将现有的数据上传，避免数据积攒占用内存`},
+		{FieldName: "LoggingMaxOpenFiles", Type: doc.Int, Default: `500`, Desc: `The maximum allowed number of open files. If it is set to -1, it means there is no limit.`, DescZh: `日志采集最大打开文件个数，如果是 -1 则没有限制`},
+		{FieldName: "LoggingFieldWhiteList", Type: doc.List, Example: `'["service","container_id"]'`, Desc: `"Only retain the fields specified in the whitelist."`, DescZh: `指定保留白名单中的字段`},
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
 		{FieldName: "DisableCollectKubeJob", Type: doc.Boolean, Default: `false`, Desc: `Turn off collection of Kubernetes Job resources (including metrics data and object data)`, DescZh: `关闭对 Kubernetes Job 资源的采集（包括指标数据和对象数据）`},
@@ -97,9 +98,10 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_MAX_MULTILINE_LIFE_DURATION : string ("5s")
 // ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING : booler
 // ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int
-// ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
-// ENV_INPUT_CONTAINER_TAGS : "a=b,c=d".
-// ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB : booler.
+// ENV_INPUT_CONTAINER_LOGGING_FIELD_WHITE_LIST : JSON string array
+// ENV_INPUT_CONTAINER_LOGGING_MAX_OPEN_FILES: int
+// ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
+// ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB : booler
 
 //nolint:funlen
 func (ipt *Input) ReadEnv(envs map[string]string) {
@@ -204,6 +206,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.ContainerMaxConcurrent = int(size)
 		}
 	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB to bool: %s, ignore", err)
+		} else {
+			ipt.disableCollectK8sJob = b
+		}
+	}
 	///
 	/// logging sample configs
 	///
@@ -217,26 +226,42 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		ipt.ContainerExcludeLog = arrays
 	}
 
+	whitelistStr := ""
+	// This code is to maintain compatibility.
+	if str, ok := envs["ENV_LOGGING_FIELD_WHITE_LIST"]; ok && str != "" {
+		whitelistStr = str
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FIELD_WHITE_LIST"]; ok && str != "" {
+		whitelistStr = str
+	}
+	if whitelistStr != "" {
+		if err := json.Unmarshal([]byte(whitelistStr), &ipt.LoggingFieldWhiteList); err != nil {
+			l.Warnf("parse ENV_LOGGING_FIELD_WHITE_LIST/ENV_INPUT_CONTAINER_LOGGING_FIELD_WHITE_LIST to slice: %s, ignore", err)
+		}
+	}
+
+	openfilesStr := ""
+	// This code is to maintain compatibility.
+	if str, ok := envs["ENV_LOGGING_MAX_OPEN_FILES"]; ok && str != "" {
+		openfilesStr = str
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_MAX_OPEN_FILES"]; ok && str != "" {
+		openfilesStr = str
+	}
+	if openfilesStr != "" {
+		if limit, err := strconv.ParseInt(openfilesStr, 10, 64); err != nil {
+			l.Warnf("parse ENV_LOGGING_MAX_OPEN_FILES/ENV_INPUT_CONTAINER_LOGGING_MAX_OPEN_FILES to int64: %s, ignore", err)
+		} else {
+			ipt.LoggingMaxOpenFiles = int(limit)
+		}
+	}
+
 	///
 	/// logging configs
 	///
-	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_FORCE_FLUSH_LIMIT"]; ok {
-		if limit, err := strconv.ParseInt(str, 10, 64); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FORCE_FLUSH_LIMIT to int64: %s, ignore", err)
-		} else {
-			ipt.LoggingForceFlushLimit = int(limit)
-		}
-	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON"]; ok {
 		if err := json.Unmarshal([]byte(str), &ipt.LoggingSourceMultilineMap); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON to map: %s, ignore", err)
-		}
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
-		} else {
-			ipt.LoggingAutoMultilineDetection = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE"]; ok {
@@ -244,6 +269,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE to bool: %s, ignore", err)
 		} else {
 			ipt.LoggingEnableMultline = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
+		} else {
+			ipt.LoggingAutoMultilineDetection = b
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
@@ -289,13 +321,5 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
 		ipt.LoggingExtraSourceMap = config.ParseGlobalTags(str)
-	}
-
-	if str, ok := envs["ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_DISABLE_COLLECT_KUBE_JOB to bool: %s, ignore", err)
-		} else {
-			ipt.disableCollectK8sJob = b
-		}
 	}
 }

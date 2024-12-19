@@ -11,11 +11,14 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
 )
@@ -40,6 +43,9 @@ type Tailer struct {
 	fileFilter  *fileprovider.GlobFilter
 	fileInotify fileprovider.InotifyInterface
 
+	maxOpenFiles     int
+	currentOpenFiles atomic.Int64
+
 	done chan interface{}
 	mu   sync.Mutex
 
@@ -47,11 +53,13 @@ type Tailer struct {
 }
 
 func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
+	_ = logtail.InitDefault()
 	c := getOption(opts...)
 
 	tailer := &Tailer{
 		options:       opts,
 		source:        c.source,
+		maxOpenFiles:  c.maxOpenFiles,
 		fromBeginning: c.fromBeginning,
 		ignoreDeadLog: c.ignoreDeadLog,
 		fileList:      make(map[string]context.CancelFunc),
@@ -146,11 +154,7 @@ func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
 	files = t.fileFilter.ExcludeFilterFiles(files)
 
 	for _, file := range files {
-		if t.ignoreDeadLog > 0 && !openfile.FileIsActive(file, t.ignoreDeadLog) {
-			continue
-		}
-
-		if t.inFileList(file) {
+		if !t.shouldOpenFile(file) {
 			continue
 		}
 
@@ -165,11 +169,15 @@ func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.addToFileList(file, cancel)
 
+		openfilesVec.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Inc()
+
 		func(file string) {
 			g.Go(func(_ context.Context) error {
 				single.Run(ctx)
 				t.removeFromFileList(file)
 				t.log.Infof("file %s exit", file)
+
+				openfilesVec.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Dec()
 				return nil
 			})
 		}(file)
@@ -193,13 +201,17 @@ func (t *Tailer) Close() {
 func (t *Tailer) addToFileList(file string, cancel context.CancelFunc) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
 	t.fileList[file] = cancel
+	t.currentOpenFiles.Add(1)
 }
 
 func (t *Tailer) removeFromFileList(file string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
 	delete(t.fileList, file)
+	t.currentOpenFiles.Add(-1)
 }
 
 func (t *Tailer) inFileList(file string) bool {
@@ -218,4 +230,18 @@ func (t *Tailer) closeAllFiles() {
 			cancel()
 		}
 	}
+}
+
+func (t *Tailer) shouldOpenFile(file string) bool {
+	if t.inFileList(file) {
+		return false
+	}
+	if t.maxOpenFiles != -1 && t.currentOpenFiles.Load() >= int64(t.maxOpenFiles) {
+		t.log.Warnf("too many open files, limit %d", t.maxOpenFiles)
+		return false
+	}
+	if t.ignoreDeadLog > 0 && !openfile.FileIsActive(file, t.ignoreDeadLog) {
+		return false
+	}
+	return true
 }

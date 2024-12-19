@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -21,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
@@ -34,11 +32,6 @@ import (
 const (
 	defaultSleepDuration = time.Second
 	checkInterval        = time.Second * 3
-)
-
-var (
-	MaxOpenFiles     int64 = 500
-	currentOpenFiles atomic.Int64
 )
 
 type Single struct {
@@ -63,21 +56,15 @@ type Single struct {
 }
 
 func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
-	if MaxOpenFiles != -1 && currentOpenFiles.Load() > MaxOpenFiles {
-		return nil, fmt.Errorf("too many open files, limit %d", MaxOpenFiles)
-	}
-
-	_ = logtail.InitDefault()
-
-	c := getOption(opts...)
 	t := &Single{
-		opt:      c,
+		opt:      getOption(opts...),
 		filepath: filepath,
 	}
 
-	if c.insideFilepathFunc != nil {
-		t.insideFilepath = c.insideFilepathFunc(filepath)
+	if t.opt.insideFilepathFunc != nil {
+		t.insideFilepath = t.opt.insideFilepathFunc(filepath)
 	}
+
 	t.buildTags(t.opt.extraTags)
 	t.log = logger.SLogger("logging/" + t.opt.source)
 
@@ -85,8 +72,6 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 		return nil, err
 	}
 
-	openfileVec.WithLabelValues(t.opt.mode.String()).Inc()
-	currentOpenFiles.Add(1)
 	return t, nil
 }
 
@@ -133,9 +118,6 @@ func (t *Single) Run(ctx context.Context) {
 func (t *Single) Close() {
 	t.recordPosition()
 	t.closeFile()
-
-	openfileVec.WithLabelValues(t.opt.mode.String()).Dec()
-	currentOpenFiles.Add(-1)
 	t.log.Infof("closing file %s", t.filepath)
 }
 
@@ -247,6 +229,7 @@ func (t *Single) forwardMessage(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			t.flushCache()
 			t.log.Infof("exiting: file %s", t.filepath)
 			return
 
@@ -278,7 +261,8 @@ func (t *Single) forwardMessage(ctx context.Context) {
 			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
-			t.wait()
+			t.flushCache()
+			time.Sleep(defaultSleepDuration)
 			continue
 		}
 	}
@@ -427,7 +411,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 			kvs = kvs.AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
 		}
 
-		if t.insideFilepath != "" {
+		if t.shouldAddField("inside_filepath") && t.insideFilepath != "" {
 			kvs = kvs.Add("inside_filepath", t.insideFilepath, false, false)
 		}
 
@@ -470,8 +454,12 @@ func (t *Single) feedToIO(pending [][]byte) {
 	}
 }
 
-func (t *Single) wait() {
-	time.Sleep(defaultSleepDuration)
+func (t *Single) flushCache() {
+	if t.mult != nil && t.mult.BuffLength() > 0 {
+		text := t.mult.Flush()
+		logstr := removeAnsiEscapeCodes(text, t.opt.removeAnsiEscapeCodes)
+		t.feed([][]byte{logstr})
+	}
 }
 
 func (t *Single) buildTags(extraTags map[string]string) {
