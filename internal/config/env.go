@@ -238,6 +238,16 @@ func (c *Config) loadPipelineEnvs() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_PIPELINE_DEFAULT_PIPELINE"); v != "" {
+		var result map[string]string
+		if err := json.Unmarshal([]byte(v), &result); err != nil {
+			l.Errorf("unmarshal `ENV_PIPELINE_DEFAULT_PIPELINE` failed: %s",
+				err.Error())
+		} else {
+			c.Pipeline.DefaultPipeline = result
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC"); v != "" {
 		var err error
 		c.Pipeline.DisableHTTPRequestFunc, err = strconv.ParseBool(v)
