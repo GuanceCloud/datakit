@@ -69,7 +69,7 @@ func (ipt *Input) applyPredefinedInstances() {
 				Path:   "__kubernetes_service_annotation_" + annotationPrometheusioPath,
 			},
 			Custom: Custom{
-				Measurement:      "__kubernetes_service__annotation_" + annotationPrometheusioParamMeasurement,
+				Measurement:      "__kubernetes_service_annotation_" + annotationPrometheusioParamMeasurement,
 				JobAsMeasurement: false,
 				Tags: map[string]string{
 					"instance":     "__kubernetes_mate_instance",
