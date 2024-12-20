@@ -5,7 +5,6 @@
 
 ### 新加功能 {#cl-1.65.0-new}
 
-- APM Automatic Instrumentation 增加 Docker 支持（目前仅支持 Java）（#2480）
 - Kubernetes 中对象采集增加 label selector 支持（#2492）
 - 容器对象新增 `message` 字段（#2508）
 - 新增[日志采集配置指南文档](datakit-logging.md)
