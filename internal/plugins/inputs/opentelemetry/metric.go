@@ -25,12 +25,12 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 		resourceTags := attributesToTag(resmc.Resource.GetAttributes())
 		resourceTags["schema_url"] = resmc.GetSchemaUrl()
 		for _, scopeMetrics := range resmc.GetScopeMetrics() {
-			if scopeMetrics.GetScope() == nil {
-				continue
+			var scopeTags map[string]string
+			if scopeStats := scopeMetrics.GetScope(); scopeStats != nil {
+				scopeTags = attributesToTag(scopeMetrics.GetScope().GetAttributes())
+				scopeTags["scope_name"] = scopeMetrics.GetScope().GetName()
+				scopeTags["scope_version"] = scopeMetrics.GetScope().GetName()
 			}
-			scopeTags := attributesToTag(scopeMetrics.GetScope().GetAttributes())
-			scopeTags["scope_name"] = scopeMetrics.GetScope().GetName()
-			scopeTags["scope_version"] = scopeMetrics.GetScope().GetName()
 
 			for _, metric := range scopeMetrics.GetMetrics() {
 				switch t := metric.Data.(type) {
