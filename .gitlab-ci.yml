@@ -213,7 +213,7 @@ build-dca-testing-image:
     - nvm use v16.14.0
     - tag=`git describe --tags --always`
     - make clean
-    - make local
+    - make build_dca
     - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
     - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
     - cd ../..
@@ -233,7 +233,7 @@ build-dca-production-image:
     - nvm use v16.14.0
     - tag=`git describe --tags --always`
     - make clean
-    - make local
+    - make build_dca
     - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
     - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
     - cd ../..

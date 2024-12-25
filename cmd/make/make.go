@@ -54,6 +54,8 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&mdAutofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 
+	flag.BoolVar(&dca, "dca", false, "build DCA only")
+
 	//
 	// export related flags.
 	//
@@ -77,6 +79,7 @@ var (
 	downloadEBPF    = false
 	buildISP        = false
 	ut              = false
+	dca             = false
 	export          = false
 	dwURL           = "not-set"
 
@@ -127,6 +130,14 @@ func applyFlags() {
 
 		if err := build.UnitTestDataKit(); err != nil {
 			l.Errorf("build.UnitTestDataKit: %s", err)
+			os.Exit(-1)
+		}
+		return
+	}
+
+	if dca {
+		if err := build.CompileDCA(); err != nil {
+			l.Error(err)
 			os.Exit(-1)
 		}
 		return

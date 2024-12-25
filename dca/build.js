@@ -170,12 +170,13 @@ async function buildImg() {
   let { CI_COMMIT_BRANCH } = process.env
   let buildCmd = `
     docker buildx build \
-      --platform linux/amd64 \
+      --platform linux/arm64,linux/amd64 \
       ${imageStr}\
       . \
       --push \
   `
   let [err] = runCmd(buildCmd)
+  console.info(`build: ${buildCmd}`)
   if (err) {
     console.error(err)
     await notify("DCA CI Failed", `${author} 推送分支 ${CI_COMMIT_BRANCH}，构建 DCA 镜像失败！`)

@@ -109,6 +109,30 @@ func runEnv(args, env []string) ([]byte, error) {
 	return cmd.CombinedOutput()
 }
 
+func CompileDCA() error {
+	prepare()
+
+	curArchs = ParseArchs(Archs)
+	l.Debugf("curArchs = %v", curArchs)
+
+	for _, arch := range curArchs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid arch: %s", arch)
+		}
+
+		goos, goarch := parts[0], parts[1]
+
+		// build dca binary
+		dcaDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, "dca", goos, goarch)
+		if err := compileArch("dca", goos, goarch, dcaDir, "cmd/dca/main.go", "not-set"); err != nil {
+			return fmt.Errorf("unable to build dca : %w", err)
+		}
+	}
+
+	return nil
+}
+
 func prepare() {
 	if err := os.RemoveAll(BuildDir); err != nil {
 		l.Warnf("os.RemoveAll: %s, ignored", err.Error())
@@ -255,12 +279,6 @@ func Compile() error {
 			"not-set",
 		); err != nil {
 			return fmt.Errorf("unable to build %s : %w", upgrader.BuildBinName, err)
-		}
-
-		// build dca binary
-		dcaDir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, "dca", goos, goarch)
-		if err := compileArch("dca", goos, goarch, dcaDir, "cmd/dca/main.go", "not-set"); err != nil {
-			return fmt.Errorf("unable to build dca : %w", err)
 		}
 
 		// build externals

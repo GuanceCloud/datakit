@@ -356,6 +356,17 @@ shame_logging:
 ip2isp:
 	$(call build_ip2isp)
 
+build_dca: deps
+	@rm -rf $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)/dca
+	@echo "===== building dca ====="
+
+	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
+		go run cmd/make/make.go -dca \
+		-archs $(DOCKER_IMAGE_ARCHS) \
+		-build-dir $(BUILD_DIR)
+	@echo "===== building dca done ====="
+
 pub_dca_testing: prepare_dca
 	@cd dca \
 	&& node build.js build_image \
