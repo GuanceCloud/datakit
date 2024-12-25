@@ -142,7 +142,7 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 	newIns := &Instance{
 		Role:       "endpoints",
 		Namespaces: deepCopySlice(ins.Namespaces),
-		Selector:   buildSelector(s.item.Labels),
+		Selector:   selectorToString(s.item.Labels),
 		Target: Target{
 			Scheme:  ins.Target.Scheme,
 			Address: ins.Target.Address,

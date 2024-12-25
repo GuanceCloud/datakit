@@ -6,7 +6,9 @@
 package kubernetesprometheus
 
 import (
-	"k8s.io/apimachinery/pkg/labels"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 type resourceValidator struct {
@@ -42,14 +44,42 @@ func (v *resourceValidator) Matches(namespace string, targetLables map[string]st
 			return false
 		}
 	}
-
 	if v.selector != nil {
 		return v.selector.Matches(labels.Set(targetLables))
 	}
-
 	return true
 }
 
-func buildSelector(m map[string]string) string {
+func selectorToString(m map[string]string) string {
 	return labels.Set(m).String()
+}
+
+func labelSelectorToString(selector *metav1.LabelSelector) string {
+	s := labels.Set(selector.MatchLabels).AsSelector()
+
+	for _, expr := range selector.MatchExpressions {
+		var op selection.Operator
+
+		switch expr.Operator {
+		case metav1.LabelSelectorOpIn:
+			op = selection.In
+		case metav1.LabelSelectorOpNotIn:
+			op = selection.NotIn
+		case metav1.LabelSelectorOpExists:
+			op = selection.Exists
+		case metav1.LabelSelectorOpDoesNotExist:
+			op = selection.DoesNotExist
+		default:
+			// unreachable
+		}
+
+		requirement, err := labels.NewRequirement(expr.Key, op, expr.Values)
+		if err != nil {
+			continue
+		}
+
+		s = s.Add(*requirement)
+	}
+
+	return s.String()
 }

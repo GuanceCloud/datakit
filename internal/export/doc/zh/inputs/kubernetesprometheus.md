@@ -170,20 +170,16 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 
 ### 主配置 {#input-config-main}
 
-| 配置项      | 是否必要    | 默认值     | 描述                                                                                                            | 是否支持占位符 |
-| ----------- | ----------- | -----      | -----------                                                                                                     | -----          |
-| `role`      | Yes         | 无         | 指定采集的资源类型，只能是 `node`、`pod`、`service` 和 `endpoints` 任意一个                                     | No             |
-| `namespace` | No          | 无         | 限定这个资源所属的命名空间，它是个数组，可以写多个，例如 `["kube-system", "testing"]`                           | No             |
-| `selector`  | No          | 无         | labels 查询和过滤，它的范围更小、更精确。它是一个字符串，支持 `'=', '==', '!='`，例如 `key1=value1,key2=value2` | No             |
-| `scrape`    | No          | "true"     | 判定是否要采集。当它为空字符串或为 `true` 时，会执行采集，否则不采集                                            | Yes            |
-| `scheme`    | No          | "http"     | 默认值是 `http`，如果采集需要用到证书，应改为 `https`                                                           | Yes            |
-| `port`      | Yes         | 无         | 目标地址的端口，需要手动配置                                                                                    | Yes            |
-| `path`      | No          | "/metrics" | http 访问路径，默认值是 `/metrics`                                                                              | Yes            |
-| `params`    | No          | 无         | http 访问参数，是一个字符串，例如 `name=nginx&package=middleware`                                               | No             |
-
-> `selector` 在 kubectl 命令行经常使用，例如要查找 labels 包含 `tier=control-plane` 和 `component=kube-controller-manager` 的 Pod，可以使用以下命令：
-    `$ kubectl get pod --selector tier=control-plane,component=kube-controller-manager`
-    `--selector` 参数和 `selector` 配置项作用相同，更多编写方式见[官方文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/){:target="_blank"}。
+| 配置项      | 是否必要    | 默认值     | 描述                                                                                                                                                                                            | 是否支持占位符 |
+| ----------- | ----------- | -----      | -----------                                                                                                                                                                                     | -----          |
+| `role`      | Yes         | 无         | 指定采集的资源类型，只能是 `node`、`pod`、`service` 和 `endpoints` 任意一个                                                                                                                     | No             |
+| `namespace` | No          | 无         | 限定这个资源所属的命名空间，它是个数组，可以写多个，例如 `["kube-system", "testing"]`                                                                                                           | No             |
+| `selector`  | No          | 无         | labels 查询和过滤，它的范围更小、更精确。它是一个字符串，支持 `'=', '==', '!='`，例如 `key1=value1,key2=value2`，同时它支持 Glob 匹配模式。详见[后文](kubernetesprometheus.md#selector-example) | No             |
+| `scrape`    | No          | "true"     | 判定是否要采集。当它为空字符串或为 `true` 时，会执行采集，否则不采集                                                                                                                            | Yes            |
+| `scheme`    | No          | "http"     | 默认值是 `http`，如果采集需要用到证书，应改为 `https`                                                                                                                                           | Yes            |
+| `port`      | Yes         | 无         | 目标地址的端口，需要手动配置                                                                                                                                                                    | Yes            |
+| `path`      | No          | "/metrics" | http 访问路径，默认值是 `/metrics`                                                                                                                                                              | Yes            |
+| `params`    | No          | 无         | http 访问参数，是一个字符串，例如 `name=nginx&package=middleware`                                                                                                                               | No             |
 
 ### 定制化配置 {#input-config-custom}
 
@@ -408,4 +404,32 @@ data:
 
 1. 最后启动 Datakit，在日志中能看到 `create prom url xxxxx for testing/prom-svc` 的内容，并在观测云页面看到 `prom-svc` 指标集。
 
+
+---
+
 ## FAQ {#faq}
+
+### Selector 描述与示例 {#selector-example}
+
+`selector` 是 `kubectl` 命令中常用的参数。例如，要查找标签（Labels）中包含 `tier=control-plane` 和 `component=kube-controller-manager` 的 Pod，可以使用以下命令：
+
+```shell
+$ kubectl get pod -n kube-system  --selector tier=control-plane,component=kube-controller-manager
+NAMESPACE     NAME                      READY   STATUS    RESTARTS   AGE
+kube-system   kube-controller-manager   1/1     Running   0          15d
+```
+
+`--selector` 参数与 `selector` 配置项功能相同。有关 `selector` 的更多使用方法，请参考[官方文档](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/labels/){:target="_blank"}。
+
+另外，Datakit 对 `selector` 的功能进行了扩展，使其支持 **Glob 匹配模式**。有关 Glob 的详细语法，请参考[Glob 模式文档](https://developers.tetrascience.com/docs/common-glob-pattern#glob-pattern-syntax)。以下是一些示例：
+
+[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1)
+
+- **`selector="app=middleware*"`**：匹配任意以 `middleware` 开头的值，例如 `middleware-etcd` 或 `middleware-coredns`。
+- **`selector="app=middleware-{nginx,redis}"`**：匹配 `middleware-nginx` 和 `middleware-redis`，等同于 `app in (middleware-nginx, middleware-redis)`。
+- **`selector="app=middleware-[123]"`**：匹配 `middleware-1`、`middleware-2` 和 `middleware-3` 中的任意一个。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+    在此处 Glob 模式中不支持 `!` 排除符。例如，`app=middleware-[!0123]` 会在解析阶段报错。这是因为在 Selector 语法中，`!` 是关键字符（例如用于 `app!=nginx`），因此不能用于 Glob 模式。
+<!-- markdownlint-enable -->

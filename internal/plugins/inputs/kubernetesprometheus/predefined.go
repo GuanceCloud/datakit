@@ -340,7 +340,7 @@ func getLocalPodsFromLabelSelector(
 		FieldSelector:   "spec.nodeName=" + nodeName,
 	}
 	if selector != nil {
-		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
+		opt.LabelSelector = labelSelectorToString(selector)
 	}
 
 	list, err := client.GetPods(namespace).List(context.Background(), opt)
@@ -363,7 +363,7 @@ func getLocalEndpointsFromLabelSelector(
 ) (res []*apicorev1.Endpoints) {
 	opt := metav1.ListOptions{ResourceVersion: "0"}
 	if selector != nil {
-		opt.LabelSelector = newLabelSelector(selector.MatchLabels, selector.MatchExpressions).String()
+		opt.LabelSelector = labelSelectorToString(selector)
 	}
 
 	list, err := client.GetEndpoints(namespace).List(context.Background(), opt)
