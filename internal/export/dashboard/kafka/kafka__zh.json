@@ -95,13 +95,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_controller`:(AVG(`GlobalPartitionCount.Value`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(last(`GlobalPartitionCount.Value`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "GlobalPartitionCount.Value",
-              "density": "medium",
               "filters": [
                 {
                   "id": "1b0cdc70-c380-11eb-8967-fb1050d86707",
@@ -1667,13 +1666,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_replica_manager`:(AVG(`UnderReplicatedPartitions.Value`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_replica_manager`:(last(`UnderReplicatedPartitions.Value`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "UnderReplicatedPartitions.Value",
-              "density": "medium",
               "filters": [
                 {
                   "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
@@ -1749,13 +1747,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_controller`:(AVG(`GlobalTopicCount.Value`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(last(`GlobalTopicCount.Value`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "GlobalTopicCount.Value",
-              "density": "medium",
               "filters": [
                 {
                   "id": "07f2b970-c380-11eb-8967-fb1050d86707",
@@ -2583,13 +2580,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_controller`:(avg(`OfflinePartitionsCount.Value`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(last(`OfflinePartitionsCount.Value`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "OfflinePartitionsCount.Value",
-              "density": "medium",
               "filters": [
                 {
                   "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
@@ -2665,13 +2661,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_log`:(AVG(`OfflineLogDirectoryCount`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_log`:(last(`OfflineLogDirectoryCount`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "OfflineLogDirectoryCount",
-              "density": "medium",
               "filters": [
                 {
                   "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
@@ -3838,13 +3833,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_log`:(avg(`DeadThreadCount`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_log`:(last(`DeadThreadCount`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "DeadThreadCount",
-              "density": "medium",
               "filters": [
                 {
                   "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
@@ -4027,13 +4021,12 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`kafka_controller`:(avg(`UncleanLeaderElectionsPerSec.Count`)) { `host` = '#{host}' }",
+              "q": "M::`kafka_controller`:(last(`UncleanLeaderElectionsPerSec.Count`)) { `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
               "alias": "",
               "field": "UncleanLeaderElectionsPerSec.Count",
-              "density": "medium",
               "filters": [
                 {
                   "id": "582c4aa0-c380-11eb-b98e-df59d31b9dd6",
