@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.65.1 (2024/12/25) {#cl-1.65.1}
+
+This release is a hotfix update, which includes several minor feature enhancements. The details are as follows:
+
+### New Features {#cl-1.65.1-new}
+
+- KubernetesPrometheus:
+    - Added support for glob wildcards in selector (#2515)
+    - Metrics collected now append global tags by default (#2519)
+    - Optimizations to the `prometheus.io/path` annotation (#2518)
+- DCA image now supports ARM (#2517)
+- Pipeline function `http_request()` added IP whitelist configuration (#2521)
+
+### Bug Fixes {#cl-1.65.1-fix}
+
+- Adjusted Kafka dashboards to fix discrepancies between displayed data and actual data (#2468)
+- Fixed the crash with the vSphere collector (#2510)
+
+---
+
 ## 1.65.0 (2024/12/19) {#cl-1.65.0}
 
 This release is an iterative update, with the following main changes:
