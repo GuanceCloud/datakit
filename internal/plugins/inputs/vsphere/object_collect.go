@@ -41,6 +41,10 @@ func getVMTagsAndFields(vm *mo.VirtualMachine) (map[string]string, map[string]in
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
 
+	if vm == nil {
+		return tags, fields
+	}
+
 	tags[Name] = vm.Name
 
 	summary := vm.Summary
@@ -63,7 +67,9 @@ func getVMTagsAndFields(vm *mo.VirtualMachine) (map[string]string, map[string]in
 	// runtime
 	runtime := summary.Runtime
 	tags[ConnectionState] = string(runtime.ConnectionState)
-	fields[BootTime] = runtime.BootTime.UnixNano()
+	if runtime.BootTime != nil {
+		fields[BootTime] = runtime.BootTime.UnixNano()
+	}
 	fields[MaxCPUUsage] = runtime.MaxCpuUsage
 	fields[MaxMemoryUsage] = runtime.MaxMemoryUsage
 
