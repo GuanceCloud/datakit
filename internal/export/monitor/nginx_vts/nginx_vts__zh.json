@@ -1,0 +1,599 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Nginx发生丢弃连接数异常",
+        "groupBy": [
+          "nginx_server"
+        ],
+        "message": ">告警等级: {{status}}\n>Nginx服务地址：{{nginx_server}}\n>发生丢弃连接数为：{{Result}}\n>建议：丢弃连接数等于accept（接收）和 handled（处理）之间的差值。在正常情况下，断开的连接应为零。如果您每单位时间断开连接的速率开始上升，请寻找导致资源饱和状态可能的因素。",
+        "targets": [
+          {
+            "dql": "eval(A-B, A=\"M::`nginx`:(avg(`connection_accepts`)) BY `nginx_server`\", B=\"M::`nginx`:(avg(`connection_handled`)) BY `nginx_server`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "20"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "20"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "89ba9d54-916f-4b94-bda6-34c83fd24ab0",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A-B, A=\"M::`nginx`:(avg(`connection_accepts`)) BY `nginx_server`\", B=\"M::`nginx`:(avg(`connection_handled`)) BY `nginx_server`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`nginx`:(avg(`connection_accepts`)) BY `nginx_server`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "connection_accepts",
+                  "filters": [],
+                  "groupBy": [
+                    "nginx_server"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx`:(avg(`connection_handled`)) BY `nginx_server`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "connection_handled",
+                  "filters": [],
+                  "groupBy": [
+                    "nginx_server"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx",
+                  "groupByTime": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A-B"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 60,
+        "title": "Nginx连接请求数突变告警",
+        "groupBy": [
+          "nginx_server"
+        ],
+        "message": ">告警等级: {{status}}\n>Nginx服务地址：{{nginx_server}}\n>连接请求数突变率：{{Result}}%\n>建议：请求数的剧烈变化可能会是环境中某个地方正在发生问题，虽然它并不能确切地告诉问题发生在哪里。但是，值得关注并做进一步分析。",
+        "range_2": 900,
+        "targets": [
+          {
+            "dql": "M::`nginx`:(avg(`connection_requests`)) BY `nginx_server`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 900,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "30"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "20"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "percent",
+          "direction": "both",
+          "threshold": {
+            "value": 5,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "30"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "20"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "ee89e98a-f3b4-4291-9aa6-8b156b752d70",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(avg(`connection_requests`)) BY `nginx_server`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "connection_requests",
+              "filters": [],
+              "groupBy": [
+                "nginx_server"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Nginx 服务错误率异常告警",
+        "groupBy": [
+          "server_zone"
+        ],
+        "message": "> 告警等级：{{status}}\n> Nginx服务地址: {{nginx_server}}\n> 服务错误率：{{Result}}\n> 建议：服务器错误率等于单位时间的 5xx 错误数(例如：“502 Bad Gateway”)除以请求总数（包含 1xx, 2xx, 3xx, 4xx, 5xx）。如果错误率过高，则可能需要进一步调查。",
+        "targets": [
+          {
+            "dql": "eval(A/(A+B+C+D+E), A=\"M::`nginx_server_zone`:(avg(`response_5xx`)) BY `server_zone`\", B=\"M::`nginx_server_zone`:(avg(`response_1xx`)) BY `server_zone`\", C=\"M::`nginx_server_zone`:(avg(`response_2xx`)) BY `server_zone`\", D=\"M::`nginx_server_zone`:(avg(`response_3xx`)) BY `server_zone`\", E=\"M::`nginx_server_zone`:(avg(`response_4xx`)) BY `server_zone`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "30"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "20"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "30"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "20"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "2586b146-3a3a-4790-b604-9f355ac1a319",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/(A+B+C+D+E), A=\"M::`nginx_server_zone`:(avg(`response_5xx`)) BY `server_zone`\", B=\"M::`nginx_server_zone`:(avg(`response_1xx`)) BY `server_zone`\", C=\"M::`nginx_server_zone`:(avg(`response_2xx`)) BY `server_zone`\", D=\"M::`nginx_server_zone`:(avg(`response_3xx`)) BY `server_zone`\", E=\"M::`nginx_server_zone`:(avg(`response_4xx`)) BY `server_zone`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`nginx_server_zone`:(avg(`response_5xx`)) BY `server_zone`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_5xx",
+                  "filters": [],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(avg(`response_1xx`)) BY `server_zone`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_1xx",
+                  "filters": [],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(avg(`response_2xx`)) BY `server_zone`",
+                  "code": "C",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_2xx",
+                  "filters": [],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(avg(`response_3xx`)) BY `server_zone`",
+                  "code": "D",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_3xx",
+                  "filters": [],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "groupByTime": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(avg(`response_4xx`)) BY `server_zone`",
+                  "code": "E",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_4xx",
+                  "filters": [],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "groupByTime": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/(A+B+C+D+E)"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}

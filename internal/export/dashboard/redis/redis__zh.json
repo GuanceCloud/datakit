@@ -1615,7 +1615,7 @@
           {
             "name": "",
             "query": {
-              "content": "Redis 监控视图显示 Redis 实例运行状态指标，例如客户端连接数、副本连接数、客户端最大链接时长等多种指标，帮助监控分析 Redis 各种异常情况。<br/><br/>https://docs.guance.com/datakit/redis/"
+              "content": "Redis 监控视图显示 Redis 实例运行状态指标，例如客户端连接数、副本连接数、客户端最大链接时长等多种指标，帮助监控分析 Redis 各种异常情况。<br/><br/>https://docs.guance.com/integrations/redis/"
             }
           }
         ]

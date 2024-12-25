@@ -1,0 +1,3206 @@
+{
+  "title": "nginx(VTS) 监控视图_harry",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "临时": true,
+      "总览": true,
+      "Upstream": false,
+      "by server": true,
+      "状态码": false,
+      "请求数": false,
+      "连接数": true,
+      "Nginx后端": true,
+      "Nginx缓存": true,
+      "by upstream": true,
+      "SERVER 模块": true,
+      "Server 模块": true,
+      "上游客户端": true,
+      "Nginx整体状态": true,
+      "Nginx缓存状态": true,
+      "Nginx虚拟主机": true,
+      "Nginx 服务模块": true,
+      "Nginx服务器状态": true,
+      "Nginx Upstream 状态": true,
+      "Nginx上游服务器（后端）": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://gaia.changan.com.cn/guance-res/dataflux-template/dashboard/zh/nginx/nginx.png",
+    "icon": "https://gaia.changan.com.cn/guance-res/dataflux-template/dashboard/zh/nginx/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "环境",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "env",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "SHOW_TAG_VALUE(from=['nginx'], keyin=['env'])",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "服务地址",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "nginx_server",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "SHOW_TAG_VALUE(from=['nginx'], keyin=['nginx_server']){`env` = '#{env}'}",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      },
+      {
+        "name": "upstream_zone",
+        "seq": 2,
+        "datasource": "dataflux",
+        "code": "upstream_zone",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "SHOW_TAG_VALUE(from=['nginx_upstream_zone'], keyin=['upstream_zone']){ `nginx_server` = '#{nginx_server}'  and `env` = '#{env}'}",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(avg(connection_handled))",
+                "name": "non_negative_difference(avg(connection_handled))",
+                "alias": "handled"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "active是指当前活跃的客户端连接数，即当前正在处理的连接数；reading是指Nginx正在读取客户端请求头的连接数；writing是指Nginx正在向客户端发送响应的连接数；waiting是指Nginx正在等待处理的空闲连接数，即请求已完成读取且响应已发送，但连接尚未关闭。",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "连接数请求情况",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(avg(`connection_active`) AS `active`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "active",
+              "field": "connection_active",
+              "filters": [
+                {
+                  "id": "ea08f1e0-7770-11ec-9c8b-396765a383d1",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "a5021080-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(avg(`connection_waiting`) AS `waiting`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "waiting",
+              "field": "connection_waiting",
+              "filters": [
+                {
+                  "id": "ea08f1e0-7770-11ec-9c8b-396765a383d1",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "a76e2e80-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(avg(`connection_writing`) AS `writing`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "writing",
+              "field": "connection_writing",
+              "filters": [
+                {
+                  "id": "ea08f1e0-7770-11ec-9c8b-396765a383d1",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "aa964980-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(avg(`connection_reading`) AS `reading`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "reading",
+              "field": "connection_reading",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "07800ab0-8b6e-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "adcf7b80-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "当前活跃连接数",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 9,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(last(`connection_active`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "connection_active",
+              "filters": [
+                {
+                  "id": "120f8210-877e-11ef-9e8f-75be298e54a4",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "c87afc80-8b81-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(requests)",
+                "name": "non_negative_difference(requests)",
+                "alias": "{{upstream_zone}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Upstream"
+        },
+        "name": "upstream 模块的请求数",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(last(`request_count`) AS `requests`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `upstream_zone`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "requests",
+              "field": "request_count",
+              "filters": [
+                {
+                  "id": "7a6e6620-879f-11ef-a320-43bea62ffe0e",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "1d679900-8b83-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(avg(send))",
+                "name": "non_negative_difference(avg(send))",
+                "alias": "{{upstream_zone}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Upstream"
+        },
+        "name": "数据量发送大小",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(avg(`send`)) { `upstream_zone` = '#{upstream_zone}' and `env` = '#{env}' and `nginx_server` = '#{nginx_server}' } BY `upstream_zone`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "send",
+              "filters": [
+                {
+                  "id": "3103f130-879a-11ef-a320-43bea62ffe0e",
+                  "op": "=",
+                  "name": "upstream_zone",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{upstream_zone}",
+                  "values": []
+                },
+                {
+                  "id": "bb035690-87a0-11ef-a320-43bea62ffe0e",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "97d53110-8b84-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "请求错误率",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 14,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval((A+B)/C, A=\"M::`nginx_server_zone`:(last(`response_4xx`)) { `server_zone` = '*' and `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }\", B=\"M::`nginx_server_zone`:(last(`response_5xx`)) { `server_zone` = '*' and `env` = '#{env}' }\", C=\"M::`nginx`:(last(`connection_requests`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }\")",
+              "code": "E",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`nginx_server_zone`:(last(`response_4xx`)) { `server_zone` = '*' and `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_4xx",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "e0afe2c0-8b81-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "server_zone",
+                      "type": "",
+                      "logic": "and",
+                      "value": "*",
+                      "values": []
+                    },
+                    {
+                      "id": "e0afe2c1-8b81-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "e293e500-8b81-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": ""
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(last(`response_5xx`)) { `server_zone` = '*' and `env` = '#{env}' }",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_5xx",
+                  "filters": [
+                    {
+                      "id": "0cf16790-883b-11ef-96f6-bb33fd00b1b2",
+                      "op": "=",
+                      "name": "server_zone",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "*",
+                      "values": []
+                    },
+                    {
+                      "id": "e5c83500-8b81-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [],
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx`:(last(`connection_requests`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }",
+                  "code": "C",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "connection_requests",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "1f22bee0-8b75-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "e7ba4100-8b81-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "(A+B)/C"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(accepts)",
+                "name": "non_negative_difference(accepts)",
+                "alias": "accepts"
+              },
+              {
+                "key": "non_negative_difference(handled)",
+                "name": "non_negative_difference(handled)",
+                "alias": "handled"
+              },
+              {
+                "key": "non_negative_difference(avg(connection_requests))",
+                "name": "non_negative_difference(avg(connection_requests))",
+                "alias": "requests"
+              }
+            ],
+            "units": [],
+            "colors": [
+              {
+                "key": "accepts",
+                "name": "accepts",
+                "color": "#498BFE"
+              },
+              {
+                "key": "handled",
+                "name": "handled",
+                "color": "#41CEC7"
+              }
+            ],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "连接请求和处理数",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx`:(avg(`connection_accepts`) AS `accepts`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "accepts",
+              "field": "connection_accepts",
+              "filters": [
+                {
+                  "id": "6bf7cc80-8b6e-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "8c673c80-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx`:(avg(`connection_handled`) AS `handled`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "handled",
+              "field": "connection_handled",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8f38fa20-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "905edc80-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx`:(avg(`connection_requests`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }\")",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "connection_requests",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "a06f5910-8b6e-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "9d54bb80-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(requests)",
+                "name": "non_negative_difference(requests)",
+                "alias": "{{server_zone}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "SERVER 模块"
+        },
+        "name": "数据量接收大小",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`received`) AS `requests`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "requests",
+              "field": "received",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "f0821240-8b77-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "06a8b0f0-8b83-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "缓存命中率",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 19,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/(A+B), alias='命中率', A=\"M::`nginx_cache_zone`:(last(`responses_hit`)) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }\", B=\"M::`nginx_cache_zone`:(last(`responses_miss`)) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }\")",
+              "code": "A",
+              "type": "expression",
+              "alias": "命中率",
+              "children": [
+                {
+                  "q": "M::`nginx_cache_zone`:(last(`responses_hit`)) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "responses_hit",
+                  "filters": [
+                    {
+                      "id": "f093dcd0-8b88-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    },
+                    {
+                      "id": "f3fef440-8b88-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [],
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_cache_zone",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                {
+                  "q": "M::`nginx_cache_zone`:(last(`responses_miss`)) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "responses_miss",
+                  "filters": [
+                    {
+                      "id": "f7cd3a50-8b88-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    },
+                    {
+                      "id": "fa521070-8b88-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [],
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_cache_zone",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                }
+              ],
+              "funcList": [],
+              "expression": "A/(A+B)"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "A + B",
+                "name": "A + B",
+                "alias": "{{server_zone}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SERVER 模块"
+        },
+        "name": "错误请求数",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A+B, A=\"M::`nginx_server_zone`:(last(`response_4xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }[:::irate] BY `server_zone`\", B=\"M::`nginx_server_zone`:(last(`response_5xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }[:::irate] BY `server_zone`\")",
+              "code": "B",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`nginx_server_zone`:(last(`response_4xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }[:::irate] BY `server_zone`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_4xx",
+                  "rollup": "irate",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "db8df490-8b76-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "e6547a00-8b82-11ef-a821-f70645bb23fd",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": ""
+                },
+                {
+                  "q": "M::`nginx_server_zone`:(last(`response_5xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' }[:::irate] BY `server_zone`",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "response_5xx",
+                  "rollup": "irate",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "bd923ff0-9c06-11ef-985a-59cf8188e139",
+                      "op": "=",
+                      "name": "nginx_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{nginx_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "c22842d0-9c06-11ef-985a-59cf8188e139",
+                      "op": "=",
+                      "name": "env",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{env}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "server_zone"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "nginx_server_zone",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "A+B"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "版本",
+        "pos": {
+          "h": 8,
+          "w": 5,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "SHOW_TAG_VALUE(from=['nginx'], keyin=['nginx_version']){`env` = '#{env}'}",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "",
+              "index": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "",
+              "namespace": "metric",
+              "dataSource": "",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(requests)",
+                "name": "non_negative_difference(requests)",
+                "alias": "{{server_zone}}"
+              }
+            ],
+            "units": [
+              {
+                "key": "non_negative_difference(requests)",
+                "name": "non_negative_difference(requests)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "SERVER 模块"
+        },
+        "name": "数据量发送大小",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`send`) AS `requests`) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "requests",
+              "field": "send",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "ad392bc0-8b7e-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "0baa6df0-8b83-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(last(request_count))",
+                "name": "non_negative_difference(last(request_count))",
+                "alias": "{{upstream_zone}} - {{upstream_server}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [],
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Upstream"
+        },
+        "name": "后端服务请求数",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(last(`request_count`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' and `upstream_zone` = '#{upstream_zone}' } BY `upstream_zone`, `upstream_server`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "request_count",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "591f0500-8b7e-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "b804be70-8b83-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "ba899490-8b83-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "upstream_zone",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{upstream_zone}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone",
+                "upstream_server"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(avg(received))",
+                "name": "non_negative_difference(avg(received))",
+                "alias": "{{upstream_zone}}"
+              }
+            ],
+            "units": [
+              {
+                "key": "non_negative_difference(avg(received))",
+                "name": "non_negative_difference(avg(received))",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "b"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Upstream"
+        },
+        "name": "数据量接收大小",
+        "pos": {
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(avg(`received`)) { `upstream_zone` = '#{upstream_zone}' and `env` = '#{env}' and `nginx_server` = '#{nginx_server}' } BY `upstream_zone`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "received",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "07f93ae0-8b85-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "upstream_zone",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{upstream_zone}",
+                  "values": []
+                },
+                {
+                  "id": "07f93ae1-8b85-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "07f93ae2-8b85-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "服务启动时间",
+        "pos": {
+          "h": 8,
+          "w": 4,
+          "x": 5,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx`:(last(`load_timestamp`)){`env` = '#{env}'}",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "load_timestamp",
+              "index": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "last",
+              "namespace": "metric",
+              "dataSource": "nginx",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(last(requests))",
+                "name": "non_negative_difference(last(requests))",
+                "alias": "{{server_zone}} (port:{{nginx_port}})"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "SERVER 模块"
+        },
+        "name": "Server 请求数",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`requests`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`, `nginx_port`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "requests",
+              "filters": [
+                {
+                  "id": "4aae34e0-8b75-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "e04878f0-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone",
+                "nginx_port"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "sum(non_negative_difference(last(response_4xx)))",
+                "name": "sum(non_negative_difference(last(response_4xx)))",
+                "alias": "response_4xx"
+              },
+              {
+                "key": "sum(non_negative_difference(last(response_5xx)))",
+                "name": "sum(non_negative_difference(last(response_5xx)))",
+                "alias": "response_5xx"
+              }
+            ],
+            "units": [],
+            "colors": [
+              {
+                "key": "sum(non_negative_difference(last(response_4xx)))",
+                "name": "sum(non_negative_difference(last(response_4xx)))",
+                "color": "#FC092E"
+              },
+              {
+                "key": "sum(non_negative_difference(last(response_5xx)))",
+                "name": "sum(non_negative_difference(last(response_5xx)))",
+                "color": "#FEAC4E"
+              }
+            ],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "响应错误数（4XX & 5XX）",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`response_4xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "response_4xx",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "b480e450-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "b5c17aa0-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`response_5xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\").series_sum()",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "response_5xx",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "b83d5010-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "b9267790-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "sum(non_negative_difference(last(received)))",
+                "name": "sum(non_negative_difference(last(received)))",
+                "alias": "received"
+              },
+              {
+                "key": "sum(non_negative_difference(last(send)))",
+                "name": "sum(non_negative_difference(last(send)))",
+                "alias": "send"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "b"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "总览"
+        },
+        "name": "数据量收发大小",
+        "pos": {
+          "h": 12,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`received`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "received",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "be59cbe0-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "bf4d0580-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_server_zone`:(last(`send`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' } BY `server_zone`\").series_sum()",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "send",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "c12b6270-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "c3325600-8b82-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "server_zone"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_server_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "缓存状态"
+        },
+        "name": "缓存操作数",
+        "pos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_bypass`) AS `bypass`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "bypass",
+              "field": "responses_bypass",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "330ea440-8b8a-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "330ea441-8b8a-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_expired`) AS `expired`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "expired",
+              "field": "responses_expired",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "de5b98e0-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "de5b98e1-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_revalidated`) AS `revalidated`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "revalidated",
+              "field": "responses_revalidated",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "e2ffcc90-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "e2ffcc91-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_scarce`) AS `scarce`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "scarce",
+              "field": "responses_scarce",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "e76bb230-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "e76bb231-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_stale`) AS `stale`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "E",
+              "fill": null,
+              "type": "simple",
+              "alias": "stale",
+              "field": "responses_stale",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "cfb71f80-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "cfb71f81-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`nginx_cache_zone`:(last(`responses_updating`) AS `updating`) { `env` = '#{env}' and `nginx_server` = '#{nginx_server}' }",
+              "code": "F",
+              "fill": null,
+              "type": "simple",
+              "alias": "updating",
+              "field": "responses_updating",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d5b3de50-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "d5b3de51-8b89-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_cache_zone",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "non_negative_difference(last(response_4xx))",
+                "name": "non_negative_difference(last(response_4xx))",
+                "alias": "response_4xx : {{upstream_server}}"
+              },
+              {
+                "key": "non_negative_difference(last(response_5xx))",
+                "name": "non_negative_difference(last(response_5xx))",
+                "alias": "response_5xx : {{upstream_server}}"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "aliasVersion": 2,
+            "connectNulls": true,
+            "legendValues": [],
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Upstream"
+        },
+        "name": "错误状态码",
+        "pos": {
+          "h": 13,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(last(`response_4xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' and `upstream_zone` = '#{upstream_zone}' } BY `upstream_zone`, `upstream_server`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "response_4xx",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "633a27e0-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "633a27e1-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "633a27e2-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "upstream_zone",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{upstream_zone}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone",
+                "upstream_server"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "non_negative_difference(\"M::`nginx_upstream_zone`:(last(`response_5xx`)) { `nginx_server` = '#{nginx_server}' and `env` = '#{env}' and `upstream_zone` = '#{upstream_zone}' } BY `upstream_zone`, `upstream_server`\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "response_5xx",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "63e55c00-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "nginx_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{nginx_server}",
+                  "values": []
+                },
+                {
+                  "id": "63e55c01-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "env",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{env}",
+                  "values": []
+                },
+                {
+                  "id": "63e55c02-8b8d-11ef-a821-f70645bb23fd",
+                  "op": "=",
+                  "name": "upstream_zone",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{upstream_zone}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "upstream_zone",
+                "upstream_server"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "nginx_upstream_zone",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "non_negative_difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "总览",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "SERVER 模块",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "Upstream",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "缓存状态",
+        "extend": {
+          "bgColor": ""
+        }
+      }
+    ],
+    "type": "template"
+  }
+}
