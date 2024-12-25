@@ -43,9 +43,8 @@ const (
   enable_discovery_of_prometheus_service_monitors    = false
 
   [inputs.kubernetesprometheus.global_tags]
-    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
-    instance         = "__kubernetes_mate_instance"
-    host             = "__kubernetes_mate_host"
+    instance = "__kubernetes_mate_instance"
+    host     = "__kubernetes_mate_host"
 
   ## Example
   #[[inputs.kubernetesprometheus.instances]]

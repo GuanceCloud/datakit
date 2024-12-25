@@ -62,6 +62,9 @@ var PodValueFroms = []struct {
 			if len(args) != 1 {
 				return ""
 			}
+			if args[0] == annotationPrometheusioPath && item.Annotations[args[0]] == "" {
+				return "/metrics"
+			}
 			return item.Annotations[args[0]]
 		},
 	},
@@ -125,6 +128,7 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 			continue
 		}
 	}
+
 	u, err := buildURLWithParams(elems[0], elems[1], elems[2], elems[3], ins.Params)
 	if err != nil {
 		return nil, err

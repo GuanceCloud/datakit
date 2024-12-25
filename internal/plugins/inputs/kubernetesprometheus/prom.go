@@ -75,7 +75,7 @@ func (p *promScraper) scrape(defaultTimestamp int64) error {
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
-	source := fmt.Sprintf("kubernetesprometheus/%s:%s", role, key)
+	source := fmt.Sprintf("kubernetesprometheus/%s::%s", role, key)
 	remote := key
 
 	callbackFn := func(pts []*point.Point) error {
@@ -87,7 +87,6 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 			point.Metric,
 			pts,
 			dkio.WithInputName(source),
-			dkio.DisableGlobalTags(true),
 		); err != nil {
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}

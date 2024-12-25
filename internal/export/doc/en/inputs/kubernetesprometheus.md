@@ -133,21 +133,14 @@ Additionally, there is a type of global configuration, which is the highest-leve
   enable_discovery_of_prometheus_service_monitors    = false  # Whether to enable CRD for Service Monitors of Prometheus
 
   [inputs.kubernetesprometheus.global_tags]
-    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
-    instance         = "__kubernetes_mate_instance"
-    host             = "__kubernetes_mate_host"
+    instance = "__kubernetes_mate_instance"
+    host     = "__kubernetes_mate_host"
 
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```
 
-`global_tags` will add tags to all instances. The following points need to be noted:
-
-- Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
-- Environment variable configuration is supported, such as `$(NAME)` and `myname=$(NAME)`. If the environment variable `NAME` is found, it will be replaced. If not, the `$(NAME)` string will remain unchanged.
-- Only parentheses are supported for environment variables.
-- Multiple environment variables in the same string are not supported. For example, writing `name=$(NAME),namespace=$(NAMESPACE)` will only make `$(NAME)` effective."
-
+`global_tags` will add tags to all instances. Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
 
 ```markdown
 <!-- markdownlint-disable MD046 -->
@@ -204,9 +197,7 @@ Using the configuration example provided:
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus collector does not add any default tags, including `election_tags` and `host_tags` from Datakit, as well as `cluster_name_k8s`.
-
-    All tags need to be added manually.
+    The KubernetesPrometheus collector will add Datakit's `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1).
 <!-- markdownlint-enable -->
 
 ### Permissions and Authentication {#input-config-auth}
@@ -241,10 +232,10 @@ Below are the global placeholders and placeholders supported by various resource
 Global placeholders are common across all Roles and are often used to specify certain special tags.
 
 <!-- markdownlint-disable MD049 -->
-| Name                       | Description                                                                                                                | Usage Scope                                                                      |
-| -----------                | -----------                                                                                                                | -----                                                                            |
-| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
-| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
+| Name                       | Description                                                                                                                | Usage Scope                                                                                  |
+| -----------                | -----------                                                                                                                | -----                                                                                        |
+| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `global_tags/custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
+| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `global_tags/custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
 <!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}
