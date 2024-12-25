@@ -133,21 +133,14 @@ Additionally, there is a type of global configuration, which is the highest-leve
   enable_discovery_of_prometheus_service_monitors    = false  # Whether to enable CRD for Service Monitors of Prometheus
 
   [inputs.kubernetesprometheus.global_tags]
-    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
-    instance         = "__kubernetes_mate_instance"
-    host             = "__kubernetes_mate_host"
+    instance = "__kubernetes_mate_instance"
+    host     = "__kubernetes_mate_host"
 
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```
 
-`global_tags` will add tags to all instances. The following points need to be noted:
-
-- Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
-- Environment variable configuration is supported, such as `$(NAME)` and `myname=$(NAME)`. If the environment variable `NAME` is found, it will be replaced. If not, the `$(NAME)` string will remain unchanged.
-- Only parentheses are supported for environment variables.
-- Multiple environment variables in the same string are not supported. For example, writing `name=$(NAME),namespace=$(NAMESPACE)` will only make `$(NAME)` effective."
-
+`global_tags` will add tags to all instances. Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
 
 ```markdown
 <!-- markdownlint-disable MD046 -->
@@ -178,16 +171,16 @@ Using the configuration example provided:
 
 ### Main Configuration {#input-config-main}
 
-| Configuration Item | Required | Default Value | Description                                                                                                                    | Placeholder Supported |
-| ------------------ | -------- | ------------- | -----------------------------------------------------------------------------------------------------------                    | --------------------- |
-| `role`             | Yes      | None          | Specifies the type of resource to collect, which can only be `node`, `pod`, `service`, or `endpoints`.                         | No                    |
-| `namespace`        | No       | None          | Limits the namespace of the resource. It's an array and supports multiple entries, e.g., `["kube-system", "testing"]`.         | No                    |
-| `selector`         | No       | None          | Labels for querying and filtering, allowing for precise selection. Format: `'=', '==', '!='`, e.g., `key1=value1,key2=value2`. | No                    |
-| `scrape`           | No       | "true"        | Determines whether to perform scraping. Set to empty string or `true` for scraping, otherwise no scraping.                     | Yes                   |
-| `scheme`           | No       | "http"        | Default is `http`. Use `https` if scraping requires certificates.                                                              | Yes                   |
-| `port`             | Yes      | None          | Port of the target address, requires manual configuration.                                                                     | Yes                   |
-| `path`             | No       | "/metrics"    | HTTP access path, default is `/metrics`.                                                                                       | Yes                   |
-| `params`           | No       | None          | HTTP access parameters as a string, e.g., `name=nginx&package=middleware`.                                                     | No                    |
+| Configuration Item | Required | Default Value | Description                                                                                                                                                                                                                           | Placeholder Supported |
+| ------------------ | -------- | ------------- | -----------------------------------------------------------------------------------------------------------                                                                                                                           | --------------------- |
+| `role`             | Yes      | None          | Specifies the type of resource to collect, which can only be `node`, `pod`, `service`, or `endpoints`.                                                                                                                                | No                    |
+| `namespace`        | No       | None          | Limits the namespace of the resource. It's an array and supports multiple entries, e.g., `["kube-system", "testing"]`.                                                                                                                | No                    |
+| `selector`         | No       | None          | Labels for querying and filtering, allowing for precise selection. Format: `'=', '==', '!='`, e.g., `key1=value1,key2=value2`. It also supports the Glob patterns. See [below](kubernetesprometheus.md#selector-example) for details. | No                    |
+| `scrape`           | No       | "true"        | Determines whether to perform scraping. Set to empty string or `true` for scraping, otherwise no scraping.                                                                                                                            | Yes                   |
+| `scheme`           | No       | "http"        | Default is `http`. Use `https` if scraping requires certificates.                                                                                                                                                                     | Yes                   |
+| `port`             | Yes      | None          | Port of the target address, requires manual configuration.                                                                                                                                                                            | Yes                   |
+| `path`             | No       | "/metrics"    | HTTP access path, default is `/metrics`.                                                                                                                                                                                              | Yes                   |
+| `params`           | No       | None          | HTTP access parameters as a string, e.g., `name=nginx&package=middleware`.                                                                                                                                                            | No                    |
 
 > `selector` is commonly used in `kubectl` commands. For example, to find Pods with labels `tier=control-plane` and `component=kube-controller-manager`, use:
     `$ kubectl get pod --selector tier=control-plane,component=kube-controller-manager`
@@ -204,9 +197,7 @@ Using the configuration example provided:
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus collector does not add any default tags, including `election_tags` and `host_tags` from Datakit, as well as `cluster_name_k8s`.
-
-    All tags need to be added manually.
+    The KubernetesPrometheus collector will add Datakit's `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1).
 <!-- markdownlint-enable -->
 
 ### Permissions and Authentication {#input-config-auth}
@@ -241,10 +232,10 @@ Below are the global placeholders and placeholders supported by various resource
 Global placeholders are common across all Roles and are often used to specify certain special tags.
 
 <!-- markdownlint-disable MD049 -->
-| Name                       | Description                                                                                                                | Usage Scope                                                                      |
-| -----------                | -----------                                                                                                                | -----                                                                            |
-| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
-| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
+| Name                       | Description                                                                                                                | Usage Scope                                                                                  |
+| -----------                | -----------                                                                                                                | -----                                                                                        |
+| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `global_tags/custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
+| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `global_tags/custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
 <!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}
@@ -418,4 +409,32 @@ data:
 
 1. Finally, start `Datakit`. In the logs, you should see the message `create prom url xxxxx for testing/prom-svc`, and you should be able to observe the `prom-svc` metrics set on the Guance page.
 
+
+---
+
 ## FAQ {#faq}
+
+### Selector Description and Examples {#selector-example}
+
+The `selector` parameter is frequently used in `kubectl` commands. For example, to find Pods with labels containing `tier=control-plane` and `component=kube-controller-manager`, you can use the following command:
+
+```shell
+$ kubectl get pod -n kube-system  --selector tier=control-plane,component=kube-controller-manager
+NAMESPACE     NAME                      READY   STATUS    RESTARTS   AGE
+kube-system   kube-controller-manager   1/1     Running   0          15d
+```
+
+The `--selector` parameter serves the same purpose as the `selector` configuration option. For more usage details, please refer to the [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/){:target="_blank"}.
+
+In addition, Datakit extends the `selector` functionality to support **Glob matching patterns**. For details on writing Glob patterns, see the [Glob Pattern Documentation](https://developers.tetrascience.com/docs/common-glob-pattern#glob-pattern-syntax). Here are some examples:
+
+[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1)
+
+- **`selector="app=middleware*"`**: Matches any value starting with `middleware`, such as `middleware-etcd` or `middleware-coredns`.
+- **`selector="app=middleware-{nginx,redis}"`**: Matches `middleware-nginx` and `middleware-redis`, equivalent to `app in (middleware-nginx, middleware-redis)`.
+- **`selector="app=middleware-[123]"`**: Matches any of `middleware-1`, `middleware-2`, or `middleware-3`.
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+    The Glob pattern syntax does not support the `!` exclusion operator. For example, `app=middleware-[!0123]` will result in an error during the parsing stage. This is because the `!` character is a reserved keyword in Selector syntax (e.g., for `app!=nginx`) and cannot be used in Glob patterns.
+<!-- markdownlint-enable -->

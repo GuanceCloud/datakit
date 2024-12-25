@@ -110,12 +110,6 @@ func (ipt *Input) setup() error {
 		klog.Info("enable service monitor")
 	}
 
-	// convert to environment value
-	for k, v := range ipt.GlobalTags {
-		ipt.GlobalTags[k] = convertToEnvironmentValue(v)
-	}
-	klog.Infof("use global tags: %s", ipt.GlobalTags)
-
 	for _, ins := range ipt.Instances {
 		// set default values
 		ins.setDefault(ipt)
