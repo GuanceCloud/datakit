@@ -123,8 +123,19 @@ func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 ) error {
 	l = logger.SLogger("plval")
 
-	if cfg != nil && cfg.DisableHTTPRequestFunc {
-		DisableExternalRequestsFunc()
+	if cfg != nil {
+		if cfg.DisableHTTPRequestFunc {
+			l.Info("Pipeline disable http_request function")
+			DisableExternalRequestsFunc()
+		}
+		if cfg.HTTPRequestDisableInternalNet || len(cfg.HTTPRequestCIDRWhitelist) > 0 ||
+			len(cfg.HTTPRequestHostWhitelist) > 0 {
+			l.Info("Pipeline http_request set filter: %v %v %v", cfg.HTTPRequestDisableInternalNet,
+				cfg.HTTPRequestCIDRWhitelist, cfg.HTTPRequestHostWhitelist)
+
+			funcs.SetNetFilter(cfg.HTTPRequestDisableInternalNet,
+				cfg.HTTPRequestCIDRWhitelist, cfg.HTTPRequestHostWhitelist)
+		}
 	}
 
 	offload.InitOffload()

@@ -143,8 +143,8 @@ github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8Cw
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
-github.com/GuanceCloud/cliutils v1.1.22-0.20241211131543-ef1c166af2c3 h1:dsFaKW45R+9mg/HNZSaGBanCJp+NKgT+qQhD88uausI=
-github.com/GuanceCloud/cliutils v1.1.22-0.20241211131543-ef1c166af2c3/go.mod h1:t7ZrVDUgClrHIc4jV98XbqRbPEnUL3bjtXJG32568Dk=
+github.com/GuanceCloud/cliutils v1.1.22-0.20241225081912-60d342215da0 h1:7H4QvkEAkIjEXqhvlDcg+kSFeKy4n/57dDrIPXC+t0U=
+github.com/GuanceCloud/cliutils v1.1.22-0.20241225081912-60d342215da0/go.mod h1:gyGPmYk6rmNpYF6KDzEPr6UhGtxBUQt6SMOhDjs+GSo=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=

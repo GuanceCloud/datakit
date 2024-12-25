@@ -7,8 +7,10 @@ package point
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 	"strings"
+	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 )
@@ -460,6 +462,16 @@ func (x KVs) Keys() *Keys {
 	}
 
 	return &Keys{arr: arr}
+}
+
+func (x KVs) shuffle() KVs {
+	rand.Seed(time.Now().UnixNano())
+	n := len(x)
+	for i := 0; i < n; i++ {
+		j := rand.Intn(n)
+		x[i], x[j] = x[j], x[i]
+	}
+	return x
 }
 
 func KVKey(kv *Field) *Key {
