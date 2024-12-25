@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,78 @@ var defaultTransport http.RoundTripper = &http.Transport{
 	IdleConnTimeout:       90 * time.Second,
 	TLSHandshakeTimeout:   10 * time.Second,
 	ExpectContinueTimeout: 1 * time.Second,
+}
+
+var gDisableInternalNet bool
+var gCIDRsWhitelist []string
+var gHostWhitelist []string
+
+func SetNetFilter(disableInternal bool, cidrWList, hostWList []string) {
+	gDisableInternalNet = disableInternal
+	gCIDRsWhitelist = append(gCIDRsWhitelist, cidrWList...)
+	gHostWhitelist = append(gHostWhitelist, hostWList...)
+}
+
+func filterHost(host string, disableInternal bool, cidrsWhite []string, hostWhite []string) bool {
+	// host whitelist
+	for i := range hostWhite {
+		if host == hostWhite[i] {
+			return false
+		}
+	}
+
+	var ips []net.IP
+	if len(cidrsWhite) > 0 || disableInternal {
+		var err error
+		if ips, err = net.LookupIP(host); err != nil {
+			return true
+		}
+	}
+
+	// cidr whitelist
+	for _, cidr := range cidrsWhite {
+		if _, ipNet, err := net.ParseCIDR(cidr); err != nil {
+			l.Debug("parse cidr %s failed: %s", cidr, err)
+			continue
+		} else if ipNet != nil {
+			for i := range ips {
+				if ipNet.Contains(ips[i]) {
+					return false
+				}
+			}
+		}
+	}
+	if len(hostWhite) > 0 || len(cidrsWhite) > 0 {
+		return true
+	}
+
+	// disable internal netwrok
+	if disableInternal {
+		for _, ip := range ips {
+			if ip.IsLoopback() ||
+				ip.IsPrivate() ||
+				ip.IsLinkLocalUnicast() ||
+				ip.IsLinkLocalMulticast() ||
+				ip.IsUnspecified() {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func filterURL(urlStr string, disable bool, cidrs, hosts []string) bool {
+	urlP, err := url.Parse(urlStr)
+	if err != nil || urlP == nil {
+		return true
+	}
+
+	if urlP.Scheme != "http" && urlP.Scheme != "https" {
+		return true
+	}
+
+	return filterHost(urlP.Hostname(), disable, cidrs, hosts)
 }
 
 func HTTPRequestChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
@@ -55,6 +128,11 @@ func HTTPRequest(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if urlType != ast.String {
 		return runtime.NewRunError(ctx, "param data type expect string",
 			funcExpr.Param[1].StartPos())
+	}
+
+	if filterURL(url.(string), gDisableInternalNet, gCIDRsWhitelist, gHostWhitelist) {
+		ctx.Regs.ReturnAppend(nil, ast.Nil)
+		return nil
 	}
 
 	var headers any

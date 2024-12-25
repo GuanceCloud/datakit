@@ -381,7 +381,7 @@ func (cpp *ReservedCapPointPool) chanPut() int64 {
 }
 
 func (cpp *ReservedCapPointPool) poolGet() int64 {
-	return cpp.apool.chanGet.Load() +
+	return cpp.apool.poolGet.Load() +
 		cpp.bpool.poolGet.Load() +
 		cpp.dpool.poolGet.Load() +
 		cpp.fpool.poolGet.Load() +
@@ -391,7 +391,7 @@ func (cpp *ReservedCapPointPool) poolGet() int64 {
 }
 
 func (cpp *ReservedCapPointPool) poolPut() int64 {
-	return cpp.apool.chanGet.Load() +
+	return cpp.apool.poolGet.Load() +
 		cpp.bpool.poolPut.Load() +
 		cpp.dpool.poolPut.Load() +
 		cpp.fpool.poolPut.Load() +

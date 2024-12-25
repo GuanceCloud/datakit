@@ -42,7 +42,10 @@ type PipelineCfg struct {
 	EnableDebugFields      bool                   `toml:"-"`
 	DefaultPipeline        map[string]string      `toml:"default_pipeline"`
 
-	DisableHTTPRequestFunc bool `toml:"disable_http_request_func"`
+	DisableHTTPRequestFunc        bool     `toml:"disable_http_request_func"`
+	HTTPRequestHostWhitelist      []string `toml:"http_request_host_whitelist"`
+	HTTPRequestCIDRWhitelist      []string `toml:"http_request_cidr_whiltelist"`
+	HTTPRequestDisableInternalNet bool     `toml:"http_request_disable_internal_net"`
 
 	DeprecatedDisableAppendRunInfo bool `toml:"disable_append_run_info"`
 }

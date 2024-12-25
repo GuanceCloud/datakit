@@ -89,6 +89,24 @@ func envCommon() []*inputs.ENVInfo {
 			DescZh:  "禁用 Pipeline `http_request` 函数",
 		},
 		{
+			ENVName: "ENV_PIPELINE_HTTP_REQUEST_HOST_WHITELIST",
+			Type:    doc.List,
+			Desc:    "Set HOST whitelist for `http_request` function",
+			DescZh:  "为 `http_request` 函数设置 HOST 白名单",
+		},
+		{
+			ENVName: "ENV_PIPELINE_HTTP_REQUEST_CIDR_WHITELIST",
+			Type:    doc.List,
+			Desc:    "Set CIDR whitelist for `http_request` function",
+			DescZh:  "为 `http_request` 函数设置 CIDR 白名单",
+		},
+		{
+			ENVName: "ENV_PIPELINE_HTTP_REQUEST_DISABLE_INTERNAL_NET",
+			Type:    doc.List,
+			Desc:    "Disable `http_request` function to access internal network",
+			DescZh:  "使 `http_request` 函数禁止访问内部网络",
+		},
+		{
 			ENVName: "~~ENV_GLOBAL_TAGS~~",
 			Type:    doc.List,
 			Desc:    "Same as ENV_GLOBAL_HOST-TAGS(Deprecated)",

@@ -254,6 +254,30 @@ func (c *Config) loadPipelineEnvs() {
 			l.Errorf("parse `ENV_PIPELINE_DISABLE_HTTP_REQUEST_FUNC` failed: %s", err)
 		}
 	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_HTTP_REQUEST_HOST_WHITELIST"); v != "" {
+		var r []string
+		if err := json.Unmarshal([]byte(v), &r); err != nil {
+			l.Errorf("parse `ENV_PIPELINE_HTTP_REQUEST_HOST_WHITELIST` failed: %s", err)
+		}
+		c.Pipeline.HTTPRequestHostWhitelist = r
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_HTTP_REQUEST_CIDR_WHITELIST"); v != "" {
+		var r []string
+		if err := json.Unmarshal([]byte(v), &r); err != nil {
+			l.Errorf("parse `ENV_PIPELINE_HTTP_REQUEST_CIDR_WHITELIST` failed: %s", err)
+		}
+		c.Pipeline.HTTPRequestCIDRWhitelist = r
+	}
+
+	if v := datakit.GetEnv("ENV_PIPELINE_HTTP_REQUEST_DISABLE_INTERNAL_NET"); v != "" {
+		var err error
+		c.Pipeline.HTTPRequestDisableInternalNet, err = strconv.ParseBool(v)
+		if err != nil {
+			l.Errorf("parse `ENV_PIPELINE_HTTP_REQUEST_DISABLE_INTERNAL_NET` failed: %s", err)
+		}
+	}
 }
 
 func (c *Config) loadPointPoolEnvs() {
