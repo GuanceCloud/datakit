@@ -134,21 +134,14 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
   enable_discovery_of_prometheus_service_monitors    = false  # 开启 Prometheus ServiceMonitors CRD 功能
 
   [inputs.kubernetesprometheus.global_tags]
-    cluster_name_k8s = "$(ENV_CLUSTER_NAME_K8S)"
-    instance         = "__kubernetes_mate_instance"
-    host             = "__kubernetes_mate_host"
+    instance = "__kubernetes_mate_instance"
+    host     = "__kubernetes_mate_host"
  
   [[inputs.kubernetesprometheus.instances]]
   # ..other
 ```
 
-`global_tags` 会给全部 instance 添加 tags，有以下几点要说明：
-
-- 只支持 `__kubernetes_mate_instance` 和 `__kubernetes_mate_host` 两个占位符，具体功能请查看后文
-- 支持环境变量配置方式，例如 `$(NAME)` 和 `myname=$(NAME)`，如果能找到 `NAME` 这个环境变量，就进行替换。如果找不到，保持 `$(NAME)` 字符串原样
-- 环境变量方式只支持小括号
-- 不支持同一个字符串有多个环境变量，例如写成 `name=$(NAME),namespace=$(NAMESPACE)`，只有 `$(NAME)` 有效
-
+`global_tags` 会给全部 instance 添加 tags，只支持 `__kubernetes_mate_instance` 和 `__kubernetes_mate_host` 两个占位符，占位符功能请查看后文。
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -203,9 +196,7 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    KubernetesPrometheus 采集器不添加任何默认标签，包括来自 Datakit 的 `election_tags` 和 `host_tags`，以及 `cluster_name_k8s`。
-
-    所有标签都需要手动添加。
+    KubernetesPrometheus 采集器会添加 Datakit 的 `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1)。
 <!-- markdownlint-enable -->
 
 ### 权限和验证 {#input-config-auth}
@@ -240,10 +231,10 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 全局占位符是所有 Role 通用，多用来指定一些特殊标签。
 
 <!-- markdownlint-disable MD049 -->
-| Name                       | Description                                                           | 使用范围                                                                  |
-| -----------                | -----------                                                           | -----                                                                     |
-| __kubernetes_mate_instance | 采集目标的 instance，即 `IP:PORT`                                     | 仅支持在 custom.tags 使用，例如 `instance = "__kubernetes_mate_instance"` |
-| __kubernetes_mate_host     | 采集目标的 host，即 `IP`。如果该值是 `localhost` 或环回地址将不再添加 | 仅支持在 custom.tags 使用，例如 `host = "__kubernetes_mate_host"`         |
+| Name                       | Description                                                           | 使用范围                                                                              |
+| -----------                | -----------                                                           | -----                                                                                 |
+| __kubernetes_mate_instance | 采集目标的 instance，即 `IP:PORT`                                     | 仅支持在 global_tags/custom.tags 使用，例如 `instance = "__kubernetes_mate_instance"` |
+| __kubernetes_mate_host     | 采集目标的 host，即 `IP`。如果该值是 `localhost` 或环回地址将不再添加 | 仅支持在 global_tags/custom.tags 使用，例如 `host = "__kubernetes_mate_host"`         |
 <!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}

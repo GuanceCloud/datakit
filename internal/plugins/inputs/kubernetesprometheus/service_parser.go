@@ -52,6 +52,9 @@ var ServiceValueFroms = []struct {
 			if len(args) != 1 {
 				return ""
 			}
+			if args[0] == annotationPrometheusioPath && item.Annotations[args[0]] == "" {
+				return "/metrics"
+			}
 			return item.Annotations[args[0]]
 		},
 	},
