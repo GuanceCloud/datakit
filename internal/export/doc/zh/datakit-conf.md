@@ -277,6 +277,17 @@ $ systemctl status datakit
 
 #### Datakit 用量计量标准 {#dk-usage-count}
 
+<!-- markdownlint-disable MD046 -->
+???+ warning "计量规则调整"
+
+    在 2024 年 12 月 25 日的底座版本中，Datakit 计量规则做了调整，不再以采集器开启与否作为计量依据。具体而言，其规则如下：
+
+    - 所有 Datakit CPU 限额 <= 2 的，按照一个 Datakit 来计量
+    - Datakit CPU 限额 > 2 的，按照实际 CPU 限额核心数来计量
+    
+    Datakit 依然会上报自身的如下基础信息，但老的计量规则在新版本的底座中，不再生效。
+<!-- markdownlint-enable -->
+
 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)
 
 为了规范 Datakit 用量统计，现对 Datakit 的逻辑计量方法进行如下说明：
