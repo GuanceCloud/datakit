@@ -277,6 +277,17 @@ $ systemctl status datakit
 
 #### Datakit Usage Metering Standards {#dk-usage-count}
 
+<!-- markdownlint-disable MD046 -->
+???+ warning "Metering Rule Adjustment"
+
+    In the December 25th, 2024 Guance version release, the Datakit metering rules have been adjusted and are no longer based on whether a collector is enabled. Specifically, the rules are as follows:
+
+    - All Datakits with a CPU limit <= 2 are metered as one Datakit.
+    - Datakits with a CPU limit > 2 are metered based on their actual CPU core limit.
+
+    Datakits will still report their basic information as before. However, the old metering rules will no longer be effective in this new Guance version.
+<!-- markdownlint-enable -->
+
 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)
 
 To standardize the statistical measurement of Datakit usage, the following clarification is provided for the logical measurement method of Datakit:
