@@ -1,0 +1,260 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "Oracle 表空间不足告警",
+        "groupBy": [
+          "host",
+          "tablespace_name"
+        ],
+        "message": "当前主机{{host}}的{{tablespace_name}}表空间不足，请及时关注：\n>主机名：{{host}}\n>表空间名：{{tablespace_name}}\n>当前使用率：{{df_monitor_checker_value}} %\n",
+        "targets": [
+          {
+            "dql": "M::`oracle_tablespace`:(last(`in_use`)) BY `host`, `tablespace_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "864f7657-48a9-4ad7-b256-6b26c4cc5607",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_tablespace`:(last(`in_use`)) BY `host`, `tablespace_name`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "in_use",
+              "filters": [],
+              "groupBy": [
+                "host",
+                "tablespace_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_tablespace",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 900,
+        "title": "Oracle 活跃会话数突变告警",
+        "groupBy": [
+          "host",
+          "oracle_service"
+        ],
+        "message": "当前主机{{host}}的Oracle服务{{oracle_service}} 活跃会话数突变告警，请及时关注：\n>主机名：{{host}}\n>Oracle服务名：{{oracle_service}}\n>最近15分钟到与最近30分钟两个时间段内活跃会话数差值为：{{df_monitor_checker_value}}，请及时关注是否有异常。",
+        "range_2": 1800,
+        "targets": [
+          {
+            "dql": "M::`oracle_system`:(avg(`active_sessions`)) BY `host`, `oracle_service`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "both",
+          "infoEvent": false,
+          "threshold": {
+            "value": 100,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "7af1a3ad-100e-43df-be16-ed893d331e82",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`active_sessions`)) BY `host`, `oracle_service`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "active_sessions",
+              "filters": [],
+              "groupBy": [
+                "host",
+                "oracle_service"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": true,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}

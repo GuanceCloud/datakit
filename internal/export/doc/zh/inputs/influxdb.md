@@ -7,9 +7,11 @@ __int_icon      : 'icon/influxdb'
 dashboard :
   - desc  : 'InfluxDB'
     path  : 'dashboard/zh/influxdb'
+  - desc  : 'InfluxDB v2'
+    path  : 'dashboard/zh/influxdb_v2'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'InfluxDB v2'
+    path  : 'monitor/zh/influxdb_v2'
 ---
 
 

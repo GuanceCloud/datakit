@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'ElasticSearch'
     path  : 'dashboard/zh/elasticsearch'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'ElasticSearch'
+    path  : 'dashboard/monitor/elasticsearch'
 ---
 
 

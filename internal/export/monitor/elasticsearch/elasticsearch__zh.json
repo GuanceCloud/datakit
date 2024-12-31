@@ -1,0 +1,823 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{cluster_name}}-{{index_name}}查询耗时过长",
+        "groupBy": [
+          "cluster_name",
+          "index_name"
+        ],
+        "message": ">集群：{{cluster_name}}\n>索引：{{index_name}}\n>当前集群的索引{{index_name}}查询耗时{{Result}}过长，请检查！",
+        "targets": [
+          {
+            "dql": "M::`elasticsearch_indices_stats`:(avg(`total_search_query_time_in_millis`) AS `search query`) BY `cluster_name`, `index_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "611ba5f2-73fd-4f47-9f4c-75266ebadb94",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`elasticsearch_indices_stats`:(avg(`total_search_query_time_in_millis`) AS `search query`) BY `cluster_name`, `index_name`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "search query",
+              "field": "total_search_query_time_in_millis",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "cluster_name",
+                "index_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "elasticsearch_indices_stats",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "{{cluster_name}}-{{node_name}}当前文档存储空间不足",
+        "groupBy": [
+          "node_name",
+          "cluster_name"
+        ],
+        "message": ">集群：{{cluster_name}}\n>节点：{{node_name}}\n>当前节点存储空间已不足{{Result}}GB，请扩容！",
+        "targets": [
+          {
+            "dql": "series_sum(\"M::`elasticsearch_node_stats`:(avg(`fs_total_available_in_gigabytes`)) BY `node_name`, `cluster_name`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": "<="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "c74309f0-22ee-4da2-8157-46e0bb80401d",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`elasticsearch_node_stats`:(avg(`fs_total_available_in_gigabytes`)) BY `node_name`, `cluster_name`\")",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "fs_total_available_in_gigabytes",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "node_name",
+                "cluster_name"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "elasticsearch_node_stats",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "ES集群{{cluster_name}}错误状态索引过多",
+        "groupBy": [
+          "cluster_name"
+        ],
+        "message": ">集群：{{cluster_name}}\n>结果：{{Result}}\n>原因：当前集群错误状态索引过多，请检查！",
+        "targets": [
+          {
+            "dql": "M::`elasticsearch_cluster_health`:(avg(`indices_lifecycle_error_count`)) BY `cluster_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "ced2bcba-8eb7-4cb0-824a-b0887c906101",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`elasticsearch_cluster_health`:(avg(`indices_lifecycle_error_count`)) BY `cluster_name`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "indices_lifecycle_error_count",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "cluster_name"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "elasticsearch_cluster_health",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "主机 {{ host }} Elasticsearch 查询拒绝率过高",
+        "groupBy": [
+          "host"
+        ],
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Elasticsearch 查询拒绝率过高 {{ Result }}%  \n>建议：询拒绝率表示单周期内集群执行查询操作被拒绝次数占查询总操作数的百分比。当查询拒绝率大于0%，即出现查询拒绝时，说明集群已经达到了查询操作处理能力的上限，或集群出现异常，应及时排查出现查询拒绝的原因并及时解决，否则会影响业务的查询操作。",
+        "targets": [
+          {
+            "dql": "eval(A/B, A=\"M::`elasticsearch_node_stats`:(avg(`thread_pool_search_rejected`)) BY `host`\", B=\"M::`elasticsearch_indices_stats`:(avg(`total_search_query_total`)) BY `host`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "10"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 0
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10"
+                ],
+                "operator": ">"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "b37ca09c-600e-4657-8ce1-7c0e2b9bcb0e",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B, A=\"M::`elasticsearch_node_stats`:(avg(`thread_pool_search_rejected`)) BY `host`\", B=\"M::`elasticsearch_indices_stats`:(avg(`total_search_query_total`)) BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`elasticsearch_node_stats`:(avg(`thread_pool_search_rejected`)) BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "thread_pool_search_rejected",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "elasticsearch_node_stats",
+                  "groupByTime": ""
+                },
+                {
+                  "q": "M::`elasticsearch_indices_stats`:(avg(`total_search_query_total`)) BY `host`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "total_search_query_total",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "主机 {{ host }} Elasticsearch 集群状态异常",
+        "groupBy": [
+          "cluster_name",
+          "host"
+        ],
+        "message": ">等级：{{status}}  \n>集群：{{cluster_name}}\n>主机：{{host}}  \n>内容：Elasticsearch 集群状态异常\n>建议：ElasticsearchElasticsearch 集群状态异常，请及时查看集群各节点状态, 保证Elasticsearch集群的可用性。",
+        "targets": [
+          {
+            "dql": "M::`elasticsearch_cluster_health`:(last(`status_code`)) BY `cluster_name`, `host`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 900,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 0
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          },
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "42835ca6-b59c-4462-be01-eb20534fb344",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`elasticsearch_cluster_health`:(last(`status_code`)) BY `cluster_name`, `host`",
+              "code": "Result",
+              "fill": null,
+              "type": "dql",
+              "alias": "",
+              "field": "status_code",
+              "index": "",
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "cluster_name",
+                "host"
+              ],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "last",
+              "namespace": "metric",
+              "dataSource": "elasticsearch_cluster_health",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "mutationsCheck",
+        "every": "1m",
+        "title": "主机 {{ host }} Elasticsearch 搜索查询负载异常",
+        "groupBy": [
+          "host"
+        ],
+        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Elasticsearch 搜索查询负载异常\n>建议：请及时查看业务情况以保证Elasticsearch集群的可用性。",
+        "targets": [
+          {
+            "dql": "eval(A/B, A=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_total`))[::1800s:] BY `host`\", B=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_time_in_millis`))[::1800s:] BY `host`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "strength": 3,
+              "direction": "both",
+              "periodNum": 3,
+              "checkCount": 1,
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 0
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "strength": 3,
+            "direction": "both",
+            "periodNum": 3,
+            "checkCount": 1,
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "4201355b-6d03-48f9-bfab-17bee815eca7",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/B, A=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_total`))[::1800s:] BY `host`\", B=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_time_in_millis`))[::1800s:] BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "children": [
+                {
+                  "q": "M::`elasticsearch_indices_stats`:(last(`total_search_query_total`))[::1800s:] BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "total_search_query_total",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "queryFuncs": [],
+                  "groupByTime": "1800s"
+                },
+                {
+                  "q": "M::`elasticsearch_indices_stats`:(last(`total_search_query_time_in_millis`))[::1800s:] BY `host`",
+                  "code": "B",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "total_search_query_time_in_millis",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "elasticsearch_indices_stats",
+                  "groupByTime": "1800s"
+                }
+              ],
+              "funcList": [],
+              "expression": "A/B"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "主机 {{ host }} Elasticsearch 平均 JVM 堆内存的使用量过高",
+        "groupBy": [
+          "cluster_name",
+          "node_name"
+        ],
+        "message": ">等级：{{status}}  \n>主机：{{node_name}}  \n>内容：Elasticsearch JVM 堆内存的使用量为 {{ Result }}%  \n>建议：当前JVM垃圾的收集已经跟不上JVM垃圾的产生请及时查看业务情况",
+        "targets": [
+          {
+            "dql": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_used_percent`)) BY `cluster_name`, `node_name`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "85"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false
+        },
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 0
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "85"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "2815fcaa-f0b6-4854-b5cd-de046dce3cd0",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_used_percent`)) BY `cluster_name`, `node_name`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "jvm_mem_heap_used_percent",
+              "filters": [],
+              "groupBy": [
+                "cluster_name",
+                "node_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "elasticsearch_node_stats",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "elasticsearch"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}

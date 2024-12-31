@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'Oracle'
     path  : 'dashboard/zh/oracle'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'Oracle 监控器'
+    path  : 'monitor/zh/oracle'
 ---
 
 
