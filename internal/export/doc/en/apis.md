@@ -230,7 +230,7 @@ Here is a simple JSON example:
     "fields": {
       "f1": 123,
       "f2": 3.4,
-      "f3": "strval"
+      "f3": "strval",
       "f4": false,
       "f5": [1, 2, 3, 4],
       "f6": ["str1", "str2", "str3"]
