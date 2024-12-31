@@ -715,7 +715,7 @@ This release is an iterative update with the following main changes:
 - Container log collection now supports configuring color character filtering `remove_ansi_escape_codes` in Annotation (#2208).
 - The [Health Check Collector](../integrations/host_healthcheck.md) now supports command-line argument filtering (#2197).
 - Added new [Collector Cassandra](../integrations/cassandra.md) (#1812).
-- Added [Usage Statistics](datakit-conf.md#dk-usage-count) (#2177).
+- Added usage statistics (#2177).
 - eBPF Tracing add support for HTTP2/gRPC (#2017).
 
 ### Bug Fixes {#cl-1.29.0-fix}
