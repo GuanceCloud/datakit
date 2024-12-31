@@ -80,7 +80,7 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 				switch span.SpanLayer { // nolint: exhaustive
 				case agentv3.SpanLayer_Database, agentv3.SpanLayer_Cache:
 					if res, ok := getTagValue(span.Tags, "db.statement"); ok {
-						spanKV = spanKV.Add(itrace.FieldResource, res, false, true)
+						spanKV = spanKV.MustAddTag(itrace.FieldResource, res)
 					}
 				case agentv3.SpanLayer_MQ:
 				case agentv3.SpanLayer_Http:

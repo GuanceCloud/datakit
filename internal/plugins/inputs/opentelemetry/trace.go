@@ -56,6 +56,12 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 					AddTag(itrace.TagSpanType,
 						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs)).
 					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
+
+				// service_name from xx.system.
+				if spiltServiceName {
+					spanKV = spanKV.MustAddTag(itrace.TagService, getServiceNameBySystem(span.GetAttributes(), serviceName))
+				}
+
 				for k, v := range tags { // span.attribute 优先级大于全局tag。
 					spanKV = spanKV.MustAddTag(k, v)
 				}

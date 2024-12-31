@@ -57,6 +57,10 @@ const (
   ## compatible ddtrace: It is possible to compatible OTEL Trace with DDTrace trace
   # compatible_ddtrace=false
 
+  ## spilt service.name form xx.system.
+  ## see: https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md
+  spilt_service_name = true
+
   ## delete trace message
   # del_message = true
 
@@ -142,6 +146,7 @@ var (
 	otelSvr          *grpc.Server
 	iptGlobal        *Input
 	delMessage       bool
+	spiltServiceName bool
 )
 
 type httpConfig struct {
@@ -166,6 +171,7 @@ type Input struct {
 	GRPCConfig          *grpcConfig                  `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	CompatibleZhaoShang bool                         `toml:"compatible_zhaoshang"`
+	SpiltServiceName    bool                         `toml:"spilt_service_name"`
 	DelMessage          bool                         `toml:"del_message"`
 	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
 	KeepRareResource    bool                         `toml:"keep_rare_resource"`
@@ -205,6 +211,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	delMessage = ipt.DelMessage
+	spiltServiceName = ipt.SpiltServiceName
 	tags = ipt.Tags
 	convertToDD = ipt.CompatibleDDTrace
 	convertToZhaoShang = ipt.CompatibleZhaoShang
@@ -376,9 +383,10 @@ func (ipt *Input) Terminate() {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:  dkio.DefaultFeeder(),
-		semStop: cliutils.NewSem(),
-		Tagger:  datakit.DefaultGlobalTagger(),
+		feeder:           dkio.DefaultFeeder(),
+		semStop:          cliutils.NewSem(),
+		Tagger:           datakit.DefaultGlobalTagger(),
+		SpiltServiceName: true,
 	}
 }
 
