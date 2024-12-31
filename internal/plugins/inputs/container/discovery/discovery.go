@@ -125,10 +125,7 @@ func (d *Discovery) newPromFromPodAnnotationExport() []*promRunner {
 			if runner.conf == nil {
 				continue
 			}
-			withTag("namespace", pod.Namespace)(runner.conf)
-			withTag("pod_name", pod.Name)(runner.conf)
 			withLabelAsTags(pod.Labels, d.cfg.LabelAsTags)(runner.conf)
-
 			klog.Infof("created prom runner of pod-export-config %s, urls %s", pod.Name, runner.conf.URLs)
 			res = append(res, runner)
 		}
