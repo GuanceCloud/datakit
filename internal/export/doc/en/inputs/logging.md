@@ -36,11 +36,11 @@ This document focuses on local disk log collection and Socket log collection:
       # It is recommended to use the absolute path and specify the file type suffix
       # Please reduce the scope and do not capture to zip file or binary file
       logfiles = [
-        "/var/log/*.log",                      # All files of the log
-        "/var/log/*.txt",                      # All files of the txt
-        "/var/log/sys*",                       # All files prefixed with sys under the file path
-        "/var/log/syslog",                     # Unix format file path
-        "C:/path/space 空格中文路径/some.txt", # Windows format file path
+        "/var/log/*.log",            # All files of the log
+        "/var/log/*.txt",            # All files of the txt
+        "/var/log/sys*",             # All files prefixed with sys under the file path
+        "/var/log/syslog",           # Unix format file path
+        '''C:\\path\\log\\*.txt''',  # Windows-style file path, where the path separator is a double backslash \\, and there are three single quotes on both sides.
       ]
     
       ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards

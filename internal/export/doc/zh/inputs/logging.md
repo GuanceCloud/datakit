@@ -34,11 +34,11 @@ monitor   :
       # 推荐使用绝对路径且指定文件后缀
       # 尽量缩小范围，避免采集到压缩包文件或二进制文件
       logfiles = [
-        "/var/log/*.log",                      # 文件路径下所有 log 文件
-        "/var/log/*.txt",                      # 文件路径下所有 txt 文件
-        "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
-        "/var/log/syslog",                     # Unix 格式文件路径
-        "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
+        "/var/log/*.log",                          # 文件路径下所有 log 文件
+        "/var/log/*.txt",                          # 文件路径下所有 txt 文件
+        "/var/log/sys*",                           # 文件路径下所有以 sys 前缀的文件
+        "/var/log/syslog",                         # Unix 格式文件路径
+        '''C:\\path\\space 空格中文路径\\*.txt''', # Windows 风格文件路径，路径分割符为双反斜杠 \\，并且两侧各有三个单引号
       ]
     
       ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患

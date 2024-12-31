@@ -32,7 +32,7 @@ func (ipt *Input) setLoggingExtraSourceMapToLogConfigs(configs logConfigs) {
 				l.Warnf("invalid global_extra_source_map '%s', err %s, skip", re, err)
 			}
 			if match {
-				l.Debugf("replaced source '%s' with '%s'", cfg.Source, newSource)
+				l.Infof("replaced source '%s' with '%s'", cfg.Source, newSource)
 				cfg.Source = newSource
 				break
 			}
@@ -52,7 +52,7 @@ func (ipt *Input) setLoggingSourceMultilineMapToLogConfigs(configs logConfigs) {
 		source := cfg.Source
 		mult := ipt.LoggingSourceMultilineMap[source]
 		if mult != "" {
-			l.Debugf("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, source)
+			l.Infof("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, source)
 			cfg.Multiline = mult
 		}
 	}
