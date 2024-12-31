@@ -193,7 +193,7 @@
         "type": "seniorMutationsCheck",
         "every": "5m",
         "range": 60,
-        "title": "Nginx连接请求数突变告警",
+        "title": "Nginx 连接请求数突变告警",
         "groupBy": [
           "nginx_server"
         ],

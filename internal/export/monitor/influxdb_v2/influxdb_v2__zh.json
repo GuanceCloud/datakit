@@ -1,0 +1,358 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 900,
+        "title": "InfluxDB-位于{{host}}主机的{{instance}}实例出现GC异常升高",
+        "groupBy": [
+          "host",
+          "instance"
+        ],
+        "message": "",
+        "range_2": 1800,
+        "targets": [
+          {
+            "dql": "M::`influxdb_v2_go`:(avg(`memstats_gc_sys_bytes`)) BY `host`, `instance`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "up",
+          "infoEvent": false,
+          "threshold": {
+            "value": 100000,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "c7485f5d-2ebc-43b4-9f2f-cfbe1a695de8",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`influxdb_v2_go`:(avg(`memstats_gc_sys_bytes`)) BY `host`, `instance`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "memstats_gc_sys_bytes",
+              "filters": [],
+              "groupBy": [
+                "host",
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "influxdb_v2_go",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "V2"
+        },
+        {
+          "name": "InfluxDB"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "seniorMutationsCheck",
+        "every": "5m",
+        "range": 900,
+        "title": "InfluxDB-对实例{{instance}}的访问请求任务失败次数上升，请及时处理",
+        "groupBy": [
+          "instance"
+        ],
+        "message": "",
+        "range_2": 1800,
+        "targets": [
+          {
+            "dql": "M::`influxdb_v2_task`:(last(`scheduler_total_execute_failure`)) BY `instance`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 1800,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "30"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "diffMode": "value",
+          "direction": "both",
+          "infoEvent": false,
+          "threshold": {
+            "value": 10,
+            "status": true,
+            "operator": ">"
+          },
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "periodBefore": 0,
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "error",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "30"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "faac6172-306b-409e-b8ff-05f50acf3624",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`influxdb_v2_task`:(last(`scheduler_total_execute_failure`)) BY `instance`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "scheduler_total_execute_failure",
+              "filters": [],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "influxdb_v2_task",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "V2"
+        },
+        {
+          "name": "InfluxDB"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "processCheck",
+        "every": "5m",
+        "title": "InfluxDB-进程数量异常，请检查数据库存活状态",
+        "groupBy": [
+          "host",
+          "name"
+        ],
+        "message": "",
+        "targets": [
+          {
+            "dql": "O::`host_processes`:(COUNT(`__docid`) AS `count`) {  `cmdline` = wildcard('influxd')  } BY `host`, `name`",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "windowDql": "O::`host_processes`:(COUNT(`__docid`) AS `count`) {  `cmdline` = wildcard('influxd')  } BY `host`, `name`",
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": true,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "10116803-3ed6-4580-8152-d2d5f1e99853",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`host_processes`:(COUNT(`__docid`) AS `count`) {  `cmdline` = wildcard('influxd')  } BY `host`, `name`",
+              "cmdline": "influxd",
+              "filters": [],
+              "groupBy": [
+                "host",
+                "name"
+              ],
+              "dataSource": "host_processes"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "V2"
+        },
+        {
+          "name": "InfluxDB"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}

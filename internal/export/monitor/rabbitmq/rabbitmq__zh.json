@@ -173,7 +173,7 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "rabbitmq队列消息数过高",
+        "title": "RabbitMQ 队列消息数过高",
         "groupBy": [
           "queue_name"
         ],

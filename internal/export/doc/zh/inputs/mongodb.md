@@ -5,11 +5,11 @@ tags:
   - '数据库'
 __int_icon      : 'icon/mongodb'
 dashboard :
-  - desc  : 'Mongodb 监控视图'
+  - desc  : 'MongoDB 监控视图'
     path  : 'dashboard/zh/mongodb'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'MongoDB 监控器'
+    path  : 'monitor/zh/mongodb'
 ---
 
 
@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
+MongoDB 数据库，Collection， MongoDB 数据库集群运行状态数据采集。
 
 ## 配置 {#config}
 

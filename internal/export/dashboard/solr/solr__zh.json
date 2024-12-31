@@ -1,0 +1,1215 @@
+{
+  "title": "Solr 监控视图",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "指标": true,
+      "cache指标": true,
+      "searcher指标": true,
+      "request_times指标": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/solr/solr.png",
+    "icon": null
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "core",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "core",
+        "type": "TAG",
+        "definition": {
+          "tag": "core",
+          "field": "",
+          "value": "",
+          "metric": "solr_searcher",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "searcher指标"
+        },
+        "name": "已删除文档数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_searcher`:(count(`deleted_docs`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "deleted_docs",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_searcher",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "searcher指标"
+        },
+        "name": "文档总数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_searcher`:(count(`num_docs`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "num_docs",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_searcher",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "searcher指标"
+        },
+        "name": "最大文档数",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_searcher`:(count(`max_docs`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "max_docs",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_searcher",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "right",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "request_times指标"
+        },
+        "name": "每秒请求数总览",
+        "pos": {
+          "h": 13,
+          "w": 18,
+          "x": 6,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(last(`rate_15min`) AS `过去15分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "过去15分钟每秒请求数",
+              "field": "rate_15min",
+              "filters": [
+                {
+                  "id": "05f81400-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(avg(`rate_5min`) AS `过去5分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "过去5分钟每秒请求数",
+              "field": "rate_5min",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2a1009b0-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(avg(`rate_1min`) AS `过去1分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "过去1分钟每秒请求数",
+              "field": "rate_1min",
+              "filters": [
+                {
+                  "id": "3e6c97c0-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "cache指标"
+        },
+        "name": "索引缓存命中数",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_cache`:(last(`hits`)) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "hits",
+              "filters": [
+                {
+                  "id": "8ca98e70-1732-11ee-b552-3bd4b6898218",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_cache",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "cache指标"
+        },
+        "name": "插入缓存数",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_cache`:(last(`inserts`)) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "inserts",
+              "filters": [
+                {
+                  "id": "c67b7f50-1732-11ee-b552-3bd4b6898218",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_cache",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "cache指标"
+        },
+        "name": "缓存查找数",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_cache`:(last(`lookups`)) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "lookups",
+              "filters": [
+                {
+                  "id": "f39ab4b0-1732-11ee-b552-3bd4b6898218",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_cache",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": true,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "request_times指标"
+        },
+        "name": "请求总数",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(count(`count`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "count",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "count",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "right",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "request_times指标"
+        },
+        "name": "请求速率",
+        "pos": {
+          "h": 13,
+          "w": 24,
+          "x": 0,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(last(`p99`) AS `P99请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "P99请求处理时间",
+              "field": "p99",
+              "filters": [
+                {
+                  "id": "05f81400-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(last(`p95`) AS `P95请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "P95请求处理时间",
+              "field": "p95",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2a1009b0-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_request_times`:(last(`p75`) AS `P75请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "P75请求处理时间",
+              "field": "p75",
+              "filters": [
+                {
+                  "id": "3e6c97c0-170a-11ee-a588-a5c3eb930e8f",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_request_times",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent_decimal"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "compareColors": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "compareColorsDark": {
+              "dayCompare": "rgba(213,217,226,0.5)",
+              "hourCompare": "#D5D9E2",
+              "weekCompare": "rgba(213,217,226,0.25)",
+              "monthCompare": "rgba(213,217,226,0.12)"
+            },
+            "onlyShowGroupName": false,
+            "compareColorsLight": {
+              "dayCompare": "rgba(11,11,12,0.5)",
+              "hourCompare": "#0B0B0C",
+              "weekCompare": "rgba(11,11,12,0.3)",
+              "monthCompare": "rgba(11,11,12,0.12)"
+            },
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "cache指标"
+        },
+        "name": "索引缓存命中率",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 10
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`solr_cache`:(last(`hitratio`)) { `core` = '#{core}' } BY `core`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "hitratio",
+              "filters": [
+                {
+                  "id": "8ca98e70-1732-11ee-b552-3bd4b6898218",
+                  "op": "=",
+                  "name": "core",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{core}"
+                }
+              ],
+              "groupBy": [
+                "core"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "solr_cache",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "cache指标",
+        "extend": {
+          "colorKey": "style_key2"
+        }
+      },
+      {
+        "name": "request_times指标",
+        "extend": {
+          "colorKey": "style_key20"
+        }
+      },
+      {
+        "name": "searcher指标",
+        "extend": {
+          "colorKey": "style_key1"
+        }
+      }
+    ],
+    "type": "template"
+  }
+}

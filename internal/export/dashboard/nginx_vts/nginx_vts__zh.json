@@ -1,5 +1,5 @@
 {
-  "title": "nginx(VTS) 监控视图_harry",
+  "title": "Nginx(VTS) 监控视图",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
@@ -28,8 +28,6 @@
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
   "iconSet": {
-    "url": "https://gaia.changan.com.cn/guance-res/dataflux-template/dashboard/zh/nginx/nginx.png",
-    "icon": "https://gaia.changan.com.cn/guance-res/dataflux-template/dashboard/zh/nginx/icon.svg"
   },
   "dashboardBindSet": [],
   "thumbnail": "",
