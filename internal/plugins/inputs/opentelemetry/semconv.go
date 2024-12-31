@@ -8,6 +8,8 @@ package opentelemetry
 import (
 	"strings"
 
+	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
+
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -19,14 +21,14 @@ const (
 //nolint:deadcode,unused,varcheck
 const (
 	// HTTP.
-	otelHTTPSchemeKey = "http.scheme"
-	otelHTTPMethodKey = "http.method"
+	otelHTTPSchemeKey = "http_scheme"
+	otelHTTPMethodKey = "http_method"
 	// database.
-	otelDBSystemKey = "db.system"
+	otelDBSystemKey = "db_system"
 	// message queue.
-	otelMessagingSystemKey = "messaging.system"
+	otelMessagingSystemKey = "messaging_system"
 	// rpc system.
-	otelRPCSystemKey = "rpc.system"
+	otelRPCSystemKey = "rpc_system"
 )
 
 const (
@@ -119,4 +121,17 @@ func AddCustomTags(customTags []string) {
 	for _, tag := range customTags {
 		OTELAttributes[tag] = strings.ReplaceAll(tag, ".", "_")
 	}
+}
+
+func getServiceNameBySystem(atts []*common.KeyValue, defaultName string) string {
+	for _, keyValue := range atts {
+		key := keyValue.GetKey()
+		if key == "db.system" || key == "rpc.system" || key == "messaging.system" {
+			if system := keyValue.GetValue().GetStringValue(); system != "" {
+				return system
+			}
+		}
+	}
+
+	return defaultName
 }

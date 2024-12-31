@@ -152,7 +152,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 	iptGlobal = ipt
-
+	plugins = ipt.Plugins
 	var err error
 	if ipt.WPConfig != nil {
 		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {

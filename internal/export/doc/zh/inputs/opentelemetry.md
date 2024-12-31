@@ -58,6 +58,16 @@ OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace
 5. HTTP 协议请求格式同时支持 JSON 和 Protobuf 两种序列化格式。但 gRPC 仅支持 Protobuf 一种。
 6. 请使用 V1 版本的 `javaagent` 版本号为 `1.xx.xx`。OTEL Java Agent V2 版本依然是 alpha 状态。
 
+<!-- markdownlint-disable MD046 -->
+???+ tips
+
+    DDTrace 链路数据中的服务名是根据服务名或者引用的三方库命名的，而 OTEL 采集器的服务名是按照 `otel.service.name` 定义的。
+    为了分开显示服务名，增加了一个字段配置：spilt_service_name = true
+    服务名从链路数据的标签中取出，比如 DB 类型的标签 `db.system=mysql` 那么 服务名就是 Mysql 如果是 MQ 类型：`messaging.system=kafka` ，那么服务名就是 Kafka 。
+    默认从这三个标签中取出："db.system" "rpc.system" "messaging.system".
+<!-- markdownlint-enable -->
+
+
 使用 OTEL HTTP exporter 时注意环境变量的配置，由于 Datakit 的默认配置是 `/otel/v1/trace` 和 `/otel/v1/metric`，所以想要使用 HTTP 协议的话，需要单独配置 `trace` 和 `metric`，
 
 ## 常规命令 {#sdk-configuration}

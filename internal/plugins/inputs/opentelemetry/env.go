@@ -25,6 +25,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	infos := []*inputs.ENVInfo{
 		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`[\"sink_project\", \"custom.tag\"]`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
+		{FieldName: "CompatibleDDTrace", Type: doc.Boolean, Default: `false`, Desc: "Convert trace_id to decimal, compatible with DDTrace", DescZh: "将 trace_id 转成 10 进制，兼容 DDTrace"},
+		{FieldName: "SpiltServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
 		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: `["404", "403", "400"]`, Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
 		{FieldName: "CloseResource", Type: doc.JSON, Example: `{"service1":["resource1","other"],"service2":["resource2","other"]}`, Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
@@ -72,6 +74,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_OTEL_CLOSE_RESOURCE", "ENV_INPUT_OTEL_SAMPLER", "ENV_INPUT_OTEL_TAGS",
 		"ENV_INPUT_OTEL_THREADS", "ENV_INPUT_OTEL_STORAGE", "ENV_INPUT_OTEL_HTTP",
 		"ENV_INPUT_OTEL_GRPC", "ENV_INPUT_OTEL_EXPECTED_HEADERS", "ENV_INPUT_OTEL_DEL_MESSAGE",
+		"ENV_INPUT_OTEL_COMPATIBLE_DDTRACE", "ENV_INPUT_OTEL_SPILT_SERVICE_NAME",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -104,6 +107,18 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.CloseResource = closeRes
+			}
+		case "ENV_INPUT_OTEL_SPILT_SERVICE_NAME":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.SpiltServiceName = ok
+			}
+		case "ENV_INPUT_OTEL_COMPATIBLE_DDTRACE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.CompatibleDDTrace = ok
 			}
 		case "ENV_INPUT_OTEL_SAMPLER":
 			if ratio, err := strconv.ParseFloat(value, 64); err != nil {
