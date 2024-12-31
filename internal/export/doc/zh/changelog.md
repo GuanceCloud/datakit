@@ -1,5 +1,21 @@
 # 更新日志
 
+## 1.65.2(2024/12/31) {#cl-1.65.2}
+
+本次发布属于 hotfix 修复，同时增加一些细节功能。内容如下：
+
+### 新加功能 {#cl-1.65.2-new}
+
+- OpenTelemetry 采集时默认拆分子服务名 `service`（#2522）
+- OpenTelemetry 新增 `ENV_INPUT_OTEL_COMPATIBLE_DDTRACE` 配置入口（!3368）
+
+### 问题修复 {#cl-1.65.2-fix}
+
+- Kubernetes 中自动发现 prom 采集时不再强制加上 `pod_name` 和 `namespace` 字段（#2524）
+- 修复 SkyWalking 中配置 `plugins` 不生效的问题（!3368）
+
+---
+
 ## 1.65.1(2024/12/25) {#cl-1.65.1}
 
 本次发布属于 hotfix 修复，同时增加一些细节功能。内容如下：
