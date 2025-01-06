@@ -28,6 +28,8 @@ type scraper interface {
 	targetURL() string
 	shouldScrape() bool
 	scrape(timestamp int64) error
+	shouldRetry(maxScrapeRetry int) (bool, int)
+	resetRetryCount()
 	isTerminated() bool
 	markAsTerminated()
 }
@@ -188,8 +190,17 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 					continue
 				}
 				if task.shouldScrape() {
-					if err := task.scrape(timestamp * 1e6 /* To Nanoseconds */); err != nil {
-						klog.Warnf("failed to scrape url %s, err %s, this task will be removed", task.targetURL(), err)
+					err := task.scrape(timestamp * 1e6 /* To Nanoseconds */)
+					if err == nil {
+						task.resetRetryCount()
+						continue
+					}
+
+					retry, count := task.shouldRetry(maxScrapeRetry)
+					klog.Warnf("failed to scrape url %s, err %s, retry count %d of %d", task.targetURL(), err, count, maxScrapeRetry)
+
+					if !retry {
+						klog.Warnf("task %s will be removed", task.targetURL())
 						task.markAsTerminated()
 						removeTasks = append(removeTasks, task.targetURL())
 					}

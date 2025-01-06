@@ -19,7 +19,8 @@ var (
 	annotationPrometheusioPath             = "prometheus.io/path"
 	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
 
-	maxTaskNumber = 100
+	maxTaskNumber  = 100
+	maxScrapeRetry = 10
 )
 
 var (

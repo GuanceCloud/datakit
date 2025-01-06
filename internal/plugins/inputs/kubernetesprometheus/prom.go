@@ -23,6 +23,7 @@ type promScraper struct {
 	pm             *promscrape.PromScraper
 
 	checkPaused func() bool
+	retryCount  int
 	terminated  atomic.Bool
 }
 
@@ -55,6 +56,7 @@ func newPromScraper(
 }
 
 func (p *promScraper) targetURL() string  { return p.urlstr }
+func (p *promScraper) resetRetryCount()   { p.retryCount = 0 }
 func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
 func (p *promScraper) markAsTerminated()  { p.terminated.Store(true) }
 
@@ -72,6 +74,14 @@ func (p *promScraper) scrape(defaultTimestamp int64) error {
 	err := p.pm.ScrapeURL(p.urlstr)
 	collectCostVec.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
+}
+
+func (p *promScraper) shouldRetry(maxScrapeRetry int) (bool, int) {
+	p.retryCount++
+	if p.retryCount >= maxScrapeRetry {
+		return false, p.retryCount
+	}
+	return true, p.retryCount
 }
 
 func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
