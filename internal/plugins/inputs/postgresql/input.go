@@ -60,7 +60,7 @@ const sampleConfig = `
   # or simple string
   # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
-  address = "postgres://datakit:PASSWORD@localhost?sslmode=disable"
+  address = "postgres://datakit:PASSWORD@localhost/postgres?sslmode=disable"
 
   ## Ignore databases which are gathered. Do not use with 'databases' option.
   #
@@ -672,7 +672,7 @@ func (ipt *Input) setAurora() {
 func (ipt *Input) setVersion() error {
 	rows, err := ipt.service.Query("SHOW SERVER_VERSION;")
 	if err != nil {
-		return err
+		return fmt.Errorf("query version failed: %w", err)
 	}
 
 	defer rows.Close() //nolint:errcheck
@@ -751,11 +751,11 @@ func (ipt *Input) Collect() error {
 	defer ipt.service.Stop() //nolint:errcheck
 	err = ipt.service.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("start service failed: %w", err)
 	}
 
 	if err := ipt.setVersion(); err != nil {
-		return err
+		return fmt.Errorf("set version failed: %w", err)
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
