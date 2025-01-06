@@ -35,7 +35,7 @@ func TestInput_parseSlowData(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok no selection",
+			name: "ok-no-selection",
 			fields: fields{
 				Host:          "localhost",
 				SlowlogMaxLen: 128,
@@ -48,16 +48,16 @@ func TestInput_parseSlowData(t *testing.T) {
 			},
 			want: []string{
 				// not host=HOST, because have host=localhost
-				`redis_slowlog,foo=bar,host=localhost,service=redis command="debug sleep .25",message="debug sleep .25 cost time 250092us",slowlog_95percentile=250092,slowlog_avg=131128.5,slowlog_id=3i,slowlog_max=250092i,slowlog_median=131128i,slowlog_micros=250092i,status="WARNING"`,
-				`redis_slowlog,foo=bar,host=localhost,service=redis command="debug sleep .25",message="debug sleep .25 cost time 250122us",slowlog_95percentile=1000091,slowlog_avg=378117.5,slowlog_id=1i,slowlog_max=1000091i,slowlog_median=250107i,slowlog_micros=250122i,status="WARNING"`,
-				`redis_slowlog,foo=bar,host=localhost,service=redis command="debug sleep 1",message="debug sleep 1 cost time 1000087us",slowlog_95percentile=1000091,slowlog_avg=502511.4,slowlog_id=0i,slowlog_max=1000091i,slowlog_median=250122i,slowlog_micros=1000087i,status="WARNING"`,
-				`redis_slowlog,foo=bar,host=localhost,service=redis command="debug sleep 1",message="debug sleep 1 cost time 1000091us",slowlog_95percentile=1000091,slowlog_avg=420782.6666666667,slowlog_id=2i,slowlog_max=1000091i,slowlog_median=250092i,slowlog_micros=1000091i,status="WARNING"`,
-				`redis_slowlog,foo=bar,host=localhost,service=redis command="info ALL",message="info ALL cost time 12165us",slowlog_95percentile=12165,slowlog_avg=12165,slowlog_id=4i,slowlog_max=12165i,slowlog_median=12165i,slowlog_micros=12165i,status="WARNING"`,
+				`redis_slowlog,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep .25",message="debug sleep .25 cost time 250092us",slowlog_95percentile=250092,slowlog_avg=131128.5,slowlog_id=3i,slowlog_max=250092i,slowlog_median=131128i,slowlog_micros=250092i,status="WARNING"`,
+				`redis_slowlog,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep .25",message="debug sleep .25 cost time 250122us",slowlog_95percentile=1000091,slowlog_avg=378117.5,slowlog_id=1i,slowlog_max=1000091i,slowlog_median=250107i,slowlog_micros=250122i,status="WARNING"`,
+				`redis_slowlog,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep 1",message="debug sleep 1 cost time 1000087us",slowlog_95percentile=1000091,slowlog_avg=502511.4,slowlog_id=0i,slowlog_max=1000091i,slowlog_median=250122i,slowlog_micros=1000087i,status="WARNING"`,
+				`redis_slowlog,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep 1",message="debug sleep 1 cost time 1000091us",slowlog_95percentile=1000091,slowlog_avg=420782.6666666667,slowlog_id=2i,slowlog_max=1000091i,slowlog_median=250092i,slowlog_micros=1000091i,status="WARNING"`,
+				`redis_slowlog,foo=bar,host=localhost,service=redis client_addr="172.17.0.1:60188",client_name="",command="info ALL",message="info ALL cost time 12165us",slowlog_95percentile=12165,slowlog_avg=12165,slowlog_id=4i,slowlog_max=12165i,slowlog_median=12165i,slowlog_micros=12165i,status="WARNING"`,
 			},
 			wantErr: false,
 		},
 		{
-			name: "ok selection",
+			name: "ok-selection",
 			fields: fields{
 				Host:          "localhost",
 				SlowlogMaxLen: 128,
@@ -69,11 +69,11 @@ func TestInput_parseSlowData(t *testing.T) {
 				slowlogs: mockSlowLogs01(),
 			},
 			want: []string{
-				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis command="debug sleep .25",message="debug sleep .25 cost time 250092us",slowlog_95percentile=250092,slowlog_avg=131128.5,slowlog_id=3i,slowlog_max=250092i,slowlog_median=131128i,slowlog_micros=250092i,status="WARNING"`,
-				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis command="debug sleep .25",message="debug sleep .25 cost time 250122us",slowlog_95percentile=1000091,slowlog_avg=378117.5,slowlog_id=1i,slowlog_max=1000091i,slowlog_median=250107i,slowlog_micros=250122i,status="WARNING"`,
-				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis command="debug sleep 1",message="debug sleep 1 cost time 1000087us",slowlog_95percentile=1000091,slowlog_avg=502511.4,slowlog_id=0i,slowlog_max=1000091i,slowlog_median=250122i,slowlog_micros=1000087i,status="WARNING"`,
-				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis command="debug sleep 1",message="debug sleep 1 cost time 1000091us",slowlog_95percentile=1000091,slowlog_avg=420782.6666666667,slowlog_id=2i,slowlog_max=1000091i,slowlog_median=250092i,slowlog_micros=1000091i,status="WARNING"`,
-				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis command="info ALL",message="info ALL cost time 12165us",slowlog_95percentile=12165,slowlog_avg=12165,slowlog_id=4i,slowlog_max=12165i,slowlog_median=12165i,slowlog_micros=12165i,status="WARNING"`,
+				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep .25",message="debug sleep .25 cost time 250092us",slowlog_95percentile=250092,slowlog_avg=131128.5,slowlog_id=3i,slowlog_max=250092i,slowlog_median=131128i,slowlog_micros=250092i,status="WARNING"`,
+				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep .25",message="debug sleep .25 cost time 250122us",slowlog_95percentile=1000091,slowlog_avg=378117.5,slowlog_id=1i,slowlog_max=1000091i,slowlog_median=250107i,slowlog_micros=250122i,status="WARNING"`,
+				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep 1",message="debug sleep 1 cost time 1000087us",slowlog_95percentile=1000091,slowlog_avg=502511.4,slowlog_id=0i,slowlog_max=1000091i,slowlog_median=250122i,slowlog_micros=1000087i,status="WARNING"`,
+				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis client_addr="127.0.0.1:33294",client_name="",command="debug sleep 1",message="debug sleep 1 cost time 1000091us",slowlog_95percentile=1000091,slowlog_avg=420782.6666666667,slowlog_id=2i,slowlog_max=1000091i,slowlog_median=250092i,slowlog_micros=1000091i,status="WARNING"`,
+				`redis_slowlog,election=TRUE,foo=bar,host=localhost,service=redis client_addr="172.17.0.1:60188",client_name="",command="info ALL",message="info ALL cost time 12165us",slowlog_95percentile=12165,slowlog_avg=12165,slowlog_id=4i,slowlog_max=12165i,slowlog_median=12165i,slowlog_micros=12165i,status="WARNING"`,
 			},
 			wantErr: false,
 		},

@@ -44,9 +44,9 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"slowlog_id": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type:     inputs.Gauge,
+				Type:     inputs.UnknownType,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "Slow log unique id",
+				Desc:     "Slow log unique ID",
 			},
 			"slowlog_micros": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -55,9 +55,9 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "Cost time",
 			},
 			"command": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.DurationUS,
+				DataType: inputs.String,
+				Type:     inputs.UnknownType,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "Slow command",
 			},
 			"slowlog_avg": &inputs.FieldInfo{
@@ -83,6 +83,20 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
 				Desc:     "Slow 95th percentile duration",
+			},
+
+			"client_addr": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.UnknownType,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The client ip:port that run the slow query",
+			},
+
+			"client_name": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.UnknownType,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The client name that run the slow query(if `client setname` executed on client-side)",
 			},
 		},
 	}
@@ -134,8 +148,8 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 			continue
 		}
 
-		if entry == nil || len(entry) != 6 {
-			return nil, fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
+		if entry == nil || len(entry) < 4 {
+			return nil, fmt.Errorf("protocol error: slowlog expect at least 4 fields, got %+#v", entry)
 		}
 
 		var id int64
@@ -203,6 +217,16 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 		kvs = kvs.Add("slowlog_max", int64(maxDur), false, false)
 		kvs = kvs.Add("slowlog_median", int64(midDur), false, false)
 		kvs = kvs.Add("slowlog_95percentile", p95Dur, false, false)
+
+		if len(entry) >= 6 { // redis 4.0+
+			if x, ok := entry[4].(string); ok {
+				kvs = kvs.Add("client_addr", x, false, false)
+			}
+
+			if x, ok := entry[5].(string); ok {
+				kvs = kvs.Add("client_name", x, false, false)
+			}
+		}
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
