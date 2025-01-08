@@ -78,7 +78,7 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.guance.com?token=tkn_xxxx"
+token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:
@@ -151,7 +151,6 @@ aws ecr get-login-password \
 ```shell
 helm upgrade -i datakit oci://709825985650.dkr.ecr.us-east-1.amazonaws.com/guance/datakit-charts --version 1.23.5 \
      --create-namespace -n datakit
-
 ```
 
 Expected output：
@@ -180,7 +179,7 @@ NOTES:
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.guance.com?token=tkn_xxxx"
+token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:
@@ -190,12 +189,11 @@ envDataway=$(echo -n "$token" | base64)
 kubectl patch secret env-dataway -p "{\"data\": {\"datawayUrl\": \"$envDataway\"}}" -n datakit
 ```
 
-restart DataKit:
+restart Datakit:
 
 ```shell
 kubectl rollout restart ds datakit -n datakit
 ```
-
 
 ### Verify Deployment {#verify-install}
 

@@ -7,11 +7,13 @@ nav:
 
   - 'DataKit 安装':
     - '主机安装': datakit-install.md
-    - 'K8s 安装': datakit-daemonset-deploy.md
-    - '离线安装': datakit-offline-install.md
+    - '容器安装':
+      - 'Kubernetes': datakit-daemonset-deploy.md
+      - 'Docker': datakit-docker-deploy.md
+      - 'AWS ECS Fargate': ecs-fargate.md
+      - 'AWS EKS': datakit-eks-deploy.md
     - '批量安装': datakit-batch-deploy.md
-    - 'AWS ECS Fargate 集成': ecs-fargate.md
-    - 'AWS EKS 集成': datakit-eks-deploy.md
+    - '离线安装': datakit-offline-install.md
 
   - 'DataKit 使用':
     - 服务管理: datakit-service-how-to.md

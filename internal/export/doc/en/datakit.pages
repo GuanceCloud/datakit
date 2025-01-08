@@ -7,11 +7,13 @@ nav:
 
   - 'DataKit Installation':
     - 'Host Installation': datakit-install.md
-    - 'K8s Installation': datakit-daemonset-deploy.md
+    - 'Containers':
+      - 'Kubernetes': datakit-daemonset-deploy.md
+      - 'Docker': datakit-docker-deploy.md
+      - 'AWS ECS Fargate': ecs-fargate.md
+      - 'AWS EKS': datakit-eks-deploy.md
     - 'Offline Installation': datakit-offline-install.md
     - 'Batch Installation': datakit-batch-deploy.md
-    - 'AWS ECS Fargate Integration': ecs-fargate.md
-    - 'AWS EKS Integration': datakit-eks-deploy.md
 
   - 'Using DataKit':
     - Service Management: datakit-service-how-to.md
