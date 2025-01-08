@@ -50,7 +50,6 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "LoggingRemoveAnsiEscapeCodes", Type: doc.Boolean, Default: `false`, Desc: "Remove `ansi` escape codes and color characters, referred to [`ansi-decode` doc](logging.md#ansi-decode)", DescZh: `日志采集删除包含的颜色字符，详见[日志特殊字符处理说明](logging.md#ansi-decode)`},
 		{FieldName: "LoggingFileFromBeginningThresholdSize", Type: doc.Int, Default: `20,000,000`, Desc: "Decide whether or not to from_beginning based on the file size, if the file size is smaller than this value when the file is found, start the collection from the begin", DescZh: `根据文件 size 决定是否 from_beginning，如果发现该文件时，文件 size 小于这个值，就使用 from_beginning 从头部开始采集`},
 		{FieldName: "LoggingFileFromBeginning", Type: doc.Boolean, Default: `false`, Desc: "Whether to collect logs from the begin of the file", DescZh: `是否从文件首部采集日志`},
-		{FieldName: "LoggingEnableInotify", Type: doc.Boolean, Default: `true`, Desc: "Whether to enable the Linux Inotify feature, which can detect new files more quickly.", DescZh: `是否开启 Linux Inotify 机制，能更快地发现新文件`},
 		{FieldName: "LoggingMaxOpenFiles", Type: doc.Int, Default: `500`, Desc: `The maximum allowed number of open files. If it is set to -1, it means there is no limit.`, DescZh: `日志采集最大打开文件个数，如果是 -1 则没有限制`},
 		{FieldName: "LoggingFieldWhiteList", Type: doc.List, Example: "`'[\"service\",\"container_id\"]'`", Desc: `"Only retain the fields specified in the whitelist."`, DescZh: `指定保留白名单中的字段`},
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
@@ -322,12 +321,5 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP"]; ok {
 		ipt.LoggingExtraSourceMap = config.ParseGlobalTags(str)
-	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_ENABLE_INOTIFY"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_ENABLE_INOTIFY to bool: %s, ignore", err)
-		} else {
-			ipt.LoggingEnableInotify = b
-		}
 	}
 }

@@ -59,7 +59,6 @@ type Input struct {
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
 	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
-	LoggingEnableInotify                  bool              `toml:"logging_enable_inotify"`
 	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`
 
 	CollectMetricInterval time.Duration `toml:"-"`
@@ -145,7 +144,6 @@ func newInput() *Input {
 		EnableK8sNodeLocal:        true,
 		Tags:                      make(map[string]string),
 		LoggingEnableMultline:     true,
-		LoggingEnableInotify:      true,
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
 		Election:                  true,

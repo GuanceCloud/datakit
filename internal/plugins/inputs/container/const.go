@@ -66,9 +66,6 @@ const sampleCfg = `
   ## Whether to collect logs from the begin of the file.
   logging_file_from_beginning = false
 
-  ## Whether to enable the Linux Inotify feature, which can detect new files more quickly.
-  logging_enable_inotify = true
-
   ## The maximum allowed number of open files, default is 500. If it is -1, it means no limit.
   # logging_max_open_files = 500
 
