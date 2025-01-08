@@ -58,6 +58,9 @@ type option struct {
 	//
 	fieldWhiteList map[string]interface{}
 
+	// 开启 Inotify 文件发现机制
+	enableInotify bool
+
 	insideFilepathFunc func(string) string
 
 	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
@@ -75,8 +78,9 @@ func WithIgnoreStatus(arr []string) Option   { return func(opt *option) { opt.ig
 func WithPipeline(s string) Option           { return func(opt *option) { opt.pipeline = s } }
 func WithCharacterEncoding(s string) Option  { return func(opt *option) { opt.characterEncoding = s } }
 func WithFromBeginning(b bool) Option        { return func(opt *option) { opt.fromBeginning = b } }
-func EnableDebugFields(b bool) Option        { return func(opt *option) { opt.enableDebugFields = b } }
 func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mode = mode } }
+func EnableDebugFields(b bool) Option        { return func(opt *option) { opt.enableDebugFields = b } }
+func EnableInotify(b bool) Option            { return func(opt *option) { opt.enableInotify = b } }
 
 func WithFieldWhiteList(list []string) Option {
 	return func(opt *option) {

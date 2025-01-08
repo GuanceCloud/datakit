@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -80,7 +81,7 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 		return nil, fmt.Errorf("failed to new filter, err: %w", err)
 	}
 
-	if runtime.GOOS == datakit.OSLinux {
+	if runtime.GOOS == datakit.OSLinux && c.enableInotify {
 		tailer.fileInotify, err = fileprovider.NewInotify(patterns)
 		if err != nil {
 			tailer.log.Warnf("failed to new inotify, err: %s, ingored", err)
@@ -88,6 +89,7 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 			return tailer, nil
 		}
 	} else {
+		tailer.log.Infof("source %s does not use the inotify", c.source)
 		tailer.fileInotify = fileprovider.NewNopInotify()
 	}
 
@@ -135,7 +137,9 @@ func (t *Tailer) Start() {
 				continue
 			}
 			receiveCreateEventVec.WithLabelValues(t.source, "file").Inc()
-			t.tryCreateWorkFromFiles(ctx, []string{event.Name})
+
+			file := filepath.Clean(event.Name)
+			t.tryCreateWorkFromFiles(ctx, []string{file})
 			ticker.Reset(scanNewFileInterval)
 
 		case <-ticker.C:

@@ -85,6 +85,9 @@ const (
   ## Read file from beginning.
   from_beginning = false
 
+  ## Whether to enable the Linux Inotify feature, which can detect new files more quickly.
+  enable_inotify = true
+
   [inputs.logging.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -106,6 +109,7 @@ type Input struct {
 	AutoMultilineExtraPatterns []string          `toml:"auto_multiline_extra_patterns"`
 	RemoveAnsiEscapeCodes      bool              `toml:"remove_ansi_escape_codes"`
 	Tags                       map[string]string `toml:"tags"`
+	EnableInotify              bool              `toml:"enable_inotify"`
 	FromBeginning              bool              `toml:"from_beginning,omitempty"`
 	MaxOpenFiles               int               `toml:"max_open_files"`
 	IgnoreDeadLog              string            `toml:"ignore_dead_log"`
@@ -178,6 +182,7 @@ func (ipt *Input) Run() {
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
 		tailer.WithFieldWhiteList(fieldWhiteList),
+		tailer.EnableInotify(ipt.EnableInotify),
 	}
 
 	switch ipt.Mode {
@@ -351,18 +356,20 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Tags:      make(map[string]string),
-			inputName: inputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
-			semStop:   cliutils.NewSem(),
+			EnableInotify: true,
+			Tags:          make(map[string]string),
+			inputName:     inputName,
+			Tagger:        datakit.DefaultGlobalTagger(),
+			semStop:       cliutils.NewSem(),
 		}
 	})
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
-			Tags:      make(map[string]string),
-			inputName: deprecatedInputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
-			semStop:   cliutils.NewSem(),
+			EnableInotify: true,
+			Tags:          make(map[string]string),
+			inputName:     deprecatedInputName,
+			Tagger:        datakit.DefaultGlobalTagger(),
+			semStop:       cliutils.NewSem(),
 		}
 	})
 }
