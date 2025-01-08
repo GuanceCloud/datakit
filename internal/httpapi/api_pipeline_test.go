@@ -34,31 +34,35 @@ func TestGetDecodeData(t *testing.T) {
 		{
 			name: "normal",
 			in: &pipelineDebugRequest{
-				Data: []string{"aGVsbG8gd29ybGQ="},
+				Data:     []string{"aGVsbG8gd29ybGQ="},
+				DataType: "text/plain",
 			},
 			expectData: []string{"hello world"},
 		},
 		{
 			name: "gb18030",
 			in: &pipelineDebugRequest{
-				Data:   []string{"1tDOxA=="},
-				Encode: "gb18030",
+				Data:     []string{"1tDOxA=="},
+				Encode:   "gb18030",
+				DataType: "text/plain",
 			},
 			expectData: []string{"中文"},
 		},
 		{
 			name: "gbk",
 			in: &pipelineDebugRequest{
-				Data:   []string{"1tDOxA=="},
-				Encode: "gbk",
+				Data:     []string{"1tDOxA=="},
+				Encode:   "gbk",
+				DataType: "text/plain",
 			},
 			expectData: []string{"中文"},
 		},
 		{
 			name: "UTF-8",
 			in: &pipelineDebugRequest{
-				Data:   []string{"aGVsbG8gd29ybGQ="},
-				Encode: "UTF8",
+				Data:     []string{"aGVsbG8gd29ybGQ="},
+				DataType: "text/plain",
+				Encode:   "UTF8",
 			},
 			expectData: []string{"hello world"},
 		},
@@ -66,7 +70,11 @@ func TestGetDecodeData(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := decodeDataAndConv2Point(point.Logging, "a", tc.in.Encode, tc.in.Data)
+			pts, err := decodeDataAndConv2Point(point.Logging, "a", &pipelineDebugRequest{
+				Encode:   tc.in.Encode,
+				DataType: tc.in.DataType,
+				Data:     tc.in.Data,
+			})
 
 			var r []string
 			for _, pt := range pts {
@@ -80,6 +88,11 @@ func TestGetDecodeData(t *testing.T) {
 }
 
 //------------------------------------------------------------------------------
+
+func getPt(name string, tags map[string]string, fields map[string]any, opts []point.Option) string {
+	pt, _ := point.NewPoint(name, tags, fields, opts...)
+	return pt.LineProto()
+}
 
 // go test -v -timeout 30s -run ^TestApiDebugPipelineHandler$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi
 func TestApiDebugPipelineHandler(t *testing.T) {
@@ -98,11 +111,13 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 					"logging": scriptsForTest(),
 				},
 				Category:   "logging",
+				DataType:   "application/lineprotocol",
 				ScriptName: "nginx",
 				Data: []string{base64.StdEncoding.EncodeToString([]byte(
-					`2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed` +
+					getPt("nginx", nil, map[string]any{"message": `2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed` +
 						` (2: No such file or directory), client: 127.0.0.1, server: localhost, request:` +
-						` "GET /server_status HTTP/1.1", host: "localhost:8080"`))},
+						` "GET /server_status HTTP/1.1", host: "localhost:8080"`}, point.CommonLoggingOptions()),
+				))},
 				Multiline: "",
 				Encode:    "",
 				Benchmark: true,
@@ -146,6 +161,7 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 				},
 				Category:   "logging",
 				ScriptName: "nginx",
+				DataType:   "text/plain",
 				Data: []string{base64.StdEncoding.EncodeToString([]byte(
 					`2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed` +
 						` (2: No such file or directory), client: 127.0.0.1, server: localhost, request:` +

@@ -753,11 +753,12 @@ Content-Type: application/json
         "<script_name>": <base64("pipeline-source-code")>
       }
     },
-    "script_name": "<script_name>"
+    "script_name": "<script_name>",
     "category": "<logging[metric, tracing, ...]>", # 日志类别传入日志文本，其他类别需要传入行协议文本
     "data": [ base64("raw-logging-data1"), ... ], # 可以是日志或者行协议
+    "data_type": "application/line-protocol",
     "encode": "@data 的字符编码",         # 默认是 utf8 编码
-    "benchmark": false,                  # 是否开启 benchmark
+    "benchmark": false                    # 是否开启 benchmark
 }
 ```
 

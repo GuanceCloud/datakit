@@ -753,11 +753,12 @@ Content-Type: application/json
         "<script_name>": <base64("pipeline-source-code")>
       }
     },
-    "script_name": "<script_name>"
+    "script_name": "<script_name>",
     "category": "<logging[metric, tracing, ...]>", # Log category, pass in log text, other categories need to pass in line protocol text
     "data": [ base64("raw-logging-data1"), ... ], # Can be log or line protocol
-    "encode": "@data's character encoding",         # Default is utf8 encoding
-    "benchmark": false,                  # Whether to enable benchmark
+    "data_type": "application/line-protocol",
+    "encode": "@data's character encoding",       # Default is utf8 encoding
+    "benchmark": false                            # Whether to enable benchmark
 }
 ```
 
