@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -92,8 +93,9 @@ type Input struct {
 	Tagger datakit.GlobalTagger `toml:"-"`
 	feeder dkio.Feeder          `toml:"-"`
 
-	url  string
-	prom *prom.Prom
+	url     string
+	prom    *prom.Prom
+	semStop *cliutils.Sem
 }
 
 // Singleton make the input only 1 instance when multiple instance configured.
@@ -169,8 +171,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
-func (*Input) Terminate() {
-	// do nothing
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
 }
 
 func (*Input) Catalog() string {
@@ -224,6 +228,9 @@ func (ipt *Input) Run() {
 			select {
 			case <-datakit.Exit.Wait():
 				return
+			case <-ipt.semStop.Wait():
+				l.Infof("%s input return", inputName)
+				return
 			default:
 				time.Sleep(time.Second)
 			}
@@ -265,6 +272,10 @@ func (ipt *Input) Run() {
 
 		case <-datakit.Exit.Wait():
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Infof("%s input return", inputName)
+			return
 		}
 	}
 }
@@ -278,6 +289,7 @@ func def() *Input {
 		feeder:   dkio.DefaultFeeder(),
 		url:      fmt.Sprintf("http://%s/metrics", defaultHost),
 		Interval: time.Second * 30,
+		semStop:  cliutils.NewSem(),
 		Tags:     map[string]string{},
 		Tagger:   datakit.DefaultGlobalTagger(),
 	}
