@@ -81,6 +81,9 @@ func defaultHTTPServerConf() *httpServerConf {
 func Start(opts ...option) {
 	l = logger.SLogger("http")
 
+	// inject reload http server function to kv
+	config.GetKV().SetHTTPServerRestart(ReloadHTTPServer)
+
 	// register golang runtime metrics
 	metrics.MustAddGolangMetrics()
 
@@ -605,16 +608,7 @@ func ReloadDataKit(ctx context.Context) error {
 			case 5:
 				l.Info("before ReloadTheNormalServer")
 
-				ReloadTheNormalServer(
-					WithAPIConfig(config.Cfg.HTTPAPI),
-					WithDCAConfig(config.Cfg.DCAConfig),
-					WithGinLog(config.Cfg.Logging.GinLog),
-					WithGinRotateMB(config.Cfg.Logging.Rotate),
-					WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
-					WithDataway(config.Cfg.Dataway),
-					WithPProf(config.Cfg.EnablePProf),
-					WithPProfListen(config.Cfg.PProfListen),
-				)
+				ReloadHTTPServer()
 			}
 		}
 
@@ -623,4 +617,17 @@ func ReloadDataKit(ctx context.Context) error {
 			return nil
 		}
 	}
+}
+
+func ReloadHTTPServer() {
+	ReloadTheNormalServer(
+		WithAPIConfig(config.Cfg.HTTPAPI),
+		WithDCAConfig(config.Cfg.DCAConfig),
+		WithGinLog(config.Cfg.Logging.GinLog),
+		WithGinRotateMB(config.Cfg.Logging.Rotate),
+		WithGinReleaseMode(strings.ToLower(config.Cfg.Logging.Level) != "debug"),
+		WithDataway(config.Cfg.Dataway),
+		WithPProf(config.Cfg.EnablePProf),
+		WithPProfListen(config.Cfg.PProfListen),
+	)
 }

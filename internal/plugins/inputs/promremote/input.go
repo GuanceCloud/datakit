@@ -85,8 +85,10 @@ func (*Input) Catalog() string {
 	return catalog
 }
 
-func (*Input) Terminate() {
-	// do nothing
+func (ipt *Input) Terminate() {
+	for _, m := range ipt.Methods {
+		httpapi.RemoveHTTPRoute(m, ipt.Path)
+	}
 }
 
 func (ipt *Input) Run() {

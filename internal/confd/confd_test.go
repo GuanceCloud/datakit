@@ -57,11 +57,11 @@ func checkGot(t *testing.T, confdInputs map[string][]*inputs.ConfdInfo, wants []
 		duration := time.Duration(1)
 		switch want.mapKey {
 		case "cpu":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*cpu.Input).Interval
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.Input.(*cpu.Input).Interval
 		case "ipmi":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*ipmi.Input).Interval
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.Input.(*ipmi.Input).Interval
 		case "dk":
-			duration = confdInputs[want.mapKey][want.sliceIdx].Input.(*dk.Input).Interval
+			duration = confdInputs[want.mapKey][want.sliceIdx].Input.Input.(*dk.Input).Interval
 		}
 		if duration != want.inputInterval {
 			t.Errorf("want Interval.Duration : %d, mapKey : %s, but got %d .", want.inputInterval, want.mapKey, duration)

@@ -9,23 +9,50 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
-	ret := map[string][]inputs.Input{}
+type KVConfig struct {
+	sync.RWMutex
+	config map[string][2]string
+}
 
+var kvConfig = &KVConfig{
+	config: map[string][2]string{},
+}
+
+func (kv *KVConfig) Add(key, rawConfData, parsedConfData string) string {
+	kv.Lock()
+	defer kv.Unlock()
+
+	kv.config[key] = [2]string{rawConfData, parsedConfData}
+
+	return key
+}
+
+func (kv *KVConfig) ForEach(f func(key string, conf [2]string)) {
+	kv.RLock()
+	defer kv.RUnlock()
+
+	for k, v := range kv.config {
+		f(k, v)
+	}
+}
+
+func getInputsFromConfData(confKey string, confData []byte, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
 	var res map[string]interface{}
-
-	if _, err := bstoml.Decode(confData, &res); err != nil {
+	ret := map[string][]*inputs.InputInfo{}
+	if _, err := bstoml.Decode(string(confData), &res); err != nil {
 		l.Warnf("bstoml.Decode: %s, ignored, confData:\n%s", err, confData)
 		return nil, err
 	}
@@ -58,15 +85,16 @@ func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[st
 					for _, input := range y {
 						l.Debugf("input: %+#v", input)
 
-						if i, err := constructInput(input, c); err != nil {
+						if i, err := constructInput(confKey, input, c); err != nil {
 							l.Errorf("constructInput: %s, ignored", err)
 						} else {
+							i.Name = inputName
 							ret[inputName] = append(ret[inputName], i)
 						}
 					}
 
 				case map[string]interface{}: // it's a single input: [inputs.xxx]
-					if i, err := constructInput(y, c); err != nil {
+					if i, err := constructInput(confKey, y, c); err != nil {
 						l.Errorf("constructInput: %s, ignored", err)
 					} else {
 						ret[inputName] = append(ret[inputName], i)
@@ -83,6 +111,35 @@ func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[st
 	}
 
 	return ret, nil
+}
+
+// LoadSingleConf load single conf data with kv replace.
+func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
+	var err error
+	parsedConfData := []byte(confData)
+	isTemplate := IsKVTemplate(confData)
+
+	if isTemplate {
+		parsedConfData, err = defaultKV.ReplaceKV(confData)
+		if err != nil {
+			return nil, fmt.Errorf("defaultKV.ReplaceKV: %w", err)
+		}
+	}
+
+	confKey := cliutils.XID("kv_config_")
+	defer func() {
+		// add kv config to kvConfig if it is a template, even if it is not a valid kv template.
+		// because the kv template may be invalid firstly, and it may be valid later.
+		if isTemplate {
+			kvConfig.Add(confKey, confData, string(parsedConfData))
+		}
+	}()
+
+	if v, err := getInputsFromConfData(confKey, parsedConfData, creators); err != nil {
+		return nil, fmt.Errorf("getInputsFromConfData: %w", err)
+	} else {
+		return v, nil
+	}
 }
 
 func SearchDir(dir string, suffix string, ignoreDirs ...string) []string {
@@ -134,10 +191,10 @@ func CheckConfFileDupOrSet(data []byte) bool {
 	return false
 }
 
-func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipChecksum bool) (map[string][]inputs.Input, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
+func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipChecksum bool) (map[string][]*inputs.InputInfo, error) {
+	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
-		l.Errorf("ioutil.ReadFile: %s", err.Error())
+		l.Errorf("os.ReadFile: %s", err.Error())
 		return nil, err
 	}
 
@@ -154,10 +211,10 @@ func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipCheck
 
 // LoadInputConf read all inputs configures(toml) from @root,
 // then create various inputs object.
-func LoadInputConf(root string) map[string][]inputs.Input {
+func LoadInputConf(root string) map[string][]*inputs.InputInfo {
 	confs := SearchDir(root, ".conf", ".git")
 
-	ret := map[string][]inputs.Input{}
+	ret := map[string][]*inputs.InputInfo{}
 
 	l.Infof("find %d confs: %+#v", len(confs), confs)
 	for _, fp := range confs {
@@ -174,8 +231,8 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 
 		for k, arr := range x {
 			loaded := false
-			for _, collector := range ret[k] {
-				if _, ok := collector.(inputs.Singleton); ok {
+			for _, kvInput := range ret[k] {
+				if _, ok := kvInput.Input.(inputs.Singleton); ok {
 					loaded = true
 					l.Warnf("the collector [%s] is singleton, allow only one instant running", k)
 					break
@@ -183,7 +240,7 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 			}
 			if !loaded {
 				if len(arr) > 1 {
-					if _, ok := arr[0].(inputs.Singleton); ok {
+					if _, ok := arr[0].Input.(inputs.Singleton); ok {
 						arr = arr[:1]
 						l.Warnf("the collector [%s] is singleton but finding multi instant config, reserve the first only", k)
 					}
@@ -197,7 +254,7 @@ func LoadInputConf(root string) map[string][]inputs.Input {
 	return ret
 }
 
-func constructInput(x interface{}, c inputs.Creator) (inputs.Input, error) {
+func constructInput(confKey string, x interface{}, c inputs.Creator) (*inputs.InputInfo, error) {
 	i := c()
 	var buf bytes.Buffer
 
@@ -215,5 +272,5 @@ func constructInput(x interface{}, c inputs.Creator) (inputs.Input, error) {
 		return nil, err
 	}
 
-	return i, nil
+	return &inputs.InputInfo{ParsedConfig: buf.String(), Input: i, ConfKey: confKey}, nil
 }

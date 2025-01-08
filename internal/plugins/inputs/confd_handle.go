@@ -95,12 +95,12 @@ func stopInput(handles []handle, errs *[]error) {
 		// Walk stop all this kind inputs
 		for i := 0; i < len(InputsInfo[h.name]); i++ {
 			ii := InputsInfo[h.name][i]
-			if ii.input == nil {
+			if ii.Input == nil {
 				l.Debugf("confd stop skip datakit-input is nil %s, %d", h.name, i)
 				continue
 			}
 
-			if v2, ok := ii.input.(InputV2); ok {
+			if v2, ok := ii.Input.(InputV2); ok {
 				v2.Terminate()
 			}
 		}
@@ -148,7 +148,7 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 
 		// Make sure you have this input type
 		if _, ok := InputsInfo[h.name]; !ok {
-			InputsInfo[h.name] = []*inputInfo{}
+			InputsInfo[h.name] = []*InputInfo{}
 			l.Debugf("confd add non-datakit-input-kind %s", h.name)
 		}
 		// Make sure confd has this collector
@@ -160,23 +160,28 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 
 		// Append all confd data
 		for i := 0; i < len(confdInputs[h.name]); i++ {
-			newInput := &inputInfo{confdInputs[h.name][i].Input}
+			newInput := confdInputs[h.name][i].Input
 
-			if inp, ok := newInput.input.(HTTPInput); ok {
+			if newInput == nil {
+				l.Warnf("input is nil, ignore add input")
+				continue
+			}
+
+			if inp, ok := newInput.Input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 
-			if inp, ok := newInput.input.(PipelineInput); ok {
+			if inp, ok := newInput.Input.(PipelineInput); ok {
 				inp.RunPipeline()
 			}
 
-			if inp, ok := newInput.input.(ReadEnv); ok && datakit.Docker {
+			if inp, ok := newInput.Input.(ReadEnv); ok && datakit.Docker {
 				inp.ReadEnv(envs)
 			}
 
 			InputsInfo[h.name] = append(InputsInfo[h.name], newInput)
 
-			func(name string, ii *inputInfo) {
+			func(name string, ii *InputInfo) {
 				g.Go(func(ctx context.Context) error {
 					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
 					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec

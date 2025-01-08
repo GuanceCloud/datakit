@@ -239,14 +239,14 @@ percpu = false
 
 			for k, arr := range tc.expectInputs {
 				for idx, i := range arr {
-					assert.Truef(t, eq(i, ret[k][idx]), "not equal: %v <> %v", i, ret[k][idx])
+					assert.Truef(t, eq(i, ret[k][idx].Input), "not equal: %v <> %v", i, ret[k][idx])
 				}
 			}
 
 			for k, v := range ret {
 				for _, _v := range v {
 					t.Logf("%s: %+#v", k, _v)
-					t.Logf("sample: %s", _v.SampleConfig())
+					t.Logf("sample: %s", _v.Input.SampleConfig())
 				}
 			}
 		})
@@ -366,8 +366,8 @@ source = "guance-scopedb-insert"
 		}
 
 		for k, v := range ret {
-			t.Logf("%q: %+#v", k, v[0].(*iprom.Input))
-			t.Logf("rename: %+#v", v[0].(*iprom.Input).TagsRename)
+			t.Logf("%q: %+#v", k, v[0])
+			t.Logf("rename: %+#v", v[0].Input.(*iprom.Input).TagsRename)
 		}
 	})
 }

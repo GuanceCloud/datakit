@@ -238,6 +238,10 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	for _, endpoint := range ipt.Endpoints {
+		httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
+	}
 }
 
 func init() { //nolint:gochecknoinits

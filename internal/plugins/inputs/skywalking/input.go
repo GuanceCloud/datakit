@@ -328,6 +328,21 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	for _, v := range ipt.Endpoints {
+		log.Debugf("### remove route skywalking http v3: %s", v)
+		switch v {
+		case v3trace:
+			httpapi.RemoveHTTPRoute(http.MethodPost, v)
+		case v3metric:
+			httpapi.RemoveHTTPRoute(http.MethodPost, v)
+		case v3logging:
+			httpapi.RemoveHTTPRoute(http.MethodPost, v)
+			httpapi.RemoveHTTPRoute(http.MethodPost, "/v3/logs")
+		case v3profiling:
+			httpapi.RemoveHTTPRoute(http.MethodPost, v)
+		}
+	}
 }
 
 func defaultInput() *Input {

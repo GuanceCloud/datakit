@@ -95,7 +95,7 @@ func getPromRemoteWriteInput(configPath string) (*pr.Input, error) {
 			return nil, fmt.Errorf("should test only one prom_remote_write config, now get %v", len(inputList))
 		}
 
-		input, ok := arr[0].(*pr.Input)
+		input, ok := arr[0].Input.(*pr.Input)
 		if !ok {
 			return nil, fmt.Errorf("invalid prom_remote_write instance")
 		}
@@ -152,7 +152,7 @@ func getPromInput(configPath string) (*prom.Input, error) {
 			return nil, fmt.Errorf("should test only one prom config, now get %v", len(arr))
 		}
 
-		input, ok := arr[0].(*prom.Input)
+		input, ok := arr[0].Input.(*prom.Input)
 		if !ok {
 			return nil, fmt.Errorf("invalid prom instance")
 		}

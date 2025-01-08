@@ -298,6 +298,10 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	if ipt.Endpoint != "" {
+		httpapi.RemoveHTTPRoute("POST", ipt.Endpoint)
+	}
 }
 
 func defaultInput() *Input {

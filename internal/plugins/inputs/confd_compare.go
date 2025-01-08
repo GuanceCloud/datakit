@@ -13,7 +13,7 @@ import (
 )
 
 type ConfdInfo struct {
-	Input Input
+	Input *InputInfo
 }
 type handle struct {
 	name        string
@@ -38,10 +38,10 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 		handleList = append(handleList, handle{confdInputName, -1, -1})
 
 		// Make sure InputsInfo have this collector kind
-		var inputsInfo []*inputInfo
+		var inputsInfo []*InputInfo
 		var ok bool
 		if inputsInfo, ok = InputsInfo[confdInputName]; !ok {
-			InputsInfo[confdInputName] = []*inputInfo{}
+			InputsInfo[confdInputName] = []*InputInfo{}
 			l.Debugf("confd add non-datakit-input-kind %s", confdInputName)
 		}
 
@@ -54,7 +54,7 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 		// Find index if need modify
 		for i := 0; i < forLen; i++ {
 			jsonConfd, _ := json.Marshal(confdConfigs[i].Input)
-			jsonInput, _ := json.Marshal(InputsInfo[confdInputName][i].input)
+			jsonInput, _ := json.Marshal(InputsInfo[confdInputName][i].Input)
 
 			jsonConfdStr := string(jsonConfd)
 			jsonInputStr := string(jsonInput)

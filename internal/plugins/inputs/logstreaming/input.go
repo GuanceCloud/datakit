@@ -190,6 +190,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+	httpapi.RemoveHTTPRoute("POST", "/v1/write/logstreaming")
 }
 
 func defaultInput() *Input {

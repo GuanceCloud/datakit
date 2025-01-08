@@ -372,7 +372,11 @@ func handleConfdData(data []map[string]string) {
 		if len(oneKindInputs) < 2 {
 			continue
 		}
-		if _, ok := oneKindInputs[0].Input.(inputs.Singleton); ok {
+		if oneKindInputs[0].Input == nil {
+			l.Warnf("ignore nil input in confdInputs, kind: %s", kind)
+			continue
+		}
+		if _, ok := oneKindInputs[0].Input.Input.(inputs.Singleton); ok {
 			l.Warnf("the collector [%s] is singleton, allow only one in confd.", kind)
 			confdInputs[kind] = confdInputs[kind][:1]
 		}
@@ -395,7 +399,7 @@ func appendDataToConfdInputs(keyPath, value string) {
 		}
 		// Traverse like []inputs.Input.
 		for i := 0; i < len(oneKindInputs); i++ {
-			if haveSameInput(oneKindInputs[i], kind) {
+			if haveSameInput(oneKindInputs[i].Input, kind) {
 				l.Debug("has duplicate value: ", kind)
 			} else {
 				confdInputs[kind] = append(confdInputs[kind], &inputs.ConfdInfo{Input: oneKindInputs[i]})

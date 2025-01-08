@@ -171,7 +171,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) Terminate() {
-	// Nothing to terminate.
+	httpapi.RemoveHTTPRoute("POST", "/v1/write/promtail")
 }
 
 func (ipt *Input) RegHTTPHandler() {

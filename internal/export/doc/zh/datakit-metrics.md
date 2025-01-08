@@ -63,6 +63,11 @@ datakit_cpu_usage 4.9920266849857144
 |SUMMARY|`datakit_io_dataway_api_latency_seconds`|`api,status`|Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status|
 |COUNTER|`datakit_io_http_retry_total`|`api,status`|Dataway HTTP retried count|
 |SUMMARY|`datakit_io_grouped_request`|`category`|Grouped requests under sinker|
+|GAUGE|`datakit_kv_last_update_timestamp_seconds`|`N/A`|KV last update time|
+|SUMMARY|`datakit_kv_pull_latency_seconds`|`status`|KV pull latency|
+|COUNTER|`datakit_kv_update_total`|`N/A`|KV updated count|
+|GAUGE|`datakit_kv_input_last_update_timestamp_seconds`|`N/A`|KV input last reload time|
+|COUNTER|`datakit_kv_input_reload_total`|`N/A`|KV input reload count|
 |GAUGE|`datakit_io_dataway_wal_mem_len`|`category`|Dataway WAL's memory queue length|
 |SUMMARY|`datakit_io_flush_failcache_bytes`|`category`|IO flush fail-cache bytes(in gzip) summary|
 |SUMMARY|`datakit_io_build_body_cost_seconds`|`category,encoding,stage`|Build point HTTP body cost|

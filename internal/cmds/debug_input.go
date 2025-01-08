@@ -31,6 +31,16 @@ func debugInput(conf string) error {
 		dkio.WithFilter(false),
 		dkio.WithCompactor(false))
 
+	// load kv file
+	if *flagDebugKVFile != "" {
+		cp.Infof("setting kv file to %s...\n", *flagDebugKVFile)
+		datakit.KVFile = *flagDebugKVFile
+	}
+
+	if err := config.GetKV().LoadKVFile(datakit.KVFile); err != nil {
+		cp.Warnf("load kv file failed: %s, ignore \n", err.Error())
+	}
+
 	loadedInputs, err := config.LoadSingleConfFile(conf, inputs.Inputs, false)
 	if err != nil {
 		return fmt.Errorf("load %s: %w", conf, err)
@@ -58,7 +68,7 @@ func debugInput(conf string) error {
 				} else {
 					i.Run()
 				}
-			}(arr[idx], name)
+			}(arr[idx].Input, name)
 		}
 	}
 

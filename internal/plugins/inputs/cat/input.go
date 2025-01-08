@@ -163,6 +163,8 @@ func (ipt *Input) Terminate() {
 	if ipt.listener != nil {
 		_ = ipt.listener.Close()
 	}
+
+	httpapi.RemoveHTTPRoute("get", "/cat/s/router")
 }
 
 func init() { //nolint:gochecknoinits

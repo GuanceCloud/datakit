@@ -114,6 +114,31 @@ func runToolFlags() error {
 		}
 		os.Exit(0)
 
+	case *flagToolParseKVFile != "":
+		tryLoadMainCfg()
+		kvPath := *flagToolKVFile
+		if kvPath == "" {
+			kvPath = datakit.KVFile
+		}
+		kv := config.GetKV()
+		if err := kv.LoadKVFile(kvPath); err != nil {
+			cp.Errorf("load kv file failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+		data, err := os.ReadFile(filepath.Clean(*flagToolParseKVFile))
+		if err != nil {
+			cp.Errorf("read file failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		replacedData, err := kv.ReplaceKV(string(data))
+		if err != nil {
+			cp.Errorf("replace kv failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		cp.Output("%s", replacedData)
+
 	case *flagToolRemoveApmAutoInject:
 		// cleanup apm inject
 		if err := apmInj.Uninstall(
