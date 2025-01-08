@@ -19,6 +19,9 @@ const (
 	KindHOST    = "host"
 	KindDocker  = "docker"
 	KindDisable = "disable"
+
+	RuntimeRunc   = "runc"
+	RuntimeDkRunc = "dk-runc"
 )
 
 type config struct {

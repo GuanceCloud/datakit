@@ -9,7 +9,11 @@
 
 package utils
 
-import "github.com/GuanceCloud/cliutils/logger"
+import (
+	"fmt"
+
+	"github.com/GuanceCloud/cliutils/logger"
+)
 
 func Download(log *logger.Logger, opt ...Opt) error {
 	return nil
@@ -21,4 +25,8 @@ func Install(log *logger.Logger, opt ...Opt) error {
 
 func Uninstall(opt ...Opt) error {
 	return nil
+}
+
+func ChangeDockerHostConfigRunc(from, to, ctrPath string) error {
+	return fmt.Errorf("not implemented")
 }
