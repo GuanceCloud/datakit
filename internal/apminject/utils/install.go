@@ -10,7 +10,6 @@ package utils
 
 import (
 	"bufio"
-	"context"
 	"crypto/tls"
 	"debug/elf"
 	"encoding/json"
@@ -24,8 +23,6 @@ import (
 	"syscall"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/docker/docker/api/types"
-	docker "github.com/docker/docker/client"
 	pr "github.com/shirou/gopsutil/v3/process"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -51,6 +48,8 @@ const (
 
 	dkruncBinName = "dkrunc"
 )
+
+const dockerCtrPath = "/var/lib/docker/containers"
 
 var (
 	dirDkInstall = datakit.InstallDir
@@ -654,12 +653,20 @@ func unsetDockerRunc(configPath string) error {
 }
 
 func ChangeDockerHostConfigRunc(from, to, ctrPath string) error {
-	ctrs, err := listContainer()
-	if err != nil {
-		return fmt.Errorf("list docker container failed: %w", err)
-	}
 	if ctrPath == "" {
-		ctrPath = "/var/lib/docker/containers"
+		ctrPath = dockerCtrPath
+	}
+
+	elems, err := os.ReadDir(ctrPath)
+	if err != nil {
+		return err
+	}
+
+	var ctrs []string
+	for _, e := range elems {
+		if e.IsDir() {
+			ctrs = append(ctrs, e.Name())
+		}
 	}
 
 	for _, c := range ctrs {
@@ -692,26 +699,4 @@ func ChangeDockerHostConfigRunc(from, to, ctrPath string) error {
 	}
 
 	return nil
-}
-
-func listContainer() ([]string, error) {
-	client, err := docker.NewClientWithOpts(
-		docker.WithAPIVersionNegotiation(),
-		docker.WithHost("unix:///var/run/docker.sock"))
-	if err != nil {
-		return nil, err
-	}
-	ctx := context.Background()
-	li, err := client.ContainerList(ctx, types.ContainerListOptions{
-		All: true,
-		// Filters: filters.NewArgs(filters.Arg("status", "running")),
-	})
-	if err != nil {
-		return nil, err
-	}
-	var ids []string
-	for _, c := range li {
-		ids = append(ids, c.ID)
-	}
-	return ids, nil
 }
