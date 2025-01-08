@@ -115,6 +115,7 @@ var OTELAttributes = map[string]string{
 	"env":            "env",
 	"host":           "host",
 	"pod_name":       "pod_name",
+	"pod_namespace":  "pod_namespace",
 }
 
 func AddCustomTags(customTags []string) {
