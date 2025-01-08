@@ -242,6 +242,9 @@ func isLoopbackClient(c *gin.Context) bool {
 	xff := c.GetHeader("X-Forwarded-For")
 	xri := c.GetHeader("X-Real-IP")
 	if xff == "" && xri == "" {
+		if c.Request.RemoteAddr == "@" {
+			return true
+		}
 		return net.ParseIP(c.ClientIP()).IsLoopback()
 	}
 
@@ -438,6 +441,32 @@ func tryStartServer(hs *httpServerConf,
 
 	defer closeListener()
 
+	// serve udsPath
+	if udsPath := hs.apiConfig.ListenSocket; udsPath != "" {
+		g.Go(func(ctx context.Context) error {
+			udsListener, err := initUnixListener(udsPath)
+			if err != nil {
+				l.Errorf("init uds listener failed: %s", err)
+				return nil
+			}
+			defer func() {
+				if udsListener != nil {
+					err = udsListener.Close()
+					if err != nil {
+						l.Warnf("close uds listener failed: %s", err)
+					}
+				}
+			}()
+
+			l.Infof("try start uds server, path %s ...", srv.Addr)
+			if err = srv.Serve(udsListener); err != nil {
+				l.Errorf("start server failed: %s", err.Error())
+			}
+			l.Info("http server exit")
+			return nil
+		})
+	}
+
 	tryTLS := hs.apiConfig.HTTPSEnabled()
 	for {
 		if tryTLS {
@@ -477,6 +506,37 @@ func portInUse(addr string) bool {
 	}
 	defer conn.Close() //nolint:errcheck
 	return true
+}
+
+func initUnixListener(udsPath string) (net.Listener, error) {
+	var (
+		listener net.Listener
+		err      error
+	)
+
+	if filepath.IsAbs(udsPath) {
+		_ = os.MkdirAll(filepath.Dir(udsPath), 0o755) //nolint:gosec
+		if fi, err := os.Stat(udsPath); err == nil {
+			if fi.Mode()&os.ModeSocket == 0 {
+				return nil, fmt.Errorf("reuse %s faild: file mode %s", udsPath,
+					fi.Mode().String())
+			}
+			if err = os.Remove(udsPath); err != nil && !os.IsNotExist(err) {
+				return nil, fmt.Errorf("remove %s: %w", udsPath, err)
+			}
+		}
+
+		if listener, err = net.Listen("unix", udsPath); err != nil {
+			return nil, fmt.Errorf(`net.Listen("unix"): %w`, err)
+		}
+		if err := os.Chmod(udsPath, 0o722); err != nil { //nolint:gosec
+			return nil, fmt.Errorf("setting socket permissions failed: %w", err)
+		}
+
+		return listener, nil
+	} else {
+		return nil, fmt.Errorf("uds path %s is not absolute", udsPath)
+	}
 }
 
 func initListener(lsn string) (net.Listener, error) {

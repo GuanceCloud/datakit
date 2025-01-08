@@ -10,8 +10,10 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"debug/elf"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,9 +21,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/docker/docker/api/types"
+	docker "github.com/docker/docker/client"
+	pr "github.com/shirou/gopsutil/v3/process"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
@@ -29,23 +36,37 @@ import (
 const (
 	preloadConfigFilePath = "/etc/ld.so.preload"
 
-	dirDkInstall       = "/usr/local/datakit"
 	dirInject          = "apm_inject"
 	dirInjectSubInject = "inject"
 	dirInjectSubLib    = "lib"
+
+	dockerDaemonJSONPath      = "/etc/docker/daemon.json"
+	dockerFieldDefaultRuntime = "default-runtime"
+	dockerFieldRuntimes       = "runtimes"
 
 	launcherName = "apm_launcher"
 
 	glibc = "glibc"
 	muslc = "musl"
+
+	RuntimeRunc   = "runc"
+	RuntimeDkRunc = "dk-runc"
+
+	dkruncBinName = "dkrunc"
 )
 
 var (
+	dirDkInstall = datakit.InstallDir
+
 	py3Regexp        = regexp.MustCompile(`^Python 3.(\d+)`)
 	reGLBC           = regexp.MustCompile(`ldd \(.*\) ([0-9\.]+)`)
 	reMusl           = regexp.MustCompile("musl libc \\(.*\\)\nVersion ([0-9\\.]+)")
 	soGLibcVerRegexp = regexp.MustCompile(`^GLIBC_([0-9\.]+)$`)
 )
+
+func dkRuncPath() string {
+	return filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, dkruncBinName)
+}
 
 func Download(log *logger.Logger, opt ...Opt) error {
 	var c config
@@ -135,7 +156,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	return nil
 }
 
-func Install(opt ...Opt) error {
+func Install(log *logger.Logger, opt ...Opt) error {
 	var c config
 	for _, fn := range opt {
 		fn(&c)
@@ -146,7 +167,13 @@ func Install(opt ...Opt) error {
 	}
 
 	if !c.enableHostInject && !c.enableDockerInject {
-		return unsetPreload(c.installDir)
+		if err := unsetPreload(c.installDir); err != nil {
+			log.Error(err)
+		}
+		if err := unsetDockerRunc(dockerDaemonJSONPath); err != nil {
+			log.Error(err)
+		}
+		return nil
 	}
 
 	// TODO: check docker inject
@@ -154,40 +181,67 @@ func Install(opt ...Opt) error {
 	if c.enableHostInject {
 		libc, hostVersion, err := lddInfo()
 		if err != nil {
-			_ = unsetPreload(c.installDir)
-			return err
+			log.Error(err)
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		launcherSoPath, err := laucnherSoPath(libc, c.installDir)
 		if err != nil {
-			_ = unsetPreload(c.installDir)
-			return err
+			log.Error(err)
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		elfFile, err := elf.Open(launcherSoPath)
 		if err != nil {
-			_ = unsetPreload(c.installDir)
-			return err
+			log.Error(err)
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		dynSyms, err := elfFile.DynamicSymbols()
 		if err != nil {
-			_ = unsetPreload(c.installDir)
-			return err
+			log.Error(err)
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		required, err := requiredGLIBCVersion(dynSyms)
 		if err != nil && libc == glibc {
-			_ = unsetPreload(c.installDir)
-			return err
+			log.Error(err)
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		if hostVersion.LessThan(required) {
-			_ = unsetPreload(c.installDir)
-			return fmt.Errorf("host libc version %s is less than required %s",
-				hostVersion, required)
+			log.Error(fmt.Errorf("host libc version %s is less than required %s",
+				hostVersion, required))
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
 		if err := setPreload(c.installDir, launcherSoPath); err != nil {
-			_ = unsetPreload(c.installDir)
-			return err
+			if err := unsetPreload(c.installDir); err != nil {
+				log.Error(err)
+			}
+			goto skipHost
 		}
-	} else {
-		return unsetPreload(c.installDir)
+	} else if err := unsetPreload(c.installDir); err != nil {
+		log.Error(err)
+	}
+
+skipHost:
+	if c.enableDockerInject {
+		if err := setDockerRunc(dockerDaemonJSONPath, dkRuncPath()); err != nil {
+			log.Error(err)
+		}
 	}
 
 	return nil
@@ -202,19 +256,33 @@ func Uninstall(opt ...Opt) error {
 		c.installDir = dirDkInstall
 	}
 
-	if err := unsetPreload(c.installDir); err != nil {
-		return err
+	if err := unsetDockerRunc(dockerDaemonJSONPath); err != nil {
+		cp.Errorf("unset docker:%s", err)
 	}
-	if err := removeInjFiles(c.installDir); err != nil {
-		return err
+
+	if err := unsetPreload(c.installDir); err != nil {
+		cp.Errorf("unset preload:%s", err)
 	}
 
 	return nil
 }
 
-func removeInjFiles(path string) error {
-	path = filepath.Join(path, dirInject, dirInjectSubInject)
-	return os.RemoveAll(path)
+func reloadDockerConfig() error {
+	processes, _ := pr.Processes()
+	var pidLi []int
+	for _, proc := range processes {
+		if name, err := proc.Name(); err == nil && name == "dockerd" {
+			pidLi = append(pidLi, int(proc.Pid))
+		}
+	}
+
+	for _, pid := range pidLi {
+		err := syscall.Kill(pid, syscall.SIGHUP)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func readPreloadWithoutLanucher(preloadPath, installDir string) (string, error) {
@@ -396,4 +464,257 @@ func requiredGLIBCVersion(dynamicSymbols []elf.Symbol) (Version, error) {
 		}
 	}
 	return required, nil
+}
+
+type dockerRuntime struct {
+	name string
+
+	// for runc
+	path string
+	// for shim
+	shimRuntimeType string
+}
+
+func getDockerRuncFromSysInfo() (string, error) {
+	bp, err := exec.LookPath("docker")
+	if err != nil {
+		return "", fmt.Errorf("cannot find docker: %w", err)
+	}
+	cmd := exec.Command(bp, "system", "info", "--format", "{{.DefaultRuntime}}") //nolint:gocritic,gosec
+	o, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("run cmd `%s` failed: %w", cmd.String(), err)
+	}
+	runcInfo := strings.TrimSpace(string(o))
+	if runcInfo != RuntimeRunc && runcInfo != RuntimeDkRunc {
+		return "", fmt.Errorf("unknown runc: %s", runcInfo)
+	}
+
+	return runcInfo, nil
+}
+
+func getDockerRuntimeInfoFromConfig(cfg map[string]any) (defaultRuntime string, runtimes []dockerRuntime) {
+	if val, ok := cfg[dockerFieldDefaultRuntime]; ok {
+		if v, ok := val.(string); ok {
+			defaultRuntime = v
+		}
+	}
+	if val, ok := cfg[dockerFieldRuntimes]; ok {
+		if runtimesVal, ok := val.(map[string]any); ok {
+			for name, rinf := range runtimesVal {
+				var rt dockerRuntime
+				rt.name = name
+				if rinf, ok := rinf.(map[string]any); ok {
+					if path, ok := rinf["path"]; ok {
+						if path, ok := path.(string); ok {
+							rt.path = path
+						}
+					}
+					if runtimeType, ok := rinf["runtimeType"]; ok {
+						if runtimeType, ok := runtimeType.(string); ok {
+							rt.shimRuntimeType = runtimeType
+						}
+					}
+				}
+				runtimes = append(runtimes, rt)
+			}
+		}
+	}
+
+	return
+}
+
+func loadDockerDaemonConfig(path string) (map[string]any, error) {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	f, err := os.Open(path) //nolint:gocritic,gosec
+	if err != nil {
+		return nil, fmt.Errorf("open %s failed: %w", dockerDaemonJSONPath, err)
+	}
+
+	defer f.Close() //nolint:gosec,errcheck
+
+	var r map[string]any
+	if err := json.NewDecoder(f).Decode(&r); err != nil {
+		return nil, fmt.Errorf("decode %s failed: %w", dockerDaemonJSONPath, err)
+	}
+
+	return r, nil
+}
+
+func dumpDockerDaemonConfig(path string, config map[string]any) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o755) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint:errcheck,gosec
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "    ")
+	return enc.Encode(config)
+}
+
+func setDockerRunc(configPath, runcPath string) error {
+	if _, err := os.Stat(runcPath); err != nil {
+		return err
+	}
+
+	injLdPreld := filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, "ld.so.preload")
+	if _, err := os.Stat(injLdPreld); err != nil {
+		soPath := filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, launcherName+".so") + "\n"
+		if err := os.WriteFile(injLdPreld, []byte(soPath), 0o644); err != nil { //nolint:gosec
+			return err
+		}
+	}
+
+	config, err := loadDockerDaemonConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	runcName, err := getDockerRuncFromSysInfo()
+	if err != nil {
+		return err
+	}
+
+	if runcName == RuntimeDkRunc {
+		return nil
+	}
+
+	if runcName != RuntimeRunc {
+		return fmt.Errorf("docker default runtime is not runc, but: %s", runcName)
+	}
+
+	if cfgVal, _ := getDockerRuntimeInfoFromConfig(config); cfgVal != "" {
+		if runcName != cfgVal {
+			return fmt.Errorf("config not match the actual information: system info: %s, config: %s",
+				runcName, cfgVal)
+		} else {
+			return nil
+		}
+	}
+	if config == nil {
+		config = map[string]any{}
+	}
+
+	var runtimes map[string]any
+	if v, ok := config[dockerFieldRuntimes]; ok {
+		if v, ok := v.(map[string]any); ok {
+			runtimes = v
+		} else {
+			return fmt.Errorf("docker config `runtimes` not map")
+		}
+	} else {
+		runtimes = map[string]any{}
+	}
+	config[dockerFieldDefaultRuntime] = RuntimeDkRunc
+	runtimes[RuntimeDkRunc] = map[string]any{
+		"path": runcPath,
+	}
+	config[dockerFieldRuntimes] = runtimes
+	if err := dumpDockerDaemonConfig(configPath, config); err != nil {
+		return err
+	}
+
+	return reloadDockerConfig()
+}
+
+func unsetDockerRunc(configPath string) error {
+	if _, err := os.Stat(configPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	config, err := loadDockerDaemonConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	if len(config) == 0 {
+		return nil
+	}
+	if v, ok := config[dockerFieldDefaultRuntime]; !ok {
+		return nil
+	} else {
+		if v, ok := v.(string); !ok {
+			return fmt.Errorf("docker config `default-runtime` not string")
+		} else if v != RuntimeDkRunc {
+			return nil
+		}
+	}
+	delete(config, dockerFieldDefaultRuntime)
+
+	if err := dumpDockerDaemonConfig(configPath, config); err != nil {
+		return err
+	}
+
+	return reloadDockerConfig()
+}
+
+func ChangeDockerHostConfigRunc(from, to, ctrPath string) error {
+	ctrs, err := listContainer()
+	if err != nil {
+		return fmt.Errorf("list docker container failed: %w", err)
+	}
+	if ctrPath == "" {
+		ctrPath = "/var/lib/docker/containers"
+	}
+
+	for _, c := range ctrs {
+		hc := filepath.Join(ctrPath, c, "hostconfig.json")
+		data, err := os.ReadFile(hc) //nolint:gosec
+		if err != nil {
+			continue
+		}
+		var hostconfig map[string]any
+		if err := json.Unmarshal(data, &hostconfig); err != nil {
+			return err
+		}
+		if v, ok := hostconfig["Runtime"]; ok {
+			if v, ok := v.(string); ok {
+				if v == from {
+					hostconfig["Runtime"] = to
+				}
+			}
+		}
+		f, err := os.OpenFile(hc, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o644) //nolint:gosec
+		if err != nil {
+			return err
+		}
+
+		if err := json.NewEncoder(f).Encode(hostconfig); err != nil {
+			_ = f.Close()
+			return err
+		}
+		_ = f.Close()
+	}
+
+	return nil
+}
+
+func listContainer() ([]string, error) {
+	client, err := docker.NewClientWithOpts(
+		docker.WithAPIVersionNegotiation(),
+		docker.WithHost("unix:///var/run/docker.sock"))
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	li, err := client.ContainerList(ctx, types.ContainerListOptions{
+		All: true,
+		// Filters: filters.NewArgs(filters.Arg("status", "running")),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, c := range li {
+		ids = append(ids, c.ID)
+	}
+	return ids, nil
 }

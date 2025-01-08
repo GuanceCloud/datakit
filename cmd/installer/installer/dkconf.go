@@ -364,6 +364,7 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 	}
 
 	if InstrumentationEnabled != "" {
+		mc.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 		mc.APMInject.InstrumentationEnabled = InstrumentationEnabled
 	}
 

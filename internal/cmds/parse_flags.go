@@ -239,6 +239,9 @@ var (
 	flagToolKVFile              = fsTool.String("kv-file", "", "specify the kv file path")
 	flagToolRemoveApmAutoInject = fsTool.Bool("remove-apm-auto-inject", false, "remove apm-auto-inject")
 
+	flagToolChangeDockerContainersRuntime = fsTool.String("change-docker-containers-runtime", "",
+		"change the runtime of the created container, the value is runc or dk-runc")
+
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
 		fmt.Printf("Various tools for DataKit\n\n")

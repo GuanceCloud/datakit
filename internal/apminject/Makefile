@@ -1,4 +1,4 @@
-.PHONY: all debug rewriter test
+.PHONY: all debug rewriter dkrunc test
 
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
 				  -e s/aarch64.\*/aarch64/)
@@ -16,11 +16,15 @@ DIST_DIR    ?= $(REPO_PATH)/internal/apminject/dist/datakit-apm-inject-linux-$(A
 
 DATAKIT_INJ_REWRITE_PROC ?= \"/usr/local/datakit/apm_inject/inject/rewriter\"
 
-all: rewriter launcher
+all: dkrunc rewriter launcher
 
 rewriter:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o $(DIST_DIR)/rewriter \
 		$(SOURCE_PATH)/rewriter/rewriter.go
+
+dkrunc:
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o $(DIST_DIR)/dkrunc \
+		$(SOURCE_PATH)/dkrunc/dkrunc.go
 
 launcher:
 	mkdir -p $(DIST_DIR)

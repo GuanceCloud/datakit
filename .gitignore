@@ -115,3 +115,4 @@ internal/export/doc/zh/inputs/imgs/tracing.png
 node_modules
 dca/web/build
 !dca/dca.yaml
+internal/apminject/dkrunc/dkrunc

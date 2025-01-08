@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 )
 
 const (
@@ -26,13 +25,8 @@ const (
 
 	filePrefix = "/tmp/dk_inject_rewrite_"
 
-	datakitConfPath = "/usr/local/datakit/conf.d/datakit.conf"
-
 	ddtraceRun     = "ddtrace-run"
 	ddtraceJarPath = "/usr/local/datakit/apm_inject/lib/java/dd-java-agent.jar"
-
-	defaultDKHost = "127.0.0.1"
-	defaultDKPort = "9529"
 )
 
 var (
@@ -107,12 +101,16 @@ func rewrite(param *reArgs) (*reArgs, error) {
 			path: ddrun,
 		}
 
-		host, port := dkAddr()
+		_, urlEnvs, err := traceURL(langPython)
+		if err != nil {
+			return nil, err
+		}
+
 		ret.argv = append(ret.argv, ddtraceRun)
 		ret.argv = append(ret.argv, param.argv...)
-		ret.envp = append(ret.envp,
-			fmt.Sprintf("DD_AGENT_HOST=%s", host),
-			fmt.Sprintf("DD_AGENT_PORT=%s", port))
+		for _, v := range urlEnvs {
+			ret.envp = append(ret.envp, strings.Join(v[:], "="))
+		}
 		ret.envp = append(ret.envp, param.envp...)
 		return ret, nil
 	case javaRegexp.MatchString(exeName):
@@ -130,6 +128,11 @@ func rewrite(param *reArgs) (*reArgs, error) {
 
 		if ver < 8 {
 			return nil, errUnsupportedJava
+		}
+
+		urlArgs, urlEnvs, err := traceURL(langJava)
+		if err != nil {
+			return nil, err
 		}
 
 		for i := 1; i < len(param.argv); i++ {
@@ -153,19 +156,64 @@ func rewrite(param *reArgs) (*reArgs, error) {
 			path: param.path,
 		}
 
-		host, port := dkAddr()
 		ret.argv = append(ret.argv, param.argv[0])
 		ret.argv = append(ret.argv,
 			fmt.Sprintf("-javaagent:%s", ddtraceJarPath),
-			fmt.Sprintf("-Ddd.agent.host=%s", host),
-			fmt.Sprintf("-Ddd.trace.agent.port=%s", port))
+		)
+		for _, v := range urlArgs {
+			ret.argv = append(ret.argv, strings.Join(v[:], "="))
+		}
 		ret.argv = append(ret.argv, param.argv[1:]...)
-		ret.envp = param.envp
+
+		for _, v := range urlEnvs {
+			ret.envp = append(ret.envp, strings.Join(v[:], "="))
+		}
+		ret.envp = append(ret.envp, param.envp...)
 
 		return ret, nil
 	}
 
 	return nil, fmt.Errorf("skip rewrite exec %s", exePath)
+}
+
+const (
+	langJava   = "java"
+	langPython = "python"
+)
+
+func traceURL(lang string) (args [][2]string, envs [][2]string, err error) {
+	addr := utils.GetDKAddr()
+
+	switch lang {
+	case langJava:
+		if addr.UDSAddr != "" {
+			args = [][2]string{
+				{"-Ddd.trace.agent.url", "unix://" + addr.UDSAddr},
+			}
+			return
+		} else {
+			envs = [][2]string{
+				{"-Ddd.agent.host", addr.Host},
+				{"-Ddd.trace.agent.port", addr.Port},
+			}
+			return
+		}
+	case langPython:
+		if addr.UDSAddr != "" {
+			envs = [][2]string{
+				{"DD_TRACE_AGENT_URL", "unix://" + addr.UDSAddr},
+			}
+			return
+		} else {
+			envs = [][2]string{
+				{"DD_AGENT_HOST", addr.Host},
+				{"DD_AGENT_PORT", addr.Port},
+			}
+			return
+		}
+	}
+
+	return nil, nil, fmt.Errorf("unsupported language")
 }
 
 func marshal(path string, args, envp []string) string {
@@ -187,28 +235,6 @@ func marshal(path string, args, envp []string) string {
 	s += groupSep + recSep
 
 	return s
-}
-
-func dkAddr() (string, string) {
-	confPath := datakitConfPath
-
-	v := map[string]any{}
-	if _, err := toml.DecodeFile(confPath, &v); err != nil {
-		return defaultDKHost, defaultDKPort
-	}
-
-	if httpAPI, ok := v["http_api"]; ok {
-		if v, ok := httpAPI.(map[string]any); ok {
-			if l, ok := v["listen"]; ok {
-				if l, ok := l.(string); ok {
-					if h, p, e := net.SplitHostPort(l); e == nil {
-						return h, p
-					}
-				}
-			}
-		}
-	}
-	return defaultDKHost, defaultDKPort
 }
 
 func getJavaVersion(s string) (int, error) {

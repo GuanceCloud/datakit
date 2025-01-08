@@ -9,10 +9,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 )
 
 func TestDKAddr(t *testing.T) {
-	dkAddr()
+	utils.GetDKAddr()
+	t.Setenv(utils.EnvDKSocketAddr, utils.DefaultDKUDS)
+	traceURL(langJava)
+	traceURL(langPython)
 }
 
 var (

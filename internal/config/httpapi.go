@@ -17,6 +17,7 @@ type TLSConfig struct {
 // APIConfig used to unmarshal HTTP API server configurations.
 type APIConfig struct {
 	RUMOriginIPHeader   string     `toml:"rum_origin_ip_header"`
+	ListenSocket        string     `toml:"listen_socket"`
 	Listen              string     `toml:"listen"`
 	Disable404Page      bool       `toml:"disable_404page"`
 	RUMAppIDWhiteList   []string   `toml:"rum_app_id_white_list"`

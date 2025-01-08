@@ -113,7 +113,7 @@ func LoadCfg(c *Config, mcp string) error {
 	}
 
 	if c.APMInject != nil {
-		if err := utils.Install(
+		if err := utils.Install(l,
 			utils.WithInstallDir(datakit.InstallDir),
 			utils.WithInstrumentationEnabled(
 				c.APMInject.InstrumentationEnabled),

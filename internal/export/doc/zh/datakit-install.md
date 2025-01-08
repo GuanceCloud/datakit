@@ -340,7 +340,9 @@ NAME1="value1" NAME2="value2"
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED=host` 即可针对 Java/Python 等应用自动注入 APM：
+在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED` 可针对 Java/Python 等应用自动注入 APM：
+
+- 开启主机注入：
 
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=host \
@@ -348,14 +350,58 @@ DK_APM_INSTRUMENTATION_ENABLED=host \
   bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
-Datakit 安装完成后，重新开启一个 shell，并重启对应的 Java/Python 应用即可。
+- 开启 docker 注入：
+
+```shell
+DK_APM_INSTRUMENTATION_ENABLED=docker \
+  DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python 应用即可。
 
 开启和关闭该功能，修改 `datakit.conf` 文件中 `[apm_inject]` 下的 `instrumentation_enabled` 配置的值：
 
-- 值 `"host"`，开启
+- 值 `"host"`、`"docker"` 或 `"host,docker"`，开启
 - 值 `""` 或者 `"disable"`，关闭
 
-删除 DataKit 安装目录下的文件时，需要先卸载该功能，请执行 `datakit tool --remove-apm-auto-inject` 清理 APM 自动注入的相关文件。
+注意事项：
+
+1. 删除 DataKit 安装目录下的文件前，需要先卸载该功能，请执行 **`datakit tool --remove-apm-auto-inject`** 清理系统设置和 Docker 的设置。
+
+2. 对于 Docker 注入，安装并配置 Docker 注入和删除 DataKit 安装目录下的注入相关的文件，需要执行额外的步骤
+
+   - 安装且配置开启 Docker 注入后，若需要对已经创建的容器生效：
+
+   ```shell
+   # 停止 docker 服务
+   service docker stop
+
+   # 将已经创建的容器的 runtime 从 runc 换成 datakit 提供的 dk-runc
+   datakit tool --change-docker-containers-runtime dk-runc
+
+   # 启动 docker 服务
+   service docker start
+
+   # 重新启动因 dockerd 重启，导致的容器的退出
+   docker start <container_id1> <container_id2> ...
+   ```
+
+   - 在卸载该功能后（开启过 Docker 注入），若需要删除 DataKit 安装目录下的所有文件：
+
+   ```shell
+   # 停止 docker 服务
+   service docker stop
+
+   # 将已经创建的容器的 runtime 从 dk-runc 换回 runc
+   datakit tool --change-docker-containers-runtime runc
+
+   # 启动 docker 服务
+   service docker start
+
+   # 重新启动因 dockerd 重启，导致的容器的退出
+   docker start <container_id1> <container_id2> ...
+   ```
 
 运行环境要求：
 

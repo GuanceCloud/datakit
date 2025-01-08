@@ -7,8 +7,12 @@
 package utils
 
 import (
+	"net"
 	"net/http"
+	"os"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 const (
@@ -81,4 +85,62 @@ func WithForceUpgradeLib(y bool) Opt {
 	return func(c *config) {
 		c.forceUpgradeAPMLib = y
 	}
+}
+
+type AgentAddr struct {
+	Host    string
+	Port    string
+	UDSAddr string
+}
+
+const (
+	DatakitConfPath = "/usr/local/datakit/conf.d/datakit.conf"
+	DefaultDKHost   = "127.0.0.1"
+	DefaultDKPort   = "9529"
+	DefaultDKUDS    = "/var/run/datakit/datakit.sock"
+
+	// used for container.
+	EnvDKSocketAddr = "ENV_DATAKIT_SOCKET_ADDR"
+)
+
+func GetDKAddr() *AgentAddr {
+	confPath := DatakitConfPath
+	var aAddr AgentAddr
+	if v := os.Getenv(EnvDKSocketAddr); v != "" {
+		if _, err := os.Stat(v); err == nil {
+			aAddr.UDSAddr = v
+			return &aAddr
+		}
+	}
+
+	if _, err := os.Stat(DefaultDKUDS); err == nil {
+		aAddr.UDSAddr = DefaultDKUDS
+	}
+
+	aAddr.Host, aAddr.Port = DefaultDKHost, DefaultDKPort
+	v := map[string]any{}
+	if _, err := toml.DecodeFile(confPath, &v); err != nil {
+		return &aAddr
+	}
+
+	if httpAPI, ok := v["http_api"]; ok {
+		if v, ok := httpAPI.(map[string]any); ok {
+			if l, ok := v["listen"]; ok {
+				if l, ok := l.(string); ok {
+					if h, p, e := net.SplitHostPort(l); e == nil {
+						aAddr.Host, aAddr.Port = h, p
+					}
+				}
+			}
+			if l, ok := v["listen_socket"]; ok {
+				if l, ok := l.(string); ok && l != "" {
+					if _, err := os.Stat(l); err == nil {
+						aAddr.UDSAddr = l
+					}
+				}
+			}
+		}
+	}
+
+	return &aAddr
 }

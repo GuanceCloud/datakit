@@ -376,6 +376,13 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Desc:    "The address can be modified so that the [DataKit interface](apis.md) can be called externally.",
 			DescZh:  "可修改地址，使得外部可以调用 [Datakit 接口](apis.md)。",
 		},
+		{
+			ENVName: "ENV_HTTP_LISTEN_SOCKET",
+			Type:    doc.String,
+			Example: "`/var/run/datakit/datakit.sock`",
+			Desc:    "The address can be modified so that the [DataKit interface](apis.md) can be called externally.",
+			DescZh:  "可修改地址，使得外部可以通过 unix socket 调用 [Datakit 接口](apis.md)。",
+		},
 
 		{
 			ENVName: "ENV_HTTP_PUBLIC_APIS",

@@ -15,7 +15,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	return nil
 }
 
-func Install(opt ...Opt) error {
+func Install(log *logger.Logger, opt ...Opt) error {
 	return nil
 }
 

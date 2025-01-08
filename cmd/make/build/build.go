@@ -376,6 +376,9 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 }
 
 func compileAPMInject(goos, goarch, dir string) error {
+	//nolint:gosec
+	_ = os.Mkdir(filepath.Join(dir, "/datakit-apm-inject-linux-"+goarch), 0o755)
+
 	// skip build under macOS, we'll never release production package under macOS.
 	if goos != "linux" || runtime.GOOS != "linux" {
 		l.Warnf("skip building apm auto-inject launcher: unsupported os %s", goos)
@@ -389,10 +392,9 @@ func compileAPMInject(goos, goarch, dir string) error {
 
 	_, err := exec.LookPath("docker")
 	if err != nil {
-		//nolint:gosec
-		_ = os.Mkdir(filepath.Join(dir, "/datakit-apm-inject-linux-"+goarch), 0o755)
 		l.Warnf("skip building apm auto-inject launcher: %s",
 			err.Error())
+		return nil
 	}
 
 	cmdArgs := []string{

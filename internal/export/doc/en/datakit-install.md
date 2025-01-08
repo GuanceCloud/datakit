@@ -318,7 +318,9 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-By specifying `DK_APM_INSTRUMENTATION_ENABLED=host` in the installation command, you can automatically inject APM for Java/Python applications:
+By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you can automatically inject APM for Java/Python applications:
+
+- Enable host inject
 
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=host \
@@ -326,14 +328,58 @@ DK_APM_INSTRUMENTATION_ENABLED=host \
   bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
-After Datakit is installed, reopen a shell and restart the corresponding Java/Python applications.
+- Enable host inject:
+
+```shell
+DK_APM_INSTRUMENTATION_ENABLED=docker \
+  DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
+  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python application.
 
 To enable or disable this feature, modify the value of the `instrumentation_enabled` configuration under `[apm_inject]` in the `datakit.conf` file:
 
-- Value `"host"`, enable
+- Value `"host"`, `"docker"` or `"host,docker"`, enable
 - Value `""` or `"disable"`, disable
 
-When deleting files in the DataKit installation directory, you need to uninstall the feature first. Please execute `datakit tool --remove-apm-auto-inject` to clean up the files related to APM automatic injection.
+Notes:
+
+1. Before deleting the files in the DataKit installation directory, you need to uninstall the feature first. Please execute **`datakit tool --remove-apm-auto-inject`** to clean up the system settings and Docker settings.
+
+2. For Docker injection, additional steps are required to install and configure Docker injection and delete injection-related files in the DataKit installation directory
+
+   - After installing and configuring Docker injection, if you need to make it effective for the created container:
+
+   ```shell
+   # stop docker service
+   service docker stop
+
+   # change the runtime of the created container from runc to dk-runc provided by datakit
+   datakit tool --change-docker-containers-runtime dk-runc
+
+   # start docker service
+   service docker start
+
+   # restart the container that exited due to dockerd restart
+   docker start <container_id1> <container_id2> ...
+   ```
+
+   - After uninstalling the feature (with Docker injection enabled), if you need to delete all files in the DataKit installation directory:
+
+   ```shell
+   # stpp docker service
+   service docker stop
+
+   # Change the runtime of the created container from dk-runc back to runc
+   datakit tool --change-docker-containers-runtime runc
+
+   # start docker service
+   service docker start
+
+   # restart the container that exited due to dockerd restart
+   docker start <container_id1> <container_id2> ...
+   ```
 
 Operating environment requirements:
 

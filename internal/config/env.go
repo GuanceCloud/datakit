@@ -660,6 +660,10 @@ func (c *Config) loadHTTPAPIEnvs() {
 		c.HTTPAPI.Listen = v
 	}
 
+	if v := datakit.GetEnv("ENV_HTTP_LISTEN_SOCKET"); v != "" {
+		c.HTTPAPI.ListenSocket = v
+	}
+
 	if v := datakit.GetEnv("ENV_HTTP_TIMEOUT"); v != "" {
 		c.HTTPAPI.Timeout = v
 	}
