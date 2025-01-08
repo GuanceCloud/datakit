@@ -26,24 +26,24 @@ In most cases, you just need to integrate Datakit into the task definition as a 
 
 1. Create or modify an [IAM policy](https://docs.aws.amazon.com/zh_cn/IAM/latest/UserGuide/introduction.html){:target="_blank"}. Datakit requires at least the following 3 permissions:
 
-- ecs:ListClusters to list available clusters.
-- ecs:ListContainerInstances to list instances in a cluster.
-- ecs:DescribeContainerInstances to describe instances to add metrics about running resources and tasks.
+    - `ecs:ListClusters` to list available clusters.
+    - `ecs:ListContainerInstances` to list instances in a cluster.
+    - `ecs:DescribeContainerInstances` to describe instances to add metrics about running resources and tasks.
 
 1. In the task definition, add a Datakit container with the following sample configuration:
 
-- Name: `datakit`
-- Image: `pubrepo.guance.com/datakit/datakit:<specified version>`
-- Essential container: `No`
-- Port mapping, container port: `9529 (configure as needed, defaults to 9529)`
-- Resource allocation limit: CPU `2`vCPU, Memory limit `4`GB
+    - Name: `datakit`
+    - Image: `pubrepo.guance.com/datakit/datakit:<specified version>`
+    - Essential container: `No`
+    - Port mapping, container port: `9529` (configure as needed, defaults to `9529`)
+    - Resource allocation limit: CPU 2vCPU, Memory limit 4GB
 
 1. Configure Datakit using environment variables. The necessary environment variables are as follows:
 
-- `ENV_ECS_FARGATE`: `on`
-- `ENV_DATAWAY`: `https://openway.guance.com?token=<your-token>`
-- `ENV_HTTP_LISTEN`: `0.0.0.0:9529`
-- `ENV_DEFAULT_ENABLED_INPUTS`: `dk,container,ddtrace`
+    - `ENV_ECS_FARGATE`: `on`
+    - `ENV_DATAWAY`: `https://openway.guance.com?token=<your-token>`
+    - `ENV_HTTP_LISTEN`: `0.0.0.0:9529`
+    - `ENV_DEFAULT_ENABLED_INPUTS`: `dk,container,ddtrace`
 
 This is an example of a running Datakit and trace task definition:
 
@@ -96,7 +96,7 @@ This is an example of a running Datakit and trace task definition:
                 },
                 {
                     "name": "ENV_DATAWAY",
-                    "value": "https://openway.guance.com?token=<your-token>"
+                    "value": "https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
                 },
                 {
                     "name": "ENV_HTTP_LISTEN",

@@ -86,7 +86,7 @@ DataKit 为 Amazon EKS 集群提供按命名空间、集群、Pod 不同维度�
 设置 `token` 环境变量：
 
 ```shell
-token="https://us1-openway.guance.com?token=tkn_xxxx"
+token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 将 token 加入到 `env-dataway` secrets 中：
@@ -96,12 +96,11 @@ envDataway=$(echo -n "$token" | base64)
 kubectl patch secret env-dataway -p "{\"data\": {\"datawayUrl\": \"$envDataway\"}}" -n datakit
 ```
 
-重启 DataKit：
+重启 Datakit：
 
 ```shell
 kubectl rollout restart ds datakit -n datakit
 ```
-
 
 ### 验证部署 {#verify-addon-install}
 
@@ -163,10 +162,8 @@ aws ecr get-login-password \
 <!-- markdownlint-enable -->
 
 ```shell
-
 helm upgrade -i datakit oci://709825985650.dkr.ecr.us-east-1.amazonaws.com/guance/datakit-charts --version 1.23.5 \
-     --create-namespace -n datakit 
-
+     --create-namespace -n datakit
 ```
 
 期望输出结果：
@@ -191,11 +188,10 @@ NOTES:
 
 ### 配置 DataKit {#config-datakit}
 
-
 设置 `token` 环境变量：
 
 ```shell
-token="https://us1-openway.guance.com?token=tkn_xxxx"
+token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 将 token 加入到 `env-dataway` secrets 中：
@@ -210,7 +206,6 @@ kubectl patch secret env-dataway -p "{\"data\": {\"datawayUrl\": \"$envDataway\"
 ```shell
 kubectl rollout restart ds datakit -n datakit
 ```
-
 
 ### 验证部署 {#verify-install}
 
