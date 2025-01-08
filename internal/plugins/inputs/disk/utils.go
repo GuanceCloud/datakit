@@ -17,6 +17,7 @@ import (
 	"github.com/shirou/gopsutil/disk"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/pcommon"
 )
 
 type PSDiskStats interface {
@@ -60,46 +61,51 @@ func (dk *PSDisk) FilterUsage() ([]*disk.UsageStat, []*disk.PartitionStat, error
 	var usage []*disk.UsageStat
 	var partitions []*disk.PartitionStat
 
+	// Sort these parts to make sure tags are the same when merge-on-device are set.
+	sort.Slice(parts, func(i, j int) bool {
+		return parts[i].Mountpoint < parts[j].Mountpoint
+	})
+
 	for i := range parts {
-		p := parts[i]
-
-		if strings.HasPrefix(p.Device, "/rootfs/dev/") {
-			p.Device = p.Device[7:]
-		}
-
-		l.Debugf("disk fstype: %s, device: %s, mountpoint: %s", p.Fstype, p.Device, p.Mountpoint)
+		p := pcommon.TrimPartitionHostPath(dk.ipt.hostRoot, &parts[i])
 
 		// nolint
 		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, dk.ipt.ExtraDevice) {
+			l.Debugf("ignore part have no prefix /dev/: %+#v", p)
 			continue // ignore the partition
 		}
 
 		if excluded(p.Device, dk.ipt.ExcludeDevice) {
+			l.Debugf("ignore part excluded: %+#v", p)
 			continue
 		}
 
-		mergerFlag := false
-		// merger device
-		for _, cont := range partitions {
-			if cont.Device == p.Device {
-				mergerFlag = true
-				break
+		if dk.ipt.MergeOnDevice {
+			mergerFlag := false
+			for _, cont := range partitions {
+				if cont.Device == p.Device {
+					l.Debugf("%+#v merged with partition %+#v", p, cont)
+					mergerFlag = true
+					break
+				}
 			}
-		}
 
-		if mergerFlag {
-			continue
+			if mergerFlag {
+				continue
+			}
 		}
 
 		du, err := dk.Usage(p.Mountpoint)
 		if err != nil {
-			continue
+			l.Errorf("get usage failed(%s): %+#v", err.Error(), p)
+			usage = append(usage, nil) // ignore usage error, we always get the partition
+		} else {
+			du.Fstype = p.Fstype
+			usage = append(usage, du)
 		}
 
-		du.Fstype = p.Fstype
-
-		usage = append(usage, du)
-		partitions = append(partitions, &p)
+		l.Debugf("add part %+#v", p)
+		partitions = append(partitions, p)
 	}
 
 	return usage, partitions, nil

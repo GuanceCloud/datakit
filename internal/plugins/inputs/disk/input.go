@@ -8,7 +8,9 @@ package disk
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -52,6 +54,7 @@ type Input struct {
 	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice  bool `toml:"only_physical_device"`
 	EnableLVMMapperPath bool `toml:"enable_lvm_mapper_path"`
+	MergeOnDevice       bool `toml:"merge_on_device"`
 
 	semStop      *cliutils.Sem
 	collectCache []*point.Point
@@ -61,6 +64,7 @@ type Input struct {
 	tagger       datakit.GlobalTagger
 
 	diskCache map[string]DiskCacheEntry
+	hostRoot  string
 }
 
 func (ipt *Input) Run() {
@@ -127,7 +131,13 @@ func (ipt *Input) collect(ptTS int64) error {
 	if err != nil {
 		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
+
 	for index, du := range disks {
+		if du == nil {
+			l.Infof("no usage available, skip partition %+#v", partitions[index])
+			continue
+		}
+
 		var kvs point.KVs
 
 		if du.Total == 0 {
@@ -252,7 +262,14 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ExtraDevice", Type: doc.List, Example: "`/nfsdata,other_data`", Desc: "Additional device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "额外的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
 		{FieldName: "ExcludeDevice", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Excluded device prefix. (By default, collect all devices with dev as the prefix)", DescZh: "排除的设备前缀。（默认收集以 dev 为前缀的所有设备）"},
 		{FieldName: "OnlyPhysicalDevice", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only (e.g. hard disks, cd-rom drives, USB keys), and ignore all others (e.g. memory partitions such as /dev/shm)", DescZh: "忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等）"},
-		{FieldName: "EnableLVMMapperPath", Type: doc.Boolean, Default: `false`, Desc: "View the soft link corresponding to the device mapper (e.g. /dev/dm-0 -> /dev/mapper/vg/lv)", DescZh: "查看设备映射器对应的软链接（如/dev/dm-0 -> /dev/mapper/vg/lv）"},
+		{
+			FieldName: "EnableLvmMapperPath", // do _not_ use EnableLVMMapperPath, the LVM will be splited to L_V_M.
+			Type:      doc.Boolean,
+			Default:   `false`,
+			Desc:      "View the soft link corresponding to the device mapper (e.g. `/dev/dm-0` -> `/dev/mapper/vg/lv`)",
+			DescZh:    "查看设备映射器对应的软链接（如 `/dev/dm-0` -> `/dev/mapper/vg/lv`）",
+		},
+		{FieldName: "MergeOnDevice", Type: doc.Boolean, Default: `true`, Desc: "merge disks that have the same device", DescZh: "合并有相同 device 的磁盘"},
 		{FieldName: "Tags"},
 	}
 
@@ -302,18 +319,41 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	if str := envs["ENV_INPUT_ENABLE_LVM_MAPPER_PATH"]; str != "" {
+	if str := envs["ENV_INPUT_DISK_ENABLE_LVM_MAPPER_PATH"]; str != "" {
 		ipt.EnableLVMMapperPath = true
+	}
+
+	if str := envs["ENV_INPUT_DISK_MERGE_ON_DEVICE"]; str != "" {
+		if ok, _ := strconv.ParseBool(str); ok {
+			ipt.MergeOnDevice = ok
+		}
+	}
+
+	// Default setting: we have add the env HOST_ROOT in datakit.yaml by default
+	// but some old deployments may not hava this ENV set.
+	ipt.hostRoot = "/rootfs"
+
+	// Deprecated: use ENV_HOST_ROOT
+	if v := os.Getenv("HOST_ROOT"); v != "" {
+		ipt.hostRoot = v
+	}
+
+	if v := os.Getenv("ENV_HOST_ROOT"); v != "" {
+		ipt.hostRoot = v
 	}
 }
 
 func defaultInput() *Input {
 	ipt := &Input{
 		Interval: time.Second * 10,
-		semStop:  cliutils.NewSem(),
-		Tags:     make(map[string]string),
-		feeder:   dkio.DefaultFeeder(),
-		tagger:   datakit.DefaultGlobalTagger(),
+
+		// Default merge on same device that will not cost too many time series for common disk metrics
+		MergeOnDevice: true,
+
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+		feeder:  dkio.DefaultFeeder(),
+		tagger:  datakit.DefaultGlobalTagger(),
 	}
 
 	x := &PSDisk{ipt: ipt}

@@ -9,13 +9,14 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"testing"
+	"path/filepath"
+	T "testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetNetInfo(t *testing.T) {
+func TestGetNetInfo(t *T.T) {
 	ifs, err := interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
@@ -54,7 +55,7 @@ func TestGetNetInfo(t *testing.T) {
 	assert.NotEmpty(t, infos, "infos should not be empty")
 }
 
-func createTempFile(t *testing.T, content []byte) string {
+func createTempFile(t *T.T, content []byte) string {
 	t.Helper()
 
 	tempFile, err := ioutil.TempFile("", "testfile*.txt")
@@ -70,7 +71,7 @@ func createTempFile(t *testing.T, content []byte) string {
 	return tempFile.Name()
 }
 
-func TestGetConfigFile(t *testing.T) {
+func TestGetConfigFile(t *T.T) {
 	testCases := []struct {
 		name    string
 		content []byte
@@ -82,7 +83,7 @@ func TestGetConfigFile(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			filePath := createTempFile(t, tc.content)
 			defer os.Remove(filePath)
 
@@ -101,4 +102,67 @@ func TestGetConfigFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_getDiskInfo(t *T.T) {
+	t.Run("merge-on-device", func(t *T.T) {
+		ipt := defaultInput()
+
+		ipt.MergeOnDevice = true
+
+		tmpdir := filepath.Join(t.TempDir(), "proc")
+		os.Setenv("HOST_PROC", tmpdir)
+		t.Cleanup(func() {
+			os.Unsetenv("HOST_PROC")
+		})
+
+		fakedir := filepath.Join(tmpdir, "self")
+		require.NoError(t, os.MkdirAll(fakedir, os.ModePerm))
+
+		// create fake /proc/self/mountinfo
+		mountinfo, err := os.ReadFile("testdata/mountinfo")
+		require.NoError(t, err)
+
+		mountfile := filepath.Join(fakedir, "mountinfo")
+		t.Logf("mountfile: %q", mountfile)
+		require.NoError(t, os.WriteFile(mountfile, mountinfo, os.ModePerm))
+
+		disks, total, err := ipt.getDiskInfo()
+		require.NoError(t, err)
+
+		t.Logf("usage info: %f", total)
+
+		for idx, part := range disks {
+			t.Logf("part[%d]: %+#v", idx, part)
+		}
+	})
+
+	t.Run("no-merge-on-device", func(t *T.T) {
+		ipt := defaultInput()
+		tmpdir := filepath.Join(t.TempDir(), "proc")
+		os.Setenv("HOST_PROC", tmpdir)
+		t.Cleanup(func() {
+			os.Unsetenv("HOST_PROC")
+		})
+
+		fakedir := filepath.Join(tmpdir, "self")
+		require.NoError(t, os.MkdirAll(fakedir, os.ModePerm))
+
+		// create fake /proc/self/mountinfo
+		mountinfo, err := os.ReadFile("testdata/mountinfo")
+		require.NoError(t, err)
+
+		mountfile := filepath.Join(fakedir, "mountinfo")
+		t.Logf("mountfile: %q", mountfile)
+		require.NoError(t, os.WriteFile(mountfile, mountinfo, os.ModePerm))
+
+		disks, total, err := ipt.getDiskInfo()
+		require.NoError(t, err)
+
+		t.Logf("usage info: %f", total)
+
+		for idx, part := range disks {
+			t.Logf("part[%d]: %+#v", idx, part)
+		}
+	})
 }

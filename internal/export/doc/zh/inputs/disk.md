@@ -55,6 +55,13 @@ monitor   :
   # ...
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ info "磁盘指标来源"
+    在 Linux 中，指标是通过获取 */proc/self/mountinfo* 其中的挂载信息，然后再逐个获取对应挂载点的磁盘指标（`statfs()`）。对 Windows 而言，则通过一系列 Windows API，诸如 `GetLogicalDriveStringsW()` 系统调用获取挂载点，然后再通过 `GetDiskFreeSpaceExW()` 获取磁盘用量信息。
+
+    在 [:octicons-tag-24: Version-1.66.0](../datakit/changelog.md#cl-1.66.0) 版本中，优化了磁盘信息采集，但是相同设备的挂载点仍然会合并成一个，且只取第一个出现的挂载点为准。如果要采集所有的挂载点，需关闭特定的 flag（`merge_on_device/ENV_INPUT_DISK_MERGE_ON_DEVICE`），关闭该合并功能后，磁盘指标集中可能会额外多出非常多的时间线。
+<!-- markdownlint-enable -->
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`

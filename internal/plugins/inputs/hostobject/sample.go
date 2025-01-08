@@ -32,6 +32,9 @@ const (
 # and ignore all others (e.g. memory partitions such as /dev/shm)
 only_physical_device = false
 
+# merge disks that with the same device name(default false)
+# merge_on_device = false
+
 ## Ignore the disk which space is zero
 ignore_zero_bytes_disk = true
 

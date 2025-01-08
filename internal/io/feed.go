@@ -306,7 +306,7 @@ func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Po
 	after := opt.pts
 
 	if result, err := pipeline.RunPl(opt.cat, opt.pts, plopt); err != nil {
-		log.Error(err)
+		log.Warnf("pipeline.RunPl: %s, ignored", err)
 	} else {
 		offloadCount = len(result.PtsOffload())
 

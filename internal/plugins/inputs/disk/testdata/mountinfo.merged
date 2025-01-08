@@ -1,0 +1,2 @@
+3012 2498 253:0 / /rootfs rw,relatime master:1 - xfs /dev/mapper/rootvg-root rw,attr2,inode64,noquota
+4493 2498 253:0 /root/datakit_cache /usr/local/datakit/cache rw,relatime - xfs /dev/mapper/rootvg-root rw,attr2,inode64,noquota

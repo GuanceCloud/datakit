@@ -177,7 +177,7 @@ func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 
 		if match {
 			if !ipt.matched(name) {
-				l.Warnf("%s not matched", name)
+				l.Debugf("%s not matched", name)
 				continue
 			}
 

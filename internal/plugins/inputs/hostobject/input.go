@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -72,6 +73,7 @@ type Input struct {
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
 	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
+	MergeOnDevice              bool     `toml:"merge_on_device"`
 	ExtraDevice                []string `toml:"extra_device"`
 	ExcludeDevice              []string `toml:"exclude_device"`
 
@@ -93,8 +95,8 @@ type Input struct {
 	mergedTags   map[string]string
 	tagger       datakit.GlobalTagger
 
-	mfs []*dto.MetricFamily
-
+	mfs          []*dto.MetricFamily
+	hostRoot     string
 	CloudMetaURL map[string]string `toml:"cloud_meta_url,omitempty"`
 }
 
@@ -368,6 +370,28 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Debugf("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
 		}
 	}
+
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_MERGE_ON_DEVICE"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_MERGE_ON_DEVICE to bool: %s, ignore", err)
+		} else {
+			ipt.MergeOnDevice = b
+		}
+	}
+
+	// Default setting: we have add the env HOST_ROOT in datakit.yaml by default
+	// but some old deployments may not hava this ENV set.
+	ipt.hostRoot = "/rootfs"
+
+	// Deprecated: use ENV_HOST_ROOT
+	if v := os.Getenv("HOST_ROOT"); v != "" {
+		ipt.hostRoot = v
+	}
+
+	if v := os.Getenv("ENV_HOST_ROOT"); v != "" {
+		ipt.hostRoot = v
+	}
 }
 
 func defaultInput() *Input {
@@ -381,6 +405,7 @@ func defaultInput() *Input {
 		EnableCloudHostTagsGlobalHostDeprecated:     true,
 		diskIOCounters:                              diskutil.IOCounters,
 		netIOCounters:                               netutil.IOCounters,
+		MergeOnDevice:                               false,
 
 		semStop:       cliutils.NewSem(),
 		feeder:        dkio.DefaultFeeder(),

@@ -36,6 +36,8 @@ func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
 		cp.Warnf("[W] load config %s failed: %s, ignored\n", datakit.MainConfPath, err)
 	}
+
+	config.Cfg.SetCommandLineMode(true)
 }
 
 func GetHTTPClient(proxy string) *http.Client {

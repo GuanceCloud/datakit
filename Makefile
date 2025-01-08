@@ -476,17 +476,19 @@ docs_dir=$(exportdir)/guance-doc/docs
 # all markdown template files
 docs_template_dir=internal/export/doc
 
-md_lint:
+md_lint: md_export
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go -mdcheck $(docs_dir) \
+		--mdcheck-autofix off # disable autofix on checking generated documents
+	$(call check_docs,$(docs_dir))
+
+md_export:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--mdcheck $(docs_template_dir) \
 		--mdcheck-autofix=$(AUTO_FIX) # check markdown templates first
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
 	@bash export.sh -D $(exportdir) -E -V 0.0.0
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go -mdcheck $(docs_dir) \
-		--mdcheck-autofix off # disable autofix on checking generated documents
-	$(call check_docs,$(docs_dir))
 
 sample_conf_lint:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go --sample-conf-check

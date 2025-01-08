@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/pcommon"
 )
 
 type (
@@ -254,13 +256,15 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 	return infos, nil
 }
 
-func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) ([]*DiskInfo, float64, error) {
-	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
-	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
+func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
+	l.Debugf("get partitions(physical: %v)...", ipt.OnlyPhysicalDevice)
+
+	ps, err := diskutil.Partitions(!ipt.OnlyPhysicalDevice)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
 		return nil, 0, err
 	}
+
 	var infos []*DiskInfo
 
 	excluded := func(x string, arr []string) bool {
@@ -274,29 +278,42 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 
 	total := uint64(0)
 	used := uint64(0)
-	for _, p := range ps {
-		l.Debugf("hostobject---fstype:%s ,device:%s ,mountpoint:%s ", p.Fstype, p.Device, p.Mountpoint)
+
+	// Sort these parts to make sure tags are the same when merge-on-device are set.
+	sort.Slice(ps, func(i, j int) bool {
+		return ps[i].Mountpoint < ps[j].Mountpoint
+	})
+
+	for idx := range ps {
+		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, &ps[idx])
 
 		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") && runtime.GOOS != datakit.OSWindows && !excluded(p.Device, extraDevice) {
+		if !strings.HasPrefix(p.Device, "/dev/") &&
+			runtime.GOOS != datakit.OSWindows &&
+			!excluded(p.Device, ipt.ExtraDevice) {
+			l.Debugf("ignore part have no prefix /dev/: %+#v", p)
 			continue
 		}
 
-		if excluded(p.Device, excludeDevice) {
+		if excluded(p.Device, ipt.ExcludeDevice) {
+			l.Debugf("part excluded: %+#v", p)
 			continue
 		}
 
-		// merge same device
-		mergeFlag := false
-		for _, cont := range infos {
-			if cont.Device == p.Device {
-				mergeFlag = true
-				break
+		if ipt.MergeOnDevice {
+			// merge same device
+			mergeFlag := false
+			for _, cont := range infos {
+				if cont.Device == p.Device {
+					l.Debugf("%+#v merged with partition %+#v", p, cont)
+					mergeFlag = true
+					break
+				}
 			}
-		}
 
-		if mergeFlag {
-			continue
+			if mergeFlag {
+				continue
+			}
 		}
 
 		info := &DiskInfo{
@@ -307,19 +324,21 @@ func getDiskInfo(excludeDevice []string, extraDevice []string, ignoreZeroBytesDi
 
 		usage, err := diskutil.Usage(p.Mountpoint)
 		if err == nil {
-			if ignoreZeroBytesDisk && usage.Total == 0 {
-				continue // https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
+			if ipt.IgnoreZeroBytesDisk && usage.Total == 0 {
+				l.Debugf("skip zero partition %+#v", p)
+				continue // see #505
 			}
 
 			info.Total = usage.Total
+			// the sum of disk total and used.
+			total += usage.Total
+			used += usage.Used
+		} else {
+			l.Warnf("get usage of partition %+#v failed: %s, ignored", p, err.Error())
 		}
 
 		l.Debugf("get disk %+#v", info)
 		infos = append(infos, info)
-
-		// the sum of disk total and used.
-		total += usage.Total
-		used += usage.Used
 	}
 
 	// disk used percent
@@ -402,7 +421,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	l.Debugf("get disk info...")
-	disk, diskUsedPercent, err := getDiskInfo(ipt.ExcludeDevice, ipt.ExtraDevice, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+	disk, diskUsedPercent, err := ipt.getDiskInfo()
 	if err != nil {
 		l.Warnf("getDiskInfo failed: %s, ignored", err.Error())
 	}
