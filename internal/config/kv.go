@@ -97,8 +97,10 @@ func parseKV(c *KV) error {
 	initialKV := map[string]interface{}{}
 	c.kv = map[string]string{}
 
-	if err := json.Unmarshal([]byte(c.Value), &initialKV); err != nil {
-		return fmt.Errorf("json.Unmarshal: %w", err)
+	if c.Value != "" {
+		if err := json.Unmarshal([]byte(c.Value), &initialKV); err != nil {
+			return fmt.Errorf("json.Unmarshal: %w", err)
+		}
 	}
 
 	for k, v := range initialKV {
@@ -203,7 +205,7 @@ func (c *KV) doPullKV() (isReload bool) {
 		return
 	}
 
-	if newKV.Version <= c.Version {
+	if newKV.Version != -1 && newKV.Version <= c.Version {
 		l.Debugf("kv not changed, ignored")
 		return
 	}

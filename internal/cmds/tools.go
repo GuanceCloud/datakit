@@ -138,6 +138,7 @@ func runToolFlags() error {
 		}
 
 		cp.Output("%s", replacedData)
+		os.Exit(0)
 
 	case *flagToolRemoveApmAutoInject:
 		// cleanup apm inject
