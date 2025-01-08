@@ -51,6 +51,7 @@ type pipelineDebugRequest struct {
 	Category   string                       `json:"category"`
 
 	Data      []string `json:"data"`
+	DataType  string   `json:"data_type"`
 	Multiline string   `json:"multiline"`
 	Encode    string   `json:"encode"`
 	Benchmark bool     `json:"benchmark"`
@@ -120,7 +121,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	// decode pipeline script content
 	// script name will automatically add the file suffix
-	scriptContent, err = decodePipeline(category, scriptContent)
+	scriptContent, err = decodePipeline(scriptContent)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
@@ -159,8 +160,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	// decode log or line protocol data
 	// conv data to point
 	ptName := pointName(category.String(), reqBody.ScriptName)
-	pts, err := decodeDataAndConv2Point(category, ptName, reqBody.Encode,
-		reqBody.Data)
+	pts, err := decodeDataAndConv2Point(category, ptName, &reqBody)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidData, err.Error())
@@ -284,10 +284,14 @@ func benchPipeline(runner *manager.PlScript, cat point.Category, pt *point.Point
 //------------------------------------------------------------------------------
 // -- decoding functions' area start --
 
-func decodePipeline(category point.Category, scripts map[string]string) (map[string]string, error) {
+func decodePipeline(scripts map[string]string) (map[string]string, error) {
 	decodedScripts := map[string]string{}
 	for scriptName, scriptContent := range scripts {
-		scriptContent, err := decodeBase64Content(scriptContent, defaultEncode)
+		scriptContent, err := b64dec(scriptContent)
+		if err != nil {
+			return nil, err
+		}
+		scriptContent, err = iconv(scriptContent, defaultEncode)
 		if err != nil {
 			return nil, err
 		}
@@ -295,78 +299,103 @@ func decodePipeline(category point.Category, scripts map[string]string) (map[str
 			return nil, fmt.Errorf("script size exceeds 1MB limit")
 		}
 		// since the incoming script name has no suffix, add it here
-		decodedScripts[scriptName+".p"] = scriptContent
+		decodedScripts[scriptName+".p"] = string(scriptContent)
 	}
 	return decodedScripts, nil
 }
 
-func decodeDataAndConv2Point(category point.Category, name, encode string, data []string) ([]*point.Point, error) {
+func decodeDataAndConv2Point(category point.Category, name string, req *pipelineDebugRequest) ([]*point.Point, error) {
+	if req == nil {
+		return nil, nil
+	}
 	result := []*point.Point{}
 
-	dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
+	var messageOnly bool
+	var enc point.Encoding
+	switch {
+	case strings.Contains(req.DataType, "text/plain"):
+		messageOnly = true
+	case req.DataType == "" && category == point.Logging:
+		messageOnly = true
+	default:
+		enc = point.HTTPContentType(req.DataType)
+	}
+
+	var decOpts []point.DecoderOption
+	if enc == point.PBJSON {
+		decOpts = append(decOpts, point.WithDecEncoding(point.JSON))
+	} else {
+		decOpts = append(decOpts, point.WithDecEncoding(enc))
+	}
+
+	dec := point.GetDecoder(decOpts...)
 	defer point.PutDecoder(dec)
 
-	for _, line := range data {
-		line, err := decodeBase64Content(line, encode)
+	for _, line := range req.Data {
+		data, err := b64dec(line)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(line) > DataByteSizeLimit {
+		if len(data) > DataByteSizeLimit {
 			return nil, fmt.Errorf("data size exceeds 32MB limit")
 		}
+		var opts []point.Option
 		switch category { //nolint:exhaustive
 		case point.Logging:
-			kvs := point.NewKVs(map[string]interface{}{
-				pipeline.FieldMessage: line,
-			})
-			opt := point.DefaultLoggingOptions()
-			pt := point.NewPointV2(name, kvs, opt...)
-			result = append(result, pt)
-
+			opts = point.DefaultLoggingOptions()
 		case point.Metric:
-
-			pts, err := dec.Decode([]byte(line), point.DefaultMetricOptions()...)
-			if err != nil {
-				return nil, err
-			}
-
-			result = append(result, pts...)
-
+			opts = point.DefaultMetricOptions()
 		default:
+			opts = point.CommonLoggingOptions()
+		}
 
-			pts, err := dec.Decode([]byte(line), point.CommonLoggingOptions()...)
+		if messageOnly {
+			data, err := iconv(data, req.Encode)
 			if err != nil {
 				return nil, err
 			}
-
+			kvs := point.NewKVs(map[string]interface{}{
+				pipeline.FieldMessage: string(data),
+			})
+			pt := point.NewPointV2(name, kvs, opts...)
+			result = append(result, pt)
+		} else {
+			pts, err := dec.Decode(data, opts...)
+			if err != nil {
+				return nil, err
+			}
 			result = append(result, pts...)
 		}
 	}
 	return result, nil
 }
 
-func decodeBase64Content(content string, encode string) (string, error) {
-	data, err := base64.StdEncoding.DecodeString(content)
+func b64dec(cnt string) ([]byte, error) {
+	data, err := base64.StdEncoding.DecodeString(cnt)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	return data, err
+}
 
+func iconv(content []byte, encode string) ([]byte, error) {
 	if encode != "" {
 		encode = strings.ToLower(encode)
 	}
 	switch encode {
 	case "gbk", "gb18030":
-		data, err = GbToUtf8(data, encode)
-		if err != nil {
-			return "", err
+		if content, err := GbToUtf8(content, encode); err != nil {
+			return nil, err
+		} else {
+			return content, nil
 		}
 	case "utf8", "utf-8":
 		fallthrough
 	default:
 	}
 
-	return string(data), nil
+	return content, nil
 }
 
 // GbToUtf8 Gb to UTF-8.
@@ -405,7 +434,7 @@ func (s *plTestSignal) Reset() {
 func newPlTestSingal() *plTestSignal {
 	return &plTestSignal{
 		tn:      time.Now(),
-		timeout: time.Millisecond * 500,
+		timeout: time.Second * 15,
 	}
 }
 
