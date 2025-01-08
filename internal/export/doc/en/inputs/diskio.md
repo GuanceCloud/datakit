@@ -250,33 +250,34 @@ After saving the file, restart DataKit and you will be able to see the correspon
 
 The `sar` command can obtain many useful [disk metrics](https://man7.org/linux/man-pages/man1/sar.1.html){:target="_blank"}. The above script only collect `await` and `svctm`. If you need to collect additional metrics, you can modify the script accordingly.
 
-| Metric | Description | Type | Unit |
-| ---- | ---- | ---- | ---- |
-| `await` | The average time (in milliseconds) for I/O requests issued to the device to be served.  This includes the time spent by the requests in queue and the time spent servicing them. | float | ms |
-| `svctm` | awaitThe average service time (in milliseconds) for I/O requests that were issued to the device. | float | ms |
-
+| Metric  | Description                                                                                                                                                                      | Type  | Unit |
+| ----    | ----                                                                                                                                                                             | ----  | ---- |
+| `await` | The average time (in milliseconds) for I/O requests issued to the device to be served.  This includes the time spent by the requests in queue and the time spent servicing them. | float | ms   |
+| `svctm` | awaitThe average service time (in milliseconds) for I/O requests that were issued to the device.                                                                                 | float | ms   |
 
 ## FAQ {#faq}
 
 ### What is the data source on Linux hosts {#linux-diskio}
 
-On Linux hosts, the metrics are parsed and calculated from the */proc/diskstats* file; an explanation of each column can be found in [*procfs-diskstats*](https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats){:target="_blank"};
+On Linux hosts, the metrics are parsed and calculated from the */proc/diskstats* file; an explanation of each column can be found in [docs](https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats){:target="_blank"};
 
 The corresponding relationship between some data source columns and indicators is as follows:
 
-| col04: reads completed successfully        | `reads`                                                   |
-| col05: reads merged                        | `merged_reads`                                            |
-| col06: sectors read                        | `read_bytes = col06 * sector_size`; `read_bytes/sec = (read_bytes - last(read_bytes))/(time - last(time))`      |
-| col07: time spent reading (ms)             | `read_time`                                               |
-| col08: writes completed                    | `writes`                                                  |
-| col09: writes merged                       | `merged_writes`                                           |
+| Fields                                     | `diskio` metrics                                                                                               |
+| ---                                        | ---                                                                                                            |
+| col04: reads completed successfully        | `reads`                                                                                                        |
+| col05: reads merged                        | `merged_reads`                                                                                                 |
+| col06: sectors read                        | `read_bytes = col06 * sector_size`; `read_bytes/sec = (read_bytes - last(read_bytes))/(time - last(time))`     |
+| col07: time spent reading (ms)             | `read_time`                                                                                                    |
+| col08: writes completed                    | `writes`                                                                                                       |
+| col09: writes merged                       | `merged_writes`                                                                                                |
 | col10: sectors written                     | `write_bytes = col10 * sector_size`; `write_bytes/sec = (write_bytes - last(write_bytes))/(time - last(time))` |
-| col11: time spent writing (ms)             | `write_time`                                              |
-| col12: I/Os currently in progress          | `iops_in_progress`                                        |
-| col13: time spent doing I/Os (ms)          | `io_time`                                                 |
-| col14: weighted time spent doing I/Os (ms) | `weighted_io_time`                                        |
+| col11: time spent writing (ms)             | `write_time`                                                                                                   |
+| col12: I/Os currently in progress          | `iops_in_progress`                                                                                             |
+| col13: time spent doing I/Os (ms)          | `io_time`                                                                                                      |
+| col14: weighted time spent doing I/Os (ms) | `weighted_io_time`                                                                                             |
 
-attention:
+Attention:
 
-1. Sector size is 512 bytes;
-2. Increment all but read_bytes/sec and write_bytes/sec.
+1. `sector_size` is 512 bytes.
+1. All are count but `read_bytes/sec` and `write_bytes/sec`.

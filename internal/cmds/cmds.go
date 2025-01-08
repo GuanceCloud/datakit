@@ -9,6 +9,7 @@ package cmds
 import (
 	"github.com/GuanceCloud/cliutils/logger"
 	prompt "github.com/c-bata/go-prompt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
@@ -72,7 +73,7 @@ func setCmdRootLog(rl string) {
 
 	if rl == "stdout" {
 		lopt.Path = ""
-		lopt.Flags = logger.OPT_DEFAULT | logger.OPT_STDOUT
+		lopt.Flags = logger.OPT_DEFAULT | logger.OPT_STDOUT | logger.OPT_COLOR
 	}
 
 	if err := logger.InitRoot(lopt); err != nil {

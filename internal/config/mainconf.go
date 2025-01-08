@@ -120,6 +120,8 @@ type Config struct {
 	Crypto *configCrpto `toml:"crypto,omitempty"`
 
 	RemoteJob *io.RemoteJob `toml:"remote_job,omitempty"`
+
+	cmdlineMode bool
 }
 
 func DefaultConfig() *Config {

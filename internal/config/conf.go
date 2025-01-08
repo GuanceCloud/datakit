@@ -338,6 +338,13 @@ func (c *Config) parseGlobalHostTags() {
 }
 
 func (c *Config) setLogging() {
+	// Under debug mode(datakit debug ...), do not setup log here, we should set log
+	// via sub-command's --log command.
+	if c.cmdlineMode {
+		l.Infof("skip log settings under cmdline mode")
+		return
+	}
+
 	// set global log root
 	lopt := &logger.Option{
 		Level: strings.ToLower(c.Logging.Level),
@@ -423,6 +430,12 @@ func (c *Config) setupPublicWriteAPIs() {
 			c.HTTPAPI.PublicAPIs = append(c.HTTPAPI.PublicAPIs, cat.URL())
 		}
 	}
+}
+
+// SetCommandLineMode set configure behavior in debug mode, undeer
+// this mode, some actions are different with normal mode.
+func (c *Config) SetCommandLineMode(on bool) {
+	c.cmdlineMode = on
 }
 
 func (c *Config) ApplyMainConfig() error {

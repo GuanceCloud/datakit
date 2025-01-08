@@ -58,6 +58,13 @@ For all of the following data collections, a global tag named `host` is appended
   # ...
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ info "Source of disk metrics"
+    Under Linux, we first get device and mount info from */proc/self/mountinfo*, then get disk usage metrics via `statfs()` syscall. For Windows, we get device and mount info via Windows APIs like `GetLogicalDriveStringsW()`, and get disk usage by another API `GetDiskFreeSpaceExW()`
+
+    In the [:octicons-tag-24: Version-1.66.0](../datakit/changelog.md#cl-1.66.0) release, the disk collector has been optimized. However, mount points for the same device will still be merged into one, with only the first mount point being taken. If you need to collect all mount points, a specific flag(`merge_on_device/ENV_INPUT_DISK_MERGE_ON_DEVICE`) must be disable. While this flag disabled, this may result in a significant increase in the number of time series in the disk measurement.
+<!-- markdownlint-enable -->
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
