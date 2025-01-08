@@ -103,6 +103,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_HOSTNAME":                        "1024.coding",
 				"ENV_NAME":                            "testing-datakit",
 				"ENV_HTTP_LISTEN":                     "localhost:9559",
+				"ENV_HTTP_LISTEN_SOCKET":              "/var/run/datakit/datakit.sock",
 				"ENV_RUM_ORIGIN_IP_HEADER":            "not-set",
 				"ENV_ENABLE_PPROF":                    "true",
 				"ENV_DISABLE_PROTECT_MODE":            "true",
@@ -154,6 +155,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.AllowedCORSOrigins = []string{"https://foo", "https://bar"}
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
+				cfg.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 				cfg.HTTPAPI.Disable404Page = true
 				cfg.HTTPAPI.RequestRateLimit = 1234.0
 				cfg.HTTPAPI.Timeout = "10s"

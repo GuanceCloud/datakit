@@ -144,10 +144,27 @@ func runToolFlags() error {
 		// cleanup apm inject
 		if err := apmInj.Uninstall(
 			apmInj.WithInstallDir(datakit.InstallDir)); err != nil {
-			cp.Errorf("remove failed: %s", err.Error())
+			cp.Errorf("remove failed: %s\n", err.Error())
 		}
 		if err := unsetDKConfAPMInst(datakit.MainConfPath); err != nil {
-			cp.Errorf("clean up datakit config failed: %s", err.Error())
+			cp.Errorf("clean up datakit config failed: %s\n", err.Error())
+		}
+		os.Exit(0)
+
+	case *flagToolChangeDockerContainersRuntime != "":
+		var from, to string
+		switch *flagToolChangeDockerContainersRuntime {
+		case apmInj.RuntimeDkRunc:
+			from, to = apmInj.RuntimeRunc, apmInj.RuntimeDkRunc
+		case apmInj.RuntimeRunc:
+			from, to = apmInj.RuntimeDkRunc, apmInj.RuntimeRunc
+		}
+		if err := apmInj.ChangeDockerHostConfigRunc(from, to, ""); err != nil {
+			cp.Errorf("change runtime of all containers from %s to %s failed: %s\n",
+				from, to, err.Error())
+		} else {
+			cp.Infof("change runtime of all containers from %s to %s succeeded\n",
+				from, to)
 		}
 		os.Exit(0)
 	}

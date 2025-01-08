@@ -54,6 +54,7 @@ func WithAPIConfig(c *config.APIConfig) option {
 		if c != nil { // deep copy
 			s.apiConfig.RUMOriginIPHeader = c.RUMOriginIPHeader
 			s.apiConfig.Listen = c.Listen
+			s.apiConfig.ListenSocket = c.ListenSocket
 			s.apiConfig.Disable404Page = c.Disable404Page
 			s.apiConfig.RUMAppIDWhiteList = append(s.apiConfig.RUMAppIDWhiteList, c.RUMAppIDWhiteList...)
 			s.apiConfig.PublicAPIs = append(s.apiConfig.PublicAPIs, c.PublicAPIs...)

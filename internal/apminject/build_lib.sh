@@ -36,7 +36,7 @@ docker_build() {
 }
 
 make -f "$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/Makefile \
-    rewriter DIST_DIR="$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/"$dist_rela_dir" \
+    rewriter dkrunc DIST_DIR="$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/"$dist_rela_dir" \
     ARCH="$target_arch" REPO_PATH="$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit || exit $?
 
 docker_build "$target_arch" glibc
