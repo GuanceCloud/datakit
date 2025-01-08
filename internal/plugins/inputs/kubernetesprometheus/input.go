@@ -24,6 +24,7 @@ import (
 type Input struct {
 	NodeLocal                                     bool              `toml:"node_local"`
 	ScrapeInterval                                time.Duration     `toml:"scrape_interval"`
+	KeepExistMetricName                           bool              `toml:"keep_exist_metric_name"`
 	EnableDiscoveryOfPrometheusPodAnnotations     bool              `toml:"enable_discovery_of_prometheus_pod_annotations"`
 	EnableDiscoveryOfPrometheusServiceAnnotations bool              `toml:"enable_discovery_of_prometheus_service_annotations"`
 	EnableDiscoveryOfPrometheusPodMonitors        bool              `toml:"enable_discovery_of_prometheus_pod_monitors"`
@@ -190,11 +191,12 @@ func init() { //nolint:gochecknoinits
 	setupMetrics()
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			NodeLocal:      true,
-			ScrapeInterval: time.Second * 30,
-			chPause:        make(chan bool, inputs.ElectionPauseChannelLength),
-			pause:          newPauseVar(),
-			feeder:         dkio.DefaultFeeder(),
+			NodeLocal:           true,
+			ScrapeInterval:      time.Second * 30,
+			KeepExistMetricName: true,
+			chPause:             make(chan bool, inputs.ElectionPauseChannelLength),
+			pause:               newPauseVar(),
+			feeder:              dkio.DefaultFeeder(),
 		}
 	})
 }

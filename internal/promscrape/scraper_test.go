@@ -77,3 +77,80 @@ func BenchmarkParseStream(b *testing.B) {
 		assert.NoError(b, err)
 	}
 }
+
+func TestSplitMetricName(t *testing.T) {
+	cases := []struct {
+		inMeasurement         string
+		inName                string
+		inKeepExistMetricName bool
+
+		outMeasurementName string
+		outFieldName       string
+	}{
+		{
+			inMeasurement:         "",
+			inName:                "etcd_write_bytes_total",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "etcd",
+			outFieldName:          "write_bytes_total",
+		},
+		{
+			inMeasurement:         "set-measurement",
+			inName:                "etcd_write_bytes_total",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "set-measurement",
+			outFieldName:          "write_bytes_total",
+		},
+		{
+			inMeasurement:         "set-measurement",
+			inName:                "etcd_write_bytes_total",
+			inKeepExistMetricName: true,
+			outMeasurementName:    "set-measurement",
+			outFieldName:          "etcd_write_bytes_total",
+		},
+		{
+			inName:                "_",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "unknown",
+			outFieldName:          "unknown",
+		},
+		{
+			inName:                "__",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "unknown",
+			outFieldName:          "unknown",
+		},
+		{
+			inName:                "etcd_",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "unknown",
+			outFieldName:          "unknown",
+		},
+		{
+			inName:                "_etcd",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "unknown",
+			outFieldName:          "unknown",
+		},
+		{
+			inName:                "_etcd_write_bytes_total",
+			inKeepExistMetricName: false,
+			outMeasurementName:    "unknown",
+			outFieldName:          "unknown",
+		},
+	}
+
+	for _, tc := range cases {
+		p := PromScraper{
+			opt: &option{
+				measurement:         tc.inMeasurement,
+				keepExistMetricName: tc.inKeepExistMetricName,
+			},
+		}
+
+		measurementName, fieldName := p.splitMetricName(tc.inName)
+
+		assert.Equal(t, tc.outMeasurementName, measurementName)
+		assert.Equal(t, tc.outFieldName, fieldName)
+	}
+}
