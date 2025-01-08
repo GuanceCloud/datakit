@@ -39,6 +39,7 @@ DialTesting
 Distro
 Dubbo
 Dubbox
+EJUKEBOX
 ELinker
 ElasticSearch
 Errno
@@ -262,9 +263,11 @@ counterrate
 COUNTERRATE
 defragmentation
 defragmented
+dentry
 Diskio
 dnsflow
 freeable
+getdents
 httpflow
 interestingstats
 ISAPI
@@ -273,7 +276,9 @@ MAXCALLSTACKDEPTH
 maxcallstacksequence
 MAXCALLSTACKSEQUENCE
 Mbps
+mmap
 mmapped
+mountstats
 mult
 NAND
 NUMA
