@@ -102,9 +102,9 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 	opts := point.DefaultMetricOptions()
 
 	for _, row := range rows {
-		measurementName, metricsName := p.splitMetricsName(row.Metric)
+		measurementName, metricName := p.splitMetricName(row.Metric)
 		var kvs point.KVs
-		kvs = kvs.Add(metricsName, row.Value, false, true)
+		kvs = kvs.Add(metricName, row.Value, false, true)
 
 		for key, value := range p.opt.extraTags {
 			kvs = kvs.AddTag(key, value)
@@ -133,34 +133,28 @@ func (p *PromScraper) newRequest(u string) (*http.Request, error) {
 	return req, err
 }
 
-func (p *PromScraper) splitMetricsName(name string) (measurementName, metricsName string) {
-	if p.opt.measurement != "" {
-		return p.opt.measurement, name
-	}
-
-	startPosition := strings.IndexFunc(name, func(r rune) bool {
-		return r != '_'
-	})
-	if startPosition == -1 || startPosition == len(name)-1 {
-		return "unknown", "unknown"
-	}
-
-	name = name[startPosition:]
+func (p *PromScraper) splitMetricName(name string) (measurementName, metricName string) {
 	// By default, measurement name and metric name are split according to the first '_' met.
 	index := strings.Index(name, "_")
 
 	switch index {
-	case -1:
-		return name, name
-	case 0:
-		return name[index:], name[index:]
-	case len(name) - 1:
-		return name[:index], name[:index]
+	case -1, 0, len(name) - 1:
+		measurementName = "unknown"
+		metricName = "unknown"
+		return
+	}
+
+	measurementName = name[:index]
+	metricName = name[index+1:]
+
+	if p.opt.measurement != "" {
+		measurementName = p.opt.measurement
 	}
 
 	// If the keepExistMetricName is true, keep the raw value for field names.
 	if p.opt.keepExistMetricName {
-		return name[:index], name
+		metricName = name
+		return
 	}
-	return name[:index], name[index+1:]
+	return
 }

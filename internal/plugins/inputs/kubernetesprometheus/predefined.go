@@ -51,7 +51,6 @@ func (ipt *Input) applyPredefinedInstances() {
 		}
 
 		ins.setDefault(ipt)
-		ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 		ipt.InstanceManager.Instances = append(ipt.InstanceManager.Instances, ins)
 
 		klog.Info("apply PodAnnotations from predefined instance")
@@ -85,7 +84,6 @@ func (ipt *Input) applyPredefinedInstances() {
 		}
 
 		ins.setDefault(ipt)
-		ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 		ipt.InstanceManager.Instances = append(ipt.InstanceManager.Instances, ins)
 
 		klog.Info("apply ServiceAnnotations from predefined instance")
@@ -186,7 +184,6 @@ func fetchPodMonitor(
 			}
 
 			ins.setDefault(ipt)
-			ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 			instances = append(instances, ins)
 		}
 
@@ -295,7 +292,6 @@ func fetchServiceMonitor(
 			}
 
 			ins.setDefault(ipt)
-			ins.Custom.keepExistMetricName = !disableKeepExistMetricName()
 			instances = append(instances, ins)
 		}
 
@@ -400,9 +396,4 @@ func getExtraLabelAsTags() []string {
 	res := unique(append(keys, config.Cfg.Dataway.GlobalCustomerKeys...))
 	sort.Strings(res)
 	return res
-}
-
-func disableKeepExistMetricName() bool {
-	str := os.Getenv("ENV_INPUT_CONTAINER_KEEP_EXIST_PROMETHEUS_METRIC_NAME")
-	return str == "false"
 }

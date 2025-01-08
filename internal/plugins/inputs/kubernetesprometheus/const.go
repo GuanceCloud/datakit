@@ -37,6 +37,10 @@ const (
   node_local      = true
   scrape_interval = "30s"
 
+  ## Keep Exist Metric Name
+  ## If the keep_exist_metric_name is true, keep the raw value for field names.
+  keep_exist_metric_name = true
+
   enable_discovery_of_prometheus_pod_annotations     = false
   enable_discovery_of_prometheus_service_annotations = false
   enable_discovery_of_prometheus_pod_monitors        = false

@@ -108,7 +108,7 @@ func (ins *Instance) setDefault(ipt *Input) {
 		ins.Tags = make(map[string]string)
 	}
 
-	ins.keepExistMetricName = true
+	ins.keepExistMetricName = ipt.KeepExistMetricName
 
 	for k, v := range ipt.GlobalTags {
 		if _, ok := ins.Tags[k]; !ok {
