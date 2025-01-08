@@ -900,6 +900,10 @@ func (ipt *Input) Terminate() {
 			log.Errorf("unable to close disk queue: %s", err)
 		}
 	}
+
+	for _, endpoint := range ipt.Endpoints {
+		httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
+	}
 }
 
 type pushProfileDataOpt struct {

@@ -23,7 +23,7 @@ func RunInputs() error {
 
 	for name, arr := range InputsInfo {
 		if len(arr) > 1 {
-			if _, ok := arr[0].input.(Singleton); ok {
+			if _, ok := arr[0].Input.(Singleton); ok {
 				arr = arr[:1]
 			}
 		}
@@ -31,24 +31,24 @@ func RunInputs() error {
 		inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
 
 		for _, ii := range arr {
-			if ii.input == nil {
+			if ii.Input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
 			}
 
-			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
+			if inp, ok := ii.Input.(ReadEnv); ok && datakit.Docker {
 				inp.ReadEnv(envs)
 			}
 
-			if inp, ok := ii.input.(HTTPInput); ok {
+			if inp, ok := ii.Input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 
-			if inp, ok := ii.input.(PipelineInput); ok {
+			if inp, ok := ii.Input.(PipelineInput); ok {
 				inp.RunPipeline()
 			}
 
-			func(name string, ii *inputInfo) {
+			func(name string, ii *InputInfo) {
 				g.Go(func(ctx context.Context) error {
 					protectRunningInput(name, ii)
 					l.Infof("input %s exited, this maybe a input that only register a HTTP handle", name)

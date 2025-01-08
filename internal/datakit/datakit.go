@@ -188,6 +188,7 @@ var (
 	MainConfSamplePath     = filepath.Join(ConfdDir, "datakit.conf.sample")
 
 	PidFile = filepath.Join(InstallDir, ".pid")
+	KVFile  = filepath.Join(DataDir, ".kv")
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	TemplateDir        = filepath.Join(InstallDir, "template")
@@ -301,6 +302,7 @@ func SetWorkDir(dir string) {
 	CacheDir = filepath.Join(InstallDir, StrCache)
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	PidFile = filepath.Join(InstallDir, ".pid")
+	KVFile = filepath.Join(DataDir, ".kv")
 
 	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
 	PythonDDir = filepath.Join(InstallDir, StrPythonD)

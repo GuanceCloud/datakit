@@ -7,9 +7,11 @@
 package inputs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"net"
 	"net/url"
 	"os"
@@ -38,7 +40,7 @@ type ConfigInfoItem struct {
 
 var (
 	Inputs     = map[string]Creator{}
-	InputsInfo = map[string][]*inputInfo{}
+	InputsInfo = map[string][]*InputInfo{}
 	ConfigInfo = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
 		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
 		ConfigDir:    datakit.ConfdDir,
@@ -54,8 +56,8 @@ func GetElectionInputs() map[string][]ElectionInput {
 	res := make(map[string][]ElectionInput)
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
-			if y, ok := x.input.(ElectionInput); ok {
-				if z, ok := x.input.(ElectionEnabler); ok {
+			if y, ok := x.Input.(ElectionInput); ok {
+				if z, ok := x.Input.(ElectionEnabler); ok {
 					if !z.ElectionEnabled() {
 						l.Debugf("skip election disabled input: %s", k)
 						continue
@@ -81,7 +83,6 @@ type Config struct {
 	Catalog      string            `json:"catalog"`
 	ConfigDir    string            `json:"config_dir"`
 }
-
 type Input interface {
 	Catalog() string
 	Run()
@@ -168,18 +169,21 @@ func Add(name string, creator Creator) {
 	AddConfigInfoPath(name, "", 0)
 }
 
-type inputInfo struct {
-	input Input
+type InputInfo struct {
+	Name         string
+	Input        Input
+	ParsedConfig string
+	ConfKey      string // refer to kv config key
 }
 
-func (ii *inputInfo) Run() {
-	if ii.input == nil {
+func (ii *InputInfo) Run() {
+	if ii.Input == nil {
 		return
 	}
 
-	switch ii.input.(type) {
+	switch ii.Input.(type) {
 	case Input:
-		ii.input.Run()
+		ii.Input.Run()
 	default:
 		l.Errorf("invalid input type")
 	}
@@ -193,7 +197,7 @@ func GetInput() ([]byte, error) {
 
 	for name, info := range InputsInfo {
 		for _, ii := range info {
-			inputs[name] = append(inputs[name], ii.input)
+			inputs[name] = append(inputs[name], ii.Input)
 		}
 	}
 
@@ -262,17 +266,20 @@ func DeleteConfigInfoPath(inputName, fp string) {
 	}
 }
 
-func AddInput(name string, input Input) {
+func AddInput(name string, input *InputInfo) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	// 单例采集器只添加一次
-	if _, ok := input.(Singleton); ok {
-		if len(InputsInfo[name]) > 0 {
-			return
+	if input != nil {
+		// 单例采集器只添加一次
+		if _, ok := input.Input.(Singleton); ok {
+			if len(InputsInfo[name]) > 0 {
+				return
+			}
 		}
 	}
-	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
+
+	InputsInfo[name] = append(InputsInfo[name], input)
 
 	l.Infof("add input %q, total %d", name, len(InputsInfo[name]))
 }
@@ -286,10 +293,10 @@ func RemoveInput(name string, input Input) {
 		return
 	}
 
-	newList := []*inputInfo{}
+	newList := []*InputInfo{}
 
 	for _, ii := range oldList {
-		if !reflect.DeepEqual(input, ii.input) {
+		if !reflect.DeepEqual(input, ii.Input) {
 			newList = append(newList, ii)
 		}
 	}
@@ -302,7 +309,7 @@ func RemoveInput(name string, input Input) {
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
-	InputsInfo = map[string][]*inputInfo{}
+	InputsInfo = map[string][]*InputInfo{}
 
 	// only reset input config path
 	for _, v := range ConfigInfo.Inputs {
@@ -335,12 +342,12 @@ func RunInputExtra() error {
 
 	for name, arr := range InputsInfo {
 		for _, ii := range arr {
-			if ii.input == nil {
+			if ii.Input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
 			}
 
-			if inp, ok := ii.input.(HTTPInput); ok {
+			if inp, ok := ii.Input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 		}
@@ -354,12 +361,12 @@ func StopInputs() error {
 
 	for name, arr := range InputsInfo {
 		for _, ii := range arr {
-			if ii.input == nil {
+			if ii.Input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
 			}
 
-			if inp, ok := ii.input.(InputV2); ok {
+			if inp, ok := ii.Input.(InputV2); ok {
 				inp.Terminate()
 			}
 		}
@@ -367,9 +374,47 @@ func StopInputs() error {
 	return nil
 }
 
+// IterateInputs iterate all inputs and call f(name, input).
+func IterateInputs(f func(name string, i *InputInfo)) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	for name, arr := range InputsInfo {
+		if len(arr) > 1 {
+			if _, ok := arr[0].Input.(Singleton); ok {
+				arr = arr[:1]
+			}
+		}
+		for _, ii := range arr {
+			if ii.Input == nil {
+				l.Debugf("skip non-datakit-input %s", name)
+				continue
+			}
+			if ii.Name == "" {
+				ii.Name = name
+			}
+			f(name, ii)
+		}
+	}
+}
+
+func GetInputsByConfKey(confKey string) []*InputInfo {
+	mtx.RLock()
+	defer mtx.RUnlock()
+	arr := []*InputInfo{}
+	for _, v := range InputsInfo {
+		for _, vv := range v {
+			if vv.ConfKey == confKey {
+				arr = append(arr, vv)
+			}
+		}
+	}
+
+	return arr
+}
+
 var MaxCrash = 6
 
-func protectRunningInput(name string, ii *inputInfo) {
+func protectRunningInput(name string, ii *InputInfo) {
 	var f rtpanic.RecoverCallback
 	crashTime := []string{}
 
@@ -402,11 +447,56 @@ func protectRunningInput(name string, ii *inputInfo) {
 		case <-datakit.Exit.Wait(): // check if datakit exited now
 			return
 		default:
-			ii.Run()
+			ii.Input.Run()
 		}
 	}
 
 	f(nil, nil)
+}
+
+func RunInput(name string, ii *InputInfo) {
+	if ii == nil {
+		l.Warnf("run input failed: nil input")
+		return
+	}
+	g := datakit.G("inputs")
+
+	if ii.Input == nil {
+		l.Debugf("skip non-datakit-input %s", name)
+		return
+	}
+
+	if inp, ok := ii.Input.(ReadEnv); ok && datakit.Docker {
+		inp.ReadEnv(getEnvs())
+	}
+
+	if inp, ok := ii.Input.(HTTPInput); ok {
+		inp.RegHTTPHandler()
+	}
+
+	if inp, ok := ii.Input.(PipelineInput); ok {
+		inp.RunPipeline()
+	}
+
+	func(name string, ii *InputInfo) {
+		g.Go(func(ctx context.Context) error {
+			// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
+			tick := time.NewTicker(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
+			defer tick.Stop()
+			select {
+			case <-tick.C:
+				l.Infof("starting input %s ...", name)
+
+				protectRunningInput(name, ii)
+
+				l.Infof("input %s exited, this maybe a input that only register a HTTP handle", name)
+				return nil
+			case <-datakit.Exit.Wait():
+				l.Infof("start input %s interrupted", name)
+			}
+			return nil
+		})
+	}(name, ii)
 }
 
 func GetPanicCnt(name string) int {

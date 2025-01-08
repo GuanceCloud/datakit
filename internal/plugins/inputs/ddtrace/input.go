@@ -355,6 +355,24 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	// remove route
+	isReg := false
+	for _, endpoint := range ipt.Endpoints {
+		switch endpoint {
+		case v1, v2, v3, v4, v5:
+			httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
+			httpapi.RemoveHTTPRoute(http.MethodPut, endpoint)
+			isReg = true
+			log.Debugf("### pattern %s removed for %s agent", endpoint, inputName)
+		default:
+			log.Debugf("### unrecognized pattern %s for %s agent", endpoint, inputName)
+		}
+	}
+	if isReg {
+		httpapi.RemoveHTTPRoute(http.MethodGet, stats)
+		httpapi.RemoveHTTPRoute(http.MethodPost, apmTelemetry)
+	}
 }
 
 func (ipt *Input) string() string {

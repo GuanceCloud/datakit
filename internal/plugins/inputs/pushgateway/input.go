@@ -67,7 +67,16 @@ func (*Input) AvailableArchs() []string                { return datakit.AllOS }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) Run()                                    { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
-func (*Input) Terminate()                              { /* TODO */ }
+func (ipt *Input) Terminate() {
+	// remove all routes
+	path := ipt.RoutePrefix + "/metrics"
+	for _, suffix := range []string{"", base64Suffix} {
+		httpapi.RemoveHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job")
+		httpapi.RemoveHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job")
+		httpapi.RemoveHTTPRoute(http.MethodPost, path+"/job"+suffix+"/:job/*labels")
+		httpapi.RemoveHTTPRoute(http.MethodPut, path+"/job"+suffix+"/:job/*labels")
+	}
+}
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)

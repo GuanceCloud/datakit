@@ -452,6 +452,17 @@ func (ipt *Input) Terminate() {
 			log.Errorf("goroutine [%s] exit abnormal: %s", replayWorkersGroup.Name(), err)
 		}
 	}
+
+	// remove http route
+	for _, endpoint := range ipt.Endpoints {
+		httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
+	}
+	for _, endpoint := range ipt.SessionReplayEndpoints {
+		httpapi.RemoveHTTPRoute(http.MethodPost, endpoint)
+	}
+	httpapi.RemoveHTTPRoute(http.MethodGet, "/v1/sourcemap/check")
+	httpapi.RemoveHTTPRoute(http.MethodPut, "/v1/sourcemap")
+	httpapi.RemoveHTTPRoute(http.MethodDelete, "/v1/sourcemap")
 }
 
 func defaultInput() *Input {

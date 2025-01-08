@@ -62,6 +62,8 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	httpapi.RemoveHTTPRoute("POST", "/v1/bpftracing")
 }
 
 func (ipt *Input) Catalog() string {

@@ -162,6 +162,33 @@ datakit tool --workspace-info
 }
 ```
 
+## 调试 KV 文件 {#debug-kv}
+
+采集器的配置文件使用 KV 模板进行配置的时候，如果需要调试，可以通过如下命令来进行调试。
+
+```shell
+datakit tool --parse-kv-file conf.d/host/cpu.conf --kv-file data/.kv
+
+[[inputs.cpu]]
+  ## Collect interval, default is 10 seconds. (optional)
+  interval = '10s'
+
+  ## Collect CPU usage per core, default is false. (optional)
+  percpu = false
+
+  ## Setting disable_temperature_collect to false will collect cpu temperature stats for linux. (deprecated)
+  # disable_temperature_collect = false
+
+  ## Enable to collect core temperature data.
+  enable_temperature = true
+
+  ## Enable gets average load information every five seconds.
+  enable_load5s = true
+
+[inputs.cpu.tags]
+  kv = "cpu_kv_value3"
+```
+
 ## 查看 DataKit 相关事件 {#event}
 
 DataKit 运行过程中，一些关键事件会以日志的形式进行上报，比如 DataKit 的启动、采集器的运行错误等。在命令行终端，可以通过 dql 进行查询。

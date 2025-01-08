@@ -148,6 +148,10 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	if ipt.EnableCIVisibility {
+		httpapi.RemoveHTTPRoute("POST", "/v1/gitlab")
+	}
 }
 
 func (ipt *Input) Pause() error {

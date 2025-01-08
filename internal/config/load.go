@@ -89,6 +89,8 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
+	defaultKV.LoadKV()
+
 	//	return true
 	// })
 

@@ -59,6 +59,12 @@ func RegHTTPRoute(method, path string, handler APIHandler) {
 	}
 }
 
+func RemoveHTTPRoute(method, path string) {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+	delete(httpRouteList, method+path)
+}
+
 func CleanHTTPHandler() {
 	httpConfMtx.Lock()
 	defer httpConfMtx.Unlock()

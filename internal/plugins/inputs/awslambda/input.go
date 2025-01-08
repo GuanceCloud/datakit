@@ -211,6 +211,7 @@ func (ipt *Input) AvailableArchs() []string {
 func (ipt *Input) Terminate() {
 	ipt.telemetryListener.Shutdown()
 	ipt.cancel()
+	httpapi.RemoveHTTPRoute(http.MethodPost, "/awslambda")
 }
 
 func (ipt *Input) setup() error {

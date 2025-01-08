@@ -379,6 +379,10 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+
+	httpapi.RemoveHTTPRoute("POST", ipt.HTTPConfig.TraceAPI)
+	httpapi.RemoveHTTPRoute("POST", ipt.HTTPConfig.MetricAPI)
+	httpapi.RemoveHTTPRoute("POST", ipt.HTTPConfig.LogsAPI)
 }
 
 func defaultInput() *Input {

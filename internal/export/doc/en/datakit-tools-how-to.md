@@ -188,6 +188,33 @@ datakit tool --workspace-info
 }
 ```
 
+## Debug KV file {#debug-kv}
+
+When configuring the collector's configuration file using a KV (key-value) template, if debugging is required, you can use the following command for debugging:
+
+```shell
+datakit tool --parse-kv-file conf.d/host/cpu.conf --kv-file data/.kv
+
+[[inputs.cpu]]
+  ## Collect interval, default is 10 seconds. (optional)
+  interval = '10s'
+
+  ## Collect CPU usage per core, default is false. (optional)
+  percpu = false
+
+  ## Setting disable_temperature_collect to false will collect cpu temperature stats for linux. (deprecated)
+  # disable_temperature_collect = false
+
+  ## Enable to collect core temperature data.
+  enable_temperature = true
+
+  ## Enable gets average load information every five seconds.
+  enable_load5s = true
+
+[inputs.cpu.tags]
+  kv = "cpu_kv_value3"
+```
+
 ## View DataKit Related Events {#event}
 
 During the running of DataKit, some key events will be reported in the form of logs, such as the startup of DataKit and the running errors of collector. You can query through dql at the command line terminal.

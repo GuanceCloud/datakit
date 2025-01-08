@@ -203,6 +203,7 @@ var (
 	flagDebugHTTPListen = fsDebug.String("http-listen", "", "setup HTTP server on debugging some inputs(such as some Trace/RUM/...)")
 	flagDebugFilter     = fsDebug.String("filter", "", "filter configure file(JSON)")
 	flagDebugData       = fsDebug.String("data", "", "data used during debugging")
+	flagDebugKVFile     = fsDebug.String("kv-file", "", "kv file path")
 
 	fsDebugUsage = func() {
 		fmt.Printf("usage: datakit debug [options]\n\n")
@@ -234,6 +235,8 @@ var (
 	flagToolJSON              = fsTool.Bool("json", false, "output in JSON format(partially supported)")
 	flagToolUpdateIPDB        = fsTool.Bool("update-ipdb", false, "update local IPDB")
 
+	flagToolParseKVFile         = fsTool.String("parse-kv-file", "", "parse input conf file with kv replaced")
+	flagToolKVFile              = fsTool.String("kv-file", "", "specify the kv file path")
 	flagToolRemoveApmAutoInject = fsTool.Bool("remove-apm-auto-inject", false, "remove apm-auto-inject")
 
 	fsToolUsage = func() {

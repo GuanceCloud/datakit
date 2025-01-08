@@ -174,8 +174,8 @@ func enableDefaultInputs(list []string) {
 	}
 }
 
-func ReloadCheckInputCfg() ([]inputs.Input, error) {
-	var availableInputs []inputs.Input
+func ReloadCheckInputCfg() ([]*inputs.InputInfo, error) {
+	var availableInputs []*inputs.InputInfo
 	confRootPath := getConfRootPaths()
 
 	for _, rp := range confRootPath {

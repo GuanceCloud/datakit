@@ -237,6 +237,109 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
 
+## 使用 KV 模板配置 {#kv-template}
+
+KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方式更便捷地编辑配置文件。例如，敏感信息，诸如密码和用户名，可以通过键值对的形式安全地存储，并在相关的配置文件中进行引用。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+    - 仅支持主机配置，不支持 [Git](./git-config-how-to.md) 和[配置中心](./confd.md)方式的配置。
+    - 仅支持采集器的配置文件中使用。
+<!-- markdownlint-enable -->
+
+### 动态加载流程 {#kv-load-flow}
+
+观测云平台允许用户通过 Web 客户端创建或更新 KV 键值对配置。DataKit 在运行过程中会定期从观测云平台拉取最新的 KV 配置，并与内存中现有的配置进行对比。如果检测到任何变化，DataKit 将遍历所有采集器配置文件，分别用新旧 KV 替换模板文件进行对比，以找出发生变化的配置文件。一旦发现这些配置文件有所改动，将重新加载由它们生成的所有采集器。
+
+需要注意的是，这里的比较是以配置文件为单位进行的。这意味着如果一个配置文件中包含了多个采集器，只要该文件发生任何修改，所有由此配置文件生成的采集器都会被重新加载。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+    - 如果重新加载的采集中，包含 HTTP 服务的，如 `ddtrace` 采集器，则整个 HTTP 服务将被重启。
+<!-- markdownlint-enable -->
+
+完整流程参考下图：
+
+```mermaid
+flowchart TD
+    guance(Guance Cloud);
+    web_client(web client);
+    datakit(DataKit);
+    changes{changes?};
+    End(end);
+
+   subgraph reload
+   direction LR
+   changed_conf(find changed conf) -.-> related_inputs(related inputs)
+   related_inputs -.-> restart_input(stop & start)
+   end
+ 
+   datakit -.-> |pull KV| guance
+   web_client -.-> |save KV| guance
+   datakit -->  changes
+   changes --> |yes| reload
+   changes --> |no| End
+```
+
+### KV 文件缓存 {#kv-cache}
+
+DataKit 从中心拉取 KV 信息，并缓存在本地文件 `<DataKit-Install-Dir>/data/.kv` 中，文件格式为 JSON，具体配置参考如下：
+
+```json
+{"value":"{\"cpu_kv\": \"cpu_kv_value3\", \"mysql_password\": \"000000\", \"cpu_enable_temperature\": true}","version":10}
+```
+
+其中的 `value` 是具体的 KV 配置，以 `key:value` 的形式，可以通过 `{{"{{.key}}"}}` 的语法来引用。
+
+`version` 表示当前配置的版本号。
+
+### KV 使用示例 {#kv-example}
+
+KV 使用的语法是使用 [Go template](https://pkg.go.dev/text/template){:target="_blank"}, 下面仅介绍其中常用的语法功能。
+
+- 基本用法
+
+假如定义以下 KV 配置：
+
+```json
+{
+  "value": {
+    "mysql_host": "127.0.0.1",
+    "mysql_user": "root",
+    "mysql_pass": "abc123!@#"
+  },
+  "version": 10
+}
+
+```
+
+在配置文件中，可以使用 `{{"{{.key}}"}}` 语法来引用 KV 配置， 下面以 MySQL 采集器为例：
+
+```toml
+[[inputs.mysql]]
+  host = "{{"{{.mysql_host}}"}}"
+  user = "{{"{{.mysql_user}}"}}"
+  pass = "{{"{{.mysql_pass}}"}}" # refer to kv config
+  port = {{"{{.mysql_port}}"}}
+  # sock = "<SOCK>"
+  # charset = "utf8"
+
+  # .... 
+
+```
+
+该配置文件在被加载之前，会自动将其中的 `{{"{{.key}}"}}` 替换为对应的 KV 配置，从而实现配置文件的动态化。为了方便调试，DataKit 提供了调试 KV 配置的功能，可以参考 [调试 KV 文件](datakit-tools-how-to.md#debug-kv)。
+
+- 使用默认值
+
+有时候需要给变量定义一个默认值，即当该变量为空时，指定一个默认值。用法参考如下：
+
+```toml
+port = {{"{{.mysql_port | default 3306}}"}}
+```
+
+上面的模板中，如果未定义 `port` 或该值为空时，则 `port` 使用默认值 `3306`。
+
 ## 密码配置编码问题 {#password-encode}
 
 在配置一些连结字符串时，如果密码中带有一些特殊字符（比如 `@#*` 等），这些字符如果编码在链接字符串中，需要将其做一些编码，这些特殊字符的 URL 编码列表如下：

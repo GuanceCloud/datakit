@@ -199,6 +199,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+	httpapi.RemoveHTTPRoute("POST", ginHandleURI)
 }
 
 func defaultInput() *Input {
