@@ -136,27 +136,6 @@ server {
 
 {{ end }}
 
-## 自定义对象 {#object}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "custom_object"}}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-{{end}}
-
-{{ end }}
-
 ## 日志 {#logging}
 
 如需采集 NGINX 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 NGINX 日志文件的绝对路径。比如：

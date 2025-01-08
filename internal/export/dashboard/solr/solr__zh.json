@@ -4,6 +4,7 @@
   "dashboardExtend": {
     "groupUnfoldStatus": {
       "指标": true,
+      "Cache指标": true,
       "cache指标": true,
       "searcher指标": true,
       "request_times指标": true
@@ -54,7 +55,7 @@
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
+            "bgColor": "#5378E5",
             "mappings": [],
             "showLine": false,
             "unitType": "global",
@@ -83,7 +84,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "searcher指标"
+          "name": "Search"
         },
         "name": "已删除文档数",
         "pos": {
@@ -129,7 +130,7 @@
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
+            "bgColor": "#5378E5",
             "mappings": [],
             "showLine": false,
             "unitType": "global",
@@ -158,7 +159,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "searcher指标"
+          "name": "Search"
         },
         "name": "文档总数",
         "pos": {
@@ -204,7 +205,7 @@
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
+            "bgColor": "#5378E5",
             "mappings": [],
             "showLine": false,
             "unitType": "global",
@@ -233,7 +234,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "searcher指标"
+          "name": "Search"
         },
         "name": "最大文档数",
         "pos": {
@@ -336,7 +337,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "request_times指标"
+          "name": "Request times"
         },
         "name": "每秒请求数总览",
         "pos": {
@@ -525,7 +526,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "cache指标"
+          "name": "Cache"
         },
         "name": "索引缓存命中数",
         "pos": {
@@ -639,7 +640,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "cache指标"
+          "name": "Cache"
         },
         "name": "插入缓存数",
         "pos": {
@@ -753,7 +754,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "cache指标"
+          "name": "Cache"
         },
         "name": "缓存查找数",
         "pos": {
@@ -810,7 +811,7 @@
             "units": [],
             "colors": [],
             "levels": [],
-            "bgColor": "",
+            "bgColor": "#569999",
             "mappings": [],
             "showLine": false,
             "unitType": "global",
@@ -836,11 +837,11 @@
             "openThousandsSeparator": true
           },
           "fixedTime": "",
-          "isRefresh": true,
+          "isRefresh": false,
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "request_times指标"
+          "name": "Request times"
         },
         "name": "请求总数",
         "pos": {
@@ -947,7 +948,7 @@
           "isRefresh": true
         },
         "group": {
-          "name": "request_times指标"
+          "name": "Request times"
         },
         "name": "请求速率",
         "pos": {
@@ -1139,7 +1140,7 @@
           "isRefresh": true
         },
         "group": {
-          "name": "cache指标"
+          "name": "Cache"
         },
         "name": "索引缓存命中率",
         "pos": {
@@ -1192,24 +1193,25 @@
     ],
     "groups": [
       {
-        "name": "cache指标",
+        "name": "Cache",
         "extend": {
           "colorKey": "style_key2"
         }
       },
       {
-        "name": "request_times指标",
+        "name": "Request times",
         "extend": {
           "colorKey": "style_key20"
         }
       },
       {
-        "name": "searcher指标",
+        "name": "Search",
         "extend": {
           "colorKey": "style_key1"
         }
       }
     ],
     "type": "template"
-  }
+  },
+  "identifier": ""
 }
