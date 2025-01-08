@@ -526,6 +526,8 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 			httpRetry.WithLabelValues(req.URL.Path, status).Inc()
 		}),
 	); err != nil {
+		l.Errorf("retry.Do: %s", err.Error())
+
 		switch {
 		case strings.Contains(err.Error(), "All attempts fail"):
 			return resp, fmt.Errorf("all-retry-failed")
