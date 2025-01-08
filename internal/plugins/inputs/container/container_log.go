@@ -77,7 +77,6 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithIgnoreDeadLog(defaultActiveDuration),
 			tailer.WithFieldWhiteList(c.ipt.LoggingFieldWhiteList),
 			tailer.WithInsideFilepathFunc(insideFilepathFunc),
-			tailer.EnableInotify(c.ipt.LoggingEnableInotify),
 		}
 
 		switch cfg.Type {

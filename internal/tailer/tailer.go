@@ -26,7 +26,8 @@ import (
 
 const (
 	// 定期寻找符合条件的新文件.
-	scanNewFileInterval = time.Second * 10
+	scanIntervalShort = time.Second * 10
+	scanIntervalLong  = time.Minute * 1
 )
 
 var g = datakit.G("tailer")
@@ -81,7 +82,7 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 		return nil, fmt.Errorf("failed to new filter, err: %w", err)
 	}
 
-	if runtime.GOOS == datakit.OSLinux && c.enableInotify {
+	if runtime.GOOS == datakit.OSLinux {
 		tailer.fileInotify, err = fileprovider.NewInotify(patterns)
 		if err != nil {
 			tailer.log.Warnf("failed to new inotify, err: %s, ingored", err)
@@ -89,7 +90,6 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 			return tailer, nil
 		}
 	} else {
-		tailer.log.Infof("source %s does not use the inotify", c.source)
 		tailer.fileInotify = fileprovider.NewNopInotify()
 	}
 
@@ -103,8 +103,10 @@ func (t *Tailer) Start() {
 		t.log.Info("all exit")
 	}()
 
-	ticker := time.NewTicker(scanNewFileInterval)
-	defer ticker.Stop()
+	shortTicker := time.NewTicker(scanIntervalShort)
+	defer shortTicker.Stop()
+	longTicker := time.NewTicker(scanIntervalLong)
+	defer longTicker.Stop()
 
 	ctx := context.Background()
 
@@ -140,17 +142,26 @@ func (t *Tailer) Start() {
 
 			file := filepath.Clean(event.Name)
 			t.tryCreateWorkFromFiles(ctx, []string{file})
-			ticker.Reset(scanNewFileInterval)
+			shortTicker.Reset(scanIntervalShort)
 
-		case <-ticker.C:
-			files, err := t.fileScanner.ScanFiles()
-			if err != nil {
-				t.log.Warn(err)
-			} else {
-				t.tryCreateWorkFromFiles(ctx, files)
-			}
+		case <-shortTicker.C:
+			t.scanFiles(ctx)
+			longTicker.Reset(scanIntervalLong)
+
+		case <-longTicker.C:
+			t.scanFiles(ctx)
+			shortTicker.Reset(scanIntervalShort)
 		}
 	}
+}
+
+func (t *Tailer) scanFiles(ctx context.Context) {
+	files, err := t.fileScanner.ScanFiles()
+	if err != nil {
+		t.log.Warn(err)
+		return
+	}
+	t.tryCreateWorkFromFiles(ctx, files)
 }
 
 func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
