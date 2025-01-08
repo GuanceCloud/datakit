@@ -375,13 +375,13 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
    ```shell
    # 停止 docker 服务
-   service docker stop
+   systemctl stop docker docker.socket
 
    # 将已经创建的容器的 runtime 从 runc 换成 datakit 提供的 dk-runc
    datakit tool --change-docker-containers-runtime dk-runc
 
    # 启动 docker 服务
-   service docker start
+   systemctl start docker
 
    # 重新启动因 dockerd 重启，导致的容器的退出
    docker start <container_id1> <container_id2> ...
@@ -391,13 +391,13 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
    ```shell
    # 停止 docker 服务
-   service docker stop
+   systemctl stop docker docker.socket
 
    # 将已经创建的容器的 runtime 从 dk-runc 换回 runc
    datakit tool --change-docker-containers-runtime runc
 
    # 启动 docker 服务
-   service docker start
+   systemctl start docker
 
    # 重新启动因 dockerd 重启，导致的容器的退出
    docker start <container_id1> <container_id2> ...

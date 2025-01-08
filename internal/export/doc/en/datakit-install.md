@@ -353,13 +353,13 @@ Notes:
 
    ```shell
    # stop docker service
-   service docker stop
+   systemctl stop docker docker.socket
 
    # change the runtime of the created container from runc to dk-runc provided by datakit
    datakit tool --change-docker-containers-runtime dk-runc
 
    # start docker service
-   service docker start
+   systemctl start docker
 
    # restart the container that exited due to dockerd restart
    docker start <container_id1> <container_id2> ...
@@ -369,13 +369,13 @@ Notes:
 
    ```shell
    # stpp docker service
-   service docker stop
+   systemctl stop docker docker.socket
 
    # Change the runtime of the created container from dk-runc back to runc
    datakit tool --change-docker-containers-runtime runc
 
    # start docker service
-   service docker start
+   systemctl start docker
 
    # restart the container that exited due to dockerd restart
    docker start <container_id1> <container_id2> ...
