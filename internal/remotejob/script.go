@@ -25,6 +25,7 @@ def execute_jmap_command(pid, filename, jmap):
         print(f"Failed to execute jmap command: {e}")
         sys.exit(1)
 
+
 def upload_to_oss(file_name, osspath):
     bucket_host = os.getenv('OSS_BUCKET_HOST')
     access_key_id = os.getenv('OSS_ACCESS_KEY_ID')
@@ -101,12 +102,68 @@ def upload_to_oss_s(bucket, host, access_key_id, access_key_secret, path, servic
         print(e, file=sys.stderr)
 
 
+
+def upload_to_aws(file_name, path):
+    bucket_name = os.getenv('AWS_BUCKET_NAME')
+    access_key = os.getenv('AWS_ACCESS_KEY_ID')
+    secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    region = os.getenv('AWS_DEFAULT_REGION')
+    fi = os.path.basename(file_name)
+    object_key = f"{path}/{fi}"
+
+    print(f"file:{file_name} upload to region/bucket {region}/{bucket_name} object_key is {object_key}")
+
+    try:
+        import boto3
+        s3 = boto3.client('s3', aws_access_key_id=access_key,
+                          aws_secret_access_key=secret_key,
+                          region_name=region)
+        s3.upload_file(file_name, bucket_name, object_key)
+        print(f"file: {file_name} upload to: {bucket_name} , object_key: {object_key}, ok !")
+    except Exception as e:
+        print(f"err: {e}")
+
+
+def upload_to_obs(file_name, path):
+    bucket_name = os.getenv('OBS_BUCKET_NAME')
+    access_key = os.getenv('OBS_ACCESS_KEY_ID')
+    secret_key = os.getenv('OBS_SECRET_ACCESS_KEY')
+    server = os.getenv('OBS_SERVER')
+    fi = os.path.basename(file_name)
+    object_key = f"{path}/{fi}"
+    print(f"file:{file_name} upload to server/bucket {server}/{bucket_name} object_key is {object_key}")
+
+    try:
+        from obs import ObsClient
+
+        obsClient = ObsClient(access_key_id=access_key, secret_access_key=secret_key, server=server)
+
+        metadata = {'remote': 'job'}
+        # 文件上传
+        resp = obsClient.putFile(bucket_name, object_key, file_name, metadata)
+        # 返回码为2xx时，接口调用成功，否则接口调用失败
+        if resp.status < 300:
+            print('Put File Succeeded')
+            print('requestId:', resp.requestId)
+            print('etag:', resp.body.etag)
+            print('versionId:', resp.body.versionId)
+            print('storageClass:', resp.body.storageClass)
+        else:
+            print('Put File Failed')
+            print('requestId:', resp.requestId)
+            print('errorCode:', resp.errorCode)
+            print('errorMessage:', resp.errorMessage)
+    except Exception as e:
+        print(f"Put File Failed {e}")
+
+
+
 def main():
     parser = argparse.ArgumentParser(description='command args')
 
-    parser.add_argument('-pid','--pid', type=int, required=True, help='Process ID')
-    parser.add_argument('-osspath','--osspath', type=str, required=False, help='oss path')
-    parser.add_argument("-javahome",'--javahome', type=str, required=False, help='java name')
+    parser.add_argument('-pid', '--pid', type=int, required=True, help='Process ID')
+    parser.add_argument('-osspath', '--osspath', type=str, required=False, help='oss path')
+    parser.add_argument("-javahome", '--javahome', type=str, required=False, help='java name')
 
     args = parser.parse_args()
 
@@ -118,18 +175,33 @@ def main():
     print(f"oss path: {args.osspath}")
     print(f"java_home: {args.javahome}")
 
+    remote = os.getenv('REMOTE')
+
+    if not remote or remote == "":
+        remote = "oss"  # set default is oss
+        print("set to oss remote")
+
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
     filename = f"/tmp/heap-pid-{args.pid}-{timestamp}"
 
     jmap = args.javahome + "/bin/" + "jmap"
     execute_jmap_command(args.pid, filename, jmap)
 
-    upload_to_oss(filename, args.osspath)
+    if remote == "oss":
+        upload_to_oss(filename, args.osspath)
+        return
+
+    if remote == "aws":
+        upload_to_aws(filename, args.osspath)
+        return
+
+    if remote == "obs":
+        upload_to_obs(filename, args.osspath)
+        return
 
 
 if __name__ == "__main__":
     main()
-
 `
 
 var jvmDumpK8sScript = `import argparse
@@ -276,6 +348,56 @@ def get_pod_namespace(pod_name):
 
     return None
 
+def upload_to_aws(file_name, path):
+    bucket_name = os.getenv('AWS_BUCKET_NAME')
+    access_key = os.getenv('AWS_ACCESS_KEY_ID')
+    secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    region = os.getenv('AWS_DEFAULT_REGION')
+    fi = os.path.basename(file_name)
+    object_key = f"{path}/{fi}"
+    print(f"file:{file_name} upload to region/bucket {region}/{bucket_name} object_key is {object_key}")
+    # s3 bucket client
+    s3 = boto3.client('s3', aws_access_key_id=access_key,
+                      aws_secret_access_key=secret_key,
+                      region_name=region)
+    try:
+        # 执行上传操作
+        s3.upload_file(file_name, bucket_name, object_key)
+        print(f"file: {file_name} upload to: {bucket_name} , object_key: {object_key}, ok !")
+    except Exception as e:
+        print(f"err: {e}")
+
+
+def upload_to_obs(file_name, path):
+    bucket_name = os.getenv('OBS_BUCKET_NAME')
+    access_key = os.getenv('OBS_ACCESS_KEY_ID')
+    secret_key = os.getenv('OBS_SECRET_ACCESS_KEY')
+    server = os.getenv('OBS_SERVER')
+    fi = os.path.basename(file_name)
+    object_key = f"{path}/{fi}"
+    print(f"file:{file_name} upload to server/bucket {server}/{bucket_name} object_key is {object_key}")
+
+    obsClient = ObsClient(access_key_id=access_key, secret_access_key=secret_key, server=server)
+    try:
+        bucketName = bucket_name
+        metadata = {'remote': 'job'}
+        # 文件上传
+        resp = obsClient.putFile(bucketName, object_key, file_name, metadata)
+        # 返回码为2xx时，接口调用成功，否则接口调用失败
+        if resp.status < 300:
+            print('Put File Succeeded')
+            print('requestId:', resp.requestId)
+            print('etag:', resp.body.etag)
+            print('versionId:', resp.body.versionId)
+            print('storageClass:', resp.body.storageClass)
+        else:
+            print('Put File Failed')
+            print('requestId:', resp.requestId)
+            print('errorCode:', resp.errorCode)
+            print('errorMessage:', resp.errorMessage)
+    except:
+        print('Put File Failed')
+
 
 def main():
     parser = argparse.ArgumentParser(description='command args')
@@ -290,6 +412,11 @@ def main():
     print(f"process ID: {args.pid}")
     print(f"oss path: {args.osspath}")
     print(f"pod_name: {args.pod_name}")
+    remote = os.getenv('REMOTE')
+
+    if not remote or remote == "":
+        remote = "oss"  # set default is oss
+        print("set to oss remote")
 
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
     filename = f"/tmp/heap-pid-{args.pid}-{timestamp}"
@@ -307,7 +434,17 @@ def main():
     copy_file_from_pod_to_container(args.pod_name, filename, namespace)
 
     # 4 upload to oss
-    upload_to_oss(filename, args.osspath)
+    if remote == "oss":
+        upload_to_oss(filename, args.osspath)
+        return
+
+    if remote == "aws":
+        upload_to_aws(filename, args.osspath)
+        return
+
+    if remote == "obs":
+        upload_to_obs(filename, args.osspath)
+        return
 
 
 if __name__ == "__main__":

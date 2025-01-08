@@ -12,6 +12,8 @@ RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/
   && apt-get --no-install-recommends install -y lsb-release gpg libaio-dev libaio1 unzip wget curl python3 python3-pip libxml2 alien vim \
   && pip3 install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
   && pip3 install kubernetes -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
+  && pip install esdk-obs-python --trusted-host pypi.org \
+  && pip3 install boto3 \
   && curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg \
   && echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/redis.list \

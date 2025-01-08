@@ -650,6 +650,8 @@ The environment variables ENV_CRYPTO_AES_KEY and ENV_CRYPTO_AES_KEY_FILEPATH can
 
 DataKit receives tasks dispatched from the center and executes them. Currently, it supports the `JVM dump` function.
 
+It is command `jmap`,generate a jump file, and upload it to the `OSS`,`AWS S3 Bucket`, or `HuaWei Cloud OBS`.
+
 After installing DataKit (DK), two files will be generated in the `template/service-task` directory of the installation folder: `jvm_dump_host_script.py` and `jvm_dump_k8s_script.py`.
 The former is for the host machine mode, and the latter is for the virtual (Kubernetes) environment.
 
@@ -659,8 +661,44 @@ In the host machine environment, the current environment must have `python3` and
 pip install requests
 # or
 pip3 install requests
+
+# if upload to OBS:
+pip install esdk-obs-python --trusted-host pypi.org
+
+# if upload to S3:
+pip install boto3
 ```
 
+The upload to multiple storage types can be controlled through environment variables. The following are configuration instructions, The k8s environment is the same:
+
+```toml
+# upload to OSS
+[remote_job]
+  enable = true
+  envs = [
+      "REMOTE=oss",
+      "OSS_BUCKET_HOST=host","OSS_ACCESS_KEY_ID=key","OSS_ACCESS_KEY_SECRET=secret","OSS_BUCKET_NAME=bucket",
+    ]
+  interval = "30s"
+
+# or upload to AWS:
+[remote_job]
+  enable = true
+  envs = [
+      "REMOTE=aws",
+      "AWS_BUCKET_NAME=bucket","AWS_ACCESS_KEY_ID=AK","AWS_SECRET_ACCESS_KEY=SK","AWS_DEFAULT_REGION=us-west-2",
+    ]
+  interval = "30s"
+  
+# or upload to OBS:
+[remote_job]
+  enable = true
+  envs = [
+      "REMOTE=obs",
+      "OBS_BUCKET_NAME=bucket","OBS_ACCESS_KEY_ID=AK","OBS_SECRET_ACCESS_KEY=SK","OBS_SERVER=https://xxx.myhuaweicloud.com"
+    ]
+  interval = "30s"    
+```
 
 In the Kubernetes (K8S) environment, access to the Kubernetes API is required, so Role-Based Access Control (RBAC) is necessary.
 
@@ -679,7 +717,7 @@ In the Kubernetes (K8S) environment, access to the Kubernetes API is required, s
     ```toml
     [remote_job]
       enable=true
-      envs=["OSS_BUCKET_HOST=<bucket_host>","OSS_ACCESS_KEY_ID=<key>","OSS_ACCESS_KEY_SECRET=<secret key>","OSS_BUCKET_NAME=<name>"]
+      envs=["REMOTE=oss","OSS_BUCKET_HOST=<bucket_host>","OSS_ACCESS_KEY_ID=<key>","OSS_ACCESS_KEY_SECRET=<secret key>","OSS_BUCKET_NAME=<name>"]
       interval="100s"
       java_home=""
     ```
@@ -733,7 +771,7 @@ In the Kubernetes (K8S) environment, access to the Kubernetes API is required, s
       value: 'true'
     - name: ENV_REMOTE_JOB_ENVS
       value: >-
-        OSS_BUCKET_HOST=<bucket host>,OSS_ACCESS_KEY_ID=<key>,OSS_ACCESS_KEY_SECRET=<secret key>,OSS_BUCKET_NAME=<name>
+        REMOTE=oss,OSS_BUCKET_HOST=<bucket host>,OSS_ACCESS_KEY_ID=<key>,OSS_ACCESS_KEY_SECRET=<secret key>,OSS_BUCKET_NAME=<name>
     - name: ENV_REMOTE_JOB_JAVA_HOME
     - name: ENV_REMOTE_JOB_INTERVAL
       value: 100s
