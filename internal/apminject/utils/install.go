@@ -49,9 +49,6 @@ const (
 	glibc = "glibc"
 	muslc = "musl"
 
-	RuntimeRunc   = "runc"
-	RuntimeDkRunc = "dk-runc"
-
 	dkruncBinName = "dkrunc"
 )
 
