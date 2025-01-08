@@ -151,7 +151,7 @@ spec:
       value: "YYY"    
 ```
 
-## ENV Set Collectors: {#env-setting}
+## ENV Set Collectors {#env-setting}
 
 The opening of some collectors can also be injected through ENV_DATAKIT_INPUTS.
 The following is an injection example of MySQL and Redis collectors:

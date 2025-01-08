@@ -1,5 +1,33 @@
 # 更新日志
 
+## 1.66.0(2025/01/08) {#cl-1.66.0}
+
+本次发布为迭代发布，主要更新内容如下：
+
+### 新功能 {#cl-1.66.0-new}
+
+- 增加 KV 机制，支持通过拉取更新采集配置（#2449）
+- 任务下发功能中，存储类型增加 AWS/华为云存储支持（#2475）
+- 新增 [NFS 采集器](../integrations/nfs.md)（#2499）
+- Pipeline 调试接口的测试数据支持更多 HTTP `Content-Type`（#2526）
+- 新增多种 Pyroscope profiling 支持（#2496）
+
+### 问题修复 {#cl-1.66.0-fix}
+
+- 修复 OpenTelemetry 采集器无法接入 micrometer 数据的问题（#2495）
+
+### 功能优化 {#cl-1.66.0-opt}
+
+- 优化磁盘指标采集和对象中的磁盘采集（#2523）
+- 优化 Redis slow log 采集，在 slow log 中新增客户端信息。同时，slow log 对低版本（<4.0）的 Redis（如 Codis）做了选择性支持（#2525）
+- 调整 KubernetesPrometheus 采集器在采集指标过程中的错误重试机制，当目标服务短暂不在线时不再将其剔除采集（#2530）
+- 优化 PostgreSQL 采集器默认配置（#2532）
+- KubernetesPrometheus 采集的 Prometheus 指标，新增指标名裁剪配置入口（#2533）
+- DDTrace/OpenTelemetry 采集器支持主动提取 `pod_namespace` 这个 tag（#2534）
+- 完善日志采集 scan 机制，强制增加一个 1min 的 scan 机制，避免极端情况下的日志文件遗漏（#2536）
+
+---
+
 ## 1.65.2(2024/12/31) {#cl-1.65.2}
 
 本次发布属于 hotfix 修复，同时增加一些细节功能。内容如下：

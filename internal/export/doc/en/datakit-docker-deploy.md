@@ -41,7 +41,7 @@ Parameter explanations:
     - Datakit has many configuration files, which can be prepared on the host machine and mounted into the container in one go using `-v` (the path in the container is the *conf.d/host-inputs-conf* directory).
     - Mounting the host's root directory into Datakit allows access to various host information (e.g., files in the `/proc` directory) to facilitate data collection by the default enabled collectors.
     - Mounting the *docker.sock* file into the Datakit container enables the container collector to collect data. The directory of this file may vary on different hosts and should be configured according to the actual situation.
-- **`-e`**: Various environment variable configurations for Datakit during runtime, which function similarly to those in [DaemonSet deployment](datakit-daemonset-deployment.md#env-setting).
+- **`-e`**: Various environment variable configurations for Datakit during runtime, which function similarly to those in [DaemonSet deployment](datakit-daemonset-deploy.md#env-setting).
 - **`--publish`**: Facilitates external sending of Trace and other data to the Datakit container. Here, we map Datakit's HTTP port to the external 19529, so when setting the address for sending trace data, pay attention to this port configuration.
 - The running Datakit is set with a CPU limit of 2 cores and a memory limit of 1GiB.
 

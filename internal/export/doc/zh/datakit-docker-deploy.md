@@ -41,7 +41,7 @@ sudo docker run \
     - DataKit 中有很多配置文件，我们可以将其在宿主机上准备好，通过 `-v` 一次性整个挂载到容器中去（容器中的路径为 *conf.d/host-inputs-conf* 目录）
     - 此处将宿主机根目录挂载进 Datakit，目的是访问宿主机上的各种信息（比如 `/proc` 目录下的各种文件），便于默认开启的采集器采集数据
     - 将 *docker.sock* 文件挂载进 Datakit 容器，便于 container 采集器采集数据。不同宿主机该文件目录可能不同，需按照实际来配置
-- **`-e`**：各种 Datakit 运行期的环境变量配置，这些环境变量功能跟 [DaemonSet 部署](datakit-daemonset-deployment.md#env-setting)时是一样的
+- **`-e`**：各种 Datakit 运行期的环境变量配置，这些环境变量功能跟 [DaemonSet 部署](datakit-daemonset-deploy.md#env-setting)时是一样的
 - **`--publish`**：便于外部将 Trace 等数据发送给 Datakit 容器，此处我们将 Datakit 的 HTTP 端口映射到外面的 19529 上，诸如 trace 数据设置发送地址的时候，需关注这个端口设置。
 - 此处对该运行的 Datakit 设置了 2C 的 CPU 和 1GiB 内存限制
 
