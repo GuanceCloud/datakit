@@ -192,11 +192,23 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{FieldName: "Interval", Type: doc.TimeDuration, Default: "`10s`", Desc: "Collect interval", DescZh: "采集器重复间隔时长"},
-		{FieldName: "EnableMountStatsRWBytes", Type: doc.Boolean, Default: "`false`", Desc: "Enable detailed read and write bytes information for NFS mount points", DescZh: "开启 NFS 挂载点的详细字节读写信息"},
+		{
+			FieldName: "EnableMountStatsRwBytes",
+			Type:      doc.Boolean,
+			Default:   "`false`",
+			Desc:      "Enable detailed read and write bytes information for NFS mount points",
+			DescZh:    "开启 NFS 挂载点的详细字节读写信息",
+		},
 		{FieldName: "EnableMountStatsTransport", Type: doc.Boolean, Default: "`false`", Desc: "Enable NFS mount point and server transfer information", DescZh: "开启 NFS 挂载点与服务端的传输信息"},
 		{FieldName: "EnableMountStatsEvent", Type: doc.Boolean, Default: "`false`", Desc: "Event statistics", DescZh: "开启 NFS 事件统计信息"},
 		{FieldName: "EnableMountStatsOperations", Type: doc.Boolean, Default: "`false`", Desc: "Enable NFS transfer information for a given operation", DescZh: "开启 NFS 给定操作的传输信息"},
-		{FieldName: "NFSd", Type: doc.Boolean, Default: "`false`", Desc: "Enable the NFSd indicator", DescZh: "开启 NFSd 指标"},
+		{
+			FieldName: "nfsd",
+			Type:      doc.Boolean,
+			Default:   "`false`",
+			Desc:      "Enable the NFSd indicator",
+			DescZh:    "开启 NFSd 指标",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_NFS_", infos)

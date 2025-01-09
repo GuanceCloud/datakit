@@ -10,7 +10,7 @@
 - 任务下发功能中，存储类型增加 AWS/华为云存储支持（#2475）
 - 新增 [NFS 采集器](../integrations/nfs.md)（#2499）
 - Pipeline 调试接口的测试数据支持更多 HTTP `Content-Type`（#2526）
-- 新增多种 Pyroscope profiling 支持（#2496）
+- APM Automatic Instrumentation 新增 Docker 容器支持（#2480）
 
 ### 问题修复 {#cl-1.66.0-fix}
 

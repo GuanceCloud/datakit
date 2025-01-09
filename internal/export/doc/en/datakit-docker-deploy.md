@@ -68,4 +68,4 @@ docker exec -it <container name or container ID> /bin/bash
 The `container` collector is started by default as we configured. If we need to make additional configurations for the `container` collector, we can:
 
 - Add extra [configuration for the container collector](../integrations/container.md#config) in the */host/conf/dir* directory, and make sure to remove `container` from the `ENV_DEFAULT_ENABLED_INPUTS` list.
-- Or add additional environment variable configurations in the Docker startup command, see [here](../integrations/#__tabbed_1_2).
+- Or add additional environment variable configurations in the Docker startup command, see [here](../integrations/container.md#__tabbed_1_2).

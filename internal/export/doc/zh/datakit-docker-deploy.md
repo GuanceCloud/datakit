@@ -68,4 +68,4 @@ docker exec -it <容器名或容器 ID> /bin/bash
 上面 container 采集器是默认启动的，如果要对容器采集器做一些额外配置，可以单独额外配置容器采集器。容器采集器支持通过 *.conf* 文件和 ENV 两种方式来调整其行为：
 
 - 在 */host/conf/dir* 目录下额外[配置 container 采集器](../integrations/container.md#config)，同时，务必将 `container` 从 `ENV_DEFAULT_ENABLED_INPUTS` 列表中移除。
-- 在 Docker 启动命令中，增加额外的环境变量配置，参见[这里](../integrations/#__tabbed_1_2)
+- 在 Docker 启动命令中，增加额外的环境变量配置，参见[这里](../integrations/container.md#__tabbed_1_2)
