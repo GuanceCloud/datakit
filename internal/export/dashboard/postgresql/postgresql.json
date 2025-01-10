@@ -1954,12 +1954,12 @@
                 "top:5"
               ],
               "groupBy": [
-                "index"
+                "pg_index"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `temp bytes`) { `db` = '#{db}' and `host` = '#{host}' } BY `index`",
+              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `temp bytes`) { `db` = '#{db}' and `host` = '#{host}' } BY `pg_index`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -2050,12 +2050,12 @@
                 "bottom:5"
               ],
               "groupBy": [
-                "index"
+                "pg_index"
               ],
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `temp bytes`) { `db` = '#{db}' and `host` = '#{host}' } BY `index`",
+              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `temp bytes`) { `db` = '#{db}' and `host` = '#{host}' } BY `pg_index`",
               "queryFuncs": [],
               "type": "simple"
             },
