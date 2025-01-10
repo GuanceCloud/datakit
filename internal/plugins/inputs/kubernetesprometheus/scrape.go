@@ -155,13 +155,12 @@ func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInte
 
 func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval time.Duration) {
 	tasks := make(map[string]scraper)
-	timestamp := time.Now().UnixNano() / 1e6
+	start := time.Now()
 
 	ticker := time.NewTicker(scrapeInterval)
 	defer ticker.Stop()
 
 	for {
-		timestamp += scrapeInterval.Milliseconds()
 		select {
 		case <-ctx.Done():
 			return
@@ -181,7 +180,8 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 			}
 
 		case tt := <-ticker.C:
-			timestamp = inputs.AlignTimestamp(tt, timestamp, scrapeInterval)
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), scrapeInterval.Milliseconds())
+			start = time.UnixMilli(nextts)
 
 			var removeTasks []string
 			for _, task := range tasks {
@@ -190,7 +190,7 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 					continue
 				}
 				if task.shouldScrape() {
-					err := task.scrape(timestamp * 1e6 /* To Nanoseconds */)
+					err := task.scrape(start.UnixNano())
 					if err == nil {
 						task.resetRetryCount()
 						continue
