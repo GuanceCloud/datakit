@@ -33,6 +33,7 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 		spanKV = spanKV.Add(itrace.FieldTraceID, segment.TraceId, false, false).
 			Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId), false, false).
 			AddTag(itrace.TagService, segment.Service).
+			AddTag("service_instance", segment.ServiceInstance).
 			Add(itrace.FieldResource, span.OperationName, false, false).
 			AddTag(itrace.TagOperation, span.OperationName).
 			AddTag(itrace.TagSource, inputName).
