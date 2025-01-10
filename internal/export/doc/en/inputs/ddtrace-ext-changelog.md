@@ -22,7 +22,15 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 </div>
 <!-- markdownlint-enable -->
+
 ## changelog {#changelog}
+
+## v1.42.7-guance {#cl-1.42.7-guance}
+
+### fix {#cl-1.42.7-guance-fix}
+
+- Fix Response Body ENV Bug
+- Merge DDTrace tag v1.42.1 version.
 
 ## v1.36.1-guance {#cl-1.36.1-guance}
 

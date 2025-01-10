@@ -42,6 +42,13 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.42.7-guance {#cl-1.42.7-guance}
+
+### 修复 {#cl-1.42.7-guance-fix}
+
+- 修复 Response Body 功能中的环境变量不生效的 Bug
+- 合并最新 DDTrace tag v1.42.1 版本
+
 ## v1.36.1-guance {#cl-1.36.1-guance}
 
 ### 修复 {#cl-1.36.1-guance-fix}

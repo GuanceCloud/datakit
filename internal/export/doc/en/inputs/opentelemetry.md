@@ -30,8 +30,6 @@ OTEL provides vendor-independent implementations that export observation class d
 
 The purpose of this article is to introduce how to configure and enable OTEL data access on Datakit, and the best practices of Java and Go.
 
-***Version Notes***: Datakit currently only accesses OTEL v1 version of OTLP data.
-
 <!-- markdownlint-disable MD046 -->
 ## Configuration {#config}
 
@@ -60,7 +58,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 ### Notes {#attentions}
 
 1. It is recommended to use grpc protocol, which has the advantages of high compression ratio, fast serialization and higher efficiency.
-2. The route of the http protocol is configurable and the default request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`
+2. The route of the http protocol is configurable and the default request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`,logs:`/otel/v1/logs`
 3. When data of type `float` `double` is involved, a maximum of two decimal places are reserved.
 4. Both http and grpc support the gzip compression format. You can configure the environment variable in exporter to turn it on: `OTEL_EXPORTER_OTLP_COMPRESSION = gzip`; gzip is not turned on by default.
 5. The http protocol request format supports both JSON and Protobuf serialization formats. But grpc only supports Protobuf.
@@ -77,7 +75,39 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of Datakit is `/otel/v1/trace` and `/otel/v1/metric`,
 if you want to use the HTTP protocol, you need to configure `trace` and `trace` separately `metric`,
 
-The default request routes of OTLP are `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
+The default request routes of OTLP are `/otel/v1/logs` `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
+
+## Agent V2 version {#v2}
+
+The default OTLP protocol has been changed from `grpc` to `http/protobuf` in order to align with the specification.
+You can switch to the `grpc` protocol using `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` or `-Dotel.exporter.otlp.protocol=grpc`.
+
+```shell
+java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
+  -Dotel.exporter=otlp \
+  -Dotel.exporter.otlp.protocol=http/protobuf \
+  -Dotel.exporter.otlp.logs.endpoint=http://localhost:9529/otel/v1/logs \
+  -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \
+  -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \
+  -Dotel.service.name=app \
+  -jar app.jar
+```
+
+Use gPRC:
+
+```shell
+java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
+  -Dotel.exporter=otlp \
+  -Dotel.exporter.otlp.protocol=grpc \
+  -Dotel.exporter.otlp.endpoint=http://localhost:4317
+  -Dotel.service.name=app \
+  -jar app.jar
+```
+
+The default log is enabled. If you want to turn off log collection, the exporter configuration can be empty: `-Dotel.logs.exporter=none`
+
+For more major changes in the V2 version, please check the official documentation or [GitHub GuanCe Cloud](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases/tag/v2.11.0-guance){:target="_blank"} version notes
+
 
 ## General SDK Configuration {#sdk-configuration}
 
@@ -167,6 +197,7 @@ Add a fixed tags, only those in this list will be extracted into the tag. The fo
 | env                   | env                   |
 | host                  | host                  |
 | pod_name              | pod_name              |
+| pod_namespace         | pod_namespace         |
 
 If you want to add custom labels, you can use environment variables:
 
@@ -205,6 +236,8 @@ You can enable and disable JMX metrics collection by command `otel.jmx.enabled=t
 To control the time interval between MBean detection attempts, one can use the OTEL.jmx.discovery.delay property, which defines the number of milliseconds to elapse between the first and the next detection cycle.
 
 In addition, the acquisition configuration of some third-party software built in the Agent. For details, please refer to: [JMX Metric Insight](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
+
+All indicators sent to the observation cloud have a unified indicator set name: `otel-service`.
 
 {{ range $i, $m := .Measurements }}
 

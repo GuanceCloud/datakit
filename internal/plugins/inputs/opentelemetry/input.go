@@ -108,7 +108,6 @@ const (
   ## for example http://127.0.0.1:9529/otel/v1/trace
   ## The acceptable http_status_ok values will be 200 or 202.
   [inputs.opentelemetry.http]
-   enable = true
    http_status_ok = 200
    trace_api = "/otel/v1/trace"
    metric_api = "/otel/v1/metric"
@@ -118,8 +117,6 @@ const (
   ## GRPC services for trace and metrics can be enabled respectively as setting either to be true.
   ## add is the listening on address for GRPC server.
   [inputs.opentelemetry.grpc]
-   trace_enable = true
-   metric_enable = true
    addr = "127.0.0.1:4317"
 
   ## If 'expected_headers' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
@@ -150,7 +147,6 @@ var (
 )
 
 type httpConfig struct {
-	Enabled      bool   `toml:"enable" json:"enable"`
 	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
 	TraceAPI     string `toml:"trace_api" json:"trace_api"`
 	MetricAPI    string `toml:"metric_api" json:"metric_api"`
@@ -158,9 +154,7 @@ type httpConfig struct {
 }
 
 type grpcConfig struct {
-	TraceEnabled  bool   `toml:"trace_enable" json:"trace_enable"`
-	MetricEnabled bool   `toml:"metric_enable" json:"metric_enable"`
-	Address       string `toml:"addr" json:"addr"`
+	Address string `toml:"addr" json:"addr"`
 }
 
 type Input struct {
@@ -199,8 +193,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
-	if (ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled) &&
-		(ipt.GRPCConfig == nil || (!ipt.GRPCConfig.MetricEnabled && !ipt.GRPCConfig.TraceEnabled)) {
+	if ipt.HTTPConfig == nil && ipt.GRPCConfig == nil {
 		log.Infof("### All OpenTelemetry web protocol are not enabled")
 
 		return
@@ -310,7 +303,7 @@ func (ipt *Input) RegHTTPHandler() {
 		expectedHeaders[k] = append(expectedHeaders[k], v)
 	}
 
-	if ipt.HTTPConfig == nil || !ipt.HTTPConfig.Enabled {
+	if ipt.HTTPConfig == nil {
 		log.Debugf("### HTTP server in OpenTelemetry are not enabled")
 
 		return
