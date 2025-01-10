@@ -55,7 +55,7 @@ WHERE %s
 		query: `
 SELECT relname AS table,
 			schemaname AS schema,
-			indexrelname AS index,
+			indexrelname AS pg_index,
 			idx_scan, idx_tup_read, idx_tup_fetch
 FROM pg_stat_user_indexes
 WHERE %s
@@ -323,7 +323,7 @@ func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 			"db":     inputs.NewTagInfo("The database name"),
 			"server": inputs.NewTagInfo("The server address"),
 			"schema": inputs.NewTagInfo("The schema name"),
-			"index":  inputs.NewTagInfo("The index name"),
+			"pg_index":  inputs.NewTagInfo("The index name"),
 		},
 	}
 }
