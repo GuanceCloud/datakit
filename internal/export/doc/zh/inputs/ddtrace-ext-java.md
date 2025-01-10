@@ -29,16 +29,21 @@ tags      :
 - 支持将链路 ID 放到响应的头部中
 - 支持将请求的头部信息 `Header` 放到链路标签中
 - 支持将请求的响应体 `Response Body` 放到链路标签中
+- 支持将请求的请求体 `Request Body` 放到链路标签中
+- http 4xx 相关的链设置为 error ，开启参数： `-Ddd.http.error.enabled=true`
+- 支持 `Mybatis-plus:batch` 的使用。
+- redis 集群支持获取 peer_ip
 
-## 在链路数据中添加 Response Body 信息 {#response_body}
+## 在链路数据中添加 Response,Request Body 信息 {#response_body}
 
 开启参数：`-Ddd.trace.response.body.enabled=true` 对应的环境变量为 `DD_TRACE_RESPONSE_BODY_ENABLED=true` 默认值为 `false`.
 
+开启参数：`-Ddd.trace.request.body.enabled=true` 对应的环境变量为 `DD_TRACE_REQUEST_BODY_ENABLED=true` 默认值为 `false`.
+
 由于获取 `response body` 对 `response` 造成破坏，所以 `response body` 的编码调整默认为 `utf-8`，如需调整，则使用 `-Ddd.trace.response.body.encoding=gbk`.
 
-DDTrace 最低版本支持： [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
+请求或者相应的 body 都只是针对 JSON 类型的数据，其他数据不采集。
 
-> 注意：该功能由于太占用内存无法控制，在 [v1.34.2](ddtrace-ext-changelog.md#cl-1.34.2-guance-fix) 移除。
 
 ## 链路数据中添加 HTTP Header 信息 {#trace_header}
 

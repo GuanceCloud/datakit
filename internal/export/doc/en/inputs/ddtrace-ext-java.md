@@ -29,16 +29,20 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 - Support placing `trace_id` in the response header
 - Support putting the requested header information into the span tags
 - Support add HTTP `Response Body` information in the trace data
+- Support add HTTP `Request Body` information in the trace data
+- Use `-Ddd.http.error.enabled=true` to change the HTTP 4xx request link status to error
+- Support `Mybatis-plus:batch`
+- Support Redis tag:peer_ip
 
-## HTTP `Response Body` in the trace {#response_body}
+
+## HTTP Response,Request Body in the trace {#response_body}
 
 The command line opening parameter is `-Ddd.trace.response.body.enabled=true`, the corresponding environment variable is `DD_TRACE_RESPONSE_BODY_ENABLED=true`, and the default value is `false`.
 
+The command line opening parameter is `-Ddd.trace.request.body.enabled=true`, the corresponding environment variable is `DD_TRACE_REQUEST_BODY_ENABLED=true`, and the default value is `false`.
+
 Since getting `response body` causes damage to `response`, the encoding adjustment of `response body` defaults to `utf-8`. If you need to adjust it, use `-Ddd.trace.response.body.encoding=gbk`.
 
-DDTrace supported version: [v1.30.1](ddtrace-ext-changelog.md#cl-1.30.1-guance)
-
-> Note: This function was removed in [v1.34.2](ddtrace-ext-changelog.md#cl-1.34.2-guance-fix) because it took up too much memory and was uncontrollable.
 
 ## Tracing Header {#trace_header}
 

@@ -86,12 +86,14 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 								if len(his.GetExplicitBounds()) > i {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
 									bKvs = bKvs.Add(metric.Name+"_bucket", bucket, false, false).
-										AddTag("le", strconv.Itoa(int(his.ExplicitBounds[i])))
+										AddTag("le", strconv.Itoa(int(his.ExplicitBounds[i]))).
+										AddTag("unit", metric.GetUnit())
 									pts = append(pts, point.NewPointV2("otel-service", bKvs, opts...))
 								} else {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
 									bKvs = bKvs.Add(metric.Name+"_bucket", bucket, false, false).
-										AddTag("le", "inf")
+										AddTag("le", "inf").
+										AddTag("unit", metric.GetUnit())
 									pts = append(pts, point.NewPointV2("otel-service", bKvs, opts...))
 								}
 							}
