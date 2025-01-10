@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.66.1 (2025/01/10) {#cl-1.66.1}
+
+This release is a hotfix update, with the following enhancements and fixes:
+
+### Bug Fixes {#cl-1.66.1-fix}
+
+- Fixed the timestamp precision issue in the prom v2 collector (#2540).
+- Resolved the conflict between the PostgreSQL `index` tag and DQL keywords (#2537).
+- Fixed the missing `service_instance` field in SkyWalking collection (#2542).
+- Removed unnecessary configuration fields in OpenTelemetry and fixed the missing `unit` tags for some metrics (#2541).
+
+---
+
 ## 1.66.0 (2025/01/08) {#cl-1.66.0}
 
 This release is an iterative release. The main updates are as follows:
