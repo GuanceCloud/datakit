@@ -80,14 +80,12 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	timestamp := time.Now().UnixNano() / 1e6
+	start := time.Now()
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
-		timestamp += ipt.Interval.Milliseconds()
-
 		select {
 		case <-datakit.Exit.Wait():
 			ipt.log.Info("prom exit")
@@ -97,9 +95,10 @@ func (ipt *Input) Run() {
 			// nil
 
 		case tt := <-tick.C:
-			timestamp = inputs.AlignTimestamp(tt, timestamp, ipt.Interval)
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
+			start = time.UnixMilli(nextts)
 			if !ipt.pause {
-				ipt.scrape(timestamp)
+				ipt.scrape(start.UnixNano())
 			}
 		}
 	}
