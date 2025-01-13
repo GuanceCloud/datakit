@@ -152,7 +152,53 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 				},
 			},
 		},
-
+		{
+			name: "normal-lp",
+			in: &pipelineDebugRequest{
+				Pipeline: map[string]map[string]string{
+					"logging": scriptsForTest(),
+				},
+				Category:   "logging",
+				DataType:   "application/lineprotocol",
+				ScriptName: "nginx",
+				Data: []string{base64.StdEncoding.EncodeToString([]byte(
+					`2021/11/10 16:59:53 [error] 16393#0: *17 open() "/usr/local/Cellar/nginx/1.21.3/html/server_status" failed` +
+						` (2: No such file or directory), client: 127.0.0.1, server: localhost, request:` +
+						` "GET /server_status HTTP/1.1", host: "localhost:8080"`))},
+				Multiline: "",
+				Encode:    "",
+				Benchmark: true,
+			},
+			expectStatusCode: http.StatusOK,
+			expectHeader: map[string][]string{
+				"Content-Type": {"application/json"},
+			},
+			hasResult: true,
+			expect: &pipelineDebugResponse{
+				PLResults: []pipelineResult{
+					{
+						Point: &PlRetPoint{
+							Dropped: false,
+							Name:    "nginx",
+							Fields: map[string]interface{}{
+								"client_ip":    "127.0.0.1",
+								"http_method":  "GET",
+								"http_url":     "/server_status",
+								"http_version": "1.1",
+								"ip_or_host":   "localhost:8080",
+								"message":      "2021/11/10 16:59:53 [error] 16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
+								"msg":          "16393#0: *17 open() \"/usr/local/Cellar/nginx/1.21.3/html/server_status\" failed (2: No such file or directory), client: 127.0.0.1, server: localhost, request: \"GET /server_status HTTP/1.1\", host: \"localhost:8080\"",
+								"server":       "localhost",
+								"status":       "error",
+								"b_p":          true,
+							},
+							Time:   time.Date(2021, 11, 10, 16, 59, 53, 0, time.Local).Unix(),
+							TimeNS: 0,
+						},
+					},
+				},
+			},
+		},
 		{
 			name: "normal-create-pts",
 			in: &pipelineDebugRequest{
@@ -433,10 +479,6 @@ use("b.p")
 		`)),
 		"b": base64.StdEncoding.EncodeToString(
 			[]byte(` add_key(b_p, true)
-			for ;; {
-
-			}
-			add_key(b_p, false)
 `)),
 		"c": base64.StdEncoding.EncodeToString(
 			[]byte(`use("b.p")`)),
@@ -486,10 +528,7 @@ create_point("nginx", nil, {"message": _}, category="L", ts=1, after_use="d.p")
 		`)),
 		"b": base64.StdEncoding.EncodeToString(
 			[]byte(` add_key(b_p, true)
-			for ;; {
 
-			}
-			add_key(b_p, false)
 `)),
 		"d": base64.StdEncoding.EncodeToString(
 			[]byte(

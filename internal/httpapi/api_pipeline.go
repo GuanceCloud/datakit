@@ -350,6 +350,18 @@ func decodeDataAndConv2Point(category point.Category, name string, req *pipeline
 			opts = point.CommonLoggingOptions()
 		}
 
+		if !messageOnly {
+			if pts, err := dec.Decode(data, opts...); err != nil {
+				if category == point.Logging && enc == point.LineProtocol {
+					messageOnly = true
+				} else {
+					return nil, err
+				}
+			} else {
+				result = append(result, pts...)
+			}
+		}
+
 		if messageOnly {
 			data, err := iconv(data, req.Encode)
 			if err != nil {
@@ -360,12 +372,6 @@ func decodeDataAndConv2Point(category point.Category, name string, req *pipeline
 			})
 			pt := point.NewPointV2(name, kvs, opts...)
 			result = append(result, pt)
-		} else {
-			pts, err := dec.Decode(data, opts...)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, pts...)
 		}
 	}
 	return result, nil
