@@ -7,16 +7,18 @@
 
 容器启动命令如下：
 
+> 以下 `<XXX-YYY-ZZZ>` 内容需按照实际情况填写。
+
 ```shell
 sudo docker run \
     --hostname "$(hostname)" \
     --workdir /usr/local/datakit \
-    -v "/host/conf/dir":"/usr/local/datakit/conf.d/host-inputs-conf" \
+    -v "<YOUR-HOST-DIR-FOR-CONF>":"/usr/local/datakit/conf.d/host-inputs-conf" \
     -v "/":"/rootfs" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e ENV_DATAWAY="https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>" \
     -e ENV_DEFAULT_ENABLED_INPUTS='cpu,disk,diskio,mem,swap,system,net,host_processes,hostobject,container,dk' \
-    -e ENV_GLOBAL_HOST_TAGS="tag1=a1,tag2=a2" \
+    -e ENV_GLOBAL_HOST_TAGS="<TAG1=A1,TAG2=A2>" \
     -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
     -e HOST_PROC="/rootfs/proc" \
     -e HOST_SYS="/rootfs/sys" \
@@ -69,3 +71,15 @@ docker exec -it <容器名或容器 ID> /bin/bash
 
 - 在 */host/conf/dir* 目录下额外[配置 container 采集器](../integrations/container.md#config)，同时，务必将 `container` 从 `ENV_DEFAULT_ENABLED_INPUTS` 列表中移除。
 - 在 Docker 启动命令中，增加额外的环境变量配置，参见[这里](../integrations/container.md#__tabbed_1_2)
+
+## 磁盘缓存 {#wal}
+
+Datakit 默认会开启 [WAL 来缓存待发送的数据](datakit-conf.md#dataway-wal)，如果不额外指定宿主机存储，当 Datakit 容器销毁后，这些未发送的数据就会被丢弃。我们可以额外挂一个宿主机上的目录进来保存这些数据，避免容器重建时数据丢失：
+
+```shell hl_lines="4"
+sudo docker run \
+    --hostname "$(hostname)" \
+    --workdir /usr/local/datakit \
+    -v "<YOUR-HOST-DIR-FOR-WAL-CACHE>":"/usr/local/datakit/cache/dw-wal" \
+    ...
+```

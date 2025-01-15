@@ -92,43 +92,46 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) collect() error {
+	if runtime.GOOS != datakit.OSLinux {
+		l.Infof("collect nfs not implemented under %s", runtime.GOOS)
+		return nil
+	}
+
 	ipt.collectCache = make([]*point.Point, 0)
 
-	if runtime.GOOS == datakit.OSLinux {
-		if len(ipt.collectors) == 0 {
-			ipt.collectors = []func() ([]*point.Point, error){
-				ipt.collectMountStats,
-				ipt.collectBase,
-			}
+	if len(ipt.collectors) == 0 {
+		ipt.collectors = []func() ([]*point.Point, error){
+			ipt.collectMountStats,
+			ipt.collectBase,
 		}
-
-		var ptsMetric []*point.Point
-		for idx, f := range ipt.collectors {
-			l.Debugf("collecting %d(%v)...", idx, f)
-
-			pts, err := f()
-			if err != nil {
-				l.Errorf("collect failed: %s", err.Error())
-			}
-
-			if len(pts) > 0 {
-				ptsMetric = append(ptsMetric, pts...)
-			}
-		}
-
-		if ipt.NFSd {
-			pts, err := ipt.collectNFSd()
-			if err != nil {
-				l.Errorf("collect NFSd failed: %s", err.Error())
-			}
-
-			if len(pts) > 0 {
-				ptsMetric = append(ptsMetric, pts...)
-			}
-		}
-
-		ipt.collectCache = ptsMetric
 	}
+
+	var ptsMetric []*point.Point
+	for idx, f := range ipt.collectors {
+		l.Debugf("collecting %d(%v)...", idx, f)
+
+		pts, err := f()
+		if err != nil {
+			l.Errorf("collect failed: %s", err.Error())
+		}
+
+		if len(pts) > 0 {
+			ptsMetric = append(ptsMetric, pts...)
+		}
+	}
+
+	if ipt.NFSd {
+		pts, err := ipt.collectNFSd()
+		if err != nil {
+			l.Errorf("collect NFSd failed: %s", err.Error())
+		}
+
+		if len(pts) > 0 {
+			ptsMetric = append(ptsMetric, pts...)
+		}
+	}
+
+	ipt.collectCache = ptsMetric
 	return nil
 }
 
