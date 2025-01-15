@@ -7,16 +7,18 @@ This document explains how to install Datakit in Docker.
 
 The container startup command is as follows:
 
+> The content like `<XXX-YYY-ZZZ>` should be filled in according to the actual situation.
+
 ```shell
 sudo docker run \
     --hostname "$(hostname)" \
     --workdir /usr/local/datakit \
-    -v "/host/conf/dir":"/usr/local/datakit/conf.d/host-inputs-conf" \
+    -v "<YOUR-HOST-DIR-FOR-CONF>":"/usr/local/datakit/conf.d/host-inputs-conf" \
     -v "/":"/rootfs" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -e ENV_DATAWAY="https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"  \
+    -e ENV_DATAWAY="https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>" \
     -e ENV_DEFAULT_ENABLED_INPUTS='cpu,disk,diskio,mem,swap,system,net,host_processes,hostobject,container,dk' \
-    -e ENV_GLOBAL_HOST_TAGS="tag1=a1,tag2=a2" \
+    -e ENV_GLOBAL_HOST_TAGS="<TAG1=A1,TAG2=A2>" \
     -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
     -e HOST_PROC="/rootfs/proc" \
     -e HOST_SYS="/rootfs/sys" \
@@ -69,3 +71,15 @@ The `container` collector is started by default as we configured. If we need to 
 
 - Add extra [configuration for the container collector](../integrations/container.md#config) in the */host/conf/dir* directory, and make sure to remove `container` from the `ENV_DEFAULT_ENABLED_INPUTS` list.
 - Or add additional environment variable configurations in the Docker startup command, see [here](../integrations/container.md#__tabbed_1_2).
+
+## Disk Cache {#wal}
+
+Datakit defaults to enabling [WAL to cache data](datakit-conf.md#dataway-wal). If no additional host storage is specified, these unsent data will be discarded when the Datakit container deleted. We can mount an additional directory from the host machine to store this data:
+
+```shell hl_lines="4"
+sudo docker run \
+    --hostname "$(hostname)" \
+    --workdir /usr/local/datakit \
+    -v "<YOUR-HOST-DIR-FOR-WAL-CACHE>":"/usr/local/datakit/cache/dw-wal" \
+    ...
+```

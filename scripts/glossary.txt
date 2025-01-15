@@ -207,6 +207,7 @@ tdengine
 tdengine
 tdengine
 tempdb
+tmpfs
 tracepoint
 unflushed
 uprobe

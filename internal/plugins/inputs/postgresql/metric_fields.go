@@ -319,11 +319,11 @@ func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"table":  inputs.NewTagInfo("The table name"),
-			"db":     inputs.NewTagInfo("The database name"),
-			"server": inputs.NewTagInfo("The server address"),
-			"schema": inputs.NewTagInfo("The schema name"),
-			"pg_index":  inputs.NewTagInfo("The index name"),
+			"table":    inputs.NewTagInfo("The table name"),
+			"db":       inputs.NewTagInfo("The database name"),
+			"server":   inputs.NewTagInfo("The server address"),
+			"schema":   inputs.NewTagInfo("The schema name"),
+			"pg_index": inputs.NewTagInfo("The index name"),
 		},
 	}
 }

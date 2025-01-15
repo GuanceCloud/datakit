@@ -344,6 +344,8 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
 
 此处，除了 *fc* 是失败重传队列，其它目录分别对应一种数据类型。当数据上传失败，这些数据会缓存到 *fc* 目录下，后续 Datakit 会间歇性将它们上传上去。
 
+如果当前主机磁盘性能不足，可以尝试 [tmpfs 下使用 WAL](wal-tmpfs.md)。
+
 ### Sinker 配置 {#dataway-sink}
 
 参见[这里](../deployment/dataway-sink.md)
