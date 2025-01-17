@@ -23,21 +23,22 @@ LIGAI_API               ?=not_set
 # export LOCAL_OSS_HOST       = 'oss-cn-hangzhou.aliyuncs.com'
 # export LOCAL_OSS_ADDR       = '<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 
-PUB_DIR            = dist
-BUILD_DIR          = dist
-BIN                = datakit
-NAME               = datakit
-NAME_EBPF          = datakit-ebpf
-ENTRY              = cmd/datakit/main.go
-LOCAL_ARCHS        = local
-DEFAULT_ARCHS      = all
-MAC_ARCHS          = darwin/amd64
-DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
-GOLINT_BINARY      ?= golangci-lint
-CGO_FLAGS          = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
-HL                 = \033[0;32m # high light
-NC                 = \033[0m    # no color
-RED                = \033[31m   # red
+PUB_DIR                = dist
+BUILD_DIR              = dist
+BIN                    = datakit
+NAME                   = datakit
+NAME_EBPF              = datakit-ebpf
+ENTRY                  = cmd/datakit/main.go
+LOCAL_ARCHS            = local
+DEFAULT_ARCHS          = all
+MAC_ARCHS              = darwin/amd64
+DOCKER_IMAGE_ARCHS     = linux/arm64,linux/amd64
+UOS_DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
+GOLINT_BINARY         ?= golangci-lint
+CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
+HL                     = \033[0;32m # high light
+NC                     = \033[0m    # no color
+RED                    = \033[31m   # red
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -182,16 +183,15 @@ define pub_ebpf
 endef
 
 define build_docker_image
+	echo 'publishing to $(2)...';
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
-		echo 'publishing to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push ; \
+			-t $(2)/datakit/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
+			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
 	else \
-		echo 'publishing to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
@@ -199,8 +199,7 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit-elinker:$(VERSION) \
 			-t $(2)/dataflux/datakit-elinker:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit-elinker:$(VERSION) \
-			-f Dockerfile_elinker . --push; \
+			-t $(2)/dataflux-prev/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) \
 			-t $(2)/dataflux/logfwd:$(VERSION) \
@@ -209,16 +208,16 @@ define build_docker_image
 endef
 
 define build_uos_image
-  echo 'publishing to $(2)...'; \
-	sudo docker buildx build --platform linux/amd64 \
-		-t $(2)/uos-dataflux/datakit:$(VERSION) \
-		-f Dockerfile.uos . --push; \
-	sudo docker buildx build --platform linux/amd64 \
-		-t $(2)/uos-dataflux/datakit-elinker:$(VERSION) \
-		-f Dockerfile_elinker.uos . --push; \
-	sudo docker buildx build --platform linux/amd64 \
-		-t $(2)/uos-dataflux/logfwd:$(VERSION) \
-		-f Dockerfile_logfwd.uos . --push;
+	echo 'publishing to $(2)...';
+	sudo docker buildx build --platform $(1) \
+	-t $(2)/uos-dataflux/datakit:$(VERSION) \
+	-f Dockerfile.uos . --push; \
+	sudo docker buildx build --platform $(1) \
+	-t $(2)/uos-dataflux/datakit-elinker:$(VERSION) \
+	-f Dockerfile_elinker.uos . --push; \
+	sudo docker buildx build --platform $(1) \
+	-t $(2)/uos-dataflux/logfwd:$(VERSION) \
+	-f Dockerfile_logfwd.uos . --push;
 endef
 
 define build_k8s_charts
@@ -310,14 +309,14 @@ production_image:
 	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
 
 uos_image_testing: deps
-	$(call build_bin, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
-	$(call build_uos_image, "linux/amd64", 'registry.jiagouyun.com')
+	$(call build_bin, testing, $(DOCKER_IMAGE_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
+	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publishing testing image to public image repo
-	$(call build_uos_image, "linux/amd64", 'pubrepo.guance.com')
+	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
 
 uos_image_production: deps
-	$(call build_bin, production, $(DEFAULT_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
-	$(call build_uos_image, "linux/amd64", 'pubrepo.guance.com')
+	$(call build_bin, production, $(DOCKER_IMAGE_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
+	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
 
 production_mac: deps
 	$(call build_bin, production, $(MAC_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))

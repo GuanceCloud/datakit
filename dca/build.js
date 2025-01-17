@@ -147,18 +147,14 @@ async function uploadToOss(filePath) {
   return true
 }
 
-async function buildImg() {
-  // let imageURL = "registry.jiagouyun.com/cloudcare-tools-pub/dca"
-  let imageURL = "pubrepo.guance.com/image-repo-for-testing/dca"
+async function doBuildImage(imageURL, dockerfile) {
   let [_, author] = runCmd("git log --pretty=format:%an -1")
   let tags = ARGS["image_tag"]
-  if (ARGS["image_url"]) {
-    imageURL = ARGS["image_url"]
-  }
   if (!tags || tags.length === 0) {
     tags = ["latest"]
   }
 
+  tags = [...tags]
   tags.push(VERSION)
 
   let images = tags.map((tag) => {
@@ -172,6 +168,7 @@ async function buildImg() {
     docker buildx build \
       --platform linux/arm64,linux/amd64 \
       ${imageStr}\
+      -f ${dockerfile} \
       . \
       --push \
   `
@@ -202,6 +199,17 @@ http://127.0.0.1:8000\n
   await notify("DataKit DCA 镜像发布", successText)
   await writeVersion()
   await writeYaml()
+}
+async function buildImg() {
+  let imageURL = "pubrepo.guance.com/image-repo-for-testing/dca"
+  if (ARGS["image_url"]) {
+    imageURL = ARGS["image_url"]
+  }
+
+  let uosImageURL = `${imageURL}-uos`
+
+  await doBuildImage(imageURL, "Dockerfile")
+  await doBuildImage(uosImageURL, "Dockerfile.uos")
 }
 
 async function notify(title, text) {

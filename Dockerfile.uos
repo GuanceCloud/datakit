@@ -1,4 +1,4 @@
-FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v1 AS base
+FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
 ARG TARGETARCH
 
 RUN mkdir -p /usr/local/datakit \
@@ -10,13 +10,31 @@ RUN yum install -y libaio-devel libaio unzip wget curl python3 python3-pip \
 
 # download 3rd party libraries
 RUN \
-  case "$TARGETARCH" in \
-    amd64) \
-      wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
-      			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
-      			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle; \
-      ;; \
-  esac;
+case "$TARGETARCH" in \
+  "amd64") \
+     wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+     -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+     && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+     && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient \
+     && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
+     wget -q https://static.guance.com/otn_software/db2/linuxx64_odbc_cli.tar.gz \
+     -O /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz \
+     && mkdir /opt/ibm \
+     && tar zxf /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz -C /opt/ibm \
+     && rm /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz; \
+     ;; \
+esac;
+
+RUN \
+case "$TARGETARCH" in \
+  "arm64") \
+    wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+    -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+    && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+    && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient \
+    && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
+    ;; \
+esac;
 
 # download data files required by datakit
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \

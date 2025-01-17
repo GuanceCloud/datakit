@@ -1,0 +1,15 @@
+FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
+ARG TARGETARCH
+ARG APP_DIR="/usr/local/dca/"
+
+RUN mkdir -p ${APP_DIR}
+
+WORKDIR ${APP_DIR}
+
+COPY ./dist/dca-linux-${TARGETARCH}/ .
+
+COPY ./web/build ${APP_DIR}public/
+
+CMD ["/usr/local/dca/dca"]
+
+EXPOSE 80
