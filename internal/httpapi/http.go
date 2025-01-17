@@ -312,6 +312,15 @@ func HTTPStart(hs *httpServerConf) {
 		return nil
 	})
 
+	if hs.apiConfig.ListenSocket != "" {
+		g.Go(func(ctx context.Context) error {
+			tryStartUDSServer(hs.apiConfig.ListenSocket,
+				srv, true, semReload, semReloadCompleted)
+			l.Info("http(uds) server exit")
+			return nil
+		})
+	}
+
 	l.Debug("http server started")
 
 	stopFunc := func() {
@@ -389,6 +398,54 @@ func ReloadTheNormalServer(opts ...option) {
 	}
 }
 
+func tryStartUDSServer(udsPath string, srv *http.Server,
+	canReload bool,
+	semReload,
+	semReloadCompleted *cliutils.Sem,
+) {
+	select {
+	case <-datakit.Exit.Wait():
+		l.Info("tryStartServer exit")
+		return
+	default:
+		if canReload && semReload != nil {
+			select {
+			case <-semReload.Wait():
+				l.Info("tryStartServer reload detected")
+
+				if semReloadCompleted != nil {
+					semReloadCompleted.Close()
+				}
+				return
+			default:
+			}
+		}
+	}
+
+	// serve udsPath
+
+	udsListener, err := initUnixListener(udsPath)
+	if err != nil {
+		l.Errorf("init uds listener failed: %s", err)
+		return
+	}
+
+	defer func() {
+		if udsListener != nil {
+			err = udsListener.Close()
+			if err != nil {
+				l.Warnf("close uds listener failed: %s", err)
+			}
+		}
+	}()
+
+	l.Infof("try start uds server, path %s ...", srv.Addr)
+	if err = srv.Serve(udsListener); err != nil {
+		l.Errorf("start server failed: %s", err.Error())
+	}
+	l.Info("http server exit")
+}
+
 func tryStartServer(hs *httpServerConf,
 	srv *http.Server,
 	canReload bool,
@@ -440,32 +497,6 @@ func tryStartServer(hs *httpServerConf,
 	}
 
 	defer closeListener()
-
-	// serve udsPath
-	if udsPath := hs.apiConfig.ListenSocket; udsPath != "" {
-		g.Go(func(ctx context.Context) error {
-			udsListener, err := initUnixListener(udsPath)
-			if err != nil {
-				l.Errorf("init uds listener failed: %s", err)
-				return nil
-			}
-			defer func() {
-				if udsListener != nil {
-					err = udsListener.Close()
-					if err != nil {
-						l.Warnf("close uds listener failed: %s", err)
-					}
-				}
-			}()
-
-			l.Infof("try start uds server, path %s ...", srv.Addr)
-			if err = srv.Serve(udsListener); err != nil {
-				l.Errorf("start server failed: %s", err.Error())
-			}
-			l.Info("http server exit")
-			return nil
-		})
-	}
 
 	tryTLS := hs.apiConfig.HTTPSEnabled()
 	for {
