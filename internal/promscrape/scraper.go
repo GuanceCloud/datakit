@@ -106,11 +106,11 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 		var kvs point.KVs
 		kvs = kvs.Add(metricName, row.Value, false, true)
 
-		for key, value := range p.opt.extraTags {
-			kvs = kvs.AddTag(key, value)
-		}
 		for _, tag := range row.Tags {
 			kvs = kvs.AddTag(tag.Key, tag.Value)
+		}
+		for key, value := range p.opt.extraTags {
+			kvs = kvs.AddTag(key, value)
 		}
 
 		pts = append(pts, point.NewPointV2(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...))
