@@ -3,13 +3,17 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//go:build linux
+// +build linux
+
 package nfs
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/procfs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"golang.org/x/sys/unix"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func (ipt *Input) buildBaseMetric() ([]*point.Point, error) {
