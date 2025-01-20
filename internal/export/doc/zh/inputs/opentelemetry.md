@@ -243,7 +243,7 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 {{if eq $m.Type "tracing"}}
 
-### 链路字段说明 {tracing}
+### 链路字段说明 {#tracing}
 
 {{$m.Desc}}
 
@@ -258,7 +258,7 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 {{if eq $m.Type "metric"}}
 
-### 指标类型 {metric}
+### 指标类型 {#metric}
 
 {{$m.Desc}}
 

@@ -1025,7 +1025,7 @@ This release is a Hotfix release, which fixes the following issues:
 
 ---
 
-## 1.21.0 (2023/12/14)
+## 1.21.0 (2023/12/14) {#cl-1.21.0}
 
 This release is an iteration release, with the following updates:
 
@@ -1963,3 +1963,4 @@ This release is an iterative release with the following updates:
 ### Breaking Changes {#cl-1.5.6-brk}
 
 - Removed unnecessary `datakit install --datakit-ebpf` (#1400) due to built-in eBPF input.
+

@@ -270,11 +270,11 @@ There may be significant differences in data due to different languages and vers
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -325,11 +325,11 @@ If the configured whitelist label is in the native `message.meta`, Will convert 
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

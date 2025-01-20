@@ -67,11 +67,11 @@ Consul collector is used to collect metric data related to Consul, and currently
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

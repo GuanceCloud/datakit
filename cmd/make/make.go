@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/mdcheck/check"
@@ -51,7 +52,9 @@ func init() { //nolint:gochecknoinits
 
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
 	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")
-	flag.StringVar(&mdAutofix, "mdcheck-autofix", "off", "check markdown docs with autofix")
+	flag.BoolVar(&mdNoAutofix, "mdcheck-no-autofix", false, "check markdown docs with autofix")
+	flag.BoolVar(&mdNoSectionCheck, "mdcheck-no-section-check", false, "do not check markdown sections")
+	flag.StringVar(&mdSkip, "mdcheck-skip", "", "specify markdown files to skip")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 
 	flag.BoolVar(&dca, "dca", false, "build DCA only")
@@ -70,28 +73,36 @@ func init() { //nolint:gochecknoinits
 }
 
 var (
-	mdCheck, mdMetaDir, mdAutofix string
+	mdCheck, mdMetaDir string
 
-	sampleConfCheck = false
-	doPub           = false
-	doPubeBPF       = false
-	pkgEBPF         = false
-	downloadEBPF    = false
-	buildISP        = false
-	ut              = false
-	dca             = false
-	export          = false
-	dwURL           = "not-set"
+	mdNoAutofix      = false
+	mdNoSectionCheck = false
+	sampleConfCheck  = false
+	doPub            = false
+	doPubeBPF        = false
+	pkgEBPF          = false
+	downloadEBPF     = false
+	buildISP         = false
+	ut               = false
+	dca              = false
+	export           = false
+	dwURL            = "not-set"
+	mdSkip           = ""
 
 	l = logger.DefaultSLogger("make")
 )
 
 func applyFlags() {
 	if mdCheck != "" {
+		skips := strings.Split(mdSkip, ",")
+		cp.Infof("skip files %+#v\n", skips)
+
 		res, err := check.Check(
 			check.WithMarkdownDir(mdCheck),
 			check.WithMetaDir(mdMetaDir),
-			check.WithAutofix(mdAutofix != "off"),
+			check.WithAutofix(!mdNoAutofix),
+			check.WithExcludeFiles(skips...),
+			check.WithCheckSection(!mdNoSectionCheck),
 		)
 		if err != nil {
 			cp.Errorf("markdown check: %s\n", err.Error())

@@ -339,6 +339,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&processMeasurement{},
 		&tablespaceMeasurement{},
 		&systemMeasurement{},
+		&customerObjectMeasurement{},
 	}
 }
 

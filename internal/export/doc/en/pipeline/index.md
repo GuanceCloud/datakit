@@ -1,12 +1,12 @@
 # Pipeline Manual
 
-## Introduction
+## Introduction {#intro}
 
 Starting from DataKit v1.4.0, the data collected or received by DataKit can be modified, extracted, filtered, and aggregated through the built-in Pipeline data processor function, supporting all current data categories (such as Logging, Metric, Tracing, Network and Object, ETC.).
 
 The DataKit Pipeline programmable data processor enables Guance Cloud to develop a custom domain-specific language runtime provided by Platypus. More programming languages and runtimes will be added to Pipeline in the future.
 
-## Table of Contents
+## Table of Contents {#toc}
 
 1. [Quick Start](pipeline-quick-start.md)
 2. [Basics and Principles](pipeline-architecture.md)

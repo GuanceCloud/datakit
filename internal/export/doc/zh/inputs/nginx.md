@@ -124,6 +124,8 @@ server {
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 标签
@@ -133,6 +135,28 @@ server {
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+
+{{ end }}
+{{ end }}
+
+## 自定义对象 {#custom_object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}
 
@@ -217,16 +241,15 @@ server {
 
 ## 链路 {#tracing}
 
-### 前提条件
+### 前提条件 {#trace-requirements}
 
 - [x] 安装 nginx (>=1.9.13)
 
-***该模块只支持 linux 操作系统***
+***该模块只支持 Linux 操作系统***
 
+### 安装 Nginx OpenTracing 插件 {#install-otp}
 
-### 安装 Nginx OpenTracing 插件
-
-Nginx OpenTracing 插件是 OpenTracing 开源的链路追踪插件，基于 C++ 编写，可以工作于 `Jaeger`、`Zipkin`、`LightStep`、`Datadog`.
+Nginx OpenTracing 插件是 OpenTracing 开源的链路追踪插件，基于 C++ 编写，可以工作于 `Jaeger`、`Zipkin`、`LightStep`、`Datadog`。
 
 - [下载](https://github.com/opentracing-contrib/nginx-opentracing/releases){:target="_blank"} 与当前 Nginx 版本对应的插件，通过以下命令可以查看当前 Nginx 版本
 
@@ -250,7 +273,7 @@ load_module modules/ngx_http_opentracing_module.so;
 ```
 
 
-### 安装 DDAgent Nginx OpenTracing 插件
+### 安装 DDAgent Nginx OpenTracing 插件 {#install-ddp}
 
 DDAgent Nginx OpenTracing 插件是基于 `Nginx OpenTracing` 的一套厂商的实现，不同的 APM 会有各自的编解码实现。
 
@@ -315,7 +338,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 
 `info: DATADOG TRACER CONFIGURATION` 表示已经成功加载了 DDTrace 。
 
-### 服务链路转发
+### 服务链路转发 {#trace-propagate}
 
 Nginx 产生链路信息后，需要将相关请求头信息转发给后端，可以形成 Nginx 与后端的链路串联操作。
 
@@ -333,7 +356,7 @@ location ^~ / {
 
 ```
 
-### 加载 Nginx 配置
+### 加载 Nginx 配置 {#load-config}
 
 执行以下命令使 Nginx 配置生效：
 

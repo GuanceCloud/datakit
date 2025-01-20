@@ -52,11 +52,11 @@ For all of the following metric sets, a global tag named `host` is appended by d
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

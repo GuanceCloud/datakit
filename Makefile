@@ -476,16 +476,26 @@ docs_dir=$(exportdir)/guance-doc/docs
 docs_template_dir=internal/export/doc
 
 md_lint: md_export
+	# Check on generated docs
+	# Disable autofix on checking generated documents.
+	# Also disable section check on generated docs(there are sections that rended in measurement name)
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go -mdcheck $(docs_dir) \
-		--mdcheck-autofix off # disable autofix on checking generated documents
+		go run cmd/make/make.go --mdcheck $(docs_dir) \
+		--mdcheck-no-section-check --mdcheck-no-autofix
 	$(call check_docs,$(docs_dir))
 
 md_export:
+ifeq ($(AUTO_FIX),on)
+	# check markdown templates
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+		go run cmd/make/make.go \
+		--mdcheck $(docs_template_dir);
+else
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--mdcheck $(docs_template_dir) \
-		--mdcheck-autofix=$(AUTO_FIX) # check markdown templates first
+		--mdcheck-no-autofix;
+endif
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
 	@bash export.sh -D $(exportdir) -E -V 0.0.0
 

@@ -108,7 +108,7 @@ github.com/GuanceCloud/kubernetes/pkg/kubelet/util
 github.com/GuanceCloud/kubernetes/pkg/kubelet/util/ioutils
 github.com/GuanceCloud/kubernetes/pkg/probe
 github.com/GuanceCloud/kubernetes/pkg/probe/exec
-# github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
+# github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
 # github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee

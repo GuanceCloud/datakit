@@ -233,7 +233,7 @@ setenforce 0
 
 使用时，需要在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF Span 数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。更多配置细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
 
-## `bpf-netlog` 插件的黑名单功能
+## `bpf-netlog` 插件的黑名单功能 {#blacklist}
 
 过滤器规则示例：
 

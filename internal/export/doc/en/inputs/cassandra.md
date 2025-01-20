@@ -96,7 +96,7 @@ Restart Datakit to make configuration take effect.
 
 {{$m.TagsMarkdownTable}}
 
-- Fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

@@ -104,7 +104,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/datadog-go/v5 v5.1.1 // indirect
 	github.com/DataDog/sketches-go v1.4.1 // indirect
-	github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f
+	github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 	github.com/GuanceCloud/toml v1.2.5
 	github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 	github.com/Microsoft/go-winio v0.6.1 // indirect

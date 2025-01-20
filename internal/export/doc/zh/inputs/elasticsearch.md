@@ -163,6 +163,8 @@ PUT _plugins/_security/api/roles/monitor
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 标签
@@ -173,6 +175,7 @@ PUT _plugins/_security/api/roles/monitor
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}

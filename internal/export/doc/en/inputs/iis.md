@@ -59,11 +59,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}{{end}}
 

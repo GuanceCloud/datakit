@@ -203,7 +203,7 @@ DCGM 指标包括 GPU 卡温度、时钟、GPU 占用率、内存占用率等。
 
 ## DCGM 指标 {#dcgm-metric}
 
-### `gpu_dcgm`
+### `gpu_dcgm` {#gpu-dcgm}
 
 - 标签
 

@@ -263,6 +263,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&connectionMeasurement{},
 		&conflictMeasurement{},
 		&archiverMeasurement{},
+		&customerObjectMeasurement{},
 	}
 }
 

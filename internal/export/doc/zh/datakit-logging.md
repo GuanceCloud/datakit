@@ -1,6 +1,6 @@
 # Datakit 日志采集全指南
 
-## 前言
+## 前言 {#intro}
 
 日志采集是观测云 Datakit 重要的一项，它将主动采集或被动接收的日志数据加以处理，最终上传到观测云中心。
 
@@ -17,80 +17,80 @@
 
 以上几种数据类型从使用场景到配置方式截然不同，下文会详细描述。
 
-## 使用场景和配置方式
+## 使用场景和配置方式 {#config}
 
-### 本地磁盘文件采集
+### 本地磁盘文件采集 {#config-local-files}
 
 本章节只描述主机部署 Datakit 的场景，如果是 Kubernetes 部署不建议采集本地文件。
 
 首先需要启动一个 logging 采集器，进入 Datakit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
 
 ``` toml
-[[inputs.logging]]
- # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
- # 推荐使用绝对路径且指定文件后缀
- # 尽量缩小范围，避免采集到压缩包文件或二进制文件
- logfiles = [
-  "/var/log/*.log",           # 文件路径下所有 log 文件
-  "/var/log/*.txt",           # 文件路径下所有 txt 文件
-  "/var/log/sys*",            # 文件路径下所有以 sys 前缀的文件
-  "/var/log/syslog",           # unix 格式文件路径
-  "c:/path/space 空格中文路径/some.txt", # windows 风格文件路径
- ]
-
- ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
- ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
- sockets = [
-  "tcp://0.0.0.0:9540"
-  "udp://0.0.0.0:9541"
- ]
-
-# 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
- ignore = [""]
- 
- # 数据来源，如果为空，则默认使用 'default'
- source = ""
- 
- # 新增标记 tag，如果为空，则默认使用 $source
- service = ""
- 
- # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
- pipeline = ""
- 
- # 选择编码，如果编码有误会导致数据无法查看。默认为空即可
- # `utf-8`,`gbk`
- character_encoding = ""
- 
- ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 yyyy-mm-dd 时间格式
- ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
- ## 使用 3 个单引号 '''this-regexp''' 避免转义
- ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-syntax
- # multiline_match = '''^\s'''
-
-## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
- auto_multiline_detection = true
- ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
- auto_multiline_extra_patterns = []
-
-## 是否删除 ansi 转义码，例如标准输出的文本颜色等
- remove_ansi_escape_codes = false
-
-## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
- ## 时间单位支持 "ms", "s", "m", "h"
- ignore_dead_log = "1h"
-
-## 是否从文件首部开始读取
- from_beginning = false
-
-# 自定义 tags
- [inputs.logging.tags]
- # some_tag = "some_value"
- # more_tag = "some_other_value"
+  [[inputs.logging]]
+   # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
+   # 推荐使用绝对路径且指定文件后缀
+   # 尽量缩小范围，避免采集到压缩包文件或二进制文件
+   logfiles = [
+    "/var/log/*.log",           # 文件路径下所有 log 文件
+    "/var/log/*.txt",           # 文件路径下所有 txt 文件
+    "/var/log/sys*",            # 文件路径下所有以 sys 前缀的文件
+    "/var/log/syslog",           # unix 格式文件路径
+    "c:/path/space 空格中文路径/some.txt", # windows 风格文件路径
+   ]
+  
+   ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
+   ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
+   sockets = [
+    "tcp://0.0.0.0:9540"
+    "udp://0.0.0.0:9541"
+   ]
+  
+  # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+   ignore = [""]
+   
+   # 数据来源，如果为空，则默认使用 'default'
+   source = ""
+   
+   # 新增标记 tag，如果为空，则默认使用 $source
+   service = ""
+   
+   # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
+   pipeline = ""
+   
+   # 选择编码，如果编码有误会导致数据无法查看。默认为空即可
+   # `utf-8`,`gbk`
+   character_encoding = ""
+   
+   ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 yyyy-mm-dd 时间格式
+   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
+   ## 使用 3 个单引号 '''this-regexp''' 避免转义
+   ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-syntax
+   # multiline_match = '''^\s'''
+  
+   ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
+   auto_multiline_detection = true
+   ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
+   auto_multiline_extra_patterns = []
+  
+   ## 是否删除 ansi 转义码，例如标准输出的文本颜色等
+   remove_ansi_escape_codes = false
+  
+   ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+   ## 时间单位支持 "ms", "s", "m", "h"
+   ignore_dead_log = "1h"
+  
+   ## 是否从文件首部开始读取
+   from_beginning = false
+  
+   # 自定义 tags
+   [inputs.logging.tags]
+   # some_tag = "some_value"
+   # more_tag = "some_other_value"
 ```
 
 这是一份基础的 logging.conf，其中 `multiline_match`、`pipeline` 等字段的作用详见后文的功能介绍。
 
-### 容器标准输出采集
+### 容器标准输出采集 {#config-stdout}
 
 采集容器应用的标准输出，也是最常见的方式，可以使用类似 `docker logs` 或 `crictl logs` 查看。
 
@@ -150,24 +150,24 @@
 === "容器环境变量"
 
 ``` shell
-$ cat dockerfile
-from pubrepo.guance.com/base/ubuntu:18.04 as base
-run mkdir -p /opt
-run echo 'i=0; \n\
-while true; \n\
-do \n\
-  echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output."; \n\
-  i=$((i+1)); \n\
-  sleep 1; \n\
-done \n'\
->> /opt/s.sh
-cmd ["/bin/bash", "/opt/s.sh"]
-
-## 构建镜像
-$ docker build -t testing/log-output:v1 .
-
-## 启动容器，添加环境变量 datakit_logs_config
-$ docker run --name log-output -env datakit_logs_config='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
+  $ cat dockerfile
+  from pubrepo.guance.com/base/ubuntu:18.04 as base
+  run mkdir -p /opt
+  run echo 'i=0; \n\
+  while true; \n\
+  do \n\
+    echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output."; \n\
+    i=$((i+1)); \n\
+    sleep 1; \n\
+  done \n'\
+  >> /opt/s.sh
+  cmd ["/bin/bash", "/opt/s.sh"]
+  
+  ## 构建镜像
+  $ docker build -t testing/log-output:v1 .
+  
+  ## 启动容器，添加环境变量 datakit_logs_config
+  $ docker run --name log-output -env datakit_logs_config='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
 ```
 
 === "Kubernetes Pod Annotation"
@@ -240,7 +240,7 @@ $ kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"lo
 如果一个 pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效。
 
 
-### 容器内日志文件采集
+### 容器内日志文件采集 {#config-container-files}
 
 对于容器内部的日志文件，和控制台输出日志的区别是需要指定文件路径，其他配置项大同小异。
 
@@ -252,26 +252,26 @@ $ kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"lo
 === "容器环境变量"
 
 ``` shell
-$ cat dockerfile
-from pubrepo.guance.com/base/ubuntu:18.04 as base
-run mkdir -p /opt
-run echo 'i=0; \n\
-while true; \n\
-do \n\
-  echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log; \n\
-  i=$((i+1)); \n\
-  sleep 1; \n\
-done \n'\
->> /opt/s.sh
-cmd ["/bin/bash", "/opt/s.sh"]
-
-## 构建镜像
-$ docker build -t testing/log-to-file:v1 .
-
-## 启动容器，添加环境变量 datakit_logs_config，注意字符转义
-## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 Volume
-## 例如采集 `/tmp/opt/1.log` 文件，需要添加 `/tmp/opt` 的匿名 Volume
-$ docker run --env datakit_logs_config="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/1.log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
+  $ cat dockerfile
+  from pubrepo.guance.com/base/ubuntu:18.04 as base
+  run mkdir -p /opt
+  run echo 'i=0; \n\
+  while true; \n\
+  do \n\
+    echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log; \n\
+    i=$((i+1)); \n\
+    sleep 1; \n\
+  done \n'\
+  >> /opt/s.sh
+  cmd ["/bin/bash", "/opt/s.sh"]
+  
+  ## 构建镜像
+  $ docker build -t testing/log-to-file:v1 .
+  
+  ## 启动容器，添加环境变量 datakit_logs_config，注意字符转义
+  ## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 Volume
+  ## 例如采集 `/tmp/opt/1.log` 文件，需要添加 `/tmp/opt` 的匿名 Volume
+  $ docker run --env datakit_logs_config="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/1.log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
 ```
 
 === "Kubernetes pod annotation"
@@ -344,7 +344,7 @@ $ kubectl apply -f logging.yaml
 
 对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](../integrations/logfwd.md)。
 
-### tcp/udp 数据接收
+### tcp/udp 数据接收 {#config-tcpudp}
 
 将 logging.conf 中 `logfiles` 注释掉，并配置 `sockets`，例如：
 
@@ -376,9 +376,9 @@ Connection to 127.1 (127.0.0.1) 9531 port [udp/*] succeeded!
 
 > 注意：UDP 数据因为缺少上下文，所以不适用多行匹配。
 
-### http 数据接收
+### HTTP 数据接收 {#config-logstreaming}
 
-启动一个 http server，接收日志文本数据，上报到观测云。http url 固定为：`/v1/write/logstreaming`，即 `http://datakit_ip:port/v1/write/logstreaming`
+启动一个 HTTP server，接收日志文本数据，上报到观测云。HTTP URL 固定为：`/v1/write/logstreaming`，即 `http://datakit_ip:port/v1/write/logstreaming`
 
 > 注：如果 Datakit 以 DaemonSet 方式部署在 Kubernetes 中，可以使用 Service 方式访问，地址为 `http://datakit-service.datakit:9529`
 
@@ -413,7 +413,7 @@ Connection to 127.1 (127.0.0.1) 9531 port [udp/*] succeeded!
 目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
-#### logstreaming 支持参数
+#### logstreaming 支持参数 {#logstreaming-args}
 
 Logstreaming 支持在 http url 中，通过添加参数可实现对日志数据的灵活操作。以下是支持的参数及其作用：
 
@@ -429,7 +429,7 @@ Logstreaming 支持在 http url 中，通过添加参数可实现对日志数据
 - `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/logstreaming?pipeline=nginx.p`）
 - `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/logstreaming?tags=key1=value1,key2=value2`）
 
-#### logstreaming 使用案例
+#### logstreaming 使用案例 {#logstreaming-cases}
 
 - Fluentd 使用 influxdb output [文档](https://github.com/fangli/fluent-plugin-influxdb){:target="_blank"}
 - Fluentd 使用 http output [文档](https://docs.fluentd.org/output/http){:target="_blank"}
@@ -438,11 +438,11 @@ Logstreaming 支持在 http url 中，通过添加参数可实现对日志数据
 
 只需要将 output host 配置为 log-streaming url（`http://datakit_ip:port/v1/write/logstreaming`）并添加对应参数即可。
 
-## 日志采集细节
+## 日志采集细节 {#logging-collect-details}
 
-### 发现日志文件
+### 发现日志文件 {#discovery}
 
-#### glob 配置文件路径
+#### glob 配置文件路径 {#glob-discovery}
 
 日志采集使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
@@ -457,7 +457,7 @@ Logstreaming 支持在 http url 中，通过添加参数可实现对日志数据
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。更多 grok 介绍，参见[这里](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
 
-#### 发现本地日志文件
+#### 发现本地日志文件 {#local-file-discovery}
 
 普通日志文件是最常见的一种，它们是进程直接将可读的记录数据写到磁盘文件，像著名的 “log4j” 框架或者执行 `echo "this is log" >> /tmp/log` 命令都会产生日志文件。
 
@@ -494,7 +494,7 @@ $ tree /tmp
 在配置文件中使用 glob 指定文件路径后，Datakit 会定期在磁盘中搜寻符合规则的文件，如果发现没有在采集列表中，便将其添加并进行采集。
 
 
-#### 定位容器标准输出日志
+#### 定位容器标准输出日志 {#discovery-container-stdout-logs}
 
 在容器中输出日志有两种方式：
 
@@ -512,7 +512,7 @@ $ docker inspect --format='{{`{{.logpath}}`}}' <container_id>
 获取到容器 `logpath` 后，使用这个路径和相应配置创建日志采集。
 
 
-#### 定位容器内文件路径
+#### 定位容器内文件路径 {#discovery-container-file-logs}
 
 要采集容器内文件，需要现将文件目录挂载到外部，此处只描述 Kubernetes 场景的容器内文件路径定位方案。
 
@@ -544,7 +544,7 @@ Datakit 会从容器 Runtime 找到这个 `hostpath`，根据配置的采集文�
 
 > Datakit 以 Kubernetes DaemonSet 方式部署时，会创建一个 VolumeMount，将宿主机的根目录 `/` 挂载到 Datakit 容器的 `/rootfs` 路径下，使得 Datakit 进程能只读访问宿主机文件。
 
-### 文件过滤
+### 文件过滤 {#skip-logs}
 
 在配置文件路径时使用 glob 规则，可能会找到很多文件，有的文件长时间不更新，不希望打开和采集它。需要用到 `ignore_dead_log` 这个配置项。
 
@@ -558,7 +558,7 @@ Datakit 发现到这个文件时，会获取它的最后修改时间（`modify t
 
 > 容器标准输出和容器内文件的 `ignore_dead_log` 统一为 `1h` 即 1 小时。
 
-### 采集的起始位置
+### 采集的起始位置 {#start-pos}
 
 文件采集的起始位置非常重要：如果始终从 head 采集可能采集重复，如果从 tail 采集可能会丢失部分数据。
 
@@ -586,11 +586,11 @@ Datakit 对采集的起始位置有几个判断方案，按照优先级依次是
 Datakit 日志采集每 10 秒搜寻一次新文件，如果刚好卡在这个时间边界，使得 Datakit 下次搜寻到这个文件时（即 10 秒后）已经超过 20 MB，按照策略应该从 tail 采集，这种情况需要强制开启 `from_beginning` 从 head 采集。同时因为 Linux 的 Inotify 事件通知机制存在，理论上当文件产生，Datakit 立刻就能捕获到并开启采集，这个间隔很短不会产生超过 20 MB 的数据，所以也不必须开启 `from_beginning`。
 
 
-### 数据编码转换
+### 数据编码转换 {#encoding}
 
 Datakit 支持采集 `utf-8` 和 `gbk` 编码的文件。
 
-### 多行数据拼接
+### 多行数据拼接 {#multi-line}
 
 通过识别多行日志的第一行特征，即可判定某行日志是不是一条新的日志。如果不符合这个特征，即认为当前行日志只是前一条多行日志的追加。
 
@@ -685,7 +685,7 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 info demo.py 5.
 `^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 ```
 
-### 特殊字节码过滤
+### 特殊字节码过滤 {#escaping}
 
 日志可能会包含一些不可读的特殊字符（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
 
@@ -721,7 +721,7 @@ ok   ansi   2.422s
 
 每一条文本的处理耗时增加 1700 ns 不等。如果不开启此功能将无额外损耗。
 
-### Pipeline 字段切割
+### Pipeline 字段切割 {#pipeline}
 
 [Pipeline](../pipeline/use-pipeline/index.md) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
@@ -779,7 +779,7 @@ Pipeline 的几个注意事项：
 - 如果 `<source-name>.p` 不存在，将不启用 Pipeline 功能
 - 所有 Pipeline 脚本文件，统一存放在 Datakit 安装路径下的 `pipeline` 目录下
 
-### 根据白名单保留指定字段
+### 根据白名单保留指定字段 {#field-whitelist}
 
 日志采集有以下基础字段：
 
@@ -816,7 +816,7 @@ Pipeline 的几个注意事项：
 字段白名单是一个全局配置，同时对容器日志和 logging 采集器生效。
 <!-- markdownlint-enable -->
 
-### 最大文件采集数
+### 最大文件采集数 {#max-collecting-files}
 
 通过环境变量 `ENV_LOGGING_MAX_OPEN_FILES` 设置最大文件采集数量。例如 `ENV_LOGGING_MAX_OPEN_FILES="1000"`，表示最多同时采集 1000 个文件。
 
@@ -824,9 +824,9 @@ Pipeline 的几个注意事项：
 
 `ENV_LOGGING_MAX_OPEN_FILES` 是一个全局配置，对 logging 采集器和容器日志采集同时生效。它的默认值是 500。
 
-## 采集细节描述
+## 采集细节描述 {#more-colect-details}
 
-### 容器日志采集的 source 设置
+### 容器日志采集的 source 设置 {#source-for-container-log}
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，Datakit 有如下规则（优先级递减）用于自动推断容器日志的来源：
 
@@ -836,17 +836,17 @@ Pipeline 的几个注意事项：
 - 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
 - `default`: 默认的 `source`
 
-### 超长多行日志处理的限制
+### 超长多行日志处理的限制 {#split-large-log}
 
 Datakit 日志采集最多支持单行日志 512 kib，如果超过 512 kib 会截断，从下一个字节开始是新一条日志。
 
 多行日志最多允许 `ENV_DATAWAY_MAX_RAW_BODY_SIZE` * 0.8，默认情况下这个值是 819 kib，如果超过此值同样会截断，并创建新一条日志。
 
-### 磁盘文件的发现过程
+### 磁盘文件的发现过程 {#scan-and-inotify}
 
 Datakit 发现日志文件的过程，是定期（10 秒）根据 glob 规则扫描文件，和 inotify 事件通知机制。其中 inotify 只有 Datakit 部署在 Linux 环境下才支持。
 
-### 文件翻转方案推荐
+### 文件翻转方案推荐 {#file-rotate}
 
 日志文件的翻转（rotate）是常见行为，大部分日志输出框架都有这个功能。
 
@@ -873,17 +873,17 @@ Datakit 发现日志文件的过程，是定期（10 秒）根据 glob 规则扫
 > 此外还有一种翻转方式，类似 Linux 执行 `truncate -s 0` 将文件 size 截断为 0 字节，清空文件内容。不推荐使用这种翻转方式，它会彻底将文件内容清空，如果 Datakit 没有及时采集到末尾，末尾的数据就全部丢失了。
 
 
-## faq
+## FAQ {#faq}
 
-### 远程文件采集方案
+### 远程文件采集方案 {#faq-remote-logs}
 
 在 Linux 操作系统上，可通过 [nfs 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 Datakit 主机下，logging 采集器配置对应日志路径即可。
 
-### macos 日志采集器报错 `operation not permitted`
+### macos 日志采集器报错 `operation not permitted` {#permission-on-macos}
 
 在 macos 中，因为系统安全策略的原因，Datakit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
 
-### 如何估算日志的总量
+### 如何估算日志的总量 {#stat-log-usage}
 
 由于日志的收费是按照条数来计费的，一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100gb 日志）。
 
@@ -919,7 +919,7 @@ bytes * 2 * 8 /1024/1024 = xxx mbit
 此处 `*2` 考虑到了 [Pipeline 切割](../pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
 <!-- markdownlint-enable -->
 
-### 日志目录的软链接问题
+### 日志目录的软链接问题 {#soft-links}
 
 正常情况下，Datakit 会从容器 Runtime 获取日志文件的路径，然后采集该文件。
 
@@ -953,7 +953,7 @@ Datakit 需要挂载 `/mnt/container_logs` hostpath 才能使得正常采集，�
 
 这种情况不太常见，一般只有提前知道该路径有软连接，或查看 Datakit 日志发现采集报错才执行。
 
-### 根据容器 image 来调整日志采集
+### 根据容器 image 来调整日志采集 {#config-loggong-on-container-image}
 
 默认情况下，Datakit 会收集所在主机上所有容器标准输出日志，这会采集较多的日志。可以通过 image 或 namespace 来过滤容器。
 
@@ -982,17 +982,17 @@ Datakit 需要挂载 `/mnt/container_logs` hostpath 才能使得正常采集，�
 对于同一类规则（`image` 或 `namespace`），如果同时存在 `include` 和 `exclude`，需要同时满足 `include` 成立，且 `exclude` 不成立的条件。例如：
 
 ```toml
-## 这会导致所有容器都被过滤。如果有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
-container_include_log = ["image_name:datakit"]
-container_exclude_log = ["image_name:*"]
+  ## 这会导致所有容器都被过滤。如果有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
+  container_include_log = ["image_name:datakit"]
+  container_exclude_log = ["image_name:*"]
 ```
 
 多种类型的字段规则有任意一条匹配，就不再采集它的日志。例如：
 
 ```toml
-## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
-container_include_log = []
-container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+  ## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
+  container_include_log = []
+  container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
 ```
 
 `container_include_log` 和 `container_exclude_log` 的配置规则比较复杂，同时使用会有多种优先级情况。建议只使用 `container_exclude_log` 一种。

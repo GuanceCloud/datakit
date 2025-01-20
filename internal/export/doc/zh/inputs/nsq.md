@@ -69,6 +69,8 @@ monitor   :
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 {{$m.Desc}}
@@ -80,10 +82,11 @@ monitor   :
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{ end }}
 
 {{ end }}
 
-## 自定义对象 {#object}
+## 自定义对象 {#custom_object}
 
 {{ range $i, $m := .Measurements }}
 

@@ -45,7 +45,7 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
     - Under **Select a layer**, choose **ARN** as the layer source.
     - Enter the ARN in the text box, select **Verify**, and then choose **Add**.
 
-### Configure the Required Environment Variables
+### Configure the Required Environment Variables {#env}
 
 - ENV_DATAWAY=`https://openway.guance.com?token=<your-token>`
 
@@ -59,7 +59,7 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 
 {{$m.TagsMarkdownTable}}
 
-- List of Metrics
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

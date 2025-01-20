@@ -15,6 +15,7 @@ type ServerZoneMeasurement struct{}
 func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ServerZone,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"requests":     newCountFieldInfo("The total number of client requests received from clients."),
 			"received":     newByteFieldInfo("The total amount of data received from clients."),
@@ -49,6 +50,7 @@ type UpstreamZoneMeasurement struct{}
 func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: UpstreamZone,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"request_count": newCountFieldInfo("The total number of client requests received from server."),
 			"received":      newByteFieldInfo("The total number of bytes received from this server."),
@@ -83,6 +85,7 @@ type CacheZoneMeasurement struct{}
 func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: CacheZone,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"max_size":              newByteFieldInfo("The limit on the maximum size of the cache specified in the configuration"),
 			"used_size":             newByteFieldInfo("The current size of the cache."),

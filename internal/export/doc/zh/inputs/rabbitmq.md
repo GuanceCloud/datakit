@@ -87,6 +87,8 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 标签
@@ -97,6 +99,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}

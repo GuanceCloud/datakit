@@ -70,7 +70,7 @@ config:
  ## skywalking custom
  [inputs.kafkamq.skywalking]
   
-   ## Required！send to datakit skywalking input.
+   ## Required: send to datakit skywalking input.
    dk_endpoint="http://localhost:9529"
 
    topics = [
@@ -93,13 +93,13 @@ Open the comment to start the subscription. The subscribed topic is in the SkyWa
 Configuration：
 
 ```toml
-## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open ！！！
-[inputs.kafkamq.jaeger]
-    ## Required！ ipv6 is "[::1]:9529"
-    dk_endpoint="http://localhost:9529"
-
-    ## Required！ topics 
-    topics=["jaeger-spans","jaeger-my-spans"]
+  ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open
+  [inputs.kafkamq.jaeger]
+      ## Required: ipv6 is "[::1]:9529"
+      dk_endpoint="http://localhost:9529"
+  
+      ## Required: topics 
+      topics=["jaeger-spans","jaeger-my-spans"]
 ```
 
 > Note: This collector just forwards the subscribed data to the Datakit Jaeger collector, please open the [jaeger](jaeger.md) collector and open the `dk_endpoint` comment!
@@ -140,13 +140,13 @@ Theoretically, each message body should be a log or a metric. If your message is
 Configuration:
 
 ```toml
-## Receive and consume OTEL data from kafka.
-[inputs.kafkamq.otel]
-    dk_endpoint="http://localhost:9529"
-    trace_api="/otel/v1/trace"
-    metric_api="/otel/v1/metric"
-    trace_topics=["trace1","trace2"]
-    metric_topics=["otel-metric","otel-metric1"]
+  ## Receive and consume OTEL data from kafka.
+  [inputs.kafkamq.otel]
+      dk_endpoint="http://localhost:9529"
+      trace_api="/otel/v1/trace"
+      metric_api="/otel/v1/metric"
+      trace_topics=["trace1","trace2"]
+      metric_topics=["otel-metric","otel-metric1"]
 ```
 
 The `dk_endpoint` `trace_api` `metric_api` corresponds to the address of the DataKit and the API address of the OpenTelemetry collector.
@@ -201,9 +201,9 @@ Configuration:
 
 ```toml
   [inputs.kafkamq.remote_handle]
-    ## Required！
+    ## Required:
     endpoint="http://localhost:8080"
-    ## Required！ topics
+    ## Required: topics
     topics=["spans","my-spans"]
     send_message_count = 100
     debug = false

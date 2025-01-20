@@ -31,29 +31,29 @@ Zabbix 从 5.0 到 7.0 版本都支持将实时数据写到文件中。实时数
 修改配置文件，一般位于 */etc/zabbix/zabbix_server.conf* :
 
 ```toml
-### Option: ExportDir
-#       Directory for real time export of events, history and trends in newline delimited JSON format.
-#       If set, enables real time export.
-#
-# Mandatory: no
-ExportDir=/data/zbx/datakit
+  ### Option: ExportDir
+  #       Directory for real time export of events, history and trends in newline delimited JSON format.
+  #       If set, enables real time export.
+  #
+  # Mandatory: no
+  ExportDir=/data/zbx/datakit
+  
+  ### Option: ExportFileSize
+  #       Maximum size per export file in bytes.
+  #       Only used for rotation if ExportDir is set.
+  #
+  # Mandatory: no
+  # Range: 1M-1G
+  ExportFileSize=32M
 
-### Option: ExportFileSize
-#       Maximum size per export file in bytes.
-#       Only used for rotation if ExportDir is set.
-#
-# Mandatory: no
-# Range: 1M-1G
-ExportFileSize=32M
-
-### Option: ExportType
-#       List of comma delimited types of real time export - allows to control export entities by their
-#       type (events, history, trends) individually.
-#       Valid only if ExportDir is set.
-#
-# Mandatory: no
-# Default:
-# ExportType=events,history,trends
+  ### Option: ExportType
+  #       List of comma delimited types of real time export - allows to control export entities by their
+  #       type (events, history, trends) individually.
+  #       Valid only if ExportDir is set.
+  #
+  # Mandatory: no
+  # Default:
+  # ExportType=events,history,trends
 ```
 
 修改其中的配置项：

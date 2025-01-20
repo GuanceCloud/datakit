@@ -122,17 +122,19 @@ For all of the following data collections, the global election tags will added a
 ```
 
 {{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## Custom Object {#object}
@@ -145,11 +147,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -238,14 +240,14 @@ The list of cut fields is as follows:
 
 ## Tracing {#tracing}
 
-### Pre-Condition
+### Requirements {#trace-requirements}
 
 - [x] Install nginx (>=1.9.13)
 
 ***This module only supports the Linux operating system***
 
 
-### Install Nginx OpenTracing Plugin
+### Install Nginx OpenTracing Plugin {#install-otp}
 
 The Nginx OpenTracing plugin is an open-source link tracking plugin for `OpenTracing`, written in C++，It's work for `Jaeger`、`Zipkin`、`LightStep`、`Datadog`.
 
@@ -271,7 +273,7 @@ load_module modules/ngx_http_opentracing_module.so;
 ```
 
 
-### Install DDAgent Nginx OpenTracing plugin
+### Install DDAgent Nginx OpenTracing plugin {#install-ddp}
 
 The DDAgent Nginx OpenTracing plugin is a set of vendor implementations based on `Nginx OpenTracing`, with different APMs having their own encoding and decoding implementations.
 
@@ -336,7 +338,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 
 `info: DATADOG TRACER CONFIGURATION` Indicates that DDTrace has been successfully loaded 。
 
-### Service tracing propagate
+### Service tracing propagate {#trace-propagate}
 
 After Nginx generates link information, it needs to forward the relevant request header information to the backend, which can form a link concatenation operation between Nginx and the backend.
 
@@ -354,7 +356,7 @@ location ^~ / {
 
 ```
 
-### Load nginx configure
+### Load nginx configure {#load-config}
 
 Execute the following command to make the Nginx configuration effective:
 

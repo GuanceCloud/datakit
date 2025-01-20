@@ -87,11 +87,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}{{end}}
 

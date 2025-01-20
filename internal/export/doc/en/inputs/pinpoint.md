@@ -132,11 +132,11 @@ Main logical points:
 
 {{$m.Desc}}
 
-- tags
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -153,11 +153,11 @@ Main logical points:
 
 {{$m.Desc}}
 
-- tags
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

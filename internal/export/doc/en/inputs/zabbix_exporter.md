@@ -24,36 +24,36 @@ monitor   :
 Collect real-time data from the Zabbix service and send it to the GuanCe cloud center. Currently, Zabbix supports writing real-time data to files from version 5.0 to 7.0.
 ExportType allows to specify which entity types (events, history, trends) will be exported.
 
-## Config {config}
+## Config {#config}
 
 ### Requirements Config {#requirements}
 
 Zabbix config file: */etc/zabbix/zabbix_server.conf* :
 
 ```toml
-### Option: ExportDir
-#       Directory for real time export of events, history and trends in newline delimited JSON format.
-#       If set, enables real time export.
-#
-# Mandatory: no
-ExportDir=/data/zbx/datakit
-
-### Option: ExportFileSize
-#       Maximum size per export file in bytes.
-#       Only used for rotation if ExportDir is set.
-#
-# Mandatory: no
-# Range: 1M-1G
-ExportFileSize=32M
-
-### Option: ExportType
-#       List of comma delimited types of real time export - allows to control export entities by their
-#       type (events, history, trends) individually.
-#       Valid only if ExportDir is set.
-#
-# Mandatory: no
-# Default:
-# ExportType=events,history,trends
+  ### Option: ExportDir
+  #       Directory for real time export of events, history and trends in newline delimited JSON format.
+  #       If set, enables real time export.
+  #
+  # Mandatory: no
+  ExportDir=/data/zbx/datakit
+  
+  ### Option: ExportFileSize
+  #       Maximum size per export file in bytes.
+  #       Only used for rotation if ExportDir is set.
+  #
+  # Mandatory: no
+  # Range: 1M-1G
+  ExportFileSize=32M
+  
+  ### Option: ExportType
+  #       List of comma delimited types of real time export - allows to control export entities by their
+  #       type (events, history, trends) individually.
+  #       Valid only if ExportDir is set.
+  #
+  # Mandatory: no
+  # Default:
+  # ExportType=events,history,trends
 ```
 
 Modify the configuration items:
@@ -193,7 +193,7 @@ hostname="Zabbix server"
 time=1728611707570308079
 ```
 
-## Zabbix Service API {zabbix_api}
+## Zabbix Service API {#zabbix_api}
 
 Obtain data through the API interfaces exposed by Zabbix.
 

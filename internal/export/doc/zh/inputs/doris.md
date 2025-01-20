@@ -32,7 +32,7 @@ Doris 默认开启 Prometheus 端口
 
 验证后端：curl ip:8040/metrics
 
-### 采集器配置 {input-config}
+### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"

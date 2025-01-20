@@ -49,11 +49,11 @@ CoreDNS collector is used to collect metric data related to CoreDNS.
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

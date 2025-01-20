@@ -245,11 +245,11 @@ All indicators sent to the observation cloud have a unified indicator set name: 
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

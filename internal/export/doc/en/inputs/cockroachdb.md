@@ -61,7 +61,7 @@ Already tested CockroachDB version:
 
 {{$m.TagsMarkdownTable}}
 
-- Fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

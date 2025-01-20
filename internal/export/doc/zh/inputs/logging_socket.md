@@ -16,7 +16,8 @@ monitor   :
 
 > 文件采集和 Socket 采集是互斥的，开启 Socket 采集之前，请先关闭文件采集，参见[日志采集配置](logging.md)  
 
-## 配置
+## 配置 {#config}
+
 ### Java {#java}
 
 在配置 log4j 的时候需要注意，log4j v1，默认是使用 *.properties* 文件进行配置；而目前 log4j-v2 使用 XML 文件进行配置。

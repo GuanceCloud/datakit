@@ -202,11 +202,11 @@ For all the following data collections, a global tag named  `host` is appended b
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

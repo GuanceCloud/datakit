@@ -91,11 +91,11 @@ See [official document](https://neo4j.com/docs/operations-manual/current/install
 
 ### `{{$m.Name}}`
 
-- Tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

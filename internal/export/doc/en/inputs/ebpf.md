@@ -235,7 +235,9 @@ Configuration items:
 
 When using, you need to deploy the eBPF collector with link data collection enabled on multiple nodes, then you need to send all eBPF Span data to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled. For more configuration details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
 
-### The blacklist function of the `bpf-netlog` plug-in
+<!-- markdownlint-disable MD013 -->
+### The blacklist function of the `bpf-netlog` plug-in {#blacklist}
+<!-- markdownlint-enable -->
 
 Filter rule example:
 
@@ -343,11 +345,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
-- tag list
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
@@ -363,11 +365,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
-- tag list
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
@@ -383,11 +385,11 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### `{{$m.Name}}`
 
-- tag list
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

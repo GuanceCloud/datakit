@@ -257,6 +257,8 @@ apt-get install -y libaio-dev libaio1
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 标签
@@ -267,6 +269,7 @@ apt-get install -y libaio-dev libaio1
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}

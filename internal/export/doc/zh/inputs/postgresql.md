@@ -60,6 +60,8 @@ grant SELECT ON pg_stat_database to datakit;
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 标签
@@ -70,6 +72,7 @@ grant SELECT ON pg_stat_database to datakit;
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}

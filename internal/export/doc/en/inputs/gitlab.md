@@ -110,11 +110,11 @@ Note: To ensure that GitLab CI functions properly, the extra tags specified for 
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

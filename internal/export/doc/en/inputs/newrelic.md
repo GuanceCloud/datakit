@@ -145,11 +145,11 @@ All the following data collection will add a global tag named `host` by default 
 
 ### `{{$m.Name}}`
 
-- tags
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

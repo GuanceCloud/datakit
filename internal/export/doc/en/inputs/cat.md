@@ -139,11 +139,11 @@ Effect display:
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
