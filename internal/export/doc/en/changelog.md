@@ -739,7 +739,7 @@ This release is an iterative update with the following main changes:
 
 In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
 
-- Upgrade the center base to [1.87.167](../deployment/changelog/2024.md#1.87.167) or
+- Upgrade the center base to 1.87.167 or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
 #### For InfluxDB {#cl-1.30.0-brk-influxdb}
