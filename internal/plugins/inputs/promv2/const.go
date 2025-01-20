@@ -24,6 +24,8 @@ const sampleConfig = `
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
 
+  ## The bearer_token_file specifies the token file, and the Authorization header is added automatically.
+  # bearer_token_file = ""
   ## TLS config
   # insecure_skip_verify = true
   ## Following ca_certs/cert/cert_key are optional, if insecure_skip_verify = true.
