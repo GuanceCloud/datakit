@@ -9,6 +9,8 @@ package promv2
 import (
 	"fmt"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -37,6 +39,7 @@ type Input struct {
 	KeepExistMetricName bool `toml:"keep_exist_metric_name"`
 	DisableInstanceTag  bool `toml:"disable_instance_tag"`
 
+	BearerTokenFile string `toml:"bearer_token_file"`
 	dknet.TLSClientConfig
 
 	HTTPHeaders map[string]string `toml:"http_headers"`
@@ -137,6 +140,16 @@ func (ipt *Input) setup() error {
 		}
 	}
 
+	if ipt.BearerTokenFile != "" {
+		token, err := os.ReadFile(ipt.BearerTokenFile)
+		if err != nil {
+			return err
+		}
+		if _, exist := ipt.HTTPHeaders["Authorization"]; !exist {
+			ipt.HTTPHeaders["Authorization"] = fmt.Sprintf("Bearer %s", strings.TrimSpace(string(token)))
+		}
+	}
+
 	opts := []promscrape.Option{
 		promscrape.WithSource("promv2/" + ipt.Source),
 		promscrape.WithMeasurement(ipt.MeasurementName),
@@ -165,7 +178,6 @@ func (ipt *Input) setup() error {
 	}
 
 	ipt.scraper = ps
-
 	return nil
 }
 
@@ -226,13 +238,14 @@ func (ipt *Input) Resume() error {
 
 func newProm() *Input {
 	return &Input{
-		Source:   "not-set",
-		pause:    false,
-		chPause:  make(chan bool, inputs.ElectionPauseChannelLength),
-		Tags:     make(map[string]string),
-		Feeder:   dkio.DefaultFeeder(),
-		Tagger:   datakit.DefaultGlobalTagger(),
-		Interval: time.Second * 30,
+		Source:      "not-set",
+		pause:       false,
+		chPause:     make(chan bool, inputs.ElectionPauseChannelLength),
+		HTTPHeaders: make(map[string]string),
+		Tags:        make(map[string]string),
+		Feeder:      dkio.DefaultFeeder(),
+		Tagger:      datakit.DefaultGlobalTagger(),
+		Interval:    time.Second * 30,
 	}
 }
 

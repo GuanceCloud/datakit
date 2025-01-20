@@ -270,7 +270,7 @@ func loadTLSConfig(opt *option) (*tls.Config, error) {
 		opt.certFile,
 		opt.keyFile,
 		opt.tlsOpen,
-		false)
+		opt.insecureSkipVerify)
 
 	return tc.TLSConfigWithBase64()
 }
