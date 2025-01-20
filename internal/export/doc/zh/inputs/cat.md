@@ -146,7 +146,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 {{if eq $m.Type "tracing"}}
 
-### 链路字段说明 {tracing}
+### 链路字段说明 {#tracing}
 
 {{$m.Desc}}
 
@@ -161,7 +161,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 {{if eq $m.Type "metric"}}
 
-### 指标类型 {metric}
+### 指标类型 {#metric}
 
 {{$m.Desc}}
 

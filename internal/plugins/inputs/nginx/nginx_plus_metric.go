@@ -14,6 +14,7 @@ type LocationZoneMeasurement struct{}
 func (m *LocationZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: LocationZone,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"requests":     newByteFieldInfo("The number of requests (only for Nginx plus)"),
 			"response":     newByteFieldInfo("The number of response (only for Nginx plus)"),

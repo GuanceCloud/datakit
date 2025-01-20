@@ -93,11 +93,11 @@ All of the following data collections are appended with a global tag named `host
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

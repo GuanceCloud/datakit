@@ -110,6 +110,7 @@ func (m *QueueMeasurement) Point() *point.Point {
 func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: QueueMetric,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"consumers":                    newCountFieldInfo("Number of consumers"),
 			"consumer_utilization":         newRateFieldInfo("The ratio of time that a queue's consumers can take new messages"),

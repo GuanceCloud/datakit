@@ -149,7 +149,7 @@ When turned on, you can collect jvm metrics exposed by DDTrace.
 
 ### Metric {#metric}
 
-- Tag
+- Tags
 
 Each metric has the following tags (the actual tags are affected by Java startup parameters and statsd configuration).
 
@@ -165,7 +165,7 @@ Each metric has the following tags (the actual tags are affected by Java startup
 | `type`        |               |
 | `version`     |               |
 
-- Metrics List
+- Metrics
 
 | Metrics                        | Description                                                                                                                          | Data Type | Unit   |
 | ----                        | ----                                                                                                                          | :---:    | :----: |
@@ -234,11 +234,11 @@ For all the following data collections, a global tag named `host` is appended by
 
 #### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

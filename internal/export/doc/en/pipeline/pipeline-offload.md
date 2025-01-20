@@ -7,7 +7,7 @@
 
 You can use DataKit's Pipeline Offload function to reduce high data latency and high host load caused by data processing.
 
-## Configuration Method
+## Configuration Method {#config}
 
 It needs to be configured and enabled in the `datakit.conf` main configuration file. See below for the configuration. Currently supported targets `receiver` are `datakit-http` and `ploffload`, which allows multiple `DataKit` addresses to be configured to achieve load balancing.
 
@@ -46,13 +46,13 @@ If the receiving end DataKit turns on the `ploffload` collector, it can be confi
     ]
 ```
 
-## Working Principle
+## Working Principle {#principle}
 
 After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from GuanceCloud, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
 
 ![`pipeline-offload`](img/pipeline-offload.drawio.png)
 
-## Deploy post-level data processor
+## Deploy post-level data processor {#post-level-processor}
 
 There are several ways to deploy the data processor (DataKit) for receiving computing tasks:
 

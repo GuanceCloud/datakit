@@ -82,11 +82,11 @@ TLS need Couchbase enterprise
 
 ### `{{$m.Name}}`
 
-- Tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

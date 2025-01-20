@@ -163,8 +163,8 @@ github.com/GuanceCloud/jfr-parser v0.8.6 h1:kyiVxH5LcxNc1Xc3R9uSJz8f8RmBDhy9ytJr
 github.com/GuanceCloud/jfr-parser v0.8.6/go.mod h1:mngmZuDZbFhqGn2F+fK7tyxq+EmwvNZqWnQQ+heWmE4=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cro+7xCCruRvPh9z1L6DwX8xo2N4RDgHGUmtg=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
-github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f h1:0+A0eeT48LSlnDpVOQ/sqoW/lbYmerKKF7NVNBlgnww=
-github.com/GuanceCloud/mdcheck v0.0.0-20230718065937-44c6728c995f/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
+github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
+github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
 github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee h1:UHnR2IVFcwCCqLp6iSsh4Xn6fX93hujzDOx6RdCwM9c=
 github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=

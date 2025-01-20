@@ -60,17 +60,19 @@ grant SELECT ON pg_stat_database to datakit;
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
 {{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## Custom Object {#object}
@@ -83,11 +85,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

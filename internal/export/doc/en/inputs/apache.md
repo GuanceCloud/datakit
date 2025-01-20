@@ -83,18 +83,20 @@ For all of the following data collections, the global election tags will added a
 ```
 
 {{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
+{{ end }}
 {{ end }}
 
 ## Custom Object {#object}
@@ -107,11 +109,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

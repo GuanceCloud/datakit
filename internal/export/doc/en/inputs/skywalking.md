@@ -124,13 +124,13 @@ Others:
 
 jvm metrics collected by SkyWalking language agent.
 
-- Tag
+- Tags
 
 | Tag Name  | Description  |
 | --------- | ------------ |
 | `service` | service name |
 
-- Metrics List
+- Metrics
 
 | Metrics                            | Description                                                                                                                               | Data Type |  Unit   |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | :-------: | :-----: |
@@ -165,11 +165,11 @@ jvm metrics collected by SkyWalking language agent.
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

@@ -194,6 +194,8 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 - 说明
@@ -208,6 +210,7 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}

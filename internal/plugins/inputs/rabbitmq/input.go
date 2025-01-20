@@ -222,6 +222,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&QueueMeasurement{},
 		&ExchangeMeasurement{},
 		&NodeMeasurement{},
+		&customerObjectMeasurement{},
 	}
 }
 

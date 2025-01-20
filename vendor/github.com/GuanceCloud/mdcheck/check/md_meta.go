@@ -35,7 +35,6 @@ import (
 //     path: 'dir/to/monitor-json'
 // ---.
 func checkMarkdownMeta(file string, metaDataDir string) []*CheckResult {
-
 	source, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
 		log.Printf("[E] ReadFile: %s", err)
@@ -68,7 +67,6 @@ func checkMarkdownMeta(file string, metaDataDir string) []*CheckResult {
 }
 
 func checkMeta(md string, meta map[string]interface{}, metaDataDir string) (res []*CheckResult) {
-
 	for _, k := range requiredKeys {
 		if _, ok := meta[k]; !ok {
 			res = append(res, &CheckResult{

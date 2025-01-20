@@ -102,7 +102,7 @@ $ nginx -s reload # reload configuration
 ```
 
 <!-- markdownlint-disable MD013 -->
-## Configure the Domain Name on the `Datakit` Agent Machine
+## Configure the Domain Name on the `Datakit` Agent Machine {#config-domain-name}
 <!-- markdownlint-enable -->
 
 Let's assume that `192.168.1.66` is the IP address of the nginx transparent proxy server.

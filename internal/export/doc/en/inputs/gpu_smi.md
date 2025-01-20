@@ -205,9 +205,9 @@ After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#mana
 
 ## DCGM Metrics {#dcgm-metric}
 
-### `gpu_dcgm`
+### `gpu_dcgm` {#gpu-dcgm}
 
-- tag
+- Tags
 
 | Tag                           | Description                                |
 | ----                          | --------                                   |
@@ -226,7 +226,7 @@ After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#mana
 | DCGM_FI_DEV_INFOROM_IMAGE_VER | `Inforom` image version.                   |
 | DCGM_FI_DEV_VBIOS_VERSION     | `VBIOS` version of the device.             |
 
-- metric list
+- Metrics
 
 | Metric                                        | Unit    | Description |
 | ---                                           | ---     | ---         |

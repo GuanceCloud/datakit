@@ -237,14 +237,14 @@ To turn it on, you need to perform the following steps.
 - Modify the configuration file and start monitoring and collection
 
 ```toml
-[[inputs.mysql]]
+  [[inputs.mysql]]
 
-## Set replication to true to collect replication metrics
-replication = true
-## Set group_replication to true to collect group replication metrics
-group_replication = true  
-...
-
+  ## Set replication to true to collect replication metrics
+  replication = true
+  ## Set group_replication to true to collect group replication metrics
+  group_replication = true
+  ...
+  
 ```
 
 ## Metric {#metric}
@@ -267,11 +267,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}{{end}}
 
@@ -287,11 +287,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -311,11 +311,11 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}{{end}}
 

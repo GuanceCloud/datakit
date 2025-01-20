@@ -44,7 +44,7 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
     - 在**选择层**下，选择 **ARN** 层源。
     - 请在文本框中输入 ARN 并选择**验证**。然后，选择**添加**。
 
-### 配置所需的环境变量
+### 配置所需的环境变量 {#config-env}
 
 - ENV_DATAWAY=`https://openway.guance.com?token=<your-token>`
 

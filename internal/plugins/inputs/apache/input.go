@@ -100,7 +100,10 @@ func (*Input) Catalog() string { return inputName }
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&Measurement{}}
+	return []inputs.Measurement{
+		&Measurement{},
+		&customerObjectMeasurement{},
+	}
 }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"apache": pipeline} }

@@ -63,11 +63,11 @@ For all of the following measurements, the `proto/dest_host/dest_port` global ta
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

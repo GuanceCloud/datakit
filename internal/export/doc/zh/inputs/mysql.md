@@ -239,11 +239,11 @@ plugin_load_add ='group_replication.so'
 ```toml
 [[inputs.mysql]]
 
-## Set replication to true to collect replication metrics
-replication = true
-## Set group_replication to true to collect group replication metrics
-group_replication = true  
-...
+  ## Set replication to true to collect replication metrics
+  replication = true
+  ## Set group_replication to true to collect group replication metrics
+  group_replication = true  
+  ...
 
 ```
 
@@ -306,6 +306,27 @@ group_replication = true
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 自定义对象 {#customobject}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "custom_object"}}
 
 ### `{{$m.Name}}`
 

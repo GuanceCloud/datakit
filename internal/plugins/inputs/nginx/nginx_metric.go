@@ -15,6 +15,7 @@ type NginxMeasurement struct{}
 func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nginx,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Nginx process load time in milliseconds, exist when using vts"),
 			"connection_active":   newCountFieldInfo("The current number of active client connections"),

@@ -531,6 +531,6 @@ $ curl http://localhost:9529/profiling/v1/input \
 
 当上述请求返回结果格式为 `{"content":{"ProfileID":"xxxxxxxx"}}` 时，表明上传成功。DataKit 会产生一条 profiling 记录，并将 jfr 文件保存至相应的后端存储，便于后续分析使用。
 
-#### k8s 环境下使用
+#### Kubernetes 环境下使用 {#under-k8s}
 
 请参考 [使用 `datakit-operator` 注入 `async-profiler`](../datakit/datakit-operator.md#inject-async-profiler){:target="_blank"}。

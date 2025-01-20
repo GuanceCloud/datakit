@@ -83,6 +83,7 @@ func (m *NodeMeasurement) Point() *point.Point {
 func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: NodeMetric,
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"disk_free_alarm": newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Does the node have disk alarm"),
 			"disk_free":       newByteFieldInfo("Current free disk space"),

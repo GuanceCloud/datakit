@@ -111,11 +111,11 @@ For all of the following data collections, the global election tags will be adde
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 
@@ -132,11 +132,11 @@ For all of the following data collections, the global election tags will be adde
 
 {{$m.Desc}}
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- Metric list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -152,11 +152,11 @@ Following measurements are collected as logs with the level of `info`.
 
 ### `{{$m.Name}}`
 
-- tag
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- field list
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 

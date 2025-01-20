@@ -88,7 +88,7 @@ For all of the following data collections, the global election tags will be adde
 
 {{$m.TagsMarkdownTable}}
 
-- Fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -304,7 +304,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.TagsMarkdownTable}}
 
-- Fields
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
