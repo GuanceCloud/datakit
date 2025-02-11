@@ -6,6 +6,7 @@
 package kubernetesprometheus
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"os"
@@ -84,7 +85,7 @@ func (p *promScraper) shouldRetry(maxScrapeRetry int) (bool, int) {
 	return true, p.retryCount
 }
 
-func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
+func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
 	source := fmt.Sprintf("kubernetesprometheus/%s::%s", role, key)
 	remote := key
 
@@ -111,6 +112,13 @@ func buildPromOptions(role Role, key string, feeder dkio.Feeder, opts ...promscr
 		promscrape.WithCallback(callbackFn),
 	}
 	res = append(res, opts...)
+
+	if tlsOpts, err := buildPromOptionsWithAuth(auth); err != nil {
+		klog.Warnf("%s %s has unexpected tls config %s", role, key, err)
+	} else {
+		res = append(res, tlsOpts...)
+	}
+
 	return res
 }
 
@@ -122,7 +130,7 @@ func buildPromOptionsWithAuth(auth *Auth) ([]promscrape.Option, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, promscrape.WithBearerToken(string(token)))
+		opts = append(opts, promscrape.WithBearerToken(string(bytes.TrimSpace(token)), false))
 	}
 
 	if auth.TLSConfig != nil {

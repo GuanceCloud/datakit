@@ -181,6 +181,18 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 | `path`      | No          | "/metrics" | http 访问路径，默认值是 `/metrics`                                                                                                                                                              | Yes            |
 | `params`    | No          | 无         | http 访问参数，是一个字符串，例如 `name=nginx&package=middleware`                                                                                                                               | No             |
 
+### 添加 HTTP Headers {#input-config-http-headers}
+
+支持配置多个 Key/Value，在 HTTP 请求中添加它们。例如：
+
+```yaml
+  [inputs.kubernetesprometheus.instances]
+    # other..
+    [inputs.kubernetesprometheus.instances.http_headers]
+      "Authorization" = "Bearer XXXXX"
+      "X-testing-key" = "value"
+```
+
 ### 定制化配置 {#input-config-custom}
 
 | 配置项               | 是否必要    | 默认值                             | 描述                                                                          |
@@ -433,3 +445,23 @@ kube-system   kube-controller-manager   1/1     Running   0          15d
 ???+ attention
     在此处 Glob 模式中不支持 `!` 排除符。例如，`app=middleware-[!0123]` 会在解析阶段报错。这是因为在 Selector 语法中，`!` 是关键字符（例如用于 `app!=nginx`），因此不能用于 Glob 模式。
 <!-- markdownlint-enable -->
+
+### Bearer Token 验证 {#http-bearer-token}
+
+通常情况下，使用 Bearer Token 验证有两个前提，分别是开启 `https` 和 `insecure_skip_verify` 为 `true`。
+
+配置 Bearer Token 有两种方式：
+
+- 如果 Token 是字符串，可以在 `http_headers` 手动填写，例如：
+
+```yaml
+    [inputs.kubernetesprometheus.instances.http_headers]
+      "Authorization" = "Bearer XXXXX"
+```
+
+- 如果 Token 以文件形式存放，要在 `bearer_token_file` 指定文件路径，见示例。KubernetesPrometheus 采集器会自动读取文件内容添加到 `Authorization` Header，注意，如果手动配置 `http_headers` 存在 `Authorization`，`bearer_token_file` 会失效。
+
+```yaml
+    [inputs.kubernetesprometheus.instances.auth]
+      bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+```
