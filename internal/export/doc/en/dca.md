@@ -153,8 +153,8 @@ By default, DCA will adopt the default configuration of the system. If you need 
 
 | Environment Variable Name            | Type   | Default Value                         | Description                                                                                            |
 | :---------              | ----:  | :---                           | ------                                                                                          |
-| `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | Guance Cloud console API address                                                                         |
-| `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | Guance Cloud page address                                                                         |
+| `DCA_CONSOLE_API_URL`        | string | `https://console-api.guance.com` | Guance Cloud console API address, refer [node address](#node-address) |
+| `DCA_CONSOLE_WEB_URL`        | string | `https://console.guance.com` | Guance Cloud page address, refer [node address](#node-address)                                                                        |
 | `DCA_STATIC_BASE_URL`        | string | `https://static.guance.com` | static resource address                                                                         |
 | `DCA_CONSOLE_PROXY`     | string | None                              | Guance Cloud API proxy, but does not proxy the DataKit API |
 | `DCA_LOG_LEVEL`         | string |                                | Log level, the value is debug/info/warn/error.                  |
@@ -168,6 +168,20 @@ Example:
 ```shell
 docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.guance.com/tools/dca
 ```
+
+### Node address {#node-address}
+
+| Deploy Type  | Node Name       | DCA_CONSOLE_API_URL| DCA_CONSOLE_WEB_URL|
+|-------|-----------|--------------------------------| --------------------------------|
+| SaaS | China 1(Hangzhou)  | https://console-api.guance.com     | https://console.guance.com |
+| SaaS | China 2(Ningxia)  |  https://aws-console-api.guance.com|https://aws-console.guance.com |
+| SaaS | China 4(Guangzhou)  | https://cn4-console-api.guance.com|https://cn4-console.guance.com |
+| SaaS | China 6(Hongkong)  |https://cn6-console-api.guance.com|https://cn6-console.guance.com |
+| SaaS | Overseas Region1(Oregon) |https://us1-console-api.guance.com|https://us1-console.guance.com |
+| SaaS | European 1(Frankfurt) |https://eu1-console-api.guance.com|https://eu1-console.guance.com |
+| SaaS | Asia 1(Singapore) |https://ap1-console-api.guance.com|https://ap1-console.guance.com |
+| Private | Private     |Deployment address |Deployment address |
+
 
 ### Log in to DCA {#login}
 
