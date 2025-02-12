@@ -41,6 +41,15 @@ type synchronizer interface {
 	ZoneID() string
 }
 
+type AuthConfig struct {
+	Enable      bool
+	TokenURL    string
+	AuthHeader  string
+	TTLHeader   string
+	TokenTTL    time.Duration
+	MaxTokenTTL time.Duration
+}
+
 func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	defer cloudCli.CloseIdleConnections()
 
@@ -61,6 +70,7 @@ func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error)
 		} else {
 			p = &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
 		}
+		p.authConfig = defaultAWSAuthConfig(ipt)
 		return p.Sync()
 
 	case Tencent:
@@ -109,10 +119,24 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 	if !has || instanceID == Unavailable {
 		return false
 	}
+
+	hwAndAwsBaseURL := "http://169.254.169.254/latest/meta-data"
+	if url, ok := ipt.CloudMetaURL[cloudProvider]; ok {
+		hwAndAwsBaseURL = url
+	}
+	// 确保开启了认证的 AWS 也能够被自动探测到
+	if cloudProvider == AWS && ipt.EnableCloudAWSIMDSv2 {
+		if metaGetV2(
+			hwAndAwsBaseURL+"/placement/availability-zone-id",
+			defaultAWSAuthConfig(ipt),
+		) != Unavailable {
+			return true
+		}
+	}
 	if cloudProvider == Hwcloud || cloudProvider == AWS {
 		// Both of hwcloud and aws use the same URL. They can be distinguished by
 		// field 'availability-zone-id', which is present in aws but not hwcloud.
-		if metaGet("http://169.254.169.254/latest/meta-data/placement/availability-zone-id") == Unavailable {
+		if metaGet(hwAndAwsBaseURL+"/placement/availability-zone-id") == Unavailable {
 			return cloudProvider == Hwcloud
 		}
 		return cloudProvider == AWS
@@ -134,6 +158,28 @@ func (ipt *Input) SetCloudProvider() error {
 func metaGet(metaURL string) (res string) {
 	if x := metadataGet(metaURL); x != nil {
 		// 避免 meta 接口返回多行数据
+		res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
+		return
+	}
+
+	return Unavailable
+}
+
+func metaGetV2(metaURL string, authConfig AuthConfig) (res string) {
+	req, err := http.NewRequest(http.MethodGet, metaURL, nil)
+	if err != nil {
+		l.Errorf("http.NewRequest: %s", err)
+		return Unavailable
+	}
+
+	// if enable auth, get token
+	if authConfig.Enable {
+		if tokenByte := metadataGetToken(authConfig); tokenByte != nil {
+			req.Header.Set(authConfig.AuthHeader, string(tokenByte))
+		}
+	}
+
+	if x := clientDo(req, metaURL); x != nil {
 		res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
 		return
 	}
@@ -180,4 +226,19 @@ func metadataGetByHeader(metaURL string) []byte {
 	req.Header.Set("Metadata", "true")
 
 	return clientDo(req, metaURL)
+}
+
+func metadataGetToken(authConfig AuthConfig) []byte {
+	req, err := http.NewRequest(http.MethodPut, authConfig.TokenURL, nil)
+	if err != nil {
+		l.Warn(err)
+		return nil
+	}
+	ttl := authConfig.TokenTTL
+	if ttl <= 0 || ttl > authConfig.MaxTokenTTL {
+		l.Warnf("token ttl must be between 0 and %s", authConfig.MaxTokenTTL.String())
+		ttl = authConfig.MaxTokenTTL
+	}
+	req.Header.Set(authConfig.TTLHeader, fmt.Sprintf("%.0f", ttl.Seconds()))
+	return clientDo(req, authConfig.TokenURL)
 }

@@ -80,6 +80,7 @@ type Input struct {
 	ConfigPath []string `toml:"config_path"`
 
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
+	EnableCloudAWSIMDSv2     bool              `toml:"enable_cloud_aws_imds_v2"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 	lastSync                 time.Time
 
@@ -95,9 +96,10 @@ type Input struct {
 	mergedTags   map[string]string
 	tagger       datakit.GlobalTagger
 
-	mfs          []*dto.MetricFamily
-	hostRoot     string
-	CloudMetaURL map[string]string `toml:"cloud_meta_url,omitempty"`
+	mfs               []*dto.MetricFamily
+	hostRoot          string
+	CloudMetaURL      map[string]string `toml:"cloud_meta_url,omitempty"`
+	CloudMetaTokenURL map[string]string `toml:"cloud_meta_token_url,omitempty"`
 }
 
 func (ipt *Input) Run() {
@@ -283,9 +285,11 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ExtraDevice", ENVName: "INPUT_HOSTOBJECT_EXTRA_DEVICE", ConfField: "extra_device", Type: doc.List, Example: "`/nfsdata,other`", Desc: "Additional device", DescZh: "额外增加的 device"},
 		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
 		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
+		{FieldName: "EnableCloudAWSIMDSv2", ENVName: "INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2", ConfField: "enable_cloud_aws_imds_v2", Type: doc.Boolean, Default: "false", Desc: "Enable AWS IMDSv2", DescZh: "开启 AWS IMDSv2"},
 		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
 		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
 		{FieldName: "CloudMetaURL", ENVName: "CLOUD_META_URL", ConfField: "cloud_meta_url", Type: doc.Map, Example: "`{\"tencent\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata URL mapping", DescZh: "云服务商元数据 URL 映射"},
+		{FieldName: "CloudMetaTokenURL", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL", ConfField: "cloud_meta_token_url", Type: doc.Map, Example: "`{\"aws\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata Token URL mapping", DescZh: "云服务商获取元数据的 Token URL 映射"},
 	}
 
 	return doc.SetENVDoc("ENV_", infos)
@@ -350,6 +354,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2 to bool: %s, ignore", err)
+		} else {
+			ipt.EnableCloudAWSIMDSv2 = b
+		}
+	}
+
 	// ENV_CLOUD_PROVIDER 会覆盖 ENV_INPUT_HOSTOBJECT_TAGS 中填入的 cloud_provider
 	if tagsStr, ok := envs["ENV_CLOUD_PROVIDER"]; ok {
 		cloudProvider := dkstring.TrimString(tagsStr)
@@ -368,6 +381,17 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		} else {
 			ipt.CloudMetaURL = cloudMetaURL
 			l.Debugf("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
+		}
+	}
+
+	if cloudMetaTokenURLStr, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL"]; ok {
+		var cloudMetaTokenURL map[string]string
+		err := json.Unmarshal([]byte(cloudMetaTokenURLStr), &cloudMetaTokenURL)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL: %s, ignore", err)
+		} else {
+			ipt.CloudMetaTokenURL = cloudMetaTokenURL
+			l.Debugf("loaded cloud_meta_token_url from ENV: %v", cloudMetaTokenURL)
 		}
 	}
 
