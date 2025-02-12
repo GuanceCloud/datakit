@@ -83,6 +83,7 @@ NGINX
 Nacos
 NetFlow
 Ning
+Ningxia
 ODBC
 OceanBase
 OpenSSL

@@ -1,5 +1,24 @@
 # 更新日志
 
+## 1.67.0(2025/02/12) {#cl-1.67.0}
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.67.0-new}
+
+- KubernetesPrometheus 支持采集时增加 HTTP header 设置，顺便支持通过字符串方式配置 bearer token（#2554）
+- 增加 xfsquota 采集器（#2550）
+- AWS 云同步增加 IMDSv2 支持（#2539）
+- 新增 Pyroscope 采集器用于采集基于 Pyroscope 的 Java/Golang/Python Profiling 数据（#2496）
+
+### 问题修复 {#cl-1.67.0-fix}
+### 功能优化 {#cl-1.67.0-opt}
+
+- 完善 DCA 配置有关的文档（#2553）
+- OpenTelemetry 采集支持提取 event 字段为一级字段（#2551）
+- 完善 DDTrace-Golang 文档，增加编译时插桩说明（#2549）
+
+---
+
 ## 1.66.2(2025/01/17) {#cl-1.66.2}
 
 本次发布属于 hotfix 修复，同时增加一些细节功能。内容如下：
