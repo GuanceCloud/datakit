@@ -110,7 +110,7 @@ func TestEndpointsMeta(t *testing.T) {
 				Port: 9090,
 			},
 			{
-				Name: "health",
+				Name: "http-health",
 				Port: 9091,
 			},
 		}
@@ -121,7 +121,7 @@ func TestEndpointsMeta(t *testing.T) {
 		assert.Equal(t, true, matched)
 		assert.Equal(t, "9090", res)
 
-		matched, res = pr.matchPort(obj, "__kubernetes_endpoints_port_health_number")
+		matched, res = pr.matchPort(obj, "__kubernetes_endpoints_port_http-health_number")
 		assert.Equal(t, true, matched)
 		assert.Equal(t, "9091", res)
 
