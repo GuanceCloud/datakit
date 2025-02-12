@@ -47,6 +47,9 @@ disable_cloud_provider_sync = false
 ## Enable put cloud provider region/zone_id information into global host tags, (default to true).
 # enable_cloud_host_tags_as_global_host_tags = true
 
+## Enable AWS IMDSv2
+enable_cloud_aws_imds_v2 = false
+
 ## [inputs.hostobject.tags] # (optional) custom tags
   # cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure/volcengine, probe automatically if not set
   # some_tag = "some_value"
@@ -60,5 +63,8 @@ disable_cloud_provider_sync = false
   # azure = ""
   # Hwcloud = ""
   # volcengine = ""
+
+## [inputs.hostobject.cloud_meta_token_url]
+  # aws = "yyy"   # URL for AWS Cloud metadata token
 `
 )

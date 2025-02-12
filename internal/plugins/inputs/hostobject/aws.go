@@ -5,8 +5,37 @@
 
 package hostobject
 
+import "time"
+
+const (
+	AWSAuthHeader      = "X-aws-ec2-metadata-token"
+	AWSTTLHeader       = "X-aws-ec2-metadata-token-ttl-seconds"
+	AWSDefaultTokenURL = "http://169.254.169.254/latest/api/token" // nolint:gosec
+	AWSMaxTokenTTL     = 21600 * time.Second
+)
+
 type aws struct {
-	baseURL string // http://100.100.100.200/latest/meta-data
+	baseURL    string // http://100.100.100.200/latest/meta-data
+	authConfig AuthConfig
+}
+
+func defaultAWSAuthConfig(ipt *Input) AuthConfig {
+	authConfig := AuthConfig{
+		Enable: ipt.EnableCloudAWSIMDSv2,
+	}
+	if ipt.EnableCloudAWSIMDSv2 {
+		authConfig.AuthHeader = AWSAuthHeader
+		authConfig.TTLHeader = AWSTTLHeader
+		authConfig.TokenURL = AWSDefaultTokenURL
+		authConfig.MaxTokenTTL = AWSMaxTokenTTL
+		authConfig.TokenTTL = ipt.Interval // 这里暂时将token的ttl设置为采集器间隔时间
+
+		if url, ok := ipt.CloudMetaTokenURL[AWS]; ok {
+			authConfig.TokenURL = url
+		}
+	}
+
+	return authConfig
 }
 
 func (x *aws) Sync() (map[string]interface{}, error) {
@@ -31,7 +60,7 @@ func (x *aws) Description() string {
 }
 
 func (x *aws) InstanceID() string {
-	return metaGet(x.baseURL + "/instance-id")
+	return metaGetV2(x.baseURL+"/instance-id", x.authConfig)
 }
 
 func (x *aws) InstanceName() string {
@@ -39,7 +68,7 @@ func (x *aws) InstanceName() string {
 }
 
 func (x *aws) InstanceType() string {
-	return metaGet(x.baseURL + "/instance-type")
+	return metaGetV2(x.baseURL+"/instance-type", x.authConfig)
 }
 
 func (x *aws) InstanceChargeType() string {
@@ -55,19 +84,19 @@ func (x *aws) InstanceStatus() string {
 }
 
 func (x *aws) SecurityGroupID() string {
-	return metaGet(x.baseURL + "/security-groups")
+	return metaGetV2(x.baseURL+"/security-groups", x.authConfig)
 }
 
 func (x *aws) PrivateIP() string {
-	return metaGet(x.baseURL + "/local-ipv4")
+	return metaGetV2(x.baseURL+"/local-ipv4", x.authConfig)
 }
 
 func (x *aws) ZoneID() string {
-	return metaGet(x.baseURL + "/placement/availability-zone-id")
+	return metaGetV2(x.baseURL+"/placement/availability-zone-id", x.authConfig)
 }
 
 func (x *aws) Region() string {
 	// 这个在 AWS 文档是没有的：
 	//  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
-	return metaGet(x.baseURL + "/placement/region")
+	return metaGetV2(x.baseURL+"/placement/region", x.authConfig)
 }

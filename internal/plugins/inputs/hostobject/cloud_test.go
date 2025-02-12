@@ -79,3 +79,139 @@ data`,
 		t.Logf("pt: %s", pt1.String())
 	}
 }
+
+func TestMetaGetV2(t *testing.T) {
+	expectToken := "test-token"
+	t.Run("AWS IMDSv2 Success", func(t *testing.T) {
+		tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPut {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			ttlHeader := r.Header.Get(AWSTTLHeader)
+			if ttlHeader == "" {
+				http.Error(w, "Missing TTL header", http.StatusBadRequest)
+				return
+			}
+			fmt.Fprint(w, expectToken)
+		}))
+		defer tokenServer.Close()
+
+		metaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := r.Header.Get(AWSAuthHeader)
+			if token != expectToken {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			fmt.Fprint(w, "meta-data-response")
+		}))
+		defer metaServer.Close()
+
+		authConfig := AuthConfig{
+			Enable:      true,
+			TokenURL:    tokenServer.URL,
+			AuthHeader:  AWSAuthHeader,
+			TTLHeader:   AWSTTLHeader,
+			MaxTokenTTL: AWSMaxTokenTTL,
+		}
+
+		res := metaGetV2(metaServer.URL, authConfig)
+		assert.Equal(t, "meta-data-response", res)
+	})
+
+	t.Run("AWS IMDS 401", func(t *testing.T) {
+		tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPut {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			ttlHeader := r.Header.Get(AWSTTLHeader)
+			if ttlHeader == "" {
+				http.Error(w, "Missing TTL header", http.StatusBadRequest)
+				return
+			}
+			fmt.Fprint(w, "")
+		}))
+		defer tokenServer.Close()
+
+		metaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := r.Header.Get(AWSAuthHeader)
+			if token != expectToken {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			fmt.Fprint(w, "meta-data-response")
+		}))
+		defer metaServer.Close()
+
+		authConfig := AuthConfig{
+			Enable:      true,
+			TokenURL:    tokenServer.URL,
+			AuthHeader:  AWSAuthHeader,
+			TTLHeader:   AWSTTLHeader,
+			MaxTokenTTL: AWSMaxTokenTTL,
+		}
+
+		res := metaGetV2(metaServer.URL, authConfig)
+		assert.Equal(t, Unavailable, res)
+	})
+}
+
+// func TestSyncCloudInfo(t *testing.T) {
+// 	ipt := defaultInput()
+// 	ipt.EnableCloudAWSIMDSv2 = true
+
+// 	res, _ := ipt.SyncCloudInfo(AWS)
+// 	fmt.Println(res)
+// }
+
+// func handleTokenRequest(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodPut {
+// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	ttlStr := r.Header.Get(AWSTTLHeader)
+// 	if ttlStr == "" {
+// 		http.Error(w, "Missing X-aws-ec2-metadata-token-ttl-seconds header", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Write([]byte("test-token"))
+// }
+
+// func handleMetaDataRequest(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodGet {
+// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	token := r.Header.Get(AWSAuthHeader)
+// 	if token == "" {
+// 		http.Error(w, "Missing X-aws-ec2-metadata-token header", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	if token != "test-token" {
+// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+// 		return
+// 	}
+
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Write([]byte("success"))
+// }
+
+// func TestAWSServer(t *testing.T) {
+// 	addr := "http://127.0.0.1:7654"
+// 	// http.HandleFunc("/latest/api/token", handleTokenRequest)
+// 	http.HandleFunc("/latest/meta", handleMetaDataRequest)
+
+// 	log.Println(addr)
+// 	if err := http.ListenAndServe(":7654", nil); err != nil {
+// 		log.Fatalf("Failed to start server: %v", err)
+// 	}
+// 	fmt.Println("test")
+// }
