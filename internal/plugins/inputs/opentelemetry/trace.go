@@ -94,7 +94,11 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				spanKV, attrs = attributesToKVS(spanKV, attrs, spans.Resource.GetAttributes())
 				spanKV, attrs = attributesToKVS(spanKV, attrs, scopeSpans.Scope.GetAttributes())
 				spanKV, attrs = attributesToKVS(spanKV, attrs, span.GetAttributes())
-
+				if len(span.GetEvents()) > 0 {
+					for _, event := range span.GetEvents() {
+						spanKV, attrs = attributesToKVS(spanKV, attrs, event.GetAttributes())
+					}
+				}
 				span.Attributes = attrs
 				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
 				if !delMessage {

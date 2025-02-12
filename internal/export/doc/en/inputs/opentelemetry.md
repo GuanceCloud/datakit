@@ -58,7 +58,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 ### Notes {#attentions}
 
 1. It is recommended to use grpc protocol, which has the advantages of high compression ratio, fast serialization and higher efficiency.
-2. The route of the http protocol is configurable and the default request path is trace: `/otel/v1/trace`, metric:`/otel/v1/metric`,logs:`/otel/v1/logs`
+2. The route of the http protocol is configurable and the default request path is trace: `/otel/v1/traces`, metric:`/otel/v1/metrics`,logs:`/otel/v1/logs`
 3. When data of type `float` `double` is involved, a maximum of two decimal places are reserved.
 4. Both http and grpc support the gzip compression format. You can configure the environment variable in exporter to turn it on: `OTEL_EXPORTER_OTLP_COMPRESSION = gzip`; gzip is not turned on by default.
 5. The http protocol request format supports both JSON and Protobuf serialization formats. But grpc only supports Protobuf.
@@ -72,7 +72,7 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
     By default, the following three tags are extracted: "db.system", "rpc.system", and "messaging.system".
 <!-- markdownlint-enable -->
 
-Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of Datakit is `/otel/v1/trace` and `/otel/v1/metric`,
+Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of Datakit is `/otel/v1/traces` and `/otel/v1/metrics`,
 if you want to use the HTTP protocol, you need to configure `trace` and `trace` separately `metric`,
 
 The default request routes of OTLP are `/otel/v1/logs` `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
@@ -87,8 +87,8 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
   -Dotel.exporter=otlp \
   -Dotel.exporter.otlp.protocol=http/protobuf \
   -Dotel.exporter.otlp.logs.endpoint=http://localhost:9529/otel/v1/logs \
-  -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/trace \
-  -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metric \
+  -Dotel.exporter.otlp.traces.endpoint=http://localhost:9529/otel/v1/traces \
+  -Dotel.exporter.otlp.metrics.endpoint=http://localhost:9529/otel/v1/metrics \
   -Dotel.service.name=app \
   -jar app.jar
 ```
@@ -121,7 +121,7 @@ For more major changes in the V2 version, please check the official documentatio
 | `OTEL_TRACES_SAMPLER`         | `otel.traces.sampler`         | Sampler to be used for traces                           | `parentbased_always_on` |                                                                                                              |
 | `OTEL_TRACES_SAMPLER_ARG`     | `otel.traces.sampler.arg`     | String value to be used as the sampler argument         | 1.0                     | 0 - 1.0                                                                                                      |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `otel.exporter.otlp.protocol` | `grpc`,`http/protobuf`,`http/json`                      | gRPC                    |                                                                                                              |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel.exporter.otlp.endpoint` | OTLP Addr                                               | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/trace>                                                                 |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `otel.exporter.otlp.endpoint` | OTLP Addr                                               | <http://localhost:4317> | <http://datakit-endpoint:9529/otel/v1/traces>                                                                |
 | `OTEL_TRACES_EXPORTER`        | `otel.traces.exporter`        | Trace Exporter                                          | `otlp`                  |                                                                                                              |
 | `OTEL_LOGS_EXPORTER`          | `otel.logs.exporter`          | Logging Exporter                                        | `otlp`                  | default disable                                                                                              |
 
@@ -140,14 +140,14 @@ Datakit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobu
 # use http/protobuf
 -Dotel.exporter=otlp \
 -Dotel.exporter.otlp.protocol=http/protobuf \
--Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
--Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric 
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/traces \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metrics 
 
 # use http/json
 -Dotel.exporter=otlp \
 -Dotel.exporter.otlp.protocol=http/json \
--Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/trace \
--Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metric
+-Dotel.exporter.otlp.traces.endpoint=http://datakit-endpoint:9529/otel/v1/traces \
+-Dotel.exporter.otlp.metrics.endpoint=http://datakit-endpoint:9529/otel/v1/metrics
 ```
 
 ### Tag {#tag}

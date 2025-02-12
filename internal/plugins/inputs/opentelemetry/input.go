@@ -101,16 +101,16 @@ const (
 
   ## OTEL agent HTTP config for trace and metrics
   ## If enable set to be true, trace and metrics will be received on path respectively, by default is:
-  ## trace : /otel/v1/trace
-  ## metric: /otel/v1/metric
+  ## trace : /otel/v1/traces
+  ## metric: /otel/v1/metrics
   ## and the client side should be configured properly with Datakit listening port(default: 9529)
   ## or custom HTTP request path.
-  ## for example http://127.0.0.1:9529/otel/v1/trace
+  ## for example http://127.0.0.1:9529/otel/v1/traces
   ## The acceptable http_status_ok values will be 200 or 202.
   [inputs.opentelemetry.http]
    http_status_ok = 200
-   trace_api = "/otel/v1/trace"
-   metric_api = "/otel/v1/metric"
+   trace_api = "/otel/v1/traces"
+   metric_api = "/otel/v1/metrics"
    logs_api = "/otel/v1/logs"
 
   ## OTEL agent GRPC config for trace and metrics.
@@ -132,8 +132,8 @@ const (
 var (
 	log              = logger.DefaultSLogger(inputName)
 	statusOK         = 200
-	defaultTraceAPI  = "/otel/v1/trace"
-	defaultMetricAPI = "/otel/v1/metric"
+	defaultTraceAPI  = "/otel/v1/traces"
+	defaultMetricAPI = "/otel/v1/metrics"
 	afterGatherRun   itrace.AfterGatherHandler
 	ignoreTags       []*regexp.Regexp
 	getAttribute     getAttributeFunc
