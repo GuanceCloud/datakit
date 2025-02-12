@@ -102,19 +102,21 @@ const (
 	FieldFileSize   = "__file_size"
 )
 
-var langMaps = map[string]Language{
+var LangMaps = map[string]Language{
 	"java":    Java,
 	"jvm":     Java,
+	"py":      Python,
 	"python":  Python,
 	"ruby":    Ruby,
-	"node.js": NodeJS,
+	"node":    NodeJS,
 	"nodejs":  NodeJS,
+	"node.js": NodeJS,
 	"php":     PHP,
+	".net":    DotNet,
 	"dotnet":  DotNet,
 	"c#":      DotNet,
 	"csharp":  DotNet,
 	"golang":  Golang,
-	"node":    NodeJS,
 	"go":      Golang,
 }
 
@@ -128,6 +130,20 @@ var (
 	_ json.Marshaler   = (*RFC3339Time)(nil)
 	_ json.Unmarshaler = (*RFC3339Time)(nil)
 )
+
+func (r *RFC3339Time) Before(t *RFC3339Time) bool {
+	if r == nil || t == nil {
+		return false
+	}
+	return time.Time(*r).Before(time.Time(*t))
+}
+
+func (r *RFC3339Time) After(t *RFC3339Time) bool {
+	if r == nil || t == nil {
+		return false
+	}
+	return time.Time(*r).After(time.Time(*t))
+}
 
 func (r *RFC3339Time) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + time.Time(*r).Format(time.RFC3339Nano) + `"`), nil
@@ -148,14 +164,15 @@ func (r *RFC3339Time) UnmarshalJSON(bytes []byte) error {
 }
 
 type Metadata struct {
-	Format        Format       `json:"format"`
-	Profiler      Profiler     `json:"profiler"`
-	Attachments   []string     `json:"attachments"`
-	Language      Language     `json:"language,omitempty"`
-	TagsProfiler  string       `json:"tags_profiler"`
-	SubCustomTags string       `json:"sub_custom_tags,omitempty"`
-	Start         *RFC3339Time `json:"start"`
-	End           *RFC3339Time `json:"end"`
+	Format        Format            `json:"format"`
+	Profiler      Profiler          `json:"profiler"`
+	Attachments   []string          `json:"attachments"`
+	Language      Language          `json:"language,omitempty"`
+	Tags          map[string]string `json:"-"`
+	TagsProfiler  string            `json:"tags_profiler"`
+	SubCustomTags string            `json:"sub_custom_tags,omitempty"`
+	Start         *RFC3339Time      `json:"start"`
+	End           *RFC3339Time      `json:"end"`
 }
 
 func NewTags(originTags []string) map[string]string {
@@ -192,7 +209,7 @@ func mixFormValueToTags(tags map[string]string, formValues map[string][]string) 
 func ResolveLanguage(runtimes []string) Language {
 	for _, r := range runtimes {
 		r = strings.ToLower(r)
-		for name, lang := range langMaps {
+		for name, lang := range LangMaps {
 			if strings.Contains(r, name) {
 				return lang
 			}

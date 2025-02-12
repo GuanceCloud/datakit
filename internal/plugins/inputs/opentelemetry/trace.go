@@ -34,7 +34,7 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 		for _, v := range spans.Resource.Attributes {
 			if v.Key == otelResourceServiceKey {
 				serviceName = v.Value.GetStringValue()
-			} else if v.Key == ext.RuntimeID {
+			} else if v.Key == itrace.FieldRuntimeID {
 				runtimeID = v.Value.GetStringValue()
 			}
 		}
@@ -67,14 +67,13 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				}
 
 				if runtimeID == "" && !runtimeIDInitialized {
-					if attrRuntimeID, ok := getAttribute(ext.RuntimeID, span.Attributes); ok {
+					if attrRuntimeID, ok := getAttribute(itrace.FieldRuntimeID, span.Attributes); ok {
 						runtimeID = attrRuntimeID.Value.GetStringValue()
 					}
 					runtimeIDInitialized = true
 				}
 				if runtimeID != "" {
-					spanKV = spanKV.AddV2(ext.RuntimeID, runtimeID, true).
-						AddV2(itrace.FieldRuntimeID, runtimeID, true)
+					spanKV = spanKV.AddV2(ext.RuntimeID, runtimeID, true).AddV2(itrace.FieldRuntimeID, runtimeID, true)
 				}
 
 				for i := range span.Events {
