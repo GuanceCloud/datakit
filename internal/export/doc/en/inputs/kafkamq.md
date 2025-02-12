@@ -143,8 +143,8 @@ Configuration:
   ## Receive and consume OTEL data from kafka.
   [inputs.kafkamq.otel]
       dk_endpoint="http://localhost:9529"
-      trace_api="/otel/v1/trace"
-      metric_api="/otel/v1/metric"
+      trace_api="/otel/v1/traces"
+      metric_api="/otel/v1/metrics"
       trace_topics=["trace1","trace2"]
       metric_topics=["otel-metric","otel-metric1"]
 ```

@@ -23,7 +23,7 @@ var _ inputs.ReadEnv = &Input{}
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`[\"sink_project\", \"custom.tag\"]`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
+		{FieldName: "CustomerTags", Type: doc.JSON, Example: `[\"project_id\", \"custom.tag\"]`, Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
 		{
 			FieldName: "CompatibleDdTrace",
@@ -39,7 +39,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
 		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: `{"buffer":1000, "threads":100}`, Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
 		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: "`{\"storage\":\"./otel_storage\", \"capacity\": 5120}`", Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
-		{FieldName: "HTTPConfig", ENVName: "HTTP", Type: doc.JSON, Example: "`{\"enable\":true, \"http_status_ok\": 200, \"trace_api\": \"/otel/v1/trace\", \"metric_api\": \"/otel/v1/metric\"}`", Desc: "HTTP agent config", DescZh: "代理 HTTP 配置"},
+		{FieldName: "HTTPConfig", ENVName: "HTTP", Type: doc.JSON, Example: "`{\"enable\":true, \"http_status_ok\": 200, \"trace_api\": \"/otel/v1/traces\", \"metric_api\": \"/otel/v1/metrics\"}`", Desc: "HTTP agent config", DescZh: "代理 HTTP 配置"},
 		{FieldName: "GRPCConfig", ENVName: "GRPC", Type: doc.JSON, Example: `{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`, Desc: "GRPC agent config", DescZh: "代理 GRPC 配置"},
 		{FieldName: "ExpectedHeaders", Type: doc.JSON, Example: `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`, Desc: "If 'expected_headers' is well config, then the obligation of sending certain wanted HTTP headers is on the client side", DescZh: "配置使用客户端的 HTTP 头"},
 		{FieldName: "Tags", Type: doc.JSON, Example: `{"k1":"v1", "k2":"v2", "k3":"v3"}`},

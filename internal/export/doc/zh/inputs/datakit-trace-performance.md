@@ -62,7 +62,7 @@ title: 'Datakit Trace Agent 性能报告'
 
 ## OpenTelemetry 性能报告 {#opentelemetry-performace}
 
-测试 API: `/otel/v1/trace`
+测试 API: `/otel/v1/traces`
 
 > 不开启 `opentelemetry.threads` 不开启 `opentelemetry.storage`
 
