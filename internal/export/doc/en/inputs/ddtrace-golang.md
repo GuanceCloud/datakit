@@ -9,9 +9,95 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
-Integrating APM into Golang involves some level of invasiveness, **requiring modifications to existing code**, but overall, common business code does not need too many changes, simply replace the relevant import packages.
+There are two ways to instrument your Go application:
 
-## Install Dependencies {#dependence}
+## 1. Compile-time Instrumentation {#compile-time}
+
+- **Ensures maximum coverage** of your tracing instrumentation.
+- **Does not require source code modifications**, making it ideal for integrating at the CI/CD level.
+
+## 2. Manual Instrumentation {#manual}
+
+Use `dd-trace-go` in conjunction with our integration packages to automatically generate spans for libraries of your choosing. This option:
+
+- **Gives you complete control** over which parts of your application are traced.
+- **Requires modifying the application’s source code**.
+
+---
+
+### Requirements {#requirements}
+
+- Applications must be managed using Go modules. Module vendoring is supported.
+- Go Tracer requires **Go 1.18+**.
+
+---
+
+### Install Orchestrion {#install-orchestrion}
+
+```shell
+go install github.com/DataDog/orchestrion@latest
+```
+
+If the installation fails, try cloning the project locally and compiling it again.
+
+```shell
+git clone https://github.com/DataDog/orchestrion.git
+cd orchestrion/
+go build
+cp orchestrion $GOPATH/bin/
+```
+
+Register Orchestrion in your project’s **go.mod**:
+
+```shell
+orchestrion pin
+```
+
+```shell
+# commit changelog
+git add go.mod go.sum orchestrion.tool.go
+git commit -m "chore: enable orchestrion"
+```
+
+### Usage {#usage}
+
+Use one of these methods to enable Orchestrion in your build process:
+
+1 **Prepend `orchestrion` to your usual go commands**:
+
+```shell
+orchestrion go build .
+orchestrion go run .
+orchestrion go test ./...
+```
+
+2 **Add the `-toolexec="orchestrion toolexec"` argument to your go commands**:
+
+```shell
+go build -toolexec="orchestrion toolexec" .
+go run -toolexec="orchestrion toolexec" .
+go test -toolexec="orchestrion toolexec" ./...
+```
+
+3 **Modify the `$GOFLAGS` environment variable to inject `Orchestrion`, and use go commands normally**:
+
+```shell
+# Make sure to include the quotes as shown below, as these are required for
+# the Go toolchain to parse GOFLAGS properly!
+export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
+go build .
+go run .
+go test ./...
+```
+
+### More Documentation {#docs}
+
+- [Tracing Go Applications](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/go/?tab=compiletimeinstrumentation){:target="_blank"}
+- [GitHub Orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}
+
+---
+
+## Manual instrumentation {#dependence}
 
 Install the DDTrace Golang SDK:
 

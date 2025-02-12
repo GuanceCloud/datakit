@@ -42,7 +42,16 @@ tags      :
 
 由于获取 `response body` 对 `response` 造成破坏，所以 `response body` 的编码调整默认为 `utf-8`，如需调整，则使用 `-Ddd.trace.response.body.encoding=gbk`.
 
-请求或者相应的 body 都只是针对 JSON 类型的数据，其他数据不采集。
+获取 response body 需要对响应流进行读取操作，会占用一定的 Java 内存空间，建议对响应体较大的请求(如文件下载接口)加上黑名单处理，防止 OOM，黑名上的 URL 将不再解析响应体内容。
+黑名单配置如下：
+
+- 参数方式
+
+> -Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
+
+- 环境变量方式
+
+> DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
 
 
 ## 链路数据中添加 HTTP Header 信息 {#trace_header}
