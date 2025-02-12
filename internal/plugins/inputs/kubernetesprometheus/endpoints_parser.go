@@ -234,6 +234,7 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 
 			configs = append(configs, &basePromConfig{
 				urlstr:              u.String(),
+				headers:             ins.Headers,
 				measurement:         measurement,
 				keepExistMetricName: ins.keepExistMetricName,
 				tags:                tags,

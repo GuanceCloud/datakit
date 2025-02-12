@@ -60,11 +60,17 @@ const (
   #  scheme   = "https"
   #  port     = "__kubernetes_node_kubelet_endpoint_port"
   #  path     = "/metrics"
+  #
+  #  # Add HTTP headers to data pulling (Example basic authentication).
+  #  [inputs.kubernetesprometheus.instances.http_headers]
+  #     # Authorization = ""
+  #
   #  [inputs.kubernetesprometheus.instances.custom]
   #    measurement        = "kubernetes_node_metrics"
   #    job_as_measurement = false
   #    [inputs.kubernetesprometheus.instances.custom.tags]
   #      node_name        = "__kubernetes_node_name"
+  #
   #  [inputs.kubernetesprometheus.instances.auth]
   #    bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
   #    [inputs.kubernetesprometheus.instances.auth.tls_config]

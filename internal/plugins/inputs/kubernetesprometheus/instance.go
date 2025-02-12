@@ -45,8 +45,9 @@ type (
 		Scrape     string   `toml:"scrape"`
 
 		Target
-		Custom `toml:"custom"`
-		Auth   `toml:"auth"`
+		Headers map[string]string `toml:"http_headers"`
+		Custom  `toml:"custom"`
+		Auth    `toml:"auth"`
 
 		validator *resourceValidator
 	}
@@ -73,6 +74,7 @@ type (
 
 	basePromConfig struct {
 		urlstr              string
+		headers             map[string]string
 		measurement         string
 		tags                map[string]string
 		keepExistMetricName bool

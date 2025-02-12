@@ -100,9 +100,12 @@ func WithHTTPHeader(m map[string]string) Option {
 	}
 }
 
-func WithBearerToken(str string) Option {
+func WithBearerToken(str string, force bool) Option {
 	return func(opt *option) {
-		opt.httpHeaders["Authorization"] = "Bearer " + str
+		_, exist := opt.httpHeaders["Authorization"]
+		if force || !exist {
+			opt.httpHeaders["Authorization"] = "Bearer " + str
+		}
 	}
 }
 

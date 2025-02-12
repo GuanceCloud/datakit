@@ -159,16 +159,13 @@ func (e *Endpoints) startScrape(ctx context.Context, key, traits string, item *c
 			}
 
 			opts := buildPromOptions(
-				RoleEndpoints, key, e.feeder,
+				e.role, key,
+				&ins.Auth,
+				e.feeder,
+				promscrape.WithHTTPHeader(ins.Headers),
 				promscrape.WithMeasurement(cfg.measurement),
 				promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 				promscrape.WithExtraTags(cfg.tags))
-
-			if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
-				klog.Warnf("endpoints %s has unexpected tls config %s", key, err)
-			} else {
-				opts = append(opts, tlsOpts...)
-			}
 
 			checkPausedFunc := func() bool {
 				return checkPaused(ctx, cfg.nodeName == "")
@@ -241,16 +238,13 @@ func tryCreateScrapeForEndpoints(
 		}
 
 		opts := buildPromOptions(
-			role, key, feeder,
+			role, key,
+			&endpointsInstance.Auth,
+			feeder,
+			promscrape.WithHTTPHeader(cfg.headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
-
-		if tlsOpts, err := buildPromOptionsWithAuth(&endpointsInstance.Auth); err != nil {
-			klog.Warnf("endpoints %s has unexpected tls config %s", key, err)
-		} else {
-			opts = append(opts, tlsOpts...)
-		}
 
 		checkPausedFunc := func() bool {
 			return checkPaused(ctx, cfg.nodeName == "")

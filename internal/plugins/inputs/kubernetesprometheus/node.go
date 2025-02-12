@@ -155,16 +155,13 @@ func (n *Node) startScrape(ctx context.Context, key, traits string, item *corev1
 		}
 
 		opts := buildPromOptions(
-			RoleNode, key, n.feeder,
+			n.role, key,
+			&ins.Auth,
+			n.feeder,
+			promscrape.WithHTTPHeader(ins.Headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
-
-		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
-			klog.Warnf("node %s has unexpected tls config %ss", key, err)
-		} else {
-			opts = append(opts, tlsOpts...)
-		}
 
 		prom, err := newPromScraper(RoleNode, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {

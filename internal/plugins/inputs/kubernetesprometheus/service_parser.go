@@ -150,6 +150,7 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 			Path:    ins.Target.Path,
 			Params:  ins.Target.Params,
 		},
+		Headers: ins.Headers,
 		Custom: Custom{
 			Measurement:         ins.Measurement,
 			JobAsMeasurement:    ins.Custom.JobAsMeasurement,

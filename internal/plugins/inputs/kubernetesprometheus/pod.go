@@ -155,16 +155,13 @@ func (p *Pod) startScrape(ctx context.Context, key, traits string, item *corev1.
 		}
 
 		opts := buildPromOptions(
-			p.role, key, p.feeder,
+			p.role, key,
+			&ins.Auth,
+			p.feeder,
+			promscrape.WithHTTPHeader(ins.Headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
-
-		if tlsOpts, err := buildPromOptionsWithAuth(&ins.Auth); err != nil {
-			klog.Warnf("pod %s has unexpected tls config %s", key, err)
-		} else {
-			opts = append(opts, tlsOpts...)
-		}
 
 		prom, err := newPromScraper(p.role, key, cfg.urlstr, checkPausedFunc, opts)
 		if err != nil {

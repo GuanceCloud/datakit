@@ -186,6 +186,19 @@ Using the configuration example provided:
     `$ kubectl get pod --selector tier=control-plane,component=kube-controller-manager`
     The `--selector` parameter functions similarly to the `selector` configuration item. For more details, refer to the [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/){:target="_blank"}.
 
+### Add HTTP Headers {#input-config-http-headers}
+
+Allow configuring multiple Key/Value pairs and adding them in the HTTP request. For example:
+
+```yaml
+  [inputs.kubernetesprometheus.instances]
+    # other..
+    [inputs.kubernetesprometheus.instances.http_headers]
+      "Authorization" = "Bearer XXXXX"
+      "X-testing-key" = "value"
+```
+
+
 ### Custom Configuration {#input-config-custom}
 
 | Configuration Item     | Required | Default Value                                      | Description                                                                                            |
@@ -438,3 +451,23 @@ In addition, Datakit extends the `selector` functionality to support **Glob matc
 ???+ attention
     The Glob pattern syntax does not support the `!` exclusion operator. For example, `app=middleware-[!0123]` will result in an error during the parsing stage. This is because the `!` character is a reserved keyword in Selector syntax (e.g., for `app!=nginx`) and cannot be used in Glob patterns.
 <!-- markdownlint-enable -->
+
+### Bearer Token Authentication {#http-bearer-token}
+
+Generally, using Bearer Token authentication requires two conditions: enabling `https` and setting `insecure_skip_verify` to `true`.
+
+There are two ways to configure the Bearer Token:
+
+- If the Token is a string, it can be manually added to `http_headers`, for example:
+
+```yaml
+    [inputs.kubernetesprometheus.instances.http_headers]
+      "Authorization" = "Bearer XXXXX"
+```
+
+- If the Token is stored in a file, specify the file path in `bearer_token_file`, as shown in the example. The KubernetesPrometheus collector will automatically read the file contents and add it to the `Authorization` header. Note that if `Authorization` is manually configured in `http_headers`, the `bearer_token_file` setting will be ignored.
+
+```yaml
+    [inputs.kubernetesprometheus.instances.auth]
+      bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+```
