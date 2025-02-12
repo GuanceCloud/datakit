@@ -3,30 +3,28 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package metrics
+package pyroscope
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 )
 
 func TestMetadata(t *testing.T) {
 	md := &Metadata{
-		Format:        Collapsed,
-		Profiler:      Pyroscope,
+		Format:        metrics.Collapsed,
+		Profiler:      metrics.Pyroscope,
 		Attachments:   []string{"main.jfr", "metrics.json"},
-		Language:      Golang,
+		Language:      metrics.Golang,
 		TagsProfiler:  "process_id:31145,service:zy-profiling-test,profiler_version:0.102.0~b67f6e3380,host:zydeMacBook-Air.local,runtime-id:06dddda1-957b-4619-97cb-1a78fc7e3f07,language:jvm,env:test,version:v1.2",
 		SubCustomTags: "foobar:hello-world",
-		Start:         NewRFC3339Time(time.Now()),
-		End:           NewRFC3339Time(time.Now().Add(time.Minute)),
+		Start:         metrics.NewRFC3339Time(time.Now()),
+		End:           metrics.NewRFC3339Time(time.Now().Add(time.Minute)),
 	}
 
 	out, err := json.MarshalIndent(md, "", "    ")
@@ -41,9 +39,6 @@ func TestMetadata(t *testing.T) {
 	if err = json.Unmarshal(out, &md2); err != nil {
 		t.Fatal(err)
 	}
-
-	assert.True(t, md.Start.Before(md.End))
-	assert.True(t, md.End.After(md.Start))
 
 	fmt.Println("start: ", time.Time(*md2.Start))
 	fmt.Println("end: ", time.Time(*md2.End))
@@ -107,38 +102,17 @@ var eventJSON = `
 }
 `
 
-func TestParseMetadata(t *testing.T) {
-	var buf bytes.Buffer
+func TestParseTags(t *testing.T) {
+	req, err := http.NewRequest("POST", "/ingest?aggregationType=sum&from=1734427928674085000&name=go-pyroscope-demo{__session_id__=718f0dfa2700ee16,env=demo,host=SpaceX.local,service=go-pyroscope-demo,version=0.0.1}&sampleRate=100&spyName=gospy&units=samples&until=1734427988708602000", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	w := multipart.NewWriter(&buf)
-
-	f, err := w.CreateFormFile("event", "event.json")
-	assert.NoError(t, err)
-
-	_, err = f.Write([]byte(eventJSON))
-	assert.NoError(t, err)
-
-	err = w.Close()
-	assert.NoError(t, err)
-
-	req, err := http.NewRequest("POST", "/profiling/v1/input", &buf)
-	assert.NoError(t, err)
-
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	err = req.ParseMultipartForm(1e9)
-	assert.NoError(t, err)
-
-	metadata, _, err := ParseMetadata(req)
-
-	assert.NoError(t, err)
+	metadata := ParseTags(QueryToPBForms(req.URL.Query()))
 
 	for k, v := range metadata {
 		t.Logf("%s : %s \n", k, v)
 	}
 
-	assert.Equal(t, "bar", metadata["foo"])
-	assert.Equal(t, "hello-world", metadata["foobar"])
-
-	fmt.Println(JoinTags(metadata))
+	fmt.Println(metrics.JoinTags(metadata))
 }

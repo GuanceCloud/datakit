@@ -13,6 +13,32 @@ import (
 	"time"
 )
 
+var (
+	// MinUnixSeconds 10_0984_3200.
+	MinUnixSeconds = time.Date(2002, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+
+	// MinUnixMilli 10_0984_3200_000.
+	MinUnixMilli = MinUnixSeconds * 1000
+
+	// MinUnixMicro 10_09843200_000_000.
+	MinUnixMicro = MinUnixMilli * 1000
+
+	// MinUnixNano 10_0984_3200_000_000_000.
+	MinUnixNano = MinUnixMicro * 1000
+
+	// MaxUnixSeconds 72_8965_4399.
+	MaxUnixSeconds = time.Date(2200, 12, 31, 23, 59, 59, 0, time.UTC).Unix()
+
+	// MaxUnixMilli 72_8965_4399_000.
+	MaxUnixMilli = MaxUnixSeconds * 1000
+
+	// MaxUnixMicro 72_8965_4399_000_000.
+	MaxUnixMicro = MaxUnixMilli * 1000
+
+	// MaxUnixNano 72_8965_4399_000_000_000.
+	MaxUnixNano = MaxUnixMicro * 1000 //nolint:unused
+)
+
 //nolint:lll
 var durationRE = regexp.MustCompile("^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?(([0-9]+)ns)?$")
 
@@ -86,4 +112,17 @@ func ParseDuration(s string) (time.Duration, error) {
 	} // ns
 
 	return du, nil
+}
+
+func UnixStampToTime(ts int64, loc *time.Location) time.Time {
+	switch {
+	case ts <= MaxUnixSeconds:
+		return time.Unix(ts, 0).In(loc)
+	case ts <= MaxUnixMilli:
+		return time.UnixMilli(ts).In(loc)
+	case ts <= MaxUnixMicro:
+		return time.UnixMicro(ts).In(loc)
+	default:
+		return time.Unix(0, ts).In(loc)
+	}
 }
