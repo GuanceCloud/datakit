@@ -42,6 +42,12 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.42.8-guance {#cl-1.42.8-guance}
+
+### 修复 {#cl-1.42.8-guance-fix}
+
+- Response Body 功能添加配置： "dd.trace.response.body.blacklist.urls".
+
 ## v1.42.7-guance {#cl-1.42.7-guance}
 
 ### 修复 {#cl-1.42.7-guance-fix}

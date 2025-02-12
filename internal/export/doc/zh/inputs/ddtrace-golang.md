@@ -8,10 +8,83 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
+目前有两种插桩方式：**编译时插桩**和**代码侵入式手动插桩**。
 
-Golang 的 APM 接入有一定的侵入性，**需要修改已有代码**，但总体而言，常见的业务代码不需要做太多变更，只需要替换相关的 import 包即可。
+侵入性插桩，**需要修改已有代码**，但总体而言，常见的业务代码不需要做太多变更，只需要替换相关的 `import` 包即可。
 
-## 安装依赖 {#dependence}
+DDTrace 推出编译时接入 APM 需要安装 [orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}
+
+以下是这两种方式的使用方式。
+
+## 编译时插桩 {#compilation-automatically}
+
+要求：
+
+- Go 版本必须 **1.18+**
+- 必须使用 **Go Module** 管理项目。
+
+安装 Orchestrion
+
+```shell
+go install github.com/DataDog/orchestrion@latest
+```
+
+如果安装失败，尝试将项目克隆到本地再编译。
+
+```shell
+git clone https://github.com/DataDog/orchestrion.git
+cd orchestrion/
+go build
+cp orchestrion $GOPATH/bin/
+```
+
+在项目的根目录下执行命令，即可在本地生成一个 go 文件。
+
+```shell
+orchestrion pin
+```
+
+使用以下三种方式的一种进行编译你的项目：
+
+1 **在 `go build` 命令之前**：
+
+```shell
+orchestrion go build .
+orchestrion go run .
+orchestrion go test ./...
+```
+
+2 **使用 `-toolexec` 方式**:
+
+```shell
+go build -toolexec="orchestrion toolexec" .
+go run -toolexec="orchestrion toolexec" .
+go test -toolexec="orchestrion toolexec" ./...
+```
+
+3 **修改环境变量 `$GOFLAGS`**：
+
+```shell
+# Make sure to include the quotes as shown below, as these are required for
+# the Go toolchain to parse GOFLAGS properly!
+export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
+go build .
+go run .
+go test ./...
+```
+
+编译之后的执行程序就可以在运行过程中触发链路并上传。
+
+使用环境变量修改各种配置与别的语言都是一样的，具体参考下方文档中的环境变量配置。
+
+### 更多文档 {#docs}
+
+- [Tracing Go Applications](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/go/?tab=compiletimeinstrumentation){:target="_blank"}
+- [GitHub Orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}
+
+---
+
+## 手动方式插装 {#Manual-dependence}
 
 安装 DDTrace Golang SDK：
 

@@ -25,6 +25,12 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.42.8-guance {#cl-1.42.8-guance}
+
+### fix {#cl-1.42.8-guance-fix}
+
+- Fix Response Body: Add config"dd.trace.response.body.blacklist.urls".
+
 ## v1.42.7-guance {#cl-1.42.7-guance}
 
 ### fix {#cl-1.42.7-guance-fix}

@@ -43,6 +43,16 @@ The command line opening parameter is `-Ddd.trace.request.body.enabled=true`, th
 
 Since getting `response body` causes damage to `response`, the encoding adjustment of `response body` defaults to `utf-8`. If you need to adjust it, use `-Ddd.trace.response.body.encoding=gbk`.
 
+Obtaining the response body requires reading the response stream, which will occupy a certain amount of Java memory space. It is recommended to add blacklist processing to requests with large response bodies (such as file download interfaces) to prevent OOM. The URLs on the blacklist will not be Then parse the response body content.
+The blacklist configuration is as follows:
+
+- Command
+
+> -Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
+
+- ENV
+
+> DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
 
 ## Tracing Header {#trace_header}
 
