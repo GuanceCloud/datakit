@@ -2,11 +2,11 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "{{.Dashboard.category_conversations}}": true,
-      "{{.Dashboard.category_detail}}": true,
-      "{{.Dashboard.category_netflow}}": true,
-      "{{.Dashboard.category_overview}}": true,
-      "{{.Dashboard.category_ports}}": true
+      "<<.Dashboard.category_conversations>>": true,
+      "<<.Dashboard.category_detail>>": true,
+      "<<.Dashboard.category_netflow>>": true,
+      "<<.Dashboard.category_overview>>": true,
+      "<<.Dashboard.category_ports>>": true
     }
   },
   "dashboardMapping": [],
@@ -55,9 +55,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_netflow}}"
+          "name": "<<.Dashboard.category_netflow>>"
         },
-        "name": "{{.Dashboard.total}}",
+        "name": "<<.Dashboard.total>>",
         "pos": {
           "h": 10,
           "w": 20,
@@ -158,9 +158,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_netflow}}"
+          "name": "<<.Dashboard.category_netflow>>"
         },
-        "name": "{{.Dashboard.interval_increment}}",
+        "name": "<<.Dashboard.interval_increment>>",
         "pos": {
           "h": 16,
           "w": 20,
@@ -226,9 +226,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_ports}}"
+          "name": "<<.Dashboard.category_ports>>"
         },
-        "name": "{{.Dashboard.network_protocol}}",
+        "name": "<<.Dashboard.network_protocol>>",
         "pos": {
           "h": 30,
           "w": 8,
@@ -296,9 +296,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_netflow}}"
+          "name": "<<.Dashboard.category_netflow>>"
         },
-        "name": "{{.Dashboard.netflow_type}}",
+        "name": "<<.Dashboard.netflow_type>>",
         "pos": {
           "h": 26,
           "w": 4,
@@ -383,9 +383,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_detail}}"
+          "name": "<<.Dashboard.category_detail>>"
         },
-        "name": "{{.Dashboard.message}}",
+        "name": "<<.Dashboard.message>>",
         "pos": {
           "h": 20,
           "w": 24,
@@ -478,9 +478,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_conversations}}"
+          "name": "<<.Dashboard.category_conversations>>"
         },
-        "name": "{{.Dashboard.src_device_dest}}",
+        "name": "<<.Dashboard.src_device_dest>>",
         "pos": {
           "h": 27,
           "w": 10,
@@ -560,9 +560,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_conversations}}"
+          "name": "<<.Dashboard.category_conversations>>"
         },
-        "name": "{{.Dashboard.src_device}}",
+        "name": "<<.Dashboard.src_device>>",
         "pos": {
           "h": 27,
           "w": 7,
@@ -641,9 +641,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_conversations}}"
+          "name": "<<.Dashboard.category_conversations>>"
         },
-        "name": "{{.Dashboard.dest_device}}",
+        "name": "<<.Dashboard.dest_device>>",
         "pos": {
           "h": 27,
           "w": 7,
@@ -722,9 +722,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_ports}}"
+          "name": "<<.Dashboard.category_ports>>"
         },
-        "name": "{{.Dashboard.src_port_ip_device}}",
+        "name": "<<.Dashboard.src_port_ip_device>>",
         "pos": {
           "h": 30,
           "w": 8,
@@ -804,9 +804,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_ports}}"
+          "name": "<<.Dashboard.category_ports>>"
         },
-        "name": "{{.Dashboard.dest_port_ip_device}}",
+        "name": "<<.Dashboard.dest_port_ip_device>>",
         "pos": {
           "h": 30,
           "w": 8,
@@ -887,9 +887,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "<<.Dashboard.category_overview>>"
         },
-        "name": "{{.Dashboard.alarm}}",
+        "name": "<<.Dashboard.alarm>>",
         "pos": {
           "h": 18,
           "w": 20,
@@ -965,7 +965,7 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "<<.Dashboard.category_overview>>"
         },
         "name": "brand",
         "pos": {
@@ -979,11 +979,11 @@
       }
     ],
     "groups": [
-      "{{.Dashboard.category_overview}}",
-      "{{.Dashboard.category_netflow}}",
-      "{{.Dashboard.category_conversations}}",
-      "{{.Dashboard.category_ports}}",
-      "{{.Dashboard.category_detail}}"
+      "<<.Dashboard.category_overview>>",
+      "<<.Dashboard.category_netflow>>",
+      "<<.Dashboard.category_conversations>>",
+      "<<.Dashboard.category_ports>>",
+      "<<.Dashboard.category_detail>>"
     ],
     "type": "template",
     "vars": []

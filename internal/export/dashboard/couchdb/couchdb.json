@@ -33,7 +33,7 @@
               "showLineAxis": false,
               "showTitle": true,
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.uptime_seconds_note}}",
+              "titleDesc": "<<.Dashboard.uptime_seconds_note>>",
               "units": [
                 {
                   "key": "last(uptime_seconds)",
@@ -50,7 +50,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.uptime_seconds}}",
+          "name": "<<.Dashboard.uptime_seconds>>",
           "pos": {
             "h": 6,
             "w": 5,
@@ -133,7 +133,7 @@
               "showTitle": true,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.erlang_memory_bytes_note}}",
+              "titleDesc": "<<.Dashboard.erlang_memory_bytes_note>>",
               "units": [
                 {
                   "key": "avg(erlang_memory_bytes)",
@@ -153,7 +153,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.erlang_memory_bytes}}",
+          "name": "<<.Dashboard.erlang_memory_bytes>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -239,7 +239,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.httpd_request_methods_note}}",
+              "titleDesc": "<<.Dashboard.httpd_request_methods_note>>",
               "units": [],
               "xAxisShowType": "time",
               "yAxixMaxVal": null,
@@ -249,7 +249,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.httpd_request_methods}}",
+          "name": "<<.Dashboard.httpd_request_methods>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -315,7 +315,7 @@
               "showLineAxis": false,
               "showTitle": true,
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.open_databases_note}}",
+              "titleDesc": "<<.Dashboard.open_databases_note>>",
               "units": [
                 {
                   "key": "avg(open_databases_total)",
@@ -332,7 +332,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.open_databases}}",
+          "name": "<<.Dashboard.open_databases>>",
           "pos": {
             "h": 6,
             "w": 4,
@@ -398,7 +398,7 @@
               "showLineAxis": false,
               "showTitle": true,
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.open_os_files_note}}",
+              "titleDesc": "<<.Dashboard.open_os_files_note>>",
               "units": [
                 {
                   "key": "avg(open_os_files_total)",
@@ -415,7 +415,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.open_os_files}}",
+          "name": "<<.Dashboard.open_os_files>>",
           "pos": {
             "h": 6,
             "w": 5,
@@ -481,7 +481,7 @@
               "showLineAxis": false,
               "showTitle": true,
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.auth_cache_hits_note}}",
+              "titleDesc": "<<.Dashboard.auth_cache_hits_note>>",
               "units": [
                 {
                   "key": "avg(auth_cache_hits_total)",
@@ -498,7 +498,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.auth_cache_hits}}",
+          "name": "<<.Dashboard.auth_cache_hits>>",
           "pos": {
             "h": 6,
             "w": 5,
@@ -564,7 +564,7 @@
               "showLineAxis": false,
               "showTitle": true,
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.auth_cache_misses_note}}",
+              "titleDesc": "<<.Dashboard.auth_cache_misses_note>>",
               "units": [
                 {
                   "key": "avg(auth_cache_misses_total)",
@@ -581,7 +581,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.auth_cache_misses}}",
+          "name": "<<.Dashboard.auth_cache_misses>>",
           "pos": {
             "h": 6,
             "w": 5,
@@ -667,7 +667,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.httpd_requests_note}}",
+              "titleDesc": "<<.Dashboard.httpd_requests_note>>",
               "units": [],
               "xAxisShowType": "time",
               "yAxixMaxVal": null,
@@ -677,7 +677,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.httpd_requests}}",
+          "name": "<<.Dashboard.httpd_requests>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -764,7 +764,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.httpd_bulk_requests_note}}",
+              "titleDesc": "<<.Dashboard.httpd_bulk_requests_note>>",
               "units": [],
               "xAxisShowType": "time",
               "yAxixMaxVal": null,
@@ -774,7 +774,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.httpd_bulk_requests}}",
+          "name": "<<.Dashboard.httpd_bulk_requests>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -861,7 +861,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.collect_results_time_seconds_note}}",
+              "titleDesc": "<<.Dashboard.collect_results_time_seconds_note>>",
               "units": [
                 {
                   "key": "avg(collect_results_time_seconds)",
@@ -899,7 +899,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.collect_results_time_seconds}}",
+          "name": "<<.Dashboard.collect_results_time_seconds>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -1057,7 +1057,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.database_reads_writes_note}}",
+              "titleDesc": "<<.Dashboard.database_reads_writes_note>>",
               "units": [],
               "xAxisShowType": "time",
               "yAxixMaxVal": null,
@@ -1067,7 +1067,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.database_reads_writes}}",
+          "name": "<<.Dashboard.database_reads_writes>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -1208,7 +1208,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.httpd_status_codes_note}}",
+              "titleDesc": "<<.Dashboard.httpd_status_codes_note>>",
               "units": [],
               "xAxisShowType": "time",
               "yAxixMaxVal": null,
@@ -1218,7 +1218,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.httpd_status_codes}}",
+          "name": "<<.Dashboard.httpd_status_codes>>",
           "pos": {
             "h": 10,
             "w": 8,

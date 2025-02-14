@@ -10,8 +10,8 @@
       "Write Path": true,
       "cassandra": false,
       "nWrite Path": false,
-      "{{.Dashboard.Read_Path}}": true,
-      "{{.Dashboard.Write_Path}}": true
+      "<<.Dashboard.Read_Path>>": true,
+      "<<.Dashboard.Write_Path>>": true
     }
   },
   "dashboardMapping": [],
@@ -62,9 +62,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Node_status}}",
+        "name": "<<.Dashboard.Node_status>>",
         "pos": {
           "h": 13,
           "w": 12,
@@ -145,9 +145,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Dropped_messages}}",
+        "name": "<<.Dashboard.Dropped_messages>>",
         "pos": {
           "h": 13,
           "w": 12,
@@ -228,9 +228,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Read_request_counts}}",
+        "name": "<<.Dashboard.Read_request_counts>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -311,9 +311,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Write_request_counts}}",
+        "name": "<<.Dashboard.Write_request_counts>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -397,9 +397,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Read_latencies_75_and_95th_percentiles}}",
+        "name": "<<.Dashboard.Read_latencies_75_and_95th_percentiles>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -511,9 +511,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Write_latencies_75_and_95th_percentiles}}",
+        "name": "<<.Dashboard.Write_latencies_75_and_95th_percentiles>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -622,9 +622,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Other_operations_request_counts}}",
+        "name": "<<.Dashboard.Other_operations_request_counts>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -820,9 +820,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Other_operations_latencies}}",
+        "name": "<<.Dashboard.Other_operations_latencies>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1127,9 +1127,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.SSTable_count}}",
+        "name": "<<.Dashboard.SSTable_count>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1210,9 +1210,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Pending_compactions_per_host}}",
+        "name": "<<.Dashboard.Pending_compactions_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1296,9 +1296,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Max_partition_size_per_host_and_table}}",
+        "name": "<<.Dashboard.Max_partition_size_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1379,9 +1379,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Max_partition_size_per_host_and_table}}",
+        "name": "<<.Dashboard.Max_partition_size_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1467,9 +1467,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Currently_blocked_threads_per_host_and_DC}}",
+        "name": "<<.Dashboard.Currently_blocked_threads_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1873,9 +1873,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Pending_reads_per_host}}",
+        "name": "<<.Dashboard.Pending_reads_per_host>>",
         "pos": {
           "h": 12,
           "w": 12,
@@ -1956,9 +1956,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Pending_reads_per_host}}",
+        "name": "<<.Dashboard.Pending_reads_per_host>>",
         "pos": {
           "h": 12,
           "w": 12,
@@ -2039,9 +2039,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_count_per_table_and_DC}}",
+        "name": "<<.Dashboard.Read_count_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2124,9 +2124,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_count_per_host}}",
+        "name": "<<.Dashboard.Read_count_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2207,9 +2207,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_count_per_host_and_table}}",
+        "name": "<<.Dashboard.Read_count_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2294,9 +2294,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_Latency_p75_p95_p99_per_table_and_DC}}",
+        "name": "<<.Dashboard.Read_Latency_p75_p95_p99_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2442,9 +2442,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_Latency_p75_p95_p99_per_host}}",
+        "name": "<<.Dashboard.Read_Latency_p75_p95_p99_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2584,9 +2584,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Read_Latency_p75_p95_p99_per_host_and_table}}",
+        "name": "<<.Dashboard.Read_Latency_p75_p95_p99_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2726,9 +2726,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_count_per_table_and_DC}}",
+        "name": "<<.Dashboard.Range_request_count_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2811,9 +2811,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_count_per_host}}",
+        "name": "<<.Dashboard.Range_request_count_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2897,9 +2897,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_count_per_host_and_table}}",
+        "name": "<<.Dashboard.Range_request_count_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2984,9 +2984,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_latency_p75_p95_per_table_and_DC}}",
+        "name": "<<.Dashboard.Range_request_latency_p75_p95_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3102,9 +3102,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_latency_p75_p95_per_host}}",
+        "name": "<<.Dashboard.Range_request_latency_p75_p95_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3216,9 +3216,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Range_request_latency_p75_p95_per_host_and_table}}",
+        "name": "<<.Dashboard.Range_request_latency_p75_p95_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3329,9 +3329,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Tombstones_per_read_per_table_and_DC}}",
+        "name": "<<.Dashboard.Tombstones_per_read_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3444,9 +3444,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Tombstones_per_read_per_host}}",
+        "name": "<<.Dashboard.Tombstones_per_read_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3555,9 +3555,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Tombstones_per_read_per_host_and_table}}",
+        "name": "<<.Dashboard.Tombstones_per_read_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3668,9 +3668,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Number_of_SSTable_hit_per_read_per_table_and_DC}}",
+        "name": "<<.Dashboard.Number_of_SSTable_hit_per_read_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3783,9 +3783,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Number_of_SSTable_hit_per_read_per_host}}",
+        "name": "<<.Dashboard.Number_of_SSTable_hit_per_read_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -3894,9 +3894,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Number_of_SSTable_hit_per_read_per_host_and_table}}",
+        "name": "<<.Dashboard.Number_of_SSTable_hit_per_read_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4010,9 +4010,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Max_Mean_partition_size_per_table_and_DC}}",
+        "name": "<<.Dashboard.Max_Mean_partition_size_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4188,9 +4188,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Max_Mean_partition_size_per_host}}",
+        "name": "<<.Dashboard.Max_Mean_partition_size_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4358,9 +4358,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Max_Mean_partition_size_per_host_and_table}}",
+        "name": "<<.Dashboard.Max_Mean_partition_size_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4529,9 +4529,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Key_cache_hit_rate_per_table_and_DC}}",
+        "name": "<<.Dashboard.Key_cache_hit_rate_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4614,9 +4614,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Key_cache_hit_rate_per_host}}",
+        "name": "<<.Dashboard.Key_cache_hit_rate_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4697,9 +4697,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Key_cache_hit_rate_per_host_and_table}}",
+        "name": "<<.Dashboard.Key_cache_hit_rate_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4781,9 +4781,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Row_cache_stats_per_table_and_DC}}",
+        "name": "<<.Dashboard.Row_cache_stats_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -4956,9 +4956,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Row_cache_stats_per_host}}",
+        "name": "<<.Dashboard.Row_cache_stats_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5095,9 +5095,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Row_cache_stats_per_host_and_table}}",
+        "name": "<<.Dashboard.Row_cache_stats_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5237,9 +5237,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Bloom_Filters_stats_per_table_and_DC}}",
+        "name": "<<.Dashboard.Bloom_Filters_stats_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5322,9 +5322,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Bloom_Filters_stats_per_host}}",
+        "name": "<<.Dashboard.Bloom_Filters_stats_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5405,9 +5405,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Read_Path}}"
+          "name": "<<.Dashboard.Read_Path>>"
         },
-        "name": "{{.Dashboard.Bloom_Filters_stats_per_host_and_table}}",
+        "name": "<<.Dashboard.Bloom_Filters_stats_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5489,9 +5489,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Pending_threads_per_host_and_DC}}",
+        "name": "<<.Dashboard.Pending_threads_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -5937,9 +5937,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_per_host_and_DC}}",
+        "name": "<<.Dashboard.Write_latency_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6031,9 +6031,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Dropped_messages_per_host_and_DC}}",
+        "name": "<<.Dashboard.Dropped_messages_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6284,9 +6284,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Compactions_pending_per_host}}",
+        "name": "<<.Dashboard.Compactions_pending_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6367,9 +6367,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Number_of_SSTables_per_host}}",
+        "name": "<<.Dashboard.Number_of_SSTables_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6448,9 +6448,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.SSTable_count_perhost_per_DC_per_table}}",
+        "name": "<<.Dashboard.SSTable_count_perhost_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6536,9 +6536,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_per_table_and_DC}}",
+        "name": "<<.Dashboard.Write_latency_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6624,9 +6624,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_per_host_and_table}}",
+        "name": "<<.Dashboard.Write_latency_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6711,9 +6711,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_counts_per_table_and_DC}}",
+        "name": "<<.Dashboard.CAS_operations_counts_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -6859,9 +6859,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_counts_per_host_and_DC}}",
+        "name": "<<.Dashboard.CAS_operations_counts_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7004,9 +7004,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_counts_per_host_and_table}}",
+        "name": "<<.Dashboard.CAS_operations_counts_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7149,9 +7149,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_p75_p95_p99_per_table_and_DC}}",
+        "name": "<<.Dashboard.Write_latency_p75_p95_p99_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7297,9 +7297,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_p75_p95_p99_per_host_and_DC}}",
+        "name": "<<.Dashboard.Write_latency_p75_p95_p99_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7472,9 +7472,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Write_latency_p75_p95_p99_per_host_and_table}}",
+        "name": "<<.Dashboard.Write_latency_p75_p95_p99_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7617,9 +7617,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_latency_p75_p95_per_table_and_DC}}",
+        "name": "<<.Dashboard.CAS_operations_latency_p75_p95_per_table_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -7855,9 +7855,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_latency_p75_p95_per_host_and_DC}}",
+        "name": "<<.Dashboard.CAS_operations_latency_p75_p95_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8147,9 +8147,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.CAS_operations_latency_p75_p95_per_host_and_table}}",
+        "name": "<<.Dashboard.CAS_operations_latency_p75_p95_per_host_and_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8376,9 +8376,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Materialized_view_count_per_host_per_table_per_DC}}",
+        "name": "<<.Dashboard.Materialized_view_count_per_host_per_table_per_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8494,9 +8494,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Materialized_view_latencies_p75_p95_per_host}}",
+        "name": "<<.Dashboard.Materialized_view_latencies_p75_p95_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8669,9 +8669,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Pending_flushes_per_host_per_table_per_DC}}",
+        "name": "<<.Dashboard.Pending_flushes_per_host_per_table_per_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8757,9 +8757,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Waiting_to_free_memtable_space_p75_p95_per_host}}",
+        "name": "<<.Dashboard.Waiting_to_free_memtable_space_p75_p95_per_host>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -8875,9 +8875,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.Write_Path}}"
+          "name": "<<.Dashboard.Write_Path>>"
         },
-        "name": "{{.Dashboard.Min_delta_on_column_update_per_host_per_table}}",
+        "name": "<<.Dashboard.Min_delta_on_column_update_per_host_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9025,7 +9025,7 @@
         "group": {
           "name": "JMX"
         },
-        "name": "{{.Dashboard.Minor_GC_time_New_Gen_per_host_and_DC}}",
+        "name": "<<.Dashboard.Minor_GC_time_New_Gen_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9109,7 +9109,7 @@
         "group": {
           "name": "JMX"
         },
-        "name": "{{.Dashboard.Major_GC_time_Old_Gen_per_host_and_DC}}",
+        "name": "<<.Dashboard.Major_GC_time_Old_Gen_per_host_and_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9193,7 +9193,7 @@
         "group": {
           "name": "JMX"
         },
-        "name": "{{.Dashboard.Stop_the_world_GC_average_per_DC_Minor_Major_GC}}",
+        "name": "<<.Dashboard.Stop_the_world_GC_average_per_DC_Minor_Major_GC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9298,9 +9298,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Pending_compactions_perhost_per_DC_per_table}}",
+        "name": "<<.Dashboard.Pending_compactions_perhost_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9386,9 +9386,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Compacted_data_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Compacted_data_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9471,9 +9471,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Pending_Flushes_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Pending_Flushes_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9559,9 +9559,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Pending_compactions_perhost_per_DC_per_table}}",
+        "name": "<<.Dashboard.Pending_compactions_perhost_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9647,9 +9647,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Live_space_growth_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Live_space_growth_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9735,9 +9735,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Total_space_used_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Total_space_used_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9823,9 +9823,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Snapshot_real_size_on_disk_per_host_per_DC}}",
+        "name": "<<.Dashboard.Snapshot_real_size_on_disk_per_host_per_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9911,9 +9911,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Compression_ratio_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Compression_ratio_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -9999,9 +9999,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Droppable_tombstone_ratio_per_host_per_DC}}",
+        "name": "<<.Dashboard.Droppable_tombstone_ratio_per_host_per_DC>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -10087,9 +10087,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.SSTable_Management}}"
+          "name": "<<.Dashboard.SSTable_Management>>"
         },
-        "name": "{{.Dashboard.Max_Mean_per_host_per_DC_per_table}}",
+        "name": "<<.Dashboard.Max_Mean_per_host_per_DC_per_table>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -10222,10 +10222,10 @@
       }
     ],
     "groups": [
-      "{{.Dashboard.Overview}}",
-      "{{.Dashboard.Read_Path}}",
-      "{{.Dashboard.Write_Path}}",
-      "{{.Dashboard.SSTable_Management}}",
+      "<<.Dashboard.Overview>>",
+      "<<.Dashboard.Read_Path>>",
+      "<<.Dashboard.Write_Path>>",
+      "<<.Dashboard.SSTable_Management>>",
       "JMX"
     ],
     "type": "template",

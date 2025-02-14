@@ -2,14 +2,14 @@
   "dashboardBindSet": [],
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "{{.Dashboard.category_bufferpool}}": true,
-      "{{.Dashboard.category_connections}}": true,
-      "{{.Dashboard.category_database}}": true,
-      "{{.Dashboard.category_locks}}": true,
-      "{{.Dashboard.category_log}}": true,
-      "{{.Dashboard.category_overview}}": true,
-      "{{.Dashboard.category_readwrite}}": true,
-      "{{.Dashboard.category_tablespace}}": true
+      "<<.Dashboard.category_bufferpool>>": true,
+      "<<.Dashboard.category_connections>>": true,
+      "<<.Dashboard.category_database>>": true,
+      "<<.Dashboard.category_locks>>": true,
+      "<<.Dashboard.category_log>>": true,
+      "<<.Dashboard.category_overview>>": true,
+      "<<.Dashboard.category_readwrite>>": true,
+      "<<.Dashboard.category_tablespace>>": true
     }
   },
   "dashboardMapping": [],
@@ -71,9 +71,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_connections}}"
+          "name": "<<.Dashboard.category_connections>>"
         },
-        "name": "{{.Dashboard.connection_active}}",
+        "name": "<<.Dashboard.connection_active>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -165,9 +165,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_connections}}"
+          "name": "<<.Dashboard.category_connections>>"
         },
-        "name": "{{.Dashboard.application_active}}",
+        "name": "<<.Dashboard.application_active>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -269,9 +269,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_database}}"
+          "name": "<<.Dashboard.category_database>>"
         },
-        "name": "{{.Dashboard.backup_latest}}",
+        "name": "<<.Dashboard.backup_latest>>",
         "pos": {
           "h": 11,
           "w": 8,
@@ -363,9 +363,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_locks}}"
+          "name": "<<.Dashboard.category_locks>>"
         },
-        "name": "{{.Dashboard.lock_dead}}",
+        "name": "<<.Dashboard.lock_dead>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -457,9 +457,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "<<.Dashboard.category_readwrite>>"
         },
-        "name": "{{.Dashboard.reads_returned_modified}}",
+        "name": "<<.Dashboard.reads_returned_modified>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -607,9 +607,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_database}}"
+          "name": "<<.Dashboard.category_database>>"
         },
-        "name": "{{.Dashboard.status}}",
+        "name": "<<.Dashboard.status>>",
         "pos": {
           "h": 11,
           "w": 8,
@@ -701,9 +701,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_log}}"
+          "name": "<<.Dashboard.category_log>>"
         },
-        "name": "{{.Dashboard.log_used}}",
+        "name": "<<.Dashboard.log_used>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -795,9 +795,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_log}}"
+          "name": "<<.Dashboard.category_log>>"
         },
-        "name": "{{.Dashboard.log_reads_writes}}",
+        "name": "<<.Dashboard.log_reads_writes>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -927,9 +927,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_log}}"
+          "name": "<<.Dashboard.category_log>>"
         },
-        "name": "{{.Dashboard.log_utilized}}",
+        "name": "<<.Dashboard.log_utilized>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1021,9 +1021,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_connections}}"
+          "name": "<<.Dashboard.category_connections>>"
         },
-        "name": "{{.Dashboard.connection_max}}",
+        "name": "<<.Dashboard.connection_max>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -1125,9 +1125,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_database}}"
+          "name": "<<.Dashboard.category_database>>"
         },
-        "name": "{{.Dashboard.lock_wait}}",
+        "name": "<<.Dashboard.lock_wait>>",
         "pos": {
           "h": 11,
           "w": 8,
@@ -1219,9 +1219,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_locks}}"
+          "name": "<<.Dashboard.category_locks>>"
         },
-        "name": "{{.Dashboard.lock_timeouts}}",
+        "name": "<<.Dashboard.lock_timeouts>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -1313,9 +1313,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_bufferpool}}"
+          "name": "<<.Dashboard.category_bufferpool>>"
         },
-        "name": "{{.Dashboard.bufferpool_reads_total}}",
+        "name": "<<.Dashboard.bufferpool_reads_total>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -1417,9 +1417,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_bufferpool}}"
+          "name": "<<.Dashboard.category_bufferpool>>"
         },
-        "name": "{{.Dashboard.bufferpool_hit_percent}}",
+        "name": "<<.Dashboard.bufferpool_hit_percent>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -1502,9 +1502,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_tablespace}}"
+          "name": "<<.Dashboard.category_tablespace>>"
         },
-        "name": "{{.Dashboard.tablespace_utilized}}",
+        "name": "<<.Dashboard.tablespace_utilized>>",
         "pos": {
           "h": 25,
           "w": 12,
@@ -1618,9 +1618,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_tablespace}}"
+          "name": "<<.Dashboard.category_tablespace>>"
         },
-        "name": "{{.Dashboard.tablespace_usable_used}}",
+        "name": "<<.Dashboard.tablespace_usable_used>>",
         "pos": {
           "h": 25,
           "w": 12,
@@ -1740,9 +1740,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_connections}}"
+          "name": "<<.Dashboard.category_connections>>"
         },
-        "name": "{{.Dashboard.application_executing}}",
+        "name": "<<.Dashboard.application_executing>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -1834,9 +1834,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "<<.Dashboard.category_readwrite>>"
         },
-        "name": "{{.Dashboard.bufferpool_column_reads_total}}",
+        "name": "<<.Dashboard.bufferpool_column_reads_total>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1928,9 +1928,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "<<.Dashboard.category_readwrite>>"
         },
-        "name": "{{.Dashboard.bufferpool_index_reads_total}}",
+        "name": "<<.Dashboard.bufferpool_index_reads_total>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2022,9 +2022,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "<<.Dashboard.category_readwrite>>"
         },
-        "name": "{{.Dashboard.bufferpool_xda_reads_total}}",
+        "name": "<<.Dashboard.bufferpool_xda_reads_total>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -2116,9 +2116,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_readwrite}}"
+          "name": "<<.Dashboard.category_readwrite>>"
         },
-        "name": "{{.Dashboard.bufferpool_data_reads_total}}",
+        "name": "<<.Dashboard.bufferpool_data_reads_total>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -2196,9 +2196,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "<<.Dashboard.category_overview>>"
         },
-        "name": "{{.Dashboard.alarm}}",
+        "name": "<<.Dashboard.alarm>>",
         "pos": {
           "h": 17,
           "w": 21,
@@ -2274,7 +2274,7 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.category_overview}}"
+          "name": "<<.Dashboard.category_overview>>"
         },
         "name": "brand",
         "pos": {
@@ -2288,14 +2288,14 @@
       }
     ],
     "groups": [
-      "{{.Dashboard.category_overview}}",
-      "{{.Dashboard.category_database}}",
-      "{{.Dashboard.category_log}}",
-      "{{.Dashboard.category_connections}}",
-      "{{.Dashboard.category_bufferpool}}",
-      "{{.Dashboard.category_locks}}",
-      "{{.Dashboard.category_readwrite}}",
-      "{{.Dashboard.category_tablespace}}"
+      "<<.Dashboard.category_overview>>",
+      "<<.Dashboard.category_database>>",
+      "<<.Dashboard.category_log>>",
+      "<<.Dashboard.category_connections>>",
+      "<<.Dashboard.category_bufferpool>>",
+      "<<.Dashboard.category_locks>>",
+      "<<.Dashboard.category_readwrite>>",
+      "<<.Dashboard.category_tablespace>>"
     ],
     "type": "template",
     "vars": []

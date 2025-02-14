@@ -39,7 +39,7 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
               "titleDesc": "",
               "units": [
@@ -59,7 +59,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_usage}}",
+          "name": "<<.Dashboard.memory_usage>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -133,9 +133,9 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.memory_buffered_note}}",
+              "titleDesc": "<<.Dashboard.memory_buffered_note>>",
               "units": [
                 {
                   "key": "memory buffered",
@@ -153,7 +153,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_buffered}}",
+          "name": "<<.Dashboard.memory_buffered>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -227,7 +227,7 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
               "titleDesc": "",
               "units": [
@@ -247,7 +247,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_total}}",
+          "name": "<<.Dashboard.memory_total>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -321,9 +321,9 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.memory_cached_note}}",
+              "titleDesc": "<<.Dashboard.memory_cached_note>>",
               "units": [
                 {
                   "key": "memory cached",
@@ -341,7 +341,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_cached}}",
+          "name": "<<.Dashboard.memory_cached>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -415,9 +415,9 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.memory_free_note}}",
+              "titleDesc": "<<.Dashboard.memory_free_note>>",
               "units": [
                 {
                   "key": "memory free",
@@ -435,7 +435,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_free}}",
+          "name": "<<.Dashboard.memory_free>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -509,7 +509,7 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
               "titleDesc": "",
               "units": [
@@ -529,7 +529,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_used}}",
+          "name": "<<.Dashboard.memory_used>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -603,7 +603,7 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
               "titleDesc": "",
               "units": [
@@ -623,7 +623,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_available}}",
+          "name": "<<.Dashboard.memory_available>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -697,9 +697,9 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.memory_shared_note}}",
+              "titleDesc": "<<.Dashboard.memory_shared_note>>",
               "units": [
                 {
                   "key": "memory shared",
@@ -717,7 +717,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_shared}}",
+          "name": "<<.Dashboard.memory_shared>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -791,9 +791,9 @@
               "showLine": false,
               "showTitle": true,
               "stackType": "time",
-              "tableSortMetricName": "{{.Dashboard.load_15_minute}}",
+              "tableSortMetricName": "<<.Dashboard.load_15_minute>>",
               "timeInterval": "default",
-              "titleDesc": "{{.Dashboard.memory_active_note}}",
+              "titleDesc": "<<.Dashboard.memory_active_note>>",
               "units": [
                 {
                   "key": "memory active",
@@ -811,7 +811,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.memory_active}}",
+          "name": "<<.Dashboard.memory_active>>",
           "pos": {
             "h": 8,
             "w": 8,
@@ -871,7 +871,7 @@
             "value": "show_tag_value(from=['mem'], keyin=['host'])[5m]"
           },
           "hide": 0,
-          "name": "{{.Dashboard.host_name}}",
+          "name": "<<.Dashboard.host_name>>",
           "seq": 0,
           "type": "QUERY",
           "valueSort": "default"

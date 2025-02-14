@@ -97,7 +97,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Device_Alive}}",
+        "name": "<<.Dashboard.Device_Alive>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -204,7 +204,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Uptime}}",
+        "name": "<<.Dashboard.Uptime>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -372,7 +372,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Power}}",
+        "name": "<<.Dashboard.Power>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -544,7 +544,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Fan}}",
+        "name": "<<.Dashboard.Fan>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -710,7 +710,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Temperature}}",
+        "name": "<<.Dashboard.Temperature>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -826,7 +826,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.CPU}}",
+        "name": "<<.Dashboard.CPU>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -992,7 +992,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Memory}}",
+        "name": "<<.Dashboard.Memory>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1108,7 +1108,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Disk}}",
+        "name": "<<.Dashboard.Disk>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1214,7 +1214,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Net}}",
+        "name": "<<.Dashboard.Net>>",
         "pos": {
           "h": 13,
           "w": 8,

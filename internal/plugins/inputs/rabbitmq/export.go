@@ -12,7 +12,7 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 	case inputs.I18nZh:
 		//nolint:lll
 		return map[string]string{
-			"title":                         "Rabbitmq 监控视图",
+			"title":                         "RabbitMQ 监控视图",
 			"connection_number":             "连接数",
 			"channel_number":                "通道数",
 			"queue_number":                  "队列数",
@@ -40,6 +40,7 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 			"consumer_number":               "消费者数",
 			"message_rate":                  "消息速率",
 			"queue_message":                 "队列消息",
+			"queue_message_number":          "队列消息总数",
 			"queue_message_rate":            "队列消息速率",
 			"message_unconfirmed":           "待确认消息",
 			"message_unconfirmed_number":    "待确认消息数",
@@ -88,6 +89,7 @@ func (ipt *Input) Dashboard(lang inputs.I18n) map[string]string {
 			"consumer_number":               "Number of consumers",
 			"message_rate":                  "Message rate",
 			"queue_message":                 "Queue message",
+			"queue_message_number":          "Number of queue messages",
 			"queue_message_rate":            "Queue message rate",
 			"message_unconfirmed":           "Messages to be confirmed",
 			"message_unconfirmed_number":    "Number of messages to be confirmed",
@@ -115,16 +117,28 @@ func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 	case inputs.I18nZh:
 		//nolint:lll
 		return map[string]string{
-			"message":              `>等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq队列消息数过高\n>建议：登录集群查看是否有异常`,
-			"title":                "rabbitmq队列消息数过高",
-			"default_monitor_name": "默认",
+			"rabbitmq_unack_rate_title":      `RabbitMQ 消息重传次数过多`,
+			"rabbitmq_unack_rate_message":    `>等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq队列消息数过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常`,
+			"rabbitmq_queue_message_title":   `RabbitMQ 队列消息数过高`,
+			"rabbitmq_queue_message_message": `>等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq队列消息数过高\n>建议：登录集群查看是否有异常`,
+			"rabbitmq_message_rate_title":    `RabbitMQ 队列新增速率过高`,
+			"rabbitmq_message_rate_message":  `>等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq 队列新增速率过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常`,
+			"rabbitmq_message_rate":          `消息速率`,
+			"rabbitmq_unroutable_title":      `RabbitMQ 不可用路由突增过高`,
+			"rabbitmq_unroutable_message":    `>等级：{{df_status}}  \n>事件：{{ df_dimension_tags }}\n>监控器：{{ df_monitor_checker_name }}\n>告警策略：{{ df_monitor_name }}\n>事件状态： {{ df_status }}\n>内容：rabbitmq 不可用路由突增过高,当前值为：{{Result}}\n>建议：登录集群查看是否有异常`,
 		}
 	case inputs.I18nEn:
 		//nolint:lll
 		return map[string]string{
-			"message":              `>Level: {{df_status}}  \n>Event: {{ df_dimension_tags }}\n>Monitor: {{ df_monitor_checker_name }}\n>Alarm policy: {{ df_monitor_name }}\n>Event status: {{ df_status }}\n>Content: The number of rabbitmq queue messages is too high\n>Suggestion: Log in to the cluster to see if there are any abnormalities`,
-			"title":                "The number of rabbitmq queue messages is too high",
-			"default_monitor_name": "Default",
+			"rabbitmq_unack_rate_title":      `RabbitMQ message retransmission rate is too high`,
+			"rabbitmq_unack_rate_message":    `>Level: {{df_status}}  \n>Event: {{ df_dimension_tags }}\n>Monitor: {{ df_monitor_checker_name }}\n>Alarm Strategy: {{ df_monitor_name }}\n>Event Status: {{ df_status }}\n>Content: rabbitmq queue message is too high`,
+			"rabbitmq_queue_message_title":   `RabbitMQ queue message is too high`,
+			"rabbitmq_queue_message_message": `>Level: {{df_status}}  \n>Event: {{ df_dimension_tags }}\n>Monitor: {{ df_monitor_checker_name }}\n>Alarm Strategy: {{ df_monitor_name }}\n>Event Status: {{ df_status }}\n>Content: rabbitmq queue message is too high`,
+			"rabbitmq_message_rate_title":    `RabbitMQ queue new rate is too high`,
+			"rabbitmq_message_rate_message":  `>Level: {{df_status}}  \n>Event: {{ df_dimension_tags }}\n>Monitor: {{ df_monitor_checker_name }}\n>Alarm Strategy: {{ df_monitor_name }}\n>Event Status: {{ df_status}}\n>Content: rabbitmq queue new rate is too high`,
+			"rabbitmq_message_rate":          `message rate`,
+			"rabbitmq_unroutable_title":      `RabbitMQ unroutable increase is too high`,
+			"rabbitmq_unroutable_message":    `>Level: {{df_status}}  \n>Event: {{ df_dimension_tags }}\n>Monitor: {{ df_monitor_checker_name }}\n>Alarm Strategy: {{ df_monitor_name }}\n>Event Status: {{ df_status }}\n>Content: rabbitmq unroutable increase`,
 		}
 	default:
 		return nil

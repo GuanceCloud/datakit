@@ -1,5 +1,5 @@
 {
-  "title": "{{.Dashboard.title}}",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
@@ -19,7 +19,7 @@
   "main": {
     "vars": [
       {
-        "name": "{{.Dashboard.cluster_name}}",
+        "name": "<<.Dashboard.cluster_name>>",
         "seq": 0,
         "datasource": "ftinfluxdb",
         "code": "cluster_name",
@@ -42,7 +42,7 @@
         "includeStar": true
       },
       {
-        "name": "{{.Dashboard.tenant_name}}",
+        "name": "<<.Dashboard.tenant_name>>",
         "seq": 1,
         "datasource": "ftinfluxdb",
         "code": "tenant_name",
@@ -352,7 +352,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -434,7 +434,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}event_group{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>event_group<<.Dashboard.right_curly>>"
               },
               {
                 "key": "promql_2",
@@ -541,7 +541,7 @@
               {
                 "key": "promql_2",
                 "name": "promql_2",
-                "alias": "{{.Dashboard.left_curly}}event_group{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>event_group<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -641,7 +641,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -808,7 +808,7 @@
               {
                 "key": "100 * sum(metric_value{stat_id=140006,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip) / sum(metric_value{stat_id=140005,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip)\n{svr_ip: 10.200.14.240}",
                 "name": "100 * sum(metric_value{stat_id=140006,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip) / sum(metric_value{stat_id=140005,tenant_name=~'.+',cluster=~'.+'}) by (svr_ip)\n{svr_ip: 10.200.14.240}",
-                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>svr_ip<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -893,7 +893,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>svr_ip<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -978,7 +978,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}svr_ip{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>svr_ip<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1165,7 +1165,7 @@
               {
                 "key": "promql_2",
                 "name": "promql_2",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1250,7 +1250,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1332,7 +1332,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1539,7 +1539,7 @@
               {
                 "key": "sum(rate(metric_value))",
                 "name": "sum(rate(metric_value))",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1620,7 +1620,7 @@
               {
                 "key": "sum(rate(metric_value))",
                 "name": "sum(rate(metric_value))",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -1806,7 +1806,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -2075,7 +2075,7 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],
@@ -2262,12 +2262,12 @@
               {
                 "key": "promql_1",
                 "name": "promql_1",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               },
               {
                 "key": "promql_2",
                 "name": "promql_2",
-                "alias": "{{.Dashboard.left_curly}}metric_name{{.Dashboard.right_curly}}"
+                "alias": "<<.Dashboard.left_curly>>metric_name<<.Dashboard.right_curly>>"
               }
             ],
             "units": [],

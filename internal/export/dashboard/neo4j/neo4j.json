@@ -33,7 +33,7 @@
                         "showLineAxis": false,
                         "showTitle": true,
                         "timeInterval": "default",
-                        "titleDesc": "{{.Dashboard.dbms_page_cache_usage_ratio_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_page_cache_usage_ratio_note>>",
                         "units": [
                             {
                                 "key": "avg(dbms_page_cache_usage_ratio)",
@@ -50,7 +50,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_page_cache_usage_ratio}}",
+                "name": "<<.Dashboard.dbms_page_cache_usage_ratio>>",
                 "pos": {
                     "h": 6,
                     "w": 5,
@@ -136,7 +136,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.database_cypher_replan_events_total_note}}",
+                        "titleDesc": "<<.Dashboard.database_cypher_replan_events_total_note>>",
                         "units": [],
                         "xAxisShowType": "time",
                         "yAxixMaxVal": null,
@@ -146,7 +146,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.database_cypher_replan_events_total}}",
+                "name": "<<.Dashboard.database_cypher_replan_events_total>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -212,7 +212,7 @@
                         "showLineAxis": false,
                         "showTitle": true,
                         "timeInterval": "default",
-                        "titleDesc": "{{.Dashboard.dbms_page_cache_page_faults_total_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_page_cache_page_faults_total_note>>",
                         "units": [
                             {
                                 "key": "avg(open_os_files_total)",
@@ -229,7 +229,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_page_cache_page_faults_total}}",
+                "name": "<<.Dashboard.dbms_page_cache_page_faults_total>>",
                 "pos": {
                     "h": 6,
                     "w": 5,
@@ -295,7 +295,7 @@
                         "showLineAxis": false,
                         "showTitle": true,
                         "timeInterval": "default",
-                        "titleDesc": "{{.Dashboard.dbms_page_cache_flushes_total_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_page_cache_flushes_total_note>>",
                         "units": [
                             {
                                 "key": "avg(dbms_page_cache_flushes_total)",
@@ -312,7 +312,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_page_cache_flushes_total}}",
+                "name": "<<.Dashboard.dbms_page_cache_flushes_total>>",
                 "pos": {
                     "h": 6,
                     "w": 4,
@@ -398,7 +398,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.dbms_bolt_connections_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_bolt_connections_note>>",
                         "units": [],
                         "xAxisShowType": "time",
                         "yAxixMaxVal": null,
@@ -408,7 +408,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_bolt_connections}}",
+                "name": "<<.Dashboard.dbms_bolt_connections>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -583,7 +583,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.dbms_vm_file_descriptors_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_vm_file_descriptors_note>>",
                         "units": [],
                         "xAxisShowType": "time",
                         "yAxixMaxVal": null,
@@ -593,7 +593,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_vm_file_descriptors}}",
+                "name": "<<.Dashboard.dbms_vm_file_descriptors>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -710,7 +710,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.database_ids_in_use_note}}",
+                        "titleDesc": "<<.Dashboard.database_ids_in_use_note>>",
                         "units": [
                             {
                                 "key": "avg(database_ids_in_use_relationship_type)",
@@ -757,7 +757,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.database_ids_in_use}}",
+                "name": "<<.Dashboard.database_ids_in_use>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -930,7 +930,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.database_db_query_execution_latency_millis_note}}",
+                        "titleDesc": "<<.Dashboard.database_db_query_execution_latency_millis_note>>",
                         "units": [],
                         "xAxisShowType": "time",
                         "yAxixMaxVal": null,
@@ -940,7 +940,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.database_db_query_execution_latency_millis}}",
+                "name": "<<.Dashboard.database_db_query_execution_latency_millis>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -1085,7 +1085,7 @@
                         "slimit": 20,
                         "stackType": "time",
                         "timeInterval": "auto",
-                        "titleDesc": "{{.Dashboard.database_transaction_last_committed_tx_id_total_note}}",
+                        "titleDesc": "<<.Dashboard.database_transaction_last_committed_tx_id_total_note>>",
                         "units": [],
                         "xAxisShowType": "time",
                         "yAxixMaxVal": null,
@@ -1095,7 +1095,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.database_transaction_last_committed_tx_id_total}}",
+                "name": "<<.Dashboard.database_transaction_last_committed_tx_id_total>>",
                 "pos": {
                     "h": 10,
                     "w": 8,
@@ -1161,7 +1161,7 @@
                         "showLineAxis": false,
                         "showTitle": true,
                         "timeInterval": "default",
-                        "titleDesc": "{{.Dashboard.dbms_vm_heap_committed_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_vm_heap_committed_note>>",
                         "units": [
                             {
                                 "key": "avg(dbms_page_cache_flushes_total)",
@@ -1178,7 +1178,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_vm_heap_committed}}",
+                "name": "<<.Dashboard.dbms_vm_heap_committed>>",
                 "pos": {
                     "h": 6,
                     "w": 5,
@@ -1244,7 +1244,7 @@
                         "showLineAxis": false,
                         "showTitle": true,
                         "timeInterval": "default",
-                        "titleDesc": "{{.Dashboard.dbms_vm_heap_used_note}}",
+                        "titleDesc": "<<.Dashboard.dbms_vm_heap_used_note>>",
                         "units": [
                             {
                                 "key": "avg(dbms_page_cache_flushes_total)",
@@ -1261,7 +1261,7 @@
                 "group": {
                     "name": null
                 },
-                "name": "{{.Dashboard.dbms_vm_heap_used}}",
+                "name": "<<.Dashboard.dbms_vm_heap_used>>",
                 "pos": {
                     "h": 6,
                     "w": 5,

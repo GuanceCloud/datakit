@@ -4,12 +4,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "Solr 实例{{core}} 缓存命中率过低告警",
+        "title": "<<.Monitor.cache_hit_rate_title>>",
         "groupBy": [
           "core",
           "host"
         ],
-        "message": ">实例名称：{{core}}\n>所在主机：{{host}}\n>缓存命中率为：{{df_monitor_checker_value * 100}} %\n>Solr缓存命中率过低，请尽快优化缓存配置。",
+        "message": "<<.Monitor.cache_hit_rate_message>>",
         "targets": [
           {
             "dql": "M::`solr_cache`:(avg(`hitratio`)) BY `core`, `host`",
@@ -142,12 +142,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "Solr 实例{{core}} P95请求响应时间告警",
+        "title": "<<.Monitor.request_p95_title>>",
         "groupBy": [
           "host",
           "core"
         ],
-        "message": ">实例名称：{{core}}\n>所在主机：{{host}}\n>缓存命中率为：{{df_monitor_checker_value }} ms\n>SolrP95请求响应时间过高，系统性能可能存在问题，请尽快排查。",
+        "message": "<<.Monitor.request_p95_message>>",
         "targets": [
           {
             "dql": "M::`solr_request_times`:(last(`p95`)) BY `host`, `core`",
@@ -280,12 +280,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "Solr 实例{{core}} 所有请求处理平均时间告警",
+        "title": "<<.Monitor.request_avg_title>>",
         "groupBy": [
           "core",
           "host"
         ],
-        "message": ">实例名称：{{core}}\n>所在主机：{{host}}\n>缓存命中率为：{{df_monitor_checker_value }} ms\n>Solr所有请求处理平均时间过高，系统性能可能存在问题，请尽快排查。",
+        "message": "<<.Monitor.request_avg_message>>",
         "targets": [
           {
             "dql": "M::`solr_request_times`:(last(`mean`)) BY `core`, `host`",

@@ -1,15 +1,15 @@
 {
-  "title": "ElasticSearch 监控视图",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
       "JVM": false,
-      "分片": true,
-      "文档": false,
-      "索引": false,
-      "节点": false,
-      "集群": false,
-      "集群总览": true
+      "<<.Dashboard.shards>>": true,
+      "<<.Dashboard.document>>": false,
+      "<<.Dashboard.group_indices>>": false,
+      "<<.Dashboard.group_node>>": false,
+      "<<.Dashboard.group_cluster>>": false,
+      "<<.Dashboard.group_cluster_overview>>": true
     }
   },
   "dashboardMapping": [],
@@ -21,7 +21,7 @@
   "main": {
     "vars": [
       {
-        "name": "集群名称",
+        "name": "<<.Dashboard.var_cluster_name>>",
         "seq": 0,
         "datasource": "dataflux",
         "code": "cluster_name",
@@ -45,7 +45,7 @@
         "extend": {}
       },
       {
-        "name": "节点名称",
+        "name": "<<.Dashboard.var_node_name>>",
         "seq": 1,
         "datasource": "dataflux",
         "code": "node_name",
@@ -69,7 +69,7 @@
         "extend": {}
       },
       {
-        "name": "索引名称",
+        "name": "<<.Dashboard.var_index_name>>",
         "seq": 2,
         "datasource": "dataflux",
         "code": "index_name",
@@ -182,9 +182,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "集群状态",
+        "name": "<<.Dashboard.cluster_status>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -277,9 +277,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "打开的文件描述符",
+        "name": "<<.Dashboard.open_file_descriptors>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -295,11 +295,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(AVG(`process_open_file_descriptors`) AS `打开的文件描述符`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(AVG(`process_open_file_descriptors`) AS `<<.Dashboard.open_file_descriptors>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "打开的文件描述符",
+              "alias": "<<.Dashboard.open_file_descriptors>>",
               "field": "process_open_file_descriptors",
               "filters": [
                 {
@@ -344,8 +344,8 @@
             "alias": [],
             "units": [
               {
-                "key": "non_negative_derivative(发送)",
-                "name": "non_negative_derivative(发送)",
+                "key": "non_negative_derivative(<<.Dashboard.network_sent>>)",
+                "name": "non_negative_derivative(<<.Dashboard.network_sent>>)",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -353,8 +353,8 @@
                 ]
               },
               {
-                "key": "non_negative_derivative(接收)",
-                "name": "non_negative_derivative(接收)",
+                "key": "non_negative_derivative(<<.Dashboard.network_receive>>)",
+                "name": "non_negative_derivative(<<.Dashboard.network_receive>>)",
                 "unit": "",
                 "units": [
                   "traffic",
@@ -401,9 +401,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "网络流量",
+        "name": "<<.Dashboard.network_traffic>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -419,11 +419,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`elasticsearch_node_stats`:(AVG(`transport_tx_size_in_bytes`) AS `发送`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }\")",
+              "q": "non_negative_derivative(\"M::`elasticsearch_node_stats`:(AVG(`transport_tx_size_in_bytes`) AS `<<.Dashboard.network_sent>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }\")",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "发送",
+              "alias": "<<.Dashboard.network_sent>>",
               "field": "transport_tx_size_in_bytes",
               "filters": [
                 {
@@ -466,11 +466,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`elasticsearch_node_stats`:(AVG(`transport_rx_size_in_bytes`) AS `接收`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }\")",
+              "q": "non_negative_derivative(\"M::`elasticsearch_node_stats`:(AVG(`transport_rx_size_in_bytes`) AS `<<.Dashboard.network_receive>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "接收",
+              "alias": "<<.Dashboard.network_receive>>",
               "field": "transport_rx_size_in_bytes",
               "filters": [
                 {
@@ -560,9 +560,9 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "当前查询数",
+        "name": "<<.Dashboard.search_current>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -664,12 +664,12 @@
               {
                 "key": "cluster_name",
                 "name": "cluster_name",
-                "alias": "集群名称"
+                "alias": "<<.Dashboard.var_cluster_name>>"
               },
               {
                 "key": "index_name",
                 "name": "index_name",
-                "alias": "索引名称"
+                "alias": "<<.Dashboard.var_index_name>>"
               }
             ],
             "units": [],
@@ -705,9 +705,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "索引搜索",
+        "name": "<<.Dashboard.indices_search>>",
         "pos": {
           "h": 13,
           "w": 24,
@@ -814,8 +814,8 @@
             "alias": [],
             "units": [
               {
-                "key": "cpu 使用率",
-                "name": "cpu 使用率",
+                "key": "<<.Dashboard.cpu_usage>>",
+                "name": "<<.Dashboard.cpu_usage>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -866,9 +866,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "CPU 使用率",
+        "name": "<<.Dashboard.cpu_usage>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -884,11 +884,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_percent`) AS `cpu 使用率`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_percent`) AS `<<.Dashboard.cpu_usage>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "cpu 使用率",
+              "alias": "<<.Dashboard.cpu_usage>>",
               "field": "os_cpu_percent",
               "fillNum": null,
               "filters": [
@@ -968,9 +968,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "文件总使用量",
+        "name": "<<.Dashboard.fs_total>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -1066,9 +1066,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.shards>>"
         },
-        "name": "活跃主分片",
+        "name": "<<.Dashboard.active_primary_shards>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -1156,9 +1156,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.shards>>"
         },
-        "name": "活跃分片",
+        "name": "<<.Dashboard.active_shards>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -1246,9 +1246,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.active_shards>>"
         },
-        "name": "迁移中的分片",
+        "name": "<<.Dashboard.relocating_shards>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -1336,9 +1336,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.active_shards>>"
         },
-        "name": "未分配的分片",
+        "name": "<<.Dashboard.unassigned_shards>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -1424,9 +1424,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.active_shards>>"
         },
-        "name": "初始化中分片",
+        "name": "<<.Dashboard.initializing_shards>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -1523,9 +1523,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "文件空闲量",
+        "name": "<<.Dashboard.fs_available>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -1589,8 +1589,8 @@
             "alias": [],
             "units": [
               {
-                "key": "内存使用率",
-                "name": "内存使用率",
+                "key": "<<.Dashboard.mem_usage>>",
+                "name": "<<.Dashboard.mem_usage>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -1637,9 +1637,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "内存使用率",
+        "name": "<<.Dashboard.mem_usage>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -1655,11 +1655,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(AVG(`os_mem_used_percent`) AS `内存使用率`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(AVG(`os_mem_used_percent`) AS `<<.Dashboard.mem_usage>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "内存使用率",
+              "alias": "<<.Dashboard.mem_usage>>",
               "field": "os_mem_used_percent",
               "fillNum": null,
               "filters": [
@@ -1698,8 +1698,8 @@
             "alias": [],
             "units": [
               {
-                "key": "内存总大小",
-                "name": "内存总大小",
+                "key": "<<.Dashboard.mem_total>>",
+                "name": "<<.Dashboard.mem_total>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1707,8 +1707,8 @@
                 ]
               },
               {
-                "key": "内存已使用",
-                "name": "内存已使用",
+                "key": "<<.Dashboard.mem_used>>",
+                "name": "<<.Dashboard.mem_used>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1759,9 +1759,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "内存大小",
+        "name": "<<.Dashboard.mem_size>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -1777,11 +1777,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_mem_total_in_bytes`) AS `内存总大小`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_mem_total_in_bytes`) AS `<<.Dashboard.mem_total>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "内存总大小",
+              "alias": "<<.Dashboard.mem_total>>",
               "field": "os_mem_total_in_bytes",
               "fillNum": null,
               "filters": [
@@ -1819,11 +1819,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_mem_used_in_bytes`) AS `内存已使用`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_mem_used_in_bytes`) AS `<<.Dashboard.mem_used>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "内存已使用",
+              "alias": "<<.Dashboard.mem_used>>",
               "field": "os_mem_used_in_bytes",
               "fillNum": null,
               "filters": [
@@ -1904,9 +1904,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "CPU 负载",
+        "name": "<<.Dashboard.cpu_load>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -1922,11 +1922,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_1m`) AS `cpu 负载 1m`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_1m`) AS `<<.Dashboard.cpu_load_1>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "cpu 负载 1m",
+              "alias": "<<.Dashboard.cpu_load_1>>",
               "field": "os_cpu_load_average_1m",
               "fillNum": null,
               "filters": [
@@ -1964,11 +1964,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_5m`) AS `cpu 负载 5m`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_5m`) AS `<<.Dashboard.cpu_load_5>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "cpu 负载 5m",
+              "alias": "<<.Dashboard.cpu_load_5>>",
               "field": "os_cpu_load_average_5m",
               "fillNum": null,
               "filters": [
@@ -2006,11 +2006,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_15m`) AS `cpu 负载 15m`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`os_cpu_load_average_15m`) AS `<<.Dashboard.cpu_load_15>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "cpu 负载 15m",
+              "alias": "<<.Dashboard.cpu_load_15>>",
               "field": "os_cpu_load_average_15m",
               "fillNum": null,
               "filters": [
@@ -2091,9 +2091,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "HTTP 连接数",
+        "name": "<<.Dashboard.http_current_open>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2109,11 +2109,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`http_current_open`) AS `http 连接数`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`http_current_open`) AS `<<.Dashboard.http_current_open>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "http 连接数",
+              "alias": "<<.Dashboard.http_current_open>>",
               "field": "http_current_open",
               "filters": [
                 {
@@ -2152,8 +2152,8 @@
             "alias": [],
             "units": [
               {
-                "key": "jvm 内存使用率",
-                "name": "jvm 内存使用率",
+                "key": "<<.Dashboard.jvm_mem_usage>>",
+                "name": "<<.Dashboard.jvm_mem_usage>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -2206,7 +2206,7 @@
         "group": {
           "name": "JVM"
         },
-        "name": "JVM 内存使用率",
+        "name": "<<.Dashboard.jvm_mem_usage>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2222,11 +2222,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_used_percent`) AS `jvm 内存使用率`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_used_percent`) AS `<<.Dashboard.jvm_mem_usage>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "jvm 内存使用率",
+              "alias": "<<.Dashboard.jvm_mem_usage>>",
               "field": "jvm_mem_heap_used_percent",
               "filters": [
                 {
@@ -2265,8 +2265,8 @@
             "alias": [],
             "units": [
               {
-                "key": "jvm 内存使用量",
-                "name": "jvm 内存使用量",
+                "key": "<<.Dashboard.jvm_mem_committed>>",
+                "name": "<<.Dashboard.jvm_mem_committed>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -2319,7 +2319,7 @@
         "group": {
           "name": "JVM"
         },
-        "name": "JVM 内存使用量",
+        "name": "<<.Dashboard.jvm_mem_committed>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2335,11 +2335,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_committed_in_bytes`) AS `jvm 内存使用量`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_committed_in_bytes`) AS `<<.Dashboard.jvm_mem_committed>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "jvm 内存使用量",
+              "alias": "<<.Dashboard.jvm_mem_committed>>",
               "field": "jvm_mem_heap_committed_in_bytes",
               "filters": [
                 {
@@ -2422,7 +2422,7 @@
         "group": {
           "name": "JVM"
         },
-        "name": "JVM 垃圾收集器",
+        "name": "<<.Dashboard.jvm_gc_collectors>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2523,8 +2523,8 @@
             "alias": [],
             "units": [
               {
-                "key": "老年代时间",
-                "name": "老年代时间",
+                "key": "<<.Dashboard.jvm_old_collection_time>>",
+                "name": "<<.Dashboard.jvm_old_collection_time>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -2532,8 +2532,8 @@
                 ]
               },
               {
-                "key": "新生代时间",
-                "name": "新生代时间",
+                "key": "<<.Dashboard.jvm_young_collection_time>>",
+                "name": "<<.Dashboard.jvm_young_collection_time>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -2586,7 +2586,7 @@
         "group": {
           "name": "JVM"
         },
-        "name": "JVM 垃圾收集时间",
+        "name": "<<.Dashboard.jvm_gc_collectors_time>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2602,11 +2602,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_gc_collectors_old_collection_time_in_millis`) AS `老年代时间`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_gc_collectors_old_collection_time_in_millis`) AS `<<.Dashboard.jvm_old_collection_time>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "老年代时间",
+              "alias": "<<.Dashboard.jvm_old_collection_time>>",
               "field": "jvm_gc_collectors_old_collection_time_in_millis",
               "filters": [
                 {
@@ -2644,11 +2644,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_gc_collectors_young_collection_time_in_millis`) AS `新生代时间`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
+              "q": "M::`elasticsearch_node_stats`:(avg(`jvm_gc_collectors_young_collection_time_in_millis`) AS `<<.Dashboard.jvm_young_collection_time>>`) { `cluster_name` = '#{cluster_name}' and `node_name` = '#{node_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "新生代时间",
+              "alias": "<<.Dashboard.jvm_young_collection_time>>",
               "field": "jvm_gc_collectors_young_collection_time_in_millis",
               "filters": [
                 {
@@ -2728,9 +2728,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "节点"
+          "name": "<<.Dashboard.group_node>>"
         },
-        "name": "线程池",
+        "name": "<<.Dashboard.thread_pool>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -3097,9 +3097,9 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "查询时间",
+        "name": "<<.Dashboard.search_time>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -3245,9 +3245,9 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "总查询数",
+        "name": "<<.Dashboard.search_total>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -3445,9 +3445,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "Flush 总时间",
+        "name": "<<.Dashboard.flush_time>>",
         "pos": {
           "h": 16,
           "w": 12,
@@ -3759,7 +3759,7 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
         "name": "文档合并",
         "pos": {
@@ -3905,7 +3905,7 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
         "name": "索引操作",
         "pos": {
@@ -4055,9 +4055,9 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "Flush 总数",
+        "name": "<<.Dashboard.flush_total>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -4163,8 +4163,8 @@
             "alias": [],
             "units": [
               {
-                "key": "存储大小",
-                "name": "存储大小",
+                "key": "<<.Dashboard.store_size>>",
+                "name": "<<.Dashboard.store_size>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -4211,9 +4211,9 @@
           "isCombineChart": true
         },
         "group": {
-          "name": "索引"
+          "name": "<<.Dashboard.group_indices>>"
         },
-        "name": "存储大小",
+        "name": "<<.Dashboard.store_size>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -4233,7 +4233,7 @@
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "存储大小",
+              "alias": "<<.Dashboard.store_size>>",
               "field": "total_store_size_in_bytes",
               "filters": [
                 {
@@ -4336,9 +4336,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "集群CPU使用率",
+        "name": "<<.Dashboard.cpu_usage>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -4465,9 +4465,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "集群内存使用率",
+        "name": "<<.Dashboard.mem_usage>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -4597,9 +4597,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "集群堆内存使用率",
+        "name": "<<.Dashboard.jvm_heap_mem_usage>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -4726,9 +4726,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "数据节点",
+        "name": "<<.Dashboard.data_nodes>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -4817,9 +4817,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "集群总览"
+          "name": "<<.Dashboard.group_cluster_overview>>"
         },
-        "name": "待处理任务总数",
+        "name": "<<.Dashboard.pending_tasks>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -4908,9 +4908,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "分片"
+          "name": "<<.Dashboard.active_shards>>"
         },
-        "name": "错误状态索引",
+        "name": "<<.Dashboard.index_error_status>>",
         "pos": {
           "h": 5,
           "w": 4,
@@ -5008,9 +5008,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "主分片文档数量",
+        "name": "<<.Dashboard.document_primary_count>>",
         "pos": {
           "h": 12,
           "w": 5,
@@ -5116,9 +5116,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "主分片已删除文档数量",
+        "name": "<<.Dashboard.primary_deleted>>",
         "pos": {
           "h": 12,
           "w": 5,
@@ -5227,9 +5227,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "文档数量",
+        "name": "<<.Dashboard.document_count>>",
         "pos": {
           "h": 12,
           "w": 5,
@@ -5335,9 +5335,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "文档"
+          "name": "<<.Dashboard.document>>"
         },
-        "name": "已删除文档数量",
+        "name": "<<.Dashboard.document_deleted>>",
         "pos": {
           "h": 12,
           "w": 5,
@@ -5401,19 +5401,19 @@
     ],
     "groups": [
       {
-        "name": "集群总览",
+        "name": "<<.Dashboard.group_cluster_overview>>",
         "extend": {
           "colorKey": "style_key4"
         }
       },
       {
-        "name": "分片",
+        "name": "<<.Dashboard.active_shards>>",
         "extend": {
           "colorKey": "style_key4"
         }
       },
       {
-        "name": "节点",
+        "name": "<<.Dashboard.group_node>>",
         "extend": {
           "colorKey": "default"
         }
@@ -5425,13 +5425,13 @@
         }
       },
       {
-        "name": "文档",
+        "name": "<<.Dashboard.document>>",
         "extend": {
           "colorKey": "default"
         }
       },
       {
-        "name": "索引",
+        "name": "<<.Dashboard.group_indices>>",
         "extend": {
           "colorKey": "default"
         }

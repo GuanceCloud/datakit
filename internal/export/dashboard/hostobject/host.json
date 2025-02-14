@@ -98,7 +98,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.x_title_cpu}}",
+        "name": "<<.Dashboard.x_title_cpu>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -109,7 +109,7 @@
         "queries": [
           {
             "id": 382173,
-            "name": "{{.Dashboard.title_cpu_usage}}",
+            "name": "<<.Dashboard.title_cpu_usage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -135,7 +135,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.desc_win_some_cpu_metric_zero}}",
+                "titleDesc": "<<.Dashboard.desc_win_some_cpu_metric_zero>>",
                 "globalUnit": [
                   "percent",
                   "percent"
@@ -413,7 +413,7 @@
               "x": 0,
               "y": 0
             },
-            "name": "{{.Dashboard.title_cpu_load}}",
+            "name": "<<.Dashboard.title_cpu_load>>",
             "type": "sequence",
             "uuid": "1d199a7bc92544359a5252860360034e",
             "extend": {
@@ -676,7 +676,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.x_title_disk}}",
+        "name": "<<.Dashboard.x_title_disk>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -687,7 +687,7 @@
         "queries": [
           {
             "id": 382175,
-            "name": "{{.Dashboard.title_disk_rw_duration}}",
+            "name": "<<.Dashboard.title_disk_rw_duration>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -713,7 +713,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.desc_linux_only}}",
+                "titleDesc": "<<.Dashboard.desc_linux_only>>",
                 "globalUnit": [
                   "time",
                   "ms"
@@ -846,7 +846,7 @@
               "x": 8,
               "y": 16
             },
-            "name": "{{.Dashboard.title_disk_rw_bytes_per_sec}}",
+            "name": "<<.Dashboard.title_disk_rw_bytes_per_sec>>",
             "type": "sequence",
             "uuid": "fd2cbdfb7fe74c2dadd5ef56ac4a95a8",
             "extend": {
@@ -872,7 +872,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.desc_linux_only}}",
+                "titleDesc": "<<.Dashboard.desc_linux_only>>",
                 "globalUnit": [
                   "traffic",
                   "B/S"
@@ -1007,7 +1007,7 @@
               "x": 0,
               "y": 16
             },
-            "name": "{{.Dashboard.title_disk_used}}",
+            "name": "<<.Dashboard.title_disk_used>>",
             "type": "sequence",
             "uuid": "bc7e1f8d90a3481c9ee1356a6b087b62",
             "extend": {
@@ -1250,7 +1250,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.x_title_net}}",
+        "name": "<<.Dashboard.x_title_net>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -1261,7 +1261,7 @@
         "queries": [
           {
             "id": 382176,
-            "name": "{{.Dashboard.title_network_traffic}}",
+            "name": "<<.Dashboard.title_network_traffic>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -1422,7 +1422,7 @@
               "x": 16,
               "y": 24
             },
-            "name": "{{.Dashboard.title_network_packets}}",
+            "name": "<<.Dashboard.title_network_packets>>",
             "type": "sequence",
             "uuid": "6d3f4aee829e450e8a10a6d3f0034d3e",
             "extend": {
@@ -1641,7 +1641,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.x_title_mem}}",
+        "name": "<<.Dashboard.x_title_mem>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -1652,7 +1652,7 @@
         "queries": [
           {
             "id": 382178,
-            "name": "{{.Dashboard.title_mem_usage_pct}}",
+            "name": "<<.Dashboard.title_mem_usage_pct>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -1778,7 +1778,7 @@
               "x": 16,
               "y": 0
             },
-            "name": "{{.Dashboard.title_mem_used_bytes}}",
+            "name": "<<.Dashboard.title_mem_used_bytes>>",
             "type": "sequence",
             "uuid": "12a11d2596ed411a9806b0d3b8a6d889",
             "extend": {
@@ -1804,7 +1804,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.desc_win_some_mem_metric_miss}}",
+                "titleDesc": "<<.Dashboard.desc_win_some_mem_metric_miss>>",
                 "globalUnit": [
                   "digital",
                   "B"

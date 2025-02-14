@@ -133,7 +133,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.ss_title_service_port}}",
+        "name": "<<.Dashboard.ss_title_service_port>>",
         "pos": {
           "h": 16,
           "w": 8,

@@ -1,5 +1,5 @@
 {
-  "title": "{{.Dashboard.title}}",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {

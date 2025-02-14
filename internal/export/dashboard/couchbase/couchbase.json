@@ -52,7 +52,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.ram_used_note}}",
+              "titleDesc": "<<.Dashboard.ram_used_note>>",
               "units": [
                 {
                   "key": "avg(interestingstats_mem_used)",
@@ -88,9 +88,9 @@
             }
           },
           "group": {
-            "name": "{{.Dashboard.node_resources}}"
+            "name": "<<.Dashboard.node_resources>>"
           },
-          "name": "{{.Dashboard.ram_used}}",
+          "name": "<<.Dashboard.ram_used>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -242,7 +242,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.total_ops_note}}",
+              "titleDesc": "<<.Dashboard.total_ops_note>>",
               "units": [
                 {
                   "key": "avg(interestingstats_ops)",
@@ -260,9 +260,9 @@
             }
           },
           "group": {
-            "name": "{{.Dashboard.cluster_overview}}"
+            "name": "<<.Dashboard.cluster_overview>>"
           },
-          "name": "{{.Dashboard.total_ops}}",
+          "name": "<<.Dashboard.total_ops>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -354,7 +354,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.disk_note}}",
+              "titleDesc": "<<.Dashboard.disk_note>>",
               "units": [
                 {
                   "key": "avg(interestingstats_couch_docs_actual_disk_size)",
@@ -381,9 +381,9 @@
             }
           },
           "group": {
-            "name": "{{.Dashboard.cluster_overview}}"
+            "name": "<<.Dashboard.cluster_overview>>"
           },
-          "name": "{{.Dashboard.disk}}",
+          "name": "<<.Dashboard.disk>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -512,7 +512,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.cpu_used_note}}",
+              "titleDesc": "<<.Dashboard.cpu_used_note>>",
               "units": [
                 {
                   "key": "avg(systemstats_cpu_utilization_rate)",
@@ -527,9 +527,9 @@
             }
           },
           "group": {
-            "name": "{{.Dashboard.node_resources}}"
+            "name": "<<.Dashboard.node_resources>>"
           },
-          "name": "{{.Dashboard.cpu_used}}",
+          "name": "<<.Dashboard.cpu_used>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -621,7 +621,7 @@
               "slimit": 20,
               "stackType": "time",
               "timeInterval": "auto",
-              "titleDesc": "{{.Dashboard.data_ram_note}}",
+              "titleDesc": "<<.Dashboard.data_ram_note>>",
               "units": [
                 {
                   "key": "avg(interestingstats_mem_used)",
@@ -657,9 +657,9 @@
             }
           },
           "group": {
-            "name": "{{.Dashboard.cluster_overview}}"
+            "name": "<<.Dashboard.cluster_overview>>"
           },
-          "name": "{{.Dashboard.data_ram}}",
+          "name": "<<.Dashboard.data_ram>>",
           "pos": {
             "h": 10,
             "w": 8,
@@ -771,8 +771,8 @@
         }
       ],
       "groups": [
-        "{{.Dashboard.cluster_overview}}",
-        "{{.Dashboard.node_resources}}"
+        "<<.Dashboard.cluster_overview>>",
+        "<<.Dashboard.node_resources>>"
       ],
       "type": "template",
       "vars": []

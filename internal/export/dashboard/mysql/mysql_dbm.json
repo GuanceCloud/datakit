@@ -71,8 +71,8 @@
             "unitType": "custom",
             "units": [
               {
-                "key": "{{.Dashboard.cost}}",
-                "name": "{{.Dashboard.cost}}",
+                "key": "<<.Dashboard.cost>>",
+                "name": "<<.Dashboard.cost>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -88,7 +88,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sql_cost}}",
+        "name": "<<.Dashboard.sql_cost>>",
         "pos": {
           "h": 15,
           "w": 8,
@@ -102,7 +102,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.cost}}",
+              "alias": "<<.Dashboard.cost>>",
               "code": "A",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_timer_wait",
@@ -134,7 +134,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `{{.Dashboard.cost}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `<<.Dashboard.cost>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -213,7 +213,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sql_trend}}",
+        "name": "<<.Dashboard.sql_trend>>",
         "pos": {
           "h": 15,
           "w": 8,
@@ -227,7 +227,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.sql_number}}",
+              "alias": "<<.Dashboard.sql_number>>",
               "code": "A",
               "dataSource": "mysql_dbm_metric",
               "field": "*",
@@ -259,7 +259,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `{{.Dashboard.sql_number}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
+              "q": "L::`mysql_dbm_metric`:(COUNT(`*`) AS `<<.Dashboard.sql_number>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' ) } BY `schema_name`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -356,7 +356,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.max_query_time}}",
+        "name": "<<.Dashboard.max_query_time>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -453,7 +453,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sql_exec_times}}",
+        "name": "<<.Dashboard.sql_exec_times>>",
         "pos": {
           "h": 12,
           "w": 4,
@@ -566,7 +566,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.exec_times_per_sql}}",
+        "name": "<<.Dashboard.exec_times_per_sql>>",
         "pos": {
           "h": 12,
           "w": 4,
@@ -694,7 +694,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.max_lock_time}}",
+        "name": "<<.Dashboard.max_lock_time>>",
         "pos": {
           "h": 12,
           "w": 4,
@@ -781,8 +781,8 @@
             "unitType": "custom",
             "units": [
               {
-                "key": "{{.Dashboard.cost}}",
-                "name": "{{.Dashboard.cost}}",
+                "key": "<<.Dashboard.cost>>",
+                "name": "<<.Dashboard.cost>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -790,8 +790,8 @@
                 ]
               },
               {
-                "key": "{{.Dashboard.lock_time}}",
-                "name": "{{.Dashboard.lock_time}}",
+                "key": "<<.Dashboard.lock_time>>",
+                "name": "<<.Dashboard.lock_time>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -799,8 +799,8 @@
                 ]
               },
               {
-                "key": "{{.Dashboard.create_time}}",
-                "name": "{{.Dashboard.create_time}}",
+                "key": "<<.Dashboard.create_time>>",
+                "name": "<<.Dashboard.create_time>>",
                 "unit": "",
                 "units": [
                   "timeStamp",
@@ -841,7 +841,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sql_cost_top_20}}",
+        "name": "<<.Dashboard.sql_cost_top_20>>",
         "pos": {
           "h": 28,
           "w": 24,
@@ -855,7 +855,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.cost}}",
+              "alias": "<<.Dashboard.cost>>",
               "code": "C",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_timer_wait",
@@ -903,7 +903,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `{{.Dashboard.cost}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(MAX(`sum_timer_wait`) AS `<<.Dashboard.cost>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -979,7 +979,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.lock_time}}",
+              "alias": "<<.Dashboard.lock_time>>",
               "code": "B",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_lock_time",
@@ -1027,7 +1027,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`sum_lock_time`) AS `{{.Dashboard.lock_time}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_lock_time`) AS `<<.Dashboard.lock_time>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1041,7 +1041,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.no_index}}",
+              "alias": "<<.Dashboard.no_index>>",
               "code": "E",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_no_index_used",
@@ -1089,7 +1089,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_index_used`) AS `{{.Dashboard.no_index}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_index_used`) AS `<<.Dashboard.no_index>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1103,7 +1103,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.no_good_index}}",
+              "alias": "<<.Dashboard.no_good_index>>",
               "code": "F",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_no_good_index_used",
@@ -1151,7 +1151,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_good_index_used`) AS `{{.Dashboard.no_good_index}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_no_good_index_used`) AS `<<.Dashboard.no_good_index>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1165,7 +1165,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.select_scan}}",
+              "alias": "<<.Dashboard.select_scan>>",
               "code": "D",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_select_scan",
@@ -1213,7 +1213,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_scan`) AS `{{.Dashboard.select_scan}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_scan`) AS `<<.Dashboard.select_scan>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1227,7 +1227,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.select_full_join}}",
+              "alias": "<<.Dashboard.select_full_join>>",
               "code": "G",
               "dataSource": "mysql_dbm_metric",
               "field": "sum_select_full_join",
@@ -1275,7 +1275,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_full_join`) AS `{{.Dashboard.select_full_join}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`sum_select_full_join`) AS `<<.Dashboard.select_full_join>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1289,7 +1289,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.query_count}}",
+              "alias": "<<.Dashboard.query_count>>",
               "code": "H",
               "dataSource": "mysql_dbm_metric",
               "field": "count_star",
@@ -1337,7 +1337,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(SUM(`count_star`) AS `{{.Dashboard.query_count}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(SUM(`count_star`) AS `<<.Dashboard.query_count>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1351,7 +1351,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.create_time}}",
+              "alias": "<<.Dashboard.create_time>>",
               "code": "I",
               "dataSource": "mysql_dbm_metric",
               "field": "create_time",
@@ -1399,7 +1399,7 @@
               "groupByTime": "",
               "indexFilter": "default",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_metric`:(LAST(`create_time`) AS `{{.Dashboard.create_time}}`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
+              "q": "L::`mysql_dbm_metric`:(LAST(`create_time`) AS `<<.Dashboard.create_time>>`) { `index` = 'default' and ( `server` = '#{server}' and `schema_name` = '#{schema}' and `message` != re('set*') and `message` != re('show*') ) } BY `digest`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -1496,7 +1496,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.max_insert_time}}",
+        "name": "<<.Dashboard.max_insert_time>>",
         "pos": {
           "h": 6,
           "w": 4,
@@ -1602,7 +1602,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sql_distribution}}",
+        "name": "<<.Dashboard.sql_distribution>>",
         "pos": {
           "h": 15,
           "w": 8,
@@ -1882,7 +1882,7 @@
           {
             "name": "",
             "query": {
-              "content": "{{.Dashboard.dbm_info_text}}"
+              "content": "<<.Dashboard.dbm_info_text>>"
             }
           }
         ],
@@ -1943,5 +1943,5 @@
     }
   ],
   "thumbnail": "",
-  "title": "{{.Dashboard.dbm_title}}"
+  "title": "<<.Dashboard.dbm_title>>"
 }

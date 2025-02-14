@@ -120,7 +120,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.spod_x_title_mem}}",
+        "name": "<<.Dashboard.spod_x_title_mem>>",
         "pos": {
           "h": 15,
           "w": 12,
@@ -131,7 +131,7 @@
         "queries": [
           {
             "id": 360025,
-            "name": "{{.Dashboard.spod_title_mem_usage}}",
+            "name": "<<.Dashboard.spod_title_mem_usage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -255,7 +255,7 @@
               "x": 0,
               "y": 27
             },
-            "name": "{{.Dashboard.spod_title_mem_limit}}",
+            "name": "<<.Dashboard.spod_title_mem_limit>>",
             "type": "sequence",
             "uuid": "4a447701a044449ebcbefa3b86f0fad4",
             "extend": {
@@ -445,7 +445,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.spod_x_title_net}}",
+        "name": "<<.Dashboard.spod_x_title_net>>",
         "pos": {
           "h": 15,
           "w": 12,
@@ -456,7 +456,7 @@
         "queries": [
           {
             "id": 360026,
-            "name": "{{.Dashboard.spod_title_net_recv}}",
+            "name": "<<.Dashboard.spod_title_net_recv>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -588,7 +588,7 @@
               "x": 12,
               "y": 13
             },
-            "name": "{{.Dashboard.spod_title_net_sent}}",
+            "name": "<<.Dashboard.spod_title_net_sent>>",
             "type": "sequence",
             "uuid": "71e8b35b335946978414d9c4395d1a9b",
             "extend": {
@@ -775,7 +775,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.spod_x_title_storage}}",
+        "name": "<<.Dashboard.spod_x_title_storage>>",
         "pos": {
           "h": 15,
           "w": 12,
@@ -786,7 +786,7 @@
         "queries": [
           {
             "id": 381944,
-            "name": "{{.Dashboard.spod_title_pod_used_storage}}",
+            "name": "<<.Dashboard.spod_title_pod_used_storage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -910,7 +910,7 @@
               "h": 10,
               "w": 8
             },
-            "name": "{{.Dashboard.spod_title_pod_available_storage}}",
+            "name": "<<.Dashboard.spod_title_pod_available_storage>>",
             "type": "sequence",
             "uuid": "9fade9edee16450281ea0b7595baeee9",
             "extend": {
@@ -1051,7 +1051,7 @@
             "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "titleDesc": "{{.Dashboard.desc_node_cpu_usage_base100}}",
+            "titleDesc": "<<.Dashboard.desc_node_cpu_usage_base100>>",
             "globalUnit": [
               "percent",
               "percent"
@@ -1087,7 +1087,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.spod_x_title_cpu}}",
+        "name": "<<.Dashboard.spod_x_title_cpu>>",
         "pos": {
           "h": 15,
           "w": 12,
@@ -1098,7 +1098,7 @@
         "queries": [
           {
             "id": 383300,
-            "name": "{{.Dashboard.spod_title_node_cpu_usage_base100}}",
+            "name": "<<.Dashboard.spod_title_node_cpu_usage_base100>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -1118,7 +1118,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.spod_desc_node_cpu_usage_base100}}",
+                "titleDesc": "<<.Dashboard.spod_desc_node_cpu_usage_base100>>",
                 "globalUnit": [
                   "percent",
                   "percent"
@@ -1221,7 +1221,7 @@
               "x": 0,
               "y": 0
             },
-            "name": "{{.Dashboard.spod_title_base_100_cpu_usage}}",
+            "name": "<<.Dashboard.spod_title_base_100_cpu_usage>>",
             "type": "sequence",
             "uuid": "ae70442864174fe0967a82fc469ebea9",
             "extend": {
@@ -1242,7 +1242,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.spod_desc_base_100_cpu_usage}}",
+                "titleDesc": "<<.Dashboard.spod_desc_base_100_cpu_usage>>",
                 "globalUnit": [
                   "percent",
                   "percent_decimal"
@@ -1404,7 +1404,7 @@
               "h": 13,
               "w": 12
             },
-            "name": "{{.Dashboard.spod_title_per_cpu_usage}}",
+            "name": "<<.Dashboard.spod_title_per_cpu_usage>>",
             "type": "sequence",
             "uuid": "512a9d2af0ff4c468fa39b29f26e7a76",
             "extend": {
@@ -1425,7 +1425,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.spod_desc_per_cpu_usage}}",
+                "titleDesc": "<<.Dashboard.spod_desc_per_cpu_usage>>",
                 "globalUnit": [
                   "percent",
                   "percent"
@@ -1532,7 +1532,7 @@
               "h": 10,
               "w": 8
             },
-            "name": "{{.Dashboard.spod_title_cpu_limit}}",
+            "name": "<<.Dashboard.spod_title_cpu_limit>>",
             "type": "sequence",
             "uuid": "cf14d0fc5fa645759633c07b6a95bca9",
             "extend": {
