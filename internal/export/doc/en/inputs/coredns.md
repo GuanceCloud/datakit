@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'CoreDNS'
     path  : 'dashboard/en/coredns'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'CoreDNS'
+    path  : 'monitor/en/coredns'
 ---
 
 
@@ -40,7 +40,21 @@ CoreDNS collector is used to collect metric data related to CoreDNS.
 
 === "Kubernetes"
 
-    The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+
+    Enable [`kubernetesprometheus`(https://docs.guance.com/integrations/kubernetesprometheus/) through DataKit .
+
+    ```yaml
+    [inputs.kubernetesprometheus]
+      [[inputs.kubernetesprometheus.instances]]
+          role       = "pod"
+          namespaces = ["kube-system"]
+          selector   = "k8s-app=kube-dns"
+          port     = "__kubernetes_pod_container_coredns_port_metrics_number"
+        [inputs.kubernetesprometheus.instances.custom]
+          [inputs.kubernetesprometheus.instances.custom.tags]
+            cluster = "demo"
+    ```
+
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}

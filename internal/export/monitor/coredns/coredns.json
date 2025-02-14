@@ -4,11 +4,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "coreDNS {{ instance }} 响应时间过高",
+        "title": "<<.Monitor.coredns_response_time_title>>",
         "groupBy": [
           "instance"
         ],
-        "message": "",
+        "message": "<<.Monitor.coredns_response_time_message>>",
         "targets": [
           {
             "dql": "M::`coredns`:(avg(`dns_request_duration_seconds_bucket`)) BY `instance`",
@@ -64,7 +64,9 @@
               "conditionLogic": "and"
             }
           ],
-          "combineExpr": "A && B"
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
         },
         "noDataTitle": "",
         "noDataMessage": "",
@@ -157,7 +159,7 @@
       "tagInfo": [],
       "secret": "",
       "type": "trigger",
-      "monitorName": "default",
+      "monitorName": "<<.Monitor.default_monitor_name>>",
       "alertPolicyNames": []
     },
     {
@@ -165,11 +167,11 @@
         "type": "seniorMutationsCheck",
         "every": "5m",
         "range": 900,
-        "title": "coreDNS {{instance}} 缓存命中率异常",
+        "title": "<<.Monitor.coredns_cache_hit_title>>",
         "groupBy": [
           "instance"
         ],
-        "message": "",
+        "message": "<<.Monitor.coredns_cache_hit_message>>",
         "range_2": 1800,
         "targets": [
           {
@@ -228,12 +230,14 @@
           ],
           "diffMode": "percent",
           "direction": "down",
+          "infoEvent": false,
           "threshold": {
             "value": 0.3,
             "status": true,
             "operator": ">"
           },
-          "combineExpr": "A && B"
+          "combineExpr": "A && B",
+          "openMatchTimes": false
         },
         "noDataTitle": "",
         "periodBefore": 0,
@@ -353,18 +357,18 @@
       "tagInfo": [],
       "secret": "",
       "type": "trigger",
-      "monitorName": "default",
+      "monitorName": "<<.Monitor.default_monitor_name>>",
       "alertPolicyNames": []
     },
     {
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "coreDNS {{instance}} 上游响应延迟异常",
+        "title": "<<.Monitor.coredns_forward_request_duration_title>>",
         "groupBy": [
           "instance"
         ],
-        "message": "",
+        "message": "<<.Monitor.coredns_forward_request_duration_message>>",
         "targets": [
           {
             "dql": "M::`coredns`:(avg(`forward_request_duration_seconds_bucket`)) BY `instance`",
@@ -420,7 +424,9 @@
               "conditionLogic": "and"
             }
           ],
-          "combineExpr": "A && B"
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
         },
         "noDataTitle": "",
         "noDataMessage": "",
@@ -513,7 +519,7 @@
       "tagInfo": [],
       "secret": "",
       "type": "trigger",
-      "monitorName": "default",
+      "monitorName": "<<.Monitor.default_monitor_name>>",
       "alertPolicyNames": []
     },
     {
@@ -521,11 +527,11 @@
         "type": "seniorMutationsCheck",
         "every": "5m",
         "range": 900,
-        "title": "coreDNS {{instance}} 大量错误响应",
+        "title": "<<.Monitor.coredns_response_error_title>>",
         "groupBy": [
           "rcode"
         ],
-        "message": "",
+        "message": "<<.Monitor.coredns_response_error_message>>",
         "range_2": 1800,
         "targets": [
           {
@@ -584,12 +590,14 @@
           ],
           "diffMode": "percent",
           "direction": "up",
+          "infoEvent": false,
           "threshold": {
             "value": null,
             "status": false,
             "operator": ">"
           },
-          "combineExpr": "A && B"
+          "combineExpr": "A && B",
+          "openMatchTimes": false
         },
         "noDataTitle": "",
         "periodBefore": 0,
@@ -693,7 +701,7 @@
       "tagInfo": [],
       "secret": "",
       "type": "trigger",
-      "monitorName": "default",
+      "monitorName": "<<.Monitor.default_monitor_name>>",
       "alertPolicyNames": []
     }
   ]
