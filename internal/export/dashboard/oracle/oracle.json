@@ -1,10 +1,10 @@
 {
-  "title": "Oracle 监控视图",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "实例基础信息": true,
-      "实例进程信息": true
+      "<<.Dashboard.instance_information>>": true,
+      "<<.Dashboard.instance_process_information>>": true
     }
   },
   "dashboardMapping": [],
@@ -20,7 +20,7 @@
   "main": {
     "vars": [
       {
-        "name": "主机名",
+        "name": "<<.Dashboard.host_name>>",
         "seq": 0,
         "datasource": "dataflux",
         "code": "hostname",
@@ -43,7 +43,7 @@
         "includeStar": true
       },
       {
-        "name": "服务名",
+        "name": "<<.Dashboard.service_name>>",
         "seq": 1,
         "datasource": "dataflux",
         "code": "service_name",
@@ -72,8 +72,8 @@
           "settings": {
             "units": [
               {
-                "key": "缓冲区缓存命中率",
-                "name": "缓冲区缓存命中率",
+                "key": "<<.Dashboard.buffer_cache_hit_ratio>>",
+                "name": "<<.Dashboard.buffer_cache_hit_ratio>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -81,8 +81,8 @@
                 ]
               },
               {
-                "key": "库缓存命中率",
-                "name": "库缓存命中率",
+                "key": "<<.Dashboard.library_cache_hit_ratio>>",
+                "name": "<<.Dashboard.library_cache_hit_ratio>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -90,8 +90,8 @@
                 ]
               },
               {
-                "key": "游标缓存命中率",
-                "name": "游标缓存命中率",
+                "key": "<<.Dashboard.cursor_cache_hit_ratio>>",
+                "name": "<<.Dashboard.cursor_cache_hit_ratio>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -116,15 +116,15 @@
             "isTimeInterval": true,
             "currentChartType": "sequence",
             "showFieldMapping": false,
-            "tableSortMetricName": "缓冲区缓存命中率"
+            "tableSortMetricName": "<<.Dashboard.buffer_cache_hit_ratio>>"
           },
           "fixedTime": null,
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "缓存命中率",
+        "name": "<<.Dashboard.cache_hit_ratio>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -140,11 +140,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(AVG(`buffer_cachehit_ratio`) AS `缓冲区缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(AVG(`buffer_cachehit_ratio`) AS `<<.Dashboard.buffer_cache_hit_ratio>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "缓冲区缓存命中率",
+              "alias": "<<.Dashboard.buffer_cache_hit_ratio>>",
               "field": "buffer_cachehit_ratio",
               "filters": [
                 {
@@ -182,11 +182,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(AVG(`library_cachehit_ratio`) AS `库缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(AVG(`library_cachehit_ratio`) AS `<<.Dashboard.library_cache_hit_ratio>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "库缓存命中率",
+              "alias": "<<.Dashboard.library_cache_hit_ratio>>",
               "field": "library_cachehit_ratio",
               "filters": [
                 {
@@ -224,11 +224,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(AVG(`cursor_cachehit_ratio`) AS `游标缓存命中率`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(AVG(`cursor_cachehit_ratio`) AS `<<.Dashboard.cursor_cache_hit_ratio>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "游标缓存命中率",
+              "alias": "<<.Dashboard.cursor_cache_hit_ratio>>",
               "field": "cursor_cachehit_ratio",
               "filters": [
                 {
@@ -298,9 +298,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "响应时间",
+        "name": "<<.Dashboard.response_time>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -316,11 +316,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(AVG(`service_response_time`) AS `服务响应时间`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(AVG(`service_response_time`) AS `<<.Dashboard.service_response_time>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "H",
               "fill": null,
               "type": "simple",
-              "alias": "服务响应时间",
+              "alias": "<<.Dashboard.service_response_time>>",
               "field": "service_response_time",
               "filters": [
                 {
@@ -360,8 +360,8 @@
           "settings": {
             "units": [
               {
-                "key": "临时空间大小",
-                "name": "临时空间大小",
+                "key": "<<.Dashboard.temporary_space_size>>",
+                "name": "<<.Dashboard.temporary_space_size>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -385,15 +385,15 @@
             "isTimeInterval": true,
             "currentChartType": "sequence",
             "showFieldMapping": false,
-            "tableSortMetricName": "活动排序的总块数"
+            "tableSortMetricName": "<<.Dashboard.activity_sorting_block_number>>"
           },
           "fixedTime": null,
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "TEMP空间",
+        "name": "<<.Dashboard.temporary_space>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -413,7 +413,7 @@
               "code": "D",
               "fill": "linear",
               "type": "simple",
-              "alias": "临时空间大小",
+              "alias": "<<.Dashboard.temporary_space_size>>",
               "field": "temp_space_used",
               "filters": [
                 {
@@ -452,8 +452,8 @@
           "settings": {
             "units": [
               {
-                "key": "已使用",
-                "name": "已使用",
+                "key": "<<.Dashboard.used>>",
+                "name": "<<.Dashboard.used>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -461,8 +461,8 @@
                 ]
               },
               {
-                "key": "总大小",
-                "name": "总大小",
+                "key": "<<.Dashboard.total_size>>",
+                "name": "<<.Dashboard.total_size>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -470,8 +470,8 @@
                 ]
               },
               {
-                "key": "百分比占用",
-                "name": "百分比占用",
+                "key": "<<.Dashboard.percentage_occupied>>",
+                "name": "<<.Dashboard.percentage_occupied>>",
                 "unit": "",
                 "units": [
                   "percent",
@@ -487,13 +487,13 @@
             },
             "currentChartType": "table",
             "showFieldMapping": false,
-            "tableSortMetricName": "已使用"
+            "tableSortMetricName": "<<.Dashboard.used>>"
           },
           "fixedTime": null,
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
         "name": "表空间",
         "pos": {
@@ -511,11 +511,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_tablespace`:(AVG(`ts_size`) AS `总大小`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "q": "M::`oracle_tablespace`:(AVG(`ts_size`) AS `<<.Dashboard.total_size>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "总大小",
+              "alias": "<<.Dashboard.total_size>>",
               "field": "ts_size",
               "filters": [
                 {
@@ -557,11 +557,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_tablespace`:(AVG(`used_space`) AS `已使用`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "q": "M::`oracle_tablespace`:(AVG(`used_space`) AS `<<.Dashboard.used>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "已使用",
+              "alias": "<<.Dashboard.used>>",
               "field": "used_space",
               "filters": [
                 {
@@ -603,11 +603,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_tablespace`:(AVG(`in_use`) AS `百分比占用`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "q": "M::`oracle_tablespace`:(AVG(`in_use`) AS `<<.Dashboard.percentage_occupied>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "百分比占用",
+              "alias": "<<.Dashboard.percentage_occupied>>",
               "field": "in_use",
               "filters": [
                 {
@@ -650,11 +650,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_tablespace`:(AVG(`off_use`) AS `挂载状态`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
+              "q": "M::`oracle_tablespace`:(AVG(`off_use`) AS `<<.Dashboard.mount_state>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "挂载状态",
+              "alias": "<<.Dashboard.mount_state>>",
               "field": "off_use",
               "filters": [
                 {
@@ -752,7 +752,7 @@
               "weekCompare": "rgba(11,11,12,0.3)",
               "monthCompare": "rgba(11,11,12,0.12)"
             },
-            "tableSortMetricName": "等待会话",
+            "tableSortMetricName": "<<.Dashboard.wait_session>>",
             "openThousandsSeparator": true,
             "mainMeasurementQueryCode": "B"
           },
@@ -760,9 +760,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "会话数",
+        "name": "<<.Dashboard.session>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -778,11 +778,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(avg(`session_count`) AS `会话总数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(avg(`session_count`) AS `<<.Dashboard.session_number>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "会话总数",
+              "alias": "<<.Dashboard.session_number>>",
               "field": "session_count",
               "filters": [
                 {
@@ -820,11 +820,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(avg(`active_sessions`) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(avg(`active_sessions`) AS `<<.Dashboard.active_session_number>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "活跃会话数",
+              "alias": "<<.Dashboard.active_session_number>>",
               "field": "active_sessions",
               "filters": [
                 {
@@ -887,9 +887,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "活跃会话数",
+        "name": "<<.Dashboard.active_session_number>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -905,11 +905,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`active_sessions`), linear) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`active_sessions`), linear) AS `<<.Dashboard.active_session_number>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": "linear",
               "type": "simple",
-              "alias": "活跃会话数",
+              "alias": "<<.Dashboard.active_session_number>>",
               "field": "active_sessions",
               "filters": [
                 {
@@ -974,9 +974,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "会话总数",
+        "name": "<<.Dashboard.session_number>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -992,11 +992,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`session_count`), linear) AS `活跃会话数`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`session_count`), linear) AS `<<.Dashboard.session_number>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": "linear",
               "type": "simple",
-              "alias": "活跃会话数",
+              "alias": "<<.Dashboard.session_number>>",
               "field": "session_count",
               "fillNum": null,
               "filters": [
@@ -1039,21 +1039,21 @@
           "settings": {
             "units": [
               {
-                "key": "用户排序",
-                "name": "用户排序",
-                "unit": "次/秒",
+                "key": "<<.Dashboard.user_sort>>",
+                "name": "<<.Dashboard.user_sort>>",
+                "unit": "<<.Dashboard.time_per_second>>",
                 "units": [
                   "custom",
-                  "次/秒"
+                  "<<.Dashboard.time_per_second>>"
                 ]
               },
               {
-                "key": "磁盘排序",
-                "name": "磁盘排序",
-                "unit": "次/秒",
+                "key": "<<.Dashboard.disk_sort>>",
+                "name": "<<.Dashboard.disk_sort>>",
+                "unit": "<<.Dashboard.time_per_second>>",
                 "units": [
                   "custom",
-                  "次/秒"
+                  "<<.Dashboard.time_per_second>>"
                 ]
               }
             ],
@@ -1078,7 +1078,7 @@
           "fixedTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
         "name": "数据排序",
         "pos": {
@@ -1096,11 +1096,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`disk_sorts`), linear) AS `磁盘排序`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`disk_sorts`), linear) AS `<<.Dashboard.disk_sort>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": "linear",
               "type": "simple",
-              "alias": "磁盘排序",
+              "alias": "<<.Dashboard.disk_sort>>",
               "field": "disk_sorts",
               "filters": [
                 {
@@ -1138,11 +1138,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`sorts_per_user_call`), linear) AS `用户排序`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`sorts_per_user_call`), linear) AS `<<.Dashboard.user_sort>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "B",
               "fill": "linear",
               "type": "simple",
-              "alias": "用户排序",
+              "alias": "<<.Dashboard.user_sort>>",
               "field": "sorts_per_user_call",
               "filters": [
                 {
@@ -1180,21 +1180,21 @@
           "settings": {
             "units": [
               {
-                "key": "物理读取",
-                "name": "物理读取",
-                "unit": "次/秒",
+                "key": "<<.Dashboard.physical_read>>",
+                "name": "<<.Dashboard.physical_read>>",
+                "unit": "<<.Dashboard.time_per_second>>",
                 "units": [
                   "custom",
-                  "次/秒"
+                  "<<.Dashboard.time_per_second>>"
                 ]
               },
               {
-                "key": "物理写入",
-                "name": "物理写入",
-                "unit": "次/秒",
+                "key": "<<.Dashboard.physical_write>>",
+                "name": "<<.Dashboard.physical_write>>",
+                "unit": "<<.Dashboard.time_per_second>>",
                 "units": [
                   "custom",
-                  "次/秒"
+                  "<<.Dashboard.time_per_second>>"
                 ]
               }
             ],
@@ -1219,9 +1219,9 @@
           "fixedTime": null
         },
         "group": {
-          "name": "实例基础信息"
+          "name": "<<.Dashboard.instance_information>>"
         },
-        "name": "物理读写次数",
+        "name": "<<.Dashboard.physical_read_write_number>>",
         "pos": {
           "h": 11,
           "w": 9,
@@ -1237,11 +1237,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`physical_reads`), linear) AS `物理读取`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`physical_reads`), linear) AS `<<.Dashboard.physical_read>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "A",
               "fill": "linear",
               "type": "simple",
-              "alias": "物理读取",
+              "alias": "<<.Dashboard.physical_read>>",
               "field": "physical_reads",
               "filters": [
                 {
@@ -1279,11 +1279,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(fill(AVG(`physical_writes`), linear) AS `物理写入`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
+              "q": "M::`oracle_system`:(fill(AVG(`physical_writes`), linear) AS `<<.Dashboard.physical_write>>`) { `host` = '#{hostname}' and `oracle_service` = '#{service_name}' }",
               "code": "B",
               "fill": "linear",
               "type": "simple",
-              "alias": "物理写入",
+              "alias": "<<.Dashboard.physical_write>>",
               "field": "physical_writes",
               "filters": [
                 {
@@ -1363,9 +1363,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "实例进程信息"
+          "name": "<<.Dashboard.instance_process_information>>"
         },
-        "name": "按进程分配的 PGA 内存",
+        "name": "<<.Dashboard.pga_mem_alloc>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1469,9 +1469,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "实例进程信息"
+          "name": "<<.Dashboard.instance_process_information>>"
         },
-        "name": "按进程释放的 PGA 内存",
+        "name": "<<.Dashboard.pga_freeable>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1575,9 +1575,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "实例进程信息"
+          "name": "<<.Dashboard.instance_process_information>>"
         },
-        "name": "进程分配的 PGA 最大内存",
+        "name": "<<.Dashboard.pga_mem_max>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1681,9 +1681,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "实例进程信息"
+          "name": "<<.Dashboard.instance_process_information>>"
         },
-        "name": "进程使用的 PGA 内存",
+        "name": "<<.Dashboard.pga_mem_used>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1743,11 +1743,11 @@
     ],
     "groups": [
       {
-        "name": "实例基础信息",
+        "name": "<<.Dashboard.instance_information>>",
         "extend": {}
       },
       {
-        "name": "实例进程信息",
+        "name": "<<.Dashboard.instance_process_information>>",
         "extend": {
           "bgColor": ""
         }

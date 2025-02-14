@@ -97,7 +97,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Device_Alive}}",
+        "name": "<<.Dashboard.Device_Alive>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -204,7 +204,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Uptime}}",
+        "name": "<<.Dashboard.Uptime>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -372,7 +372,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Fan}}",
+        "name": "<<.Dashboard.Fan>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -518,7 +518,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Temperature}}",
+        "name": "<<.Dashboard.Temperature>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -633,7 +633,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.CPU}}",
+        "name": "<<.Dashboard.CPU>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -748,7 +748,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Memory}}",
+        "name": "<<.Dashboard.Memory>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -853,7 +853,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Net}}",
+        "name": "<<.Dashboard.Net>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1028,7 +1028,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Interface}}",
+        "name": "<<.Dashboard.Interface>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1278,7 +1278,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Discards}}",
+        "name": "<<.Dashboard.Discards>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1434,7 +1434,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Errors}}",
+        "name": "<<.Dashboard.Errors>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1590,7 +1590,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Packets}}",
+        "name": "<<.Dashboard.Packets>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -1746,7 +1746,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.Bytes}}",
+        "name": "<<.Dashboard.Bytes>>",
         "pos": {
           "h": 13,
           "w": 8,

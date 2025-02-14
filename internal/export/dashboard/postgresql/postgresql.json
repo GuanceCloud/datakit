@@ -59,9 +59,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.max_connections_percent}}",
+        "name": "<<.Dashboard.max_connections_percent>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -146,7 +146,7 @@
             "showLineAxis": false,
             "showTitle": true,
             "timeInterval": "10s",
-            "titleDesc": "{{.Dashboard.title_not_contain_postgresql}}",
+            "titleDesc": "<<.Dashboard.title_not_contain_postgresql>>",
             "unitType": "custom",
             "units": [
               {
@@ -162,9 +162,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.rows_fetch_return}}",
+        "name": "<<.Dashboard.rows_fetch_return>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -325,9 +325,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.temp_bytes}}",
+        "name": "<<.Dashboard.temp_bytes>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -391,7 +391,7 @@
           "settings": {
             "alias": [
               {
-                "alias": "{{.Dashboard.table}}",
+                "alias": "<<.Dashboard.table>>",
                 "key": "table",
                 "name": "table"
               }
@@ -420,8 +420,8 @@
             "unitType": "custom",
             "units": [
               {
-                "key": "{{.Dashboard.disk_usage}}",
-                "name": "{{.Dashboard.disk_usage}}",
+                "key": "<<.Dashboard.disk_usage>>",
+                "name": "<<.Dashboard.disk_usage>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -434,9 +434,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.resource_table}}",
+        "name": "<<.Dashboard.resource_table>>",
         "pos": {
           "h": 14,
           "w": 12,
@@ -450,7 +450,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.disk_usage}}",
+              "alias": "<<.Dashboard.disk_usage>>",
               "code": "A",
               "dataSource": "postgresql_size",
               "field": "total_size",
@@ -490,7 +490,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_size`:(LAST(`total_size`) AS `{{.Dashboard.disk_usage}}`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
+              "q": "M::`postgresql_size`:(LAST(`total_size`) AS `<<.Dashboard.disk_usage>>`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -503,7 +503,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.index_scan}}",
+              "alias": "<<.Dashboard.index_scan>>",
               "code": "B",
               "dataSource": "postgresql_index",
               "field": "idx_scan",
@@ -543,7 +543,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `{{.Dashboard.index_scan}}`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
+              "q": "M::`postgresql_index`:(LAST(`idx_scan`) AS `<<.Dashboard.index_scan>>`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -556,7 +556,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.live_rows}}",
+              "alias": "<<.Dashboard.live_rows>>",
               "code": "C",
               "dataSource": "postgresql_stat",
               "field": "n_live_tup",
@@ -596,7 +596,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_stat`:(LAST(`n_live_tup`) AS `{{.Dashboard.live_rows}}`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
+              "q": "M::`postgresql_stat`:(LAST(`n_live_tup`) AS `<<.Dashboard.live_rows>>`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -609,7 +609,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.dead_rows}}",
+              "alias": "<<.Dashboard.dead_rows>>",
               "code": "D",
               "dataSource": "postgresql_stat",
               "field": "n_dead_tup",
@@ -649,7 +649,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_stat`:(LAST(`n_dead_tup`) AS `{{.Dashboard.dead_rows}}`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
+              "q": "M::`postgresql_stat`:(LAST(`n_dead_tup`) AS `<<.Dashboard.dead_rows>>`) { `table` = '#{table}' and `db` = '#{db}' and `host` = '#{host}' } BY `table`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -729,9 +729,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_locks}}"
+          "name": "<<.Dashboard.group_locks>>"
         },
-        "name": "{{.Dashboard.lock_by_mode}}",
+        "name": "<<.Dashboard.lock_by_mode>>",
         "pos": {
           "h": 9,
           "w": 7,
@@ -850,9 +850,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_rows}}"
+          "name": "<<.Dashboard.group_rows>>"
         },
-        "name": "{{.Dashboard.inserted}}",
+        "name": "<<.Dashboard.inserted>>",
         "pos": {
           "h": 7,
           "w": 5,
@@ -920,7 +920,7 @@
           "settings": {
             "alias": [
               {
-                "alias": "{{.Dashboard.db}}",
+                "alias": "<<.Dashboard.db>>",
                 "key": "db",
                 "name": "db"
               }
@@ -945,12 +945,12 @@
             "showTitle": true,
             "slimit": 20,
             "timeInterval": "auto",
-            "titleDesc": "{{.Dashboard.title_not_contain_postgresql}}",
+            "titleDesc": "<<.Dashboard.title_not_contain_postgresql>>",
             "unitType": "custom",
             "units": [
               {
-                "key": "{{.Dashboard.inserted}}",
-                "name": "{{.Dashboard.inserted}}",
+                "key": "<<.Dashboard.inserted>>",
+                "name": "<<.Dashboard.inserted>>",
                 "unit": "/s",
                 "units": [
                   "custom",
@@ -958,8 +958,8 @@
                 ]
               },
               {
-                "key": "{{.Dashboard.updated}}",
-                "name": "{{.Dashboard.updated}}",
+                "key": "<<.Dashboard.updated>>",
+                "name": "<<.Dashboard.updated>>",
                 "unit": "/s",
                 "units": [
                   "custom",
@@ -967,8 +967,8 @@
                 ]
               },
               {
-                "key": "{{.Dashboard.deleted}}",
-                "name": "{{.Dashboard.deleted}}",
+                "key": "<<.Dashboard.deleted>>",
+                "name": "<<.Dashboard.deleted>>",
                 "unit": "/s",
                 "units": [
                   "custom",
@@ -981,9 +981,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_rows}}"
+          "name": "<<.Dashboard.group_rows>>"
         },
-        "name": "{{.Dashboard.actions}}",
+        "name": "<<.Dashboard.actions>>",
         "pos": {
           "h": 14,
           "w": 14,
@@ -997,7 +997,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.inserted}}",
+              "alias": "<<.Dashboard.inserted>>",
               "code": "A",
               "dataSource": "postgresql",
               "field": "tup_inserted",
@@ -1029,7 +1029,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_inserted`) AS `{{.Dashboard.inserted}}`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
+              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_inserted`) AS `<<.Dashboard.inserted>>`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1042,7 +1042,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.updated}}",
+              "alias": "<<.Dashboard.updated>>",
               "code": "B",
               "dataSource": "postgresql",
               "field": "tup_updated",
@@ -1074,7 +1074,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_updated`) AS `{{.Dashboard.updated}}`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
+              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_updated`) AS `<<.Dashboard.updated>>`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1087,7 +1087,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.deleted}}",
+              "alias": "<<.Dashboard.deleted>>",
               "code": "C",
               "dataSource": "postgresql",
               "field": "tup_deleted",
@@ -1119,7 +1119,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_deleted`) AS `{{.Dashboard.deleted}}`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
+              "q": "M::`postgresql`:(NON_NEGATIVE_DERIVATIVE(`tup_deleted`) AS `<<.Dashboard.deleted>>`) { `db` = '#{db}' and `host` = '#{host}' } BY `db`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -1182,9 +1182,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_connection}}"
+          "name": "<<.Dashboard.group_connection>>"
         },
-        "name": "{{.Dashboard.connections_per_db}}",
+        "name": "<<.Dashboard.connections_per_db>>",
         "pos": {
           "h": 13,
           "w": 12,
@@ -1300,9 +1300,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_checkpoint}}"
+          "name": "<<.Dashboard.group_checkpoint>>"
         },
-        "name": "{{.Dashboard.checkpoints_timed}}",
+        "name": "<<.Dashboard.checkpoints_timed>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -1409,9 +1409,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.temp_files}}",
+        "name": "<<.Dashboard.temp_files>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -1527,9 +1527,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_transaction}}"
+          "name": "<<.Dashboard.group_transaction>>"
         },
-        "name": "{{.Dashboard.commit}}",
+        "name": "<<.Dashboard.commit>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1643,9 +1643,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_throughput}}"
+          "name": "<<.Dashboard.group_throughput>>"
         },
-        "name": "{{.Dashboard.seq_idx_scan}}",
+        "name": "<<.Dashboard.seq_idx_scan>>",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1809,9 +1809,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.dead_rows}}",
+        "name": "<<.Dashboard.dead_rows>>",
         "pos": {
           "h": 7,
           "w": 12,
@@ -1908,9 +1908,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.most_scan_index}}",
+        "name": "<<.Dashboard.most_scan_index>>",
         "pos": {
           "h": 13,
           "w": 6,
@@ -2004,9 +2004,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.least_scan_index}}",
+        "name": "<<.Dashboard.least_scan_index>>",
         "pos": {
           "h": 13,
           "w": 6,
@@ -2110,9 +2110,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.table_disk_usage_top}}",
+        "name": "<<.Dashboard.table_disk_usage_top>>",
         "pos": {
           "h": 13,
           "w": 6,
@@ -2207,9 +2207,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_resource}}"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "{{.Dashboard.table_live_rows_top}}",
+        "name": "<<.Dashboard.table_live_rows_top>>",
         "pos": {
           "h": 13,
           "w": 6,
@@ -2339,9 +2339,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_rows}}"
+          "name": "<<.Dashboard.group_rows>>"
         },
-        "name": "{{.Dashboard.updated}}",
+        "name": "<<.Dashboard.updated>>",
         "pos": {
           "h": 7,
           "w": 5,
@@ -2472,9 +2472,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_rows}}"
+          "name": "<<.Dashboard.group_rows>>"
         },
-        "name": "{{.Dashboard.deleted}}",
+        "name": "<<.Dashboard.deleted>>",
         "pos": {
           "h": 7,
           "w": 5,
@@ -2605,9 +2605,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_rows}}"
+          "name": "<<.Dashboard.group_rows>>"
         },
-        "name": "{{.Dashboard.heap_only_updates}}",
+        "name": "<<.Dashboard.heap_only_updates>>",
         "pos": {
           "h": 7,
           "w": 5,
@@ -2698,9 +2698,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_connection}}"
+          "name": "<<.Dashboard.group_connection>>"
         },
-        "name": "{{.Dashboard.most_connected_db}}",
+        "name": "<<.Dashboard.most_connected_db>>",
         "pos": {
           "h": 13,
           "w": 12,
@@ -2829,9 +2829,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_checkpoint}}"
+          "name": "<<.Dashboard.group_checkpoint>>"
         },
-        "name": "{{.Dashboard.write_time}}",
+        "name": "<<.Dashboard.write_time>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -2955,9 +2955,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_checkpoint}}"
+          "name": "<<.Dashboard.group_checkpoint>>"
         },
-        "name": "{{.Dashboard.sync_time}}",
+        "name": "<<.Dashboard.sync_time>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -3081,9 +3081,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_checkpoint}}"
+          "name": "<<.Dashboard.group_checkpoint>>"
         },
-        "name": "{{.Dashboard.checkpoints_requested}}",
+        "name": "<<.Dashboard.checkpoints_requested>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -3197,9 +3197,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_transaction}}"
+          "name": "<<.Dashboard.group_transaction>>"
         },
-        "name": "{{.Dashboard.rollback}}",
+        "name": "<<.Dashboard.rollback>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -3264,7 +3264,7 @@
         "extend": {
           "fixedTime": {
             "key": "curw",
-            "text": "{{.Dashboard.this_week}}"
+            "text": "<<.Dashboard.this_week>>"
           },
           "isRefresh": false,
           "settings": {
@@ -3316,9 +3316,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_throughput}}"
+          "name": "<<.Dashboard.group_throughput>>"
         },
-        "name": "{{.Dashboard.seq_scan_7}}",
+        "name": "<<.Dashboard.seq_scan_7>>",
         "pos": {
           "h": 8,
           "w": 12,
@@ -3388,7 +3388,7 @@
           "settings": {
             "alias": [
               {
-                "alias": "{{.Dashboard.db}}",
+                "alias": "<<.Dashboard.db>>",
                 "key": "db",
                 "name": "db"
               }
@@ -3417,8 +3417,8 @@
             "unitType": "custom",
             "units": [
               {
-                "key": "{{.Dashboard.idx_scan}}",
-                "name": "{{.Dashboard.idx_scan}}",
+                "key": "<<.Dashboard.idx_scan>>",
+                "name": "<<.Dashboard.idx_scan>>",
                 "unit": "/s",
                 "units": [
                   "custom",
@@ -3426,8 +3426,8 @@
                 ]
               },
               {
-                "key": "{{.Dashboard.seq_scan}}",
-                "name": "{{.Dashboard.seq_scan}}",
+                "key": "<<.Dashboard.seq_scan>>",
+                "name": "<<.Dashboard.seq_scan>>",
                 "unit": "/s",
                 "units": [
                   "custom",
@@ -3440,9 +3440,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_throughput}}"
+          "name": "<<.Dashboard.group_throughput>>"
         },
-        "name": "{{.Dashboard.table_scan}}",
+        "name": "<<.Dashboard.table_scan>>",
         "pos": {
           "h": 16,
           "w": 12,
@@ -3456,7 +3456,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.idx_scan}}",
+              "alias": "<<.Dashboard.idx_scan>>",
               "code": "A",
               "dataSource": "postgresql_stat",
               "field": "idx_scan",
@@ -3496,7 +3496,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_stat`:(NON_NEGATIVE_DERIVATIVE(`idx_scan`) AS `{{.Dashboard.idx_scan}}`) { `host` = '#{host}' and `table` = '#{table}' and `db` = '#{db}' } BY `db`",
+              "q": "M::`postgresql_stat`:(NON_NEGATIVE_DERIVATIVE(`idx_scan`) AS `<<.Dashboard.idx_scan>>`) { `host` = '#{host}' and `table` = '#{table}' and `db` = '#{db}' } BY `db`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -3509,7 +3509,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.seq_scan}}",
+              "alias": "<<.Dashboard.seq_scan>>",
               "code": "B",
               "dataSource": "postgresql_stat",
               "field": "seq_scan",
@@ -3549,7 +3549,7 @@
               "groupByTime": "",
               "indexFilter": "",
               "namespace": "metric",
-              "q": "M::`postgresql_stat`:(NON_NEGATIVE_DERIVATIVE(`seq_scan`) AS `{{.Dashboard.seq_scan}}`) { `host` = '#{host}' and `table` = '#{table}' and `db` = '#{db}' } BY `db`",
+              "q": "M::`postgresql_stat`:(NON_NEGATIVE_DERIVATIVE(`seq_scan`) AS `<<.Dashboard.seq_scan>>`) { `host` = '#{host}' and `table` = '#{table}' and `db` = '#{db}' } BY `db`",
               "queryFuncs": [],
               "type": "simple"
             },
@@ -3575,7 +3575,7 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
         "name": "新建图表",
         "pos": {
@@ -3588,7 +3588,7 @@
           {
             "name": "",
             "query": {
-              "content": "{{.Dashboard.dashboard_desc}}"
+              "content": "<<.Dashboard.dashboard_desc>>"
             }
           }
         ],
@@ -3635,9 +3635,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_locks}}"
+          "name": "<<.Dashboard.group_locks>>"
         },
-        "name": "{{.Dashboard.lock_top_10}}",
+        "name": "<<.Dashboard.lock_top_10>>",
         "pos": {
           "h": 9,
           "w": 10,
@@ -3752,9 +3752,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_locks}}"
+          "name": "<<.Dashboard.group_locks>>"
         },
-        "name": "{{.Dashboard.dead_lock}}",
+        "name": "<<.Dashboard.dead_lock>>",
         "pos": {
           "h": 9,
           "w": 7,
@@ -3804,14 +3804,14 @@
       }
     ],
     "groups": [
-      "{{.Dashboard.group_overview}}",
-      "{{.Dashboard.group_resource}}",
-      "{{.Dashboard.group_locks}}",
-      "{{.Dashboard.group_rows}}",
-      "{{.Dashboard.group_connection}}",
-      "{{.Dashboard.group_throughput}}",
-      "{{.Dashboard.group_transaction}}",
-      "{{.Dashboard.group_checkpoint}}"
+      "<<.Dashboard.group_overview>>",
+      "<<.Dashboard.group_resource>>",
+      "<<.Dashboard.group_locks>>",
+      "<<.Dashboard.group_rows>>",
+      "<<.Dashboard.group_connection>>",
+      "<<.Dashboard.group_throughput>>",
+      "<<.Dashboard.group_transaction>>",
+      "<<.Dashboard.group_checkpoint>>"
     ],
     "type": "template",
     "vars": [
@@ -3883,5 +3883,5 @@
   "summary": "",
   "tagInfo": [],
   "thumbnail": "",
-  "title": "{{.Dashboard.title}}"
+  "title": "<<.Dashboard.title>>"
 }

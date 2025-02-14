@@ -143,7 +143,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sp_title_cpu_usage}}",
+        "name": "<<.Dashboard.sp_title_cpu_usage>>",
         "pos": {
           "h": 21,
           "w": 12,
@@ -250,7 +250,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sp_x_title_mem}}",
+        "name": "<<.Dashboard.sp_x_title_mem>>",
         "pos": {
           "h": 21,
           "w": 12,
@@ -261,7 +261,7 @@
         "queries": [
           {
             "id": 383041,
-            "name": "{{.Dashboard.sp_title_mem_usage}}",
+            "name": "<<.Dashboard.sp_title_mem_usage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -393,7 +393,7 @@
               "x": 16,
               "y": 0
             },
-            "name": "{{.Dashboard.sp_title_rss}}",
+            "name": "<<.Dashboard.sp_title_rss>>",
             "type": "sequence",
             "uuid": "0f5ea50f12ef41c2af603a3491df4714",
             "extend": {
@@ -573,7 +573,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sp_title_open_files}}",
+        "name": "<<.Dashboard.sp_title_open_files>>",
         "pos": {
           "h": 19,
           "w": 12,
@@ -692,7 +692,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.sp_title_threads}}",
+        "name": "<<.Dashboard.sp_title_threads>>",
         "pos": {
           "h": 19,
           "w": 12,

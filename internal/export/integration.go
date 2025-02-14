@@ -319,11 +319,9 @@ func (i *Integration) buildTemplate(templateDir, inputName string, lang inputs.I
 		p           = &Params{}
 	)
 
-	if templateDir == templateMonitordDir {
-		// For monitor json, we have to escape jinja2 template(also the format {{ xx }}),
-		// so we use customer delimeters for Go template.
-		p.delims = [2]string{"<<", ">>"}
-	}
+	// For monitor/dashboard json, we have to escape jinja2 template(also the format {{ xx }}),
+	// so we use customer delimeters for Go template.
+	p.templateDelims = [2]string{"<<", ">>"}
 
 	// inputs may specified its dashboard/monitor's specs.
 	if c, ok := inputs.Inputs[inputName]; ok && c != nil {

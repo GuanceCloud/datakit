@@ -1,13 +1,8 @@
 {
-  "title": "Solr 监控视图",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
-      "指标": true,
-      "Cache指标": true,
-      "cache指标": true,
-      "searcher指标": true,
-      "request_times指标": true
     }
   },
   "dashboardMapping": [],
@@ -86,7 +81,7 @@
         "group": {
           "name": "Search"
         },
-        "name": "已删除文档数",
+        "name": "<<.Dashboard.deleted_document_number>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -161,7 +156,7 @@
         "group": {
           "name": "Search"
         },
-        "name": "文档总数",
+        "name": "<<.Dashboard.document_number>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -236,7 +231,7 @@
         "group": {
           "name": "Search"
         },
-        "name": "最大文档数",
+        "name": "<<.Dashboard.maximum_document_number>>",
         "pos": {
           "h": 8,
           "w": 8,
@@ -339,7 +334,7 @@
         "group": {
           "name": "Request times"
         },
-        "name": "每秒请求数总览",
+        "name": "<<.Dashboard.request_overview>>",
         "pos": {
           "h": 13,
           "w": 18,
@@ -355,11 +350,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(last(`rate_15min`) AS `过去15分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(last(`rate_15min`) AS `<<.Dashboard.fifteen_min_request>>`) { `core` = '#{core}' } BY `core`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "过去15分钟每秒请求数",
+              "alias": "<<.Dashboard.fifteen_min_request>>",
               "field": "rate_15min",
               "filters": [
                 {
@@ -392,11 +387,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(avg(`rate_5min`) AS `过去5分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(avg(`rate_5min`) AS `<<.Dashboard.five_min_request>>`) { `core` = '#{core}' } BY `core`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "过去5分钟每秒请求数",
+              "alias": "<<.Dashboard.five_min_request>>",
               "field": "rate_5min",
               "fillNum": null,
               "filters": [
@@ -430,11 +425,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(avg(`rate_1min`) AS `过去1分钟每秒请求数`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(avg(`rate_1min`) AS `<<.Dashboard.one_min_request>>`) { `core` = '#{core}' } BY `core`",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "过去1分钟每秒请求数",
+              "alias": "<<.Dashboard.one_min_request>>",
               "field": "rate_1min",
               "filters": [
                 {
@@ -528,7 +523,7 @@
         "group": {
           "name": "Cache"
         },
-        "name": "索引缓存命中数",
+        "name": "<<.Dashboard.index_cache_hit_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -642,7 +637,7 @@
         "group": {
           "name": "Cache"
         },
-        "name": "插入缓存数",
+        "name": "<<.Dashboard.insertion_cache_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -756,7 +751,7 @@
         "group": {
           "name": "Cache"
         },
-        "name": "缓存查找数",
+        "name": "<<.Dashboard.cache_lookup_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -843,7 +838,7 @@
         "group": {
           "name": "Request times"
         },
-        "name": "请求总数",
+        "name": "<<.Dashboard.request_count>>",
         "pos": {
           "h": 13,
           "w": 6,
@@ -950,7 +945,7 @@
         "group": {
           "name": "Request times"
         },
-        "name": "请求速率",
+        "name": "<<.Dashboard.request_rate>>",
         "pos": {
           "h": 13,
           "w": 24,
@@ -966,11 +961,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(last(`p99`) AS `P99请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(last(`p99`) AS `<<.Dashboard.request_p99>>`) { `core` = '#{core}' } BY `core`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "P99请求处理时间",
+              "alias": "<<.Dashboard.request_p99>>",
               "field": "p99",
               "filters": [
                 {
@@ -1003,11 +998,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(last(`p95`) AS `P95请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(last(`p95`) AS `<<.Dashboard.request_p95>>`) { `core` = '#{core}' } BY `core`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "P95请求处理时间",
+              "alias": "<<.Dashboard.request_p95>>",
               "field": "p95",
               "fillNum": null,
               "filters": [
@@ -1041,11 +1036,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`solr_request_times`:(last(`p75`) AS `P75请求处理时间`) { `core` = '#{core}' } BY `core`",
+              "q": "M::`solr_request_times`:(last(`p75`) AS `<<.Dashboard.request_p75>>`) { `core` = '#{core}' } BY `core`",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "P75请求处理时间",
+              "alias": "<<.Dashboard.request_p75>>",
               "field": "p75",
               "filters": [
                 {
@@ -1142,7 +1137,7 @@
         "group": {
           "name": "Cache"
         },
-        "name": "索引缓存命中率",
+        "name": "<<.Dashboard.index_cache_hit_rate>>",
         "pos": {
           "h": 10,
           "w": 8,

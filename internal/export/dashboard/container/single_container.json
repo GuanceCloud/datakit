@@ -172,7 +172,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.scont_x_title_cpu}}",
+        "name": "<<.Dashboard.scont_x_title_cpu>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -183,7 +183,7 @@
         "queries": [
           {
             "id": 382913,
-            "name": "{{.Dashboard.scont_title_cpu_usage}}",
+            "name": "<<.Dashboard.scont_title_cpu_usage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -214,7 +214,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.scont_desc_cpu_base100}}",
+                "titleDesc": "<<.Dashboard.scont_desc_cpu_base100>>",
                 "globalUnit": [
                   "percent",
                   "percent"
@@ -351,7 +351,7 @@
               "x": 0,
               "y": 17
             },
-            "name": "{{.Dashboard.scont_title_cpu_limit}}",
+            "name": "<<.Dashboard.scont_title_cpu_limit>>",
             "type": "sequence",
             "uuid": "42a907c06e9f440ba5b717bc709be863",
             "extend": {
@@ -591,7 +591,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.scont_x_title_mem}}",
+        "name": "<<.Dashboard.scont_x_title_mem>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -602,7 +602,7 @@
         "queries": [
           {
             "id": 382914,
-            "name": "{{.Dashboard.scont_title_mem_usage}}",
+            "name": "<<.Dashboard.scont_title_mem_usage>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -623,7 +623,7 @@
                 "showLabel": false,
                 "showTitle": true,
                 "stackType": "time",
-                "titleDesc": "{{.Dashboard.scont_desc_mem_usage}}",
+                "titleDesc": "<<.Dashboard.scont_desc_mem_usage>>",
                 "globalUnit": [
                   "percent",
                   "percent"
@@ -758,7 +758,7 @@
               "x": 8,
               "y": 17
             },
-            "name": "{{.Dashboard.scont_title_mem_used}}",
+            "name": "<<.Dashboard.scont_title_mem_used>>",
             "type": "sequence",
             "uuid": "93381f4ebb904a3ca8ab7f6dd2414120",
             "extend": {
@@ -911,7 +911,7 @@
               "x": 0,
               "y": 17
             },
-            "name": "{{.Dashboard.scont_title_mem_limit}}",
+            "name": "<<.Dashboard.scont_title_mem_limit>>",
             "type": "sequence",
             "uuid": "69c03c7b6bf94650b2c7b01aaa76cda5",
             "extend": {
@@ -1133,7 +1133,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.scont_x_title_net}}",
+        "name": "<<.Dashboard.scont_x_title_net>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -1144,7 +1144,7 @@
         "queries": [
           {
             "id": 382915,
-            "name": "{{.Dashboard.scont_title_net_recv}}",
+            "name": "<<.Dashboard.scont_title_net_recv>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -1290,7 +1290,7 @@
               "x": 16,
               "y": 8
             },
-            "name": "{{.Dashboard.scont_title_net_sent}}",
+            "name": "<<.Dashboard.scont_title_net_sent>>",
             "type": "sequence",
             "uuid": "e29e98bb548d4261b3091d3431078ab3",
             "extend": {
@@ -1530,7 +1530,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.scont_x_title_disk}}",
+        "name": "<<.Dashboard.scont_x_title_disk>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -1541,7 +1541,7 @@
         "queries": [
           {
             "id": 382913,
-            "name": "{{.Dashboard.scont_title_disk_read}}",
+            "name": "<<.Dashboard.scont_title_disk_read>>",
             "type": "sequence",
             "uuid": "main",
             "extend": {
@@ -1711,7 +1711,7 @@
               "x": 0,
               "y": 17
             },
-            "name": "{{.Dashboard.scont_title_disk_write}}",
+            "name": "<<.Dashboard.scont_title_disk_write>>",
             "type": "sequence",
             "uuid": "42a907c06e9f440ba5b717bc709be863",
             "extend": {

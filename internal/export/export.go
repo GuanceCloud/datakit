@@ -109,8 +109,8 @@ type Params struct {
 	// Dashboard and Monitor used to mapping en/zh contents into dashboard/monitor JSON
 	Dashboard, Monitor map[string]string
 
-	ic     *installCmd
-	delims [2]string
+	ic             *installCmd
+	templateDelims [2]string
 }
 
 // buildInputDoc render inputs docs based on input document template.
@@ -224,9 +224,9 @@ func renderBuf(md []byte, p *Params) ([]byte, error) {
 		err  error
 	)
 
-	if len(p.delims) == 2 {
+	if len(p.templateDelims) == 2 {
 		temp, err = template.New("").
-			Delims(p.delims[0], p.delims[1]). // use customer delimeter
+			Delims(p.templateDelims[0], p.templateDelims[1]). // use customer delimeter
 			Funcs(map[string]interface{}{
 				"CodeBlock": codeBlock,
 				"InstallCmd": func(indent int, opts ...InstallOpt) string {

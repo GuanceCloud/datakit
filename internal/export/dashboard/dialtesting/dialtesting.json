@@ -60,9 +60,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_points}}"
+          "name": "<<.Dashboard.group_points>>"
         },
-        "name": "{{.Dashboard.points_sent_ok}}",
+        "name": "<<.Dashboard.points_sent_ok>>",
         "pos": {
           "h": 17,
           "w": 6,
@@ -176,9 +176,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_tasks}}"
+          "name": "<<.Dashboard.group_tasks>>"
         },
-        "name": "{{.Dashboard.task_invalid}}",
+        "name": "<<.Dashboard.task_invalid>>",
         "pos": {
           "h": 16,
           "w": 8,
@@ -280,9 +280,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_tasks}}"
+          "name": "<<.Dashboard.group_tasks>>"
         },
-        "name": "{{.Dashboard.task_pulled}}",
+        "name": "<<.Dashboard.task_pulled>>",
         "pos": {
           "h": 16,
           "w": 8,
@@ -360,9 +360,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.worker_job_chan_total}}",
+        "name": "<<.Dashboard.worker_job_chan_total>>",
         "pos": {
           "h": 6,
           "w": 5,
@@ -446,9 +446,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.worker_job_chan_used}}",
+        "name": "<<.Dashboard.worker_job_chan_used>>",
         "pos": {
           "h": 6,
           "w": 5,
@@ -555,9 +555,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.worker_cached_points}}",
+        "name": "<<.Dashboard.worker_cached_points>>",
         "pos": {
           "h": 18,
           "w": 6,
@@ -668,9 +668,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_tasks}}"
+          "name": "<<.Dashboard.group_tasks>>"
         },
-        "name": "{{.Dashboard.task_pull_cost}}",
+        "name": "<<.Dashboard.task_pull_cost>>",
         "pos": {
           "h": 16,
           "w": 8,
@@ -791,9 +791,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.task_running_number}}",
+        "name": "<<.Dashboard.task_running_number>>",
         "pos": {
           "h": 18,
           "w": 6,
@@ -874,9 +874,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.worker_job_total}}",
+        "name": "<<.Dashboard.worker_job_total>>",
         "pos": {
           "h": 6,
           "w": 5,
@@ -975,9 +975,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_overview}}"
+          "name": "<<.Dashboard.group_overview>>"
         },
-        "name": "{{.Dashboard.dataway_sent_failed}}",
+        "name": "<<.Dashboard.dataway_sent_failed>>",
         "pos": {
           "h": 18,
           "w": 7,
@@ -1076,9 +1076,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_points}}"
+          "name": "<<.Dashboard.group_points>>"
         },
-        "name": "{{.Dashboard.points_sent_failed}}",
+        "name": "<<.Dashboard.points_sent_failed>>",
         "pos": {
           "h": 17,
           "w": 6,
@@ -1192,9 +1192,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_points}}"
+          "name": "<<.Dashboard.group_points>>"
         },
-        "name": "{{.Dashboard.points_sending}}",
+        "name": "<<.Dashboard.points_sending>>",
         "pos": {
           "h": 17,
           "w": 6,
@@ -1313,9 +1313,9 @@
           }
         },
         "group": {
-          "name": "{{.Dashboard.group_points}}"
+          "name": "<<.Dashboard.group_points>>"
         },
-        "name": "{{.Dashboard.points_sent_cost}}",
+        "name": "<<.Dashboard.points_sent_cost>>",
         "pos": {
           "h": 17,
           "w": 6,
@@ -1404,9 +1404,9 @@
       }
     ],
     "groups": [
-      "{{.Dashboard.group_overview}}",
-      "{{.Dashboard.group_points}}",
-      "{{.Dashboard.group_tasks}}"
+      "<<.Dashboard.group_overview>>",
+      "<<.Dashboard.group_points>>",
+      "<<.Dashboard.group_tasks>>"
     ],
     "type": "template",
     "vars": [

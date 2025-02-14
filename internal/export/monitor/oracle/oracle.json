@@ -4,12 +4,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "Oracle 表空间不足告警",
+        "title": "<<.Monitor.oracle_table_place_title>>",
         "groupBy": [
           "host",
           "tablespace_name"
         ],
-        "message": "当前主机{{host}}的{{tablespace_name}}表空间不足，请及时关注：\n>主机名：{{host}}\n>表空间名：{{tablespace_name}}\n>当前使用率：{{df_monitor_checker_value}} %\n",
+        "message": "<<.Monitor.oracle_table_place_message>>",
         "targets": [
           {
             "dql": "M::`oracle_tablespace`:(last(`in_use`)) BY `host`, `tablespace_name`",
@@ -143,12 +143,12 @@
         "type": "seniorMutationsCheck",
         "every": "5m",
         "range": 900,
-        "title": "Oracle 活跃会话数突变告警",
+        "title": "<<.Monitor.oracle_active_session_title>>",
         "groupBy": [
           "host",
           "oracle_service"
         ],
-        "message": "当前主机{{host}}的Oracle服务{{oracle_service}} 活跃会话数突变告警，请及时关注：\n>主机名：{{host}}\n>Oracle服务名：{{oracle_service}}\n>最近15分钟到与最近30分钟两个时间段内活跃会话数差值为：{{df_monitor_checker_value}}，请及时关注是否有异常。",
+        "message": "<<.Monitor.oracle_active_session_message>>",
         "range_2": 1800,
         "targets": [
           {

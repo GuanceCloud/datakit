@@ -26,12 +26,12 @@
               "levels": [
                 {
                   "bgColor": "#498BFE",
-                  "title": "{{.Dashboard.levels_normal}}",
+                  "title": "<<.Dashboard.levels_normal>>",
                   "value": 1
                 },
                 {
                   "bgColor": "#EA5E74",
-                  "title": "{{.Dashboard.levels_abnormal}}",
+                  "title": "<<.Dashboard.levels_abnormal>>",
                   "value": 0
                 }
               ],
@@ -50,7 +50,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.ssh_check}}",
+          "name": "<<.Dashboard.ssh_check>>",
           "pos": {
             "h": 9,
             "i": "chrt_a6b7531ce21a4313831972ac907e312b",
@@ -112,12 +112,12 @@
               "levels": [
                 {
                   "bgColor": "#498BFE",
-                  "title": "{{.Dashboard.levels_normal}}",
+                  "title": "<<.Dashboard.levels_normal>>",
                   "value": 1
                 },
                 {
                   "bgColor": "#EA5E74",
-                  "title": "{{.Dashboard.levels_abnormal}}",
+                  "title": "<<.Dashboard.levels_abnormal>>",
                   "value": 0
                 }
               ],
@@ -136,7 +136,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.sftp_check}}",
+          "name": "<<.Dashboard.sftp_check>>",
           "pos": {
             "h": 9,
             "i": "chrt_2b5f1531b5174abd950b16597cf0e86e",
@@ -221,7 +221,7 @@
           "group": {
             "name": null
           },
-          "name": "{{.Dashboard.sftp_response_time}}",
+          "name": "<<.Dashboard.sftp_response_time>>",
           "pos": {
             "h": 9,
             "i": "chrt_5542175e00a44f8f80015e333b43f2d7",
@@ -287,7 +287,7 @@
           },
           "hide": 0,
           "isHiddenAsterisk": 0,
-          "name": "{{.Dashboard.host_name}}",
+          "name": "<<.Dashboard.host_name>>",
           "seq": 0,
           "type": "QUERY",
           "valueSort": "default"
@@ -298,6 +298,6 @@
     "tagInfo": [],
     "tags": [],
     "thumbnail": "",
-    "title": "{{.Dashboard.title}}"
+    "title": "<<.Dashboard.title>>"
   }
   

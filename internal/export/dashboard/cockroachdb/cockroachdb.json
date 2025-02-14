@@ -6,10 +6,10 @@
       "SQL": true,
       "Overview": false,
       "CPU & Memory": true,
-      "{{.Dashboard.Storage}}": true,
-      "{{.Dashboard.Overview}}": true,
-      "{{.Dashboard.SQL_Latency}}": true,
-      "{{.Dashboard.Replication_Admission_Control}}": true
+      "<<.Dashboard.Storage>>": true,
+      "<<.Dashboard.Overview>>": true,
+      "<<.Dashboard.SQL_Latency>>": true,
+      "<<.Dashboard.Replication_Admission_Control>>": true
     }
   },
   "dashboardMapping": [],
@@ -129,9 +129,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Capacity_Available_by_Node}}",
+        "name": "<<.Dashboard.Capacity_Available_by_Node>>",
         "pos": {
           "h": 21,
           "w": 12,
@@ -298,9 +298,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.SQL_Statements_P99}}",
+        "name": "<<.Dashboard.SQL_Statements_P99>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -394,9 +394,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Live_Nodes}}",
+        "name": "<<.Dashboard.Live_Nodes>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -471,9 +471,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.SQL_Connections}}",
+        "name": "<<.Dashboard.SQL_Connections>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -570,9 +570,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Available_Capacity}}",
+        "name": "<<.Dashboard.Available_Capacity>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -670,9 +670,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Avg_Node_CPU_Usage}}",
+        "name": "<<.Dashboard.Avg_Node_CPU_Usage>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -769,9 +769,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Overview}}"
+          "name": "<<.Dashboard.Overview>>"
         },
-        "name": "{{.Dashboard.Avg_Node_Memory_Usage}}",
+        "name": "<<.Dashboard.Avg_Node_Memory_Usage>>",
         "pos": {
           "h": 7,
           "w": 6,
@@ -877,9 +877,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Service_Latency_SQL_99th_Percentile}}",
+        "name": "<<.Dashboard.Service_Latency_SQL_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -977,9 +977,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Service_Latency_SQL_99th_Percentile}}",
+        "name": "<<.Dashboard.Service_Latency_SQL_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 4,
@@ -1085,9 +1085,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Transaction_Latency_99th_Percentile}}",
+        "name": "<<.Dashboard.Transaction_Latency_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1185,9 +1185,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Transaction_Latency_99th_Percentile}}",
+        "name": "<<.Dashboard.Transaction_Latency_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 4,
@@ -1293,9 +1293,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Connection_Latency_99th_Percentile}}",
+        "name": "<<.Dashboard.Connection_Latency_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1393,9 +1393,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "{{.Dashboard.SQL_Latency}}"
+          "name": "<<.Dashboard.SQL_Latency>>"
         },
-        "name": "{{.Dashboard.Connection_Latency_99th_Percentile}}",
+        "name": "<<.Dashboard.Connection_Latency_99th_Percentile>>",
         "pos": {
           "h": 10,
           "w": 4,
@@ -1500,7 +1500,7 @@
         "group": {
           "name": "SQL"
         },
-        "name": "{{.Dashboard.Open_SQL_Sessions}}",
+        "name": "<<.Dashboard.Open_SQL_Sessions>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1605,7 +1605,7 @@
         "group": {
           "name": "SQL"
         },
-        "name": "{{.Dashboard.SQL_Statements}}",
+        "name": "<<.Dashboard.SQL_Statements>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1854,7 +1854,7 @@
         "group": {
           "name": "SQL"
         },
-        "name": "{{.Dashboard.SQL_Statement_Errors}}",
+        "name": "<<.Dashboard.SQL_Statement_Errors>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1962,7 +1962,7 @@
         "group": {
           "name": "CPU & Memory"
         },
-        "name": "{{.Dashboard.Node_CPU_Usage}}",
+        "name": "<<.Dashboard.Node_CPU_Usage>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2070,7 +2070,7 @@
         "group": {
           "name": "CPU & Memory"
         },
-        "name": "{{.Dashboard.Node_Memory_Usage}}",
+        "name": "<<.Dashboard.Node_Memory_Usage>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2178,7 +2178,7 @@
         "group": {
           "name": "CPU & Memory"
         },
-        "name": "{{.Dashboard.Cluster_Memory_Usage}}",
+        "name": "<<.Dashboard.Cluster_Memory_Usage>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2478,9 +2478,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Storage}}"
+          "name": "<<.Dashboard.Storage>>"
         },
-        "name": "{{.Dashboard.Available_Node_Disk_Capacity}}",
+        "name": "<<.Dashboard.Available_Node_Disk_Capacity>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2586,9 +2586,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Storage}}"
+          "name": "<<.Dashboard.Storage>>"
         },
-        "name": "{{.Dashboard.Storage_Capacity}}",
+        "name": "<<.Dashboard.Storage_Capacity>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2790,9 +2790,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Storage}}"
+          "name": "<<.Dashboard.Storage>>"
         },
-        "name": "{{.Dashboard.Live_Bytes}}",
+        "name": "<<.Dashboard.Live_Bytes>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -2943,9 +2943,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Replication_Admission_Control}}"
+          "name": "<<.Dashboard.Replication_Admission_Control>>"
         },
-        "name": "{{.Dashboard.Replicas_per_store}}",
+        "name": "<<.Dashboard.Replicas_per_store>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -3056,9 +3056,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Replication_Admission_Control}}"
+          "name": "<<.Dashboard.Replication_Admission_Control>>"
         },
-        "name": "{{.Dashboard.Admission_Delay_Rate}}",
+        "name": "<<.Dashboard.Admission_Delay_Rate>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -3348,9 +3348,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "{{.Dashboard.Replication_Admission_Control}}"
+          "name": "<<.Dashboard.Replication_Admission_Control>>"
         },
-        "name": "{{.Dashboard.Service_Latency}}",
+        "name": "<<.Dashboard.Service_Latency>>",
         "pos": {
           "h": 13,
           "w": 8,
@@ -3413,11 +3413,11 @@
     ],
     "groups": [
       {
-        "name": "{{.Dashboard.Overview}}",
+        "name": "<<.Dashboard.Overview>>",
         "extend": {}
       },
       {
-        "name": "{{.Dashboard.SQL_Latency}}",
+        "name": "<<.Dashboard.SQL_Latency>>",
         "extend": {}
       },
       {
@@ -3429,11 +3429,11 @@
         "extend": {}
       },
       {
-        "name": "{{.Dashboard.Storage}}",
+        "name": "<<.Dashboard.Storage>>",
         "extend": {}
       },
       {
-        "name": "{{.Dashboard.Replication_Admission_Control}}",
+        "name": "<<.Dashboard.Replication_Admission_Control>>",
         "extend": {}
       }
     ],

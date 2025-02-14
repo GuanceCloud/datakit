@@ -4,12 +4,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "{{cluster_name}}-{{index_name}}查询耗时过长",
+        "title": "<<.Monitor.query_time_too_long_title>>",
         "groupBy": [
           "cluster_name",
           "index_name"
         ],
-        "message": ">集群：{{cluster_name}}\n>索引：{{index_name}}\n>当前集群的索引{{index_name}}查询耗时{{Result}}过长，请检查！",
+        "message": "<<.Monitor.query_time_too_long_message>>",
         "targets": [
           {
             "dql": "M::`elasticsearch_indices_stats`:(avg(`total_search_query_time_in_millis`) AS `search query`) BY `cluster_name`, `index_name`",
@@ -115,12 +115,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "{{cluster_name}}-{{node_name}}当前文档存储空间不足",
+        "title": "<<.Monitor.fs_available_title>>",
         "groupBy": [
           "node_name",
           "cluster_name"
         ],
-        "message": ">集群：{{cluster_name}}\n>节点：{{node_name}}\n>当前节点存储空间已不足{{Result}}GB，请扩容！",
+        "message": "<<.Monitor.fs_available_message>>",
         "targets": [
           {
             "dql": "series_sum(\"M::`elasticsearch_node_stats`:(avg(`fs_total_available_in_gigabytes`)) BY `node_name`, `cluster_name`\")",
@@ -234,11 +234,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "ES集群{{cluster_name}}错误状态索引过多",
+        "title": "<<.Monitor.indices_lifecycle_error_title>>",
         "groupBy": [
           "cluster_name"
         ],
-        "message": ">集群：{{cluster_name}}\n>结果：{{Result}}\n>原因：当前集群错误状态索引过多，请检查！",
+        "message": "<<.Monitor.indices_lifecycle_error_message>>",
         "targets": [
           {
             "dql": "M::`elasticsearch_cluster_health`:(avg(`indices_lifecycle_error_count`)) BY `cluster_name`",
@@ -343,11 +343,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "主机 {{ host }} Elasticsearch 查询拒绝率过高",
+        "title": "<<.Monitor.query_reject_title>>",
         "groupBy": [
           "host"
         ],
-        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Elasticsearch 查询拒绝率过高 {{ Result }}%  \n>建议：询拒绝率表示单周期内集群执行查询操作被拒绝次数占查询总操作数的百分比。当查询拒绝率大于0%，即出现查询拒绝时，说明集群已经达到了查询操作处理能力的上限，或集群出现异常，应及时排查出现查询拒绝的原因并及时解决，否则会影响业务的查询操作。",
+        "message": "<<.Monitor.query_reject_message>>",
         "targets": [
           {
             "dql": "eval(A/B, A=\"M::`elasticsearch_node_stats`:(avg(`thread_pool_search_rejected`)) BY `host`\", B=\"M::`elasticsearch_indices_stats`:(avg(`total_search_query_total`)) BY `host`\")",
@@ -467,12 +467,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "1m",
-        "title": "主机 {{ host }} Elasticsearch 集群状态异常",
+        "title": "<<.Monitor.cluster_health_title>>",
         "groupBy": [
           "cluster_name",
           "host"
         ],
-        "message": ">等级：{{status}}  \n>集群：{{cluster_name}}\n>主机：{{host}}  \n>内容：Elasticsearch 集群状态异常\n>建议：ElasticsearchElasticsearch 集群状态异常，请及时查看集群各节点状态, 保证Elasticsearch集群的可用性。",
+        "message": "<<.Monitor.cluster_health_message>>",
         "targets": [
           {
             "dql": "M::`elasticsearch_cluster_health`:(last(`status_code`)) BY `cluster_name`, `host`",
@@ -606,11 +606,11 @@
       "jsonScript": {
         "type": "mutationsCheck",
         "every": "1m",
-        "title": "主机 {{ host }} Elasticsearch 搜索查询负载异常",
+        "title": "<<.Monitor.search_query_title>>",
         "groupBy": [
           "host"
         ],
-        "message": ">等级：{{status}}  \n>主机：{{host}}  \n>内容：Elasticsearch 搜索查询负载异常\n>建议：请及时查看业务情况以保证Elasticsearch集群的可用性。",
+        "message": "<<.Monitor.search_query_message>>",
         "targets": [
           {
             "dql": "eval(A/B, A=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_total`))[::1800s:] BY `host`\", B=\"M::`elasticsearch_indices_stats`:(last(`total_search_query_time_in_millis`))[::1800s:] BY `host`\")",
@@ -720,12 +720,12 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "主机 {{ host }} Elasticsearch 平均 JVM 堆内存的使用量过高",
+        "title": "<<.Monitor.heap_usage_title>>",
         "groupBy": [
           "cluster_name",
           "node_name"
         ],
-        "message": ">等级：{{status}}  \n>主机：{{node_name}}  \n>内容：Elasticsearch JVM 堆内存的使用量为 {{ Result }}%  \n>建议：当前JVM垃圾的收集已经跟不上JVM垃圾的产生请及时查看业务情况",
+        "message": "<<.Monitor.heap_usage_message>>",
         "targets": [
           {
             "dql": "M::`elasticsearch_node_stats`:(avg(`jvm_mem_heap_used_percent`)) BY `cluster_name`, `node_name`",

@@ -1,0 +1,916 @@
+{
+  "title": "Kubernetes Services",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/kubernetes_services/kubernetes_services.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/kubernetes_services/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [
+    {
+      "name": "Kubernetes"
+    }
+  ],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "Cluster",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "cluster_name_k8s",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['cluster_name_k8s'])[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
+      },
+      {
+        "name": "Namespace",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "namespace",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['kubernetes'], keyin=['namespace']){cluster_name_k8s='#{cluster_name_k8s}'}[5m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#18DE92",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Services per cluster",
+        "pos": {
+          "h": 14,
+          "w": 5,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`service`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `cluster_name_k8s`, `namespace`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "service",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d0348cb0-b1c2-11ed-83c2-37f9ecc6a62c",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "d0348cb1-b1c2-11ed-83c2-37f9ecc6a62c",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "bar": {
+              "direction": "horizontal",
+              "xAxisShowType": "groupBy"
+            },
+            "alias": [],
+            "color": "#498BFE",
+            "table": {
+              "queryMode": "toGroupColumn"
+            },
+            "units": [],
+            "colors": [
+              {
+                "key": "last(service){\"namespace\": \"istio-system\"}",
+                "name": "last(service){\"namespace\": \"istio-system\"}",
+                "color": "#498BFE"
+              }
+            ],
+            "levels": [],
+            "topSize": 10,
+            "chartType": "bar",
+            "fixedTime": "",
+            "showTitle": true,
+            "titleDesc": "",
+            "openCompare": false,
+            "showTopSize": true,
+            "timeInterval": "default",
+            "showTableHead": true,
+            "tableSortType": "top",
+            "isTimeInterval": false,
+            "currentChartType": "toplist",
+            "showFieldMapping": false,
+            "tableSortMetricName": ""
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Service per namespace",
+        "pos": {
+          "h": 28,
+          "w": 7,
+          "x": 17,
+          "y": 0
+        },
+        "type": "toplist",
+        "queries": [
+          {
+            "name": "",
+            "type": "toplist",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(AVG(`service`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `cluster_name_k8s`, `namespace`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "service",
+              "filters": [
+                {
+                  "id": "38ae7b20-c5c9-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                }
+              ],
+              "groupBy": [
+                "cluster_name_k8s",
+                "namespace"
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "integer",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Pod per namespace",
+        "pos": {
+          "h": 14,
+          "w": 5,
+          "x": 0,
+          "y": 14
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`kubernetes`:(last(`pod`) AS `container 数量`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "container 数量",
+              "field": "pod",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "aed419b0-ad41-11ef-a220-73bceb379859",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "aed419b1-ad41-11ef-a220-73bceb379859",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace"
+              ],
+              "labelOp": "",
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "showColumns": [],
+            "valMappings": [],
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Kubernetes Service",
+        "pos": {
+          "h": 22,
+          "w": 24,
+          "x": 0,
+          "y": 28
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`session_affinity`) AS `Affinity`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "E",
+              "fill": null,
+              "type": "simple",
+              "alias": "Affinity",
+              "field": "session_affinity",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "4821c950-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "4821c951-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_traffic_policy`) AS `External Traffic Policy`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "F",
+              "fill": null,
+              "type": "simple",
+              "alias": "External Traffic Policy",
+              "field": "external_traffic_policy",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "489b6620-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "489b6621-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_name`) AS `External Name`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "G",
+              "fill": null,
+              "type": "simple",
+              "alias": "External Name",
+              "field": "external_name",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "4914dbe0-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "4914dbe1-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`external_ips`) AS `External IP`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "H",
+              "fill": null,
+              "type": "simple",
+              "alias": "External IP",
+              "field": "external_ips",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "49d5e1f0-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "49d5e1f1-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`type`) AS `Type`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "C",
+              "fill": "",
+              "type": "simple",
+              "alias": "Type",
+              "field": "type",
+              "rollup": "",
+              "search": "",
+              "filters": [
+                {
+                  "id": "5e15ef30-ad41-11ef-a220-73bceb379859",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "66f22740-ad41-11ef-a220-73bceb379859",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`df_label`) AS `Label`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "D",
+              "fill": "",
+              "type": "simple",
+              "alias": "Label",
+              "field": "df_label",
+              "rollup": "",
+              "search": "",
+              "filters": [
+                {
+                  "id": "e1868890-c338-11ef-9c81-2181fd93fd21",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                },
+                {
+                  "id": "e760f250-c338-11ef-9c81-2181fd93fd21",
+                  "op": "=",
+                  "name": "namespace",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{namespace}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "array_keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(last(`cluster_ip`) AS `Cluster IP`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Cluster IP",
+              "field": "cluster_ip",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "467810f0-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "467810f1-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "keyword",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "O::`kubernetes_services`:(avg(`age`) AS `Age`) { `cluster_name_k8s` = '#{cluster_name_k8s}' and `namespace` = '#{namespace}' } BY `namespace`, `service_name`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Age",
+              "field": "age",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "8b54d9b0-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                },
+                {
+                  "id": "8b54d9b1-c5e1-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "namespace",
+                  "logic": "and",
+                  "value": "#{namespace}"
+                }
+              ],
+              "groupBy": [
+                "namespace",
+                "service_name"
+              ],
+              "funcList": [
+                "last",
+                "top:10"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "long",
+              "namespace": "object",
+              "dataSource": "kubernetes_services",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "levelArr": [],
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "showLabel": true,
+            "showTitle": true,
+            "titleDesc": "",
+            "colorLevel": 3,
+            "globalUnit": [],
+            "isSampling": true,
+            "rangeColor": "",
+            "showLegend": false,
+            "showPercent": false,
+            "timeInterval": "default",
+            "rangeColorKey": "light-blue",
+            "isTimeInterval": false,
+            "showLabelValue": true,
+            "changeWorkspace": false,
+            "currentChartType": "treemap",
+            "showFieldMapping": false,
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementLimit": 20,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Overview"
+        },
+        "name": "Services distribution in cluster",
+        "pos": {
+          "h": 28,
+          "w": 12,
+          "x": 5,
+          "y": 0
+        },
+        "type": "treemap",
+        "queries": [
+          {
+            "name": "",
+            "type": "treemap",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`kubernetes`:(last(`service`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `namespace`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "service",
+              "filters": [
+                {
+                  "id": "5c159ef0-c5eb-11ec-bc94-4ba5c6399269",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}"
+                }
+              ],
+              "groupBy": [
+                "namespace"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "kubernetes",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "Overview",
+        "extend": {}
+      }
+    ],
+    "type": "template"
+  },
+  "identifier": "guance-k8s-svc"
+}

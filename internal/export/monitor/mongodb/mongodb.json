@@ -4,11 +4,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "MongoDB 的连接数过高",
+        "title": "<<.Monitor.mongodb_connection_title>>",
         "groupBy": [
           "instance"
         ],
-        "message": "数据库实例：{{instance}}\n当前连接数达到最大连接数的：{{Result}}",
+        "message": "<<.Monitor.mongodb_connection_message>>",
         "targets": [
           {
             "dql": "eval(A/(A+B), A=\"M::`mongodb`:(last(`connections_current`)) BY `instance`\", B=\"M::`mongodb`:(last(`connections_available`)) BY `instance`\")",
@@ -148,11 +148,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "MongoDB 主从写操作超过{{Result}}",
+        "title": "<<.Monitor.mongodb_master_title>>",
         "groupBy": [
           "rs_name"
         ],
-        "message": "当前{{rs_name}}集群写操作延迟过高，请关注！\n写操作延迟:{{Result}}\n集群名称:{{rs_name}}",
+        "message": "<<.Monitor.mongodb_master_message>>",
         "targets": [
           {
             "dql": "M::`mongodb`:(last(`repl_lag`)) BY `rs_name`",
@@ -262,11 +262,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "MongoDB 聚合命令失败率过多",
+        "title": "<<.Monitor.mongodb_agg_fail_title>>",
         "groupBy": [
           "instance"
         ],
-        "message": "当前MongoDB {{instance}}聚合命令失败过去，请关注！\n失败次数:{{Result}}\n数据库实例:{{instance}}",
+        "message": "<<.Monitor.mongodb_agg_fail_message>>",
         "targets": [
           {
             "dql": "eval((A/B)*100, A=\"M::`mongodb`:(last(`aggregate_command_failed`)) BY `instance`\", B=\"M::`mongodb`:(last(`aggregate_command_total`)) BY `instance`\")",

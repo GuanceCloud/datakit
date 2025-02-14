@@ -42,7 +42,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.running_sql}}",
+        "name": "<<.Dashboard.running_sql>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -131,7 +131,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.process_distribution}}",
+        "name": "<<.Dashboard.process_distribution>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -217,7 +217,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.process_by_db}}",
+        "name": "<<.Dashboard.process_by_db>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -288,7 +288,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.event_type_distribution}}",
+        "name": "<<.Dashboard.event_type_distribution>>",
         "pos": {
           "h": 16,
           "w": 6,
@@ -302,7 +302,7 @@
             "name": "",
             "qtype": "dql",
             "query": {
-              "alias": "{{.Dashboard.total_count_alias}}",
+              "alias": "<<.Dashboard.total_count_alias>>",
               "code": "A",
               "dataSource": "mysql_dbm_activity",
               "field": "*",
@@ -328,7 +328,7 @@
               ],
               "groupByTime": "",
               "namespace": "logging",
-              "q": "L::`mysql_dbm_activity`:(COUNT(`*`) AS `{{.Dashboard.total_count_alias}}`) { `host` = '#{host}' } BY `wait_event`, `processlist_host`",
+              "q": "L::`mysql_dbm_activity`:(COUNT(`*`) AS `<<.Dashboard.total_count_alias>>`) { `host` = '#{host}' } BY `wait_event`, `processlist_host`",
               "queryFuncs": [],
               "search": "",
               "type": "simple"
@@ -362,7 +362,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.event_state_distribution}}",
+        "name": "<<.Dashboard.event_state_distribution>>",
         "pos": {
           "h": 16,
           "w": 6,
@@ -436,7 +436,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.event_command_distribution}}",
+        "name": "<<.Dashboard.event_command_distribution>>",
         "pos": {
           "h": 16,
           "w": 6,
@@ -529,7 +529,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.max_event_exec_time}}",
+        "name": "<<.Dashboard.max_event_exec_time>>",
         "pos": {
           "h": 8,
           "w": 6,
@@ -582,27 +582,27 @@
           "settings": {
             "alias": [
               {
-                "alias": "{{.Dashboard.process_id}}",
+                "alias": "<<.Dashboard.process_id>>",
                 "key": "processlist_id",
                 "name": "processlist_id"
               },
               {
-                "alias": "{{.Dashboard.process_user}}",
+                "alias": "<<.Dashboard.process_user>>",
                 "key": "processlist_user",
                 "name": "processlist_user"
               },
               {
-                "alias": "{{.Dashboard.process_db}}",
+                "alias": "<<.Dashboard.process_db>>",
                 "key": "processlist_db",
                 "name": "processlist_db"
               },
               {
-                "alias": "{{.Dashboard.lock_time}}",
+                "alias": "<<.Dashboard.lock_time>>",
                 "key": "lock_time",
                 "name": "lock_time"
               },
               {
-                "alias": "{{.Dashboard.event_timer_wait}}",
+                "alias": "<<.Dashboard.event_timer_wait>>",
                 "key": "event_timer_wait",
                 "name": "event_timer_wait"
               }
@@ -656,7 +656,7 @@
         "group": {
           "name": null
         },
-        "name": "{{.Dashboard.event_top_50}}",
+        "name": "<<.Dashboard.event_top_50>>",
         "pos": {
           "h": 16,
           "w": 24,
@@ -781,5 +781,5 @@
     }
   ],
   "thumbnail": "",
-  "title": "{{.Dashboard.activity_title}}"
+  "title": "<<.Dashboard.activity_title>>"
 }

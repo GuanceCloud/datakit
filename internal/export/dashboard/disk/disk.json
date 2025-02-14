@@ -964,7 +964,7 @@
           "value": "show_tag_value(from=['disk'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "{{.Dashboard.host_name}}",
+        "name": "<<.Dashboard.host_name>>",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"

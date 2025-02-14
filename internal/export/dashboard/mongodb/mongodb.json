@@ -1,13 +1,13 @@
 {
-  "title": "MongoDB 监控视图",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
       "TTL": false,
-      "连接": true,
-      "文档操作": true,
-      "读写性能": true,
-      "资源使用情况": true
+      "<<.Dashboard.group_connection>>": true,
+      "<<.Dashboard.group_document>>": true,
+      "<<.Dashboard.performance>>": true,
+      "<<.Dashboard.group_resource>>": true
     }
   },
   "dashboardMapping": [],
@@ -20,7 +20,7 @@
   "main": {
     "vars": [
       {
-        "name": "实例名称",
+        "name": "<<.Dashboard.instance_name>>",
         "seq": 0,
         "datasource": "dataflux",
         "code": "instance",
@@ -104,9 +104,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "资源使用情况"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "运行时间",
+        "name": "<<.Dashboard.running_time>>",
         "pos": {
           "h": 16,
           "w": 5,
@@ -211,9 +211,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "资源使用情况"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "CPU使用率",
+        "name": "<<.Dashboard.cpu_usage>>",
         "pos": {
           "h": 8,
           "w": 10,
@@ -307,9 +307,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "资源使用情况"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "内存使用率",
+        "name": "<<.Dashboard.mem_usage>>",
         "pos": {
           "h": 8,
           "w": 9,
@@ -404,9 +404,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "资源使用情况"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "磁盘使用率",
+        "name": "<<.Dashboard.disk_usage>>",
         "pos": {
           "h": 8,
           "w": 10,
@@ -465,8 +465,8 @@
             "alias": [],
             "units": [
               {
-                "key": "入流量",
-                "name": "入流量",
+                "key": "<<.Dashboard.inflow>>",
+                "name": "<<.Dashboard.inflow>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -474,8 +474,8 @@
                 ]
               },
               {
-                "key": "出流量",
-                "name": "出流量",
+                "key": "<<.Dashboard.outflow>>",
+                "name": "<<.Dashboard.outflow>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -516,7 +516,7 @@
             "currentChartType": "sequence",
             "showFieldMapping": false,
             "onlyShowGroupName": false,
-            "tableSortMetricName": "入流量",
+            "tableSortMetricName": "<<.Dashboard.inflow>>",
             "openThousandsSeparator": true,
             "mainMeasurementQueryCode": "A"
           },
@@ -524,9 +524,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "资源使用情况"
+          "name": "<<.Dashboard.group_resource>>"
         },
-        "name": "网络流量",
+        "name": "<<.Dashboard.network_traffic>>",
         "pos": {
           "h": 8,
           "w": 9,
@@ -542,10 +542,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(avg(`net_out_bytes`) AS `出流量`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(avg(`net_out_bytes`) AS `<<.Dashboard.outflow>>`) { `host` = '#{instance}' }",
               "code": "A",
               "type": "simple",
-              "alias": "出流量",
+              "alias": "<<.Dashboard.outflow>>",
               "field": "net_out_bytes",
               "filters": [
                 {
@@ -576,11 +576,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(avg(`net_in_bytes`) AS `入流量`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(avg(`net_in_bytes`) AS `<<.Dashboard.inflow>>`) { `host` = '#{instance}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "入流量",
+              "alias": "<<.Dashboard.inflow>>",
               "field": "net_in_bytes",
               "filters": [
                 {
@@ -649,9 +649,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "连接"
+          "name": "<<.Dashboard.group_connection>>"
         },
-        "name": "当前活跃连接数",
+        "name": "<<.Dashboard.current_connection>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -756,9 +756,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "连接"
+          "name": "<<.Dashboard.group_connection>>"
         },
-        "name": "每秒新建连接数",
+        "name": "<<.Dashboard.connection_created_per_sec>>",
         "pos": {
           "h": 10,
           "w": 12,
@@ -814,10 +814,10 @@
               {
                 "key": "avg(queries_per_sec)",
                 "name": "avg(queries_per_sec)",
-                "unit": "次",
+                "unit": "<<.Dashboard.qps>>",
                 "units": [
                   "custom",
-                  "次"
+                  "<<.Dashboard.qps>>"
                 ]
               }
             ],
@@ -860,9 +860,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "读写性能"
+          "name": "<<.Dashboard.performance>>"
         },
-        "name": "每秒Query次数",
+        "name": "<<.Dashboard.query_executed_per_sec>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -918,10 +918,10 @@
               {
                 "key": "last(inserts_per_sec)",
                 "name": "last(inserts_per_sec)",
-                "unit": "次",
+                "unit": "<<.Dashboard.qps>>",
                 "units": [
                   "custom",
-                  "次"
+                  "<<.Dashboard.qps>>"
                 ]
               }
             ],
@@ -964,9 +964,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "读写性能"
+          "name": "<<.Dashboard.performance>>"
         },
-        "name": "每秒Insert次数",
+        "name": "<<.Dashboard.insertion_performed_per_sec>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -1022,10 +1022,10 @@
               {
                 "key": "last(updates_per_sec)",
                 "name": "last(updates_per_sec)",
-                "unit": "次",
+                "unit": "<<.Dashboard.qps>>",
                 "units": [
                   "custom",
-                  "次"
+                  "<<.Dashboard.qps>>"
                 ]
               }
             ],
@@ -1068,9 +1068,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "读写性能"
+          "name": "<<.Dashboard.performance>>"
         },
-        "name": "每秒Update次数",
+        "name": "<<.Dashboard.updated_performed_per_sec>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -1126,10 +1126,10 @@
               {
                 "key": "last(updates_per_sec)",
                 "name": "last(updates_per_sec)",
-                "unit": "次",
+                "unit": "<<.Dashboard.qps>>",
                 "units": [
                   "custom",
-                  "次"
+                  "<<.Dashboard.qps>>"
                 ]
               }
             ],
@@ -1172,9 +1172,9 @@
           "isRefresh": true
         },
         "group": {
-          "name": "读写性能"
+          "name": "<<.Dashboard.performance>>"
         },
-        "name": "每秒Delete次数",
+        "name": "<<.Dashboard.delete_execution_per_sec>>",
         "pos": {
           "h": 10,
           "w": 6,
@@ -1278,9 +1278,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "缓存"
+          "name": "<<.Dashboard.cache>>"
         },
-        "name": "缓存使用率",
+        "name": "<<.Dashboard.cache_usage>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1385,9 +1385,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "缓存"
+          "name": "<<.Dashboard.cache>>"
         },
-        "name": "dirty缓存使用率",
+        "name": "<<.Dashboard.cache_dirty_usage>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1478,9 +1478,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "游标"
+          "name": "<<.Dashboard.cursor>>"
         },
-        "name": "打开的游标数",
+        "name": "<<.Dashboard.cursor_open>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1572,9 +1572,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "游标"
+          "name": "<<.Dashboard.cursor>>"
         },
-        "name": "超时的游标数",
+        "name": "<<.Dashboard.cursor_timeout_number>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -1666,9 +1666,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "游标"
+          "name": "<<.Dashboard.cursor>>"
         },
-        "name": "游标总数",
+        "name": "<<.Dashboard.cursor_number>>",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1760,9 +1760,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "游标"
+          "name": "<<.Dashboard.cursor>>"
         },
-        "name": "固定的游标数",
+        "name": "<<.Dashboard.cursor_pinned_number>>",
         "pos": {
           "h": 8,
           "w": 12,
@@ -1947,9 +1947,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "聚合"
+          "name": "<<.Dashboard.group_agg>>"
         },
-        "name": "聚合命令失败次数",
+        "name": "<<.Dashboard.aggregation_fail_number>>",
         "pos": {
           "h": 8,
           "w": 12,
@@ -2040,9 +2040,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "断言"
+          "name": "<<.Dashboard.group_assertion>>"
         },
-        "name": "消息断言次数",
+        "name": "<<.Dashboard.assertion_message_number>>",
         "pos": {
           "h": 7,
           "w": 12,
@@ -2134,9 +2134,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "断言"
+          "name": "<<.Dashboard.group_assertion>>"
         },
-        "name": "用户断言次数",
+        "name": "<<.Dashboard.assertion_user_number>>",
         "pos": {
           "h": 7,
           "w": 12,
@@ -2227,9 +2227,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "文档操作"
+          "name": "<<.Dashboard.group_document>>"
         },
-        "name": "每秒因TTL索引而删除的文档总数",
+        "name": "<<.Dashboard.document_removed_number>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -2321,9 +2321,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "文档操作"
+          "name": "<<.Dashboard.group_document>>"
         },
-        "name": "每秒后台TTL线程进行删除的次数",
+        "name": "<<.Dashboard.process_document_removed_number>>",
         "pos": {
           "h": 9,
           "w": 12,
@@ -2414,9 +2414,9 @@
           "fixedTime": ""
         },
         "group": {
-          "name": "文档操作"
+          "name": "<<.Dashboard.group_document>>"
         },
-        "name": "文档操作",
+        "name": "<<.Dashboard.group_document>>",
         "pos": {
           "h": 9,
           "w": 8,
@@ -2432,11 +2432,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(last(`document_inserted`) AS `插入的文档总数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(last(`document_inserted`) AS `<<.Dashboard.document_inserted_number>>`) { `host` = '#{instance}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "插入的文档总数",
+              "alias": "<<.Dashboard.document_inserted_number>>",
               "field": "document_inserted",
               "filters": [
                 {
@@ -2469,11 +2469,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`document_deleted`) AS `删除的文档总数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`document_deleted`) AS `<<.Dashboard.document_deleted_number>>`) { `host` = '#{instance}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "删除的文档总数",
+              "alias": "<<.Dashboard.document_deleted_number>>",
               "field": "document_deleted",
               "filters": [
                 {
@@ -2506,11 +2506,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`document_returned`) AS `返回的文档总数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`document_returned`) AS `<<.Dashboard.document_returned_number>>`) { `host` = '#{instance}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "返回的文档总数",
+              "alias": "<<.Dashboard.document_returned_number>>",
               "field": "document_returned",
               "filters": [
                 {
@@ -2543,11 +2543,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`document_updated`) AS `更新的文档总数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`document_updated`) AS `<<.Dashboard.document_updated_number>>`) { `host` = '#{instance}' }",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "更新的文档总数",
+              "alias": "<<.Dashboard.document_updated_number>>",
               "field": "document_updated",
               "filters": [
                 {
@@ -2619,9 +2619,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "文档操作"
+          "name": "<<.Dashboard.group_document>>"
         },
-        "name": "命令执行",
+        "name": "<<.Dashboard.command>>",
         "pos": {
           "h": 9,
           "w": 8,
@@ -2637,11 +2637,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(last(`insert_command_total`) AS `'insert' 命令执行总次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(last(`insert_command_total`) AS `insert`) { `host` = '#{instance}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "'insert' 命令执行总次数",
+              "alias": "insert",
               "field": "insert_command_total",
               "filters": [
                 {
@@ -2674,11 +2674,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`delete_command_total`) AS `'delete' 命令执行总次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`delete_command_total`) AS `delete`) { `host` = '#{instance}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "'delete' 命令执行总次数",
+              "alias": "delete",
               "field": "delete_command_total",
               "filters": [
                 {
@@ -2711,11 +2711,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`update_command_total`) AS `'update' 命令执行总次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`update_command_total`) AS `update`) { `host` = '#{instance}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "'update' 命令执行总次数",
+              "alias": "update",
               "field": "update_command_total",
               "filters": [
                 {
@@ -2748,11 +2748,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`find_command_total`) AS `'find' 命令执行总次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`find_command_total`) AS `'find'`) { `host` = '#{instance}' }",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "'find' 命令执行总次数",
+              "alias": "'find'",
               "field": "find_command_total",
               "filters": [
                 {
@@ -2824,9 +2824,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "文档操作"
+          "name": "<<.Dashboard.group_document>>"
         },
-        "name": "命令执行失败计数",
+        "name": "<<.Dashboard.command_fail_number>>",
         "pos": {
           "h": 9,
           "w": 8,
@@ -2842,11 +2842,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(last(`insert_command_failed`) AS `'insert' 命令失败次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(last(`insert_command_failed`) AS `insert`) { `host` = '#{instance}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "'insert' 命令失败次数",
+              "alias": "insert",
               "field": "insert_command_failed",
               "filters": [
                 {
@@ -2879,11 +2879,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`find_command_failed`) AS `'find' 命令失败次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`find_command_failed`) AS `'find'`) { `host` = '#{instance}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "'find' 命令失败次数",
+              "alias": "'find'",
               "field": "find_command_failed",
               "filters": [
                 {
@@ -2916,11 +2916,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`update_command_failed`) AS `'update' 命令失败次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`update_command_failed`) AS `update`) { `host` = '#{instance}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "'update' 命令失败次数",
+              "alias": "update",
               "field": "update_command_failed",
               "filters": [
                 {
@@ -2953,11 +2953,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`mongodb`:(first(`delete_command_failed`) AS `'delete' 命令失败次数`) { `host` = '#{instance}' }",
+              "q": "M::`mongodb`:(first(`delete_command_failed`) AS `delete`) { `host` = '#{instance}' }",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "'delete' 命令失败次数",
+              "alias": "delete",
               "field": "delete_command_failed",
               "filters": [
                 {
@@ -2998,7 +2998,7 @@
             "inColumns": [
               {
                 "field": "time",
-                "headerName": "时间"
+                "headerName": "<<.Dashboard.log_time>>"
               }
             ],
             "showTitle": true,
@@ -3017,7 +3017,7 @@
               },
               {
                 "field": "message",
-                "headerName": "内容"
+                "headerName": "<<.Dashboard.log_message>>"
               }
             ],
             "globalUnit": [],
@@ -3034,7 +3034,7 @@
           "isRefresh": false
         },
         "group": {
-          "name": "日志"
+          "name": "<<.Dashboard.group_log>>"
         },
         "name": "MonogoDB(WARN&ERROR)",
         "pos": {
@@ -3056,7 +3056,7 @@
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "内容",
+              "alias": "<<.Dashboard.log_message>>",
               "field": null,
               "fields": [
                 {
@@ -3071,7 +3071,7 @@
                   "field": "host"
                 },
                 {
-                  "alias": "内容",
+                  "alias": "<<.Dashboard.log_message>>",
                   "field": "message"
                 }
               ],
@@ -3501,7 +3501,7 @@
     ],
     "groups": [
       {
-        "name": "资源使用情况",
+        "name": "<<.Dashboard.group_resource>>",
         "extend": {
           "bgColor": ""
         }
@@ -3513,49 +3513,49 @@
         }
       },
       {
-        "name": "连接",
+        "name": "<<.Dashboard.group_connection>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "读写性能",
+        "name": "<<.Dashboard.performance>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "缓存",
+        "name": "<<.Dashboard.cache>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "游标",
+        "name": "<<.Dashboard.cursor>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "聚合",
+        "name": "<<.Dashboard.group_agg>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "断言",
+        "name": "<<.Dashboard.group_assertion>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "文档操作",
+        "name": "<<.Dashboard.group_document>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "日志",
+        "name": "<<.Dashboard.group_log>>",
         "extend": {
           "bgColor": ""
         }

@@ -39,7 +39,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -132,7 +132,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -230,7 +230,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -323,7 +323,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -421,7 +421,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -509,7 +509,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -597,7 +597,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -695,7 +695,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [
@@ -793,7 +793,7 @@
             "showLine": false,
             "showTitle": true,
             "stackType": "time",
-            "tableSortMetricName": "{{.Dashboard.load15}}",
+            "tableSortMetricName": "<<.Dashboard.load15>>",
             "timeInterval": "default",
             "titleDesc": "",
             "units": [],
@@ -865,7 +865,7 @@
           "value": "show_tag_value(from=['diskio'], keyin=['host'])[5m]"
         },
         "hide": 0,
-        "name": "{{.Dashboard.host_name}}",
+        "name": "<<.Dashboard.host_name>>",
         "seq": 0,
         "type": "QUERY",
         "valueSort": "default"

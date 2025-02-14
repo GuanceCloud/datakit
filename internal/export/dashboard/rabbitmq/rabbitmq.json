@@ -1,5 +1,5 @@
 {
-  "title": "RabbitMQ 监控视图",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {},
   "dashboardMapping": [],
@@ -12,7 +12,7 @@
   "main": {
     "vars": [
       {
-        "name": "主机名",
+        "name": "<<.Dashboard.host_name>>",
         "seq": 0,
         "datasource": "ftinfluxdb",
         "code": "host_name",
@@ -46,13 +46,13 @@
             "showLineAxis": false,
             "currentChartType": "singlestat",
             "showFieldMapping": false,
-            "tableSortMetricName": "连接数"
+            "tableSortMetricName": "<<.Dashboard.connection_number>>"
           }
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "通道数",
+        "name": "<<.Dashboard.channel_number>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -68,11 +68,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_channels`) AS `连接数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_channels`) AS `<<.Dashboard.connection_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "连接数",
+              "alias": "<<.Dashboard.connection_number>>",
               "field": "object_totals_channels",
               "filters": [
                 {
@@ -113,13 +113,13 @@
             "showLineAxis": false,
             "currentChartType": "singlestat",
             "showFieldMapping": false,
-            "tableSortMetricName": "连接数"
+            "tableSortMetricName": "<<.Dashboard.connection_number>>"
           }
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "连接数",
+        "name": "<<.Dashboard.connection_number>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -135,11 +135,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_connections`) AS `连接数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_connections`) AS `<<.Dashboard.connection_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "连接数",
+              "alias": "<<.Dashboard.connection_number>>",
               "field": "object_totals_connections",
               "filters": [
                 {
@@ -180,13 +180,13 @@
             "showLineAxis": false,
             "currentChartType": "singlestat",
             "showFieldMapping": false,
-            "tableSortMetricName": "连接数"
+            "tableSortMetricName": "<<.Dashboard.connection_number>>"
           }
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "队列数",
+        "name": "<<.Dashboard.queue_number>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -202,11 +202,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_queues`) AS `连接数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_queues`) AS `<<.Dashboard.connection_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "连接数",
+              "alias": "<<.Dashboard.connection_number>>",
               "field": "object_totals_queues",
               "filters": [
                 {
@@ -247,13 +247,13 @@
             "showLineAxis": false,
             "currentChartType": "singlestat",
             "showFieldMapping": false,
-            "tableSortMetricName": "连接数"
+            "tableSortMetricName": "<<.Dashboard.connection_number>>"
           }
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "消费者数",
+        "name": "<<.Dashboard.consumer_number>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -269,11 +269,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_consumers`) AS `连接数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(AVG(`object_totals_consumers`) AS `<<.Dashboard.connection_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "连接数",
+              "alias": "<<.Dashboard.connection_number>>",
               "field": "object_totals_consumers",
               "filters": [
                 {
@@ -329,16 +329,16 @@
             "currentChartType": "singlestat",
             "showFieldMapping": false,
             "sequenceChartType": "line",
-            "tableSortMetricName": "消息速率",
+            "tableSortMetricName": "<<.Dashboard.message_rate>>",
             "openThousandsSeparator": true
           },
           "fixedTime": "",
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "队列消息数变化率",
+        "name": "<<.Dashboard.queue_message_rate>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -358,7 +358,7 @@
               "code": "A",
               "fill": null,
               "type": "dql",
-              "alias": "消息速率",
+              "alias": "<<.Dashboard.message_rate>>",
               "field": "queue_totals_messages_rate",
               "index": "",
               "fillNum": null,
@@ -398,13 +398,13 @@
             "units": [],
             "colors": [
               {
-                "key": "待消费消息数",
-                "name": "待消费消息数",
+                "key": "<<.Dashboard.message_unconsumed_number>>",
+                "name": "<<.Dashboard.message_unconsumed_number>>",
                 "color": "#41CEC7"
               },
               {
-                "key": "待确认消息数",
-                "name": "待确认消息数",
+                "key": "<<.Dashboard.message_unconfirmed_number>>",
+                "name": "<<.Dashboard.message_unconfirmed_number>>",
                 "color": "#498BFE"
               }
             ],
@@ -429,7 +429,7 @@
             "showFieldMapping": false,
             "onlyShowGroupName": false,
             "mainMeasurementSort": "top",
-            "tableSortMetricName": "客户端确认数",
+            "tableSortMetricName": "<<.Dashboard.confirmed_client_number>>",
             "mainMeasurementLimit": 20,
             "openThousandsSeparator": true,
             "chartCombineDefaultColor": "#F56610",
@@ -439,9 +439,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "队列消息分布",
+        "name": "<<.Dashboard.message_published>>",
         "pos": {
           "h": 14,
           "w": 4,
@@ -457,11 +457,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_unacknowledged_count`) AS `待确认消息数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_unacknowledged_count`) AS `<<.Dashboard.message_unconfirmed_number>>`) { `host` = '#{host_name}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "待确认消息数",
+              "alias": "<<.Dashboard.message_unconfirmed_number>>",
               "field": "queue_totals_messages_unacknowledged_count",
               "filters": [
                 {
@@ -493,11 +493,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_ready_count`) AS `待消费消息数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_ready_count`) AS `<<.Dashboard.message_unconsumed_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "待消费消息数",
+              "alias": "<<.Dashboard.message_unconsumed_number>>",
               "field": "queue_totals_messages_ready_count",
               "filters": [
                 {
@@ -531,8 +531,8 @@
             "alias": [],
             "units": [
               {
-                "key": "内存最高水位",
-                "name": "内存最高水位",
+                "key": "<<.Dashboard.max_memory_level>>",
+                "name": "<<.Dashboard.max_memory_level>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -540,8 +540,8 @@
                 ]
               },
               {
-                "key": "磁盘余量",
-                "name": "磁盘余量",
+                "key": "<<.Dashboard.free_disk>>",
+                "name": "<<.Dashboard.free_disk>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -549,8 +549,8 @@
                 ]
               },
               {
-                "key": "内存用量",
-                "name": "内存用量",
+                "key": "<<.Dashboard.memory_used>>",
+                "name": "<<.Dashboard.memory_used>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -571,15 +571,15 @@
             "currentChartType": "table",
             "showFieldMapping": false,
             "valColorMappings": [],
-            "tableSortMetricName": "Socket已用文件描述符"
+            "tableSortMetricName": "<<.Dashboard.socket_used_file_descriptor>>"
           },
           "fixedTime": "",
           "isRefresh": false
         },
         "group": {
-          "name": "交换机/队列/节点"
+          "name": "<<.Dashboard.switch>>/<<.Dashboard.queue>>/<<.Dashboard.node>>"
         },
-        "name": "队列",
+        "name": "<<.Dashboard.queue>>",
         "pos": {
           "h": 10,
           "w": 24,
@@ -595,11 +595,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`consumer_utilization`) AS `消费者数量`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`consumer_utilization`) AS `<<.Dashboard.consumer_number>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "A",
               "fill": null,
               "type": "dql",
-              "alias": "消费者数量",
+              "alias": "<<.Dashboard.consumer_number>>",
               "field": "consumer_utilization",
               "fillNum": null,
               "filters": [
@@ -633,11 +633,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`message_ack_count`) AS `客户端确认消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_ack_count`) AS `<<.Dashboard.confirmed_client_number>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "B",
               "fill": null,
               "type": "dql",
-              "alias": "客户端确认消息",
+              "alias": "<<.Dashboard.confirmed_client_number>>",
               "field": "message_ack_count",
               "fillNum": null,
               "filters": [
@@ -670,11 +670,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`message_deliver_count`) AS `投递消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_deliver_count`) AS `<<.Dashboard.message_delivered>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "C",
               "fill": null,
               "type": "dql",
-              "alias": "投递消息",
+              "alias": "<<.Dashboard.message_delivered>>",
               "field": "message_deliver_count",
               "fillNum": null,
               "filters": [
@@ -707,11 +707,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`message_publish_count`) AS `发布消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_publish_count`) AS `<<.Dashboard.message_published>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "D",
               "fill": null,
               "type": "dql",
-              "alias": "发布消息",
+              "alias": "<<.Dashboard.message_published>>",
               "field": "message_publish_count",
               "fillNum": null,
               "filters": [
@@ -744,11 +744,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`message_redeliver_count`) AS `重投消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`message_redeliver_count`) AS `<<.Dashboard.message_redelivered>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "E",
               "fill": null,
               "type": "dql",
-              "alias": "重投消息",
+              "alias": "<<.Dashboard.message_redelivered>>",
               "field": "message_redeliver_count",
               "fillNum": null,
               "filters": [
@@ -781,11 +781,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`messages_ready`) AS `待投递消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_ready`) AS `<<.Dashboard.message_not_delivered>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "F",
               "fill": null,
               "type": "dql",
-              "alias": "待投递消息",
+              "alias": "<<.Dashboard.message_not_delivered>>",
               "field": "messages_ready",
               "fillNum": null,
               "filters": [
@@ -818,11 +818,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_queue`:(AVG(`messages_unacknowledged`) AS `待确认消息`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
+              "q": "M::`rabbitmq_queue`:(AVG(`messages_unacknowledged`) AS `<<.Dashboard.message_unconfirmed>>`) { `host` = '#{host_name}' } by `node_name`,`queue_name`",
               "code": "G",
               "fill": null,
               "type": "dql",
-              "alias": "待确认消息",
+              "alias": "<<.Dashboard.message_unconfirmed>>",
               "field": "messages_unacknowledged",
               "fillNum": null,
               "filters": [
@@ -856,8 +856,8 @@
           "settings": {
             "units": [
               {
-                "key": "内存最高水位",
-                "name": "内存最高水位",
+                "key": "<<.Dashboard.max_memory_level>>",
+                "name": "<<.Dashboard.max_memory_level>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -865,8 +865,8 @@
                 ]
               },
               {
-                "key": "磁盘余量",
-                "name": "磁盘余量",
+                "key": "<<.Dashboard.free_disk>>",
+                "name": "<<.Dashboard.free_disk>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -874,8 +874,8 @@
                 ]
               },
               {
-                "key": "内存用量",
-                "name": "内存用量",
+                "key": "<<.Dashboard.memory_used>>",
+                "name": "<<.Dashboard.memory_used>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -888,13 +888,13 @@
             "queryMode": "toGroupColumn",
             "currentChartType": "table",
             "showFieldMapping": false,
-            "tableSortMetricName": "Socket已用文件描述符"
+            "tableSortMetricName": "<<.Dashboard.socket_used_file_descriptor>>"
           }
         },
         "group": {
-          "name": "交换机/队列/节点"
+          "name": "<<.Dashboard.switch>>/<<.Dashboard.queue>>/<<.Dashboard.node>>"
         },
-        "name": "节点",
+        "name": "<<.Dashboard.node>>",
         "pos": {
           "h": 10,
           "w": 24,
@@ -910,11 +910,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`disk_free`) AS `磁盘余量`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free`) AS `<<.Dashboard.free_disk>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "磁盘余量",
+              "alias": "<<.Dashboard.free_disk>>",
               "field": "disk_free",
               "filters": [
                 {
@@ -949,11 +949,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`fd_used`) AS `已用FD`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`fd_used`) AS `<<.Dashboard.fd_used>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "已用FD",
+              "alias": "<<.Dashboard.fd_used>>",
               "field": "fd_used",
               "filters": [
                 {
@@ -987,11 +987,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`mem_used`) AS `内存用量`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_used`) AS `<<.Dashboard.memory_used>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "内存用量",
+              "alias": "<<.Dashboard.memory_used>>",
               "field": "mem_used",
               "filters": [
                 {
@@ -1025,11 +1025,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`sockets_used`) AS `Socket用FD`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`sockets_used`) AS `<<.Dashboard.fd_socket>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "Socket用FD",
+              "alias": "<<.Dashboard.fd_socket>>",
               "field": "sockets_used",
               "filters": [
                 {
@@ -1063,11 +1063,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`run_queue`) AS `待运行进程`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`run_queue`) AS `<<.Dashboard.runnable_process>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "E",
               "fill": null,
               "type": "simple",
-              "alias": "待运行进程",
+              "alias": "<<.Dashboard.runnable_process>>",
               "field": "run_queue",
               "filters": [
                 {
@@ -1101,11 +1101,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`mem_limit`) AS `内存最高水位`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_limit`) AS `<<.Dashboard.max_memory_level>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "F",
               "fill": null,
               "type": "simple",
-              "alias": "内存最高水位",
+              "alias": "<<.Dashboard.max_memory_level>>",
               "field": "mem_limit",
               "filters": [
                 {
@@ -1139,11 +1139,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`disk_free_alarm`) AS `磁盘剩余告警`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`disk_free_alarm`) AS `<<.Dashboard.alarm_disk_free>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "G",
               "fill": null,
               "type": "simple",
-              "alias": "磁盘剩余告警",
+              "alias": "<<.Dashboard.alarm_disk_free>>",
               "field": "disk_free_alarm",
               "filters": [
                 {
@@ -1177,11 +1177,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`mem_alarm`) AS `内存告警`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`mem_alarm`) AS `<<.Dashboard.alarm_memory>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "H",
               "fill": null,
               "type": "simple",
-              "alias": "内存告警",
+              "alias": "<<.Dashboard.alarm_memory>>",
               "field": "mem_alarm",
               "filters": [
                 {
@@ -1215,11 +1215,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_node`:(AVG(`running`) AS `节点运行`) { `host` = '#{host_name}' } by `node_name`",
+              "q": "M::`rabbitmq_node`:(AVG(`running`) AS `<<.Dashboard.running_node>>`) { `host` = '#{host_name}' } by `node_name`",
               "code": "I",
               "fill": null,
               "type": "dql",
-              "alias": "节点运行",
+              "alias": "<<.Dashboard.running_node>>",
               "field": "running",
               "fillNum": null,
               "filters": [
@@ -1252,8 +1252,8 @@
           "settings": {
             "units": [
               {
-                "key": "内存最高水位",
-                "name": "内存最高水位",
+                "key": "<<.Dashboard.max_memory_level>>",
+                "name": "<<.Dashboard.max_memory_level>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1261,8 +1261,8 @@
                 ]
               },
               {
-                "key": "磁盘余量",
-                "name": "磁盘余量",
+                "key": "<<.Dashboard.free_disk>>",
+                "name": "<<.Dashboard.free_disk>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1270,8 +1270,8 @@
                 ]
               },
               {
-                "key": "内存用量",
-                "name": "内存用量",
+                "key": "<<.Dashboard.memory_used>>",
+                "name": "<<.Dashboard.memory_used>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1284,13 +1284,13 @@
             "queryMode": "toGroupColumn",
             "currentChartType": "table",
             "showFieldMapping": false,
-            "tableSortMetricName": "Socket已用文件描述符"
+            "tableSortMetricName": "<<.Dashboard.socket_used_file_descriptor>>"
           }
         },
         "group": {
-          "name": "交换机/队列/节点"
+          "name": "<<.Dashboard.switch>>/<<.Dashboard.queue>>/<<.Dashboard.node>>"
         },
-        "name": "交换机",
+        "name": "<<.Dashboard.switch>>",
         "pos": {
           "h": 12,
           "w": 24,
@@ -1306,11 +1306,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_exchange`:(AVG(`message_ack_count`) AS `客户端确认`) { `host` = '#{host_name}' } by `exchange_name`",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_ack_count`) AS `<<.Dashboard.client_confirmation>>`) { `host` = '#{host_name}' } by `exchange_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "客户端确认",
+              "alias": "<<.Dashboard.client_confirmation>>",
               "field": "message_ack_count",
               "fillNum": null,
               "filters": [
@@ -1346,11 +1346,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_exchange`:(AVG(`message_publish_count`) AS `发布消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_publish_count`) AS `<<.Dashboard.message_published>>`) { `host` = '#{host_name}' } by `exchange_name`",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "发布消息",
+              "alias": "<<.Dashboard.message_published>>",
               "field": "message_publish_count",
               "filters": [
                 {
@@ -1384,11 +1384,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_exchange`:(AVG(`message_deliver_get_count`) AS `传递消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_deliver_get_count`) AS `<<.Dashboard.message_delivered>>`) { `host` = '#{host_name}' } by `exchange_name`",
               "code": "C",
               "fill": null,
               "type": "simple",
-              "alias": "传递消息",
+              "alias": "<<.Dashboard.message_delivered>>",
               "field": "message_deliver_get_count",
               "filters": [
                 {
@@ -1422,11 +1422,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_exchange`:(AVG(`message_redeliver_count`) AS `重传消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_redeliver_count`) AS `<<.Dashboard.message_redelivered>>`) { `host` = '#{host_name}' } by `exchange_name`",
               "code": "D",
               "fill": null,
               "type": "simple",
-              "alias": "重传消息",
+              "alias": "<<.Dashboard.message_redelivered>>",
               "field": "message_redeliver_count",
               "filters": [
                 {
@@ -1460,11 +1460,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_exchange`:(AVG(`message_return_unroutable_count`) AS `无路由消息`) { `host` = '#{host_name}' } by `exchange_name`",
+              "q": "M::`rabbitmq_exchange`:(AVG(`message_return_unroutable_count`) AS `<<.Dashboard.message_not_routable>>`) { `host` = '#{host_name}' } by `exchange_name`",
               "code": "E",
               "fill": null,
               "type": "simple",
-              "alias": "无路由消息",
+              "alias": "<<.Dashboard.message_not_routable>>",
               "field": "message_return_unroutable_count",
               "filters": [
                 {
@@ -1540,9 +1540,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "消息重传数",
+        "name": "<<.Dashboard.message_redelivered_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1558,11 +1558,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_redeliver_count`) AS `消息重传数`) { `host` = '#{host_name}' }\")",
+              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_redeliver_count`) AS `<<.Dashboard.message_redelivered_number>>`) { `host` = '#{host_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "消息重传数",
+              "alias": "<<.Dashboard.message_redelivered_number>>",
               "field": "message_redeliver_count",
               "fillNum": null,
               "filters": [
@@ -1643,9 +1643,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "消息发布数",
+        "name": "<<.Dashboard.message_published_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1661,11 +1661,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_publish_count`) AS `消息发布数`) { `host` = '#{host_name}' }\")",
+              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_publish_count`) AS `<<.Dashboard.message_published_number>>`) { `host` = '#{host_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "消息发布数",
+              "alias": "<<.Dashboard.message_published_number>>",
               "field": "message_publish_count",
               "fillNum": null,
               "filters": [
@@ -1746,9 +1746,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "客户端确认数",
+        "name": "<<.Dashboard.confirmed_client_number>>",
         "pos": {
           "h": 10,
           "w": 8,
@@ -1764,11 +1764,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_ack_count`) AS `客户端确认数`) { `host` = '#{host_name}' }\")",
+              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_ack_count`) AS `<<.Dashboard.confirmed_client_number>>`) { `host` = '#{host_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "客户端确认数",
+              "alias": "<<.Dashboard.confirmed_client_number>>",
               "field": "message_ack_count",
               "fillNum": null,
               "filters": [
@@ -1849,9 +1849,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "消息投递数",
+        "name": "<<.Dashboard.message_delivered_number>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1867,11 +1867,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_deliver_get_count`) AS `消息投递数`) { `host` = '#{host_name}' }\")",
+              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_deliver_get_count`) AS `<<.Dashboard.message_delivered_number>>`) { `host` = '#{host_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "消息投递数",
+              "alias": "<<.Dashboard.message_delivered_number>>",
               "field": "message_deliver_get_count",
               "fillNum": null,
               "filters": [
@@ -1952,9 +1952,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "消息不可路由数",
+        "name": "<<.Dashboard.message_not_routable_number>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -1970,11 +1970,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_return_unroutable_count`) AS `消息不可路由数`) { `host` = '#{host_name}' }\")",
+              "q": "non_negative_difference(\"M::`rabbitmq_overview`:(avg(`message_return_unroutable_count`) AS `<<.Dashboard.message_not_routable_number>>`) { `host` = '#{host_name}' }\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "消息不可路由数",
+              "alias": "<<.Dashboard.message_not_routable_number>>",
               "field": "message_return_unroutable_count",
               "fillNum": null,
               "filters": [
@@ -2055,9 +2055,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "总揽"
+          "name": "<<.Dashboard.overview>>"
         },
-        "name": "队列消息总数",
+        "name": "<<.Dashboard.queue_message_number>>",
         "pos": {
           "h": 12,
           "w": 8,
@@ -2073,11 +2073,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_count`) AS `队列消息总数`) { `host` = '#{host_name}' }",
+              "q": "M::`rabbitmq_overview`:(avg(`queue_totals_messages_count`) AS `<<.Dashboard.queue_message_number>>`) { `host` = '#{host_name}' }",
               "code": "A",
               "fill": null,
               "type": "dql",
-              "alias": "队列消息总数",
+              "alias": "<<.Dashboard.queue_message_number>>",
               "field": "queue_totals_messages_count",
               "fillNum": null,
               "filters": [
@@ -2109,11 +2109,11 @@
     ],
     "groups": [
       {
-        "name": "总揽",
+        "name": "<<.Dashboard.overview>>",
         "extend": {}
       },
       {
-        "name": "交换机/队列/节点",
+        "name": "<<.Dashboard.switch>>/<<.Dashboard.queue>>/<<.Dashboard.node>>",
         "extend": {}
       }
     ],
