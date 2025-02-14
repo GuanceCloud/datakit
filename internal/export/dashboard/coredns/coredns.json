@@ -1,5 +1,5 @@
 {
-  "title": "CoreDNS 监控视图",
+  "title": "CoreDNS",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
@@ -15,11 +15,7 @@
   "iconSet": {},
   "dashboardBindSet": [],
   "thumbnail": "",
-  "tagInfo": [
-    {
-      "name": "Kubernetes 检测库"
-    }
-  ],
+  "tagInfo": [],
   "summary": "",
   "main": {
     "vars": [
@@ -44,7 +40,32 @@
         "hide": 0,
         "isHiddenAsterisk": 0,
         "multiple": true,
-        "includeStar": true
+        "includeStar": true,
+        "extend": {}
+      },
+      {
+        "name": "<<.Dashboard.var_cluster>>",
+        "seq": 1,
+        "datasource": "ftinfluxdb",
+        "code": "cluster",
+        "type": "TAG",
+        "definition": {
+          "tag": "cluster",
+          "field": "",
+          "value": "",
+          "metric": "coredns",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
       }
     ],
     "charts": [
@@ -84,11 +105,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "DNS请求总数(实例)",
+        "name": "<<.Dashboard.request_by_instance>>",
         "pos": {
-          "h": 12,
+          "h": 11,
           "w": 6,
           "x": 0,
           "y": 0
@@ -100,7 +121,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_requests_total[5m])) by (instance)",
+              "q": "sum(rate(coredns_dns_requests_total{cluster=~\"#{cluster}\"}[5m])) by (instance)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -146,11 +167,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "健康检查失败的总数",
+        "name": "<<.Dashboard.upstream_health_check_fails>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 6,
           "y": 0
@@ -162,7 +183,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_healthcheck_broken_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_forward_healthcheck_broken_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -208,11 +229,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "并发拒绝的最大次数",
+        "name": "<<.Dashboard.upstream_rejected_quests>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 9,
           "y": 0
@@ -224,7 +245,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_max_concurrent_rejects_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_forward_max_concurrent_rejects_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -270,11 +291,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "系统崩溃的总数",
+        "name": "<<.Dashboard.panics>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 12,
           "y": 0
@@ -286,7 +307,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(panics_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_panics_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -332,11 +353,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "重新加载失败总数",
+        "name": "<<.Dashboard.failed_reloads>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 15,
           "y": 0
@@ -348,7 +369,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(reload_failed_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_reload_failed_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -408,11 +429,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "CPU Time",
+        "name": "<<.Dashboard.cpu_time>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 18,
           "y": 0
@@ -424,7 +445,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(process_cpu_seconds_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(process_cpu_seconds_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -473,11 +494,11 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Global stats"
+          "name": "<<.Dashboard.group_global_stats>>"
         },
-        "name": "内存使用率",
+        "name": "<<.Dashboard.cpu_time>>",
         "pos": {
-          "h": 12,
+          "h": 11.5,
           "w": 3,
           "x": 21,
           "y": 0
@@ -489,7 +510,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "go_memstats_alloc_bytes{instance=~\"#{instance}\"}",
+              "q": "go_memstats_alloc_bytes{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -509,7 +530,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -544,9 +565,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "请求总数(总和)",
+        "name": "<<.Dashboard.request_total>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -560,12 +581,13 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_requests_total{instance=~\"#{instance}\"}[5m])) by (server)",
+              "q": "sum(rate(coredns_dns_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) ",
               "code": "A",
               "type": "promql",
               "funcList": [],
               "promqlCode": 1
             },
+            "disabled": false,
             "datasource": "dataflux"
           },
           {
@@ -573,12 +595,13 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m]))",
               "code": "B",
               "type": "promql",
               "funcList": [],
               "promqlCode": 2
             },
+            "disabled": false,
             "datasource": "dataflux"
           }
         ]
@@ -593,7 +616,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -628,9 +651,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS请求总数(空间)",
+        "name": "<<.Dashboard.request_by_zone>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -644,7 +667,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_requests_total{instance=~\"#{instance}\"}[5m])) by (zone)",
+              "q": "sum(rate(coredns_dns_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) by (zone)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -664,7 +687,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -699,9 +722,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS请求持续时间",
+        "name": "<<.Dashboard.responses_zone>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -715,7 +738,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.99, sum(rate(dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -728,7 +751,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.90, sum(rate(dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.90, sum(rate(coredns_dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -741,7 +764,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.50, sum(rate(dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.50, sum(rate(coredns_dns_request_duration_seconds_bucket{instance=~\"#{instance}\", zone=\".\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "C",
               "type": "promql",
               "funcList": [],
@@ -761,7 +784,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -796,9 +819,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS请求总数(by type)",
+        "name": "<<.Dashboard.request_by_type>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -812,7 +835,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_requests_total{instance=~\"#{instance}\"}[5m])) by (type)",
+              "q": "sum(rate(coredns_dns_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) by (type)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -832,7 +855,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -867,9 +890,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "缓存命中率",
+        "name": "<<.Dashboard.cache_hit_rate>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -883,7 +906,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(cache_hits_total{instance=~\"#{instance}\", type=\"success\"}[5m])) / sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_cache_hits_total{instance=~\"#{instance}\", type=\"success\"}[5m])) / sum(rate(cache_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -896,7 +919,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(cache_hits_total{instance=~\"#{instance}\", type=\"denial\"}[5m])) / sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_cache_hits_total{instance=~\"#{instance}\", type=\"denial\", cluster=~\"#{cluster}\"}[5m])) / sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -909,7 +932,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "(sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m])) - sum(rate(cache_hits_total{instance=~\"#{instance}\", type=\"success\"}[5m]))) / sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "(sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) - sum(rate(coredns_cache_hits_total{instance=~\"#{instance}\", type=\"success\", cluster=~\"#{cluster}\"}[5m]))) / sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m]))",
               "code": "C",
               "type": "promql",
               "funcList": [],
@@ -922,7 +945,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dnssec_cache_hits_total{instance=~\"#{instance}\"}[5m])) / sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_dnssec_cache_hits_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) / sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "D",
               "type": "promql",
               "funcList": [],
@@ -935,7 +958,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "(sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m])) - sum(rate(dnssec_cache_hits_total{instance=~\"#{instance}\"}[5m]))) / sum(rate(cache_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "(sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) - sum(rate(coredns_dnssec_cache_hits_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))) / sum(rate(coredns_cache_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "E",
               "type": "promql",
               "funcList": [],
@@ -955,7 +978,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -990,9 +1013,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS请求(DNSSEC by zone)",
+        "name": "<<.Dashboard.request_dnssec_by_zone>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -1006,7 +1029,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_requests_total{instance=~\"#{instance}\"}[5m])) by (zone)",
+              "q": "sum(rate(coredns_dns_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) by (zone)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1052,9 +1075,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS响应(by code)",
+        "name": "<<.Dashboard.responses_by_code>>",
         "pos": {
           "h": 13.4,
           "w": 8,
@@ -1068,7 +1091,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(dns_responses_total{instance=~\"#{instance}\"}[5m])) by (rcode)",
+              "q": "sum(rate(coredns_dns_responses_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) by (rcode)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1088,7 +1111,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -1123,9 +1146,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS请求大小(size, internet zone)",
+        "name": "<<.Dashboard.requests_size_zone>>",
         "pos": {
           "h": 13.4,
           "w": 8,
@@ -1139,7 +1162,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.99, sum(rate(dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.99, sum(rate(coredns_dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\",cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1152,7 +1175,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.90, sum(rate(dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.90, sum(rate(coredns_dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -1165,7 +1188,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.50, sum(rate(dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.50, sum(rate(coredns_dns_request_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "C",
               "type": "promql",
               "funcList": [],
@@ -1185,7 +1208,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -1220,9 +1243,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "DNS响应大小 (size, internet zone)",
+        "name": "<<.Dashboard.response_size_zone>>",
         "pos": {
           "h": 13.4,
           "w": 8,
@@ -1236,7 +1259,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.99, sum(rate(dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.99, sum(rate(coredns_dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\",cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1249,7 +1272,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.90, sum(rate(dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.90, sum(rate(coredns_dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\",cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -1262,7 +1285,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.50, sum(rate(dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.50, sum(rate(coredns_dns_response_size_bytes_bucket{instance=~\"#{instance}\", zone=\".\",cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "C",
               "type": "promql",
               "funcList": [],
@@ -1308,14 +1331,14 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Local"
+          "name": "<<.Dashboard.group_local>>"
         },
-        "name": "缓存项的数量 (size)",
+        "name": "<<.Dashboard.cache_size>>",
         "pos": {
           "h": 13.4,
           "w": 24,
           "x": 0,
-          "y": 53.599999999999994
+          "y": 53.60000000000001
         },
         "type": "singlestat",
         "queries": [
@@ -1324,7 +1347,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(cache_entries{instance=~\"#{instance}\"}) ",
+              "q": "sum(coredns_cache_entries{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}) ",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1358,7 +1381,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -1393,9 +1416,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Upstream"
+          "name": "<<.Dashboard.group_upstream>>"
         },
-        "name": "转发请求的总数",
+        "name": "<<.Dashboard.requests_total>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -1409,7 +1432,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_forward_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1429,7 +1452,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -1464,9 +1487,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Upstream"
+          "name": "<<.Dashboard.group_upstream>>"
         },
-        "name": "缓存(hitrate)",
+        "name": "<<.Dashboard.cache_hit_rate>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -1480,7 +1503,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_conn_cache_hits_total{instance=~\"#{instance}\"}[5m])) / sum(rate(forward_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "sum(rate(coredns_forward_conn_cache_hits_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) / sum(rate(coredns_forward_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1493,7 +1516,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "(sum(rate(forward_requests_total{instance=~\"#{instance}\"}[5m])) - sum(rate(forward_conn_cache_hits_total{instance=~\"#{instance}\"}[5m]))) / sum(rate(forward_requests_total{instance=~\"#{instance}\"}[5m]))",
+              "q": "(sum(rate(coredns_forward_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m])) - sum(rate(coredns_forward_conn_cache_hits_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))) / sum(rate(coredns_forward_requests_total{instance=~\"#{instance}\",cluster=~\"#{cluster}\"}[5m]))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -1513,7 +1536,7 @@
             "slimit": 20,
             "showLine": false,
             "unitType": "global",
-            "chartType": "line",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
             "openStack": false,
@@ -1548,9 +1571,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Upstream"
+          "name": "<<.Dashboard.group_upstream>>"
         },
-        "name": "健康检查请求持续时间(latency)",
+        "name": "<<.Dashboard.responses_latency>>",
         "pos": {
           "h": 13.4,
           "w": 12,
@@ -1564,7 +1587,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.99, sum(rate(forward_request_duration_seconds_bucket{instance=~\"#{instance}\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.99, sum(rate(coredns_forward_request_duration_seconds_bucket{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1577,7 +1600,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.90, sum(rate(forward_request_duration_seconds_bucket{instance=~\"#{instance}\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.90, sum(rate(coredns_forward_request_duration_seconds_bucket{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "B",
               "type": "promql",
               "funcList": [],
@@ -1590,7 +1613,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "histogram_quantile(0.50, sum(rate(forward_request_duration_seconds_bucket{instance=~\"#{instance}\"}[5m])) by (le))",
+              "q": "histogram_quantile(0.50, sum(rate(coredns_forward_request_duration_seconds_bucket{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) by (le))",
               "code": "C",
               "type": "promql",
               "funcList": [],
@@ -1636,9 +1659,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Upstream"
+          "name": "<<.Dashboard.group_upstream>>"
         },
-        "name": "转发请求总数(by upstream)",
+        "name": "<<.Dashboard.requests_by_upstream>>",
         "pos": {
           "h": 13.4,
           "w": 6,
@@ -1652,7 +1675,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_requests_total{instance=~\"#{instance}\"}[5m])) by (to)",
+              "q": "sum(rate(coredns_forward_requests_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) by (to)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1698,9 +1721,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "Upstream"
+          "name": "<<.Dashboard.group_upstream>>"
         },
-        "name": "转发响应总数(by code)",
+        "name": "<<.Dashboard.responses_zone>>",
         "pos": {
           "h": 13.4,
           "w": 6,
@@ -1714,7 +1737,7 @@
             "unit": "",
             "qtype": "promql",
             "query": {
-              "q": "sum(rate(forward_responses_total{instance=~\"#{instance}\"}[5m])) by (rcode)",
+              "q": "sum(rate(coredns_forward_responses_total{instance=~\"#{instance}\", cluster=~\"#{cluster}\"}[5m])) by (rcode)",
               "code": "A",
               "type": "promql",
               "funcList": [],
@@ -1727,18 +1750,19 @@
     ],
     "groups": [
       {
-        "name": "Global stats",
+        "name": "<<.Dashboard.group_global_stats>>",
         "extend": {}
       },
       {
-        "name": "Local",
+        "name": "<<.Dashboard.group_local>>",
         "extend": {}
       },
       {
-        "name": "Upstream",
+        "name": "<<.Dashboard.group_upstream>>",
         "extend": {}
       }
     ],
     "type": "template"
-  }
+  },
+  "identifier": ""
 }

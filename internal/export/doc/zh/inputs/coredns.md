@@ -9,7 +9,7 @@ dashboard :
     path  : 'dashboard/zh/coredns'
 monitor   :
   - desc  : '暂无'
-    path  : '-'
+    path  : 'monitor/zh/coredns'
 ---
 
 
@@ -40,7 +40,19 @@ CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。
 
 === "Kubernetes"
 
-    目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    通过 DataKit 来开启[ `kubernetesprometheus` 采集器(https://docs.guance.com/integrations/kubernetesprometheus/)。
+
+    ```yaml
+    [inputs.kubernetesprometheus]
+      [[inputs.kubernetesprometheus.instances]]
+          role       = "pod"
+          namespaces = ["kube-system"]
+          selector   = "k8s-app=kube-dns"
+          port     = "__kubernetes_pod_container_coredns_port_metrics_number"
+        [inputs.kubernetesprometheus.instances.custom]
+          [inputs.kubernetesprometheus.instances.custom.tags]
+            cluster = "demo"
+    ```
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}
