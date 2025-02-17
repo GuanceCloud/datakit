@@ -22,7 +22,7 @@ monitor   :
 
 采集 Zabbix 服务的实时数据并发送到观测云中心。
 
-Zabbix 从 5.0 到 7.0 版本都支持将实时数据写到文件中。实时数据中有三种数据格式：`events/history/trends` ，其中 `history` 和 `trends` 都是以指标形式展示。而 `events` 则可以通过 [Webhook](https://www.zabbix.com/documentation/5.4/en/manual/config/notifications/media/webhook?hl=Webhook%2Cwebhook){:target="_blank"} 方式发送到观测云。
+Zabbix 从 4.0 到 7.0 版本都支持将实时数据写到文件中。实时数据中有三种数据格式：`events/history/trends` ，其中 `history` 和 `trends` 都是以指标形式展示。而 `events` 则可以通过 [Webhook](https://www.zabbix.com/documentation/5.4/en/manual/config/notifications/media/webhook?hl=Webhook%2Cwebhook){:target="_blank"} 方式发送到观测云。
 
 ## 配置 {#config}
 
@@ -95,6 +95,7 @@ systemctl restart zabbix-server
 3. `objects`: zabbix 导出的数据共三种，现在仅 item 接入最完善
 4. `crontab`: 必填字段，全量更新数据的时间表达式
 5. `mysql`: 必填字段，需要从数据库中获取全量的 item 表数据
+6. `module_version`: 必填字段，版本 5.0 到 7.0+ 为 `v5`, Zabbix 版本低于 5.0 的时候为：`v4`
 
 配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
@@ -181,7 +182,7 @@ itemid , name , key_ , units
 最后：该指标的最终形态为：
 
 ```text
-指标集 zabbix-server
+指标集 zabbix_server
 指标名：system_cpu_util 值为 0.000000 所拥有的标签有：
 
 cpu=""

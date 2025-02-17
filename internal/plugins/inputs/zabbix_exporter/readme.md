@@ -130,7 +130,7 @@ itemid , name , key_ , units
 最后：该指标的最终形态为：
 
 ```text
-指标集 zabbix-server
+指标集 zabbix_server
 指标名：system_cpu_util 值为 0.000000 所拥有的标签有：
 
 cpu=""

@@ -50,11 +50,13 @@ const (
   #  user = "root"
   #  pw = "123456"
 
-  # Zabbix server version 5.x.
+  # Zabbix server version 4.x - 7.x
   [inputs.zabbix_exporter.export_v5]
     # zabbix realTime exportDir path
     export_dir = "/data/zbx/datakit/"
-
+    # 4.0~4.9 is v4
+    # 5.0~7.x is v5
+    module_version = "v5"
 `
 )
 

@@ -103,18 +103,19 @@ func itemsToPoints(lines []string, tags map[string]string, log *logger.Logger, c
 			}
 		}
 
+		keyName = strings.ReplaceAll(keyName, " ", "_")
 		kvs = kvs.AddTag("host", host).
 			AddTag("hostname", hostName).
 			AddTag("groups", group).
 			AddTag("applications", apps).
-			AddTag("resource", "zabbix-server").
+			AddTag("resource", "zabbix_server").
 			AddTag("data_source", "history").
 			Add(keyName, value, false, false)
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		pt := point.NewPointV2("zabbix-server", kvs, opts...)
+		pt := point.NewPointV2("zabbix_server", kvs, opts...)
 		pt.SetTime(t)
 		pts = append(pts, pt)
 	}
@@ -162,7 +163,7 @@ func triggerToPoints(lines [][]byte) []*point.Point { //nolint
 
 			opts := point.CommonLoggingOptions()
 			opts = append(opts, point.WithTime(t))
-			pt := point.NewPointV2("zabbix-server", kvs, opts...)
+			pt := point.NewPointV2("zabbix_server", kvs, opts...)
 			pts = append(pts, pt)
 		}
 
@@ -188,7 +189,7 @@ func triggerToPoints(lines [][]byte) []*point.Point { //nolint
 
 			opts := point.CommonLoggingOptions()
 			opts = append(opts, point.WithTime(t))
-			pt := point.NewPointV2("zabbix-server", kvs, opts...)
+			pt := point.NewPointV2("zabbix_server", kvs, opts...)
 
 			pts = append(pts, pt)
 		}
@@ -227,22 +228,23 @@ func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger, 
 		apps := strings.Join(trends.Applications, ",")
 		t := time.Unix(trends.Clock, 0)
 
+		keyName := strings.ReplaceAll(trends.Name, " ", "_")
 		// todo cacheData
 		var kvs point.KVs
 		kvs = kvs.AddTag("host", host).
 			AddTag("hostname", hostName).
 			AddTag("groups", group).
 			AddTag("applications", apps).
-			AddTag("resource", "zabbix-server").
+			AddTag("resource", "zabbix_server").
 			AddTag("item_id", strconv.Itoa(trends.ItemID)).
-			Add(trends.Name+"_avg", trends.Avg, false, false).
-			Add(trends.Name+"_max", trends.Max, false, false).
-			Add(trends.Name+"_min", trends.Min, false, false)
+			Add(keyName+"_avg", trends.Avg, false, false).
+			Add(keyName+"_max", trends.Max, false, false).
+			Add(keyName+"_min", trends.Min, false, false)
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		pt := point.NewPointV2("zabbix-server", kvs, opts...)
+		pt := point.NewPointV2("zabbix_server", kvs, opts...)
 		pt.SetTime(t)
 		pts = append(pts, pt)
 	}
