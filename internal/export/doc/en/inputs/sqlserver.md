@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'SQLServer'
     path  : 'dashboard/en/sqlserver'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'SQLServer'
+    path  : 'monitor/en/sqlserver'
 ---
 
 

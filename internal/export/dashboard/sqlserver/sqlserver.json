@@ -1,16 +1,16 @@
 {
-  "title": "SQL Server 监控视图 - New",
+  "title": "<<.Dashboard.title>>",
   "dashboardType": "CUSTOM",
   "dashboardExtend": {
     "groupUnfoldStatus": {
       "temp": false,
-      "缓存": true,
-      "吞吐量": true,
-      "锁信息": true,
-      "SQL 质量": true,
-      "基础监控": true,
-      "文件系统": true,
-      "数据库和文件系统": true
+      "<<.Dashboard.group_cache>>": true,
+      "<<.Dashboard.group_request>>": true,
+      "<<.Dashboard.group_locks>>": true,
+      "<<.Dashboard.group_sql_quality>>": true,
+      "<<.Dashboard.group_overview>>": true,
+      "<<.Dashboard.group_file>>": true,
+      "<<.Dashboard.group_db_file>>": true
     }
   },
   "dashboardMapping": [],
@@ -26,7 +26,7 @@
   "main": {
     "vars": [
       {
-        "name": "主机名",
+        "name": "<<.Dashboard.host_name>>",
         "seq": 0,
         "datasource": "dataflux",
         "code": "hostname",
@@ -115,9 +115,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "吞吐量"
+          "name": "<<.Dashboard.group_request>>"
         },
-        "name": "每秒批量请求数",
+        "name": "<<.Dashboard.request_branch_per_second>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -171,33 +171,33 @@
               {
                 "key": "database_name",
                 "name": "database_name",
-                "alias": "数据库"
+                "alias": "<<.Dashboard.alias_db>>"
               },
               {
                 "key": "file_type",
                 "name": "file_type",
-                "alias": "文件类型"
+                "alias": "<<.Dashboard.alias_file_type>>"
               },
               {
                 "key": "logical_filename",
                 "name": "logical_filename",
-                "alias": "逻辑文件名"
+                "alias": "<<.Dashboard.alias_logical_file_name>>"
               },
               {
                 "key": "physical_filename",
                 "name": "physical_filename",
-                "alias": "物理文件名"
+                "alias": "<<.Dashboard.alias_physical_file_name>>"
               },
               {
                 "key": "sqlserver_host",
                 "name": "sqlserver_host",
-                "alias": "服务器"
+                "alias": "<<.Dashboard.alias_server>>"
               }
             ],
             "units": [
               {
-                "key": "平均写入数据大小",
-                "name": "平均写入数据大小",
+                "key": "<<.Dashboard.avg_write_data_bytes>>",
+                "name": "<<.Dashboard.avg_write_data_bytes>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -205,8 +205,8 @@
                 ]
               },
               {
-                "key": "平均读取数据大小",
-                "name": "平均读取数据大小",
+                "key": "<<.Dashboard.avg_read_data_bytes>>",
+                "name": "<<.Dashboard.avg_read_data_bytes>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -246,9 +246,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "日志文件读写情况",
+        "name": "<<.Dashboard.log_file_read_write>>",
         "pos": {
           "h": 17,
           "w": 24,
@@ -264,11 +264,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`write_bytes`), linear) AS `平均写入数据大小`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`write_bytes`), linear) AS `<<.Dashboard.log_file_avg_write_bytes>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "A",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均写入数据大小",
+              "alias": "<<.Dashboard.log_file_avg_write_bytes>>",
               "field": "write_bytes",
               "index": "",
               "fillNum": null,
@@ -326,11 +326,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`writes`), linear) AS `平均写入数量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`writes`), linear) AS `<<.Dashboard.log_file_avg_write_count>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "B",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均写入数量",
+              "alias": "<<.Dashboard.log_file_avg_write_count>>",
               "field": "writes",
               "index": "",
               "fillNum": null,
@@ -388,11 +388,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`read_bytes`), linear) AS `平均读取数据大小`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`read_bytes`), linear) AS `<<.Dashboard.log_file_avg_read_bytes>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "C",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均读取数据大小",
+              "alias": "<<.Dashboard.log_file_avg_read_bytes>>",
               "field": "read_bytes",
               "index": "",
               "fillNum": null,
@@ -450,11 +450,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`reads`), linear) AS `平均读取数量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`reads`), linear) AS `<<.Dashboard.log_file_avg_read_count>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'LOG' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "D",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均读取数量",
+              "alias": "<<.Dashboard.log_file_avg_read_count>>",
               "field": "reads",
               "index": "",
               "fillNum": null,
@@ -513,8 +513,8 @@
             "alias": [],
             "units": [
               {
-                "key": "non_negative_derivative(写入量)",
-                "name": "non_negative_derivative(写入量)",
+                "key": "non_negative_derivative(<<.Dashboard.write_bytes>>)",
+                "name": "non_negative_derivative(<<.Dashboard.write_bytes>>)",
                 "unit": "",
                 "units": [
                   "digital",
@@ -522,8 +522,8 @@
                 ]
               },
               {
-                "key": "non_negative_derivative(读取量)",
-                "name": "non_negative_derivative(读取量)",
+                "key": "non_negative_derivative(<<.Dashboard.read_bytes>>)",
+                "name": "non_negative_derivative(<<.Dashboard.read_bytes>>)",
                 "unit": "",
                 "units": [
                   "digital",
@@ -591,9 +591,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "数据文件读写大小",
+        "name": "<<.Dashboard.data_file_read_write>>",
         "pos": {
           "h": 14,
           "w": 12,
@@ -609,11 +609,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(sum(`write_bytes`), linear) AS `写入量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' } BY `database_name`\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(sum(`write_bytes`), linear) AS `<<.Dashboard.write_bytes>>`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' } BY `database_name`\")",
               "code": "B",
               "fill": "linear",
               "type": "simple",
-              "alias": "写入量",
+              "alias": "<<.Dashboard.write_bytes>>",
               "field": "write_bytes",
               "filters": [
                 {
@@ -658,11 +658,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(sum(`read_bytes`), linear) AS `读取量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' } BY `database_name`\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(fill(sum(`read_bytes`), linear) AS `<<.Dashboard.read_bytes>>`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'ROWS' } BY `database_name`\")",
               "code": "A",
               "fill": "linear",
               "type": "simple",
-              "alias": "读取量",
+              "alias": "<<.Dashboard.read_bytes>>",
               "field": "read_bytes",
               "filters": [
                 {
@@ -708,8 +708,8 @@
             "alias": [],
             "units": [
               {
-                "key": "non_negative_derivative(写入量)",
-                "name": "non_negative_derivative(写入量)",
+                "key": "non_negative_derivative(<<.Dashboard.write_bytes>>)",
+                "name": "non_negative_derivative(<<.Dashboard.write_bytes>>)",
                 "unit": "",
                 "units": [
                   "digital",
@@ -717,8 +717,8 @@
                 ]
               },
               {
-                "key": "non_negative_derivative(读取量)",
-                "name": "non_negative_derivative(读取量)",
+                "key": "non_negative_derivative(<<.Dashboard.read_bytes>>)",
+                "name": "non_negative_derivative(<<.Dashboard.read_bytes>>)",
                 "unit": "",
                 "units": [
                   "digital",
@@ -786,9 +786,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "日志文件读写量",
+        "name": "<<.Dashboard.data_file_read_write_bytes>>",
         "pos": {
           "h": 14,
           "w": 12,
@@ -804,11 +804,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(sum(`read_bytes`) AS `读取量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'LOG' } BY `database_name`\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(sum(`read_bytes`) AS `<<.Dashboard.read_bytes>>`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'LOG' } BY `database_name`\")",
               "code": "A",
               "fill": null,
               "type": "simple",
-              "alias": "读取量",
+              "alias": "<<.Dashboard.read_bytes>>",
               "field": "read_bytes",
               "filters": [
                 {
@@ -854,11 +854,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(sum(`write_bytes`) AS `写入量`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'LOG' } BY `database_name`\")",
+              "q": "non_negative_derivative(\"M::`sqlserver_database_io`:(sum(`write_bytes`) AS `<<.Dashboard.write_bytes>>`) { `sqlserver_host` = '#{hostname}' and `file_type` = 'LOG' } BY `database_name`\")",
               "code": "B",
               "fill": null,
               "type": "simple",
-              "alias": "写入量",
+              "alias": "<<.Dashboard.write_bytes>>",
               "field": "write_bytes",
               "filters": [
                 {
@@ -907,33 +907,33 @@
               {
                 "key": "database_name",
                 "name": "database_name",
-                "alias": "数据库"
+                "alias": "<<.Dashboard.alias_db>>"
               },
               {
                 "key": "file_type",
                 "name": "file_type",
-                "alias": "文件类型"
+                "alias": "<<.Dashboard.alias_file_type>>"
               },
               {
                 "key": "logical_filename",
                 "name": "logical_filename",
-                "alias": "逻辑文件名"
+                "alias": "<<.Dashboard.alias_logical_file_name>>"
               },
               {
                 "key": "physical_filename",
                 "name": "physical_filename",
-                "alias": "物理文件名"
+                "alias": "<<.Dashboard.alias_physical_file_name>>"
               },
               {
                 "key": "sqlserver_host",
                 "name": "sqlserver_host",
-                "alias": "服务器"
+                "alias": "<<.Dashboard.alias_server>>"
               }
             ],
             "units": [
               {
-                "key": "平均写入数据大小",
-                "name": "平均写入数据大小",
+                "key": "<<.Dashboard.log_file_avg_write_bytes>>",
+                "name": "<<.Dashboard.log_file_avg_write_bytes>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -941,8 +941,8 @@
                 ]
               },
               {
-                "key": "平均读取数据大小",
-                "name": "平均读取数据大小",
+                "key": "<<.Dashboard.log_file_avg_read_bytes>>",
+                "name": "<<.Dashboard.log_file_avg_read_bytes>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -983,19 +983,19 @@
                 "width": 324
               },
               {
-                "field": "平均写入数据大小",
+                "field": "<<.Dashboard.log_file_avg_write_bytes>>",
                 "width": 80
               },
               {
-                "field": "平均写入数量",
+                "field": "<<.Dashboard.log_file_avg_write_count>>",
                 "width": 80
               },
               {
-                "field": "平均读取数据大小",
+                "field": "<<.Dashboard.log_file_avg_read_bytes>>",
                 "width": 80
               },
               {
-                "field": "平均读取数量",
+                "field": "<<.Dashboard.log_file_avg_read_count>>",
                 "width": 80
               }
             ],
@@ -1016,9 +1016,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "数据文件读写情况",
+        "name": "<<.Dashboard.data_file_read_write>>",
         "pos": {
           "h": 17,
           "w": 24,
@@ -1034,11 +1034,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`write_bytes`), linear) AS `平均写入数据大小`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`write_bytes`), linear) AS `<<.Dashboard.data_avg_write_bytes>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "A",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均写入数据大小",
+              "alias": "<<.Dashboard.data_avg_write_bytes>>",
               "field": "write_bytes",
               "index": "",
               "fillNum": null,
@@ -1096,11 +1096,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`writes`), linear) AS `平均写入数量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`writes`), linear) AS `<<.Dashboard.data_avg_write_count>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "B",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均写入数量",
+              "alias": "<<.Dashboard.data_avg_write_count>>",
               "field": "writes",
               "index": "",
               "fillNum": null,
@@ -1158,11 +1158,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`read_bytes`), linear) AS `平均读取数据大小`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`read_bytes`), linear) AS `<<.Dashboard.data_avg_read_bytes>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "C",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均读取数据大小",
+              "alias": "<<.Dashboard.data_avg_read_bytes>>",
               "field": "read_bytes",
               "index": "",
               "fillNum": null,
@@ -1220,11 +1220,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_io`:(fill(avg(`reads`), linear) AS `平均读取数量`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
+              "q": "M::`sqlserver_database_io`:(fill(avg(`reads`), linear) AS `<<.Dashboard.data_avg_read_count>>`) { `sqlserver_host` = '#{hostname}' and `database_name` != 'tempdb' and `file_type` = 'ROWS' } BY `database_name`, `file_type`, `sqlserver_host`, `logical_filename`, `physical_filename`",
               "code": "D",
               "fill": "linear",
               "type": "dql",
-              "alias": "平均读取数量",
+              "alias": "<<.Dashboard.data_avg_read_count>>",
               "field": "reads",
               "index": "",
               "fillNum": null,
@@ -1284,18 +1284,18 @@
               {
                 "key": "database_name",
                 "name": "database_name",
-                "alias": "数据库"
+                "alias": "<<.Dashboard.alias_db>>"
               },
               {
                 "key": "host",
                 "name": "host",
-                "alias": "服务器"
+                "alias": "<<.Dashboard.alias_server>>"
               }
             ],
             "units": [
               {
-                "key": "数据库",
-                "name": "数据库",
+                "key": "<<.Dashboard.unit_db>>",
+                "name": "<<.Dashboard.unit_db>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1303,8 +1303,8 @@
                 ]
               },
               {
-                "key": "日志",
-                "name": "日志",
+                "key": "<<.Dashboard.unit_log>>",
+                "name": "<<.Dashboard.unit_log>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1342,9 +1342,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "数据库文件大小",
+        "name": "<<.Dashboard.database_file_size>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -1360,11 +1360,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_size`:(last(`data_size`) AS `数据库`) BY `database_name`, `host`",
+              "q": "M::`sqlserver_database_size`:(last(`data_size`) AS `<<.Dashboard.alias_db>>`) BY `database_name`, `host`",
               "code": "A",
               "fill": "",
               "type": "simple",
-              "alias": "数据库",
+              "alias": "<<.Dashboard.alias_db>>",
               "field": "data_size",
               "search": "",
               "fillNum": null,
@@ -1392,11 +1392,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_database_size`:(last(`log_size`) AS `日志`) BY `database_name`, `host`",
+              "q": "M::`sqlserver_database_size`:(last(`log_size`) AS `<<.Dashboard.alias_log>>`) BY `database_name`, `host`",
               "code": "B",
               "fill": "",
               "type": "simple",
-              "alias": "日志",
+              "alias": "<<.Dashboard.alias_log>>",
               "field": "log_size",
               "search": "",
               "fillNum": null,
@@ -1484,9 +1484,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "吞吐量"
+          "name": "<<.Dashboard.group_request>>"
         },
-        "name": "活跃事务数",
+        "name": "<<.Dashboard.transaction_active>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -1502,10 +1502,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_performance`:(last(`active_transactions`) AS `活跃事务数`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver_performance`:(last(`active_transactions`) AS `<<.Dashboard.transaction_active>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "type": "simple",
-              "alias": "活跃事务数",
+              "alias": "<<.Dashboard.transaction_active>>",
               "field": "active_transactions",
               "filters": [
                 {
@@ -1597,9 +1597,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "吞吐量"
+          "name": "<<.Dashboard.group_request>>"
         },
-        "name": "每秒 SQL 编译数",
+        "name": "<<.Dashboard.sql_compiles_per_second>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -1615,10 +1615,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_performance`:(non_negative_derivative(`sql_compilations`) AS `每秒 SQL 编译数`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver_performance`:(non_negative_derivative(`sql_compilations`) AS `<<.Dashboard.sql_compiles_per_second>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "type": "simple",
-              "alias": "每秒 SQL 编译数",
+              "alias": "<<.Dashboard.sql_compiles_per_second>>",
               "field": "sql_compilations",
               "filters": [
                 {
@@ -1710,9 +1710,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "吞吐量"
+          "name": "<<.Dashboard.group_request>>"
         },
-        "name": "每秒 SQL 重新编译数",
+        "name": "<<.Dashboard.sql_recompiles_per_second>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -1728,10 +1728,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_performance`:(non_negative_derivative(`sql_re_compilations`) AS `每秒 SQL 重新编译数`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver_performance`:(non_negative_derivative(`sql_re_compilations`) AS `<<.Dashboard.sql_recompiles_per_second>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "type": "simple",
-              "alias": "每秒 SQL 重新编译数",
+              "alias": "<<.Dashboard.sql_recompiles_per_second>>",
               "field": "sql_re_compilations",
               "filters": [
                 {
@@ -1823,9 +1823,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "吞吐量"
+          "name": "<<.Dashboard.group_request>>"
         },
-        "name": "用户连接数量",
+        "name": "<<.Dashboard.connection_user>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -1841,10 +1841,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_performance`:(last(`user_connections`) AS `用户连接数量`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver_performance`:(last(`user_connections`) AS `<<.Dashboard.connection_user>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "type": "simple",
-              "alias": "用户连接数量",
+              "alias": "<<.Dashboard.connection_user>>",
               "field": "user_connections",
               "filters": [
                 {
@@ -1878,13 +1878,13 @@
               {
                 "key": "sqlserver_host",
                 "name": "sqlserver_host",
-                "alias": "服务器"
+                "alias": "<<.Dashboard.alias_server>>"
               }
             ],
             "units": [
               {
-                "key": "物理内存",
-                "name": "物理内存",
+                "key": "<<.Dashboard.unit_physical_memory>>",
+                "name": "<<.Dashboard.unit_physical_memory>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1892,8 +1892,8 @@
                 ]
               },
               {
-                "key": "已提交的内存",
-                "name": "已提交的内存",
+                "key": "<<.Dashboard.unit_commit_memory>>",
+                "name": "<<.Dashboard.unit_commit_memory>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1901,8 +1901,8 @@
                 ]
               },
               {
-                "key": "内存管理器可使用的内存",
-                "name": "内存管理器可使用的内存",
+                "key": "<<.Dashboard.unit_manager_memory_free>>",
+                "name": "<<.Dashboard.unit_manager_memory_free>>",
                 "unit": "",
                 "units": [
                   "digital",
@@ -1910,8 +1910,8 @@
                 ]
               },
               {
-                "key": "在线时间",
-                "name": "在线时间",
+                "key": "<<.Dashboard.unit_online_time>>",
+                "name": "<<.Dashboard.unit_online_time>>",
                 "unit": "",
                 "units": [
                   "time",
@@ -1949,9 +1949,9 @@
           "isRefresh": false
         },
         "group": {
-          "name": "基础信息"
+          "name": "<<.Dashboard.group_base>>"
         },
-        "name": "服务器",
+        "name": "<<.Dashboard.server>>",
         "pos": {
           "h": 14,
           "w": 24,
@@ -1967,11 +1967,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver`:(last(`uptime`) AS `在线时间`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver`:(last(`uptime`) AS `<<.Dashboard.unit_online_time>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "A",
               "fill": null,
               "type": "dql",
-              "alias": "在线时间",
+              "alias": "<<.Dashboard.unit_online_time>>",
               "field": "uptime",
               "index": "",
               "fillNum": null,
@@ -2009,11 +2009,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver`:(last(`cpu_count`) AS `CPU 核数`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver`:(last(`cpu_count`) AS `<<.Dashboard.cpu_count>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "D",
               "fill": null,
               "type": "dql",
-              "alias": "CPU 核数",
+              "alias": "<<.Dashboard.cpu_count>>",
               "field": "cpu_count",
               "index": "",
               "fillNum": null,
@@ -2051,11 +2051,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver`:(last(`server_memory`) AS `物理内存`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver`:(last(`server_memory`) AS `<<.Dashboard.unit_physical_memory>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "E",
               "fill": null,
               "type": "dql",
-              "alias": "物理内存",
+              "alias": "<<.Dashboard.unit_physical_memory>>",
               "field": "server_memory",
               "index": "",
               "fillNum": null,
@@ -2093,11 +2093,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver`:(last(`committed_memory`) AS `已提交的内存`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver`:(last(`committed_memory`) AS `<<.Dashboard.unit_commit_memory>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "B",
               "fill": null,
               "type": "dql",
-              "alias": "已提交的内存",
+              "alias": "<<.Dashboard.unit_commit_memory>>",
               "field": "committed_memory",
               "index": "",
               "fillNum": null,
@@ -2135,11 +2135,11 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver`:(last(`target_memory`) AS `内存管理器可使用的内存`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver`:(last(`target_memory`) AS `<<.Dashboard.unit_manager_memory_free>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "fill": null,
               "type": "dql",
-              "alias": "内存管理器可使用的内存",
+              "alias": "<<.Dashboard.unit_manager_memory_free>>",
               "field": "target_memory",
               "index": "",
               "fillNum": null,
@@ -2201,7 +2201,7 @@
             "currentChartType": "bar",
             "showFieldMapping": false,
             "showTopWithMetric": "",
-            "tableSortMetricName": "可疑suspect",
+            "tableSortMetricName": "suspect",
             "openThousandsSeparator": true
           },
           "fixedTime": "",
@@ -2209,9 +2209,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "数据库和文件系统"
+          "name": "<<.Dashboard.group_db_file>>"
         },
-        "name": "数据库状态统计",
+        "name": "<<.Dashboard.database_state_statics>>",
         "pos": {
           "h": 17,
           "w": 12,
@@ -2491,9 +2491,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "缓存"
+          "name": "<<.Dashboard.group_cache>>"
         },
-        "name": "缓存命中率",
+        "name": "<<.Dashboard.cache_hit_ratio>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -2607,9 +2607,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "缓存"
+          "name": "<<.Dashboard.group_cache>>"
         },
-        "name": "页面寿命预期",
+        "name": "<<.Dashboard.page_life_expectancy>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -2720,9 +2720,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "缓存"
+          "name": "<<.Dashboard.group_cache>>"
         },
-        "name": "检查点页面数量",
+        "name": "<<.Dashboard.checked_point_page_count>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -2738,10 +2738,10 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`sqlserver_performance`:(last(`checkpoint_pages`) AS `检查点页面数量`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
+              "q": "M::`sqlserver_performance`:(last(`checkpoint_pages`) AS `<<.Dashboard.checked_point_page_count>>`) { `sqlserver_host` = '#{hostname}' } BY `sqlserver_host`",
               "code": "C",
               "type": "simple",
-              "alias": "检查点页面数量",
+              "alias": "<<.Dashboard.checked_point_page_count>>",
               "field": "checkpoint_pages",
               "filters": [
                 {
@@ -2833,11 +2833,11 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "锁信息"
+          "name": "<<.Dashboard.group_locks>>"
         },
-        "name": "每秒锁等待数",
+        "name": "<<.Dashboard.locks_wait_pre_second>>",
         "pos": {
-          "h": 17,
+         "h": 17,
           "w": 8,
           "x": 0,
           "y": 0
@@ -2946,9 +2946,9 @@
           "fixedGroupByTime": null
         },
         "group": {
-          "name": "锁信息"
+          "name": "<<.Dashboard.group_locks>>"
         },
-        "name": "被阻塞的进程数",
+        "name": "<<.Dashboard.blocked_processes>>",
         "pos": {
           "h": 17,
           "w": 8,
@@ -2997,31 +2997,31 @@
     ],
     "groups": [
       {
-        "name": "基础信息",
+        "name": "<<.Dashboard.group_base>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "吞吐量",
+        "name": "<<.Dashboard.group_request>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "数据库和文件系统",
+        "name": "<<.Dashboard.group_db_file>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "缓存",
+        "name": "<<.Dashboard.group_cache>>",
         "extend": {
           "bgColor": ""
         }
       },
       {
-        "name": "锁信息",
+        "name": "<<.Dashboard.group_locks>>",
         "extend": {
           "bgColor": ""
         }

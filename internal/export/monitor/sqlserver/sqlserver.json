@@ -4,11 +4,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "SQL Server - 缓存命中率较低",
+        "title": "<<.Monitor.cache_hit_ratio_title>>",
         "groupBy": [
           "sqlserver_host"
         ],
-        "message": "{% if df_status != 'ok' %}\n级别状态：{{df_status | to_status_human }}\n>主机：{{sqlserver_host}}\n>缓存命中率较低：{{Result}}\n>触发时间：{{date | to_datetime }}\n\n{% else %}\n级别状态：{{df_status | to_status_human }}\n>主机：{{sqlserver_host}}\n>内容：缓存命中率已经恢复\n>恢复时间：{{date | to_datetime }}\n\n{% endif %}",
+        "message": "<<.Monitor.cache_hit_ratio_message>>",
         "targets": [
           {
             "dql": "M::`sqlserver_performance`:(avg(`buffer_cache_hit_ratio`)) BY `sqlserver_host`",
@@ -105,11 +105,11 @@
       "jsonScript": {
         "type": "simpleCheck",
         "every": "5m",
-        "title": "SQL Server - 有数据库处于离线状态",
+        "title": "<<.Monitor.db_offline_title>>",
         "groupBy": [
           "sqlserver_host"
         ],
-        "message": "{% if df_status != 'ok' %}\n级别状态：{{df_status | to_status_human }}\n>主机：{{sqlserver_host}}\n>处于离线的数据库数量：{{Result}}\n>触发时间：{{date | to_datetime }}\n\n{% else %}\n级别状态：{{df_status | to_status_human }}\n>主机：{{sqlserver_host}}\n>内容：已无离线数据库\n>恢复时间：{{date | to_datetime }}\n\n{% endif %}",
+        "message": "<<.Monitor.db_offline_message>>",
         "targets": [
           {
             "dql": "M::`sqlserver`:(max(`db_offline`)) BY `sqlserver_host`",
