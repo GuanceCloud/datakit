@@ -80,6 +80,12 @@ data`,
 	}
 }
 
+const (
+	AWSAuthHeader  = "X-aws-ec2-metadata-token"
+	AWSTTLHeader   = "X-aws-ec2-metadata-token-ttl-seconds"
+	AWSMaxTokenTTL = 21600 * time.Second
+)
+
 func TestMetaGetV2(t *testing.T) {
 	expectToken := "test-token"
 	t.Run("AWS IMDSv2 Success", func(t *testing.T) {

@@ -81,6 +81,7 @@ type Input struct {
 
 	DisableCloudProviderSync bool              `toml:"disable_cloud_provider_sync"`
 	EnableCloudAWSIMDSv2     bool              `toml:"enable_cloud_aws_imds_v2"`
+	EnableCloudAWSIPv6       bool              `toml:"enable_cloud_aws_ipv6"`
 	CloudInfo                map[string]string `toml:"cloud_info,omitempty"`
 	lastSync                 time.Time
 
@@ -286,6 +287,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
 		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
 		{FieldName: "EnableCloudAWSIMDSv2", ENVName: "INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2", ConfField: "enable_cloud_aws_imds_v2", Type: doc.Boolean, Default: "false", Desc: "Enable AWS IMDSv2", DescZh: "开启 AWS IMDSv2"},
+		{FieldName: "EnableCloudAWSIPv6", ENVName: "INPUT_HOSTOBJECT_CLOUD_AWS_IPV6", ConfField: "enable_cloud_aws_ipv6", Type: doc.Boolean, Default: "false", Desc: "Enable AWS IPv6", DescZh: "开启 AWS IPv6"},
 		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
 		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
 		{FieldName: "CloudMetaURL", ENVName: "CLOUD_META_URL", ConfField: "cloud_meta_url", Type: doc.Map, Example: "`{\"tencent\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata URL mapping", DescZh: "云服务商元数据 URL 映射"},
@@ -360,6 +362,15 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2 to bool: %s, ignore", err)
 		} else {
 			ipt.EnableCloudAWSIMDSv2 = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IPV6"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IPV6 to bool: %s, ignore", err)
+		} else {
+			ipt.EnableCloudAWSIPv6 = b
 		}
 	}
 

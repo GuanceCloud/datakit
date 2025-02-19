@@ -68,7 +68,10 @@ func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error)
 		if url, ok := ipt.CloudMetaURL[AWS]; ok {
 			p = &aws{baseURL: url}
 		} else {
-			p = &aws{baseURL: "http://169.254.169.254/latest/meta-data"}
+			p = &aws{baseURL: awsIPv4BaseURL}
+			if ipt.EnableCloudAWSIPv6 {
+				p.baseURL = awsIPv6BaseURL
+			}
 		}
 		p.authConfig = defaultAWSAuthConfig(ipt)
 		return p.Sync()
@@ -120,14 +123,17 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 		return false
 	}
 
-	hwAndAwsBaseURL := "http://169.254.169.254/latest/meta-data"
+	detBaseURL := awsIPv4BaseURL
 	if url, ok := ipt.CloudMetaURL[cloudProvider]; ok {
-		hwAndAwsBaseURL = url
+		detBaseURL = url
 	}
 	// 确保开启了认证的 AWS 也能够被自动探测到
 	if cloudProvider == AWS && ipt.EnableCloudAWSIMDSv2 {
+		if ipt.EnableCloudAWSIPv6 {
+			detBaseURL = awsIPv6BaseURL
+		}
 		if metaGetV2(
-			hwAndAwsBaseURL+"/placement/availability-zone-id",
+			detBaseURL+"/placement/availability-zone-id",
 			defaultAWSAuthConfig(ipt),
 		) != Unavailable {
 			return true
@@ -136,7 +142,7 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 	if cloudProvider == Hwcloud || cloudProvider == AWS {
 		// Both of hwcloud and aws use the same URL. They can be distinguished by
 		// field 'availability-zone-id', which is present in aws but not hwcloud.
-		if metaGet(hwAndAwsBaseURL+"/placement/availability-zone-id") == Unavailable {
+		if metaGet(detBaseURL+"/placement/availability-zone-id") == Unavailable {
 			return cloudProvider == Hwcloud
 		}
 		return cloudProvider == AWS
