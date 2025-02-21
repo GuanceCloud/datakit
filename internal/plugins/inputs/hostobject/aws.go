@@ -5,13 +5,15 @@
 
 package hostobject
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	AWSAuthHeader      = "X-aws-ec2-metadata-token"
-	AWSTTLHeader       = "X-aws-ec2-metadata-token-ttl-seconds"
-	AWSDefaultTokenURL = "http://169.254.169.254/latest/api/token" // nolint:gosec
-	AWSMaxTokenTTL     = 21600 * time.Second
+	awsIPv4BaseURL  = "http://169.254.169.254/latest/meta-data" //nolint:gosec
+	awsIPv6BaseURL  = "http://[fd00:ec2::254]/latest/meta-data" //nolint:gosec
+	awsIPv4TokenURL = "http://169.254.169.254/latest/api/token" //nolint:gosec
+	awsIPv6TokenURL = "http://[fd00:ec2::254]/latest/api/token" //nolint:gosec
 )
 
 type aws struct {
@@ -24,12 +26,15 @@ func defaultAWSAuthConfig(ipt *Input) AuthConfig {
 		Enable: ipt.EnableCloudAWSIMDSv2,
 	}
 	if ipt.EnableCloudAWSIMDSv2 {
-		authConfig.AuthHeader = AWSAuthHeader
-		authConfig.TTLHeader = AWSTTLHeader
-		authConfig.TokenURL = AWSDefaultTokenURL
-		authConfig.MaxTokenTTL = AWSMaxTokenTTL
+		authConfig.AuthHeader = "X-aws-ec2-metadata-token"
+		authConfig.TTLHeader = "X-aws-ec2-metadata-token-ttl-seconds"
+		authConfig.MaxTokenTTL = 21600 * time.Second
 		authConfig.TokenTTL = ipt.Interval // 这里暂时将token的ttl设置为采集器间隔时间
 
+		authConfig.TokenURL = awsIPv4TokenURL
+		if ipt.EnableCloudAWSIPv6 {
+			authConfig.TokenURL = awsIPv6TokenURL
+		}
 		if url, ok := ipt.CloudMetaTokenURL[AWS]; ok {
 			authConfig.TokenURL = url
 		}
