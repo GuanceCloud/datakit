@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/elazarl/goproxy"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -27,10 +28,13 @@ var (
 	inputName    = "proxy"
 	sampleConfig = `
 [[inputs.proxy]]
-  ## default bind ip address
-  bind = "0.0.0.0"
+  ## choose some inner IP address
+  bind = "127.0.0.1"
   ## default bind port
   port = 9530
+
+  # allowed client IP address(in CIDR format)
+  allowed_client_cidrs = []
 
   # verbose mode will show more info about during proxying.
   verbose = false
@@ -39,6 +43,8 @@ var (
   mitm = false
 `
 	log = logger.DefaultSLogger("input-proxy")
+
+	msgNotAllowedIP = "IP access denied"
 )
 
 type proxyLogger struct{}
@@ -47,11 +53,34 @@ func (pl *proxyLogger) Printf(format string, v ...interface{}) {
 	log.Infof(format, v...)
 }
 
+type cidrChecker struct {
+	ipNets []*net.IPNet
+}
+
+func (chker *cidrChecker) check(ip string) (bool, error) {
+	x := net.ParseIP(ip)
+	if x == nil {
+		return false, fmt.Errorf("invalid IP: %s", ip)
+	}
+
+	for _, n := range chker.ipNets {
+		if n.Contains(x) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 type Input struct {
 	Bind    string `toml:"bind"`
 	Port    int    `toml:"port"`
 	Verbose bool   `toml:"verbose"`
 	MITM    bool   `toml:"mitm"`
+
+	AllowedClientCIDRs []string `toml:"allowed_client_cidrs"`
+
+	cidrChecker *cidrChecker
 
 	semStop *cliutils.Sem // start stop signal
 
@@ -85,6 +114,19 @@ func (ipt *Input) HandleConnect(req string, ctx *goproxy.ProxyCtx) (*goproxy.Con
 		log.Warnf("HandleConnect: invalid client addr(%q), ignored", ctx.Req.RemoteAddr)
 	} else {
 		cliIP = addr.IP.String()
+		if ipt.cidrChecker != nil {
+			ok, err := ipt.cidrChecker.check(cliIP)
+			if err == nil {
+				if !ok {
+					proxyRejectVec.WithLabelValues("ip").Inc()
+					log.Warnf("[CONNECT] client ip %s not allowed", cliIP)
+
+					return goproxy.RejectConnect, req
+				}
+			} else {
+				log.Warnf("CIDR check ip %s failed: %s, ignored", cliIP, err.Error())
+			}
+		}
 	}
 
 	log.Debugf("handle connect from %s...", cliIP)
@@ -105,9 +147,43 @@ func (ipt *Input) doInitProxy() error {
 	p.Verbose = ipt.Verbose
 	p.Logger = &proxyLogger{}
 
+	if len(ipt.AllowedClientCIDRs) > 0 {
+		chker := &cidrChecker{}
+		for _, cidr := range ipt.AllowedClientCIDRs {
+			_, x, err := net.ParseCIDR(cidr)
+			if err != nil {
+				log.Warnf("invalid CIDR: %s, ignored")
+				continue
+			}
+			chker.ipNets = append(chker.ipNets, x)
+		}
+		ipt.cidrChecker = chker
+	}
+
 	p.OnRequest().HandleConnect(ipt)
 	p.OnRequest().DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			if ipt.cidrChecker != nil {
+				cliIP, _, err := net.SplitHostPort(r.RemoteAddr)
+				if err != nil {
+					log.Warnf("invalid client ip %q", r.RemoteAddr)
+
+					return nil, goproxy.NewResponse(r, "text/plain", 403, msgNotAllowedIP)
+				}
+
+				ok, err := ipt.cidrChecker.check(cliIP)
+				if err == nil {
+					if !ok {
+						proxyRejectVec.WithLabelValues("ip").Inc()
+						log.Warnf("client ip %q not allowed", r.RemoteAddr)
+
+						return nil, goproxy.NewResponse(r, "text/plain", 403, msgNotAllowedIP)
+					}
+				} else {
+					log.Warnf("CIDR check ip %s failed: %s, ignored", cliIP, err.Error())
+				}
+			}
+
 			if ctx.Error != nil {
 				log.Warnf("on request got error from proxy context: %s", ctx.Error.Error())
 			}

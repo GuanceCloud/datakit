@@ -511,7 +511,7 @@ code_stat:
 # promlinter: show prometheuse metrics defined in Datakit.
 # go install github.com/yeya24/promlinter/cmd/promlinter@latest
 metrics:
-	@promlinter list . --add-help -o md --with-vendor > dk.metrics
+	@promlinter list . --add-help -o md --with-vendor --add-position > dk.metrics
 
 clean:
 	@rm -rf build/*

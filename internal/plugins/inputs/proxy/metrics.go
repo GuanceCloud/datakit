@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	proxyReqVec        *prometheus.CounterVec
-	proxyConnectVec    *prometheus.CounterVec
+	proxyReqVec,
+	proxyRejectVec,
+	proxyConnectVec *prometheus.CounterVec
 	proxyReqLatencyVec *prometheus.SummaryVec
 )
 
@@ -61,15 +62,33 @@ func metricsSetup() {
 			"status",
 		},
 	)
+
+	proxyRejectVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_proxy",
+			Name:      "reject_total",
+			Help:      "Proxy rejected request",
+		},
+		[]string{
+			"type",
+		},
+	)
 }
 
 func allMetrics() []prometheus.Collector {
-	return []prometheus.Collector{proxyReqVec, proxyReqLatencyVec, proxyConnectVec}
+	return []prometheus.Collector{
+		proxyReqVec,
+		proxyReqLatencyVec,
+		proxyConnectVec,
+		proxyRejectVec,
+	}
 }
 
 func resetMetrics() {
 	proxyReqLatencyVec.Reset()
 	proxyReqVec.Reset()
+	proxyRejectVec.Reset()
 	proxyConnectVec.Reset()
 }
 

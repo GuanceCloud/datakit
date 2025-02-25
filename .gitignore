@@ -116,3 +116,4 @@ node_modules
 dca/web/build
 !dca/dca.yaml
 internal/apminject/dkrunc/dkrunc
+dk.metrics
