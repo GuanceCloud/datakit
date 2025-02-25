@@ -155,4 +155,4 @@ public class YourClass {
 
 ## Metric {#metrics}
 
-`guance-exporter` supports sending metric data to GuanCe Cloud, and the name of the metric set is `otel-service`.
+`guance-exporter` supports sending metric data to GuanCe Cloud, and the name of the metric set is `otel_service`.

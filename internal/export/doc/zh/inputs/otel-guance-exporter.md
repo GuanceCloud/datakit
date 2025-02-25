@@ -157,4 +157,4 @@ public class YourClass {
 
 ## 指标 {#metrics}
 
-guance-exporter 支持 metric 数据发送到观测云，指标集的名字是 `otel-service` 。
+guance-exporter 支持 metric 数据发送到观测云，指标集的名字是 `otel_service` 。

@@ -16,19 +16,11 @@ import (
 // Attributes binding to resource.
 const (
 	otelResourceServiceKey = "service.name"
-)
-
-//nolint:deadcode,unused,varcheck
-const (
-	// HTTP.
-	otelHTTPSchemeKey = "http_scheme"
-	otelHTTPMethodKey = "http_method"
-	// database.
-	otelDBSystemKey = "db_system"
-	// message queue.
+	otelHTTPSchemeKey      = "http_scheme"
+	otelHTTPMethodKey      = "http_method"
+	otelDBSystemKey        = "db_system"
 	otelMessagingSystemKey = "messaging_system"
-	// rpc system.
-	otelRPCSystemKey = "rpc_system"
+	otelRPCSystemKey       = "rpc_system"
 )
 
 const (
@@ -36,6 +28,20 @@ const (
 	ExceptionTypeKey       = "exception.type"
 	ExceptionMessageKey    = "exception.message"
 	ExceptionStacktraceKey = "exception.stacktrace"
+)
+
+// Histogram 和 Summary 有一些固定的后缀和标签。
+const (
+	metricName   = "otel_service"
+	unitTag      = "unit"
+	bucketSuffix = "_bucket"
+	sumSuffix    = "_sum"
+	countSuffix  = "_count"
+	avgSuffix    = "_avg"
+	minSuffix    = "_min"
+	maxSuffix    = "_max"
+	leTag        = "le"
+	infSuffix    = "+Inf" // 固定且大小写敏感
 )
 
 var otelErrKeyToDkErrKey = map[string]string{

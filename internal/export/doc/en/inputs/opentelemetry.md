@@ -237,11 +237,46 @@ To control the time interval between MBean detection attempts, one can use the O
 
 In addition, the acquisition configuration of some third-party software built in the Agent. For details, please refer to: [JMX Metric Insight](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
 
-All indicators sent to the observation cloud have a unified indicator set name: `otel-service`.
+<!-- markdownlint-disable MD046 -->
+???+ warning "metric"
+
+    Starting from [DataKit 1.68.0](../datakit/changelog.md#cl-1.68.0), the indicator set name has been changed:
+    All indicators sent to the observation cloud have a unified indicator set name: `otel_service`.
+    If you already have a dashboard, export the existing dashboard and change `otel-serivce` to `otel_service` and then import it.
+
+<!-- markdownlint-enable -->
+
+When exporting **Histogram** metrics to Observability Cloud, some metrics undergo special processing:
+
+- OpenTelemetry histogram buckets are directly mapped to Prometheus histogram buckets.
+- The count for each bucket is converted to Prometheus' cumulative count format.
+- For example, OpenTelemetry buckets `[0, 10)`, `[10, 50)`, and `[50, 100)` are converted into Prometheus `_bucket` metrics with an `le` label:
+
+```text
+  my_histogram_bucket{le="10"} 100
+  my_histogram_bucket{le="50"} 200
+  my_histogram_bucket{le="100"} 250
+```
+
+- The total number of observations in the OpenTelemetry histogram is converted into the Prometheus `_count` metric.
+- The sum of the OpenTelemetry histogram is converted into the Prometheus `_sum` metric, and `_max` and `_min` are also added.
+
+```text
+  my_histogram_count 250
+  my_histogram_max 100
+  my_histogram_min 50
+  my_histogram_sum 12345.67
+```
+
+Any metric ending with `_bucket` is histogram data, and it will always have corresponding metrics ending with `_max`, `_min`, `_count`, and `_sum`.
+
+In histogram data, the `le` (less or equal) label can be used for classification, and filtering can be performed based on labels. You can refer to [OpenTelemetry Metrics](https://opentelemetry.io/docs/specs/semconv/){:target="_blank"} for all metrics and labels.
+
+This conversion enables seamless integration of OpenTelemetry-collected histogram data into Prometheus, leveraging Prometheus' powerful querying and visualization capabilities for analysis.
 
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+### {{$m.Type}}
 
 {{$m.Desc}}
 

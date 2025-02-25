@@ -43,7 +43,7 @@
           "tag": "service_name",
           "field": "",
           "value": "",
-          "metric": "otel-service",
+          "metric": "otel_service",
           "object": "",
           "defaultVal": {
             "label": "",
@@ -65,7 +65,7 @@
           "tag": "host",
           "field": "",
           "value": "",
-          "metric": "otel-service",
+          "metric": "otel_service",
           "object": "",
           "defaultVal": {
             "label": "",
@@ -87,7 +87,7 @@
           "tag": "telemetry_auto_version",
           "field": "",
           "value": "",
-          "metric": "otel-service",
+          "metric": "otel_service",
           "object": "",
           "defaultVal": {
             "label": "",
@@ -202,7 +202,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.buffer.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel_service`:(avg(`jvm.buffer.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -233,7 +233,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -247,7 +247,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.buffer.memory.used`) AS `used`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel_service`:(avg(`jvm.buffer.memory.used`) AS `used`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -278,7 +278,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -292,7 +292,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.buffer.total.capacity`) AS `cache`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel_service`:(avg(`jvm.buffer.total.capacity`) AS `cache`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -323,7 +323,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -411,7 +411,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.classes.loaded`) AS `load`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.classes.loaded`) AS `load`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -440,7 +440,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -454,7 +454,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.classes.unloaded`) AS `unLoad`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.classes.unloaded`) AS `unLoad`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -483,7 +483,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -599,7 +599,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.live.data.size`) AS `liveSize`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.gc.live.data.size`) AS `liveSize`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -628,7 +628,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -642,7 +642,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.max.data.size`) AS `maxSize`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.gc.max.data.size`) AS `maxSize`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -671,7 +671,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -685,7 +685,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.overhead`) AS `overhead`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.gc.overhead`) AS `overhead`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -714,7 +714,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -821,7 +821,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.memory.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.memory.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -850,7 +850,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -864,7 +864,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.memory.used`) AS `used`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.memory.used`) AS `used`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -893,7 +893,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -985,7 +985,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.threads.daemon`) AS `daemon`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.threads.daemon`) AS `daemon`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -1014,7 +1014,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1028,7 +1028,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.threads.live`) AS `live`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.threads.live`) AS `live`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -1057,7 +1057,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1071,7 +1071,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.threads.peak`) AS `peak`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.threads.peak`) AS `peak`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -1100,7 +1100,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1199,7 +1199,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`system.cpu.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(max(`system.cpu.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -1228,7 +1228,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1242,7 +1242,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`system.cpu.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(max(`system.cpu.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -1271,7 +1271,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1285,7 +1285,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`system.load.average.1m`) AS `average`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(last(`system.load.average.1m`) AS `average`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -1314,7 +1314,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1402,7 +1402,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.files.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`process.files.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -1431,7 +1431,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1445,7 +1445,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.files.open`) AS `open`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`process.files.open`) AS `open`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -1474,7 +1474,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1562,7 +1562,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.active.current`) AS `active`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.active.current`) AS `active`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -1591,7 +1591,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1605,7 +1605,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.active.max`) AS `active max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.active.max`) AS `active max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -1634,7 +1634,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1648,7 +1648,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.alive.max`) AS `live max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.alive.max`) AS `live max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -1677,7 +1677,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1691,7 +1691,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.created`) AS `created`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.created`) AS `created`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "D",
               "fill": null,
               "type": "simple",
@@ -1720,7 +1720,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1734,7 +1734,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.expired`) AS `expired`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.expired`) AS `expired`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "E",
               "fill": null,
               "type": "simple",
@@ -1763,7 +1763,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1777,7 +1777,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`tomcat.sessions.rejected`) AS `rejected`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`tomcat.sessions.rejected`) AS `rejected`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "F",
               "fill": null,
               "type": "simple",
@@ -1806,7 +1806,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1913,7 +1913,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`disk.free`) AS `free`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`disk.free`) AS `free`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -1942,7 +1942,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -1956,7 +1956,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`disk.total`) AS `total`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`disk.total`) AS `total`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -1985,7 +1985,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2092,7 +2092,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`process.runtime.jvm.buffer.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
+              "q": "M::`otel_service`:(max(`process.runtime.jvm.buffer.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -2123,7 +2123,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2137,7 +2137,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`process.runtime.jvm.buffer.limit`) AS `total`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
+              "q": "M::`otel_service`:(max(`process.runtime.jvm.buffer.limit`) AS `total`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2168,7 +2168,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2182,7 +2182,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.buffer.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.buffer.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -2211,7 +2211,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2327,7 +2327,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.memory.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.memory.usage`) AS `usage`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2358,7 +2358,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2372,7 +2372,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.memory.committed`) AS `committed`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.memory.committed`) AS `committed`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -2403,7 +2403,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2417,7 +2417,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.memory.init`) AS `init`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.memory.init`) AS `init`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `pool`",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -2448,7 +2448,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2540,7 +2540,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`process.runtime.jvm.threads.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
+              "q": "M::`otel_service`:(max(`process.runtime.jvm.threads.count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2571,7 +2571,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2649,7 +2649,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.current_loaded`) AS `current_load`) BY `service_name`",
+              "q": "M::`otel_service`:(AVG(`process.runtime.jvm.classes.current_loaded`) AS `current_load`) BY `service_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2680,7 +2680,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2694,7 +2694,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.loaded`) AS `load`) BY `service_name`",
+              "q": "M::`otel_service`:(AVG(`process.runtime.jvm.classes.loaded`) AS `load`) BY `service_name`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -2725,7 +2725,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2739,7 +2739,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(AVG(`process.runtime.jvm.classes.unloaded`) AS `unload`) BY `service_name`",
+              "q": "M::`otel_service`:(AVG(`process.runtime.jvm.classes.unloaded`) AS `unload`) BY `service_name`",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -2770,7 +2770,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2868,7 +2868,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.system.cpu.load_1m`) AS `load_1m`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.system.cpu.load_1m`) AS `load_1m`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -2899,7 +2899,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -2913,7 +2913,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.cpu.utilization`) AS `utilization`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.cpu.utilization`) AS `utilization`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `service_name`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -2944,7 +2944,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3032,7 +3032,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.threads.states`) AS `states`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `state`",
+              "q": "M::`otel_service`:(avg(`jvm.threads.states`) AS `states`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `state`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3063,7 +3063,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3135,7 +3135,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`process.uptime`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(last(`process.uptime`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3166,7 +3166,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "withLabels": [],
               "groupByTime": ""
@@ -3257,7 +3257,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.memory.allocated`) AS `allocated`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.gc.memory.allocated`) AS `allocated`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3286,7 +3286,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3300,7 +3300,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.memory.promoted`) AS `promoted`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`jvm.gc.memory.promoted`) AS `promoted`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -3329,7 +3329,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3429,7 +3429,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.memory.committed`) AS `committed`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
+              "q": "M::`otel_service`:(avg(`jvm.memory.committed`) AS `committed`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `id`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3460,7 +3460,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3548,7 +3548,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.active`) AS `active`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.active`) AS `active`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3577,7 +3577,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3591,7 +3591,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.completed`) AS `completed`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.completed`) AS `completed`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -3620,7 +3620,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3634,7 +3634,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.queued`) AS `queued`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.queued`) AS `queued`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -3663,7 +3663,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3751,7 +3751,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.pool.core`) AS `core`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.pool.core`) AS `core`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -3780,7 +3780,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3794,7 +3794,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.pool.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.pool.max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -3823,7 +3823,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3837,7 +3837,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.pool.size`) AS `size`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.pool.size`) AS `size`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -3866,7 +3866,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -3880,7 +3880,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`executor.queue.remaining`) AS `remaining`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`executor.queue.remaining`) AS `remaining`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "D",
               "fill": null,
               "type": "simple",
@@ -3911,7 +3911,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -3984,7 +3984,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`application.ready.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(last(`application.ready.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4013,7 +4013,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -4085,7 +4085,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`process.start.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(last(`process.start.time`)) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4114,7 +4114,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -4202,7 +4202,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`http.server.duration_bucket`) AS `bucket(ms)`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `le`",
+              "q": "M::`otel_service`:(last(`http.server.duration_bucket`) AS `bucket(ms)`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `le`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4233,7 +4233,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": ""
@@ -4305,7 +4305,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`http.server.requests_max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`http.server.requests_max`) AS `max`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4336,7 +4336,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4351,7 +4351,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`http.server.requests_avg`) AS `avg`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`http.server.requests_avg`) AS `avg`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -4382,7 +4382,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4397,7 +4397,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`http.server.requests_min`) AS `min`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
+              "q": "M::`otel_service`:(avg(`http.server.requests_min`) AS `min`) { `service_name` = '#{service_name}' and `host` = '#{host}' }",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -4428,7 +4428,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4498,7 +4498,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`http.server.requests_count`) AS `count`) { `host` = '#{host}' and `service_name` = '#{service_name}' } BY `status`, `uri`, `method`",
+              "q": "M::`otel_service`:(avg(`http.server.requests_count`) AS `count`) { `host` = '#{host}' and `service_name` = '#{service_name}' } BY `status`, `uri`, `method`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4533,7 +4533,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4603,7 +4603,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.gc.duration_count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `action`, `gc`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.gc.duration_count`) AS `count`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `action`, `gc`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4637,7 +4637,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4710,7 +4710,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.gc.duration_avg`) AS `avg`) BY `action`, `gc`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.gc.duration_avg`) AS `avg`) BY `action`, `gc`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4725,7 +4725,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4740,7 +4740,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.gc.duration_max`) AS `max`) BY `action`, `gc`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.gc.duration_max`) AS `max`) BY `action`, `gc`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -4755,7 +4755,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4770,7 +4770,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`process.runtime.jvm.gc.duration_min`) AS `min`) BY `action`, `gc`",
+              "q": "M::`otel_service`:(avg(`process.runtime.jvm.gc.duration_min`) AS `min`) BY `action`, `gc`",
               "code": "C",
               "fill": null,
               "type": "simple",
@@ -4785,7 +4785,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4858,7 +4858,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.pause_max`) AS `max`) BY `action`, `cause`",
+              "q": "M::`otel_service`:(avg(`jvm.gc.pause_max`) AS `max`) BY `action`, `cause`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -4873,7 +4873,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4888,7 +4888,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(avg(`jvm.gc.pause_min`) AS `min`) BY `action`, `cause`",
+              "q": "M::`otel_service`:(avg(`jvm.gc.pause_min`) AS `min`) BY `action`, `cause`",
               "code": "B",
               "fill": null,
               "type": "simple",
@@ -4903,7 +4903,7 @@
               "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -4974,7 +4974,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(last(`http.server.duration_bucket`) AS `bucket`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `http_status_code`, `le`",
+              "q": "M::`otel_service`:(last(`http.server.duration_bucket`) AS `bucket`) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `http_status_code`, `le`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -5008,7 +5008,7 @@
               "fieldFunc": "last",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
@@ -5069,7 +5069,7 @@
             "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`otel-service`:(max(`log4j2.events`)) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `level`",
+              "q": "M::`otel_service`:(max(`log4j2.events`)) { `service_name` = '#{service_name}' and `host` = '#{host}' } BY `level`",
               "code": "A",
               "fill": null,
               "type": "simple",
@@ -5102,7 +5102,7 @@
               "fieldFunc": "max",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "otel-service",
+              "dataSource": "otel_service",
               "queryFuncs": [],
               "groupByTime": "",
               "indexFilter": "",
