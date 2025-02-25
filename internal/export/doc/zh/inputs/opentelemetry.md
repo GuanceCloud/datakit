@@ -235,43 +235,61 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 另外 Agent 内置的一些三方软件的采集配置。具体可以参考： [GitHub OTEL JMX Metric](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/instrumentation/jmx-metrics/javaagent/README.md){:target="_blank"}
 
-所有发送到观测云的指标有一个统一的指标集的名字： `otel-service` 。
+<!-- markdownlint-disable MD046 -->
+???+ warning "metric"
+
+    从版本 [DataKit 1.68.0](../datakit/changelog.md#cl-1.68.0) 开始指标集名称做了改动：
+    所有发送到观测云的指标有一个统一的指标集的名字： `otel_service` 
+    如果已经有了仪表板，将已有的仪表板导出后统一将 `otel-serivce` 改为 `otel_service` 再导入即可。
+
+<!-- markdownlint-enable -->
+
+在将 **Histogram** 指标转到观测云的时候有些指标做了特殊处理：
+
+- OpenTelemetry 的直方图桶会被直接映射到 Prometheus 的直方图桶。
+- 每个桶的计数会被转换为 Prometheus 的累积计数格式。
+- 例如，OpenTelemetry 的桶 `[0, 10)`、`[10, 50)`、`[50, 100)` 会被转换为 Prometheus 的 `_bucket` 指标，并附带 `le` 标签：
+
+```text
+  my_histogram_bucket{le="10"} 100
+  my_histogram_bucket{le="50"} 200
+  my_histogram_bucket{le="100"} 250
+```
+
+- OpenTelemetry 直方图的总观测值数量会被转换为 Prometheus 的 `_count` 指标。
+- OpenTelemetry 直方图的总和会被转换为 Prometheus 的 `_sum` 指标，还会添加 `_max` `_min`。
+
+```text
+  my_histogram_count 250
+  my_histogram_max 100
+  my_histogram_min 50
+  my_histogram_sum 12345.67
+```
+
+凡是以 `_bucket` 结尾的指标都是直方图数据，并且一定有 `_max` `_min` `_count` `sum` 结尾的指标。
+
+在直方图数据中可以使用 `le(less or equal)` 标签进行分类，并且可以根据标签进行筛选，可以查看 [OpenTelemetry Metrics](https://opentelemetry.io/docs/specs/semconv/){:target="_blank"} 所有的指标和标签。
+
+这种转换使得 OpenTelemetry 收集的直方图数据能够无缝集成到 Prometheus 中，并利用 Prometheus 的强大查询和可视化功能进行分析。
 
 ## 数据字段说明 {#fields}
 
-{{range $i, $m := .Measurements}}
+{{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "tracing"}}
-
-### 链路字段说明 {#tracing}
+### {{$m.Type}}
 
 {{$m.Desc}}
 
-- 标签（String 类型）
+- Tags
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表（非 String 类型，或者长 String 类型）
+- Metrics
 
 {{$m.FieldsMarkdownTable}}
-{{end}}
 
-{{if eq $m.Type "metric"}}
+{{ end }}
 
-### 指标类型 {#metric}
-
-{{$m.Desc}}
-
-- 指标的标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-{{end}}
-
-{{end}}
 
 ## 日志 {#logging}
 

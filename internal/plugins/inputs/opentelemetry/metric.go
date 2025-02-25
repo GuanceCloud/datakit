@@ -38,7 +38,7 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 					for _, dataPoint := range t.Gauge.GetDataPoints() {
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag("unit", metric.GetUnit())
+						kvs = kvs.AddTag(unitTag, metric.GetUnit())
 						pt := numberDataToPoint(kvs, dataPoint, metric.GetName())
 						pts = append(pts, pt)
 					}
@@ -46,7 +46,7 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 					for _, dataPoint := range t.Sum.GetDataPoints() {
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag("unit", metric.GetUnit())
+						kvs = kvs.AddTag(unitTag, metric.GetUnit())
 						pt := numberDataToPoint(kvs, dataPoint, metric.GetName())
 						pts = append(pts, pt)
 					}
@@ -54,7 +54,7 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 					for _, dataPoint := range t.Summary.GetDataPoints() {
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag("unit", metric.GetUnit())
+						kvs = kvs.AddTag(unitTag, metric.GetUnit())
 						pt := summaryToPoint(kvs, dataPoint, metric.GetName())
 						pts = append(pts, pt)
 					}
@@ -62,39 +62,35 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 					for _, his := range t.Histogram.GetDataPoints() {
 						hisTags := attributesToTag(his.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, hisTags)
+						kvs = kvs.AddV2(metric.Name+minSuffix, his.GetMin(), false).
+							AddV2(metric.Name+maxSuffix, his.GetMax(), false).
+							AddV2(metric.Name+countSuffix, his.GetCount(), false).
+							AddV2(metric.Name+sumSuffix, his.GetSum(), false).
+							AddTag(unitTag, metric.GetUnit())
 
-						kvs = kvs.Add(metric.Name+"_min", his.GetMin(), false, false).
-							Add(metric.Name+"_max", his.GetMax(), false, false).
-							Add(metric.Name+"_count", his.GetCount(), false, false).
-							Add(metric.Name+"_sum", his.GetSum(), false, false).
-							AddTag("unit", metric.GetUnit())
-
-						if his.GetCount() > 0 {
-							avg := his.GetSum() / float64(his.GetCount())
-							kvs = kvs.Add(metric.Name+"_avg", avg, false, false)
-						}
 						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
 						opts := point.DefaultMetricOptions()
 						opts = append(opts, point.WithTime(ts))
-						pts = append(pts, point.NewPointV2("otel-service", kvs, opts...))
+						pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
+
 						// bucket
 						if len(his.GetBucketCounts()) > 1 && len(his.GetExplicitBounds()) > 0 {
+							bucketSum := uint64(0)
 							for i, bucket := range his.BucketCounts {
-								if bucket == 0 {
-									continue
-								}
+								bucketSum += bucket
+
 								if len(his.GetExplicitBounds()) > i {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(metric.Name+"_bucket", bucket, false, false).
-										AddTag("le", strconv.Itoa(int(his.ExplicitBounds[i]))).
-										AddTag("unit", metric.GetUnit())
-									pts = append(pts, point.NewPointV2("otel-service", bKvs, opts...))
+									bKvs = bKvs.AddV2(metric.Name+bucketSuffix, bucketSum, false).
+										AddTag(leTag, strconv.FormatFloat(his.ExplicitBounds[i], 'f', -1, 64)).
+										AddTag(unitTag, metric.GetUnit())
+									pts = append(pts, point.NewPointV2(metricName, bKvs, opts...))
 								} else {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(metric.Name+"_bucket", bucket, false, false).
-										AddTag("le", "inf").
-										AddTag("unit", metric.GetUnit())
-									pts = append(pts, point.NewPointV2("otel-service", bKvs, opts...))
+									bKvs = bKvs.AddV2(metric.Name+bucketSuffix, bucketSum, false).
+										AddTag(leTag, infSuffix).
+										AddTag(unitTag, metric.GetUnit())
+									pts = append(pts, point.NewPointV2(metricName, bKvs, opts...))
 								}
 							}
 						}
@@ -104,19 +100,19 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 						hisTags := attributesToTag(his.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, hisTags)
 
-						kvs = kvs.Add(metric.Name+"_min", his.GetMin(), false, false).
-							Add(metric.Name+"_max", his.GetMax(), false, false).
-							Add(metric.Name+"_count", his.GetCount(), false, false).
-							Add(metric.Name+"_sum", his.GetSum(), false, false).
-							AddTag("unit", metric.GetUnit())
+						kvs = kvs.Add(metric.Name+minSuffix, his.GetMin(), false, false).
+							Add(metric.Name+maxSuffix, his.GetMax(), false, false).
+							Add(metric.Name+countSuffix, his.GetCount(), false, false).
+							Add(metric.Name+sumSuffix, his.GetSum(), false, false).
+							AddTag(unitTag, metric.GetUnit())
 						if his.GetCount() > 0 {
-							kvs = kvs.Add(metric.Name+"_avg",
+							kvs = kvs.Add(metric.Name+avgSuffix,
 								fmt.Sprintf("%.3f", his.GetSum()/float64(his.GetCount())), false, false)
 						}
 						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
 						opts := point.DefaultMetricOptions()
 						opts = append(opts, point.WithTime(ts))
-						pts = append(pts, point.NewPointV2("otel-service", kvs, opts...))
+						pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 					}
 				}
 			}
@@ -172,15 +168,15 @@ func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint, name string) 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ts))
 
-	return point.NewPointV2("otel-service", kvs, opts...)
+	return point.NewPointV2(metricName, kvs, opts...)
 }
 
 func summaryToPoint(kvs point.KVs, summary *metrics.SummaryDataPoint, name string) *point.Point {
-	kvs = kvs.Add(name+"_count", summary.GetCount(), false, false).
-		Add(name+"_sum", summary.GetSum(), false, false)
+	kvs = kvs.Add(name+countSuffix, summary.GetCount(), false, false).
+		Add(name+sumSuffix, summary.GetSum(), false, false)
 	ts := time.Unix(0, int64(summary.GetTimeUnixNano()))
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ts))
 
-	return point.NewPointV2("otel-service", kvs, opts...)
+	return point.NewPointV2(metricName, kvs, opts...)
 }
