@@ -40,6 +40,28 @@ monitor   :
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+---
+
+???+ attention "安全性有关的配置"
+
+    某些情况下，可能需要将该代理暴露在公网，此时我们需要做一些必要的安全措施，避免该代理被攻击者利用。
+
+    1. 开启客户端白名单控制（`allowed_client_cidrs`）：只代理指定客户端过来的请求，如：
+
+    ```toml
+    # 此处支持 IPv6 的 CIDR 配置
+    allowed_client_cidrs = ["10.0.0.0/8", "2001:db8::/32"]
+    ```
+
+    1. 如果是部署在公有云，可以在 VPC 上设置下内网 CIDR 地址访问。也可以在对应主机上增加 iptables 规则：
+
+    ```shell
+    # 操作系统级防火墙示例（以 Linux iptables 为例）
+    iptables -A INPUT -p tcp --dport 9530 -s 10.0.0.0/8 -j ACCEPT  # 仅允许内网访问
+    iptables -A INPUT -p tcp --dport 9530 -j DROP
+    ```
+
 <!-- markdownlint-enable -->
 
 ## 网络拓扑结构 {#network-topo}
@@ -68,7 +90,7 @@ dk_C --> dk_X_proxy;
 end
 
 subgraph "公网"
-dk_X_proxy ==> |https://openway.guance.com|dw;
+dk_X_proxy --> |https://openway.guance.com|dw;
 end
 ```
 
@@ -90,16 +112,7 @@ end
 
 ## 指标 {#metric}
 
-Proxy 采集器自身暴露了如下 Prometheus 指标：
-
-
-| POSITION                        | TYPE    | NAME                                      | LABELS              | HELP                            |
-| ---                             | ---     | ---                                       | ---                 | ---                             |
-| *internal/plugins/inputs/proxy* | COUNTER | `datakit_input_proxy_connect`             | `client_ip`         | Proxy connect(method CONNECT) |
-| *internal/plugins/inputs/proxy* | COUNTER | `datakit_input_proxy_api_total`           | `api,method`        | Proxy API total               |
-| *internal/plugins/inputs/proxy* | SUMMARY | `datakit_input_proxy_api_latency_seconds` | `api,method,status` | Proxy API latency             |
-
-如果在 Datakit 自身指标上报中开启了上述指标采集，则能在内置视图中看到 Proxy 采集器有关的这几个指标。
+参见 [Datakit 自身指标](../datakit/datakit-metrics.md)中，搜索 `proxy` 即可获取相关的指标。
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

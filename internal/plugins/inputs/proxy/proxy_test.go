@@ -131,7 +131,90 @@ func TestNoMITMProxyHTTPS(t *T.T) {
 	})
 }
 
-func TestProxyHTTPS(t *T.T) {
+func TestHTTPSProxy(t *T.T) {
+	t.Run(`https-cidr-whitelist`, func(t *T.T) {
+		resetMetrics()
+
+		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Logf("request: %q", r.URL.Path)
+
+			t.Logf("try read body...")
+			n, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Logf("ReadAll: %s", err.Error())
+				w.WriteHeader(http.StatusRequestTimeout)
+			} else {
+				t.Logf("read %d bytes", len(n))
+				if _, err := w.Write(make([]byte, 8<<16)); err != nil {
+					t.Logf("Write: %s", err.Error())
+				}
+			}
+		}))
+
+		ts.StartTLS()
+		defer ts.Close()
+		time.Sleep(time.Second) // wait ok
+
+		t.Logf("real host: %s", ts.URL)
+
+		// proxy server
+		p := Input{
+			Bind:    "0.0.0.0",
+			Port:    0,
+			Verbose: true,
+			MITM:    true,
+			AllowedClientCIDRs: []string{
+				"10.0.0.0/30",
+			},
+		}
+		require.NoError(t, p.doInitProxy())
+
+		go func() {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
+				t.Errorf("ListenAndServe: %s", err.Error())
+			}
+		}()
+
+		time.Sleep(time.Millisecond * 10) // wait ok
+
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
+		t.Logf("proxy URL: %q", proxyURLString)
+
+		// client
+		cli := http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					return url.Parse(proxyURLString)
+				},
+			},
+		}
+
+		method := http.MethodPost
+		req, err := http.NewRequest(method, fmt.Sprintf("%s/some/url", ts.URL), nil)
+
+		require.NoError(t, err)
+
+		_, err = cli.Do(req)
+		assert.Error(t, err) // got `unexpected EOF'
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(allMetrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_input_proxy_reject_total`,
+			"ip")
+
+		assert.Equalf(t,
+			float64(1),
+			m.GetCounter().GetValue(),
+			"get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	})
+
 	t.Run(`https`, func(t *T.T) {
 		resetMetrics()
 
@@ -231,7 +314,7 @@ func TestProxyHTTPS(t *T.T) {
 	})
 }
 
-func TestProxyWarns(t *T.T) {
+func TestWarnsInProxy(t *T.T) {
 	t.Run(`slow-client`, func(t *T.T) {
 		resetMetrics()
 
@@ -302,63 +385,8 @@ func TestProxyWarns(t *T.T) {
 }
 
 func TestProxy(t *T.T) {
-	t.Run(`test-client-timeout`, func(t *T.T) {
-		defer resetMetrics()
-
-		// http server
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(time.Second * 3) // long response time
-			t.Logf("request: %q", r.URL.Path)
-			w.WriteHeader(200)
-		}))
-
-		defer ts.Close()
-
-		time.Sleep(time.Second)
-
-		// proxy server
-		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: true}
-		require.NoError(t, p.doInitProxy())
-
-		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
-		t.Logf("proxy URL: %q", proxyURLString)
-
-		go func() {
-			if err := p.proxyServer.Serve(p.ln); err != nil {
-				t.Errorf("ListenAndServe: %s", err.Error())
-			}
-		}()
-
-		time.Sleep(time.Second)
-
-		cli := http.Client{
-			Timeout: time.Second, // short timeout
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					return url.Parse(proxyURLString)
-				},
-			},
-		}
-
-		method := http.MethodPost
-		req, err := http.NewRequest(method, fmt.Sprintf("%s/other/url", ts.URL), nil)
-		require.NoError(t, err)
-
-		resp, err := cli.Do(req)
-		require.Error(t, err)
-		require.Nil(t, resp)
-
-		reg := prometheus.NewRegistry()
-		reg.MustRegister(allMetrics()...)
-		mfs, err := reg.Gather()
-		assert.NoError(t, err)
-
-		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
-	})
-
 	t.Run(`basic`, func(t *T.T) {
-		t.Skip()
-		defer resetMetrics()
+		resetMetrics()
 
 		// http server
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -370,14 +398,14 @@ func TestProxy(t *T.T) {
 		time.Sleep(time.Second)
 
 		// proxy server
-		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: true}
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: false}
 		require.NoError(t, p.doInitProxy())
 
 		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
 		t.Logf("proxy URL: %q", proxyURLString)
 
 		go func() {
-			if err := p.proxyServer.ListenAndServe(); err != nil {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
 				t.Errorf("ListenAndServe: %s", err.Error())
 			}
 		}()
@@ -427,6 +455,123 @@ func TestProxy(t *T.T) {
 			uint64(1),
 			m2.GetSummary().GetSampleCount(),
 			"get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	})
+
+	t.Run("whitelist-cidr", func(t *T.T) {
+		resetMetrics()
+
+		// proxy server
+		p := Input{
+			Bind:    "0.0.0.0",
+			Port:    0,
+			Verbose: false,
+			AllowedClientCIDRs: []string{
+				"10.0.0.0/30",
+			},
+		}
+
+		require.NoError(t, p.doInitProxy())
+
+		proxyURLString := fmt.Sprintf("http://%s:%d", p.Bind, p.ln.Addr().(*net.TCPAddr).Port) // nolint:nosprintfhostport
+		t.Logf("proxy URL: %q", proxyURLString)
+
+		go func() {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
+				t.Errorf("ListenAndServe: %s", err.Error())
+			}
+		}()
+
+		time.Sleep(time.Second)
+
+		cli := http.Client{
+			Timeout: time.Second, // short timeout
+			Transport: &http.Transport{
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					return url.Parse(proxyURLString)
+				},
+			},
+		}
+
+		req, err := http.NewRequest(http.MethodPost, "http://example.com/other/url", nil)
+		require.NoError(t, err)
+
+		resp, err := cli.Do(req)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		body, _ := io.ReadAll(resp.Body)
+		assert.Equalf(t, []byte(msgNotAllowedIP), body, "got %s", string(body))
+
+		// show metrics
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(allMetrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_input_proxy_reject_total`,
+			"ip")
+
+		assert.Equalf(t,
+			float64(1),
+			m.GetCounter().GetValue(),
+			"get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	})
+
+	t.Run(`test-client-timeout`, func(t *T.T) {
+		resetMetrics()
+
+		// http server
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(time.Second * 3) // long response time
+			t.Logf("request: %q", r.URL.Path)
+			w.WriteHeader(200)
+		}))
+
+		defer ts.Close()
+
+		time.Sleep(time.Second)
+
+		// proxy server
+		p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: true}
+		require.NoError(t, p.doInitProxy())
+
+		proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)
+		t.Logf("proxy URL: %q", proxyURLString)
+
+		go func() {
+			if err := p.proxyServer.Serve(p.ln); err != nil {
+				t.Errorf("ListenAndServe: %s", err.Error())
+			}
+		}()
+
+		time.Sleep(time.Second)
+
+		cli := http.Client{
+			Timeout: time.Second, // short timeout
+			Transport: &http.Transport{
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					return url.Parse(proxyURLString)
+				},
+			},
+		}
+
+		method := http.MethodPost
+		req, err := http.NewRequest(method, fmt.Sprintf("%s/other/url", ts.URL), nil)
+		require.NoError(t, err)
+
+		resp, err := cli.Do(req)
+		require.Error(t, err)
+		require.Nil(t, resp)
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(allMetrics()...)
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
 
 		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
