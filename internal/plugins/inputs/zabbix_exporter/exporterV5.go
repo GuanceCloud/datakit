@@ -24,12 +24,16 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
+var moduleVersion = "v5"
+
+// ExporterV5 : V4 和 V5 的采集方式是一样的，只不过结构体不同，可共用一个结构体.
 type ExporterV5 struct {
-	ExDir      string `toml:"export_dir"`
-	items      map[string]*FileReader
-	metricChan chan []*point.Point
-	stopChan   chan struct{}
-	cacheData  *CacheData
+	ExDir         string `toml:"export_dir"`
+	moduleVersion string `toml:"module_version"` // v4|v5 或者更高。
+	items         map[string]*FileReader
+	metricChan    chan []*point.Point
+	stopChan      chan struct{}
+	cacheData     *CacheData
 
 	CollectItem,
 	CollectTrigger,
@@ -44,7 +48,10 @@ func (ex *ExporterV5) InitExporter(feeder dkio.Feeder, tags map[string]string, c
 	ex.stopChan = make(chan struct{})
 	ex.feeder = feeder
 	ex.cacheData = cd
-
+	if ex.moduleVersion == "" {
+		ex.moduleVersion = "v5"
+	}
+	moduleVersion = ex.moduleVersion
 	stat, err := os.Stat(ex.ExDir)
 	if err != nil {
 		return err
@@ -224,7 +231,13 @@ func (fr *FileReader) Read(feeder chan []*point.Point, cd *CacheData) {
 		case <-ticker.C:
 			// 将数据组装 points 发送
 			if len(itemsC) > 0 {
-				pts := itemsToPoints(itemsC, fr.tags, fr.log, cd)
+				var pts []*point.Point
+				if moduleVersion == "v5" || moduleVersion == "" {
+					pts = itemsToPoints(itemsC, fr.tags, fr.log, cd)
+				}
+				if moduleVersion == "v4" {
+					pts = ItemValuesToPoint(itemsC, fr.tags, fr.log, cd)
+				}
 				if len(pts) > 0 {
 					fr.log.Debugf("read from file:%s to point.len=%d", fr.fileName, len(pts))
 					ZabbixCollectMetrics.WithLabelValues("item").Add(1)
@@ -233,7 +246,14 @@ func (fr *FileReader) Read(feeder chan []*point.Point, cd *CacheData) {
 				itemsC = make([]string, 0, 20)
 			}
 			if len(trendsC) > 0 {
-				pts := trendsToPoints(trendsC, fr.tags, fr.log, cd)
+				var pts []*point.Point
+				if moduleVersion == "v5" || moduleVersion == "" {
+					pts = trendsToPoints(trendsC, fr.tags, fr.log, cd)
+				}
+				if moduleVersion == "v4" {
+					pts = trendsValueToPoints(itemsC, fr.tags, fr.log, cd)
+				}
+
 				if len(pts) > 0 {
 					ZabbixCollectMetrics.WithLabelValues("trends").Add(float64(len(pts)))
 					fr.log.Debugf("read from file:%s to point.len=%d", fr.fileName, len(pts))
