@@ -333,7 +333,8 @@ NAME1="value1" NAME2="value2"
 目前仅支持 Linux 和 Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
 
 - `DK_LIMIT_DISABLED`：关闭资源限制功能（默认开启）
-- `DK_LIMIT_CPUMAX`：支持 CPU 的最大功率，默认 30.0
+- `DK_LIMIT_CPUMAX`：限制 CPU 的最大百分比使用率，默认 30.0，最大值 100（已弃用，建议使用 `DK_LIMIT_CPUCORES`）
+- `DK_LIMIT_CPUCORES`：限制使用的 CPU 核数，默认 2.0（即 2 核心）
 - `DK_LIMIT_MEMMAX`：限制内存（含 swap）最大用量，默认 4096（4GB）
 
 ### APM Instrumentation {#apm-instrumentation}

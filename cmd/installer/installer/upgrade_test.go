@@ -311,6 +311,37 @@ func TestUpgradeMainConfig(t *T.T) {
 				return c
 			}(),
 		},
+
+		{
+			name: "apply-old-cpu-max-limit",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+				c.ResourceLimitOptions.CPUMax = 20.0 // old cpu-max exist, do not apply cpu-cores
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				c.ResourceLimitOptions.CPUMax = 20.0
+				c.ResourceLimitOptions.CPUCores = 0 // exist cpu-max override cpu-cores
+				return c
+			}(),
+		},
+
+		{
+			name: "apply-new-cpu-cores-limit",
+			old: func() *config.Config {
+				c := config.DefaultConfig() // old cpu-max not set, use cpu-cores
+				c.ResourceLimitOptions.CPUCores = 0.5
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+				c.ResourceLimitOptions.CPUCores = 0.5
+				return c
+			}(),
+		},
 	}
 
 	for _, tc := range cases {

@@ -1,12 +1,12 @@
 .PHONY: all
 
 all:
-	GOOS=linux GOARCH=amd64 go build -o v1-write-linux-amd64.out v1-write.go
-	GOOS=darwin GOARCH=arm64 go build -o v1-write-darwin-arm64.out v1-write.go
-	GOOS=windows GOARCH=amd64 go build -o v1-write-windows-amd64.ext v1-write.go
-	GOOS=linux GOARCH=amd64 go build -o v1-data-linux-amd64.out  v1-data.go 
-	GOOS=darwin GOARCH=arm64 go build -o v1-data-darwin-arm64.out  v1-data.go 
-	GOOS=windows GOARCH=amd64 go build -o v1-data-windows-amd64.ext v1-data.go 
+	GOOS=linux GOARCH=amd64 go build -o v1-write-linux-amd64.out v1-write/v1-write.go
+	GOOS=darwin GOARCH=arm64 go build -o v1-write-darwin-arm64.out v1-write/v1-write.go
+	GOOS=windows GOARCH=amd64 go build -o v1-write-windows-amd64.exe v1-write/v1-write.go
+	GOOS=linux GOARCH=amd64 go build -o v1-data-linux-amd64.out  v1-data/v1-data.go 
+	GOOS=darwin GOARCH=arm64 go build -o v1-data-darwin-arm64.out  v1-data/v1-data.go 
+	GOOS=windows GOARCH=amd64 go build -o v1-data-windows-amd64.exe v1-data/v1-data.go 
 	#sudo docker buildx build --platform linux/arm64,linux/amd64 -t registry.jiagouyun.com/datakit-tools/v1-write:v0.01 -f v1-write.dockerfile .
 	#sudo docker build --platform linux/arm64 -t registry.jiagouyun.com/datakit-tools/v1-write:v0.0.1 -f v1-write.dockerfile .
 

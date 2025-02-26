@@ -29,7 +29,7 @@ func Upgrade() error {
 	// load exists datakit.conf
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		// load DK_XXX env config
-		mc = loadDKEnvCfg(mc)
+		mc = loadInstallerEnvs(mc)
 
 		mc = upgradeMainConfig(mc)
 
@@ -181,6 +181,17 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	if c.ResourceLimitOptionsDeprecated != nil {
 		c.ResourceLimitOptions = c.ResourceLimitOptionsDeprecated
 		c.ResourceLimitOptionsDeprecated = nil
+	}
+
+	if c.ResourceLimitOptions != nil {
+		// During upgrading, people has set limit-cpu-max in old version, so
+		// disable limit-cpu-cores.
+		//
+		// To override old limit-cpu-max, we have to set limit-cpu-max during
+		// installing or upgrading.
+		if c.ResourceLimitOptions.CPUMax > 0 {
+			c.ResourceLimitOptions.CPUCores = 0
+		}
 	}
 
 	c.InstallVer = DataKitVersion

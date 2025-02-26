@@ -242,8 +242,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 [resource_limit]
   path = "/datakit" # Linux cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
 
-  # 允许 CPU 最大使用率（百分制）
-  cpu_max = 20.0
+  # 允许 CPU 核心数
+  cpu_cores = 2.0
 
   # 默认允许 4GB 内存(memory + swap)占用
   # 如果置为 0 或负数，则不启用内存限制
@@ -269,10 +269,8 @@ $ systemctl status datakit
     - CPU 使用率控制目前不支持这些 windows 操作系统： Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 和 Windows XP。
     - 非 root 用户改资源限制配置时，必须重装 service。
     - CPU 核心数限制会影响 Datakit 部分子模块的 worker 数配置（一般是 CPU 核心数的整数倍）。比如数据上传 worker 就是 CPU 核心数 * 2。而单个上传 worker 会占用默认 10MB 的内存用于数据发送，故 CPU 核心数如果开放较多，会影响 Datakit 整体内存的占用
-
-???+ tip
-
-    Datakit 自 [1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
+    - [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
+    - [:octicons-tag-24: Version-1.68.0](changelog.md#cl-1.68.0) 支持在 *daktait.conf* 中配置 CPU 核心数限制，且弃用原来的百分比配置方式。百分比配置方式会因为不同主机的 CPU 核心数不同而出现 CPU 配额不同，在采集压力相同的情况下，可能会导致一些异常行为。老版本 Datakit 升级上来的时候，在升级命令中指定 `DK_LIMIT_CPUCORES` 环境变量即可。升级命令如果不指定，仍然沿用之前的百分比配置方式。如果重新安装 Datakit，则直接采用 CPU 核心数限额方式。
 <!-- markdownlint-enable -->
 
 ### 选举配置 {#election}
@@ -285,7 +283,7 @@ Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
 
 - `timeout`：上传观测云的超时时间，默认 30s
 - `max_retry_count`：设置 Dataway 发送的重试次数（默认 1 次，最大 10 次）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
-- `retry_delay`：设置重试间隔基础步长，默认 200ms。所谓基础步长，即第一次 200ms，第二次 400ms，第三次 800ms，以此类推（以 $2^n$ 递增）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
+- `retry_delay`：设置重试间隔基础步长，默认 1s。所谓基础步长，即第一次 1s，第二次 2s，第三次 4s，以此类推（以 2^n 递增）[:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)
 - `max_raw_body_size`：控制单个上传包的最大大小（压缩前），单位字节 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
 - `content_encoding`：可选择 v1 或 v2 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
     - v1 即行协议（默认 v1）

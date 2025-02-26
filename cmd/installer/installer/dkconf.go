@@ -132,8 +132,8 @@ var (
 
 	LimitDisabled int
 
-	LimitCPUMax float64
-	LimitCPUMin float64 // deprecated
+	LimitCPUMax, LimitCPUCores float64
+	LimitCPUMin                float64 // deprecated
 
 	LimitMemMax      int64
 	CryptoAESKey     string
@@ -345,7 +345,7 @@ func getDataway() (*dataway.Dataway, error) {
 	}
 }
 
-func loadDKEnvCfg(mc *config.Config) *config.Config {
+func loadInstallerEnvs(mc *config.Config) *config.Config {
 	var err error
 	// prepare dataway info and check token format
 	if len(DatawayURLs) != 0 {
@@ -414,6 +414,13 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 			mc.ResourceLimitOptions.CPUMax = LimitCPUMax
 		}
 
+		if LimitCPUCores > 0 {
+			mc.ResourceLimitOptions.CPUCores = LimitCPUCores
+
+			// we passed limit-cpu-cores, so overwrite exist cpu-max config
+			mc.ResourceLimitOptions.CPUMax = 0
+		}
+
 		if LimitMemMax > 0 {
 			l.Infof("resource limit set max memory to %dMB", LimitMemMax)
 			mc.ResourceLimitOptions.MemMax = LimitMemMax
@@ -421,8 +428,11 @@ func loadDKEnvCfg(mc *config.Config) *config.Config {
 			l.Infof("resource limit max memory not set")
 		}
 
-		l.Infof("resource limit enabled under %s, cpu: %f, mem: %dMB",
-			runtime.GOOS, mc.ResourceLimitOptions.CPUMax, mc.ResourceLimitOptions.MemMax)
+		l.Infof("resource limit enabled under %s, cpu: %f, cores: %f, mem: %dMB",
+			runtime.GOOS,
+			mc.ResourceLimitOptions.CPUMax,
+			mc.ResourceLimitOptions.CPUCores,
+			mc.ResourceLimitOptions.MemMax)
 	} else {
 		mc.ResourceLimitOptions.Enable = false
 		l.Infof("resource limit disabled, OS: %s", runtime.GOOS)

@@ -108,7 +108,7 @@ func (c *Config) LoadMainTOML(p string) error {
 	return nil
 }
 
-func (c *Config) LoadMainTOMLString(cfgData string) (gctoml.MetaData, error) {
+func (c *Config) loadMainTOMLString(cfgData string) (gctoml.MetaData, error) {
 	meta, err := gctoml.Decode(cfgData, c)
 	if err != nil {
 		return meta, fmt.Errorf("bstoml.Decode: %w", err)
@@ -145,9 +145,7 @@ func (i *inputHostList) MatchInput(input string) bool {
 }
 
 func (c *Config) TryUpgradeCfg(p string) error {
-	oldCfg := DefaultConfig()
-
-	oldData, err := os.ReadFile(p) // nolint:gosec
+	oldData, err := os.ReadFile(filepath.Clean(p))
 	if err != nil {
 		l.Warnf("unable to open old configuration file: %s", err)
 		return c.InitCfg(p)
@@ -172,6 +170,8 @@ func (c *Config) TryUpgradeCfg(p string) error {
 				return err
 			}
 		}
+
+		l.Infof("dump datakit.conf...")
 		if err := os.WriteFile(p, []byte(replacedText), datakit.ConfPerm); err == nil {
 			return nil
 		} else {
@@ -179,8 +179,9 @@ func (c *Config) TryUpgradeCfg(p string) error {
 		}
 	}
 
+	oldCfg := DefaultConfig()
 	// load comments from old toml data
-	meta, err := oldCfg.LoadMainTOMLString(string(oldData))
+	meta, err := oldCfg.loadMainTOMLString(string(oldData))
 	if err != nil {
 		return fmt.Errorf("unable to load toml by gctoml: %w", err)
 	}
