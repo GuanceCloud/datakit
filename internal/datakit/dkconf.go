@@ -336,8 +336,8 @@ ulimit = 64000
   # Linux only, cgroup path
   path = "/datakit"
 
-  # set max CPU usage(%, max 100.0, no matter how many CPU cores here)
-  cpu_max = 30.0
+  # Limit CPU cores
+  cpu_cores = 2.0
 
   # set max memory usage(MB)
   mem_max_mb = 4096

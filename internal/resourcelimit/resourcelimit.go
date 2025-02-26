@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -32,9 +33,14 @@ const (
 )
 
 type ResourceLimitOptions struct {
-	Path   string  `toml:"path"`
-	CPUMax float64 `toml:"cpu_max"` // CPU usage percent(max is 100)
-	MemMax int64   `toml:"mem_max_mb"`
+	Path string `toml:"path"`
+
+	// CPU usage percent(max is 100)
+	// Deprecated: use CPUCores
+	CPUMax   float64 `toml:"cpu_max"`
+	CPUCores float64 `toml:"cpu_cores"` // CPU cores, 1.0 means 1 core
+
+	MemMax int64 `toml:"mem_max_mb"`
 
 	DisableOOM bool `toml:"disable_oom,omitempty"`
 	Enable     bool `toml:"enable"`
@@ -58,10 +64,26 @@ func Run(c *ResourceLimitOptions, username string) {
 		return
 	}
 
-	if !(0 < c.CPUMax && c.CPUMax < 100) {
-		l.Errorf("CPUMax and CPUMin should be in range of (0.0, 100.0)")
+	if c.CPUMax > 0 {
+		// PASS: use old configure
+	} else {
+		if c.CPUCores > 0 {
+			if c.CPUCores > float64(runtime.NumCPU()) {
+				c.CPUMax = 100.0
+			} else {
+				c.CPUMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
+			}
+		} else {
+			c.CPUCores = 2.0
+		}
+	}
+
+	if c.CPUMax <= 0 || c.CPUMax > 100 {
+		l.Errorf("CPUMax and CPUMin should be in range of [0.0, 100.0]")
 		return
 	}
+
+	l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax, runtime.NumCPU())
 
 	g := datakit.G("internal_resourcelimit")
 
@@ -128,6 +150,7 @@ func Info() string {
 	if resourceLimitOpt == nil || !resourceLimitOpt.Enable {
 		return "-"
 	}
+
 	if userName != "root" {
 		return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
 			resourceLimitOpt.Path, resourceLimitOpt.MemMax, resourceLimitOpt.CPUMax)

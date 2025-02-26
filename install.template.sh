@@ -313,7 +313,12 @@ fi
 
 if [ -n "$DK_LIMIT_CPUMAX" ]; then
 	cmd+=("--limit-cpumax=$DK_LIMIT_CPUMAX")
-	printf "* Set limit_cpumax => $DK_LIMIT_CPUMAX \n"
+	printf "* Set limit_cpumax => $DK_LIMIT_CPUMAX. Deprecated: use DK_LIMIT_CPUCORES \n"
+fi
+
+if [ -n "$DK_LIMIT_CPUCORES" ]; then
+	cmd+=("--limit-cpucores=$DK_LIMIT_CPUCORES")
+	printf "* Set limit_cpucores => $DK_LIMIT_CPUCORES\n"
 fi
 
 if [ -n "$DK_LIMIT_MEMMAX" ]; then

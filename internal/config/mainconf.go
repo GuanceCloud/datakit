@@ -220,10 +220,10 @@ func DefaultConfig() *Config {
 		},
 
 		ResourceLimitOptions: &resourcelimit.ResourceLimitOptions{
-			Path:   "/datakit",
-			Enable: true,
-			CPUMax: 30.0,
-			MemMax: 4096, // MB
+			Path:     "/datakit",
+			Enable:   true,
+			CPUCores: 2.0,
+			MemMax:   4096, // MB
 		},
 
 		GitRepos: &GitRepost{

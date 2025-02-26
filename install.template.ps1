@@ -224,7 +224,13 @@ if ($x -ne $null) {
 $x = [Environment]::GetEnvironmentVariable("DK_LIMIT_CPUMAX")
 if ($x -ne $null) {
 	$cmd += "--limit-cpumax=$x"
-	Write-COutput green "* Set limit_cpumax => $x"
+	Write-COutput green "* Set limit_cpumax => $x. Deprecated: use DK_LIMIT_CPUCORES"
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_LIMIT_CPUCORES")
+if ($x -ne $null) {
+	$cmd += "--limit-cpucores=$x"
+	Write-COutput green "* Set limit_cpucores=> $x"
 }
 
 $x = [Environment]::GetEnvironmentVariable("DK_LIMIT_MEMMAX")

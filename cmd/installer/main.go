@@ -208,7 +208,10 @@ func init() {
 
 	// resource limit flags
 	flag.IntVar(&installer.LimitDisabled, "limit-disabled", 0, "enable disable resource limits for CPU and memory in linux and windows")
-	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 0.0, "CPU max usage")
+
+	flag.Float64Var(&installer.LimitCPUMax, "limit-cpumax", 0.0, "CPU max usage(Deprecated: use --limit-cpucores)")
+	flag.Float64Var(&installer.LimitCPUCores, "limit-cpucores", 0.0, "limited CPU cores")
+
 	flag.Float64Var(&installer.LimitCPUMin, "limit-cpumin", 0.0, "CPU min usage")
 	flag.Int64Var(&installer.LimitMemMax, "limit-memmax", 0, "memory limit")
 
