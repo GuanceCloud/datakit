@@ -95,6 +95,7 @@ func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 		record.Region = r.Subdivisions[0].Names["en"]
 	}
 	record.Country = r.Country.Names["en"]
+	record.Isp = g.SearchIsp(ip)
 
 	return record.CheckData(), err
 }

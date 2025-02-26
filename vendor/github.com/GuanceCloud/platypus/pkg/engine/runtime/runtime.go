@@ -381,6 +381,8 @@ func RunStmt(ctx *Task, node *ast.Node) (any, ast.DType, *errchain.PlError) {
 		return RunAssignmentExpr(ctx, node.AssignmentExpr())
 	case ast.TypeCallExpr:
 		return RunCallExpr(ctx, node.CallExpr())
+	case ast.TypeSliceExpr:
+		return RunSliceExpr(ctx, node.SliceExpr())
 	case ast.TypeInExpr:
 		return RunInExpr(ctx, node.InExpr())
 	case ast.TypeListLiteral:
@@ -1006,7 +1008,133 @@ func RunCallExpr(ctx *Task, expr *ast.CallExpr) (any, ast.DType, *errchain.PlErr
 	}
 	return nil, ast.Void, nil
 }
+func RunSliceExpr(ctx *Task, expr *ast.SliceExpr) (any, ast.DType, *errchain.PlError) {
+	obj, objT, err := RunStmt(ctx, expr.Obj)
+	if err != nil {
+		return nil, ast.Invalid, err
+	}
+	var start, end, step any
+	var startT, endT, stepT ast.DType
+	if expr.Start != nil {
+		start, startT, err = RunStmt(ctx, expr.Start)
+		if err != nil {
+			return nil, ast.Invalid, err
+		}
+	}
+	if expr.End != nil {
+		end, endT, err = RunStmt(ctx, expr.End)
+		if err != nil {
+			return nil, ast.Invalid, err
+		}
+	}
+	if expr.Step != nil {
+		step, stepT, err = RunStmt(ctx, expr.Step)
+		if err != nil {
+			return nil, ast.Invalid, err
+		}
+	}
+	var startInt, endInt, stepInt int
+	var length int
+	switch objT { //nolint:exhaustive
+	case ast.String:
+		length = len(obj.(string))
+	case ast.List, ast.DType(ast.TypeSliceExpr):
+		length = len(obj.([]any))
+	default:
+		return nil, ast.Invalid, NewRunError(ctx, "invalid obj type", expr.Obj.StartPos())
+	}
 
+	if step != nil {
+		if stepT != ast.Int {
+			return nil, ast.Invalid, NewRunError(ctx, "invalid step type", expr.Step.StartPos())
+		}
+		stepInt = cast.ToInt(step)
+		if stepInt == 0 {
+			return nil, ast.Invalid, NewRunError(ctx, "step must be non-zero", expr.Step.StartPos())
+		}
+	} else {
+		stepInt = 1
+	}
+
+	if start != nil {
+		if startT != ast.Int {
+			return nil, ast.Invalid, NewRunError(ctx, "invalid start type", expr.Start.StartPos())
+		}
+		startInt = cast.ToInt(start)
+		if startInt < 0 {
+			startInt = length + startInt
+		}
+	} else if stepInt > 0 {
+		startInt = 0
+	} else {
+		startInt = length - 1
+	}
+
+	if end != nil {
+		if endT != ast.Int {
+			return nil, ast.Invalid, NewRunError(ctx, "invalid end type", expr.End.StartPos())
+		}
+		endInt = cast.ToInt(end)
+		if endInt < 0 {
+			endInt = length + endInt
+		}
+	} else if stepInt > 0 {
+		endInt = length
+	} else {
+		endInt = -1
+	}
+
+	switch objT {
+	case ast.String:
+		str := obj.(string)
+		if stepInt > 0 {
+			result := ""
+			if startInt < 0 {
+				startInt = 0
+			}
+			for i := startInt; i < endInt && i < length; i += stepInt {
+				result += string(str[i])
+			}
+			return result, ast.String, nil
+		} else {
+			result := ""
+			if startInt > length-1 {
+				startInt = length - 1
+			}
+			for i := startInt; i > endInt && i >= 0; i += stepInt {
+				result += string(str[i])
+			}
+			return result, ast.String, nil
+		}
+	default:
+		list := obj.([]any)
+		if stepInt > 0 {
+			if startInt < 0 {
+				startInt = 0
+			}
+			if endInt > length {
+				endInt = length
+			}
+			result := make([]any, 0, (endInt-startInt+stepInt-1)/stepInt)
+			for i := startInt; i < endInt; i += stepInt {
+				result = append(result, list[i])
+			}
+			return result, ast.List, nil
+		} else {
+			if startInt > length-1 {
+				startInt = length - 1
+			}
+			if endInt < 0 {
+				endInt = -1
+			}
+			result := make([]any, 0, (startInt-endInt-stepInt-1)/(-stepInt))
+			for i := startInt; i > endInt; i += stepInt {
+				result = append(result, list[i])
+			}
+			return result, ast.List, nil
+		}
+	}
+}
 func typePromotion(l ast.DType, r ast.DType) ast.DType {
 	if l == ast.Float || r == ast.Float {
 		return ast.Float

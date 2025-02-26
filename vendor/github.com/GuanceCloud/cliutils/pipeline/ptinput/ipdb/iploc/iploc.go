@@ -177,6 +177,7 @@ func (iploc *IPloc) Geo(ip string) (*ipdb.IPdbRecord, error) {
 	record.City = r.City
 	record.Region = r.Region
 	record.Country = r.Country_short
+	record.Isp = iploc.SearchIsp(ip)
 
 	return record.CheckData(), err
 }

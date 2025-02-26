@@ -73,6 +73,9 @@ type PlInputPt interface {
 
 	GetCache() *plcache.Cache
 	SetCache(*plcache.Cache)
+
+	GetStatusMapping() bool
+	SetStatusMapping(val bool)
 }
 
 const (
@@ -128,6 +131,8 @@ type PlPoint struct {
 	winKeyVal          [2][]string
 	ptWindowRegistered bool
 
+	setDisableStatusProc bool
+
 	drop     bool
 	category point.Category
 }
@@ -174,6 +179,14 @@ func valueDtype(v any) (any, ast.DType) {
 
 	// ignore unknown type
 	return nil, ast.Nil
+}
+
+func (pt *PlPoint) GetStatusMapping() bool {
+	return !pt.setDisableStatusProc
+}
+
+func (pt *PlPoint) SetStatusMapping(val bool) {
+	pt.setDisableStatusProc = !val
 }
 
 func (pt *PlPoint) GetPtName() string {

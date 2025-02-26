@@ -9,7 +9,7 @@ require (
 	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.4
-	github.com/GuanceCloud/platypus v0.2.10-0.20240815092339-21f3924850ee
+	github.com/GuanceCloud/platypus v0.3.1
 	github.com/GuanceCloud/timeout v1.9.1
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -374,7 +374,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20241225081912-60d342215da0
+	github.com/GuanceCloud/cliutils v1.1.22-0.20250226092338-149ffca4802f
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
