@@ -90,6 +90,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[0],
 	"hash()":                   FnHash.Doc[0],
 	"slice_string()":           FnSliceString.Doc[0],
+	"setopt()":                 &setoptMD,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -163,6 +164,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[1],
 	"hash()":                   FnHash.Doc[1],
 	"slice_string()":           FnSliceString.Doc[1],
+	"setopt()":                 &setoptMDEN,
 }
 
 // embed docs.
@@ -359,6 +361,9 @@ var (
 
 	//go:embed md/window_hit.md
 	docWindowHit string
+
+	//go:embed md/setopt.md
+	docSetopt string
 )
 
 const (
@@ -779,6 +784,13 @@ var (
 
 	winHitMarkdown = PLDoc{
 		Doc: docWindowHit,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cOther},
+		},
+	}
+
+	setoptMD = PLDoc{
+		Doc: docSetopt,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
 		},

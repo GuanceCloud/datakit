@@ -141,7 +141,9 @@ func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt
 			ignore = opt.IgnoreStatus
 		}
 
-		ProcLoggingStatus(plpt, disable, ignore)
+		if plpt.GetStatusMapping() {
+			ProcLoggingStatus(plpt, disable, ignore)
+		}
 	}
 
 	if plpt.Dropped() {

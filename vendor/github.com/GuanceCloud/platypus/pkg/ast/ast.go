@@ -43,6 +43,7 @@ const (
 	TypeAssignmentExpr
 
 	TypeCallExpr
+	TypeSliceExpr
 
 	// stmt.
 	TypeBlockStmt
@@ -91,6 +92,8 @@ func (t NodeType) String() string {
 		return "AssignmentExpr"
 	case TypeCallExpr:
 		return "CallExpr"
+	case TypeSliceExpr:
+		return "SliceExpr"
 	case TypeBlockStmt:
 		return "BlockStmt"
 	case TypeIfelseStmt:
@@ -202,6 +205,9 @@ func (n *Node) AssignmentExpr() *AssignmentExpr {
 }
 func (n *Node) CallExpr() *CallExpr {
 	return n.elem.(*CallExpr)
+}
+func (n *Node) SliceExpr() *SliceExpr {
+	return n.elem.(*SliceExpr)
 }
 func (n *Node) BlockStmt() *BlockStmt {
 	return n.elem.(*BlockStmt)
@@ -345,6 +351,12 @@ func WrapCallExpr(node *CallExpr) *Node {
 	}
 }
 
+func WrapSliceExpr(node *SliceExpr) *Node {
+	return &Node{
+		NodeType: TypeSliceExpr,
+		elem:     node,
+	}
+}
 func WrapIfelseStmt(node *IfelseStmt) *Node {
 	return &Node{
 		NodeType: TypeIfelseStmt,
@@ -433,6 +445,8 @@ func NodeStartPos(node *Node) token.LnColPos {
 	case TypeCallExpr:
 		return node.CallExpr().NamePos
 
+	case TypeSliceExpr:
+		return node.SliceExpr().LBracket
 	case TypeBlockStmt:
 		return node.BlockStmt().LBracePos
 

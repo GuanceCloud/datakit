@@ -71,6 +71,8 @@ func RunStmtCheck(ctx *Task, ctxCheck *ContextCheck, node *ast.Node) *errchain.P
 
 	case ast.TypeCallExpr:
 		return RunCallExprCheck(ctx, ctxCheck, node.CallExpr())
+	case ast.TypeSliceExpr:
+		return RunSliceExprCheck(ctx, ctxCheck, node.SliceExpr())
 
 	case ast.TypeIfelseStmt:
 		return RunIfElseStmtCheck(ctx, ctxCheck, node.IfelseStmt())
@@ -189,6 +191,30 @@ func RunCallExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.CallExpr) *er
 	}
 
 	return funcCheck(ctx, expr)
+}
+
+func RunSliceExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.SliceExpr) *errchain.PlError {
+	if err := RunStmtCheck(ctx, ctxCheck, expr.Obj); err != nil {
+		return err
+	}
+
+	if expr.Start != nil {
+		if err := RunStmtCheck(ctx, ctxCheck, expr.Start); err != nil {
+			return err
+		}
+	}
+
+	if expr.End != nil {
+		if err := RunStmtCheck(ctx, ctxCheck, expr.End); err != nil {
+			return err
+		}
+	}
+	if expr.End != nil {
+		if err := RunStmtCheck(ctx, ctxCheck, expr.Step); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func RunAssignmentExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.AssignmentExpr) *errchain.PlError {

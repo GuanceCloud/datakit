@@ -36,7 +36,18 @@ type Pt struct {
 	winKeyVal          [2][]string
 	ptWindowRegistered bool
 
+	disableStatusMapping bool
+
+	// status
 	drop bool
+}
+
+func (pp *Pt) GetStatusMapping() bool {
+	return !pp.disableStatusMapping
+}
+
+func (pp *Pt) SetStatusMapping(val bool) {
+	pp.disableStatusMapping = !val
 }
 
 func (pp *Pt) GetPtName() string {

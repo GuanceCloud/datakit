@@ -315,6 +315,38 @@ func (e *CallExpr) String() string {
 	return fmt.Sprintf("%s(%s)", strings.ToLower(e.Name), strings.Join(arr, ", "))
 }
 
+type SliceExpr struct {
+	Obj      *Node
+	Start    *Node
+	End      *Node
+	Step     *Node
+	Colon2   bool
+	LBracket token.LnColPos
+	RBracket token.LnColPos
+}
+
+func (e *SliceExpr) IsExpr() bool {
+	return true
+}
+
+func (e *SliceExpr) String() string {
+	startStr := ""
+	if e.Start != nil {
+		startStr = e.Start.String()
+	}
+	endStr := ""
+	if e.End != nil {
+		endStr = e.End.String()
+	}
+	stepStr := ""
+	if e.Step != nil {
+		stepStr = ":" + e.Step.String()
+	} else if e.Colon2 {
+		stepStr = ":"
+	}
+	return fmt.Sprintf("%s[%s:%s%s]", e.Obj.String(), startStr, endStr, stepStr)
+}
+
 type AssignmentExpr struct {
 	LHS, RHS *Node
 	Op       Op
