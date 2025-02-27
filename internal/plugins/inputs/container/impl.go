@@ -291,9 +291,13 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
-	podFilterForMetric, err := filter.NewFilter(ipt.PodIncludeMetric, ipt.PodExcludeMetric)
-	if err != nil {
-		return nil, fmt.Errorf("new k8s collector failed, err: %w", err)
+	var podFilterForMetric filter.Filter
+	if len(ipt.PodIncludeMetric) != 0 || len(ipt.PodExcludeMetric) != 0 {
+		podFilter, err := filter.NewFilter(ipt.PodIncludeMetric, ipt.PodExcludeMetric)
+		if err != nil {
+			return nil, fmt.Errorf("new k8s collector failed, err: %w", err)
+		}
+		podFilterForMetric = podFilter
 	}
 
 	l.Infof("Use labels %s for k8s non-metric", optForNonMetric.keys)
