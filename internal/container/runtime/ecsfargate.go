@@ -114,14 +114,12 @@ func (c *ecsfargateClient) ContainerTop(id string) (*ContainerTop, error) {
 	top := ContainerTop{ID: stats.ID}
 
 	// cpu usage
-	top.CPUUsage = calculateCPUPercentUnix(&stats)
-
+	top.CPUPercent, top.CPUUsageMillicores = calculateCPUUsageUnix(&stats)
 	// cpu cores
 	top.CPUCores = int(stats.CPUStats.OnlineCPUs)
 
 	// memory usage and menory limit
 	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
-	top.MemoryLimit = int64(stats.MemoryStats.Stats["hierarchical_memory_limit"])
 	top.MemoryCapacity = int64(math.MaxInt64)
 
 	// block io

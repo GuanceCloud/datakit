@@ -172,6 +172,8 @@ logstreaming
 malloc
 macOS
 mcache
+milli
+millicores
 mitm
 mnodes
 mnodes

@@ -100,14 +100,14 @@
 
 - 自定义配置的 key 有以下几种情况：
     - 容器环境变量的 key 固定为 `datakit_logs_config`
-    - pod annotation 的 key 有两种写法：
-        - `datakit/<container_name>.logs`，其中 `<container_name>` 需要替换为当前 pod 的容器名，这在多容器环境下会用到
-        - `datakit/logs` 会对该 pod 的所有容器都适用
+    - Pod Annotation 的 key 有两种写法：
+        - `datakit/<container_name>.logs`，其中 `<container_name>` 需要替换为当前 Pod 的容器名，这在多容器环境下会用到
+        - `datakit/logs` 会对该 Pod 的所有容器都适用
 
 <!-- markdownlint-disable md046 -->
 ???+ info
 
-如果一个容器存在环境变量 `datakit_logs_config`，同时又能找到它所属 pod 的 annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
+    如果一个容器存在环境变量 `datakit_logs_config`，同时又能找到它所属 Pod 的 Annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
 <!-- markdownlint-enable -->
 
 - 自定义配置的 value 如下：
@@ -149,79 +149,81 @@
 <!-- markdownlint-disable md046 -->
 === "容器环境变量"
 
-``` shell
-  $ cat dockerfile
-  from pubrepo.guance.com/base/ubuntu:18.04 as base
-  run mkdir -p /opt
-  run echo 'i=0; \n\
-  while true; \n\
-  do \n\
-    echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output."; \n\
-    i=$((i+1)); \n\
-    sleep 1; \n\
-  done \n'\
-  >> /opt/s.sh
-  cmd ["/bin/bash", "/opt/s.sh"]
-  
-  ## 构建镜像
-  $ docker build -t testing/log-output:v1 .
-  
-  ## 启动容器，添加环境变量 datakit_logs_config
-  $ docker run --name log-output -env datakit_logs_config='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
-```
+    ``` shell
+      $ cat dockerfile
+      from pubrepo.guance.com/base/ubuntu:18.04 as base
+      run mkdir -p /opt
+      run echo 'i=0; \n\
+      while true; \n\
+      do \n\
+        echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output."; \n\
+        i=$((i+1)); \n\
+        sleep 1; \n\
+      done \n'\
+      >> /opt/s.sh
+      cmd ["/bin/bash", "/opt/s.sh"]
+      
+      ## 构建镜像
+      $ docker build -t testing/log-output:v1 .
+      
+      ## 启动容器，添加环境变量 datakit_logs_config
+      $ docker run --name log-output -env datakit_logs_config='[{"disable":false,"source":"log-source","service":"log-service"}]' -d testing/log-output:v1
+    ```
 
 === "Kubernetes Pod Annotation"
 
-``` yaml title="log-demo.yaml"
-apiversion: apps/v1
-kind: deployment
-metadata:
- name: log-demo-deployment
- labels:
-  app: log-demo
-spec:
- replicas: 1
- selector:
-  matchlabels:
-   app: log-demo
- template:
-  metadata:
-   labels:
-    app: log-demo
-   annotations:
-    ## 添加配置，且指定容器为 log-output
-    datakit/log-output.logs: |
-     [{
-       "disable": false,
-       "source": "log-output-source",
-       "service": "log-output-service",
-       "tags" : {
-        "some_tag": "some_value"
-       }
-     }]
-  spec:
-   containers:
-   - name: log-output
-    image: pubrepo.guance.com/base/ubuntu:18.04
-    args:
-    - /bin/sh
-    - -c
-    - >
-     i=0;
-     while true;
-     do
-      echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output.";
-      i=$((i+1));
-      sleep 1;
-     done
-```
+    ``` yaml title="log-demo.yaml"
+    apiversion: apps/v1
+    kind: deployment
+    metadata:
+     name: log-demo-deployment
+     labels:
+      app: log-demo
+    spec:
+     replicas: 1
+     selector:
+      matchlabels:
+       app: log-demo
+     template:
+      metadata:
+       labels:
+        app: log-demo
+       annotations:
+        ## 添加配置，且指定容器为 log-output
+        datakit/log-output.logs: |
+         [{
+           "disable": false,
+           "source": "log-output-source",
+           "service": "log-output-service",
+           "tags" : {
+            "some_tag": "some_value"
+           }
+         }]
+      spec:
+       containers:
+       - name: log-output
+        image: pubrepo.guance.com/base/ubuntu:18.04
+        args:
+        - /bin/sh
+        - -c
+        - >
+         i=0;
+         while true;
+         do
+          echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output.";
+          i=$((i+1));
+          sleep 1;
+         done
+    ```
+    
+    执行 Kubernetes 命令，应用该配置：
+    
+    ``` shell
+    $ kubectl apply -f log-output.yaml
+    #...
+    ```
 
-执行 Kubernetes 命令，应用该配置：
-
-``` shell
-$ kubectl apply -f log-output.yaml
-#...
-```
+---
 
 ???+ attention
 
@@ -237,7 +239,7 @@ $ kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"lo
 ```
 
 
-如果一个 pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效。
+如果一个 Pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效。
 
 
 ### 容器内日志文件采集 {#config-container-files}
@@ -251,100 +253,100 @@ $ kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"lo
 <!-- markdownlint-disable md046 -->
 === "容器环境变量"
 
-``` shell
-  $ cat dockerfile
-  from pubrepo.guance.com/base/ubuntu:18.04 as base
-  run mkdir -p /opt
-  run echo 'i=0; \n\
-  while true; \n\
-  do \n\
-    echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log; \n\
-    i=$((i+1)); \n\
-    sleep 1; \n\
-  done \n'\
-  >> /opt/s.sh
-  cmd ["/bin/bash", "/opt/s.sh"]
-  
-  ## 构建镜像
-  $ docker build -t testing/log-to-file:v1 .
-  
-  ## 启动容器，添加环境变量 datakit_logs_config，注意字符转义
-  ## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 Volume
-  ## 例如采集 `/tmp/opt/1.log` 文件，需要添加 `/tmp/opt` 的匿名 Volume
-  $ docker run --env datakit_logs_config="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/1.log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
-```
+    ``` shell
+      $ cat dockerfile
+      from pubrepo.guance.com/base/ubuntu:18.04 as base
+      run mkdir -p /opt
+      run echo 'i=0; \n\
+      while true; \n\
+      do \n\
+        echo "$(date +"%y-%m-%d %h:%m:%s") [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log; \n\
+        i=$((i+1)); \n\
+        sleep 1; \n\
+      done \n'\
+      >> /opt/s.sh
+      cmd ["/bin/bash", "/opt/s.sh"]
+      
+      ## 构建镜像
+      $ docker build -t testing/log-to-file:v1 .
+      
+      ## 启动容器，添加环境变量 datakit_logs_config，注意字符转义
+      ## 指定非 stdout 路径，"type" 和 "path" 是必填字段，且需要创建采集路径的 Volume
+      ## 例如采集 `/tmp/opt/1.log` 文件，需要添加 `/tmp/opt` 的匿名 Volume
+      $ docker run --env datakit_logs_config="[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/1.log\",\"source\":\"log-source\",\"service\":\"log-service\"}]" -v /tmp/opt -d testing/log-to-file:v1
+    ```
 
-=== "Kubernetes pod annotation"
+=== "Kubernetes Pod Annotation"
 
-``` yaml title="logging.yaml"
-apiversion: apps/v1
-kind: deployment
-metadata:
- name: log-demo-deployment
- labels:
-  app: log-demo
-spec:
- replicas: 1
- selector:
-  matchlabels:
-   app: log-demo
- template:
-  metadata:
-   labels:
-    app: log-demo
-   annotations:
-    ## 添加配置，且指定容器为 logging-demo
-    ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/1.log" 文件，需要先给 "/tmp/opt" 添加 emptydir Volume
-    datakit/logging-demo.logs: |
-     [
-      {
-       "disable": false,
-       "type": "file",
-       "path":"/tmp/opt/1.log",
-       "source": "logging-file",
-       "tags" : {
-        "some_tag": "some_value"
-       }
-      },
-      {
-       "disable": false,
-       "source": "logging-output"
-      }
-     ]
-  spec:
-   containers:
-   - name: logging-demo
-    image: pubrepo.guance.com/base/ubuntu:18.04
-    args:
-    - /bin/sh
-    - -c
-    - >
-     i=0;
-     while true;
-     do
-      echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output.";
-      echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log;
-      i=$((i+1));
-      sleep 1;
-     done
-    volumemounts:
-    - mountpath: /tmp/opt
-     name: datakit-vol-opt
-   volumes:
-   - name: datakit-vol-opt
-    emptydir: {}
-```
+    ``` yaml title="logging.yaml"
+    apiversion: apps/v1
+    kind: deployment
+    metadata:
+     name: log-demo-deployment
+     labels:
+      app: log-demo
+    spec:
+     replicas: 1
+     selector:
+      matchlabels:
+       app: log-demo
+     template:
+      metadata:
+       labels:
+        app: log-demo
+       annotations:
+        ## 添加配置，且指定容器为 logging-demo
+        ## 同时配置了 file 和 stdout 两种采集。注意要采集 "/tmp/opt/1.log" 文件，需要先给 "/tmp/opt" 添加 emptydir Volume
+        datakit/logging-demo.logs: |
+         [
+          {
+           "disable": false,
+           "type": "file",
+           "path":"/tmp/opt/1.log",
+           "source": "logging-file",
+           "tags" : {
+            "some_tag": "some_value"
+           }
+          },
+          {
+           "disable": false,
+           "source": "logging-output"
+          }
+         ]
+      spec:
+       containers:
+       - name: logging-demo
+        image: pubrepo.guance.com/base/ubuntu:18.04
+        args:
+        - /bin/sh
+        - -c
+        - >
+         i=0;
+         while true;
+         do
+          echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output.";
+          echo "$(date +'%f %h:%m:%s') [$i] bash for loop examples. hello, world! testing output." >> /tmp/opt/1.log;
+          i=$((i+1));
+          sleep 1;
+         done
+        volumemounts:
+        - mountpath: /tmp/opt
+         name: datakit-vol-opt
+       volumes:
+       - name: datakit-vol-opt
+        emptydir: {}
+    ```
+    
+    执行 Kubernetes 命令，应用该配置：
+    
+    ``` shell
+    $ kubectl apply -f logging.yaml
+    #...
+    ```
+    
+    对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](../integrations/logfwd.md)。
 
-执行 Kubernetes 命令，应用该配置：
-
-``` shell
-$ kubectl apply -f logging.yaml
-#...
-```
-
-对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](../integrations/logfwd.md)。
-
-### tcp/udp 数据接收 {#config-tcpudp}
+### TCP/UDP 数据接收 {#config-tcpudp}
 
 将 logging.conf 中 `logfiles` 注释掉，并配置 `sockets`，例如：
 
@@ -385,32 +387,32 @@ Connection to 127.1 (127.0.0.1) 9531 port [udp/*] succeeded!
 <!-- markdownlint-disable md046 -->
 === "主机安装"
 
-进入 Datakit 安装目录下的 `conf.d/log` 目录，复制 `logstreaming.conf.sample` 并命名为 `logstreaming.conf`。示例如下：
-  
-```toml
-[inputs.logstreaming]
-  ignore_url_tags = false
-
-  ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
-  ## buffer is the size of jobs' buffering of worker channel.
-  ## threads is the total number fo goroutines at running time.
-  # [inputs.logstreaming.threads]
-  #   buffer = 100
-  #   threads = 8
-
-  ## Storage config a local storage space in hard dirver to cache trace data.
-  ## path is the local file path used to cache data.
-  ## capacity is total space size(MB) used to store data.
-  # [inputs.logstreaming.storage]
-  #   path = "./log_storage"
-  #   capacity = 5120
-```
-
-配置好后，[重启 Datakit](datakit-service-how-to.md#manage-service) 即可。
+    进入 Datakit 安装目录下的 `conf.d/log` 目录，复制 `logstreaming.conf.sample` 并命名为 `logstreaming.conf`。示例如下：
+      
+    ```toml
+    [inputs.logstreaming]
+      ignore_url_tags = false
+    
+      ## Threads config controls how many goroutines an agent cloud start to handle HTTP request.
+      ## buffer is the size of jobs' buffering of worker channel.
+      ## threads is the total number fo goroutines at running time.
+      # [inputs.logstreaming.threads]
+      #   buffer = 100
+      #   threads = 8
+    
+      ## Storage config a local storage space in hard dirver to cache trace data.
+      ## path is the local file path used to cache data.
+      ## capacity is total space size(MB) used to store data.
+      # [inputs.logstreaming.storage]
+      #   path = "./log_storage"
+      #   capacity = 5120
+    ```
+    
+    配置好后，[重启 Datakit](datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 
-目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+    目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
 #### logstreaming 支持参数 {#logstreaming-args}
@@ -830,7 +832,7 @@ Pipeline 的几个注意事项：
 
 在容器环境下，日志来源（`source`）设置是一个很重要的配置项，它直接影响在页面上的展示效果。但如果挨个给每个容器的日志配置一个 source 未免残暴。如果不手动配置容器日志来源，Datakit 有如下规则（优先级递减）用于自动推断容器日志的来源：
 
-> 所谓不手动指定容器日志来源，就是指在 pod annotation 中不指定，在 container.conf 中也不指定（目前 container.conf 中无指定容器日志来源的配置项）
+> 所谓不手动指定容器日志来源，就是指在 Pod Annotation 中不指定，在 container.conf 中也不指定（目前 container.conf 中无指定容器日志来源的配置项）
 
 - Kubernetes 指定的容器名：从容器的 `io.kubernetes.container.name` 这个 label 上取值
 - 容器本身的名称：通过 `docker ps` 或 `crictl ps` 能看到的容器名
@@ -953,102 +955,105 @@ Datakit 需要挂载 `/mnt/container_logs` hostpath 才能使得正常采集，�
 
 这种情况不太常见，一般只有提前知道该路径有软连接，或查看 Datakit 日志发现采集报错才执行。
 
-### 根据容器 image 来调整日志采集 {#config-loggong-on-container-image}
+### 根据容器 image 来调整日志采集 {#config-logging-on-container-image}
 
 默认情况下，Datakit 会收集所在主机上所有容器标准输出日志，这会采集较多的日志。可以通过 image 或 namespace 来过滤容器。
 
 <!-- markdownlint-disable md046 -->
 === "主机安装"
 
-``` toml
-  ## 以 image 为例
-  ## 当容器的 image 能够匹配 `datakit` 时，会采集此容器的日志
-  container_include_log = ["image:datakit"]
-
-  ## 忽略所有 kodo 容器
-  container_exclude_log = ["image:kodo"]
-```
-
-`container_include` 和 `container_exclude` 必须以属性字段开头，格式为一种[类正则的 glob 通配](https://en.wikipedia.org/wiki/glob_(programming)){:target="_blank"}：`"<字段名>:<glob 规则>"`
-
-现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
-
-- image : `image:pubrepo.guance.com/datakit/datakit:1.18.0`
-- image_name : `image_name:pubrepo.guance.com/datakit/datakit`
-- image_short_name : `image_short_name:datakit`
-- namespace : `namespace:datakit-ns`
-
-
-对于同一类规则（`image` 或 `namespace`），如果同时存在 `include` 和 `exclude`，需要同时满足 `include` 成立，且 `exclude` 不成立的条件。例如：
-
-```toml
-  ## 这会导致所有容器都被过滤。如果有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
-  container_include_log = ["image_name:datakit"]
-  container_exclude_log = ["image_name:*"]
-```
-
-多种类型的字段规则有任意一条匹配，就不再采集它的日志。例如：
-
-```toml
-  ## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
-  container_include_log = []
-  container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
-```
-
-`container_include_log` 和 `container_exclude_log` 的配置规则比较复杂，同时使用会有多种优先级情况。建议只使用 `container_exclude_log` 一种。
+    ``` toml
+      ## 以 image 为例
+      ## 当容器的 image 能够匹配 `datakit` 时，会采集此容器的日志
+      container_include_log = ["image:datakit"]
+    
+      ## 忽略所有 kodo 容器
+      container_exclude_log = ["image:kodo"]
+    ```
+    
+    `container_include` 和 `container_exclude` 必须以属性字段开头，格式为一种[类正则的 glob 通配](https://en.wikipedia.org/wiki/glob_(programming)){:target="_blank"}：`"<字段名>:<glob 规则>"`
+    
+    现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
+    
+    - image : `image:pubrepo.guance.com/datakit/datakit:1.18.0`
+    - image_name : `image_name:pubrepo.guance.com/datakit/datakit`
+    - image_short_name : `image_short_name:datakit`
+    - namespace : `namespace:datakit-ns`
+    
+    
+    对于同一类规则（`image` 或 `namespace`），如果同时存在 `include` 和 `exclude`，需要同时满足 `include` 成立，且 `exclude` 不成立的条件。例如：
+    
+    ```toml
+      ## 这会导致所有容器都被过滤
+      ## 例如有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
+      container_include_log = ["image_name:datakit"]
+      container_exclude_log = ["image_name:*"]
+    ```
+    
+    多种类型的字段规则有任意一条匹配，就不再采集它的日志。例如：
+    
+    ```toml
+      ## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
+      container_include_log = []
+      container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    ```
+    
+    `container_include_log` 和 `container_exclude_log` 的配置规则比较复杂，同时使用会有多种优先级情况。建议只使用 `container_exclude_log` 一种。
 
 === "Kubernetes"
 
-可通过如下环境变量
+    可通过如下环境变量
+    
+    - ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
+    - ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
+    
+    来配置容器的日志采集。假设有 3 个 Pod，其 image 分别是：
+    
+    - a：`hello/hello-http:latest`
+    - b：`world/world-http:latest`
+    - c：`pubrepo.guance.com/datakit/datakit:1.2.0`
+    
+    如果只希望采集 Pod a 的日志，那么配置 ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG 即可：
+    
+    ``` yaml
+      - env:
+       - name: ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
+        value: image:hello* # 指定镜像名或其通配
+    ```
+    
+    或以命名空间来配置：
+    
+    ``` yaml
+      - env:
+       - name: ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
+        value: namespace:foo # 指定命名空间的容器日志不采集
+    ```
 
-- ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
-- ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
-
-来配置容器的日志采集。假设有 3 个 pod，其 image 分别是：
-
-- a：`hello/hello-http:latest`
-- b：`world/world-http:latest`
-- c：`pubrepo.guance.com/datakit/datakit:1.2.0`
-
-如果只希望采集 pod a 的日志，那么配置 ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG 即可：
-
-``` yaml
-  - env:
-   - name: ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG
-    value: image:hello* # 指定镜像名或其通配
-```
-
-或以命名空间来配置：
-
-``` yaml
-  - env:
-   - name: ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG
-    value: namespace:foo # 指定命名空间的容器日志不采集
-```
+---
 
 ???+ tip "如何查看镜像"
 
-Docker：
-
-``` shell
-$ docker inspect --format '{{`{{.config.image}}`}}' <container_id>
-#...
-```
-
-Kubernetes pod：
-
-``` shell
-$ kubectl get pod -o=jsonpath="{.spec.containers[0].image}" <pod_name>
-#...
-```
-
-???+ attention
-
-通过全局配置的 `container_exclude_log` 优先级低于容器的自定义配置 `disable`。例如，配置了 `container_exclude_log = ["image:*"]` 不采集所有日志，如果有以下 pod annotation 还是会采集容器标准输出日志：
-
-```json
-[{
-  "disable": false,
-  "source": "logging-output"
-}]
-```
+    Docker：
+    
+    ``` shell
+    $ docker inspect --format '{{`{{.config.image}}`}}' <container_id>
+    #...
+    ```
+    
+    Kubernetes Pod：
+    
+    ``` shell
+    $ kubectl get pod -o=jsonpath="{.spec.containers[0].image}" <pod_name>
+    #...
+    ```
+    
+    ???+ attention
+    
+    通过全局配置的 `container_exclude_log` 优先级低于容器的自定义配置 `disable`。例如，配置了 `container_exclude_log = ["image:*"]` 不采集所有日志，如果有以下 Pod Annotation 还是会采集容器标准输出日志：
+    
+    ```json
+    [{
+      "disable": false,
+      "source": "logging-output"
+    }]
+    ```

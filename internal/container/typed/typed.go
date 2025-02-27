@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package typed wrap point type
+// Package typed wraps point type
 package typed
 
 import (

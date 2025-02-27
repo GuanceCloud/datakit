@@ -114,9 +114,6 @@ The default configuration is as follows:
             }
         },
         "logfwd": {
-            "options": {
-                "reuse_exist_volume": "false"
-            },
             "images": {
                 "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.28.1"
             }
@@ -432,24 +429,6 @@ Parameter explanation can refer to [logfwd configuration](../integrations/logfwd
     - `multiline_match` is for multiline matching, as described in [Datakit Log Multiline Configuration](../integrations/logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
     - `tags` adds additional tags in JSON map format, such as `{ "key1":"value1", "key2":"value2" }`.
 
-When injecting `logfwd`, it is allowed to reuse a volume with the same path to avoid injection errors caused by an existing volume at the same path. To enable this, set the configuration `admission_inject`->`logfwd`->`options`->`reuse_exist_volume` to `true`.
-
-For example, if the target Pod has a volume mounted at the path `/var/log`, and `/var/log` is the directory to be collected:
-
-```yaml
-spec:
-  container:
-    # other...
-    volumeMounts:
-    - name: volume-log
-      mountPath: /var/log
-  volumes:
-  - name: volume-log
-    emptyDir: {}
-```
-
-When `reuse_exist_volume` is enabled, no new volume or volumeMount will be added, and the existing `volume-log` will be reused.
-
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
@@ -504,6 +483,91 @@ log-container datakit-logfwd
 ```
 
 Finally, you can check whether the logs have been collected on the Guance Cloud Log Platform.
+
+Here is the translation of the document into English:
+
+---
+
+## Datakit Operator Resource Changes {#datakit-operator-mutate-resource}
+
+### Adding Configuration for Datakit Logging {#add-logging-configs}
+
+The Datakit Operator can automatically add the configuration required for Datakit Logging collection to the specified Pods, including the `datakit/logs` annotation and the corresponding file path volume/volumeMount. This simplifies the tedious manual configuration steps. As a result, users do not need to manually intervene in each Pod's configuration to enable log collection functionality automatically.
+
+Below is an example of a configuration that shows how to implement the automatic injection of log collection configuration through the Datakit Operator's `admission_mutate` configuration:
+
+```json
+{
+    "server_listen": "0.0.0.0:9543",
+    "log_level":     "info",
+    "admission_inject": {
+        # Other configurations...
+    },
+    "admission_mutate": {
+        "loggings": [
+            {
+                "namespace_selectors": ["middleware"],
+                "label_selectors":     ["app=logging"],
+                "config": "[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"source\":\"logging-tmp\"}]"
+            }
+        ]
+    }
+}
+```
+
+`admission_mutate.loggings`: This is an array of objects that contains multiple log collection configurations. Each log configuration includes the following fields:
+
+- `namespace_selectors`: Specifies the namespaces where Pods must be located to meet the criteria. Multiple namespaces can be set, and a Pod must match at least one namespace to be selected. It operates as an "OR" relation with `label_selectors`.
+- `label_selectors`: Specifies the labels of Pods that must meet the criteria. A Pod must match at least one label selector to be selected. It operates as an "OR" relation with `namespace_selectors`.
+- `config`: This is a JSON string that will be added to the Pod's annotation under the key `datakit/logs`. If the key already exists, it will not be overwritten or added again. This configuration tells Datakit how to collect logs.
+
+The Datakit Operator will automatically parse the `config` configuration and create corresponding volumes and volumeMounts for the Pod based on the paths (`path`) specified within.
+
+Taking the above Datakit Operator configuration as an example, if a Pod's Namespace is middleware or its Labels match app=logging, an annotation and mount will be added to the Pod. For example:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    datakit/logs: '[{"disable":false,"type":"file","path":"/tmp/opt/**/*.log","source":"logging-tmp"}]'
+  labels:
+    app: logging
+  name: logging-test
+  namespace: default
+spec:
+  containers:
+  - args:
+    - |
+      mkdir -p /tmp/opt/log1;
+      i=1;
+      while true; do
+        echo "Writing logs to file ${i}.log";
+        for ((j=1;j<=10000000;j++)); do
+          echo "$(date +'%F %H:%M:%S')  [$j]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log1/file_${i}.log;
+          sleep 1;
+        done;
+        echo "Finished writing 5000000 lines to file_${i}.log";
+        i=$((i+1));
+      done
+    command:
+    - /bin/bash
+    - -c
+    - --
+    image: pubrepo.guance.com/base/ubuntu:18.04
+    imagePullPolicy: IfNotPresent
+    name: demo
+    volumeMounts:
+    - mountPath: /tmp/opt
+      name: datakit-logs-volume-0
+  volumes:
+  - emptyDir: {}
+    name: datakit-logs-volume-0
+```
+
+This Pod has the label `app=logging`, which allows it to match the selector. As a result, Datakit Operator adds the `datakit/logs` annotation and mounts an EmptyDir volume at the path `/tmp/opt`.
+
+Once Datakit Log Collection detects the Pod, it will customize the log collection according to the contents of the `datakit/logs` annotation.
 
 ### FAQ {#datakit-operator-faq}
 

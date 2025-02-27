@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
@@ -100,6 +101,17 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 	nodeInfo := nodeCapacity{}
 
 	for idx, item := range m.list.Items {
+		if m.parent.counter[item.Namespace] == nil {
+			m.parent.counter[item.Namespace] = make(map[string]int)
+		}
+		m.parent.counter[item.Namespace][item.Spec.NodeName]++
+
+		if conf.PodFilterForMetric != nil {
+			if !conf.PodFilterForMetric.Match(filter.FilterNamespace, item.Namespace) {
+				continue
+			}
+		}
+
 		met := typed.NewPointKV(podMetricMeasurement)
 
 		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
@@ -126,15 +138,6 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 			}
 		}
 		met.SetField("restarts", maxRestarts)
-
-		cpuLimit := getMaxCPULimitFromResource(item.Spec.Containers)
-		if cpuLimit != 0 {
-			met.SetField("cpu_limit_millicores", cpuLimit)
-		}
-		memLimit := getMemoryLimitFromResource(item.Spec.Containers)
-		if memLimit != 0 {
-			met.SetField("mem_limit", memLimit)
-		}
 
 		ownerKind, ownerName := getOwner(item.OwnerReferences, item.Labels["pod-template-hash"])
 		if ownerKind != "" && ownerName != "" {
@@ -163,12 +166,8 @@ func (m *podMetadata) newMetric(conf *Config) pointKVs {
 		} else {
 			met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
 		}
-		res = append(res, met)
 
-		if m.parent.counter[item.Namespace] == nil {
-			m.parent.counter[item.Namespace] = make(map[string]int)
-		}
-		m.parent.counter[item.Namespace][item.Spec.NodeName]++
+		res = append(res, met)
 	}
 
 	return res
@@ -205,12 +204,6 @@ func (m *podMetadata) newObject(conf *Config) pointKVs {
 				break
 			}
 		}
-
-		cpuLimit := getMaxCPULimitFromResource(item.Spec.Containers)
-		obj.SetField("cpu_limit_millicores", cpuLimit)
-
-		memLimit := getMemoryLimitFromResource(item.Spec.Containers)
-		obj.SetField("mem_limit", memLimit)
 
 		containerReadyCount := 0
 		for _, cs := range item.Status.ContainerStatuses {
@@ -314,28 +307,42 @@ func queryPodMetrics(
 		return p, err
 	}
 
-	p.SetField("cpu_usage", podMet.cpuUsage)
+	cpuUsage := float64(podMet.cpuUsageMilliCores) / 1e3 * 100.0
 	p.SetField("cpu_usage_millicores", podMet.cpuUsageMilliCores)
+	p.SetField("cpu_usage", cpuUsage)
 	p.SetField("mem_usage", podMet.memoryUsageBytes)
-
-	p.SetField("cpu_capacity_millicores", node.cpuCapacityMillicores)
+	p.SetField("mem_rss", podMet.memoryRSSBytes)
 	p.SetField("mem_capacity", node.memCapacity)
 
 	if node.cpuCapacityMillicores != 0 {
 		cores := node.cpuCapacityMillicores / 1e3
-		x := podMet.cpuUsage / float64(cores)
+		x := cpuUsage / float64(cores)
 		if math.IsNaN(x) {
 			x = 0.0
 		}
+		p.SetField("cpu_number", cores)
 		p.SetField("cpu_usage_base100", x)
 	}
 
-	if memLimit := getMemoryLimitFromResource(item.Spec.Containers); memLimit != 0 {
-		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
+	if cpuLimit := sumCPULimits(item); cpuLimit != 0 {
+		p.SetField("cpu_limit_millicores", cpuLimit)
+		p.SetField("cpu_usage_base_limit", float64(podMet.cpuUsageMilliCores)/float64(cpuLimit)*100)
+	}
+	if cpuRequest := sumCPURequests(item); cpuRequest != 0 {
+		p.SetField("cpu_request_millicores", cpuRequest)
+		p.SetField("cpu_usage_base_request", float64(podMet.cpuUsageMilliCores)/float64(cpuRequest)*100)
 	}
 
 	if node.memCapacity != 0 {
-		p.SetField("mem_used_percent", float64(podMet.memoryUsageBytes)/float64(node.memCapacity)*100)
+		p.SetField("mem_used_percent_base_100", float64(podMet.memoryUsageBytes)/float64(node.memCapacity)*100)
+	}
+	if memLimit := sumMemoryLimits(item); memLimit != 0 {
+		p.SetField("mem_limit", memLimit)
+		p.SetField("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
+	}
+	if memRequest := sumMemoryRequests(item); memRequest != 0 {
+		p.SetField("mem_request", memRequest)
+		p.SetField("mem_used_percent_base_request", float64(podMet.memoryUsageBytes)/float64(memRequest)*100)
 	}
 
 	// maintain compatibility
@@ -379,23 +386,30 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"ready":                             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
 			"restarts":                          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"cpu_usage":                         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
-			"cpu_usage_base100":                 &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
-			"cpu_usage_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Total CPU usage (sum of all cores) averaged over the sample window."},
-			"cpu_limit_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Max limits for CPU resources."},
-			"memory_usage_bytes":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
-			"memory_capacity":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
-			"memory_used_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
-			"mem_usage":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod."},
-			"mem_limit":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory limit of all containers in this Pod."},
-			"mem_capacity":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine."},
-			"mem_used_percent":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the capacity of host machine."},
-			"mem_used_percent_base_limit":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the limit."},
+			"cpu_usage":                         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The total CPU usage across all containers in this Pod."},
+			"cpu_usage_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU usage (in millicores) averaged over the sample window for all containers."},
+			"cpu_usage_base100":                 &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%."},
+			"cpu_usage_base_limit":              &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%, based on the CPU limit."},
+			"cpu_usage_base_request":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%, based on the CPU request."},
+			"cpu_number":                        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of CPUs on the node where the Pod is running."},
+			"cpu_limit_millicores":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU limit (in millicores) across all containers in this Pod. Note: This value is the sum of all container limit values, as Pods do not have a direct limit value."},
+			"cpu_request_millicores":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU request (in millicores) across all containers in this Pod.  Note: This value is the sum of all container request values, as Pods do not have a direct request value."},
+			"mem_usage":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory usage of all containers in this Pod."},
+			"mem_rss":                           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total RSS memory usage of all containers in this Pod, which is not supported by metrics-server."},
+			"mem_used_percent":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the host machine’s total memory capacity."},
+			"mem_used_percent_base_limit":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the memory limit."},
+			"mem_used_percent_base_request":     &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the memory request."},
+			"mem_capacity":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory capacity of the host machine."},
+			"mem_limit":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory limit across all containers in this Pod.  Note: This value is the sum of all container limit values, as Pods do not have a direct limit value."},
+			"mem_request":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory request across all containers in this Pod.  Note: This value is the sum of all container request values, as Pods do not have a direct request value."},
 			"network_bytes_rcvd":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Cumulative count of bytes received."},
 			"network_bytes_sent":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Cumulative count of bytes transmitted."},
 			"ephemeral_storage_used_bytes":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The bytes used for a specific task on the filesystem."},
 			"ephemeral_storage_available_bytes": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The storage space available (bytes) for the filesystem."},
 			"ephemeral_storage_capacity_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total capacity (bytes) of the filesystems underlying storage."},
+			"memory_usage_bytes":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
+			"memory_capacity":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
+			"memory_used_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
 		},
 	}
 }
@@ -423,23 +437,30 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"age":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"restarts":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
-			"ready":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
-			"available":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
-			"cpu_usage":                   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The sum of the cpu usage of all containers in this Pod."},
-			"cpu_usage_base100":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized cpu usage, with a maximum of 100%. (Experimental)"},
-			"cpu_usage_millicores":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Total CPU usage (sum of all cores) averaged over the sample window."},
-			"cpu_limit_millicores":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Max limits for CPU resources."},
-			"memory_usage_bytes":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
-			"memory_capacity":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
-			"memory_used_percent":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
-			"mem_usage":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod."},
-			"mem_limit":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory limit of all containers in this Pod."},
-			"mem_capacity":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine."},
-			"mem_used_percent":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the capacity of host machine."},
-			"mem_used_percent_base_limit": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory is calculated based on the limit."},
-			"message":                     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"restarts":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
+			"ready":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Describes whether the pod is ready to serve requests."},
+			"available":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of containers"},
+			"cpu_usage":                     &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The total CPU usage across all containers in this Pod."},
+			"cpu_usage_millicores":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU usage (in millicores) averaged over the sample window for all containers."},
+			"cpu_usage_base100":             &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%."},
+			"cpu_usage_base_limit":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%, based on the CPU limit."},
+			"cpu_usage_base_request":        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The normalized CPU usage, with a maximum of 100%, based on the CPU request."},
+			"cpu_number":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The total number of CPUs on the node where the Pod is running."},
+			"cpu_limit_millicores":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU limit (in millicores) across all containers in this Pod. Note: This value is the sum of all container limit values, as Pods do not have a direct limit value."},
+			"cpu_request_millicores":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Millicores, Desc: "The total CPU request (in millicores) across all containers in this Pod.  Note: This value is the sum of all container request values, as Pods do not have a direct request value."},
+			"mem_usage":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory usage of all containers in this Pod."},
+			"mem_rss":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total RSS memory usage of all containers in this Pod, which is not supported by metrics-server."},
+			"mem_used_percent":              &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the host machine’s total memory capacity."},
+			"mem_used_percent_base_limit":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the memory limit."},
+			"mem_used_percent_base_request": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory usage based on the memory request."},
+			"mem_capacity":                  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory capacity of the host machine."},
+			"mem_limit":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory limit across all containers in this Pod.  Note: This value is the sum of all container limit values, as Pods do not have a direct limit value."},
+			"mem_request":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory request across all containers in this Pod.  Note: This value is the sum of all container request values, as Pods do not have a direct request value."},
+			"memory_usage_bytes":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
+			"memory_capacity":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
+			"memory_used_percent":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
+			"message":                       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
 }

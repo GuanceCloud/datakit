@@ -15,26 +15,40 @@ import (
 	v1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
-func getMemoryLimitFromResource(containers []apicorev1.Container) int64 {
-	var limit int64
-	for _, c := range containers {
-		qu := c.Resources.Limits["memory"]
-		memLimit, _ := qu.AsInt64()
-		limit += memLimit
+func sumCPULimits(pod *apicorev1.Pod) int64 {
+	var sum int64
+	for _, c := range pod.Spec.Containers {
+		limit := c.Resources.Limits["cpu"]
+		sum += limit.MilliValue()
 	}
-	return limit
+	return sum
 }
 
-func getMaxCPULimitFromResource(containers []apicorev1.Container) int64 {
-	var limit int64
-	for _, c := range containers {
-		qu := c.Resources.Limits["cpu"]
-		cpuLimit := qu.MilliValue()
-		if cpuLimit > limit {
-			limit = cpuLimit
-		}
+func sumMemoryLimits(pod *apicorev1.Pod) int64 {
+	var sum int64
+	for _, c := range pod.Spec.Containers {
+		limit := c.Resources.Limits["memory"]
+		sum += limit.Value()
 	}
-	return limit
+	return sum
+}
+
+func sumCPURequests(pod *apicorev1.Pod) int64 {
+	var sum int64
+	for _, c := range pod.Spec.Containers {
+		req := c.Resources.Requests["cpu"]
+		sum += req.MilliValue()
+	}
+	return sum
+}
+
+func sumMemoryRequests(pod *apicorev1.Pod) int64 {
+	var sum int64
+	for _, c := range pod.Spec.Containers {
+		req := c.Resources.Requests["memory"]
+		sum += req.Value()
+	}
+	return sum
 }
 
 type nodeCapacity struct {
@@ -62,9 +76,9 @@ func getCapacityFromNode(ctx context.Context, client k8sClient, nodeName string)
 }
 
 type podSrvMetric struct {
-	cpuUsage           float64
 	cpuUsageMilliCores int64
 	memoryUsageBytes   int64
+	memoryRSSBytes     int64
 
 	networkRcvdBytes               int64
 	networkSentBytes               int64
@@ -116,7 +130,6 @@ func parsePodMetrics(item *v1beta1.PodMetrics) (*podSrvMetric, error) {
 	podMetricsQueryCountVec.WithLabelValues("api-server").Inc()
 
 	return &podSrvMetric{
-		cpuUsage:           float64(cpuMilliCores) / 1e3 * 100.0,
 		cpuUsageMilliCores: cpuMilliCores,
 		memoryUsageBytes:   memUsage,
 	}, nil
@@ -171,18 +184,49 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 
 	for _, stats := range item.Pods {
 		if stats.PodRef.Name == name && stats.PodRef.Namespace == namespace {
-			if stats.CPU != nil && stats.CPU.UsageNanoCores != nil {
-				cpuUsageMilliCores := int64(*stats.CPU.UsageNanoCores) / 1e6
+			{
+				var usageNanoCores int64
+				if stats.CPU != nil && stats.CPU.UsageNanoCores != nil {
+					usageNanoCores = int64(*stats.CPU.UsageNanoCores)
+				} else {
+					for _, containerStats := range stats.Containers {
+						if containerStats.CPU != nil && containerStats.CPU.UsageNanoCores != nil {
+							usageNanoCores += int64(*containerStats.CPU.UsageNanoCores)
+						}
+					}
+				}
+				cpuUsageMilliCores := usageNanoCores / 1e6
 				// minimum 1 Milli
 				if cpuUsageMilliCores < 1 {
 					cpuUsageMilliCores = 1
 				}
 				metrics.cpuUsageMilliCores = cpuUsageMilliCores
-				metrics.cpuUsage = float64(cpuUsageMilliCores) / 1e3 * 100.0
 			}
 
-			if stats.Memory != nil && stats.Memory.WorkingSetBytes != nil {
-				metrics.memoryUsageBytes = int64(*stats.Memory.WorkingSetBytes)
+			{
+				var workingSetBytes int64
+				var rssBytes int64
+				if stats.Memory != nil {
+					if stats.Memory.WorkingSetBytes != nil {
+						workingSetBytes = int64(*stats.Memory.WorkingSetBytes)
+					}
+					if stats.Memory.RSSBytes != nil {
+						rssBytes = int64(*stats.Memory.RSSBytes)
+					}
+				} else {
+					for _, containerStats := range stats.Containers {
+						if containerStats.Memory != nil {
+							if containerStats.Memory.WorkingSetBytes != nil {
+								workingSetBytes += int64(*containerStats.Memory.WorkingSetBytes)
+							}
+							if containerStats.Memory.RSSBytes != nil {
+								rssBytes += int64(*containerStats.Memory.RSSBytes)
+							}
+						}
+					}
+				}
+				metrics.memoryUsageBytes = workingSetBytes
+				metrics.memoryRSSBytes = rssBytes
 			}
 
 			if stats.Network != nil {
@@ -206,6 +250,7 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 				}
 			}
 
+			klog.Infof("FLAG metrics: %v", metrics)
 			return metrics, nil
 		}
 	}

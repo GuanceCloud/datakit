@@ -45,9 +45,13 @@ type Input struct {
 	K8sBearerTokenString string `toml:"bearer_token_string"`
 	disableCollectK8sJob bool
 
-	ContainerMaxConcurrent                int               `toml:"container_max_concurrent"`
-	ContainerIncludeLog                   []string          `toml:"container_include_log"`
-	ContainerExcludeLog                   []string          `toml:"container_exclude_log"`
+	ContainerMaxConcurrent int      `toml:"container_max_concurrent"`
+	ContainerIncludeLog    []string `toml:"container_include_log"`
+	ContainerExcludeLog    []string `toml:"container_exclude_log"`
+
+	PodIncludeMetric []string `toml:"pod_include_metric"`
+	PodExcludeMetric []string `toml:"pod_exclude_metric"`
+
 	LoggingEnableMultline                 bool              `toml:"logging_enable_multiline"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
 	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`

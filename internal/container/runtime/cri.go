@@ -168,21 +168,17 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 		if duration == 0 {
 			return nil, fmt.Errorf("cpu stat is not updated during sample")
 		}
-		cpuPerc := float64(cpu-stats.GetCpu().GetUsageCoreNanoSeconds().GetValue()) / float64(duration) * 100
-		top.CPUUsage = cpuPerc
+		cpuUsagePercentage := float64(cpu-stats.GetCpu().GetUsageCoreNanoSeconds().GetValue()) / float64(duration)
+		top.CPUPercent = cpuUsagePercentage * 100
+		top.CPUUsageMillicores = int(cpuUsagePercentage * 1000)
 	}
-
-	// memory
-	top.MemoryWorkingSet = int64(stats.GetMemory().GetWorkingSetBytes().GetValue())
-	if available := stats.GetMemory().GetAvailableBytes().GetValue(); available != 0 {
-		top.MemoryLimit = top.MemoryWorkingSet + int64(available)
-	}
-
 	// cpu cores
 	if cores, err := getCPUCores(ct.procMountPoint); err == nil {
 		top.CPUCores = cores
 	}
 
+	// memory
+	top.MemoryWorkingSet = int64(stats.GetMemory().GetWorkingSetBytes().GetValue())
 	// memory capacity
 	if hostMemory, err := getHostMemory(ct.procMountPoint); err == nil {
 		top.MemoryCapacity = hostMemory

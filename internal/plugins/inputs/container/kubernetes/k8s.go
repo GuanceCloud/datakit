@@ -14,6 +14,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
@@ -41,6 +42,7 @@ type Config struct {
 	DisableCollectJob             bool
 	Feeder                        dkio.Feeder
 
+	PodFilterForMetric      filter.Filter
 	LabelAsTagsForMetric    LabelsOption
 	LabelAsTagsForNonMetric LabelsOption
 }
