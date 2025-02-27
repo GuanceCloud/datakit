@@ -64,18 +64,14 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 ### 开启 GitLab CI 可视化 {#ci-visible}
 
-确保当前 Datakit 版本（1.2.13 及以后）支持 GitLab CI 可视化功能。
+确保已有 DataFlux Func 平台
 
-通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。开启步骤如下：
+通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。需要通过 DataFlux Func 进行数据上报，开启步骤如下：
 
-- 在 GitLab 转到 `Settings` -> `Webhooks` 中，将 URL 配置为 `http://Datakit_IP:PORT/v1/gitlab`，Trigger 配置 Job events 和 Pipeline events 两项，点击 Add webhook 确认添加；
-- 可点击 Test 按钮测试 Webhook 配置是否正确，Datakit 接收到 Webhook 后应返回状态码 200。正确配置后，Datakit 可以顺利采集到 GitLab 的 CI 信息。
+1. 在 DataFlux Func 上安装 GitLab CI 集成（脚本 ID：`guance_gitlab_ci`），安装流程参考[GitLab CI 集成配置](https://func.guance.com/doc/script-market-guance-gitlab-ci/){:target="_blank"};
+2. 在 GitLab 转到 `Settings` -> `Webhooks` 中，将 URL 配置为第一步的 API 地址，Trigger 配置 Job events 和 Pipeline events 两项，点击 Add webhook 确认添加；
 
-Datakit 接收到 Webhook Event 后，是将数据作为 logging 打到数据中心的。
-
-注意：如果将 GitLab 数据打到本地网络的 Datakit，需要对 GitLab 进行额外的配置，见 [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html){:target="_blank"} 。
-
-另外：GitLab CI 功能不参与采集器选举，用户只需将 GitLab Webhook 的 URL 配置为其中一个 Datakit 的 URL 即可；若只需要 GitLab CI 可视化功能而不需要 GitLab 指标采集，可通过配置 `enable_collect = false` 关闭指标采集功能。
+触发 GitLab CI 流程，执行结束后可以登陆观测云查看 CI 执行情况。
 
 ## 指标 {#metric}
 
