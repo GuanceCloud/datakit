@@ -813,7 +813,7 @@ POST /v1/dialtesting/debug
 Content-Type: application/json
 
 {
-    "task_type" : "http",//"http","tcp","icmp","websocket"
+    "task_type" : "http",//"http","tcp","icmp","websocket","multi"
     "task" : {
         "name"               : "",
         "method"             : "",
@@ -827,6 +827,12 @@ Content-Type: application/json
         "tags"               : map[string]string ,
         "labels"             : []string,
         "advance_options"    : *HTTPAdvanceOption,
+    },
+    "variables": {
+      "variable_uuid": {
+       "name": "token",
+       "value": "token" 
+      }
     }
 }
 ```
@@ -857,7 +863,13 @@ HTTP/1.1 200 OK
                   }
               ]
          }
-        ]
+        ],
+        "fields": {
+          "config_vars: "",
+          "url": "",
+          "task": "",
+          "post_script_variables": "{\"a\":1}"
+        }
     }
 }
 ```

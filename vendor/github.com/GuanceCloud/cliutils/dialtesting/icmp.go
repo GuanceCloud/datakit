@@ -13,8 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/go-ping/ping"
+)
+
+var (
+	_ TaskChild = (*ICMPTask)(nil)
+	_ ITask = (*ICMPTask)(nil)
 )
 
 const (
@@ -45,27 +49,14 @@ type ICMPSuccess struct {
 }
 
 type ICMPTask struct {
-	Host              string            `json:"host"`
-	PacketCount       int               `json:"packet_count"`
-	Timeout           string            `json:"timeout"`
-	EnableTraceroute  bool              `json:"enable_traceroute"`
-	TracerouteConfig  *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen       []*ICMPSuccess    `json:"success_when"`
-	SuccessWhenLogic  string            `json:"success_when_logic"`
-	ExternalID        string            `json:"external_id"`
-	Name              string            `json:"name"`
-	AK                string            `json:"access_key"`
-	PostURL           string            `json:"post_url"`
-	CurStatus         string            `json:"status"`
-	Frequency         string            `json:"frequency"`
-	Region            string            `json:"region"`
-	OwnerExternalID   string            `json:"owner_external_id"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	Labels            []string          `json:"labels,omitempty"`
-	UpdateTime        int64             `json:"update_time,omitempty"`
-	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
-	TagsInfo          string            `json:"tags_info,omitempty"` // deprecated
-	DFLabel           string            `json:"df_label,omitempty"`
+	*Task
+	Host             string            `json:"host"`
+	PacketCount      int               `json:"packet_count"`
+	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
+	SuccessWhen      []*ICMPSuccess    `json:"success_when"`
+	SuccessWhenLogic string            `json:"success_when_logic"`
 
 	packetLossPercent float64
 	avgRoundTripTime  float64 // us
@@ -77,19 +68,10 @@ type ICMPTask struct {
 	sentPackets       int
 	recvPackets       int
 	timeout           time.Duration
-	ticker            *time.Ticker
 	traceroute        []*Route
 }
 
-func (t *ICMPTask) InitDebug() error {
-	return t.init(true)
-}
-
-func (t *ICMPTask) Init() error {
-	return t.init(false)
-}
-
-func (t *ICMPTask) init(debug bool) error {
+func (t *ICMPTask) init() error {
 	if len(t.Timeout) == 0 {
 		t.timeout = PingTimeout
 	} else {
@@ -98,21 +80,6 @@ func (t *ICMPTask) init(debug bool) error {
 		} else {
 			t.timeout = timeout
 		}
-	}
-
-	if !debug {
-		du, err := time.ParseDuration(t.Frequency)
-		if err != nil {
-			return err
-		}
-		if t.ticker != nil {
-			t.ticker.Stop()
-		}
-		t.ticker = time.NewTicker(du)
-	}
-
-	if strings.EqualFold(t.CurStatus, StatusStop) {
-		return nil
 	}
 
 	if len(t.SuccessWhen) == 0 {
@@ -145,19 +112,15 @@ func (t *ICMPTask) init(debug bool) error {
 	return nil
 }
 
-func (t *ICMPTask) Check() error {
-	if t.ExternalID == "" {
-		return fmt.Errorf("external ID missing")
-	}
-
+func (t *ICMPTask) check() error {
 	if len(t.Host) == 0 {
 		return fmt.Errorf("host should not be empty")
 	}
 
-	return t.Init()
+	return nil
 }
 
-func (t *ICMPTask) CheckResult() (reasons []string, succFlag bool) {
+func (t *ICMPTask) checkResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		for _, v := range chk.ResponseTime {
@@ -227,7 +190,7 @@ func (t *ICMPTask) CheckResult() (reasons []string, succFlag bool) {
 	return reasons, succFlag
 }
 
-func (t *ICMPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *ICMPTask) getResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":      t.Name,
 		"dest_host": t.Host,
@@ -271,7 +234,7 @@ func (t *ICMPTask) GetResults() (tags map[string]string, fields map[string]inter
 
 	message := map[string]interface{}{}
 
-	reasons, succFlag := t.CheckResult()
+	reasons, succFlag := t.checkResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
@@ -314,11 +277,11 @@ func (t *ICMPTask) GetResults() (tags map[string]string, fields map[string]inter
 	return tags, fields
 }
 
-func (t *ICMPTask) MetricName() string {
+func (t *ICMPTask) metricName() string {
 	return `icmp_dial_testing`
 }
 
-func (t *ICMPTask) Clear() {
+func (t *ICMPTask) clear() {
 	if t.timeout == 0 {
 		t.timeout = PingTimeout
 	}
@@ -336,13 +299,11 @@ func (t *ICMPTask) Clear() {
 	t.traceroute = nil
 }
 
-func (t *ICMPTask) Run() error {
-	t.Clear()
-
+func (t *ICMPTask) run() error {
 	pinger, err := ping.NewPinger(t.Host)
 	if err != nil {
 		t.reqError = err.Error()
-		return err
+		return nil
 	}
 
 	if t.PacketCount > 0 {
@@ -376,12 +337,12 @@ func (t *ICMPTask) Run() error {
 		if hostIP == nil {
 			if ips, err := net.LookupIP(t.Host); err != nil {
 				t.reqError = err.Error()
-				return err
+				return nil
 			} else {
 				if len(ips) == 0 {
 					err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
 					t.reqError = err.Error()
-					return err
+					return nil
 				} else {
 					hostIP = ips[0]
 				}
@@ -405,111 +366,38 @@ func (t *ICMPTask) round(num float64, n int) float64 {
 	return roundNum
 }
 
-func (t *ICMPTask) Stop() error {
-	return nil
-}
+func (t *ICMPTask) stop() {}
 
-func (t *ICMPTask) UpdateTimeUs() int64 {
-	return t.UpdateTime
-}
-
-func (t *ICMPTask) ID() string {
-	if t.ExternalID == `` {
-		return cliutils.XID("dtst_")
-	}
-	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
-}
-
-func (t *ICMPTask) GetOwnerExternalID() string {
-	return t.OwnerExternalID
-}
-
-func (t *ICMPTask) SetOwnerExternalID(exid string) {
-	t.OwnerExternalID = exid
-}
-
-func (t *ICMPTask) SetRegionID(regionID string) {
-	t.Region = regionID
-}
-
-func (t *ICMPTask) SetAk(ak string) {
-	t.AK = ak
-}
-
-func (t *ICMPTask) SetStatus(status string) {
-	t.CurStatus = status
-}
-
-func (t *ICMPTask) SetUpdateTime(ts int64) {
-	t.UpdateTime = ts
-}
-
-func (t *ICMPTask) Status() string {
-	return t.CurStatus
-}
-
-func (t *ICMPTask) Ticker() *time.Ticker {
-	return t.ticker
-}
-
-func (t *ICMPTask) Class() string {
+func (t *ICMPTask) class() string {
 	return ClassICMP
 }
 
-func (t *ICMPTask) GetFrequency() string {
-	return t.Frequency
+func (t *ICMPTask) getHostName() ([]string, error) {
+	return []string{t.Host}, nil
 }
 
-func (t *ICMPTask) GetLineData() string {
-	return ""
+func (t *ICMPTask) beforeFirstRender() {
 }
 
-func (t *ICMPTask) RegionName() string {
-	return t.Region
+func (t *ICMPTask) getVariableValue(variable Variable) (string, error) {
+	return "", fmt.Errorf("not support")
 }
 
-func (t *ICMPTask) PostURLStr() string {
-	return t.PostURL
-}
+func (t *ICMPTask) getRawTask(taskString string) (string, error) {
+	task := ICMPTask{}
 
-func (t *ICMPTask) AccessKey() string {
-	return t.AK
-}
-
-func (t *ICMPTask) CheckSum(data []byte) (rt uint16) {
-	var (
-		sum    uint32
-		length int = len(data)
-		index  int
-	)
-	for length > 1 {
-		sum += uint32(data[index])<<8 + uint32(data[index+1])
-		index += 2
-		length -= 2
-	}
-	if length > 0 {
-		sum += uint32(data[index]) << 8
+	if err := json.Unmarshal([]byte(taskString), &task); err != nil {
+		return "", fmt.Errorf("unmarshal icmp task failed: %w", err)
 	}
 
-	rt = uint16(sum) + uint16(sum>>16)
+	task.Task = nil
 
-	return ^rt
+	bytes, _ := json.Marshal(task)
+	return string(bytes), nil
 }
 
-func (t *ICMPTask) GetHostName() (string, error) {
-	return t.Host, nil
-}
-
-func (t *ICMPTask) GetWorkspaceLanguage() string {
-	if t.WorkspaceLanguage == "en" {
-		return "en"
+func (t *ICMPTask) initTask() {
+	if t.Task == nil {
+		t.Task = &Task{}
 	}
-	return "zh"
-}
-
-func (t *ICMPTask) GetDFLabel() string {
-	if t.DFLabel != "" {
-		return t.DFLabel
-	}
-	return t.TagsInfo
 }

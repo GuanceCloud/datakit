@@ -25,16 +25,20 @@ var (
 	debugFields map[string]interface{}
 )
 
-func (*debugDialtestingMock) debugInit(task dt.Task) error {
+func (*debugDialtestingMock) debugInit(task dt.ITask, vars map[string]dt.Variable) error {
 	return errInit
 }
 
-func (*debugDialtestingMock) debugRun(task dt.Task) error {
+func (*debugDialtestingMock) debugRun(task dt.ITask) error {
 	return errRun
 }
 
-func (*debugDialtestingMock) getResults(task dt.Task) (tags map[string]string, fields map[string]interface{}) {
+func (*debugDialtestingMock) getResults(task dt.ITask) (tags map[string]string, fields map[string]interface{}) {
 	return map[string]string{}, debugFields
+}
+
+func (*debugDialtestingMock) getVars(task dt.ITask) dt.Vars {
+	return task.GetPostScriptVars()
 }
 
 func init() { // nolint:gochecknoinits
@@ -85,7 +89,9 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			t: &dialtestingDebugRequest{
 				TaskType: "HTTP",
 				Task: &dt.HTTPTask{
-					CurStatus: "stop",
+					Task: &dt.Task{
+						CurStatus: "stop",
+					},
 				},
 			},
 			errExpect: uhttp.Error(ErrInvalidRequest, "the task status is stop"),

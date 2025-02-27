@@ -18,10 +18,12 @@ func (ipt *Input) collectHTTP(ptTS int64) error {
 	for _, http := range ipt.http {
 		statusCode := fmt.Sprintf("%d", http.ExpectStatus)
 		for _, url := range http.HTTPURLs {
-			task := dt.HTTPTask{
-				Method:     http.Method,
-				URL:        url,
-				ExternalID: "-",
+			ct := &dt.HTTPTask{
+				Task: &dt.Task{
+					ExternalID: "-",
+				},
+				Method: http.Method,
+				URL:    url,
 				SuccessWhen: []*dt.HTTPSuccess{
 					{
 						StatusCode: []*dt.SuccessOption{
@@ -41,7 +43,13 @@ func (ipt *Input) collectHTTP(ptTS int64) error {
 					RequestTimeout: http.Timeout,
 				},
 			}
-			if err := task.InitDebug(); err != nil {
+			task, err := dt.NewTask("", ct)
+			if err != nil {
+				l.Warnf("newTask failed: %s", err.Error())
+				continue
+			}
+
+			if err := task.RenderTemplateAndInit(nil); err != nil {
 				l.Warnf("init http task failed: %s", err.Error())
 				continue
 			}

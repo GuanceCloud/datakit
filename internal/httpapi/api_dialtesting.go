@@ -21,8 +21,9 @@ import (
 )
 
 type dialtestingDebugRequest struct {
-	Task     interface{} `json:"task"`
-	TaskType string      `json:"task_type"`
+	Task      interface{}            `json:"task"`
+	TaskType  string                 `json:"task_type"`
+	Variables map[string]dt.Variable `json:"variables"` // variable_id => variable
 }
 
 var (
@@ -43,7 +44,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	var (
 		tid        = req.Header.Get(uhttp.XTraceID)
 		start      = time.Now()
-		t          dt.Task
+		ct         dt.TaskChild
 		traceroute string
 		status     = "success"
 	)
@@ -57,7 +58,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	taskType := strings.ToUpper(reqDebug.TaskType)
 	switch taskType {
 	case dt.ClassHTTP:
-		t = &dt.HTTPTask{
+		ct = &dt.HTTPTask{
 			Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)},
 			AdvanceOptions: &dt.HTTPAdvanceOption{
 				RequestOptions: &dt.HTTPOptRequest{
@@ -66,11 +67,13 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 			},
 		}
 	case dt.ClassTCP:
-		t = &dt.TCPTask{}
+		ct = &dt.TCPTask{}
 	case dt.ClassWebsocket:
-		t = &dt.WebsocketTask{}
+		ct = &dt.WebsocketTask{}
 	case dt.ClassICMP:
-		t = &dt.ICMPTask{}
+		ct = &dt.ICMPTask{}
+	case dt.ClassMulti:
+		ct = &dt.MultiTask{}
 	default:
 		l.Errorf("unknown task type: %s", taskType)
 		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))
@@ -82,42 +85,49 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		return nil, err
 	}
 
-	if err := json.Unmarshal(bys, &t); err != nil {
-		l.Errorf(`json.Unmarshal: %s`, err.Error())
-		return nil, err
+	t, err := dt.NewTask(string(bys), ct)
+	if err != nil {
+		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
+
 	if strings.ToLower(t.Status()) == dt.StatusStop {
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")
 	}
 
 	// check internal network
-	hostName, err := t.GetHostName()
+	hostNames, err := t.GetHostName()
 	if err != nil {
 		l.Warnf("get host name error: %s", err.Error())
-	} else if isAllowed, err := IsAllowedHost(hostName); err != nil {
+	} else if isAllowed, err := IsAllowedHost(hostNames); err != nil {
 		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", err.Error())
 	} else if !isAllowed {
-		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", hostName)
+		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", strings.Join(hostNames, ","))
 	}
 
 	// disable redirect
 	if taskType == dt.ClassHTTP {
-		httpTask := t.(*dt.HTTPTask)
+		httpTask := ct.(*dt.HTTPTask)
 		if httpTask.AdvanceOptions != nil && httpTask.AdvanceOptions.RequestOptions != nil {
 			httpTask.AdvanceOptions.RequestOptions.FollowRedirect = false
 		}
 	}
 
 	// -- dialtesting debug procedure start --
-	if err := defDialtestingMock.debugInit(t); err != nil {
+	if err := defDialtestingMock.debugInit(t, reqDebug.Variables); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 	if err := defDialtestingMock.debugRun(t); err != nil {
-		l.Warnf("[%s] %s", tid, err.Error())
+		l.Errorf("[%s] %s", tid, err.Error())
+		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
 	tags, fields := defDialtestingMock.getResults(t)
+
+	if vars := defDialtestingMock.getVars(t); vars != nil {
+		bytes, _ := json.Marshal(vars)
+		fields["post_script_variables"] = string(bytes)
+	}
 
 	failReason, ok := fields["fail_reason"].(string)
 	if ok {
@@ -191,17 +201,21 @@ func IsInternalHost(host string, cidrs []string) (bool, error) {
 }
 
 // IsAllowedHost check whether the host is allowed to be tested.
-func IsAllowedHost(host string) (bool, error) {
+func IsAllowedHost(hosts []string) (bool, error) {
 	if !DialtestingDisableInternalNetworkTask {
 		return true, nil
 	}
 
-	isInternal, err := IsInternalHost(host, DialtestingDisabledInternalNetworkCidrList)
-	if err != nil {
-		return false, err
-	} else {
-		return !isInternal, nil
+	for _, host := range hosts {
+		isInternal, err := IsInternalHost(host, DialtestingDisabledInternalNetworkCidrList)
+		if err != nil {
+			return false, err
+		} else {
+			return !isInternal, nil
+		}
 	}
+
+	return true, nil
 }
 
 func init() { //nolint:gochecknoinits

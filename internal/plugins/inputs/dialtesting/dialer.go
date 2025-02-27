@@ -26,7 +26,7 @@ import (
 const LabelDF = "df_label"
 
 type dialer struct {
-	task                 dt.Task
+	task                 dt.ITask
 	ipt                  *Input
 	ticker               *time.Ticker
 	initTime             time.Time
@@ -41,13 +41,14 @@ type dialer struct {
 	measurementInfo      *inputs.MeasurementInfo
 	seqNumber            int64 // the number of test has been executed
 	failCnt              int
+	variablePos          int64
 
-	updateCh chan dt.Task
+	updateCh chan dt.ITask
 	done     <-chan interface{} // input exit signal
 	stopCh   chan interface{}   // dialer stop signal
 }
 
-func (d *dialer) updateTask(t dt.Task) error {
+func (d *dialer) updateTask(t dt.ITask) error {
 	select {
 	case <-d.updateCh: // if closed?
 		l.Warnf("task %s closed", d.task.ID())
@@ -59,9 +60,7 @@ func (d *dialer) updateTask(t dt.Task) error {
 }
 
 func (d *dialer) stop() {
-	if err := d.task.Stop(); err != nil {
-		l.Warnf("stop task %s failed: %s", d.task.ID(), err.Error())
-	}
+	d.task.Stop()
 }
 
 // exit stop the dialer.
@@ -120,7 +119,7 @@ func populateDFLabelTags(label string, tags map[string]string) {
 	}
 }
 
-func newDialer(t dt.Task, ipt *Input) *dialer {
+func newDialer(t dt.ITask, ipt *Input) *dialer {
 	var info *inputs.MeasurementInfo
 	switch t.Class() {
 	case dt.ClassHTTP:
@@ -143,7 +142,7 @@ func newDialer(t dt.Task, ipt *Input) *dialer {
 
 	return &dialer{
 		task:                 t,
-		updateCh:             make(chan dt.Task),
+		updateCh:             make(chan dt.ITask),
 		initTime:             time.Now(),
 		tags:                 tags,
 		dfTags:               dfTags,
@@ -163,9 +162,9 @@ func (d *dialer) getSendFailCount() int {
 }
 
 func (d *dialer) run() error {
-	if err := d.task.Init(); err != nil {
-		l.Errorf(`task init error: %s`, err.Error())
-		return err
+	_, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
+	if err := d.task.RenderTemplateAndInit(vars); err != nil {
+		return fmt.Errorf("task render template error: %w", err)
 	}
 
 	taskInterval, err := time.ParseDuration(d.task.GetFrequency())
@@ -173,7 +172,9 @@ func (d *dialer) run() error {
 		return fmt.Errorf("invalid task frequency(%s): %w", d.task.GetFrequency(), err)
 	}
 
-	d.ticker = d.task.Ticker()
+	if err = d.resetTicker(d.task.GetFrequency()); err != nil {
+		return fmt.Errorf("get ticker error: %w", err)
+	}
 
 	taskGauge.WithLabelValues(d.regionName, d.class).Inc()
 
@@ -251,7 +252,38 @@ func (d *dialer) run() error {
 				}
 			}
 			d.dialingTime = now
-			_ = d.task.Run() //nolint:errcheck
+
+			// run task
+			// variable task and variable pos changed
+			pos, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
+			if pos > d.variablePos {
+				if err := d.task.RenderTemplateAndInit(vars); err != nil {
+					l.Warnf("task reset and run error: %s", err.Error())
+				} else {
+					d.variablePos = pos
+				}
+			}
+
+			if err := d.task.Run(); err != nil {
+				l.Warnf("task run error: %s", err.Error())
+				goto wait
+			}
+
+			// update global variables
+			if d.ipt.isServerMode {
+				vars := d.ipt.variables.getVariablesByTask(d.task)
+
+				for _, v := range vars {
+					if value, err := d.task.GetVariableValue(v); err != nil {
+						l.Warnf("get variable value failed: %s", err.Error())
+						d.ipt.variables.updateVariableValue(v, value, 1)
+					} else {
+						l.Debugf("set variable %s value: %s", v.Name, value)
+						d.ipt.variables.updateVariableValue(v, value, 0)
+					}
+				}
+			}
+
 			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
 			// dialtesting start
 			err := d.feedIO()
@@ -280,7 +312,10 @@ func (d *dialer) run() error {
 			sleepTimer.Stop()
 			goto wait
 		case t := <-d.updateCh:
-			d.doUpdateTask(t)
+			if err := d.doUpdateTask(t); err != nil {
+				d.stop()
+				l.Errorf("update task %s failed: %s, stopped", d.task.ID(), err.Error())
+			}
 
 			if strings.ToLower(d.task.Status()) == dt.StatusStop {
 				d.stop()
@@ -307,17 +342,19 @@ func (d *dialer) run() error {
 
 // checkInternalNetwork check whether the host is allowed to be tested.
 func (d *dialer) checkInternalNetwork() error {
-	hostName, err := d.task.GetHostName()
-	if err != nil {
-		l.Warnf("get host name error: %s", err.Error())
-		return fmt.Errorf("get host name error: %w", err)
-	} else if d.ipt.DisableInternalNetworkTask {
-		if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
-			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_valid").Inc()
-			return fmt.Errorf("dest host is not valid: %w", err)
-		} else if isInternal {
-			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
-			return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+	hostNames, err := d.task.GetHostName()
+	for _, hostName := range hostNames {
+		if err != nil {
+			l.Warnf("get host name error: %s", err.Error())
+			return fmt.Errorf("get host name error: %w", err)
+		} else if d.ipt.DisableInternalNetworkTask {
+			if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
+				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_valid").Inc()
+				return fmt.Errorf("dest host is not valid: %w", err)
+			} else if isInternal {
+				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
+				return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
+			}
 		}
 	}
 
@@ -334,7 +371,7 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 
 	switch d.task.Class() {
-	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti:
 		d.category = urlStr
 		d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
@@ -346,15 +383,33 @@ func (d *dialer) feedIO() error {
 	return nil
 }
 
-func (d *dialer) doUpdateTask(t dt.Task) {
-	if err := t.Init(); err != nil {
-		l.Warn(err)
-		return
+func (d *dialer) doUpdateTask(t dt.ITask) error {
+	_, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
+	if err := t.RenderTemplateAndInit(vars); err != nil {
+		return fmt.Errorf("render template and init error: %w", err)
 	}
 
 	if d.task.GetFrequency() != t.GetFrequency() {
-		d.ticker = t.Ticker() // update ticker
+		if err := d.resetTicker(t.GetFrequency()); err != nil {
+			return fmt.Errorf("reset ticker error: %w", err)
+		}
 	}
 
 	d.task = t
+	return nil
+}
+
+func (d *dialer) resetTicker(frequency string) error {
+	du, err := time.ParseDuration(frequency)
+	if err != nil {
+		return err
+	}
+
+	if d.ticker != nil {
+		d.ticker.Stop()
+	}
+
+	d.ticker = time.NewTicker(du)
+
+	return nil
 }

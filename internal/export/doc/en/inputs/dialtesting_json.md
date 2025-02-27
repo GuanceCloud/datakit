@@ -467,7 +467,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 | Field      | Type              | Whether Required | Description                                 |
 | :---      | ---               | ---      | ---                                  |
-| `url`     | string            | N        | 代理的 The URL of the proxy, such as `http://1.2.3.4:4321` |
+| `url`     | string            | N        | The URL of the proxy, such as `http://1.2.3.4:4321` |
 | `headers` | map[string]string | N        | Specify a set of headers on an HTTP request           |
 
 `proxy` example:
@@ -484,6 +484,53 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
   },
 }
 ```
+
+#### `post_script` Definition {#post_script}
+
+`post_script` is a [Pipeline](../pipeline/use-pipeline/index.md) script used to evaluate the result of the test and extract variables from it.
+
+##### inject variables {#inject-variables}
+
+To facilitate the processing of HTTP responses by `post_script` and to enable the determination of test results and the extraction of variables, certain predefined variables can be utilized when composing the script. These are detailed as follows:
+
+- `response`: the response object of the HTTP request
+
+| Field              | Type   | Description                                    |
+| :---              | ---    | ---                                     |
+| `status_code`     | number | status code                           |
+| `header`          | json | response header `{"header1": ["value1", "value2"]}`|
+| `body`            | string | response body                           |
+
+- `result`： the test result
+
+| Field              | Type   | Description                                    |
+| :---              | ---    | ---                                     |
+| `is_failed`     | bool | failed or not                        |
+| `error_message`     | string | error message                           |
+
+- `vars`: the variable object to store the extracted variables
+
+A JSON object where the key represents the variable name and the value represents the variable value. For example: `vars["token"] = "123"`
+
+##### Example {#example}
+
+
+```javascript
+
+body = load_json(response["body"])
+
+if body["code"] == "200" {
+  result["is_failed"] = false
+  vars["token"] = body["token"]
+} else {
+  result["is_failed"] = true
+  result["error_message"] = body["message"]
+}
+
+```
+
+In the above example, the response content is initially parsed into a JSON object using `load_json`. Subsequently, it checks whether the response status code is 200. If it is, the token from the response content is extracted and assigned to the variable `vars`. If the status code is not 200, the `is_failed` attribute of `result` is set to true, and the `error_message` is assigned the message from the response content.
+
 
 #### TCP Dial Test {#tcp}
 
