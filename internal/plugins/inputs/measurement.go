@@ -79,6 +79,7 @@ const (
 	RPMPercent     = "RPM%"
 	RotationRete   = "RPM"
 	PartPerMillion = "PPM"
+	Millicores     = "m"
 )
 
 type Measurement interface {

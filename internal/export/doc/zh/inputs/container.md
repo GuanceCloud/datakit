@@ -234,6 +234,56 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 ## FAQ {#faq}
 
+### 根据 Pod Namespace 过滤指标采集 {#config-metric-on-pod-namespace}
+
+在启用 Kubernetes Pod 指标采集（`enable_pod_metric = true`）后，Datakit 将采集集群中所有 Pod 的指标数据。由于这可能会生成大量数据，因此可以通过 Pod 的 `namespace` 字段来过滤指标采集，从而仅采集特定命名空间中的 Pod 指标。
+
+通过配置 `pod_include_metric` 和 `pod_exclude_metric`，可以控制哪些命名空间的 Pod 会被包含或排除在指标采集之外。
+
+<!-- markdownlint-disable md046 -->
+=== "主机安装"
+
+    ``` toml
+      ## 当 Pod 的 namespace 能够匹配 `datakit` 时，采集该 Pod 的指标
+      pod_include_metric = ["namespace:datakit"]
+    
+      ## 忽略所有 namespace 是 `kodo` 的 Pod
+      pod_exclude_metric = ["namespace:kodo"]
+    ```
+    
+    - `include` 和 `exclude` 配置项必须以字段名开头，格式为类似于 [glob 通配符](https://en.wikipedia.org/wiki/glob_(programming)) 的表达式：`"<字段名>:<glob 规则>"`。
+    - 目前，`namespace` 字段是唯一支持的过滤字段。例如：`namespace:datakit-ns`。
+    
+    如果同时设置了 `include` 和 `exclude` 配置，Pod 必须满足以下条件：
+    
+    - 必须满足 `include` 的规则
+    - 且不满足 `exclude` 的规则
+    
+    例如，以下配置会导致所有 Pod 都被过滤掉：
+    
+    ```toml
+      ## 只采集 `namespace:datakit` 的 Pod，排除所有命名空间
+      pod_include_metric = ["namespace:datakit"]
+      pod_exclude_metric = ["namespace:*"]
+    ```
+
+=== "Kubernetes"
+
+    对于 Kubernetes 环境，可以通过以下环境变量来进行配置：
+    
+    - `ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC`
+    - `ENV_INPUT_CONTAINER_POD_EXCLUDE_METRIC`
+    
+    例如，如果希望只采集 `namespace` 为 `kube-system` 的 Pod 指标，可以设置 `ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC` 环境变量，如下所示：
+    
+    ```yaml
+      - env:
+          - name: ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC
+            value: namespace:kube-system  # 指定需要采集的命名空间
+    ```
+    
+    通过这种方式，可以灵活地控制 Datakit 采集的 Pod 指标范围，避免采集不需要的数据，从而优化系统性能和资源利用率。
+
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
 <!-- markdownlint-enable -->

@@ -18,6 +18,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -290,6 +291,11 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
+	podFilterForMetric, err := filter.NewFilter(ipt.PodIncludeMetric, ipt.PodExcludeMetric)
+	if err != nil {
+		return nil, fmt.Errorf("new k8s collector failed, err: %w", err)
+	}
+
 	l.Infof("Use labels %s for k8s non-metric", optForNonMetric.keys)
 	l.Infof("Use labels %s for k8s metric", optForMetric.keys)
 
@@ -303,6 +309,7 @@ func newCollectorsFromKubernetes(ipt *Input) (Collector, error) {
 		EnableExtractK8sLabelAsTagsV1: ipt.DeprecatedEnableExtractK8sLabelAsTags,
 		EnableK8sSelfMetricByProm:     ipt.EnableK8sSelfMetricByProm,
 		DisableCollectJob:             ipt.disableCollectK8sJob,
+		PodFilterForMetric:            podFilterForMetric,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{
 			All:  optForMetric.all,
 			Keys: optForMetric.keys,

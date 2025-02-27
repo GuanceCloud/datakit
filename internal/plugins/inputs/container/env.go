@@ -36,8 +36,10 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "EnableAutoDiscoveryOfPrometheusPodMonitors", Type: doc.Boolean, Default: "false", Desc: `Whether to turn on automatic discovery of Prometheus PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus Pod Monitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
 		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceMonitors", Type: doc.Boolean, Default: "false", Desc: `Whether to turn on automatic discovery of Prometheus ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus ServiceMonitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
 		{FieldName: "KeepExistPrometheusMetricName", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to keep the raw field names for Prometheus, see [Kubernetes Prometheus doc](kubernetes-prom.md#measurement-and-tags`, DescZh: `已弃用。是否保留原始的 Prometheus 字段名，详见 [Kubernetes Prometheus](kubernetes-prom.md#measurement-and-tags)`},
-		{FieldName: "ContainerIncludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Include condition of container log, filtering with image`, DescZh: `容器日志白名单，使用 image 过滤`},
-		{FieldName: "ContainerExcludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Exclude condition of container log, filtering with image`, DescZh: `容器日志黑名单，使用 image 过滤`},
+		{FieldName: "ContainerIncludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Include condition of container log, filtering with image`, DescZh: `容器日志白名单，使用 image/namespace 过滤`},
+		{FieldName: "ContainerExcludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Exclude condition of container log, filtering with image`, DescZh: `容器日志黑名单，使用 image/namespace 过滤`},
+		{FieldName: "PodIncludeMetric", Type: doc.List, Example: "`\"namespace:datakit*\"`", Desc: `Include condition of pod metrics, filtering with namespace`, DescZh: `Pod 指标白名单，使用 namespace 过滤`},
+		{FieldName: "PodExcludeMetric", Type: doc.List, Example: "`\"namespace:kube-system\"`", Desc: `Exclude condition of pod metrics, filtering with namespace`, DescZh: `Pod 指标黑名单，使用 namespace 过滤`},
 		{FieldName: "K8sURL", ENVName: "KUBERNETES_URL", Type: doc.String, Example: "`https://kubernetes.default:443`", Desc: `k8s api-server access address`, DescZh: `k8s API 服务访问地址`},
 		{FieldName: "K8sBearerToken", ENVName: "BEARER_TOKEN", Type: doc.String, Example: "`/run/secrets/kubernetes.io/serviceaccount/token`", Desc: `The path to the token file required to access k8s api-server`, DescZh: `访问 k8s 服务所需的 token 文件路径`},
 		{FieldName: "K8sBearerTokenString", ENVName: "BEARER_TOKEN_STRING", Type: doc.String, Example: "`your-token-string`", Desc: `Token string required to access k8s api-server`, DescZh: `访问 k8s 服务所需的 token 字符串`},
@@ -224,6 +226,19 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	if str, ok := envs["ENV_INPUT_CONTAINER_CONTAINER_EXCLUDE_LOG"]; ok {
 		arrays := strings.Split(str, ",")
 		ipt.ContainerExcludeLog = arrays
+	}
+
+	///
+	/// pod metric configs
+	///
+	if str, ok := envs["ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		ipt.PodIncludeMetric = arrays
+	}
+
+	if str, ok := envs["ENV_INPUT_CONTAINER_POD_EXCLUDE_METRIC"]; ok {
+		arrays := strings.Split(str, ",")
+		ipt.PodExcludeMetric = arrays
 	}
 
 	whitelistStr := ""

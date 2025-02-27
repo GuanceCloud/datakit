@@ -235,6 +235,56 @@ Containers will add Customer Labels of the Pods they belong to.
 
 ## FAQ {#faq}
 
+### Filtering Metrics Collection by Pod Namespace {#config-metric-on-pod-namespace}
+
+When Kubernetes Pod metrics collection is enabled (`enable_pod_metric = true`), Datakit will collect metrics data for all Pods in the cluster. Since this can result in a large volume of data, you can filter the metrics collection by the Pod's `namespace` field to only collect metrics from Pods in specific namespaces.
+
+You can control which Pods are included or excluded from metrics collection by configuring `pod_include_metric` and `pod_exclude_metric`.
+
+<!-- markdownlint-disable md046 -->
+=== "Host Installation"
+
+    ``` toml
+      ## Collect metrics for Pods whose namespace matches `datakit`
+      pod_include_metric = ["namespace:datakit"]
+    
+      ## Exclude all Pods with namespace `kodo`
+      pod_exclude_metric = ["namespace:kodo"]
+    ```
+    
+    - Both `include` and `exclude` settings must start with a field name, formatted as a [glob pattern](https://en.wikipedia.org/wiki/glob_(programming)): `"<field name>:<glob rule>"`.
+    - Currently, only the `namespace` field is supported for filtering, e.g., `namespace:datakit-ns`.
+    
+    If both `include` and `exclude` are configured, the Pod must meet the following conditions:
+    
+    - It must satisfy the `include` rule
+    - It must not satisfy the `exclude` rule
+    
+    For example, the following configuration will filter out all Pods:
+    
+    ```toml
+      ## Collect only Pods in `namespace:datakit` and exclude all namespaces
+      pod_include_metric = ["namespace:datakit"]
+      pod_exclude_metric = ["namespace:*"]
+    ```
+
+=== "Kubernetes"
+
+    In a Kubernetes environment, you can configure the following environment variables:
+    
+    - `ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC`
+    - `ENV_INPUT_CONTAINER_POD_EXCLUDE_METRIC`
+    
+    For example, if you want to collect metrics only for Pods in the `kube-system` namespace, you can set the `ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC` environment variable as shown below:
+    
+    ```yaml
+      - env:
+          - name: ENV_INPUT_CONTAINER_POD_INCLUDE_METRIC
+            value: namespace:kube-system  # Specify the namespace to collect metrics from
+    ```
+    
+    By using this method, you can flexibly control the range of Pods from which Datakit collects metrics, reducing the collection of unnecessary data and optimizing system performance and resource usage.
+
 <!-- markdownlint-disable MD013 -->
 ### :material-chat-question: NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
 <!-- markdownlint-enable -->

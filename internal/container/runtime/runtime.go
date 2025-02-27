@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package runtime wrap docker and CRI functions
+// Package runtime wraps docker and CRI functions
 package runtime
 
 type ContainerRuntime interface {
@@ -58,12 +58,12 @@ type ContainerTop struct {
 	ID  string
 	Pid int
 
-	CPUUsage float64
-	CPUCores int
+	CPUPercent         float64
+	CPUUsageMillicores int
+	CPUCores           int
 
 	// unit bytes
 	MemoryWorkingSet int64
-	MemoryLimit      int64
 	MemoryCapacity   int64 // host memory
 
 	// unit bytes

@@ -170,14 +170,9 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 	}
 
 	// cpu usage
-	top.CPUUsage = calculateCPUPercentUnix(stats)
-
+	top.CPUPercent, top.CPUUsageMillicores = calculateCPUUsageUnix(stats)
 	// cpu cores
 	top.CPUCores = int(stats.CPUStats.OnlineCPUs)
-
-	// memory usage and menory limit
-	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
-	top.MemoryLimit = int64(stats.MemoryStats.Limit)
 
 	// block io
 	top.BlockRead, top.BlockWrite = calculateBlockIO(stats.BlkioStats)
@@ -202,6 +197,8 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 	top.NetworkRcvd = rx
 	top.NetworkSent = tx
 
+	// memory usage and menory limit
+	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
 	// memory capacity
 	if hostMemory, err := getHostMemory(d.procMountPoint); err == nil {
 		top.MemoryCapacity = hostMemory
@@ -255,9 +252,12 @@ func calculateMemUsageUnixNoCache(mem types.MemoryStats) int64 {
 	return int64(mem.Usage)
 }
 
-func calculateCPUPercentUnix(v *types.StatsJSON) float64 {
+// calculateCPUUsageUnix return usage percent and millicores.
+func calculateCPUUsageUnix(v *types.StatsJSON) (float64, int) {
+	cpuPercent := 0.0
+	cpuUsageMillicores := 0
+
 	var (
-		cpuPercent = 0.0
 		// calculate the change for the cpu usage of the container in between readings
 		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(v.PreCPUStats.CPUUsage.TotalUsage)
 		// calculate the change for the entire system between readings
@@ -269,9 +269,12 @@ func calculateCPUPercentUnix(v *types.StatsJSON) float64 {
 		onlineCPUs = float64(len(v.CPUStats.CPUUsage.PercpuUsage))
 	}
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100.0
+		cpuUsagePercentage := (cpuDelta / systemDelta) * onlineCPUs
+		cpuPercent = cpuUsagePercentage * 100.0
+		cpuUsageMillicores = int(cpuUsagePercentage * 1000)
 	}
-	return cpuPercent
+
+	return cpuPercent, cpuUsageMillicores
 }
 
 func calculateBlockIO(blkio types.BlkioStats) (int64, int64) {

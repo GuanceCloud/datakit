@@ -46,8 +46,9 @@ type Single struct {
 	mult    *multiline.Multiline
 	reader  reader.Reader
 
-	offset    int64
-	readLines int64
+	offset     int64
+	readLines  int64
+	flushScore int
 
 	partialContentBuff bytes.Buffer
 
@@ -261,10 +262,15 @@ func (t *Single) forwardMessage(ctx context.Context) {
 			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
-			t.flushCache()
+			t.flushScore++
+			if t.flushScore >= 3 {
+				t.flushCache()
+				t.resetFlushScore()
+			}
 			time.Sleep(defaultSleepDuration)
 			continue
 		}
+		t.resetFlushScore()
 	}
 }
 
@@ -452,6 +458,10 @@ func (t *Single) feedToIO(pending [][]byte) {
 	); err != nil {
 		t.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
 	}
+}
+
+func (t *Single) resetFlushScore() {
+	t.flushScore = 0
 }
 
 func (t *Single) flushCache() {

@@ -9,7 +9,7 @@ const (
 	inputName = "xfsquota"
 
 	sampleConfig = `
-[[input.xfsquota]]
+[[inputs.xfsquota]]
     ## Path to the xfs_quota binary.
     binary_path = "/usr/sbin/xfs_quota"
 

@@ -16,10 +16,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -39,7 +39,7 @@ type container struct {
 	podLabelAsTagsForMetric       labelsOption
 
 	maxConcurrent int
-	logFilters    filters
+	logFilter     filter.Filter
 	logTable      *logTable
 	extraTags     map[string]string
 }
@@ -63,7 +63,7 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 var containerExistList sync.Map
 
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
-	filters, err := newFilters(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
+	logFilter, err := filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		podLabelAsTagsForNonMetric:    optForNonMetric,
 		podLabelAsTagsForMetric:       optForMetric,
 		maxConcurrent:                 maxConcurrent,
-		logFilters:                    filters,
+		logFilter:                     logFilter,
 		logTable:                      newLogTable(),
 		extraTags:                     tags,
 	}, nil
@@ -327,10 +327,10 @@ func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 		return false
 	}
 
-	pass := matchFilter(c.logFilters, filterImage, ins.image) ||
-		matchFilter(c.logFilters, filterImageName, ins.imageName) ||
-		matchFilter(c.logFilters, filterImageShortName, ins.imageShortName) ||
-		matchFilter(c.logFilters, filterNamespace, ins.podNamespace)
+	pass := c.logFilter.Match(filter.FilterImage, ins.image) ||
+		c.logFilter.Match(filter.FilterImageName, ins.imageName) ||
+		c.logFilter.Match(filter.FilterImageShortName, ins.imageShortName) ||
+		c.logFilter.Match(filter.FilterNamespace, ins.podNamespace)
 
 	return pass
 }
@@ -365,19 +365,14 @@ func (c *container) transformPoint(info *runtime.Container, setPodLabelAsTags fu
 	if err != nil {
 		l.Warnf("unable to query container stats, err: %s", err)
 	} else {
-		p.SetField("cpu_usage", top.CPUUsage)
+		p.SetField("cpu_usage", top.CPUPercent)
+		p.SetField("cpu_usage_millicores", top.CPUUsageMillicores)
 		p.SetField("cpu_numbers", top.CPUCores)
 		if top.CPUCores != 0 {
-			p.SetField("cpu_usage_base100", top.CPUUsage/float64(top.CPUCores))
+			p.SetField("cpu_usage_base100", top.CPUPercent/float64(top.CPUCores))
 		}
 
 		p.SetField("mem_usage", top.MemoryWorkingSet)
-
-		if top.MemoryLimit != 0 {
-			p.SetField("mem_limit", top.MemoryLimit)
-			p.SetField("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(top.MemoryLimit)*100)
-		}
-
 		if top.MemoryCapacity != 0 && top.MemoryCapacity != math.MaxInt64 {
 			p.SetField("mem_capacity", top.MemoryCapacity)
 			p.SetField("mem_used_percent", float64(top.MemoryWorkingSet)/float64(top.MemoryCapacity)*100)
@@ -419,7 +414,35 @@ func (c *container) transformPoint(info *runtime.Container, setPodLabelAsTags fu
 				image = img
 			}
 
-			p.SetField("cpu_limit", podInfo.cpuLimit(getContainerNameForLabels(info.Labels)))
+			cpuLimit, memLimit := podInfo.limit(getContainerNameForLabels(info.Labels))
+
+			if cpuLimit != 0 {
+				p.SetField("cpu_limit_millicores", cpuLimit)
+				if top != nil {
+					p.SetField("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(cpuLimit)*100)
+				}
+			}
+			if memLimit != 0 {
+				p.SetField("mem_limit", memLimit)
+				if top != nil {
+					p.SetField("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(memLimit)*100)
+				}
+			}
+
+			cpuRequest, memRequest := podInfo.request(getContainerNameForLabels(info.Labels))
+			if cpuRequest != 0 {
+				p.SetField("cpu_request_millicores", cpuRequest)
+				if top != nil {
+					p.SetField("cpu_usage_base_request", float64(top.CPUUsageMillicores)/float64(cpuRequest)*100)
+				}
+			}
+			if memRequest != 0 {
+				p.SetField("mem_request", memRequest)
+				if top != nil {
+					p.SetField("mem_used_percent_base_request", float64(top.MemoryWorkingSet)/float64(memRequest)*100)
+				}
+			}
+
 			setPodLabelAsTags(p, podInfo.pod.Labels)
 		}
 	}
@@ -488,101 +511,6 @@ func trimClusterName(s string) string {
 		return ""
 	}
 	return s[index+len(flag):]
-}
-
-type filterType int
-
-const (
-	filterImage filterType = iota
-	filterImageName
-	filterImageShortName
-	filterNamespace
-)
-
-func (f filterType) String() string {
-	switch f {
-	case filterImage:
-		return "image"
-	case filterImageName:
-		return "image_name"
-	case filterImageShortName:
-		return "image_short_name"
-	case filterNamespace:
-		return "namespace"
-	default:
-		return "unknown"
-	}
-}
-
-var (
-	supportedFilterTypes    = []filterType{filterImage, filterImageName, filterImageShortName, filterNamespace}
-	supportedFilterTypesNum = len(supportedFilterTypes)
-)
-
-type filters []filter.Filter
-
-func newFilters(include, exclude []string) (filters, error) {
-	in := splitRules(include)
-	ex := splitRules(exclude)
-
-	if len(in) != supportedFilterTypesNum || len(ex) != supportedFilterTypesNum {
-		return nil, fmt.Errorf("unreachable, invalid filter type, expect len(%d), actual include: %d exclude: %d",
-			supportedFilterTypesNum, len(in), len(ex))
-	}
-
-	filters := make([]filter.Filter, supportedFilterTypesNum)
-
-	for _, typ := range supportedFilterTypes {
-		if len(in[typ]) == 0 && len(ex[typ]) == 0 {
-			continue
-		}
-		filter, err := filter.NewIncludeExcludeFilter(in[typ], ex[typ])
-		if err != nil {
-			l.Warnf("invalid container_log filter, err: %s, ignored", err)
-			continue
-		}
-		filters[typ] = filter
-	}
-
-	return filters, nil
-}
-
-func matchFilter(filters filters, typ filterType, field string) bool {
-	if field == "" || len(filters) != supportedFilterTypesNum {
-		return false
-	}
-	if filters[typ] != nil {
-		return filters[typ].Match(field)
-	}
-	return false
-}
-
-func splitRules(arr []string) [][]string {
-	rules := make([][]string, supportedFilterTypesNum)
-
-	split := func(str, prefix string) string {
-		if !strings.HasPrefix(str, prefix) {
-			return ""
-		}
-		content := strings.TrimPrefix(str, prefix)
-		rule := strings.TrimSpace(content)
-		if rule == "*" {
-			// trans to double star
-			return "**"
-		}
-		return rule
-	}
-
-	for _, str := range arr {
-		for _, typ := range supportedFilterTypes {
-			rule := split(strings.TrimSpace(str), typ.String()+":")
-			if rule != "" {
-				rules[typ] = append(rules[typ], rule)
-			}
-		}
-	}
-
-	return rules
 }
 
 func containerIsFromKubernetes(labels map[string]string) bool {

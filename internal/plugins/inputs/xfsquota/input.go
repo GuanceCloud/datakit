@@ -9,7 +9,6 @@ package xfsquota
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -28,9 +27,6 @@ type Input struct {
 
 	Feeder dkio.Feeder
 	Tagger datakit.GlobalTagger
-
-	binaryPathWithMount     string
-	filesystemPathWithMount string
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -53,7 +49,6 @@ func (ipt *Input) Run() {
 		l.Warn(err)
 		return
 	}
-	l.Infof("binary_path %s, filesystem_path %s", ipt.binaryPathWithMount, ipt.filesystemPathWithMount)
 
 	start := time.Now()
 
@@ -76,17 +71,13 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) setup() error {
-	ipt.binaryPathWithMount = filepath.Join(getMountPoint(), ipt.BinaryPath)
-	ipt.filesystemPathWithMount = filepath.Join(getMountPoint(), ipt.FilesystemPath)
-
-	if _, err := os.Stat(ipt.binaryPathWithMount); err != nil {
-		return err
+	if _, err := os.Stat(ipt.BinaryPath); err != nil {
+		return fmt.Errorf("invalid binary path, err: %w", err)
 	}
-
-	if stat, err := os.Stat(ipt.filesystemPathWithMount); err != nil {
-		return err
+	if stat, err := os.Stat(ipt.FilesystemPath); err != nil {
+		return fmt.Errorf("invalid filesystem path, err: %w", err)
 	} else if !stat.IsDir() {
-		return fmt.Errorf("filesystem path %s is not a directory", ipt.filesystemPathWithMount)
+		return fmt.Errorf("filesystem path %s is not a directory", ipt.FilesystemPath)
 	}
 
 	return nil
@@ -95,7 +86,7 @@ func (ipt *Input) setup() error {
 func (ipt *Input) collectXFSQuota(timestamp int64) {
 	start := time.Now()
 
-	quotaInfo, err := getXFSQuota(ipt.binaryPathWithMount, ipt.filesystemPathWithMount)
+	quotaInfo, err := getXFSQuota(ipt.BinaryPath, ipt.FilesystemPath)
 	if err != nil {
 		l.Warn("exec failed: %s", err)
 		return
@@ -135,16 +126,6 @@ func (ipt *Input) collectXFSQuota(timestamp int64) {
 }
 
 func (ipt *Input) Terminate() { /*nil*/ }
-
-func getMountPoint() string {
-	if !datakit.Docker {
-		return ""
-	}
-	if n := os.Getenv("HOST_ROOT"); n != "" {
-		return n
-	}
-	return "/rootfs"
-}
 
 func newXFSQuota() *Input {
 	return &Input{
