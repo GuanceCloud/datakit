@@ -24,11 +24,13 @@ func TestInternalNetwork(t *testing.T) {
 		DisableInternalNetworkTask: true,
 	}
 
-	task := &dialtesting.HTTPTask{
-		Name:      "test",
-		URL:       "http://127.0.0.1:9529",
-		Method:    "GET",
-		Frequency: "1ms",
+	child := &dialtesting.HTTPTask{
+		Method: "GET",
+		Task: &dialtesting.Task{
+			Name:      "test",
+			Frequency: "1ms",
+		},
+		URL: "http://127.0.0.1:9529",
 		SuccessWhen: []*dialtesting.HTTPSuccess{
 			{
 				StatusCode: []*dialtesting.SuccessOption{
@@ -40,15 +42,20 @@ func TestInternalNetwork(t *testing.T) {
 		},
 	}
 
+	task, err := dialtesting.NewTask("", child)
+	assert.NoError(t, err)
+
 	dialer := newDialer(task, ipt)
 	assert.Error(t, dialer.run())
 
-	task = &dialtesting.HTTPTask{
-		Name:      "test",
-		URL:       "http://8.8.8.8",
-		PostURL:   "http://xxxxx?token=xxxxxx",
-		Method:    "GET",
-		Frequency: "1ms",
+	child = &dialtesting.HTTPTask{
+		Method: "GET",
+		Task: &dialtesting.Task{
+			Name:      "test",
+			PostURL:   "http://xxxxx?token=xxxxxx",
+			Frequency: "1ms",
+		},
+		URL: "http://8.8.8.8",
 		AdvanceOptions: &dialtesting.HTTPAdvanceOption{
 			RequestTimeout: "1s",
 		},
@@ -63,10 +70,14 @@ func TestInternalNetwork(t *testing.T) {
 		},
 	}
 
+	task, err = dialtesting.NewTask("", child)
+
+	assert.NoError(t, err)
+
 	dialer = newDialer(task, ipt)
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		task.CurStatus = dialtesting.StatusStop
+		task.SetStatus(dialtesting.StatusStop)
 		dialer.updateCh <- task
 	}()
 	assert.NoError(t, dialer.run())

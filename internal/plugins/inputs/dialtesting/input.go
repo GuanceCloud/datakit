@@ -11,11 +11,13 @@
 package dialtesting
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -63,8 +65,9 @@ var (
 )
 
 const (
-	maxCrashCnt = 6
-	RegionInfo  = "region"
+	maxCrashCnt   = 6
+	RegionInfo    = "region"
+	VariablesInfo = "variables"
 )
 
 type Input struct {
@@ -95,6 +98,217 @@ type Input struct {
 	curTasks    sync.Map
 	pos         int64 // current largest-task-update-time
 	isDebugMode bool
+
+	variables    Variable
+	isServerMode bool
+}
+
+// Variable is a global variable manager.
+type Variable struct {
+	data             map[string]dt.Variable            // [uuid] => dt.Variable
+	taskData         map[string]map[string]dt.Variable // [owner_external_id - external_id] => map[string]dt.Variable
+	latestPos        int64                             // largest task update time
+	updateVariables  []dt.Variable
+	updateVariableCh chan dt.Variable
+	reqURL           *url.URL
+	ipt              *Input
+	sync.RWMutex
+}
+
+func (v *Variable) setVariables(vars []dt.Variable) {
+	v.Lock()
+	defer v.Unlock()
+
+	for _, item := range vars {
+		// update time position for variable
+		if v.latestPos < item.UpdatedAt {
+			v.latestPos = item.UpdatedAt
+		}
+
+		isDeleted := false
+		// delete variable
+		if item.DeletedAt > 0 {
+			isDeleted = true
+		}
+
+		if !isDeleted {
+			v.data[item.UUID] = item
+		}
+
+		if item.TaskID != "" { // variable will be updated by task
+			key := v.getTaskKey(item.OwnerExternalID, item.TaskID)
+
+			if isDeleted {
+				if v.taskData[key] != nil {
+					delete(v.taskData[key], item.UUID)
+				}
+				continue
+			}
+
+			if v.taskData[key] == nil {
+				v.taskData[key] = make(map[string]dt.Variable)
+			}
+			v.taskData[key][item.UUID] = item
+		}
+	}
+}
+
+// getVariablesByTask get variables which is updated by task.
+func (v *Variable) getVariablesByTask(task dt.ITask) map[string]dt.Variable {
+	v.RLock()
+	defer v.RUnlock()
+	copyData := map[string]dt.Variable{}
+
+	for k, v := range v.taskData[v.getTaskKey(task.GetOwnerExternalID(), task.GetExternalID())] {
+		copyData[k] = v
+	}
+
+	return copyData
+}
+
+func (v *Variable) getTaskKey(ownerExternalID, externalID string) string {
+	return ownerExternalID + "-" + externalID
+}
+
+func (v *Variable) updateVariableValue(variable dt.Variable, value string, failCount int) {
+	g.Go(func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		newVariable := dt.Variable{
+			Value:           value,
+			FailCount:       failCount,
+			UpdatedAt:       time.Now().Unix(),
+			UUID:            variable.UUID,
+			OwnerExternalID: variable.OwnerExternalID,
+		}
+		select {
+		case v.updateVariableCh <- newVariable:
+		case <-ctx.Done():
+			l.Warnf("update variable chan is full, drop variable %s", variable.UUID)
+		}
+		return nil
+	})
+}
+
+func (v *Variable) run() {
+	g.Go(func(ctx context.Context) error {
+		if v.ipt == nil {
+			l.Error("input is nil")
+			return nil
+		}
+		reqURL, err := url.Parse(v.ipt.Server)
+		if err != nil {
+			l.Errorf(`parse url failed: %s`, err.Error())
+			return err
+		}
+		v.reqURL = reqURL
+		v.reqURL.Path = fmt.Sprintf("/v1/variable/update/%s", v.ipt.RegionID)
+
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+			case <-v.ipt.semStop.Wait():
+				l.Infof("exit variable run")
+				return nil
+			case <-datakit.Exit.Wait():
+				l.Infof("exit variable run")
+				return nil
+			case variable := <-v.updateVariableCh:
+				v.updateVariables = append(v.updateVariables, variable)
+			}
+
+			if len(v.updateVariables) > 0 {
+				v.updateRemoteVariables()
+			}
+		}
+	})
+}
+
+func (v *Variable) updateRemoteVariables() {
+	if len(v.updateVariables) == 0 {
+		return
+	}
+
+	defer func() {
+		v.updateVariables = v.updateVariables[:0]
+	}()
+
+	if v.reqURL == nil {
+		l.Warnf("reqURL is nil")
+		return
+	}
+
+	reqURL := v.reqURL
+	l.Debugf("update remote %d variables", len(v.updateVariables))
+
+	data, err := json.Marshal(v.updateVariables)
+	if err != nil {
+		l.Errorf(`marshal variables failed: %s`, err.Error())
+		return
+	}
+
+	req, err := http.NewRequest("POST", reqURL.String(), bytes.NewReader(data))
+	if err != nil {
+		l.Errorf(`request url failed: %s`, err.Error())
+		return
+	}
+
+	bodymd5 := fmt.Sprintf("%x", md5.Sum(data)) //nolint:gosec
+	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+	req.Header.Set("Content-MD5", bodymd5)
+	req.Header.Set("Connection", "close")
+	signReq(req, v.ipt.AK, v.ipt.SK)
+
+	resp, err := v.ipt.cli.Do(req)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+	switch resp.StatusCode / 100 {
+	case 2: // ok
+		l.Debugf("update reomote variables success")
+	default:
+		l.Warnf("request %s failed(%s): %s", v.ipt.Server, resp.Status, string(body))
+		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
+			return
+		}
+	}
+}
+
+// get variables by variable uuids.
+func (v *Variable) getVariables(variableUUIDs []string) (int64, map[string]dt.Variable) {
+	v.RLock()
+	defer v.RUnlock()
+
+	vars := make(map[string]dt.Variable)
+
+	for _, uuid := range variableUUIDs {
+		if v, ok := v.data[uuid]; ok {
+			vars[uuid] = dt.Variable{
+				Secure: v.Secure,
+				Value:  v.Value,
+			}
+		}
+	}
+
+	return v.latestPos, vars
+}
+
+func (v *Variable) getLatestPos() int64 {
+	v.RLock()
+	defer v.RUnlock()
+
+	return v.latestPos
 }
 
 const sample = `
@@ -159,6 +373,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&tcpMeasurement{},
 		&icmpMeasurement{},
 		&websocketMeasurement{},
+		&multiMeasurement{},
 	}
 }
 
@@ -292,6 +507,7 @@ func (ipt *Input) Run() {
 
 	switch reqURL.Scheme {
 	case "http", "https":
+		ipt.isServerMode = true
 		ipt.doServerTask() // task server
 
 	case "file":
@@ -333,6 +549,10 @@ func (ipt *Input) doServerTask() {
 
 		tick := time.NewTicker(du)
 		defer tick.Stop()
+
+		// set regionID
+		ipt.variables.ipt = ipt
+		ipt.variables.run()
 
 		for {
 			l.Debug("try pull tasks...")
@@ -387,7 +607,7 @@ func (ipt *Input) doLocalTask(path string) {
 	<-datakit.Exit.Wait()
 }
 
-func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
+func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	regionName := ipt.RegionID
 	if len(ipt.regionName) > 0 {
 		regionName = ipt.regionName
@@ -408,6 +628,8 @@ func (ipt *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassWebsocket:
 		// TODO
 	case dt.ClassICMP:
+		// TODO
+	case dt.ClassMulti:
 		// TODO
 	case dt.ClassOther:
 		// TODO
@@ -456,6 +678,9 @@ func protectedRun(d *dialer) {
 				return
 			}
 		}
+		if crashcnt > 0 {
+			d.updateCh = make(chan dt.ITask)
+		}
 
 		if err := d.run(); err != nil {
 			l.Errorf("run: %s, ignored", err)
@@ -477,17 +702,17 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 		return err
 	}
 
-	l.Infof(`dispatching %d tasks...`, len(resp.Content))
-
 	totalTasksNum := 0
 
 	for k, v := range resp.Content {
-		if k != RegionInfo {
+		if k != RegionInfo && k != VariablesInfo {
 			if arr, ok := v.([]interface{}); ok {
 				totalTasksNum += len(arr)
 			}
 		}
 	}
+
+	l.Infof(`dispatching %d tasks...`, totalTasksNum)
 
 	// default time interval for starting a dialing test
 	taskStartInterval := time.Second
@@ -521,10 +746,23 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 						}
 					}
 				default:
-					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
+					l.Debugf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
 				}
 			}
 
+		case VariablesInfo:
+			text, ok := arr.(string)
+			if !ok {
+				l.Warnf("invalid variables info: expect string, got %s", reflect.TypeOf(arr))
+			} else {
+				vars := []dt.Variable{}
+				if err := json.Unmarshal([]byte(text), &vars); err != nil {
+					l.Warnf("invalid variables info: %s", err.Error())
+				} else if len(vars) > 0 {
+					l.Infof("set %d variables", len(vars))
+					ipt.variables.setVariables(vars)
+				}
+			}
 		default:
 			l.Debugf("pass %s", k)
 		}
@@ -533,7 +771,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 	for k, x := range resp.Content {
 		l.Debugf(`class: %s`, k)
 
-		if k == RegionInfo {
+		if k == RegionInfo || k == VariablesInfo {
 			continue
 		}
 
@@ -550,21 +788,24 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 		}
 
 		for _, data := range arr {
-			var t dt.Task
+			var t dt.ITask
+			var ct dt.TaskChild
+			var err error
 
 			switch k {
 			case dt.ClassHTTP:
-				t = &dt.HTTPTask{Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)}}
+				ct = &dt.HTTPTask{Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)}}
+			case dt.ClassMulti:
+				ct = &dt.MultiTask{}
 			case dt.ClassDNS:
-				// TODO
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				t = &dt.TCPTask{}
+				ct = &dt.TCPTask{}
 			case dt.ClassWebsocket:
-				t = &dt.WebsocketTask{}
+				ct = &dt.WebsocketTask{}
 			case dt.ClassICMP:
-				t = &dt.ICMPTask{}
+				ct = &dt.ICMPTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -573,7 +814,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				l.Errorf("unknown task type: %s", k)
 			}
 
-			if t == nil {
+			if ct == nil {
 				l.Warn("empty task, ignored")
 				continue
 			}
@@ -584,8 +825,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				continue
 			}
 
-			if err := json.Unmarshal([]byte(j), &t); err != nil {
-				l.Warnf("json.Unmarshal task(%s) failed: %s, task json(%d bytes): '%s'", k, err.Error(), len(j), j)
+			if t, err = dt.NewTask(j, ct); err != nil {
+				l.Warnf("newTask failed: %s, task json(%d bytes): '%s'", err.Error(), len(j), j)
 				continue
 			}
 
@@ -683,7 +924,7 @@ func (ipt *Input) pullTask() ([]byte, error) {
 	var res []byte
 	for i := 0; i <= 3; i++ {
 		var statusCode int
-		res, statusCode, err = ipt.pullHTTPTask(reqURL, ipt.pos)
+		res, statusCode, err = ipt.pullHTTPTask(reqURL, ipt.pos, ipt.variables.getLatestPos())
 		if statusCode/100 != 5 { // 500 err
 			break
 		}
@@ -709,9 +950,9 @@ func signReq(req *http.Request, ak, sk string) {
 	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
-func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
+func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) ([]byte, int, error) {
 	reqURL.Path = "/v1/task/pull"
-	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", ipt.RegionID, sinceUs)
+	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d&variable_since=%d", ipt.RegionID, sinceUs, variableSinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
@@ -805,6 +1046,12 @@ func defaultInput() *Input {
 	return &Input{
 		Tags:    map[string]string{},
 		semStop: cliutils.NewSem(),
+		variables: Variable{
+			data:             map[string]dt.Variable{},
+			taskData:         map[string]map[string]dt.Variable{},
+			updateVariables:  []dt.Variable{},
+			updateVariableCh: make(chan dt.Variable, 100),
+		},
 	}
 }
 

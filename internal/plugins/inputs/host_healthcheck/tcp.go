@@ -23,7 +23,7 @@ func (ipt *Input) collectTCP(ptTS int64) error {
 				l.Warnf("parse ip port(%s) failed: %s", ip, err.Error())
 				continue
 			}
-			task := dt.TCPTask{
+			ct := &dt.TCPTask{
 				Host:    host,
 				Port:    port,
 				Timeout: tcp.ConnectionTimeOut,
@@ -37,9 +37,17 @@ func (ipt *Input) collectTCP(ptTS int64) error {
 						},
 					},
 				},
-				ExternalID: "-",
+				Task: &dt.Task{
+					ExternalID: "-",
+				},
 			}
-			if err := task.InitDebug(); err != nil {
+			task, err := dt.NewTask("", ct)
+			if err != nil {
+				l.Warnf("newTask failed: %s", err.Error())
+				continue
+			}
+
+			if err := task.RenderTemplateAndInit(nil); err != nil {
 				l.Warnf("init tcp task failed: %s", err.Error())
 				continue
 			}

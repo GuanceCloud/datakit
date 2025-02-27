@@ -158,6 +158,7 @@ monitor   :
 | :---              | ---    | ---      | ---                                     |
 | `method`          | string | Y        | HTTP 请求方法                           |
 | `url`             | string | Y        | 完整的 HTTP 请求地址                    |
+| `post_script`     | string | N        | Pipeline 脚本，用于结果判断和提取变量                    |
 
 总体的 JSON 结构如下：
 
@@ -173,7 +174,8 @@ monitor   :
       "frequency": "10s",
       "success_when_logic": "and",
       "success_when": ...,
-      "advance_options": ...
+      "advance_options": ...,
+      "post_script":...,
     },
     {
       ... another HTTP dialtesting
@@ -481,6 +483,51 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
   },
 }
 ```
+
+##### `post_script` 定义 {#post_script}
+
+`post_script` 是一个 [Pipeline](../pipeline/use-pipeline/index.md) 脚本，用于对拨测结果进行判断，并从中提取变量。
+
+##### 注入变量 {#inject-variables}
+
+为了便于 `post_script` 处理 HTTP 响应并对检测结果进行判定和变量提取，编写脚本时可使用一些预定义的变量。具体如下：
+
+- `response`: 响应对象
+
+| 字段              | 类型   | 说明                                    |
+| :---              | ---    | ---                                     |
+| `status_code`     | number | 响应状态码                           |
+| `header`          | json | 响应头，格式为 `{"header1": ["value1", "value2"]}`|
+| `body`            | string | 响应内容|
+
+- `result`： 检测结果
+
+| 字段              | 类型   | 说明                                    |
+| :---              | ---    | ---                                     |
+| `is_failed`     | bool | 是否失败                           |
+| `error_message`     | string | 失败原因                           |
+
+- `vars`: 提取变量
+
+JSON 对象，key 为变量名，value 为变量值， 如 `vars["token"] = "123"`
+
+##### 示例 {#example}
+
+```javascript
+
+body = load_json(response["body"])
+
+if body["code"] == "200" {
+  result["is_failed"] = false
+  vars["token"] = body["token"]
+} else {
+  result["is_failed"] = true
+  result["error_message"] = body["message"]
+}
+
+```
+
+上面的脚本中，首先使用 `load_json` 将响应内容解析为 JSON 对象，然后判断响应状态码是否为 200，如果为 200，则将响应内容中的 token 提取出来，并设置到 `vars` 中，否则将 `result` 的 `is_failed` 设置为 true， 且 `error_message` 设置为响应内容中的 message 。
 
 #### TCP 拨测 {#tcp}
 

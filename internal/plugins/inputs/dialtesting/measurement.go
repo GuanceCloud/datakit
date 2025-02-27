@@ -50,6 +50,12 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The message string which includes the header and the body of the request or the response",
 			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The raw task string",
+			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -110,6 +116,12 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.Count,
 				Desc:     "The sequence number of the test",
 			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The configuration variables of the task",
+			},
 		},
 	}
 }
@@ -143,6 +155,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The message string includes the response time or fail reason",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The raw task string",
 			},
 			"traceroute": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -180,6 +198,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.Count,
 				Desc:     "The sequence number of the test",
 			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The configuration variables of the task",
+			},
 		},
 	}
 }
@@ -211,6 +235,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The message string includes the average time of the round trip or the failure reason",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -302,6 +332,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.Count,
 				Desc:     "The sequence number of the test",
 			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The configuration variables of the task",
+			},
 		},
 	}
 }
@@ -333,6 +369,12 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The message string includes the response time or the failure reason",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -375,6 +417,90 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.Count,
 				Desc:     "The sequence number of the test",
+			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The configuration variables of the task",
+			},
+		},
+	}
+}
+
+type multiMeasurement struct{}
+
+//nolint:lll
+func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "multi_dial_testing",
+		Tags: map[string]interface{}{
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
+		},
+		Fields: map[string]interface{}{
+			"last_step": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The last number of the task be executed",
+			},
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The message string which includes the header and the body of the request or the response",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The raw task string",
+			},
+			"fail_reason": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The reason that leads to the failure of the task",
+			},
+			"steps": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The result of each step",
+			},
+			"response_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "The time of the response",
+			},
+			"success": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
+			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The configuration variables of the task",
 			},
 		},
 	}

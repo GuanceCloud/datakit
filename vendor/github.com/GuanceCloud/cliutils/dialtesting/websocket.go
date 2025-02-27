@@ -17,8 +17,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/gorilla/websocket"
+)
+
+var (
+	_ TaskChild = (*WebsocketTask)(nil)
+	_ ITask = (*WebsocketTask)(nil)
 )
 
 type WebsocketResponseTime struct {
@@ -51,25 +55,12 @@ type WebsocketAdvanceOption struct {
 }
 
 type WebsocketTask struct {
-	URL               string                  `json:"url"`
-	Message           string                  `json:"message"`
-	SuccessWhen       []*WebsocketSuccess     `json:"success_when"`
-	AdvanceOptions    *WebsocketAdvanceOption `json:"advance_options,omitempty"`
-	SuccessWhenLogic  string                  `json:"success_when_logic"`
-	ExternalID        string                  `json:"external_id"`
-	Name              string                  `json:"name"`
-	AK                string                  `json:"access_key"`
-	PostURL           string                  `json:"post_url"`
-	CurStatus         string                  `json:"status"`
-	Frequency         string                  `json:"frequency"`
-	Region            string                  `json:"region"`
-	OwnerExternalID   string                  `json:"owner_external_id"`
-	Tags              map[string]string       `json:"tags,omitempty"`
-	Labels            []string                `json:"labels,omitempty"`
-	UpdateTime        int64                   `json:"update_time,omitempty"`
-	WorkspaceLanguage string                  `json:"workspace_language,omitempty"`
-	TagsInfo          string                  `json:"tags_info,omitempty"` // deprecated
-	DFLabel           string                  `json:"df_label,omitempty"`
+	*Task
+	URL              string                  `json:"url"`
+	Message          string                  `json:"message"`
+	SuccessWhen      []*WebsocketSuccess     `json:"success_when"`
+	AdvanceOptions   *WebsocketAdvanceOption `json:"advance_options,omitempty"`
+	SuccessWhenLogic string                  `json:"success_when_logic"`
 
 	reqCost         time.Duration
 	reqDNSCost      time.Duration
@@ -79,10 +70,9 @@ type WebsocketTask struct {
 	hostname        string
 	reqError        string
 	timeout         time.Duration
-	ticker          *time.Ticker
 }
 
-func (t *WebsocketTask) init(debug bool) error {
+func (t *WebsocketTask) init() error {
 	t.timeout = 30 * time.Second
 	if t.AdvanceOptions != nil {
 		if t.AdvanceOptions.RequestOptions != nil && len(t.AdvanceOptions.RequestOptions.Timeout) > 0 {
@@ -92,21 +82,6 @@ func (t *WebsocketTask) init(debug bool) error {
 				t.timeout = timeout
 			}
 		}
-	}
-
-	if !debug {
-		du, err := time.ParseDuration(t.Frequency)
-		if err != nil {
-			return err
-		}
-		if t.ticker != nil {
-			t.ticker.Stop()
-		}
-		t.ticker = time.NewTicker(du)
-	}
-
-	if strings.EqualFold(t.CurStatus, StatusStop) {
-		return nil
 	}
 
 	if len(t.SuccessWhen) == 0 {
@@ -160,27 +135,15 @@ func (t *WebsocketTask) init(debug bool) error {
 	return nil
 }
 
-func (t *WebsocketTask) InitDebug() error {
-	return t.init(true)
-}
-
-func (t *WebsocketTask) Init() error {
-	return t.init(false)
-}
-
-func (t *WebsocketTask) Check() error {
-	if t.ExternalID == "" {
-		return fmt.Errorf("external ID missing")
-	}
-
+func (t *WebsocketTask) check() error {
 	if len(t.URL) == 0 {
 		return fmt.Errorf("URL should not be empty")
 	}
 
-	return t.Init()
+	return nil
 }
 
-func (t *WebsocketTask) CheckResult() (reasons []string, succFlag bool) {
+func (t *WebsocketTask) checkResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		if chk.ResponseTime != nil {
@@ -227,7 +190,7 @@ func (t *WebsocketTask) CheckResult() (reasons []string, succFlag bool) {
 	return reasons, succFlag
 }
 
-func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *WebsocketTask) getResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":   t.Name,
 		"url":    t.URL,
@@ -252,7 +215,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 
 	message := map[string]interface{}{}
 
-	reasons, succFlag := t.CheckResult()
+	reasons, succFlag := t.checkResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
@@ -299,17 +262,16 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 	return tags, fields
 }
 
-func (t *WebsocketTask) MetricName() string {
+func (t *WebsocketTask) metricName() string {
 	return `websocket_dial_testing`
 }
 
-func (t *WebsocketTask) Clear() {
+func (t *WebsocketTask) clear() {
 	t.reqCost = 0
 	t.reqError = ""
 }
 
-func (t *WebsocketTask) Run() error {
-	t.Clear()
+func (t *WebsocketTask) run() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
@@ -320,12 +282,12 @@ func (t *WebsocketTask) Run() error {
 		start := time.Now()
 		if ips, err := net.LookupIP(t.hostname); err != nil {
 			t.reqError = err.Error()
-			return err
+			return nil
 		} else {
 			if len(ips) == 0 {
 				err := fmt.Errorf("invalid host: %s, found no ip record", t.hostname)
 				t.reqError = err.Error()
-				return err
+				return nil
 			} else {
 				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0] // TODO: support mutiple ip for one host
@@ -352,7 +314,7 @@ func (t *WebsocketTask) Run() error {
 	if err != nil {
 		t.reqError = err.Error()
 		t.reqDNSCost = 0
-		return err
+		return nil
 	}
 
 	t.reqCost = time.Since(start)
@@ -404,79 +366,18 @@ func (t *WebsocketTask) getHeader() http.Header {
 	return header
 }
 
-func (t *WebsocketTask) Stop() error {
-	return nil
-}
+func (t *WebsocketTask) stop() {}
 
-func (t *WebsocketTask) UpdateTimeUs() int64 {
-	return t.UpdateTime
-}
-
-func (t *WebsocketTask) ID() string {
-	if t.ExternalID == `` {
-		return cliutils.XID("dtst_")
-	}
-	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
-}
-
-func (t *WebsocketTask) GetOwnerExternalID() string {
-	return t.OwnerExternalID
-}
-
-func (t *WebsocketTask) SetOwnerExternalID(exid string) {
-	t.OwnerExternalID = exid
-}
-
-func (t *WebsocketTask) SetRegionID(regionID string) {
-	t.Region = regionID
-}
-
-func (t *WebsocketTask) SetAk(ak string) {
-	t.AK = ak
-}
-
-func (t *WebsocketTask) SetStatus(status string) {
-	t.CurStatus = status
-}
-
-func (t *WebsocketTask) SetUpdateTime(ts int64) {
-	t.UpdateTime = ts
-}
-
-func (t *WebsocketTask) Status() string {
-	return t.CurStatus
-}
-
-func (t *WebsocketTask) Ticker() *time.Ticker {
-	return t.ticker
-}
-
-func (t *WebsocketTask) Class() string {
+func (t *WebsocketTask) class() string {
 	return ClassWebsocket
 }
 
-func (t *WebsocketTask) GetFrequency() string {
-	return t.Frequency
-}
-
-func (t *WebsocketTask) GetLineData() string {
-	return ""
-}
-
-func (t *WebsocketTask) RegionName() string {
-	return t.Region
-}
-
-func (t *WebsocketTask) PostURLStr() string {
-	return t.PostURL
-}
-
-func (t *WebsocketTask) AccessKey() string {
-	return t.AK
-}
-
-func (t *WebsocketTask) GetHostName() (string, error) {
-	return getHostName(t.URL)
+func (t *WebsocketTask) getHostName() ([]string, error) {
+	if hostName, err := getHostName(t.URL); err != nil {
+		return nil, err
+	} else {
+		return []string{hostName}, nil
+	}
 }
 
 func basicAuth(username, password string) string {
@@ -484,16 +385,28 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-func (t *WebsocketTask) GetWorkspaceLanguage() string {
-	if t.WorkspaceLanguage == "en" {
-		return "en"
-	}
-	return "zh"
+func (t *WebsocketTask) beforeFirstRender() {
 }
 
-func (t *WebsocketTask) GetDFLabel() string {
-	if t.DFLabel != "" {
-		return t.DFLabel
+func (t *WebsocketTask) getVariableValue(variable Variable) (string, error) {
+	return "", fmt.Errorf("not support")
+}
+
+func (t *WebsocketTask) getRawTask(taskString string) (string, error) {
+	task := WebsocketTask{}
+
+	if err := json.Unmarshal([]byte(taskString), &task); err != nil {
+		return "", fmt.Errorf("unmarshal websocket task failed: %w", err)
 	}
-	return t.TagsInfo
+
+	task.Task = nil
+
+	bytes, _ := json.Marshal(task)
+	return string(bytes), nil
+}
+
+func (t *WebsocketTask) initTask() {
+	if t.Task == nil {
+		t.Task = &Task{}
+	}
 }

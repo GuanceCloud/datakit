@@ -12,8 +12,11 @@ import (
 	"net"
 	"strings"
 	"time"
+)
 
-	"github.com/GuanceCloud/cliutils"
+var (
+	_ TaskChild = (*TCPTask)(nil)
+	_ ITask = (*TCPTask)(nil)
 )
 
 const defaultTCPTimeout = 30 * time.Second
@@ -32,28 +35,15 @@ type TCPSuccess struct {
 }
 
 type TCPTask struct {
-	Host              string            `json:"host"`
-	Port              string            `json:"port"`
-	Message           string            `json:"message"`
-	Timeout           string            `json:"timeout"`
-	EnableTraceroute  bool              `json:"enable_traceroute"`
-	TracerouteConfig  *TracerouteOption `json:"traceroute_config"`
-	SuccessWhen       []*TCPSuccess     `json:"success_when"`
-	SuccessWhenLogic  string            `json:"success_when_logic"`
-	ExternalID        string            `json:"external_id"`
-	Name              string            `json:"name"`
-	AK                string            `json:"access_key"`
-	PostURL           string            `json:"post_url"`
-	CurStatus         string            `json:"status"`
-	Frequency         string            `json:"frequency"`
-	Region            string            `json:"region"`
-	OwnerExternalID   string            `json:"owner_external_id"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	Labels            []string          `json:"labels,omitempty"`
-	UpdateTime        int64             `json:"update_time,omitempty"`
-	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
-	TagsInfo          string            `json:"tags_info,omitempty"` // deprecated
-	DFLabel           string            `json:"df_label,omitempty"`
+	*Task
+	Host             string            `json:"host"`
+	Port             string            `json:"port"`
+	Message          string            `json:"message"`
+	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
+	SuccessWhen      []*TCPSuccess     `json:"success_when"`
+	SuccessWhenLogic string            `json:"success_when_logic"`
 
 	reqCost         time.Duration
 	reqDNSCost      time.Duration
@@ -61,15 +51,10 @@ type TCPTask struct {
 	destIP          string
 	responseMessage string
 	timeout         time.Duration
-	ticker          *time.Ticker
 	traceroute      []*Route
 }
 
-func (t *TCPTask) InitDebug() error {
-	return t.init(true)
-}
-
-func (t *TCPTask) init(debug bool) error {
+func (t *TCPTask) init() error {
 	if len(t.Timeout) == 0 {
 		t.timeout = 10 * time.Second
 	} else {
@@ -78,21 +63,6 @@ func (t *TCPTask) init(debug bool) error {
 		} else {
 			t.timeout = timeout
 		}
-	}
-
-	if !debug {
-		du, err := time.ParseDuration(t.Frequency)
-		if err != nil {
-			return err
-		}
-		if t.ticker != nil {
-			t.ticker.Stop()
-		}
-		t.ticker = time.NewTicker(du)
-	}
-
-	if strings.EqualFold(t.CurStatus, StatusStop) {
-		return nil
 	}
 
 	if len(t.SuccessWhen) == 0 {
@@ -126,15 +96,7 @@ func (t *TCPTask) init(debug bool) error {
 	return nil
 }
 
-func (t *TCPTask) Init() error {
-	return t.init(false)
-}
-
-func (t *TCPTask) Check() error {
-	if t.ExternalID == "" {
-		return fmt.Errorf("external ID missing")
-	}
-
+func (t *TCPTask) check() error {
 	if len(t.Host) == 0 {
 		return fmt.Errorf("host should not be empty")
 	}
@@ -143,10 +105,10 @@ func (t *TCPTask) Check() error {
 		return fmt.Errorf("port should not be empty")
 	}
 
-	return t.Init()
+	return nil
 }
 
-func (t *TCPTask) CheckResult() (reasons []string, succFlag bool) {
+func (t *TCPTask) checkResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		if chk.ResponseTime != nil {
@@ -198,7 +160,7 @@ func (t *TCPTask) CheckResult() (reasons []string, succFlag bool) {
 	return reasons, succFlag
 }
 
-func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+func (t *TCPTask) getResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":      t.Name,
 		"dest_host": t.Host,
@@ -242,7 +204,7 @@ func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interf
 
 	message := map[string]interface{}{}
 
-	reasons, succFlag := t.CheckResult()
+	reasons, succFlag := t.checkResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
@@ -285,19 +247,17 @@ func (t *TCPTask) GetResults() (tags map[string]string, fields map[string]interf
 	return tags, fields
 }
 
-func (t *TCPTask) MetricName() string {
+func (t *TCPTask) metricName() string {
 	return `tcp_dial_testing`
 }
 
-func (t *TCPTask) Clear() {
+func (t *TCPTask) clear() {
 	t.reqCost = 0
 	t.reqError = ""
 	t.traceroute = nil
 }
 
-func (t *TCPTask) Run() error {
-	t.Clear()
-
+func (t *TCPTask) run() error {
 	var d net.Dialer
 	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
@@ -308,12 +268,12 @@ func (t *TCPTask) Run() error {
 		start := time.Now()
 		if ips, err := net.LookupIP(t.Host); err != nil {
 			t.reqError = err.Error()
-			return err
+			return nil
 		} else {
 			if len(ips) == 0 {
 				err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
 				t.reqError = err.Error()
-				return err
+				return nil
 			} else {
 				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0] // TODO: support mutiple ip for one host
@@ -362,91 +322,38 @@ func (t *TCPTask) Run() error {
 	return nil
 }
 
-func (t *TCPTask) Stop() error {
-	return nil
-}
+func (t *TCPTask) stop() {}
 
-func (t *TCPTask) UpdateTimeUs() int64 {
-	return t.UpdateTime
-}
-
-func (t *TCPTask) ID() string {
-	if t.ExternalID == `` {
-		return cliutils.XID("dtst_")
-	}
-	return fmt.Sprintf("%s_%s", t.AK, t.ExternalID)
-}
-
-func (t *TCPTask) GetOwnerExternalID() string {
-	return t.OwnerExternalID
-}
-
-func (t *TCPTask) SetOwnerExternalID(exid string) {
-	t.OwnerExternalID = exid
-}
-
-func (t *TCPTask) SetRegionID(regionID string) {
-	t.Region = regionID
-}
-
-func (t *TCPTask) SetAk(ak string) {
-	t.AK = ak
-}
-
-func (t *TCPTask) SetStatus(status string) {
-	t.CurStatus = status
-}
-
-func (t *TCPTask) SetUpdateTime(ts int64) {
-	t.UpdateTime = ts
-}
-
-func (t *TCPTask) Status() string {
-	return t.CurStatus
-}
-
-func (t *TCPTask) Ticker() *time.Ticker {
-	return t.ticker
-}
-
-func (t *TCPTask) Class() string {
+func (t *TCPTask) class() string {
 	return ClassTCP
 }
 
-func (t *TCPTask) GetFrequency() string {
-	return t.Frequency
+func (t *TCPTask) getHostName() ([]string, error) {
+	return []string{t.Host}, nil
 }
 
-func (t *TCPTask) GetLineData() string {
-	return ""
+func (t *TCPTask) beforeFirstRender() {
 }
 
-func (t *TCPTask) RegionName() string {
-	return t.Region
+func (t *TCPTask) getVariableValue(variable Variable) (string, error) {
+	return "", fmt.Errorf("not support")
 }
 
-func (t *TCPTask) PostURLStr() string {
-	return t.PostURL
-}
+func (t *TCPTask) getRawTask(taskString string) (string, error) {
+	task := TCPTask{}
 
-func (t *TCPTask) AccessKey() string {
-	return t.AK
-}
-
-func (t *TCPTask) GetHostName() (string, error) {
-	return t.Host, nil
-}
-
-func (t *TCPTask) GetWorkspaceLanguage() string {
-	if t.WorkspaceLanguage == "en" {
-		return "en"
+	if err := json.Unmarshal([]byte(taskString), &task); err != nil {
+		return "", fmt.Errorf("unmarshal tcp task failed: %w", err)
 	}
-	return "zh"
+
+	task.Task = nil
+
+	bytes, _ := json.Marshal(task)
+	return string(bytes), nil
 }
 
-func (t *TCPTask) GetDFLabel() string {
-	if t.DFLabel != "" {
-		return t.DFLabel
+func (t *TCPTask) initTask() {
+	if t.Task == nil {
+		t.Task = &Task{}
 	}
-	return t.TagsInfo
 }
