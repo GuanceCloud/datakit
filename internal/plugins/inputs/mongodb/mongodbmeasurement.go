@@ -39,6 +39,7 @@ func (m *mongodbMeasurement) Point() *point.Point {
 func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDB,
+		Type: "metric",
 		Desc: "MongoDB measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
 			"host":        &inputs.TagInfo{Desc: "mongodb host"},
