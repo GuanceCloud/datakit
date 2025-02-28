@@ -120,10 +120,14 @@ func (p *pgsqlInfo) parseRequest(payload []byte, tag byte) (bool, error) {
 
 		end := bytes.IndexByte(payload[begin+1:], '\x00')
 		// end := sqlIter.nextIndex()
-		if end >= len(payload) || end == -1 {
+		if end == -1 {
 			return false, ErrUnknownProto
 		}
-		sql := payload[begin+1 : begin+end]
+		endGlobal := begin + end + 1
+		if endGlobal > len(payload) {
+			return false, ErrUnknownProto
+		}
+		sql := payload[begin+1 : endGlobal]
 		if err := p.populateInfo(sql); err != nil {
 			return false, err
 		}
