@@ -272,6 +272,8 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 这种转换使得 OpenTelemetry 收集的直方图数据能够无缝集成到 Prometheus 中，并利用 Prometheus 的强大查询和可视化功能进行分析。
 
+
+
 ## 数据字段说明 {#fields}
 
 {{ range $i, $m := .Measurements }}
@@ -290,6 +292,25 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 {{ end }}
 
+
+## 指标中删除的标签 {#del-metric}
+
+OTEL 上报的指标中有很多无用的标签，这些都是 String 类型，由于太占用内存和带宽就做了删除，不会上传到观测云中心。
+
+这些标签包括：
+
+```text
+process.command_line
+process.executable.path
+process.runtime.description
+process.runtime.name
+process.runtime.version
+telemetry.distro.name
+telemetry.distro.version
+telemetry.sdk.language
+telemetry.sdk.name
+telemetry.sdk.version
+```
 
 ## 日志 {#logging}
 

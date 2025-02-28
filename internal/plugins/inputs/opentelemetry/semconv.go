@@ -142,3 +142,17 @@ func getServiceNameBySystem(atts []*common.KeyValue, defaultName string) string 
 
 	return defaultName
 }
+
+// delMetricKey: 删除无效的key，节省内存空间。
+var delMetricKey = []string{
+	"process.command_line",
+	"process.executable.path",
+	"process.runtime.description",
+	"process.runtime.name",
+	"process.runtime.version",
+	"telemetry.distro.name",
+	"telemetry.distro.version",
+	"telemetry.sdk.language",
+	"telemetry.sdk.name",
+	"telemetry.sdk.version",
+}

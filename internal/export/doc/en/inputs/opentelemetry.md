@@ -274,6 +274,26 @@ In histogram data, the `le` (less or equal) label can be used for classification
 
 This conversion enables seamless integration of OpenTelemetry-collected histogram data into Prometheus, leveraging Prometheus' powerful querying and visualization capabilities for analysis.
 
+## Delete Metric Tags {#del-metric}
+
+There are many useless tags in the indicators reported by OTEL. These are all of **String** type. They have been deleted because they occupy too much memory and bandwidth and will not be uploaded to the GuanCe cloud center.
+
+These tags include:
+
+```text
+process.command_line
+process.executable.path
+process.runtime.description
+process.runtime.name
+process.runtime.version
+telemetry.distro.name
+telemetry.distro.version
+telemetry.sdk.language
+telemetry.sdk.name
+telemetry.sdk.version
+```
+
+
 {{ range $i, $m := .Measurements }}
 
 ### {{$m.Type}}
