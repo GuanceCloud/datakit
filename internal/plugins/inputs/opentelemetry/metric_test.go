@@ -9,9 +9,12 @@ package opentelemetry
 import (
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	v1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	resource "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
 func Test_parseResourceMetricsV2(t *testing.T) {
@@ -162,17 +165,35 @@ func Test_parseResourceMetricsV2(t *testing.T) {
 			},
 		},
 	}
-
-	pts := parseResourceMetricsV2(msource)
-	if len(pts) == 0 {
-		t.Errorf("parse otel metric to point.len==0")
-	} else {
-		for _, pt := range pts {
-			t.Logf("point = %s ", pt.LineProto())
-		}
-	}
+	iptGlobal = &Input{feeder: &feeder{t: t}}
+	parseResourceMetricsV2(msource)
 }
 
 func getPtr(f float64) *float64 {
 	return &f
+}
+
+type feeder struct {
+	t *testing.T
+}
+
+func (f *feeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*dkio.Option) error {
+	f.t.Logf("not implement")
+	return nil
+}
+
+func (f *feeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	f.t.Logf("category = %s", category)
+	if len(pts) == 0 {
+		f.t.Errorf("parse otel metric to point.len==0")
+	} else {
+		for _, pt := range pts {
+			f.t.Logf("point = %s ", pt.LineProto())
+		}
+	}
+	return nil
+}
+
+func (f *feeder) FeedLastError(err string, opts ...dkMetrics.LastErrorOption) {
+	f.t.Logf("not implement")
 }

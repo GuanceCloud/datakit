@@ -14,22 +14,24 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
+func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
+	start := time.Now()
 	var pts []*point.Point
 	for _, resmc := range resmcs {
 		if resmc.GetResource() == nil {
-			return pts
+			return
 		}
+
 		resourceTags := attributesToTag(resmc.Resource.GetAttributes())
-		resourceTags["schema_url"] = resmc.GetSchemaUrl()
+
 		for _, scopeMetrics := range resmc.GetScopeMetrics() {
 			var scopeTags map[string]string
 			if scopeStats := scopeMetrics.GetScope(); scopeStats != nil {
 				scopeTags = attributesToTag(scopeMetrics.GetScope().GetAttributes())
 				scopeTags["scope_name"] = scopeMetrics.GetScope().GetName()
-				scopeTags["scope_version"] = scopeMetrics.GetScope().GetName()
 			}
 
 			for _, metric := range scopeMetrics.GetMetrics() {
@@ -115,11 +117,21 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) []*point.Point {
 						pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 					}
 				}
+
+				if len(pts) >= 100 {
+					if err := iptGlobal.feeder.FeedV2(point.Metric, pts,
+						dkio.WithInputName(inputName),
+						dkio.WithCollectCost(time.Since(start)),
+					); err != nil {
+						log.Errorf("feed err=%s", err.Error())
+					}
+					pts = make([]*point.Point, 0, cap(pts))
+				}
 			}
 		}
 	}
 
-	return pts
+	_ = iptGlobal.feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.WithCollectCost(time.Since(start)))
 }
 
 func attributesToTag(src []*common.KeyValue) map[string]string {
@@ -143,7 +155,9 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 			shadowTags[key] = keyVal.Value.GetArrayValue().String()
 		}
 	}
-
+	for _, s := range delMetricKey {
+		delete(shadowTags, s)
+	}
 	return shadowTags
 }
 

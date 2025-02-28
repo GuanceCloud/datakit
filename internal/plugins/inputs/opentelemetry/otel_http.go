@@ -78,7 +78,6 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 
@@ -91,25 +90,14 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 	default:
 		log.Error("unrecognized Content-Type")
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
-
-	points := parseResourceMetricsV2(msreq.ResourceMetrics)
-
-	if len(points) != 0 {
-		if err := iptGlobal.feeder.FeedV2(point.Metric, points,
-			dkio.WithInputName(inputName),
-		); err != nil {
-			log.Error(err.Error())
-		}
-	}
+	parseResourceMetricsV2(msreq.ResourceMetrics)
 }
 
 func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
@@ -117,7 +105,6 @@ func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 	otelLogs := &logs.ExportLogsServiceRequest{}
@@ -129,13 +116,11 @@ func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
 	default:
 		log.Error("unrecognized Content-Type")
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 	if err != nil {
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 	pts := ParseLogsRequest(otelLogs.GetResourceLogs())

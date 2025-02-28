@@ -31,7 +31,7 @@ func runGRPCV1(addr string, ipt *Input) {
 
 	otelSvr = grpc.NewServer(itrace.DefaultGRPCServerOpts...)
 	trace.RegisterTraceServiceServer(otelSvr, &TraceServiceServer{})
-	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{Ipt: ipt})
+	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{})
 	logs.RegisterLogsServiceServer(otelSvr, &LogsServiceServer{Ipt: ipt})
 
 	if err = otelSvr.Serve(listener); err != nil {
@@ -59,22 +59,12 @@ func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTr
 
 type MetricsServiceServer struct {
 	metrics.UnimplementedMetricsServiceServer
-	Ipt *Input
 }
 
 func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
-	start := time.Now()
-	points := parseResourceMetricsV2(msreq.ResourceMetrics)
-	if len(points) != 0 {
-		if err := mss.Ipt.feeder.FeedV2(point.Metric, points,
-			dkio.WithInputName(inputName),
-			dkio.WithCollectCost(time.Since(start)),
-		); err != nil {
-			log.Error(err.Error())
-		}
-	}
+	parseResourceMetricsV2(msreq.ResourceMetrics)
 
 	return &metrics.ExportMetricsServiceResponse{}, nil
 }
