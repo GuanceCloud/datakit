@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -306,3 +307,37 @@ BenchmarkDecodeRequest/no_pool-16                   6806            169198 ns/op
 PASS
 ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace    3.555s
 */
+
+func TestInt64ToPaddedString(t *testing.T) {
+	type args struct {
+		num uint64
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			name: "123",
+			args: args{num: 1234567890},
+			want: 16,
+		},
+		{
+			name: "1234",
+			args: args{num: 6450066879287049030},
+			want: 16,
+		},
+		{
+			name: "max",
+			args: args{num: math.MaxUint64},
+			want: 16,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tid := Int64ToPaddedString(tt.args.num)
+			t.Logf("tid=%s", tid)
+			assert.Equalf(t, tt.want, len(tid), "Int64ToPaddedString(%v)", tt.args.num)
+		})
+	}
+}
