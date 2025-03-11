@@ -94,6 +94,10 @@ var (
 
 	InstrumentationEnabled string
 
+	// WAL options.
+	WALWorkers  int
+	WALCapacity float64
+
 	ConfdBackend,
 	ConfdBasicAuth,
 	ConfdClientCaKeys,
@@ -441,6 +445,16 @@ func loadInstallerEnvs(mc *config.Config) *config.Config {
 	if HostName != "" {
 		mc.Environments["ENV_HOSTNAME"] = HostName
 		l.Infof("set ENV_HOSTNAME to %s", HostName)
+	}
+
+	if WALWorkers != 0 {
+		mc.Dataway.WAL.Workers = WALWorkers
+		l.Infof("set WAL workers to %d", mc.Dataway.WAL.Workers)
+	}
+
+	if WALCapacity != mc.Dataway.WAL.MaxCapacityGB {
+		mc.Dataway.WAL.MaxCapacityGB = WALCapacity
+		l.Infof("set WAL cap to %f GB", mc.Dataway.WAL.MaxCapacityGB)
 	}
 
 	if GlobalHostTags != "" {

@@ -288,6 +288,11 @@ The environment variables supported by the installation script are as follows (s
 - `DK_GIT_BRANCH`: Specify the branch to pull. **If it is empty, it is the default**, and the default is the remotely specified main branch, which is usually `master`.
 - `DK_GIT_INTERVAL`: The interval of the timed pull. (e.g. `1m`)
 
+### WAL {#env-wal}
+
+- `DK_WAL_WORKERS`: Set WAL workers, default to limited-CPU-cores * 4
+- `DK_WAL_CAPACITY`: Set single WAL max disk size, default to 2GB
+
 ### On Sinker Configuration {#env-sink}
 
 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` used to setup sinker tag/field keys, here is the example:

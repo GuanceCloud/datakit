@@ -237,7 +237,7 @@ func startDatawayWorkers() {
 
 	// setup extra options on @dw
 	if dw.WAL.Workers == 0 {
-		n := datakit.AvailableCPUs * 2
+		n := datakit.AvailableCPUs * 8 // we need more workers on WAL upload
 		l.Infof("set %d flush WAL workers", n)
 		dataway.WithWALWorkers(n)(dw)
 	}

@@ -165,6 +165,9 @@ func init() {
 	flag.StringVar(&installer.IPDBType, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&installer.CloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 
+	flag.Float64Var(&installer.WALCapacity, "wal-capacity", 2.0, "Set WAL cache capacity in GB(default 2.0)")
+	flag.IntVar(&installer.WALWorkers, "wal-workers", 0, "Set WAL flush workers(default limited-CPU-cores * 4)")
+
 	// confd flags
 	flag.StringVar(&installer.ConfdBackend, "confd-backend", "", "backend kind")
 	flag.StringVar(&installer.ConfdBasicAuth, "confd-basic-auth", "", "if backend need auth")
