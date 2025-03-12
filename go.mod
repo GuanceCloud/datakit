@@ -28,7 +28,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elastic/go-lumber v0.1.1
 	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.15.0
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-git/go-git/v5 v5.4.2
@@ -194,7 +194,7 @@ require (
 	github.com/hashicorp/consul/api v1.18.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-hclog v1.4.0 // indirect
+	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.4.8 // indirect
@@ -374,7 +374,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20250227114133-84f196623c0f
+	github.com/GuanceCloud/cliutils v1.1.22-0.20250312025914-0375dfaf129b
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -391,6 +391,8 @@ require (
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/valyala/fastjson v1.6.3
 )
+
+require github.com/GuanceCloud/pipeline-go v1.0.0
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	plscript "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
 	"github.com/GuanceCloud/cliutils/point"
+	plscript "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"

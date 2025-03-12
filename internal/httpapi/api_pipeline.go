@@ -18,9 +18,9 @@ import (
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
+	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
+	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/errchain"

@@ -15,8 +15,8 @@ import (
 	"runtime"
 	"strings"
 
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"

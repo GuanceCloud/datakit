@@ -28,7 +28,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
+	"github.com/GuanceCloud/pipeline-go/manager"
 	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

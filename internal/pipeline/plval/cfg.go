@@ -8,12 +8,12 @@ package plval
 import (
 	"regexp"
 
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/offload"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/geoip"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/iploc"
 	"github.com/GuanceCloud/grok"
+	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/offload"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb/geoip"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb/iploc"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 )
 

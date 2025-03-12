@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )

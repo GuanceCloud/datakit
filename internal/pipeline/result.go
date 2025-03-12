@@ -8,7 +8,7 @@ package pipeline
 import (
 	"time"
 
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 )
 
 const (

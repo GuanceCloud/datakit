@@ -22,8 +22,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"github.com/gorilla/websocket"
@@ -454,6 +454,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 			point.Metric,
 			point.Network,
 			point.Object,
+			point.ObjectChange,
 			point.Profiling,
 			point.RUM,
 			point.Security,

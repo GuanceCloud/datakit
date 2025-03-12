@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 )
 
 var _ipdb ipdb.IPdb

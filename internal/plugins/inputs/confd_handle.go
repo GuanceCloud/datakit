@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )

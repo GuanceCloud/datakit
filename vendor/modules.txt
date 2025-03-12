@@ -37,7 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20250227114133-84f196623c0f
+# github.com/GuanceCloud/cliutils v1.1.22-0.20250312025914-0375dfaf129b
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -48,20 +48,6 @@ github.com/GuanceCloud/cliutils/logger
 github.com/GuanceCloud/cliutils/metrics
 github.com/GuanceCloud/cliutils/network/http
 github.com/GuanceCloud/cliutils/network/ws
-github.com/GuanceCloud/cliutils/pipeline
-github.com/GuanceCloud/cliutils/pipeline/manager
-github.com/GuanceCloud/cliutils/pipeline/offload
-github.com/GuanceCloud/cliutils/pipeline/ptinput
-github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs
-github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb
-github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/geoip
-github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb/iploc
-github.com/GuanceCloud/cliutils/pipeline/ptinput/plcache
-github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap
-github.com/GuanceCloud/cliutils/pipeline/ptinput/ptwindow
-github.com/GuanceCloud/cliutils/pipeline/ptinput/refertable
-github.com/GuanceCloud/cliutils/pipeline/ptinput/utils
-github.com/GuanceCloud/cliutils/pipeline/stats
 github.com/GuanceCloud/cliutils/pkg/hash
 github.com/GuanceCloud/cliutils/point
 github.com/GuanceCloud/cliutils/pprofparser/cfg
@@ -111,6 +97,22 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
+# github.com/GuanceCloud/pipeline-go v1.0.0
+## explicit; go 1.19
+github.com/GuanceCloud/pipeline-go
+github.com/GuanceCloud/pipeline-go/manager
+github.com/GuanceCloud/pipeline-go/offload
+github.com/GuanceCloud/pipeline-go/ptinput
+github.com/GuanceCloud/pipeline-go/ptinput/funcs
+github.com/GuanceCloud/pipeline-go/ptinput/ipdb
+github.com/GuanceCloud/pipeline-go/ptinput/ipdb/geoip
+github.com/GuanceCloud/pipeline-go/ptinput/ipdb/iploc
+github.com/GuanceCloud/pipeline-go/ptinput/plcache
+github.com/GuanceCloud/pipeline-go/ptinput/plmap
+github.com/GuanceCloud/pipeline-go/ptinput/ptwindow
+github.com/GuanceCloud/pipeline-go/ptinput/refertable
+github.com/GuanceCloud/pipeline-go/ptinput/utils
+github.com/GuanceCloud/pipeline-go/stats
 # github.com/GuanceCloud/platypus v0.3.1
 ## explicit; go 1.19
 github.com/GuanceCloud/platypus/internal/logger
@@ -583,8 +585,8 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/fatih/color v1.13.0
-## explicit; go 1.13
+# github.com/fatih/color v1.15.0
+## explicit; go 1.17
 github.com/fatih/color
 # github.com/felixge/httpsnoop v1.0.3
 ## explicit; go 1.13
@@ -936,7 +938,7 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-hclog v1.4.0
+# github.com/hashicorp/go-hclog v1.5.0
 ## explicit; go 1.13
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.3.1
