@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	reflect "reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -350,6 +351,15 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 		log.Warnf("no point from %q", opt.input)
 		return nil
 	}
+
+	if opt.input == "" {
+		pc, src, ln, ok := runtime.Caller(2) // skip 2 level: current doFeed and uplevel Feed/FeedV2
+		if ok {
+			fn := runtime.FuncForPC(pc).Name()
+			log.Warnf("feed with no name, file: %s, caller: %s, line: %d", src, fn, ln)
+		}
+	}
+
 	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
 
 	after, plCreate, offl, err := beforeFeed(opt)
