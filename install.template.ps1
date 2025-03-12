@@ -88,6 +88,18 @@ if ($x -ne $null) {
 	Write-COutput green ("* Set upgrade => ON" )
 }
 
+$x = [Environment]::GetEnvironmentVariable("DK_WAL_WORKERS")
+if ($x -ne $null) {
+	$cmd += "--wal-workers='$x'"
+	Write-COutput green ("* Set WAL workers => $x" )
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_WAL_CAPACITY")
+if ($x -ne $null) {
+	$cmd += "--wal-capacity='$x'"
+	Write-COutput green ("* Set WAL disk capacity(GB) => $x" )
+}
+
 $x = [Environment]::GetEnvironmentVariable("DK_HTTP_PUBLIC_APIS")
 if ($x -ne $null) {
 	$cmd += "--http-public-apis='$x'"

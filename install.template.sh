@@ -146,6 +146,16 @@ if [ -n "$DK_DATAWAY" ]; then
 	printf "* Set dataway => $DK_DATAWAY\n"
 fi
 
+if [ -n "$DK_WAL_WORKERS" ]; then
+	cmd+=("--wal-workers=$DK_WAL_WORKERS")
+	printf "* Set WAL workers => $DK_WAL_WORKERS\n"
+fi
+
+if [ -n "$DK_WAL_CAPACITY" ]; then
+	cmd+=("--wal-capacity=$DK_WAL_CAPACITY")
+	printf "* Set WAL disk capacity(GB) => $DK_WAL_CAPACITY\n"
+fi
+
 if [ -n "$DK_LITE" ]; then
 	cmd+=("--lite=$DK_LITE")
 	printf "* Set lite => ON\n"

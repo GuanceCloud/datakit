@@ -310,6 +310,11 @@ NAME1="value1" NAME2="value2"
 - `DK_GIT_BRANCH`: 指定拉取的分支。**为空则是默认**，默认是远程指定的主分支，一般是 `master`。
 - `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
 
+### WAL 磁盘缓存 {#env-wal}
+
+- `DK_WAL_WORKERS`: 设置 WAL 消费 worker 数，默认 CPU limit 核心数 * 4
+- `DK_WAL_CAPACITY`: 这是单个 WAL 最大占用磁盘大小，默认 2GB
+
 ### Sinker 相关配置 {#env-sink}
 
 通过 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` 用于设置 sinker 过滤的 tag/field key 名称，其形式如下：
