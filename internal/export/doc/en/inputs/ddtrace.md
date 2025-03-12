@@ -121,9 +121,20 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 ### Notes on Linking Multiple Line Tools {#trace_propagator}
 DDTrace currently supports the following propagation protocols: `datadog/b3multi/tracecontext`. There are two things to note:
 
-- When using `tracecontext`, the `compatible_otel=true` switch needs to be turned on in the configuration because the link ID is 128 bits.
+In the DDTrace data structure, the TraceID is of type uint64. When using the propagation protocol `tracecontext`, an additional tag `_dd.p.tid:67c573cf00000000` is added internally in the DDTrace trace details.
+This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexadecimal encoded string. To ensure compatibility, a high-order tag is added.
+
+- When using `tracecontext`, the `compatible_otel=true` and `trace_128_bit_id` switch needs to be turned on in the configuration because the link ID is 128 bits.
 - When using `b3multi`, pay attention to the length of `trace_id`. If it is 64-bit hex encoding, the `trace_id_64_bit_hex=true` needs to be turned on in the configuration file.
 - For more propagation protocol and tool usage, please refer to: [Multi-Link Concatenation](tracing-propagator.md){:target="_blank"}
+
+
+???+ tip
+
+    compatible_otel function: Converts span_id and parent_id into hexadecimal strings.
+    trace_128_bit_id function: Combines the "_dd.p.tid" from meta with trace_id to form a 32-character hexadecimal encoded string.
+    trace_id_64_bit_hex function: Converts a 64-bit trace_id into a hexadecimal encoded string.
+
 
 ### Add Pod and Node tags {#add-pod-node-info}
 

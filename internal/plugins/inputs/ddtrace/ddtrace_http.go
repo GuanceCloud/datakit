@@ -309,6 +309,14 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 
 		if strTraceID == "" {
 			strTraceID = strconv.FormatUint(span.TraceID, traceBase)
+
+			if v, ok := span.Meta[TraceIDUpper]; trace128BitID && ok {
+				strTraceID = v + Int64ToPaddedString(span.TraceID)
+			}
+
+			if ignoreTraceIDFromTag {
+				strTraceID = Int64ToPaddedString(span.TraceID)
+			}
 		}
 
 		var spanKV point.KVs
@@ -352,10 +360,6 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		if v, ok := span.Meta[runTimeIDKey]; ok {
 			spanKV = spanKV.AddTag("runtime_id", v).AddTag(runTimeIDKey, v)
 			delete(span.Meta, runTimeIDKey)
-		}
-
-		if v, ok := span.Meta["trace_128_bit_id"]; !ignoreTraceIDFromTag && ok {
-			spanKV = spanKV.Add(itrace.FieldTraceID, v, false, true)
 		}
 
 		for k, v := range inputTags {
@@ -413,4 +417,13 @@ func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint
 	}
 
 	return
+}
+
+func Int64ToPaddedString(num uint64) string {
+	str := strconv.FormatUint(num, 16)
+	if len(str) < 16 {
+		str = strings.Repeat("0", 16-len(str)) + str
+	}
+
+	return str
 }

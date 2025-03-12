@@ -35,7 +35,12 @@ var (
 const (
 	inputName            = "ddtrace"
 	customObjectFeedName = inputName + "/CO"
-	sampleConfig         = `
+
+	// TraceIDUpper Tag used to propagate the higher-order 64 bits of a 128-bit trace id encoded as a
+	// lower-case hexadecimal string with no zero-padding or `0x` prefix.
+	TraceIDUpper = "_dd.p.tid"
+
+	sampleConfig = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -62,6 +67,11 @@ const (
 
   ##  It is possible to compatible B3/B3Multi TraceID with DDTrace.
   # trace_id_64_bit_hex=true
+
+  ## When true, the tracer generates 128 bit Trace IDs, 
+  ## and encodes Trace IDs as 32 lowercase hexadecimal characters with zero padding.
+  ## default is true.
+  # trace_128_bit_id = true
 
   ## delete trace message
   # del_message = true
@@ -123,6 +133,7 @@ var (
 	traceMaxSpans       = 100000
 	maxTraceBody        = int64(32 * (1 << 20))
 	noStreaming         = false
+	trace128BitID       bool
 )
 
 type Input struct {
@@ -135,6 +146,7 @@ type Input struct {
 	Endpoints        []string                     `toml:"endpoints"`
 	CompatibleOTEL   bool                         `toml:"compatible_otel"`
 	TraceID64BitHex  bool                         `toml:"trace_id_64_bit_hex"`
+	Trace128BitID    bool                         `toml:"trace_128_bit_id"`
 	DelMessage       bool                         `toml:"del_message"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus    []string                     `toml:"omit_err_status"`
@@ -189,6 +201,7 @@ func (ipt *Input) RegHTTPHandler() {
 		maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
 	}
 
+	trace128BitID = ipt.Trace128BitID
 	noStreaming = ipt.NoStreaming
 	delMessage = ipt.DelMessage
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
@@ -390,6 +403,7 @@ func defaultInput() *Input {
 		semStop:       cliutils.NewSem(),
 		Tagger:        datakit.DefaultGlobalTagger(),
 		TraceMaxSpans: traceMaxSpans,
+		Trace128BitID: true,
 	}
 }
 
