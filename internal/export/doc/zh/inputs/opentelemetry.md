@@ -238,7 +238,7 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 <!-- markdownlint-disable MD046 -->
 ???+ warning "metric"
 
-    从版本 [DataKit 1.68.0](../datakit/changelog.md#cl-1.68.0) 开始指标集名称做了改动：
+    从版本 [DataKit 1.68.0](../datakit/changelog-2025.md#cl-1.68.0) 开始指标集名称做了改动：
     所有发送到观测云的指标有一个统一的指标集的名字： `otel_service` 
     如果已经有了仪表板，将已有的仪表板导出后统一将 `otel-serivce` 改为 `otel_service` 再导入即可。
 
