@@ -23,6 +23,9 @@ const sampleCfg = `
   ## exclude some with dev prefix (We collect all devices prefixed with dev by default)
   # exclude_device = ["/dev/loop0","/dev/loop1"]
 
+  ignore_fstypes = '''^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$'''
+  ignore_mountpoints = '''^(/usr/local/datakit/.*|/run/containerd/.*)$'''
+
   #[inputs.disk.tags]
   #  some_tag = "some_value"
   #  more_tag = "some_other_value"

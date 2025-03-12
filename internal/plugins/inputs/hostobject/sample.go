@@ -13,14 +13,11 @@ const (
 ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
-## absolute path to the configuration file
+## Absolute path to the configuration file
 # config_path = ["/usr/local/datakit/conf.d/datakit.conf"]
 
-##############################
-# Disk related options
-##############################
-## Deprecated
-# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
+# Do not collect disks that with these file systems
+ignore_fstypes = '''^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$'''
 
 ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
 # extra_device = []

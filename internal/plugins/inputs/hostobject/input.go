@@ -11,10 +11,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
+	"regexp"
 	"runtime"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -27,12 +25,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkmetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/pcommon"
 )
 
 const (
@@ -72,10 +69,16 @@ type Input struct {
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
-	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
-	MergeOnDevice              bool     `toml:"merge_on_device"`
 	ExtraDevice                []string `toml:"extra_device"`
 	ExcludeDevice              []string `toml:"exclude_device"`
+
+	IgnoreFSTypes    string `toml:"ignore_fstypes"`
+	regIgnoreFSTypes *regexp.Regexp
+
+	IgnoreMountpoints    string `toml:"ignore_mountpoints"`
+	regIgnoreMountpoints *regexp.Regexp
+
+	diskStats pcommon.DiskStats
 
 	ConfigPath []string `toml:"config_path"`
 
@@ -152,6 +155,22 @@ func (ipt *Input) setup() {
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
 	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+
+	if ipt.IgnoreFSTypes != "" {
+		if re, err := regexp.Compile(ipt.IgnoreFSTypes); err != nil {
+			l.Warnf("regexp.Compile(%q): %s, ignored", ipt.IgnoreFSTypes, err.Error())
+		} else {
+			ipt.regIgnoreFSTypes = re
+		}
+	}
+
+	if ipt.IgnoreMountpoints != "" {
+		if re, err := regexp.Compile(ipt.IgnoreMountpoints); err != nil {
+			l.Warnf("regexp.Compile(%q): %s, ignored", ipt.IgnoreMountpoints, err.Error())
+		} else {
+			ipt.regIgnoreMountpoints = re
+		}
+	}
 }
 
 func (ipt *Input) collect(ptTS int64) error {
@@ -276,171 +295,22 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
-	// nolint:lll
-	infos := []*inputs.ENVInfo{
-		{FieldName: "EnableNetVirtualInterfaces", ENVName: "INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES", ConfField: "enable_net_virtual_interfaces", Type: doc.Boolean, Default: `false`, Desc: "Enable collect network virtual interfaces", DescZh: "允许采集虚拟网卡"},
-		{FieldName: "IgnoreZeroBytesDisk", ENVName: "INPUT_HOSTOBJECT_IGNORE_ZERO_BYTES_DISK", ConfField: "ignore_zero_bytes_disk", Type: doc.Boolean, Default: `false`, Desc: "Ignore the disk which space is zero", DescZh: "忽略大小为 0 的磁盘"},
-		{FieldName: "OnlyPhysicalDevice", ENVName: "INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE", ConfField: "only_physical_device", Type: doc.Boolean, Default: `false`, Desc: "Physical devices only, any string", DescZh: "忽略非物理磁盘（如网盘、NFS），任意非空字符串"},
-		{FieldName: "ExcludeDevice", ENVName: "INPUT_HOSTOBJECT_EXCLUDE_DEVICE", ConfField: "exclude_device", Type: doc.List, Example: `/dev/loop0,/dev/loop1`, Desc: "Exclude some with dev prefix", DescZh: "忽略的 device"},
-		{FieldName: "ExtraDevice", ENVName: "INPUT_HOSTOBJECT_EXTRA_DEVICE", ConfField: "extra_device", Type: doc.List, Example: "`/nfsdata,other`", Desc: "Additional device", DescZh: "额外增加的 device"},
-		{FieldName: "EnableCloudHostTagsGlobalElection", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS", ConfField: "enable_cloud_host_tags_global_election_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global election tags", DescZh: "将云服务商 region/zone_id 信息放入全局选举标签"},
-		{FieldName: "EnableCloudHostTagsGlobalHost", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS", ConfField: "enable_cloud_host_tags_global_host_tags", Type: doc.Boolean, Default: "true", Desc: "Enable put cloud provider region/zone_id information into global host tags", DescZh: "将云服务商 region/zone_id 信息放入全局主机标签"},
-		{FieldName: "EnableCloudAWSIMDSv2", ENVName: "INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2", ConfField: "enable_cloud_aws_imds_v2", Type: doc.Boolean, Default: "false", Desc: "Enable AWS IMDSv2", DescZh: "开启 AWS IMDSv2"},
-		{FieldName: "EnableCloudAWSIPv6", ENVName: "INPUT_HOSTOBJECT_CLOUD_AWS_IPV6", ConfField: "enable_cloud_aws_ipv6", Type: doc.Boolean, Default: "false", Desc: "Enable AWS IPv6", DescZh: "开启 AWS IPv6"},
-		{FieldName: "Tags", ENVName: "INPUT_HOSTOBJECT_TAGS", ConfField: "tags"},
-		{FieldName: "ENVCloud", ENVName: "CLOUD_PROVIDER", ConfField: "none", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Designate cloud service provider", DescZh: "指定云服务商"},
-		{FieldName: "CloudMetaURL", ENVName: "CLOUD_META_URL", ConfField: "cloud_meta_url", Type: doc.Map, Example: "`{\"tencent\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata URL mapping", DescZh: "云服务商元数据 URL 映射"},
-		{FieldName: "CloudMetaTokenURL", ENVName: "INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL", ConfField: "cloud_meta_token_url", Type: doc.Map, Example: "`{\"aws\":\"xxx\", \"aliyun\":\"yyy\"}`", Desc: "Cloud metadata Token URL mapping", DescZh: "云服务商获取元数据的 Token URL 映射"},
-	}
-
-	return doc.SetENVDoc("ENV_", infos)
-}
-
-// ReadEnv used to read ENVs while running under DaemonSet.
-func (ipt *Input) ReadEnv(envs map[string]string) {
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES to bool: %s, ignore", err)
-		} else {
-			ipt.EnableNetVirtualInterfaces = b
-		}
-	}
-
-	if _, ok := envs["ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE"]; ok {
-		l.Info("setup OnlyPhysicalDevice...")
-		ipt.OnlyPhysicalDevice = true
-	}
-	if fsList, ok := envs["ENV_INPUT_HOSTOBJECT_EXTRA_DEVICE"]; ok {
-		list := strings.Split(fsList, ",")
-		l.Debugf("add extra_device from ENV: %v", fsList)
-		ipt.ExtraDevice = append(ipt.ExtraDevice, list...)
-	}
-	if fsList, ok := envs["ENV_INPUT_HOSTOBJECT_EXCLUDE_DEVICE"]; ok {
-		list := strings.Split(fsList, ",")
-		l.Debugf("add exlude_device from ENV: %v", fsList)
-		ipt.ExcludeDevice = append(ipt.ExcludeDevice, list...)
-	}
-	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK to bool: %s, ignore", err)
-		} else {
-			ipt.IgnoreZeroBytesDisk = b
-		}
-	}
-	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/2076
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableCloudHostTagsGlobalElection = b
-		}
-	}
-	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/2136
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS to bool: %s, ignore", err)
-		} else {
-			ipt.EnableCloudHostTagsGlobalHost = b
-		}
-	}
-	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
-		tags := config.ParseGlobalTags(tagsStr)
-		for k, v := range tags {
-			ipt.Tags[k] = v
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2 to bool: %s, ignore", err)
-		} else {
-			ipt.EnableCloudAWSIMDSv2 = b
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IPV6"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_AWS_IPV6 to bool: %s, ignore", err)
-		} else {
-			ipt.EnableCloudAWSIPv6 = b
-		}
-	}
-
-	// ENV_CLOUD_PROVIDER 会覆盖 ENV_INPUT_HOSTOBJECT_TAGS 中填入的 cloud_provider
-	if tagsStr, ok := envs["ENV_CLOUD_PROVIDER"]; ok {
-		cloudProvider := dkstring.TrimString(tagsStr)
-		cloudProvider = strings.ToLower(cloudProvider)
-		switch cloudProvider {
-		case "aliyun", "tencent", "aws", "hwcloud", "azure":
-			ipt.Tags["cloud_provider"] = cloudProvider
-		}
-	} // ENV_CLOUD_PROVIDER
-
-	if cloudMetaURLStr, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_URL"]; ok {
-		var cloudMetaURL map[string]string
-		err := json.Unmarshal([]byte(cloudMetaURLStr), &cloudMetaURL)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_URL: %s, ignore", err)
-		} else {
-			ipt.CloudMetaURL = cloudMetaURL
-			l.Debugf("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
-		}
-	}
-
-	if cloudMetaTokenURLStr, ok := envs["ENV_INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL"]; ok {
-		var cloudMetaTokenURL map[string]string
-		err := json.Unmarshal([]byte(cloudMetaTokenURLStr), &cloudMetaTokenURL)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL: %s, ignore", err)
-		} else {
-			ipt.CloudMetaTokenURL = cloudMetaTokenURL
-			l.Debugf("loaded cloud_meta_token_url from ENV: %v", cloudMetaTokenURL)
-		}
-	}
-
-	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_MERGE_ON_DEVICE"]; ok {
-		b, err := strconv.ParseBool(enable)
-		if err != nil {
-			l.Warnf("parse ENV_INPUT_HOSTOBJECT_MERGE_ON_DEVICE to bool: %s, ignore", err)
-		} else {
-			ipt.MergeOnDevice = b
-		}
-	}
-
-	// Default setting: we have add the env HOST_ROOT in datakit.yaml by default
-	// but some old deployments may not hava this ENV set.
-	ipt.hostRoot = "/rootfs"
-
-	// Deprecated: use ENV_HOST_ROOT
-	if v := os.Getenv("HOST_ROOT"); v != "" {
-		ipt.hostRoot = v
-	}
-
-	if v := os.Getenv("ENV_HOST_ROOT"); v != "" {
-		ipt.hostRoot = v
-	}
-}
-
 func defaultInput() *Input {
 	return &Input{
 		Interval:                                    5 * time.Minute,
 		IgnoreInputsErrorsBefore:                    30 * time.Second,
-		IgnoreZeroBytesDisk:                         true,
 		EnableCloudHostTagsGlobalElection:           true,
 		EnableCloudHostTagsGlobalElectionDeprecated: true,
 		EnableCloudHostTagsGlobalHost:               true,
 		EnableCloudHostTagsGlobalHostDeprecated:     true,
+		IgnoreZeroBytesDisk:                         true,
 		diskIOCounters:                              diskutil.IOCounters,
 		netIOCounters:                               netutil.IOCounters,
-		MergeOnDevice:                               false,
+
+		diskStats:     &pcommon.DiskStatsImpl{},
+		IgnoreFSTypes: `^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$`,
+		// default ignore config map and loggging collector related mount points
+		IgnoreMountpoints: `^(/usr/local/datakit/.*|/run/containerd/.*)$`,
 
 		semStop:       cliutils.NewSem(),
 		feeder:        dkio.DefaultFeeder(),

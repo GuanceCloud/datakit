@@ -7,10 +7,14 @@
 package pcommon
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/disk"
 )
+
+var l = logger.DefaultSLogger("pcommon")
 
 // TrimPartitionHostPath remove host-path prefix in p's device name and mountpoint.
 func TrimPartitionHostPath(hostpath string, p *disk.PartitionStat) *disk.PartitionStat {
@@ -38,4 +42,48 @@ func TrimPartitionHostPath(hostpath string, p *disk.PartitionStat) *disk.Partiti
 	}
 
 	return p
+}
+
+type DiskStats interface {
+	Usage(path string) (*disk.UsageStat, error)
+	Partitions() ([]disk.PartitionStat, error)
+}
+
+type FilesystemStats struct {
+	Usage *disk.UsageStat
+	Part  *disk.PartitionStat
+}
+
+func FilterUsage(ds DiskStats, hostRoot string) (arr []FilesystemStats, err error) {
+	parts, err := ds.Partitions()
+	if err != nil {
+		return nil, fmt.Errorf("Partitions(): %w", err)
+	}
+
+	for i := range parts {
+		p := TrimPartitionHostPath(hostRoot, &parts[i])
+
+		du, err := ds.Usage(p.Mountpoint)
+		if err != nil {
+			l.Warnf("Usage: %s, ignored", err)
+			continue
+		}
+
+		arr = append(arr, FilesystemStats{
+			Usage: du,
+			Part:  p,
+		})
+	}
+
+	return arr, nil
+}
+
+type DiskStatsImpl struct{}
+
+func (dk *DiskStatsImpl) Usage(path string) (*disk.UsageStat, error) {
+	return disk.Usage(path)
+}
+
+func (dk *DiskStatsImpl) Partitions() ([]disk.PartitionStat, error) {
+	return disk.Partitions(true)
 }

@@ -11,13 +11,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
-	"sort"
 	"strings"
 	"time"
 
 	cpuutil "github.com/shirou/gopsutil/cpu"
-	diskutil "github.com/shirou/gopsutil/disk"
 	hostutil "github.com/shirou/gopsutil/host"
 	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
@@ -257,85 +254,51 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 }
 
 func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
-	l.Debugf("get partitions(physical: %v)...", ipt.OnlyPhysicalDevice)
-
-	ps, err := diskutil.Partitions(!ipt.OnlyPhysicalDevice)
+	res, err := pcommon.FilterUsage(ipt.diskStats, ipt.hostRoot)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
 		return nil, 0, err
 	}
 
-	var infos []*DiskInfo
+	var (
+		infos []*DiskInfo
+		total = uint64(0)
+		used  = uint64(0)
+	)
 
-	excluded := func(x string, arr []string) bool {
-		for _, fs := range arr {
-			if strings.EqualFold(x, fs) {
-				return true
-			}
-		}
-		return false
-	}
+	for _, fs := range res {
+		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, fs.Part)
 
-	total := uint64(0)
-	used := uint64(0)
-
-	// Sort these parts to make sure tags are the same when merge-on-device are set.
-	sort.Slice(ps, func(i, j int) bool {
-		return ps[i].Mountpoint < ps[j].Mountpoint
-	})
-
-	for idx := range ps {
-		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, &ps[idx])
-
-		// nolint
-		if !strings.HasPrefix(p.Device, "/dev/") &&
-			runtime.GOOS != datakit.OSWindows &&
-			!excluded(p.Device, ipt.ExtraDevice) {
-			l.Debugf("ignore part have no prefix /dev/: %+#v", p)
+		if datakit.StrEFInclude(fs.Part.Device, ipt.ExcludeDevice) {
+			l.Infof("part excluded: %+#v", p)
 			continue
 		}
 
-		if excluded(p.Device, ipt.ExcludeDevice) {
-			l.Debugf("part excluded: %+#v", p)
+		if ipt.regIgnoreFSTypes != nil && ipt.regIgnoreFSTypes.MatchString(fs.Part.Fstype) {
+			l.Infof("ignore fs type %s on %+#v", fs.Part.Fstype, fs.Part)
 			continue
 		}
 
-		if ipt.MergeOnDevice {
-			// merge same device
-			mergeFlag := false
-			for _, cont := range infos {
-				if cont.Device == p.Device {
-					l.Debugf("%+#v merged with partition %+#v", p, cont)
-					mergeFlag = true
-					break
-				}
-			}
+		if ipt.regIgnoreMountpoints != nil && ipt.regIgnoreMountpoints.MatchString(fs.Part.Mountpoint) {
+			l.Infof("ignore mount point %s on %+#v", fs.Part.Mountpoint, fs.Part)
+			continue
+		}
 
-			if mergeFlag {
-				continue
-			}
+		if ipt.IgnoreZeroBytesDisk && fs.Usage.Total == 0 {
+			l.Infof("skip zero partition %+#v", p)
+			continue
 		}
 
 		info := &DiskInfo{
 			Device:     p.Device,
 			Fstype:     p.Fstype,
 			MountPoint: p.Mountpoint,
+			Total:      fs.Usage.Total,
 		}
 
-		usage, err := diskutil.Usage(p.Mountpoint)
-		if err == nil {
-			if ipt.IgnoreZeroBytesDisk && usage.Total == 0 {
-				l.Debugf("skip zero partition %+#v", p)
-				continue // see #505
-			}
-
-			info.Total = usage.Total
-			// the sum of disk total and used.
-			total += usage.Total
-			used += usage.Used
-		} else {
-			l.Warnf("get usage of partition %+#v failed: %s, ignored", p, err.Error())
-		}
+		// the sum of disk total and used.
+		total += fs.Usage.Total
+		used += fs.Usage.Used
 
 		l.Debugf("get disk %+#v", info)
 		infos = append(infos, info)

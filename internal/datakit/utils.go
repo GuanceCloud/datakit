@@ -403,3 +403,23 @@ func SaveStringToFile(path string, value string) error {
 
 	return nil
 }
+
+// StrEFInclude check if x in arr with EqualFold tetsing.
+func StrEFInclude(x string, arr []string) bool {
+	for _, s := range arr {
+		if strings.EqualFold(x, s) {
+			return true
+		}
+	}
+	return false
+}
+
+// StrInclude check if x in arr with == tetsing.
+func StrInclude(x string, arr []string) bool {
+	for _, s := range arr {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
