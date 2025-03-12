@@ -18,17 +18,17 @@ func (ipt *Input) filterUsage() (arr []pcommon.FilesystemStats, err error) {
 
 	for _, x := range res {
 		if datakit.StrEFInclude(x.Part.Device, ipt.ExcludeDevice) {
-			l.Infof("exclude device %+#v", x.Part)
+			l.Debugf("exclude device %+#v", x.Part)
 			continue
 		}
 
 		if ipt.regIgnoreFSTypes != nil && ipt.regIgnoreFSTypes.MatchString(x.Part.Fstype) {
-			l.Infof("ignore fs type %s on %+#v", x.Part.Fstype, x.Part)
+			l.Debugf("ignore fs type %s on %+#v", x.Part.Fstype, x.Part)
 			continue
 		}
 
 		if ipt.regIgnoreMountpoints != nil && ipt.regIgnoreMountpoints.MatchString(x.Part.Mountpoint) {
-			l.Infof("ignore mountpoint %s on %+#v", x.Part.Mountpoint, x.Part)
+			l.Debugf("ignore mountpoint %s on %+#v", x.Part.Mountpoint, x.Part)
 			continue
 		}
 
