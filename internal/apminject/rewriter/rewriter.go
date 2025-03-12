@@ -186,28 +186,38 @@ func traceURL(lang string) (args [][2]string, envs [][2]string, err error) {
 
 	switch lang {
 	case langJava:
-		if addr.UDSAddr != "" {
-			args = [][2]string{
-				{"-Ddd.trace.agent.url", "unix://" + addr.UDSAddr},
+		if addr.DkUds != "" {
+			if addr.SDUds != "" {
+				envs = [][2]string{
+					{"DD_TRACE_AGENT_URL", "unix://" + addr.DkUds},
+					{"DD_JMXFETCH_STATSD_HOST", addr.SDUds},
+					{"DD_JMXFETCH_STATSD_PORT", "0"},
+				}
+			} else {
+				envs = [][2]string{
+					{"DD_TRACE_AGENT_URL", "unix://" + addr.DkUds},
+				}
 			}
 			return
 		} else {
 			envs = [][2]string{
-				{"-Ddd.agent.host", addr.Host},
-				{"-Ddd.trace.agent.port", addr.Port},
+				{"DD_AGENT_HOST", addr.DkHost},
+				{"DD_TRACE_AGENT_PORT", addr.DkPort},
+				{"DD_JMXFETCH_STATSD_HOST", addr.SDHost},
+				{"DD_JMXFETCH_STATSD_PORT", addr.SDPort},
 			}
 			return
 		}
 	case langPython:
-		if addr.UDSAddr != "" {
+		if addr.DkUds != "" {
 			envs = [][2]string{
-				{"DD_TRACE_AGENT_URL", "unix://" + addr.UDSAddr},
+				{"DD_TRACE_AGENT_URL", "unix://" + addr.DkUds},
 			}
 			return
 		} else {
 			envs = [][2]string{
-				{"DD_AGENT_HOST", addr.Host},
-				{"DD_AGENT_PORT", addr.Port},
+				{"DD_AGENT_HOST", addr.DkHost},
+				{"DD_AGENT_PORT", addr.DkPort},
 			}
 			return
 		}

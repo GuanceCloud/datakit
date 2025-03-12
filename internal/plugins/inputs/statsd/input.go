@@ -39,6 +39,9 @@ type Input struct {
 	// Protocol used on listener - udp or tcp
 	Protocol string `toml:"protocol"`
 
+	// Unix address
+	ServiceUnixAddress string `toml:"service_unix_address"`
+
 	// Address & Port to serve from
 	ServiceAddress string `toml:"service_address"`
 
@@ -142,6 +145,7 @@ func (ipt *Input) setup() error {
 	opts := []istatsd.CollectorOption{
 		istatsd.WithLogger(ipt.l),
 		istatsd.WithProtocol(ipt.Protocol),
+		istatsd.WithServiceUnixAddress(ipt.ServiceUnixAddress),
 		istatsd.WithServiceAddress(ipt.ServiceAddress),
 		istatsd.WithStatsdSourceKey(ipt.StatsdSourceKey),
 		istatsd.WithStatsdHostKey(ipt.StatsdHostKey),
@@ -283,9 +287,11 @@ func (ipt *Input) Terminate() {
 
 func DefaultInput() *Input {
 	return &Input{
-		Source:                 defaultIOName,
-		Interval:               time.Second * 10,
-		Protocol:               defaultProtocol,
+		Source:   defaultIOName,
+		Interval: time.Second * 10,
+		Protocol: defaultProtocol,
+		// unix address, linux only
+		ServiceUnixAddress:     "/var/run/datakit/statsd.sock",
 		ServiceAddress:         ":8125",
 		MaxTCPConnections:      250,
 		TCPKeepAlive:           false,
