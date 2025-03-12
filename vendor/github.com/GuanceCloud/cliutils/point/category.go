@@ -84,6 +84,7 @@ const (
 	Network
 	KeyEvent
 	Object
+	ObjectChange
 	CustomObject
 	Logging
 	Tracing
@@ -99,6 +100,7 @@ const (
 	SNetwork           = "network"
 	SKeyEvent          = "keyevent"
 	SObject            = "object"
+	SObjectChange      = "object_change"
 	SCustomObject      = "custom_object"
 	SLogging           = "logging"
 	STracing           = "tracing"
@@ -114,6 +116,7 @@ const (
 	URLNetwork           = "/v1/write/network"
 	URLKeyEvent          = "/v1/write/keyevent"
 	URLObject            = "/v1/write/object"
+	URLObjectChange      = "/v1/write/object_change"
 	URLCustomObject      = "/v1/write/custom_object"
 	URLLogging           = "/v1/write/logging"
 	URLTracing           = "/v1/write/tracing"
@@ -128,6 +131,7 @@ const (
 	CN         = "N"
 	CE         = "E"
 	CO         = "O"
+	COCH       = "OCH"
 	CCO        = "CO"
 	CL         = "L"
 	CT         = "T"
@@ -145,6 +149,7 @@ var (
 		Network:      URLNetwork,
 		KeyEvent:     URLKeyEvent,
 		Object:       URLObject,
+		ObjectChange: URLObjectChange,
 		CustomObject: URLCustomObject,
 		Logging:      URLLogging,
 		Tracing:      URLTracing,
@@ -164,6 +169,7 @@ var (
 		Network:           CN,
 		KeyEvent:          CE,
 		Object:            CO,
+		ObjectChange:      COCH,
 		CustomObject:      CCO,
 		Logging:           CL,
 		Tracing:           CT,
@@ -181,6 +187,7 @@ var (
 		Network:           SNetwork,
 		KeyEvent:          SKeyEvent,
 		Object:            SObject,
+		ObjectChange:      SObjectChange,
 		CustomObject:      SCustomObject,
 		Logging:           SLogging,
 		Tracing:           STracing,

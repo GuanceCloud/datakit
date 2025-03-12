@@ -26,6 +26,7 @@ func (d *KVs) Setup(category point.Category, pt *point.Point) {
 	switch category {
 	case
 		point.Logging,
+		point.ObjectChange,
 		point.DialTesting,
 		point.Network,
 		point.KeyEvent,

@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"

@@ -17,8 +17,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
 	"github.com/GuanceCloud/confd/backends"
+	"github.com/GuanceCloud/pipeline-go/manager"
 	"github.com/r3labs/diff/v3"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"

@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
 )
 
 type ScriptHTTPRequestResponse struct {

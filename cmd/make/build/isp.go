@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 

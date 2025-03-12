@@ -17,9 +17,9 @@ import (
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/ipdb"
 	"github.com/GuanceCloud/cliutils/point"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"

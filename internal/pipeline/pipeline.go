@@ -17,11 +17,11 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
-	plmanager "github.com/GuanceCloud/cliutils/pipeline/manager"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput"
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/plmap"
-	plstats "github.com/GuanceCloud/cliutils/pipeline/stats"
 	"github.com/GuanceCloud/cliutils/point"
+	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
+	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
+	plstats "github.com/GuanceCloud/pipeline-go/stats"
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
 
 	plval "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"

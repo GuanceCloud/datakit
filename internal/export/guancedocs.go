@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GuanceCloud/cliutils/pipeline/ptinput/funcs"
+	"github.com/GuanceCloud/pipeline-go/ptinput/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/pipeline/offload"
+	"github.com/GuanceCloud/pipeline-go/offload"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
