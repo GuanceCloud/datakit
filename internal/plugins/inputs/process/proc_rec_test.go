@@ -46,9 +46,10 @@ func TestProcRec(t *testing.T) {
 
 // go test -run=^$ -bench=. -cpuprofile cpupprof.out
 func BenchmarkWriteObject(b *testing.B) {
-	in := &Input{}
+	in := &Input{
+		orec: newProcRecorder(),
+	}
 	processList := in.getProcesses(false)
-	procRecorder := newProcRecorder()
 	tn := time.Now().UTC()
-	in.WriteObject(processList, procRecorder, tn)
+	in.WriteObject(processList, tn)
 }

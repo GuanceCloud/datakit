@@ -53,6 +53,8 @@ type Input struct {
 	// pipeline on process object removed
 	PipelineDeprecated string `toml:"pipeline,omitempty"`
 
+	OnlyContainerProcesses bool `toml:"only_container_processes"`
+
 	lastErr error
 	res     []*regexp.Regexp
 	isTest  bool
@@ -60,6 +62,9 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+
+	metricTime time.Time
+	mrec, orec *procRecorder
 }
 
 func (*Input) Singleton() {}
@@ -100,21 +105,22 @@ func (ipt *Input) Run() {
 				maxMetricInterval,
 				ipt.MetricInterval.Duration)
 
-			procRecorder := newProcRecorder()
+			ipt.mrec = newProcRecorder()
 			tick := time.NewTicker(ipt.MetricInterval.Duration)
 			defer tick.Stop()
 
-			lastTS := time.Now()
+			ipt.metricTime = time.Now()
 			for {
 				processList := ipt.getProcesses(true)
 				tn := time.Now().UTC()
 
-				ipt.WriteMetric(processList, procRecorder, tn, lastTS.UnixNano())
-				procRecorder.flush(processList, tn)
+				ipt.WriteMetric(processList, tn)
+				ipt.mrec.flush(processList, tn)
+
 				select {
 				case tt := <-tick.C:
-					nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.MetricInterval.Duration.Milliseconds())
-					lastTS = time.UnixMilli(nextts)
+					nextts := inputs.AlignTimeMillSec(tt, ipt.metricTime.UnixMilli(), ipt.MetricInterval.Duration.Milliseconds())
+					ipt.metricTime = time.UnixMilli(nextts)
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return nil
@@ -127,12 +133,13 @@ func (ipt *Input) Run() {
 		})
 	}
 
-	procRecorder := newProcRecorder()
+	ipt.orec = newProcRecorder()
 	for {
 		processList := ipt.getProcesses(false)
 		tn := time.Now().UTC()
-		ipt.WriteObject(processList, procRecorder, tn)
-		procRecorder.flush(processList, tn)
+		ipt.WriteObject(processList, tn)
+		ipt.orec.flush(processList, tn)
+
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
@@ -200,25 +207,27 @@ func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 
 const ignoreError = "user: unknown userid"
 
-func getUser(ps *pr.Process) string {
-	username, err := ps.Username()
+func getUser(proc *pr.Process) (string, error) {
+	username, err := proc.Username()
 	if err != nil {
-		uid, err := ps.Uids()
+		uid, err := proc.Uids()
 		if err != nil {
-			l.Warnf("process get uid err:%s", err.Error())
-			return ""
+			l.Warnf("process %v, proc.Uids(): %s", proc, err.Error())
+			return "", fmt.Errorf("proc.Uids(): %w", err)
 		}
+
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0])) //nolint:stylecheck
 		if err != nil {
 			// 此处错误极多，故将其 disable 掉，一般的报错是：unknown userid xxx
 			if !strings.Contains(err.Error(), ignoreError) {
-				l.Debugf("process: pid:%d get username err:%s", ps.Pid, err.Error())
+				l.Debugf("process %v, LookupId(): %s", proc, err.Error())
 			}
-			return ""
+			return "", fmt.Errorf("luser.LookupId(): %w", err)
 		}
-		return u.Username
+		return u.Username, nil
 	}
-	return username
+
+	return username, nil
 }
 
 func getCreateTime(ps *pr.Process) int64 {
@@ -246,173 +255,200 @@ func getListeningPortsJSON(proc *pr.Process) ([]byte, error) {
 	return json.Marshal(listening)
 }
 
-func (ipt *Input) Parse(ps *pr.Process, procRec *procRecorder, tn time.Time) (username, state, name string, fields, message map[string]interface{}) {
-	fields = map[string]interface{}{}
-	message = map[string]interface{}{}
-	name, err := ps.Name()
-	if err != nil {
-		l.Warnf("process get name err:%s", err.Error())
+func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) point.KVs {
+	var kvs point.KVs
+
+	if containerID := getContainerID(proc); containerID != "" {
+		kvs = kvs.AddTag("container_id", containerID)
+	} else if ipt.OnlyContainerProcesses {
+		l.Debugf("ignore non-container process %v", proc)
+		return nil
 	}
-	username = getUser(ps)
-	if username == "" {
-		username = "nobody"
-	}
-	status, err := ps.Status()
-	if err != nil {
-		l.Warnf("process:%s,pid:%d get state err:%s", name, ps.Pid, err.Error())
-		state = ""
+
+	if x, err := proc.Name(); err != nil {
+		l.Warnf("process: %v, proc.Name(): %s", proc, err.Error())
 	} else {
-		state = status[0]
+		kvs = kvs.AddTag("process_name", x)
+	}
+
+	if username, err := getUser(proc); err != nil {
+		kvs = kvs.AddTag("username", username)
+	} else {
+		kvs = kvs.AddTag("username", "nobody")
 	}
 
 	// you may get a null pointer here
-	memInfo, err := ps.MemoryInfo()
-	if err != nil {
-		l.Warnf("process:%s,pid:%d get memoryinfo err:%s", name, ps.Pid, err.Error())
+	if x, err := proc.MemoryInfo(); err != nil {
+		l.Warnf("process: %v, proc.MemoryInfo(): %s", proc, err.Error())
 	} else {
-		message["memory"] = memInfo
-		fields["rss"] = memInfo.RSS
+		kvs = kvs.AddV2("rss", x.RSS, false)
+		kvs = kvs.AddV2("vms", x.VMS, false)
 	}
 
-	memPercent, err := ps.MemoryPercent()
-	if err != nil {
-		l.Warnf("process:%s,pid:%d get mempercent err:%s", name, ps.Pid, err.Error())
+	if x, err := proc.MemoryPercent(); err != nil {
+		l.Warnf("process: %v, proc.MemoryPercent(): %s", proc, err.Error())
 	} else {
-		fields["mem_used_percent"] = memPercent
+		kvs = kvs.AddV2("mem_used_percent", x, false)
 	}
 
 	// you may get a null pointer here
-	cpuTime, err := ps.Times()
-	if err != nil {
-		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
-		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
+	if _, err := proc.Times(); err != nil {
+		l.Warnf("process: %v, proc.Times(): %s", proc, err.Error())
 	} else {
-		message["cpu"] = cpuTime
-
-		cpuUsage := calculatePercent(ps, tn)
-		cpuUsageTop := procRec.calculatePercentTop(ps, tn)
+		cpuUsage := calculatePercent(proc, tn)
+		cpuUsageTop := procRec.calculatePercentTop(proc, tn)
 
 		if runtime.GOOS == "windows" {
 			cpuUsage /= float64(runtime.NumCPU())
 			cpuUsageTop /= float64(runtime.NumCPU())
 		}
-
-		fields["cpu_usage"] = cpuUsage
-		fields["cpu_usage_top"] = cpuUsageTop
+		kvs = kvs.AddV2("cpu_usage", cpuUsage, false)
+		kvs = kvs.AddV2("cpu_usage_top", cpuUsageTop, false)
 	}
 
-	Threads, err := ps.NumThreads()
-	if err != nil {
-		l.Warnf("process:%s,pid:%d get threads err:%s", name, ps.Pid, err.Error())
+	if x, err := proc.NumThreads(); err != nil {
+		l.Warnf("process: %v, proc.NumThreads(): %s", proc, err.Error())
 	} else {
-		fields["threads"] = Threads
+		kvs = kvs.AddV2("threads", x, false)
+	}
+
+	if x, err := proc.IOCounters(); err != nil {
+		l.Warnf("process: %v, proc.IOCounters(): %s", proc, err.Error())
+	} else {
+		kvs = kvs.AddV2("proc_syscr", x.ReadCount, false)
+		kvs = kvs.AddV2("proc_syscw", x.WriteCount, false)
+		kvs = kvs.AddV2("proc_read_bytes", x.ReadBytes, false)
+		kvs = kvs.AddV2("proc_write_bytes", x.WriteBytes, false)
+	}
+
+	if x, err := proc.NumCtxSwitches(); err != nil {
+		l.Warnf("process: %v, proc.NumCtxSwitches(): %s", proc, err.Error())
+	} else {
+		kvs = kvs.AddV2("voluntary_ctxt_switches", x.Voluntary, false)
+		kvs = kvs.AddV2("nonvoluntary_ctxt_switches", x.Involuntary, false)
+	}
+
+	if x, err := proc.PageFaults(); err != nil {
+		l.Warnf("process: %v, proc.PageFaults(): %s", proc, err.Error())
+	} else {
+		kvs = kvs.AddV2("page_minor_faults", x.MinorFaults, false)
+		kvs = kvs.AddV2("page_major_faults", x.MajorFaults, false)
+		kvs = kvs.AddV2("page_children_minor_faults", x.ChildMinorFaults, false)
+		kvs = kvs.AddV2("page_children_major_faults", x.ChildMajorFaults, false)
 	}
 
 	if runtime.GOOS == "linux" {
-		openFiles, err := ps.NumFDs()
-		if err != nil {
-			l.Warnf("process:%s,pid:%d get openfile err:%s", name, ps.Pid, err.Error())
+		if x, err := proc.NumFDs(); err != nil {
+			l.Warnf("process: %v, proc.NumFDs(): %s", proc, err.Error())
 		} else {
-			fields["open_files"] = openFiles
+			kvs = kvs.AddV2("open_files", x, false)
 		}
 	}
 
-	return username, state, name, fields, message
+	return kvs
 }
 
-func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, tn time.Time) {
+func (ipt *Input) WriteObject(processList []*pr.Process, tn time.Time) {
 	var collectCache []*point.Point
 
-	for _, ps := range processList {
-		username, state, name, fields, message := ipt.Parse(ps, procRec, tn)
-		tags := map[string]string{
-			"username":     username,
-			"state":        state,
-			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
-			"process_name": name,
+	opts := point.DefaultObjectOptions()
+
+	for _, proc := range processList {
+		kvs := ipt.Parse(proc, ipt.orec, tn)
+		if kvs == nil {
+			continue
 		}
-		if containerID := getContainerID(ps); containerID != "" {
-			tags["container_id"] = containerID
-		}
+
+		// append object's tag `name': we need a `name' tag for each object.
+		kvs = kvs.MustAddTag("name", fmt.Sprintf("%s_%d", config.Cfg.Hostname, proc.Pid))
+
 		if ipt.ListenPorts {
-			if listeningPorts, err := getListeningPortsJSON(ps); err != nil {
-				l.Warnf("getListeningPortsJSON: %v", err)
+			if listeningPorts, err := getListeningPortsJSON(proc); err != nil {
+				l.Warnf("getListeningPortsJSON(): %s", err)
 			} else {
-				tags["listen_ports"] = string(listeningPorts)
+				kvs = kvs.AddV2("listen_ports", string(listeningPorts), false)
 			}
 		}
 
 		for k, v := range ipt.Tags {
-			tags[k] = v
+			kvs = kvs.AddTag(k, v)
 		}
 
-		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
-
-		stateZombie := false
-		if state == "zombie" {
-			stateZombie = true
+		for k, v := range ipt.Tagger.HostTags() {
+			kvs = kvs.AddTag(k, v)
 		}
-		fields["state_zombie"] = stateZombie
 
-		fields["pid"] = ps.Pid
-
-		ct := getCreateTime(ps)
-		fields["started_duration"] = int64(time.Since(time.Unix(0,
-			ct*int64(time.Millisecond))) / time.Second)
-		fields["start_time"] = ct
-
-		if runtime.GOOS == "linux" {
-			dir, err := ps.Cwd()
-			if err != nil {
-				l.Warnf("process:%s,pid:%d get work_directory err:%s", name, ps.Pid, err.Error())
+		// Add extra tag/field to process object
+		if x, err := proc.Status(); err != nil {
+			l.Warnf("process: %v, proc.Status(): %s", proc, err.Error())
+		} else {
+			kvs = kvs.AddTag("state", x[0])
+			if x[0] == pr.Zombie {
+				kvs = kvs.AddV2("state_zombie", true, false)
 			} else {
-				fields["work_directory"] = dir
+				kvs = kvs.AddV2("state_zombie", false, false)
 			}
 		}
 
-		cmd, err := ps.Cmdline()
-		if err != nil {
-			l.Warnf("process:%s,pid:%d get cmd err:%s", name, ps.Pid, err.Error())
-			cmd = ""
+		kvs = kvs.AddV2("pid", proc.Pid, false) // XXX: set pid as int in object
+
+		ct := getCreateTime(proc)
+		kvs = kvs.AddV2("started_duration",
+			int64(time.Since(time.Unix(0, ct*int64(time.Millisecond)))/time.Second),
+			false)
+		kvs = kvs.AddV2("start_time", ct, false)
+
+		if runtime.GOOS == "linux" {
+			if dir, err := proc.Cwd(); err != nil {
+				l.Warnf("process: %v, get work_directory err:%s", proc, err.Error())
+			} else {
+				kvs = kvs.AddV2("work_directory", dir, false)
+			}
 		}
 
-		if cmd == "" {
-			cmd = fmt.Sprintf("(%s)", name)
-		}
+		if cmd, err := proc.Cmdline(); err != nil {
+			l.Warnf("process: %v, proc.Cmdline(): %s", proc, err.Error())
 
-		fields["cmdline"] = cmd
+			// use proc-name as cmdline
+			kvs = kvs.AddV2("cmdline", fmt.Sprintf("(%s)", kvs.GetTag("process_name")), false)
+		} else {
+			kvs = kvs.AddV2("cmdline", cmd, false)
+		}
 
 		if ipt.isTest {
 			return
 		}
 
-		// 此处为了全文检索 需要冗余一份数据 将tag field字段全部塞入 message
-		for k, v := range tags {
-			message[k] = v
+		message := map[string]any{}
+
+		// 此处为了全文检索 需要冗余一份数据将 kvs 字段全部塞入 message
+		for _, kv := range kvs {
+			message[kv.Key] = kv.Raw()
 		}
 
-		for k, v := range fields {
-			message[k] = v
-		}
-
-		m, err := json.Marshal(message)
-		if err == nil {
-			fields["message"] = string(m)
+		// get full info of mem info
+		if x, err := proc.MemoryInfo(); err != nil {
+			l.Warnf("process: %v, proc.MemoryInfo(): %s", proc, err.Error())
 		} else {
-			l.Errorf("marshal message err:%s", err.Error())
+			message["memory"] = x
 		}
 
-		if len(fields) == 0 {
-			continue
+		// cpu-time metrics has collected in top kvs. here we get a duplicated for compatibility.
+		if x, err := proc.Times(); err != nil {
+			l.Warnf("process: %v, proc.Times(): %s", proc, err.Error())
+		} else {
+			message["cpu"] = x
 		}
-		obj := &ProcessObject{
-			name:   inputName,
-			tags:   tags,
-			fields: fields,
-			ts:     tn,
+
+		if msg, err := json.Marshal(message); err != nil {
+			l.Warnf("marshal object message failed: %s", err.Error())
+		} else {
+			kvs = kvs.AddV2("message", string(msg), false)
 		}
-		collectCache = append(collectCache, obj.Point())
+
+		collectCache = append(collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
+
 	if len(collectCache) == 0 {
 		return
 	}
@@ -422,50 +458,44 @@ func (ipt *Input) WriteObject(processList []*pr.Process, procRec *procRecorder, 
 		dkio.WithInputName(objectFeedName),
 	); err != nil {
 		l.Errorf("Feed object err :%s", err.Error())
-		ipt.lastErr = err
-	}
-
-	if ipt.lastErr != nil {
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Object),
 		)
-		ipt.lastErr = nil
 	}
 }
 
-func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, tn time.Time, ptTS int64) {
+func (ipt *Input) WriteMetric(processList []*pr.Process, tn time.Time) {
 	var collectCache []*point.Point
 
-	for _, ps := range processList {
-		cmd, err := ps.Cmdline() // 无cmd的进程 没有采集指标的意义
+	opts := point.DefaultMetricOptions()
+
+	for _, proc := range processList {
+		cmd, err := proc.Cmdline() // 无cmd的进程 没有采集指标的意义
 		if err != nil || cmd == "" {
+			l.Infof("Cmdline(): %s, err: %v, ignored", proc.String(), err)
 			continue
 		}
-		username, _, name, fields, _ := ipt.Parse(ps, procRec, tn)
-		tags := map[string]string{
-			"username":     username,
-			"pid":          fmt.Sprintf("%d", ps.Pid),
-			"process_name": name,
+
+		kvs := ipt.Parse(proc, ipt.mrec, tn)
+		if kvs.FieldCount() == 0 {
+			l.Warnf("no field on process %v, ignored", proc)
+			continue
 		}
-		if containerID := getContainerID(ps); containerID != "" {
-			tags["container_id"] = containerID
-		}
+
+		kvs = kvs.AddTag("pid", fmt.Sprintf("%d", proc.Pid)) // XXX: set pid as tag in metric
+
 		for k, v := range ipt.Tags {
-			tags[k] = v
+			kvs = kvs.AddTag(k, v)
 		}
-		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
-		metric := &ProcessMetric{
-			name:   inputName,
-			tags:   tags,
-			fields: fields,
-			ts:     ptTS,
+
+		for k, v := range ipt.Tagger.HostTags() {
+			kvs = kvs.AddTag(k, v)
 		}
-		if len(fields) == 0 {
-			continue
-		}
-		collectCache = append(collectCache, metric.Point())
+
+		collectCache = append(collectCache, point.NewPointV2(inputName, kvs, append(opts, point.WithTime(ipt.metricTime))...))
 	}
+
 	if len(collectCache) == 0 {
 		return
 	}
@@ -474,16 +504,11 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, procRec *procRecorder, 
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithInputName(inputName+"/metric"),
 	); err != nil {
-		l.Errorf("Feed metric err :%s", err.Error())
-		ipt.lastErr = err
-	}
-
-	if ipt.lastErr != nil {
-		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
+		l.Errorf("FeedV2() :%s", err.Error())
+		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Metric),
 		)
-		ipt.lastErr = nil
 	}
 }
 

@@ -36,6 +36,9 @@ const (
   ## Enable open files field, default is false
   enable_open_files = false
 
+  ## only collect container-based process(object and metric)
+  only_container_processes = false
+
   # Extra tags
   [inputs.host_processes.tags]
   # some_tag = "some_value"
@@ -68,21 +71,30 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 		Desc: "Collect process metrics, including CPU/memory usage, etc.",
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"threads": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Total number of threads"),
-			"rss":     newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size (resident memory size)"),
-			"cpu_usage": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started."+
-				" This value will be more stable (different from the instantaneous percentage of `top`)"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started. This value will be more stable (different from the instantaneous percentage of `top`)"),
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the average CPU usage of the process within a collection cycle"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "Memory usage percentage"),
-			"open_files": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount,
-				"Number of open files (only supports Linux)"),
+			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Number of open files (only supports Linux)"),
+			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size (resident memory size)"),
+			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Total number of threads"),
+
+			"voluntary_ctxt_switches":    newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "From /proc/[PID]/status. Context switches that voluntary drop the CPU, such as `sleep()/read()/sched_yield()`. Linux only"),
+			"nonvoluntary_ctxt_switches": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "From /proc/[PID]/status. Context switches that nonvoluntary drop the CPU. Linux only"),
+			"proc_syscr":                 newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Count of `read()` like syscall`. Linux&Windows only"),
+			"proc_syscw":                 newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Count of `write()` like syscall`. Linux&Windows only"),
+			"proc_read_bytes":            newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Read bytes from disk"),
+			"proc_write_bytes":           newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Written bytes to disk"),
+			"page_minor_faults":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of minor page faults. Linux only"),
+			"page_major_faults":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of major page faults. Linux only"),
+			"page_children_minor_faults": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of minor page faults for this process. Linux only"),
+			"page_children_major_faults": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of major page faults for this process. Linux only"),
 		},
 		Tags: map[string]interface{}{
-			"username":     inputs.NewTagInfo("Username"),
-			"host":         inputs.NewTagInfo("Host name"),
-			"process_name": inputs.NewTagInfo("Process name"),
-			"pid":          inputs.NewTagInfo("Process ID"),
 			"container_id": inputs.NewTagInfo("Container ID of the process, only supported Linux"),
+			"host":         inputs.NewTagInfo("Host name"),
+			"pid":          inputs.NewTagInfo("Process ID"),
+			"process_name": inputs.NewTagInfo("Process name"),
+			"username":     inputs.NewTagInfo("Username"),
 		},
 	}
 }
@@ -111,30 +123,39 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 		Desc: "Collect data on process objects, including process names, process commands, etc.",
 		Type: "object",
 		Fields: map[string]interface{}{
-			"message":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "Process details"),
+			"cmdline":          newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "Command line parameters for the process"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started. This value will be more stable (different from the instantaneous percentage of `top`)"),
+			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the average CPU usage of the process within a collection cycle"),
+			"listen_ports":     newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "The port the process is listening on"),
+			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "Memory usage percentage"),
+			"message":          newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "Process details"),
+			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Number of open files (only supports Linux, and the `enable_open_files` option needs to be turned on)"),
+			"pid":              newOtherFieldInfo(inputs.Int, inputs.UnknownType, inputs.UnknownUnit, "Process ID"),
+			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size (resident memory size)"),
 			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "process start time"),
 			"started_duration": newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampSec, "Process startup time"),
+			"state_zombie":     newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Whether it is a zombie process"),
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Total number of threads"),
-			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "Resident Set Size (resident memory size)"),
-			"pid":              newOtherFieldInfo(inputs.Int, inputs.UnknownType, inputs.UnknownUnit, "Process ID"),
-			"cpu_usage": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started."+
-				" This value will be more stable (different from the instantaneous percentage of `top`)"),
-			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the average CPU usage of the process within a collection cycle"),
-			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "Memory usage percentage"),
-			"open_files": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount,
-				"Number of open files (only supports Linux, and the `enable_open_files` option needs to be turned on)"),
-			"work_directory": newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "Working directory (Linux only)"),
-			"cmdline":        newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "Command line parameters for the process"),
-			"state_zombie":   newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Whether it is a zombie process"),
+			"work_directory":   newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "Working directory (Linux only)"),
+
+			"voluntary_ctxt_switches":    newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "From /proc/[PID]/status. Context switches that voluntary drop the CPU, such as `sleep()/read()/sched_yield()`. Linux only"),
+			"nonvoluntary_ctxt_switches": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "From /proc/[PID]/status. Context switches that nonvoluntary drop the CPU. Linux only"),
+			"proc_syscr":                 newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Count of `read()` like syscall`. Linux&Windows only"),
+			"proc_syscw":                 newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Count of `write()` like syscall`. Linux&Windows only"),
+			"proc_read_bytes":            newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Read bytes from disk"),
+			"proc_write_bytes":           newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/io*, Windows from `GetProcessIoCounters()`. Written bytes to disk"),
+			"page_minor_faults":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of minor page faults. Linux only"),
+			"page_major_faults":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of major page faults. Linux only"),
+			"page_children_minor_faults": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of minor page faults of it's child processes. Linux only"),
+			"page_children_major_faults": newOtherFieldInfo(inputs.Int, inputs.Count, inputs.SizeByte, "Linux from */proc/[PID]/stat*. The number of major page faults of it's child processes. Linux only"),
 		},
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("Name field, consisting of `[host-name]_[pid]`"),
-			"username":     inputs.NewTagInfo("Username"),
-			"host":         inputs.NewTagInfo("Host name"),
-			"state":        inputs.NewTagInfo("Process status, currently not supported on Windows"),
-			"process_name": inputs.NewTagInfo("Process name"),
 			"container_id": inputs.NewTagInfo("Container ID of the process, only supported Linux"),
-			"listen_ports": inputs.NewTagInfo("The port the process is listening onW"),
+			"host":         inputs.NewTagInfo("Host name"),
+			"name":         inputs.NewTagInfo("Name field, consisting of `[host-name]_[pid]`"),
+			"process_name": inputs.NewTagInfo("Process name"),
+			"state":        inputs.NewTagInfo("Process status, currently not supported on Windows"),
+			"username":     inputs.NewTagInfo("Username"),
 		},
 	}
 }
