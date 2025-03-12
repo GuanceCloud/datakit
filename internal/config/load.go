@@ -91,9 +91,6 @@ func LoadCfg(c *Config, mcp string) error {
 
 	defaultKV.LoadKV()
 
-	//	return true
-	// })
-
 	l.Infof("loaded main cfg: \n%s", c.String())
 
 	// clear all samples before loading

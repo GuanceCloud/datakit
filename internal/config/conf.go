@@ -288,16 +288,15 @@ func initCfgSample(p string) error {
 }
 
 func (c *Config) parseGlobalHostTags() {
-	// why?
 	if c.GlobalHostTags == nil {
 		c.GlobalHostTags = map[string]string{}
 	}
 
-	// setup global tags
+	// Parse placeholder of global tags.
+	//
+	// Accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
+	// by using `__` as prefix, avoid escaping `$` in Powershell and shell.
 	for k, v := range c.GlobalHostTags {
-		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
-		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
-
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			hostName := ""
@@ -319,14 +318,7 @@ func (c *Config) parseGlobalHostTags() {
 			l.Debugf("set global tag %s: %s", k, hostName)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.GlobalHostTags[k] = "unavailable"
-
-			if ipaddr, err := datakit.LocalIP(); err != nil {
-				l.Errorf("get local ip failed: %s", err.Error())
-			} else {
-				l.Infof("set global tag %s: %s", k, ipaddr)
-				c.GlobalHostTags[k] = ipaddr
-			}
+			c.GlobalHostTags[k] = getLocalIPUntilOK()
 
 		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
 			c.GlobalHostTags[k] = c.UUID
@@ -335,6 +327,21 @@ func (c *Config) parseGlobalHostTags() {
 		default:
 			// pass
 		}
+	}
+}
+
+func getLocalIPUntilOK() string {
+	retry := 0
+	for {
+		if ip, err := datakit.LocalIP(); err != nil {
+			l.Warnf("[%d] LocalIP: %s, retry...", retry, err)
+			time.Sleep(time.Second)
+		} else {
+			l.Infof("get local IP: %q", ip)
+			return ip
+		}
+		// NOTE: should we check datakit.Exit()?
+		retry++
 	}
 }
 
