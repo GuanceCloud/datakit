@@ -21,7 +21,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/confd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -82,11 +81,6 @@ func main() {
 	cmds.ParseFlags()
 	applyFlags()
 
-	if err := datakit.SavePid(); err != nil {
-		cp.Println(err.Error())
-		os.Exit(-1)
-	}
-
 	tryLoadConfig()
 
 	datakit.SetLog()
@@ -95,7 +89,16 @@ func main() {
 		// This may throw `Unix syslog delivery error` within docker, so we just
 		// start the entry under docker.
 		run()
+
+		// NOTE: do not set PID on docker running
+		// Under docker, people can set restart on crash, so do not set and check pid:
+		//   docker run -d --restart=on-failure ...
 	} else {
+		if err := datakit.SavePid(); err != nil { // save PID on host-running
+			fmt.Println(err.Error())
+			os.Exit(-1)
+		}
+
 		// Auto enable resource limit under host running(debug mode and service mode)
 		if config.Cfg.ResourceLimitOptions != nil {
 			resourcelimit.Run(config.Cfg.ResourceLimitOptions, config.Cfg.DatakitUser)

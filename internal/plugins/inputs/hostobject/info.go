@@ -270,22 +270,22 @@ func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
 		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, fs.Part)
 
 		if datakit.StrEFInclude(fs.Part.Device, ipt.ExcludeDevice) {
-			l.Infof("part excluded: %+#v", p)
+			l.Debugf("part excluded: %+#v", p)
 			continue
 		}
 
 		if ipt.regIgnoreFSTypes != nil && ipt.regIgnoreFSTypes.MatchString(fs.Part.Fstype) {
-			l.Infof("ignore fs type %s on %+#v", fs.Part.Fstype, fs.Part)
+			l.Debugf("ignore fs type %s on %+#v", fs.Part.Fstype, fs.Part)
 			continue
 		}
 
 		if ipt.regIgnoreMountpoints != nil && ipt.regIgnoreMountpoints.MatchString(fs.Part.Mountpoint) {
-			l.Infof("ignore mount point %s on %+#v", fs.Part.Mountpoint, fs.Part)
+			l.Debugf("ignore mount point %s on %+#v", fs.Part.Mountpoint, fs.Part)
 			continue
 		}
 
 		if ipt.IgnoreZeroBytesDisk && fs.Usage.Total == 0 {
-			l.Infof("skip zero partition %+#v", p)
+			l.Debugf("skip zero partition %+#v", p)
 			continue
 		}
 
