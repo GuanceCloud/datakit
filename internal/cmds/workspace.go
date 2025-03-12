@@ -98,6 +98,6 @@ func outputWorkspaceInfo(body []byte) {
 		if err != nil {
 			cp.Errorf("json.MarshalIndent %s\n", err.Error())
 		}
-		cp.Output("%s\n", j)
+		cp.Printf("%s\n", j)
 	}
 }

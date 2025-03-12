@@ -6,7 +6,6 @@
 package collect
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -15,7 +14,7 @@ func TestChannel(t *testing.T) {
 	t.Run("%/", func(t *testing.T) {
 		arr := []int{1, 2, 3, 4, 5}
 		for _, v := range arr {
-			fmt.Println(v, "% 2 = ", v%2)
+			t.Log(v, "% 2 = ", v%2)
 		}
 	})
 
@@ -36,7 +35,7 @@ func TestChannel(t *testing.T) {
 			}
 		}
 
-		fmt.Println("out")
+		t.Log("out")
 		count := 0
 		for range ch {
 			count++
@@ -45,8 +44,6 @@ func TestChannel(t *testing.T) {
 			}
 		}
 
-		fmt.Printf("duration = ")
-		fmt.Println(time.Since(start))
-		fmt.Println("exited")
+		t.Logf("duration = %s, exited", time.Since(start))
 	})
 }

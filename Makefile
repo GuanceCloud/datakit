@@ -419,12 +419,19 @@ else
 endif
 
 	@if [ $$? != 0 ]; then \
-		printf "$(RED)[FAIL] lint failed\n$(NC)" $$pkg; \
+		printf "$(RED)[FAIL] lint failed\n$(NC)"; \
+		exit -1; \
+	fi
+
+	# check print/printf
+	go run scripts/disable-funcs/main.go -config scripts/disable-funcs/conf.toml;
+	@if [ $$? != 0 ]; then \
+		printf "$(RED)[FAIL] lint on print/printf failed\n$(NC)"; \
 		exit -1; \
 	fi
 
 # lint code and document
-lint: sample_conf_lint code_lint md_lint
+lint: code_lint sample_conf_lint md_lint
 
 prepare:
 	@mkdir -p internal/git

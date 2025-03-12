@@ -343,11 +343,11 @@ func (cs *caseSpec) run() error {
 		Addr:    ":" + port,
 		Handler: router,
 	}
-	fmt.Println("listening port " + port + "...")
+	cs.t.Log("listening port " + port + "...")
 
 	go func() {
 		if err := srv.Serve(lsn); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Serve failed: %v", err)
+			cs.t.Logf("Serve failed: %v", err)
 			panic(err)
 		}
 	}()
@@ -438,7 +438,7 @@ func (cs *caseSpec) run() error {
 	case <-tick.C:
 		panic("pythond timeout!")
 	case <-cs.done:
-		fmt.Println("pythond done!")
+		cs.t.Log("pythond done!")
 	}
 
 	if len(errorMsgs) > 0 {

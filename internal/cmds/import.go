@@ -83,7 +83,7 @@ func runImport(u uploader, when int64) error {
 				continue
 			}
 
-			cp.Output("> Uploading %q(%d points) on %s...\n", f, len(pts), cat.String())
+			cp.Printf("> Uploading %q(%d points) on %s...\n", f, len(pts), cat.String())
 			if err := u.upload(adjustPointTime(ts, pts), cat); err != nil {
 				l.Warnf("PBJson2pts: %s, ignored", err)
 				return err

@@ -51,7 +51,7 @@ func TestParseMetrics(t *testing.T) {
 	_, err = prom.text2MetricsBatch(&buf, "")
 	assert.NoError(t, err)
 
-	fmt.Printf("count: %d\n", count)
+	t.Logf("count: %d\n", count)
 }
 
 func BenchmarkParseMetrics(b *testing.B) {

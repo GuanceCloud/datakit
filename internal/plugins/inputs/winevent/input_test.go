@@ -287,5 +287,5 @@ func TestDemo(t *testing.T) {
 
 	delta := t1.Sub(t2)
 
-	fmt.Println(delta.Seconds())
+	t.Log(delta.Seconds())
 }

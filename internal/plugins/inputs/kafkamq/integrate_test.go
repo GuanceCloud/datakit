@@ -253,7 +253,6 @@ func newZookeeperResource(name string, dockerPool *dockertest.Pool, id string) (
 			},
 		})
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 	}

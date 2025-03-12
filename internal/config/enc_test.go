@@ -6,7 +6,6 @@
 package config
 
 import (
-	"fmt"
 	"runtime"
 	"testing"
 
@@ -23,14 +22,15 @@ func Test_aesEncrypt(t *testing.T) {
 		t.Errorf("aes encrypt err=%v", err)
 		return
 	}
-	fmt.Printf("AES Encrypted: %s\n", aesEncrypted)
+
+	t.Logf("AES Encrypted: %s\n", aesEncrypted)
 
 	aesDecrypted, err := AESDecrypt(key, aesEncrypted)
 	if err != nil {
 		t.Errorf("aes decrypt err=%v", err)
 		return
 	}
-	fmt.Printf("AES Decrypted: %s\n", aesDecrypted)
+	t.Logf("AES Decrypted: %s\n", aesDecrypted)
 	assert.Equal(t, plaintext, aesDecrypted)
 }
 

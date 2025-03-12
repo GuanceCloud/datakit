@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 func gatherGoVer() []string {
@@ -68,9 +69,9 @@ func main() {
 
 	b, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(err)
+		cp.Printf("%s\n", err)
 	}
-	fmt.Print(string(b))
+	cp.Println(string(b))
 
 	// cmdLi := nocgocmd(gatherGoVer(), false)
 	// for _, v := range cmdLi {
@@ -89,8 +90,8 @@ func main() {
 		cmd.Env = append(cmd.Env, "GOOS=linux", "GOARCH="+v.arch)
 		b, err = cmd.CombinedOutput()
 		if err != nil {
-			fmt.Println(err)
+			cp.Printf("%s\n", err)
 		}
-		fmt.Print(string(b))
+		cp.Println(string(b))
 	}
 }

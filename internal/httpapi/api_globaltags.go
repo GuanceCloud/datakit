@@ -253,7 +253,6 @@ func (*handle) dumpMainCfgTOML(c *config.Config) {
 	fileName := datakit.MainConfPath
 	file, err := os.OpenFile(filepath.Clean(fileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		fmt.Println(err)
 		l.Errorf("Dump main Cfg, create file: %s, err: %s", fileName, err.Error())
 		return
 	}

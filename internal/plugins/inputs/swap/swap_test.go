@@ -6,7 +6,6 @@
 package swap
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/shirou/gopsutil/mem"
@@ -36,8 +35,8 @@ func TestCollec(t *testing.T) {
 
 	actual := i.collectCacheLast1Ptr.InfluxFields()
 
-	fmt.Println("actual =", actual)
-	fmt.Println("expected =", expected)
+	t.Log("actual =", actual)
+	t.Log("expected =", expected)
 
 	AssertFields(t, actual, expected)
 }

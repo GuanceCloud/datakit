@@ -279,7 +279,7 @@ func downloadFiles(to string) error {
 	if err := dl.Download(cli, dkURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
-	fmt.Printf("\n")
+	cp.Printf("\n")
 
 	dl.CurDownloading = "data"
 
@@ -322,7 +322,7 @@ func downloadFiles(to string) error {
 	}
 
 	if installer.IPDBType != "" {
-		fmt.Printf("\n")
+		cp.Printf("\n")
 		baseURL := "https://" + DataKitBaseURL
 
 		l.Debugf("get ipdb from %s", baseURL)
@@ -334,7 +334,7 @@ func downloadFiles(to string) error {
 		}
 	}
 
-	fmt.Printf("\n")
+	cp.Printf("\n")
 	return nil
 }
 
@@ -448,7 +448,7 @@ func main() {
 	flag.Parse()
 
 	if flagInfo {
-		fmt.Printf(`
+		cp.Printf(`
 Version        : %s
 Build At       : %s
 Golang Version : %s

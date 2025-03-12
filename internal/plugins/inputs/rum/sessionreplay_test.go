@@ -117,7 +117,9 @@ func TestReplayDiskQueue(t *testing.T) {
 	cacheDir := "./session_replay"
 	ipt.SessionReplayCfg.CachePath = cacheDir
 
-	defer os.RemoveAll(cacheDir)
+	t.Cleanup(func() {
+		os.RemoveAll(cacheDir)
+	})
 
 	err := ipt.initReplayDiskQueue()
 	assert.NoError(t, err)

@@ -222,27 +222,31 @@ func TestTimeout(t *T.T) {
 	}
 }
 
-func setulimit() {
+func setulimit(t *T.T) {
+	t.Helper()
+
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		fmt.Println("Error Getting Rlimit ", err)
+		t.Log("Error Getting Rlimit ", err)
 	}
-	fmt.Println(rLimit)
+
+	t.Log(rLimit)
+
 	rLimit.Max = 999999
 	rLimit.Cur = 999999
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		fmt.Println("Error Setting Rlimit ", err)
+		t.Log("Error Setting Rlimit ", err)
 	}
 	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		fmt.Println("Error Getting Rlimit ", err)
+		t.Log("Error Getting Rlimit ", err)
 	}
 }
 
 func TestTimeoutOnConcurrentIdleTCPConnection(t *T.T) {
-	setulimit()
+	setulimit(t)
 	router := gin.New()
 
 	idleSec := time.Duration(1)

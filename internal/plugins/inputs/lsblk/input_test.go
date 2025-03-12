@@ -31,9 +31,8 @@ func TestCollect(t *testing.T) {
 		tmap[pt.Time().String()] = true
 	}
 
-	fmt.Println("***")
 	for key, value := range i.collectCache {
-		fmt.Println(key, value)
+		t.Log(key, value)
 	}
 	fmt.Fprintln(os.Stderr, i.collectCache)
 

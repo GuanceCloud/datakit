@@ -6,7 +6,6 @@
 package nsq
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -57,7 +56,7 @@ func TestStatsPoint(t *testing.T) {
 	sort.Strings(arr)
 
 	for _, v := range arr {
-		fmt.Println(v)
+		t.Logf(v)
 	}
 
 	for i, s := range arr {

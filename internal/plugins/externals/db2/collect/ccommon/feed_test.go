@@ -65,14 +65,6 @@ func TestFeedLastErrorLoop(t *testing.T) {
 	}
 }
 
-func TestPrint(t *testing.T) {
-	err := fmt.Errorf("some error")
-
-	t.Run("Println", func(t *testing.T) {
-		fmt.Println("failed:", err.Error())
-	})
-}
-
 func TestFeedEvent(t *testing.T) {
 	const inputName = "db2"
 	t.Run("normal", func(t *testing.T) {

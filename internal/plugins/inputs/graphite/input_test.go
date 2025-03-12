@@ -7,7 +7,6 @@
 package graphite
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -53,19 +52,18 @@ func TestParse(t *testing.T) {
 
 		// Decode the TOML configuration into the struct
 		if _, err := toml.Decode(cfg, n); err != nil {
-			fmt.Println("Error decoding TOML:", err)
+			t.Log("Error decoding TOML:", err)
 			return
 		}
 
-		// Print the decoded structure to verify
-		fmt.Printf("Parsed config: %+v\n", n)
+		t.Logf("Parsed config: %+v\n", n)
 
 		// Check if mappings are populated
 		if len(n.MetricMapper.Mappings) == 0 {
-			fmt.Println("No mappings found.")
+			t.Log("No mappings found.")
 		} else {
 			for i, mapping := range n.MetricMapper.Mappings {
-				fmt.Printf("Mapping %d: %+v\n", i+1, mapping)
+				t.Logf("Mapping %d: %+v\n", i+1, mapping)
 			}
 		}
 	})

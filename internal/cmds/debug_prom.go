@@ -16,6 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/influxdb1-client/models"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -34,7 +35,7 @@ func promDebugger(configFile string) error {
 		_, err := os.Stat(configPath)
 		if err != nil {
 			configPath = filepath.Join(datakit.ConfdDir, "prom", filepath.Base(configFile))
-			fmt.Printf("config is not found in current dir, using %s instead\n", configPath)
+			cp.Printf("config is not found in current dir, using %s instead\n", configPath)
 		}
 	}
 	name, err := collectorName(configPath)
@@ -191,13 +192,13 @@ func showPromInput(input *prom.Input) error {
 }
 
 func printResult(points []*point.Point) error {
-	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
+	cp.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
 	measurements := make(map[string]string)
 	timeSeries := make(map[string]string)
 	for _, pt := range points {
 		lp := pt.LineProto()
-		fmt.Printf(" %s\n", lp)
+		cp.Printf(" %s\n", lp)
 
 		influxPoint, err := models.ParsePointsWithPrecision([]byte(lp), time.Now(), "n")
 		if len(influxPoint) != 1 {
@@ -218,10 +219,10 @@ func printResult(points []*point.Point) error {
 		mKeys[i] = name
 		i++
 	}
-	fmt.Printf("\n================= Summary ==================\n\n")
-	fmt.Printf("Total time series: %v\n", len(timeSeries))
-	fmt.Printf("Total line protocol points: %v\n", len(points))
-	fmt.Printf("Total measurements: %v (%s)\n\n", len(measurements), strings.Join(mKeys, ", "))
+	cp.Printf("\n================= Summary ==================\n\n")
+	cp.Printf("Total time series: %v\n", len(timeSeries))
+	cp.Printf("Total line protocol points: %v\n", len(points))
+	cp.Printf("Total measurements: %v (%s)\n\n", len(measurements), strings.Join(mKeys, ", "))
 
 	return nil
 }

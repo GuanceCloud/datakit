@@ -112,7 +112,7 @@ func TestPrefixMultipart(t *testing.T) {
 	_, err = buf.Write(half)
 	assert.NoError(t, err)
 
-	fmt.Print(string(all))
+	t.Logf(string(all))
 
 	assert.Equal(t, true, bytes.Equal(all, buf.Bytes()))
 }
@@ -123,8 +123,8 @@ func TestGetBoundary(t *testing.T) {
 
 	boundary, err := getBoundary(w.FormDataContentType())
 
-	fmt.Println(w.FormDataContentType())
-	fmt.Println(boundary)
+	t.Log(w.FormDataContentType())
+	t.Log(boundary)
 
 	assert.NoError(t, err)
 

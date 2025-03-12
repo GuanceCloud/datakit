@@ -17,12 +17,13 @@ import (
 func TestLoadKVs(t *testing.T) {
 	f, err := os.MkdirTemp("./", "kv")
 	assert.NoError(t, err)
-	defer os.RemoveAll(f)
+
 	initialWorkDir := datakit.InstallDir
 
-	defer func() {
-		datakit.SetWorkDir(initialWorkDir)
-	}()
+	t.Cleanup(func() {
+		os.RemoveAll(f)
+		datakit.SetupWorkDir(initialWorkDir)
+	})
 
 	datakit.SetWorkDir(f)
 

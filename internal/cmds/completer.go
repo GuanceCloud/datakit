@@ -6,7 +6,6 @@
 package cmds
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -126,5 +125,5 @@ func setupCompleterScripts() {
 }
 
 func showCompletionScripts() {
-	fmt.Println(string(completerShell))
+	cp.Println(string(completerShell))
 }

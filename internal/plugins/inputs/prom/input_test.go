@@ -1331,8 +1331,7 @@ process_runtime_jvm_buffer_count{pool="mapped - 'non-volatile memory'"} 0.0 1680
 func file2http(w http.ResponseWriter, r *http.Request) {
 	fi, err := os.Open("large-metrics.txt")
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return
+		panic(err.Error())
 	}
 	defer fi.Close()
 

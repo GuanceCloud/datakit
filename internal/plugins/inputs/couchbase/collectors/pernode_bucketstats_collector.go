@@ -98,8 +98,6 @@ func strToFloatArr(floatsStr string) []float64 {
 		i, err := strconv.ParseFloat(parse, 64)
 		if err == nil {
 			floatsArr = append(floatsArr, i)
-		} else {
-			fmt.Println("")
 		}
 	}
 

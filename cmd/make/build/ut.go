@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	"go.uber.org/atomic"
@@ -105,14 +106,14 @@ func UnitTestDataKit() error {
 
 	if len(UTExclude) > 0 && UTExclude != "-" {
 		for _, ex := range strings.Split(UTExclude, ",") {
-			fmt.Printf("package %q excluded\n", ex)
+			cp.Printf("package %q excluded\n", ex)
 			ut.exclude[ex] = true
 		}
 	}
 
 	if len(UTOnly) > 0 && UTOnly != "-" {
 		for _, item := range strings.Split(UTOnly, ",") {
-			fmt.Printf("package %q selected\n", item)
+			cp.Printf("package %q selected\n", item)
 			ut.only[item] = true
 		}
 	}
@@ -140,7 +141,7 @@ func UnitTestDataKit() error {
 	for i, p := range pkgs {
 		i++
 		if hugePackages[p] {
-			fmt.Printf("%s is HUGE package, testing it later, skip...\n", p)
+			cp.Printf("%s is HUGE package, testing it later, skip...\n", p)
 			ut.nhuge.Add(1)
 			continue
 		}
@@ -158,7 +159,7 @@ func UnitTestDataKit() error {
 	wg.Wait()
 
 	costNormal := time.Now()
-	fmt.Printf("Normal tests completed, costs = %v\n", costNormal.Sub(start))
+	cp.Printf("Normal tests completed, costs = %v\n", costNormal.Sub(start))
 
 	skipHuge := false
 	if val := os.Getenv(envExcludeHugeIntegrationTesting); len(val) > 0 {
@@ -173,12 +174,12 @@ func UnitTestDataKit() error {
 		lenHugePkgs := len(hugePackages)
 		for pkg := range hugePackages {
 			if ut.exclude[pkg] {
-				fmt.Printf("Skip huge test %q\n", pkg)
+				cp.Printf("Skip huge test %q\n", pkg)
 				continue
 			}
 
 			nIdx++
-			fmt.Printf("run huge test %q\n", pkg)
+			cp.Printf("run huge test %q\n", pkg)
 			ut.doWork(&job{
 				UTID:    utID,
 				index:   nIdx,
@@ -187,10 +188,10 @@ func UnitTestDataKit() error {
 			})
 		}
 
-		fmt.Printf("Huge tests completed, elapsed: %v\n", time.Since(costNormal))
+		cp.Printf("Huge tests completed, elapsed: %v\n", time.Since(costNormal))
 	}
 
-	fmt.Printf("All tests done, elapsed: %v\n", time.Since(start))
+	cp.Printf("All tests done, elapsed: %v\n", time.Since(start))
 
 	mr := &testutils.ModuleResult{
 		Name:      "datakit-ut",
@@ -204,7 +205,7 @@ func UnitTestDataKit() error {
 	}
 
 	if err := testutils.Flush(mr); err != nil {
-		fmt.Printf("[E] flush metric failed: %s\n", err)
+		cp.Printf("[E] flush metric failed: %s\n", err)
 	}
 
 	ut.show()
@@ -217,15 +218,15 @@ func UnitTestDataKit() error {
 }
 
 func (ut *unitTest) show() {
-	fmt.Printf("============ %d package passed(avg %.2f%%) ================\n",
+	cp.Printf("============ %d package passed(avg %.2f%%) ================\n",
 		ut.npassed.Load(), ut.coverTotal.Load()/float64(ut.npassed.Load()))
 	ut.showTopNCoveragePkgs()
 
-	fmt.Printf("============= %d package got no test ===============\n", len(ut.noTestPkgs))
+	cp.Printf("============= %d package got no test ===============\n", len(ut.noTestPkgs))
 	sort.Strings(ut.noTestPkgs)
 	ut.showNoTestPkgs()
 
-	fmt.Printf("============= %d pakage failed ===============\n", len(ut.failedPkgs))
+	cp.Printf("============= %d pakage failed ===============\n", len(ut.failedPkgs))
 	ut.showFailedPkgs()
 }
 
@@ -245,14 +246,14 @@ func (ut *unitTest) doWork(j *job) {
 	start := time.Now()
 
 	if ut.exclude[j.pkg] {
-		fmt.Printf("[%s] package(%03d/%03d) %s excluded...\n",
+		cp.Printf("[%s] package(%03d/%03d) %s excluded...\n",
 			j.UTID, j.index, j.lenPkgs, j.pkg)
 		ut.nskipped.Add(1)
 		return
 	}
 
 	if len(ut.only) > 0 && !ut.only[j.pkg] {
-		fmt.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n",
+		cp.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n",
 			j.UTID, j.index, j.lenPkgs, j.pkg, ut.only)
 		ut.nskipped.Add(1)
 		return
@@ -287,7 +288,7 @@ func (ut *unitTest) doWork(j *job) {
 			mr.Status = testutils.TestFailed
 			mr.FailedMessage = err.Error()
 			if err := testutils.Flush(mr); err != nil {
-				fmt.Printf("[E] flush metric failed: %s\n", err)
+				cp.Printf("[E] flush metric failed: %s\n", err)
 			}
 
 			l.Errorf("package %s failed: %s", j.pkg, string(res))
@@ -323,7 +324,7 @@ func (ut *unitTest) doWork(j *job) {
 		if len(coverage) != 0 {
 			f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
 			if err != nil {
-				fmt.Printf("[E] invalid coverage %q: %s: %s\n", j.pkg, coverage, err)
+				cp.Printf("[E] invalid coverage %q: %s: %s\n", j.pkg, coverage, err)
 				return
 			}
 
@@ -331,17 +332,17 @@ func (ut *unitTest) doWork(j *job) {
 			ut.coverTotal.Add(f)
 			mr.Coverage = f
 		} else {
-			fmt.Printf("[W] test ok, but no coverage: %q\n", j.pkg)
+			cp.Printf("[W] test ok, but no coverage: %q\n", j.pkg)
 			return
 		}
 
 	default: // pass
-		fmt.Printf("[W] unknown coverage line in package %q: %s\n", j.pkg, coverageLine)
+		cp.Printf("[W] unknown coverage line in package %q: %s\n", j.pkg, coverageLine)
 		return
 	}
 
 	if err := testutils.Flush(mr); err != nil {
-		fmt.Printf("[E] flush metric failed: %s\n", err)
+		cp.Printf("[E] flush metric failed: %s\n", err)
 		return
 	}
 
@@ -352,7 +353,7 @@ func (j *job) show(ut *unitTest, mr *testutils.ModuleResult) {
 	// here will access ut.failedPkgs, we lock it to avoid map concurrent access.
 	ut.mtx.Lock()
 	defer ut.mtx.Unlock()
-	fmt.Printf("%s | %d | passed:%d/notest:%d/skipped:%d/huge:%d/failed:%d | %03d/%03d | %s | %f%% | %v\n",
+	cp.Printf("%s | %d | passed:%d/notest:%d/skipped:%d/huge:%d/failed:%d | %03d/%03d | %s | %f%% | %v\n",
 		j.UTID,
 		Parallel,
 		ut.npassed.Load(),
@@ -383,19 +384,19 @@ func (ut *unitTest) showTopNCoveragePkgs() {
 
 	sort.Float64s(topn)
 	for _, c := range topn {
-		fmt.Printf("%.2f%%\n\t%s\n", c, strings.Join(ut.pkgCoverage[c], "\n\t"))
+		cp.Printf("%.2f%%\n\t%s\n", c, strings.Join(ut.pkgCoverage[c], "\n\t"))
 	}
 }
 
 func (ut *unitTest) showFailedPkgs() {
 	for k, v := range ut.failedPkgs {
-		fmt.Printf("%s\n%s\n", k, v)
-		fmt.Println("----------------------------")
+		cp.Printf("%s\n%s\n", k, v)
+		cp.Println("----------------------------")
 	}
 }
 
 func (ut *unitTest) showNoTestPkgs() {
 	for _, p := range ut.noTestPkgs {
-		fmt.Printf("%s\n", p)
+		cp.Printf("%s\n", p)
 	}
 }

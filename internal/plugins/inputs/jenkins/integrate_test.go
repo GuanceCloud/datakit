@@ -466,14 +466,14 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) error {
 		default:
 			resp, err := http.Get("http://" + net.JoinHostPort(r.Host, cs.serverPorts[0]) + "/login")
 			if err != nil {
-				fmt.Printf("HTTP GET /login failed: %v\n", err)
+				cs.t.Logf("HTTP GET /login failed: %v\n", err)
 				continue
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				return nil
 			}
-			fmt.Printf("resp.StatusCode = %d\n", resp.StatusCode)
+			cs.t.Logf("resp.StatusCode = %d\n", resp.StatusCode)
 			time.Sleep(time.Second)
 		}
 	}

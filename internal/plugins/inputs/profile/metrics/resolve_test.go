@@ -8,7 +8,6 @@ package metrics
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"testing"
@@ -34,7 +33,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(string(out))
+	t.Log(string(out))
 
 	var md2 Metadata
 
@@ -45,8 +44,8 @@ func TestMetadata(t *testing.T) {
 	assert.True(t, md.Start.Before(md.End))
 	assert.True(t, md.End.After(md.Start))
 
-	fmt.Println("start: ", time.Time(*md2.Start))
-	fmt.Println("end: ", time.Time(*md2.End))
+	t.Log("start: ", time.Time(*md2.Start))
+	t.Log("end: ", time.Time(*md2.End))
 
 	var m map[string]any
 
@@ -57,7 +56,7 @@ func TestMetadata(t *testing.T) {
 	headers := json2FormValues(m)
 
 	for k, v := range headers {
-		fmt.Println(k, ":", v)
+		t.Log(k, ":", v)
 	}
 }
 
@@ -88,7 +87,7 @@ func TestJson2StringMap(t *testing.T) {
 	strMap := json2FormValues(v)
 
 	for key, val := range strMap {
-		fmt.Println(key, ":", val)
+		t.Log(key, ":", val)
 	}
 }
 
@@ -140,5 +139,5 @@ func TestParseMetadata(t *testing.T) {
 	assert.Equal(t, "bar", metadata["foo"])
 	assert.Equal(t, "hello-world", metadata["foobar"])
 
-	fmt.Println(JoinTags(metadata))
+	t.Log(JoinTags(metadata))
 }

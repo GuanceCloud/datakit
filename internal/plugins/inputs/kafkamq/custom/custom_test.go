@@ -8,7 +8,6 @@ package custom
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -135,8 +134,8 @@ func TestMashellJson(t *testing.T) {
 	// 将多个消息打包为HTTP请求的主体
 	jsonData, err := json.MarshalIndent(messages, "", "	")
 	if err != nil {
-		fmt.Println("Error marshaling JSON:", err)
+		t.Log("Error marshaling JSON:", err)
 		return
 	}
-	fmt.Println(string(jsonData))
+	t.Log(string(jsonData))
 }

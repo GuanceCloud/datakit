@@ -30,9 +30,9 @@ var (
 	flagImportLogPath    = fsImport.String("log", commonLogFlag(), "log path")
 	flagImportDatawayURL = fsImport.StringSliceP("dataway", "D", nil, "dataway list")
 	fsImportUsage        = func() {
-		fmt.Printf("usage: datakit import [options]\n\n")
-		fmt.Printf("Import used to play recorded history data to Guance Cloud. Available options:\n\n")
-		fmt.Println(fsImport.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit import [options]\n\n")
+		cp.Printf("Import used to play recorded history data to Guance Cloud. Available options:\n\n")
+		cp.Println(fsImport.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -40,7 +40,7 @@ var (
 	//
 	fsDocName  = "doc"
 	fsDocUsage = func() {
-		fmt.Printf("command 'datakit doc' deprecated, use 'datakit export'\n\n")
+		cp.Printf("command 'datakit doc' deprecated, use 'datakit export'\n\n")
 	}
 
 	//
@@ -49,9 +49,9 @@ var (
 	fsDQLName  = "dql"
 	fsDQL      = pflag.NewFlagSet(fsDQLName, pflag.ContinueOnError)
 	fsDQLUsage = func() {
-		fmt.Printf("usage: datakit dql [options]\n\n")
-		fmt.Printf("DQL used to query data. If no option specified, query interactively. Other available options:\n\n")
-		fmt.Println(fsDQL.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit dql [options]\n\n")
+		cp.Printf("DQL used to query data. If no option specified, query interactively. Other available options:\n\n")
+		cp.Println(fsDQL.FlagUsagesWrapped(0))
 	}
 
 	flagDQLJSON        = fsDQL.BoolP("json", "J", false, "output in json format")
@@ -71,9 +71,9 @@ var (
 	fsRun              = pflag.NewFlagSet(fsRunName, pflag.ContinueOnError)
 	FlagRunInContainer = fsRun.BoolP("container", "C", false, "running in container mode")
 	fsRunUsage         = func() {
-		fmt.Printf("usage: datakit run [options]\n\n")
-		fmt.Printf("Run used to select different datakit running mode.\n\n")
-		fmt.Println(fsRun.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit run [options]\n\n")
+		cp.Printf("Run used to select different datakit running mode.\n\n")
+		cp.Println(fsRun.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -90,9 +90,9 @@ var (
 	flagPLTable    = fsPL.Bool("tab", false, "output result in table format")
 	flagPLDate     = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
 	fsPLUsage      = func() {
-		fmt.Printf("usage: datakit pipeline -P [pipeline-script-name.p] -T [text] [other-options...]\n\n")
-		fmt.Printf("Pipeline used to debug exists pipeline script.\n\n")
-		fmt.Println(fsPL.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit pipeline -P [pipeline-script-name.p] -T [text] [other-options...]\n\n")
+		cp.Printf("Pipeline used to debug exists pipeline script.\n\n")
+		cp.Println(fsPL.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -103,9 +103,9 @@ var (
 	flagVersionLogPath            = fsVersion.String("log", commonLogFlag(), "log path")
 	flagVersionDisableUpgradeInfo = fsVersion.Bool("upgrade-info-off", false, "do not show upgrade info")
 	fsVersionUsage                = func() {
-		fmt.Printf("usage: datakit version [options]\n\n")
-		fmt.Printf("Version used to handle version related functions.\n\n")
-		fmt.Println(fsVersion.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit version [options]\n\n")
+		cp.Printf("Version used to handle version related functions.\n\n")
+		cp.Println(fsVersion.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -120,9 +120,9 @@ var (
 	flagServiceUninstall = fsService.BoolP("uninstall", "U", false, "uninstall datakit service")
 	flagServiceReinstall = fsService.BoolP("reinstall", "I", false, "reinstall datakit service")
 	fsServiceUsage       = func() {
-		fmt.Printf("usage: datakit service [options]\n\n")
-		fmt.Printf("Service used to manage datakit service\n\n")
-		fmt.Println(fsService.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit service [options]\n\n")
+		cp.Printf("Service used to manage datakit service\n\n")
+		cp.Println(fsService.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -141,9 +141,9 @@ var (
 	flagMonitorTimestamp       = fsMonitor.Int64P("timestamp", "T", 0, "specify the timestamp(ms) of these metrics")
 	flagDumpMetrics            = fsMonitor.Bool("dump-metrics", false, "dump monitor metrics to local file .monitor-metrics")
 	fsMonitorUsage             = func() {
-		fmt.Printf("usage: datakit monitor [options]\n\n")
-		fmt.Printf("Monitor used to show datakit running statistics\n\n")
-		fmt.Println(fsMonitor.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit monitor [options]\n\n")
+		cp.Printf("Monitor used to show datakit running statistics\n\n")
+		cp.Println(fsMonitor.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -158,9 +158,9 @@ var (
 	flagInstallSymbolTool = fsInstall.Bool("symbol-tools", false,
 		"install tools for symbolizing crash backtrace address, including Android command line tools, ProGuard, Android-NDK, atosl, etc ...")
 	fsInstallUsage = func() {
-		fmt.Printf("usage: datakit install [options]\n\n")
-		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
-		fmt.Println(fsInstall.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit install [options]\n\n")
+		cp.Printf("Install used to install DataKit related packages and plugins\n\n")
+		cp.Println(fsInstall.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -175,9 +175,9 @@ var (
 	flagCheckSample    = fsCheck.Bool("sample", false,
 		"check all inputs config sample, to ensure all sample are valid TOML")
 	fsCheckUsage = func() {
-		fmt.Printf("usage: datakit check [options]\n\n")
-		fmt.Printf("Various check tools for DataKit\n\n")
-		fmt.Println(fsCheck.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit check [options]\n\n")
+		cp.Printf("Various check tools for DataKit\n\n")
+		cp.Println(fsCheck.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -206,9 +206,9 @@ var (
 	flagDebugKVFile     = fsDebug.String("kv-file", "", "kv file path")
 
 	fsDebugUsage = func() {
-		fmt.Printf("usage: datakit debug [options]\n\n")
-		fmt.Printf("Various debug options for DataKit\n\n")
-		fmt.Println(fsDebug.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit debug [options]\n\n")
+		cp.Printf("Various debug options for DataKit\n\n")
+		cp.Println(fsDebug.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -243,9 +243,9 @@ var (
 		"change the runtime of the created container, the value is runc or dk-runc")
 
 	fsToolUsage = func() {
-		fmt.Printf("usage: datakit tool [options]\n\n")
-		fmt.Printf("Various tools for DataKit\n\n")
-		fmt.Println(fsTool.FlagUsagesWrapped(0))
+		cp.Printf("usage: datakit tool [options]\n\n")
+		cp.Printf("Various tools for DataKit\n\n")
+		cp.Println(fsTool.FlagUsagesWrapped(0))
 	}
 )
 

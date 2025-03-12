@@ -12,24 +12,33 @@ import (
 	"github.com/fatih/color"
 )
 
+// Infof same as fmt.Printf but with green color.
 func Infof(fmtstr string, args ...interface{}) {
 	color.Set(color.FgGreen)
-	Output(fmtstr, args...)
+	Printf(fmtstr, args...)
 	color.Unset()
 }
 
+// Warnf same as fmt.Printf but with yellow color.
 func Warnf(fmtstr string, args ...interface{}) {
 	color.Set(color.FgYellow)
-	Output(fmtstr, args...)
+	Printf(fmtstr, args...)
 	color.Unset()
 }
 
+// Errorf same as fmt.Printf but with red color.
 func Errorf(fmtstr string, args ...interface{}) {
 	color.Set(color.FgRed)
-	Output(fmtstr, args...)
+	Printf(fmtstr, args...)
 	color.Unset()
 }
 
-func Output(fmtstr string, args ...interface{}) {
+// Printf same as fmt.Printf.
+func Printf(fmtstr string, args ...any) {
 	fmt.Printf(fmtstr, args...)
+}
+
+// Println same as fmt.Println.
+func Println(args ...any) {
+	fmt.Println(args...)
 }

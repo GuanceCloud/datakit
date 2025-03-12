@@ -10,7 +10,6 @@ package postgresql
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -360,11 +359,8 @@ func TestService(t *testing.T) {
 } */
 
 func TestTime(t *testing.T) {
-	ti, err := dateparse.ParseIn("2014-12-16 06:20:00 UTC", time.Local)
-	fmt.Println(ti, err)
-	fmt.Println(ti.UnixNano())
-
-	fmt.Println("ok")
+	_, err := dateparse.ParseIn("2014-12-16 06:20:00 UTC", time.Local)
+	assert.NoError(t, err)
 }
 
 func TestInput_setHostIfNotLoopback(t *testing.T) {

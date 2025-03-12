@@ -287,7 +287,7 @@ func TestCollectByPort(t *testing.T) {
 			sortCatches := sortData(i.collectCachePort)
 
 			for k, v := range i.collectCachePort {
-				fmt.Printf("pt[%02d] = %v\n", k, v.LineProto())
+				t.Logf("pt[%02d] = %v\n", k, v.LineProto())
 			}
 
 			// check

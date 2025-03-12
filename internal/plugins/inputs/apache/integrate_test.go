@@ -674,7 +674,7 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 
 					resp, err := netClient.Get(newURL)
 					if err != nil {
-						fmt.Printf("HTTP GET failed: %v\n", err)
+						cs.t.Logf("HTTP GET failed: %v\n", err)
 						return
 					}
 					defer resp.Body.Close()

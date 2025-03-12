@@ -29,7 +29,7 @@ func (col *Collector) setupUnixServer() error {
 			col.opts.l.Error(err)
 			return err
 		}
-		col.opts.l.Info("Unix listening on %1", conn.LocalAddr().String())
+		col.opts.l.Info("Unix listening on %s", conn.LocalAddr().String())
 		col.UnixConn = conn
 	}
 
@@ -59,6 +59,7 @@ func (col *Collector) unixListen(conn *net.UnixConn) error {
 	for {
 		select {
 		case <-col.done:
+			col.opts.l.Infof("unixListen exit on done chan")
 			return nil
 		default:
 			n, addr, err := conn.ReadFromUnix(buf)

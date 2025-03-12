@@ -7,9 +7,8 @@
 package dnswatcher
 
 import (
-	"fmt"
 	"os"
-	"testing"
+	T "testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ func checkDevHost() bool {
 //------------------------------------------------------------------------------
 
 // go test -v -timeout 30s -run ^TestGetCheckInterval$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dnswatcher
-func TestGetCheckInterval(t *testing.T) {
+func TestGetCheckInterval(t *T.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -57,7 +56,7 @@ func TestGetCheckInterval(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			du := getCheckInterval(tc.in)
 			assert.Equal(t, tc.out, du)
 		})
@@ -66,7 +65,9 @@ func TestGetCheckInterval(t *testing.T) {
 
 //------------------------------------------------------------------------------
 
-type BaiduImpl struct{}
+type BaiduImpl struct {
+	t *T.T
+}
 
 func (*BaiduImpl) GetDomain() string {
 	return "baidu.com"
@@ -78,19 +79,21 @@ func (*BaiduImpl) GetIPs() []string {
 	return baiduIPs
 }
 
-func (*BaiduImpl) SetIPs([]string) {
-	fmt.Println("SetIPs")
+func (x *BaiduImpl) SetIPs([]string) {
+	x.t.Log("SetIPs")
 }
 
-func (*BaiduImpl) Update() error {
-	fmt.Println("Update")
+func (x *BaiduImpl) Update() error {
+	x.t.Log("Update")
 	return nil
 }
 
 // Make sure BaiduImpl implements the IDNSWatcher interface
 var _ IDNSWatcher = new(BaiduImpl)
 
-type QQImpl struct{}
+type QQImpl struct {
+	t *T.T
+}
 
 func (*QQImpl) GetDomain() string {
 	return "qq.com"
@@ -100,12 +103,12 @@ func (*QQImpl) GetIPs() []string {
 	return []string{}
 }
 
-func (*QQImpl) SetIPs([]string) {
-	fmt.Println("SetIPs")
+func (x *QQImpl) SetIPs([]string) {
+	x.t.Log("SetIPs")
 }
 
-func (*QQImpl) Update() error {
-	fmt.Println("Update")
+func (x *QQImpl) Update() error {
+	x.t.Log("Update")
 	return nil
 }
 
@@ -113,7 +116,7 @@ func (*QQImpl) Update() error {
 var _ IDNSWatcher = new(QQImpl)
 
 // go test -v -timeout 30s -run ^TestCheckDNSChanged$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dnswatcher
-func TestCheckDNSChanged(t *testing.T) {
+func TestCheckDNSChanged(t *T.T) {
 	if !checkDevHost() {
 		return
 	}
@@ -125,21 +128,23 @@ func TestCheckDNSChanged(t *testing.T) {
 		outArray []string
 	}{
 		{
-			name:     "baidu",
-			in:       &BaiduImpl{},
+			name: "baidu",
+			in: &BaiduImpl{
+				t: t,
+			},
 			outBool:  false,
 			outArray: baiduIPs,
 		},
 		{
 			name:     "qq",
-			in:       &QQImpl{},
+			in:       &QQImpl{t: t},
 			outBool:  true,
 			outArray: []string{"183.3.226.35", "123.151.137.18", "61.129.7.47"},
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			outBool, outArray := checkDNSChanged(tc.in)
 			assert.Equal(t, tc.outBool, outBool)
 			assert.ElementsMatch(t, tc.outArray, outArray)

@@ -6,7 +6,6 @@
 package trace
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -171,6 +170,6 @@ func TestSampler(t *testing.T) {
 				sampled = append(sampled, r)
 			}
 		}
-		fmt.Printf("sampling_rate=0.15 ,origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+		t.Logf("sampling_rate=0.15 ,origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
 	}
 }

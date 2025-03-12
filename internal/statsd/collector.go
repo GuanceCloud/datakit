@@ -42,9 +42,11 @@ type Collector struct {
 	// is an available bool in accept, then we are below the maximum and can
 	// accept the connection
 	accept chan bool
+
 	// drops tracks the number of dropped metrics.
 	dropsUnix int
-	drops     int
+
+	drops int
 
 	// Channel for all incoming statsd packets
 	in   chan job
@@ -273,6 +275,12 @@ func (col *Collector) stop() {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
 		if err := col.UDPlistener.Close(); err != nil {
+			col.opts.l.Warnf("Close: %s, ignored", err)
+		}
+	}
+
+	if col.UnixConn != nil {
+		if err := col.UnixConn.Close(); err != nil {
 			col.opts.l.Warnf("Close: %s, ignored", err)
 		}
 	}

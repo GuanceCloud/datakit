@@ -18,6 +18,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/jmoiron/sqlx"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/db2/collect/ccommon"
 )
@@ -76,7 +78,7 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		fmt.Println("set root log failed:", err.Error())
+		cp.Println("set root log failed:", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger
@@ -234,7 +236,7 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 
 	err := ipt.db.Select(s, sql)
 	if err != nil {
-		fmt.Println("err =", err.Error(), "sql =", sql)
+		cp.Println("err =", err.Error(), "sql =", sql)
 
 		if strings.Contains(err.Error(), "database is closed") {
 			if err := ipt.ConnectDB(); err != nil {

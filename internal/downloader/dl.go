@@ -18,6 +18,8 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var CurDownloading string
@@ -34,15 +36,15 @@ func (wc *WriteCounter) Write(p []byte) (int, error) {
 	wc.last += float64(n)
 	wc.PrintProgress()
 	if n > 0 && wc.current >= wc.Total {
-		fmt.Println()
+		cp.Println()
 	}
 	return n, nil
 }
 
 func (wc *WriteCounter) PrintProgress() {
 	if wc.last > float64(wc.Total)*0.01 || wc.current == wc.Total { // update progress-bar each 1%
-		fmt.Printf("\r%s", strings.Repeat(" ", 100)) //nolint:gomnd
-		fmt.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.Total))
+		cp.Printf("\r%s", strings.Repeat(" ", 100)) //nolint:gomnd
+		cp.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.Total))
 		wc.last = 0.0
 	}
 }

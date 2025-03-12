@@ -6,12 +6,12 @@
 package cmds
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	prompt "github.com/c-bata/go-prompt"
 	"github.com/vjeantet/grok"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 const (
@@ -140,7 +140,7 @@ func run(txt string) {
 
 	switch s {
 	case "Q", "exit":
-		fmt.Println("Bye!")
+		cp.Printf("Bye!\n")
 		os.Exit(0)
 	default:
 		do(s)
@@ -171,7 +171,7 @@ func do(txt string) {
 
 	for i := High_; i >= 0; i-- {
 		for ptn := range matchedGroks[i] {
-			fmt.Printf("\t%d %%{%s: ?}\n", i, ptn)
+			cp.Printf("\t%d %%{%s: ?}\n", i, ptn)
 		}
 	}
 }

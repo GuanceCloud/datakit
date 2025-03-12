@@ -10,10 +10,11 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 
 	"github.com/jessevdk/go-flags"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 )
@@ -23,17 +24,17 @@ var opt ccommon.Option
 func main() {
 	input := bufio.NewScanner(os.Stdin)
 	input.Scan()
-	fmt.Println(input.Text())
+	cp.Println(input.Text())
 
 	if _, err := flags.Parse(&opt); err != nil {
-		fmt.Println("flags.Parse error:", err.Error())
+		cp.Println("flags.Parse error:", err.Error())
 		return
 	}
 
 	switch opt.Mode {
 	case "mysql", "oracle":
 	default:
-		fmt.Println("Unknown running mode: ", opt.Mode)
+		cp.Println("Unknown running mode: ", opt.Mode)
 		return
 	}
 
@@ -44,5 +45,5 @@ func main() {
 
 	collect.Run(&opt)
 
-	fmt.Println("exiting...")
+	cp.Println("exiting...")
 }

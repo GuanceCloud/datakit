@@ -4,9 +4,9 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/cmd"
 )
 
@@ -28,8 +28,7 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "show datakit-ebpf version",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("datakit-ebpf version %s %s %s\n",
-				Version, Arch, Date)
+			cp.Printf("datakit-ebpf version %s %s %s\n", Version, Arch, Date)
 		},
 	}
 }
