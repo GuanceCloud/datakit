@@ -165,8 +165,8 @@ func Test_parseResourceMetricsV2(t *testing.T) {
 			},
 		},
 	}
-	iptGlobal = &Input{feeder: &feeder{t: t}}
-	parseResourceMetricsV2(msource)
+	f := &feeder{t: t}
+	parseResourceMetricsV2(msource, f)
 }
 
 func getPtr(f float64) *float64 {

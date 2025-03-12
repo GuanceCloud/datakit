@@ -18,6 +18,31 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type httpConfig struct {
+	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
+	TraceAPI     string `toml:"trace_api" json:"trace_api"`
+	MetricAPI    string `toml:"metric_api" json:"metric_api"`
+	LogsAPI      string `toml:"logs_api" json:"logs_api"`
+
+	afterGatherRun itrace.AfterGatherHandler
+	feeder         dkio.Feeder
+}
+
+func (h *httpConfig) initConfig(feeder dkio.Feeder, agterGather *itrace.AfterGather) {
+	// 路由可能为空，为版本兼容设置默认值。
+	if h.TraceAPI == "" {
+		h.TraceAPI = defaultTraceAPI
+	}
+	if h.MetricAPI == "" {
+		h.MetricAPI = defaultMetricAPI
+	}
+	if h.LogsAPI == "" {
+		h.LogsAPI = defaultLogAPI
+	}
+	h.feeder = feeder
+	h.afterGatherRun = agterGather
+}
+
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
 	if err != nil {
 		log.Error(err.Error())
@@ -34,11 +59,11 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 		return
 	}
 
-	resp.WriteHeader(statusOK)
+	resp.WriteHeader(http.StatusOK)
 	resp.Write(buf) //nolint:gosec,errcheck
 }
 
-func handleOTELTrace(resp http.ResponseWriter, req *http.Request) {
+func (h *httpConfig) handleOTELTrace(resp http.ResponseWriter, req *http.Request) {
 	media, _, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -66,14 +91,14 @@ func handleOTELTrace(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if afterGatherRun != nil {
+	if h.afterGatherRun != nil {
 		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
-			afterGatherRun.Run(inputName, dktraces)
+			h.afterGatherRun.Run(inputName, dktraces)
 		}
 	}
 }
 
-func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
+func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 	media, _, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -97,10 +122,10 @@ func handleOTElMetrics(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	parseResourceMetricsV2(msreq.ResourceMetrics)
+	parseResourceMetricsV2(msreq.ResourceMetrics, h.feeder)
 }
 
-func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
+func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
 	media, _, buf, err := itrace.ParseTracerRequest(req)
 	if err != nil {
 		log.Error(err.Error())
@@ -125,7 +150,7 @@ func handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
 	}
 	pts := ParseLogsRequest(otelLogs.GetResourceLogs())
 	if len(pts) > 0 {
-		if err = iptGlobal.feeder.FeedV2(point.Logging, pts, dkio.WithInputName(inputName)); err != nil {
+		if err = h.feeder.FeedV2(point.Logging, pts, dkio.WithInputName(inputName)); err != nil {
 			log.Errorf("feed logging to io err=%v", err)
 		}
 	}

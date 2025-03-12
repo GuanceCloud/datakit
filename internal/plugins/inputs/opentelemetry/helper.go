@@ -6,14 +6,10 @@
 package opentelemetry
 
 import (
-	"regexp"
-
 	"github.com/GuanceCloud/cliutils/point"
 
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 )
-
-type getAttributeFunc func(key string, attributes []*common.KeyValue) (*common.KeyValue, bool)
 
 func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, bool) {
 	for _, attr := range attributes {
@@ -23,22 +19,6 @@ func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, bool)
 	}
 
 	return nil, false
-}
-
-func getAttrWrapper(ignore []*regexp.Regexp) getAttributeFunc {
-	if len(ignore) == 0 {
-		return getAttr
-	} else {
-		return func(key string, attributes []*common.KeyValue) (*common.KeyValue, bool) {
-			for _, rexp := range ignore {
-				if rexp.MatchString(key) {
-					return nil, false
-				}
-			}
-
-			return getAttr(key, attributes)
-		}
-	}
 }
 
 func attributesToKVS(spanKV point.KVs, otherAttrs, atts []*common.KeyValue) (point.KVs, []*common.KeyValue) {

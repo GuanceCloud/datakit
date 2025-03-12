@@ -59,15 +59,16 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 
 				// service_name from xx.system.
 				if spiltServiceName {
-					spanKV = spanKV.MustAddTag(itrace.TagService, getServiceNameBySystem(span.GetAttributes(), serviceName))
+					spanKV = spanKV.MustAddTag(itrace.TagService, getServiceNameBySystem(span.GetAttributes(), serviceName)).
+						AddTag(itrace.TagBaseService, serviceName)
 				}
 
-				for k, v := range tags { // span.attribute 优先级大于全局tag。
+				for k, v := range globalTags { // span.attribute 优先级大于全局tag。
 					spanKV = spanKV.MustAddTag(k, v)
 				}
 
 				if runtimeID == "" && !runtimeIDInitialized {
-					if attrRuntimeID, ok := getAttribute(itrace.FieldRuntimeID, span.Attributes); ok {
+					if attrRuntimeID, ok := getAttr(itrace.FieldRuntimeID, span.Attributes); ok {
 						runtimeID = attrRuntimeID.Value.GetStringValue()
 					}
 					runtimeIDInitialized = true
@@ -79,7 +80,7 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 				for i := range span.Events {
 					if span.Events[i].Name == ExceptionEventName {
 						for o, d := range otelErrKeyToDkErrKey {
-							if attr, ok := getAttribute(o, span.Events[i].Attributes); ok {
+							if attr, ok := getAttr(o, span.Events[i].Attributes); ok {
 								spanKV = spanKV.Add(d, attr.Value.GetStringValue(), false, false)
 							}
 						}

@@ -50,6 +50,7 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			TagHttpRoute:        &inputs.TagInfo{Desc: "HTTP route. Optional."},
 			TagHttpUrl:          &inputs.TagInfo{Desc: "HTTP URL. Optional."},
 			TagDKFingerprintKey: &inputs.TagInfo{Desc: "DataKit fingerprint is DataKit hostname"},
+			TagBaseService:      &inputs.TagInfo{Desc: "Span Base service name"},
 		},
 		Fields: map[string]interface{}{
 			FieldDuration: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Duration of span"},

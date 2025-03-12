@@ -12,13 +12,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -131,38 +129,17 @@ const (
 
 var (
 	log              = logger.DefaultSLogger(inputName)
-	statusOK         = 200
-	defaultTraceAPI  = "/otel/v1/traces"
-	defaultMetricAPI = "/otel/v1/metrics"
-	afterGatherRun   itrace.AfterGatherHandler
-	ignoreTags       []*regexp.Regexp
-	getAttribute     getAttributeFunc
-	tags             map[string]string
-	wkpool           *workerpool.WorkerPool
-	localCache       *storage.Storage
-	otelSvr          *grpc.Server
-	iptGlobal        *Input
-	delMessage       bool
 	spiltServiceName bool
+	delMessage       bool
+	globalTags       map[string]string
 )
-
-type httpConfig struct {
-	StatusCodeOK int    `toml:"http_status_ok" json:"http_status_ok"`
-	TraceAPI     string `toml:"trace_api" json:"trace_api"`
-	MetricAPI    string `toml:"metric_api" json:"metric_api"`
-	LogsAPI      string `toml:"logs_api" json:"logs_api"`
-}
-
-type grpcConfig struct {
-	Address string `toml:"addr" json:"addr"`
-}
 
 type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string                     `toml:"customer_tags"`
 	HTTPConfig          *httpConfig                  `toml:"http"`
-	GRPCConfig          *grpcConfig                  `toml:"grpc"`
+	GRPCConfig          *gRPC                        `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
 	CompatibleZhaoShang bool                         `toml:"compatible_zhaoshang"`
 	SpiltServiceName    bool                         `toml:"spilt_service_name"`
@@ -176,9 +153,11 @@ type Input struct {
 	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
 
-	feeder  dkio.Feeder
-	semStop *cliutils.Sem // start stop signal
-	Tagger  datakit.GlobalTagger
+	feeder     dkio.Feeder
+	semStop    *cliutils.Sem // start stop signal
+	Tagger     datakit.GlobalTagger
+	workerPool *workerpool.WorkerPool
+	localCache *storage.Storage
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -186,6 +165,8 @@ func (*Input) Catalog() string { return inputName }
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleConfig() string { return sampleConfig }
+
+func (*Input) Singleton() {}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&Measurement{}, &itrace.TraceMeasurement{Name: inputName}}
@@ -203,22 +184,27 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
-	delMessage = ipt.DelMessage
 	spiltServiceName = ipt.SpiltServiceName
-	tags = ipt.Tags
 	convertToDD = ipt.CompatibleDDTrace
 	convertToZhaoShang = ipt.CompatibleZhaoShang
-	getAttribute = getAttrWrapper(ignoreTags)
+	delMessage = ipt.DelMessage
+	globalTags = ipt.Tags
 
 	var err error
+	var wkpool *workerpool.WorkerPool
 	if ipt.WPConfig != nil {
 		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
 			log.Errorf("### new worker-pool failed: %s", err.Error())
-		} else if err = wkpool.Start(); err != nil {
+		}
+		if err = wkpool.Start(); err != nil {
 			log.Errorf("### start worker-pool failed: %s", err.Error())
+		} else {
+			ipt.workerPool = wkpool
 		}
 	}
-	if ipt.LocalCacheConfig != nil {
+
+	var localCache *storage.Storage
+	if ipt.LocalCacheConfig != nil && ipt.HTTPConfig != nil {
 		log.Debug("### start register")
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
 			log.Errorf("### new local-cache failed: %s", err.Error())
@@ -248,7 +234,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleOTELTrace(&httpapi.NopResponseWriter{}, req)
+					ipt.HTTPConfig.handleOTELTrace(&httpapi.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -267,13 +253,12 @@ func (ipt *Input) RegHTTPHandler() {
 			itrace.WithLogger(log),
 			itrace.WithRetry(100*time.Millisecond),
 			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
-			itrace.WithFeeder(ipt.feeder),
-		)
+			itrace.WithFeeder(ipt.feeder))
+		ipt.localCache = localCache
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
 			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())), itrace.WithFeeder(ipt.feeder))
 	}
-	afterGatherRun = afterGather
 
 	// add filters: the order of appending filters into AfterGather is important!!!
 	// the order of appending represents the order of that filter executes.
@@ -303,37 +288,32 @@ func (ipt *Input) RegHTTPHandler() {
 		expectedHeaders[k] = append(expectedHeaders[k], v)
 	}
 
-	if ipt.HTTPConfig == nil {
-		log.Debugf("### HTTP server in OpenTelemetry are not enabled")
-
-		return
-	}
-	// 路由可能为空，为版本兼容设置默认值。
-	if ipt.HTTPConfig.TraceAPI == "" {
-		ipt.HTTPConfig.TraceAPI = defaultTraceAPI
+	if ipt.GRPCConfig != nil {
+		ipt.GRPCConfig.afterGatherRun = afterGather
+		ipt.GRPCConfig.feeder = ipt.feeder
 	}
 
-	if ipt.HTTPConfig.MetricAPI == "" {
-		ipt.HTTPConfig.MetricAPI = defaultMetricAPI
+	if ipt.HTTPConfig != nil {
+		ipt.HTTPConfig.initConfig(ipt.feeder, afterGather)
+
+		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
+			httpapi.CheckExpectedHeaders(
+				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
+					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.HTTPConfig.handleOTELTrace)), log, expectedHeaders))
+		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(ipt.HTTPConfig.handleOTElMetrics, log, expectedHeaders))
+		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.LogsAPI, httpapi.CheckExpectedHeaders(ipt.HTTPConfig.handleOTELLogging, log, expectedHeaders))
+
+		log.Infof("### register handler:trace:%s metric: %s logs:%s  of agent %s",
+			ipt.HTTPConfig.TraceAPI, ipt.HTTPConfig.MetricAPI, ipt.HTTPConfig.LogsAPI, inputName)
 	}
-
-	statusOK = ipt.HTTPConfig.StatusCodeOK
-	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
-		httpapi.CheckExpectedHeaders(
-			workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-				httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleOTELTrace)), log, expectedHeaders))
-
-	log.Infof("### register handler for %s of agent %s", ipt.HTTPConfig.MetricAPI, inputName)
-
-	iptGlobal = ipt
-	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(handleOTElMetrics, log, expectedHeaders))
-	httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.LogsAPI, httpapi.CheckExpectedHeaders(handleOTELLogging, log, expectedHeaders))
 }
 
 func (ipt *Input) Run() {
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
-		runGRPCV1(ipt.GRPCConfig.Address, ipt)
+		if ipt.GRPCConfig != nil {
+			ipt.GRPCConfig.runGRPCV1(ipt.GRPCConfig.Address)
+		}
 
 		return nil
 	})
@@ -353,18 +333,19 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
-	if wkpool != nil {
-		wkpool.Shutdown()
-		log.Info("### workerpool closed")
+	if ipt.workerPool != nil {
+		ipt.workerPool.Shutdown()
+		log.Info("workerpool closed")
 	}
-	if localCache != nil {
-		if err := localCache.Close(); err != nil {
-			log.Error(err.Error())
+	if ipt.localCache != nil {
+		if err := ipt.localCache.Close(); err != nil {
+			log.Errorf("close localCache err=%v", err)
 		}
-		log.Info("### storage closed")
+		log.Info("storage closed")
 	}
-	if otelSvr != nil {
-		otelSvr.GracefulStop()
+	if ipt.GRPCConfig != nil {
+		ipt.GRPCConfig.stop()
+		log.Info("grpc server stop")
 	}
 }
 
