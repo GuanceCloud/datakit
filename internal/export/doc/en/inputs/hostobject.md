@@ -171,7 +171,7 @@ The basic structure of the `message` field is as follows:
 
 #### `host.disk` {#host-disk}
 
-> In previous versions, only one mount point would be collected for the same device (which specific mount point was collected depended on the order in which the mount points appeared in */proc/self/mountpoint*). In the [:octicons-tag-24: Version-1.66.0](../datakit/changelog.md#cl-1.66.0) release, the disk section of the host object will collect all mount points that meet certain criteria (such as device names starting with `/dev`). The purpose of this change is to display all devices visible to Datakit to avoid any omissions.
+> In previous versions, only one mount point would be collected for the same device (which specific mount point was collected depended on the order in which the mount points appeared in */proc/self/mountpoint*). In the [:octicons-tag-24: Version-1.66.0](../datakit/changelog-2025.md#cl-1.66.0) release, the disk section of the host object will collect all mount points that meet certain criteria (such as device names starting with `/dev`). The purpose of this change is to display all devices visible to Datakit to avoid any omissions.
 
 
 | Field Name       | Description         | Type   |

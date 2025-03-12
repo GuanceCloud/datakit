@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Datakit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog.md#cl-1.67.0) 版本开始增加了 `Pyroscope` 采集器，支持接入 Grafana Pyroscope Agent 上报的数据，帮助用户定位应用程序中的 CPU、内存、IO 等的性能瓶颈。
+Datakit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.67.0) 版本开始增加了 `Pyroscope` 采集器，支持接入 Grafana Pyroscope Agent 上报的数据，帮助用户定位应用程序中的 CPU、内存、IO 等的性能瓶颈。
 
 ## 采集器配置 {#input-config}
 

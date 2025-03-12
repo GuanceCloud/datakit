@@ -240,7 +240,7 @@ In addition, the acquisition configuration of some third-party software built in
 <!-- markdownlint-disable MD046 -->
 ???+ warning "metric"
 
-    Starting from [DataKit 1.68.0](../datakit/changelog.md#cl-1.68.0), the indicator set name has been changed:
+    Starting from [DataKit 1.68.0](../datakit/changelog-2025.md#cl-1.68.0), the indicator set name has been changed:
     All indicators sent to the observation cloud have a unified indicator set name: `otel_service`.
     If you already have a dashboard, export the existing dashboard and change `otel-serivce` to `otel_service` and then import it.
 
