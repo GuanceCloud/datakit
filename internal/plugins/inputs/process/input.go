@@ -473,7 +473,7 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, tn time.Time) {
 	for _, proc := range processList {
 		cmd, err := proc.Cmdline() // 无cmd的进程 没有采集指标的意义
 		if err != nil || cmd == "" {
-			l.Infof("Cmdline(): %s, err: %v, ignored", proc.String(), err)
+			l.Debugf("Cmdline(): %s, err: %v, ignored", proc.String(), err)
 			continue
 		}
 

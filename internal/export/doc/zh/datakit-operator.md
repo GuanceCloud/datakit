@@ -681,10 +681,6 @@ $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
     ```
 <!-- markdownlint-enable -->
 
-在完善文档时，可以进一步明确各个字段的含义，并加上一些补充说明以帮助用户更清楚地理解整个过程。以下是改进后的版本：
-
----
-
 ## Datakit Operator 资源变动 {#datakit-operator-mutate-resource}
 
 ### 添加 Datakit Logging 采集所需的配置 {#add-logging-configs}

@@ -484,10 +484,6 @@ log-container datakit-logfwd
 
 Finally, you can check whether the logs have been collected on the Guance Cloud Log Platform.
 
-Here is the translation of the document into English:
-
----
-
 ## Datakit Operator Resource Changes {#datakit-operator-mutate-resource}
 
 ### Adding Configuration for Datakit Logging {#add-logging-configs}

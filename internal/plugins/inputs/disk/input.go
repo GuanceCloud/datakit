@@ -147,12 +147,12 @@ func (ipt *Input) collect(ptTS int64) error {
 
 	for _, f := range fs {
 		if f.Usage == nil {
-			l.Infof("no usage available, skip partition %+#v", f.Part)
+			l.Debugf("no usage available, skip partition %+#v", f.Part)
 			continue
 		}
 
 		if f.Usage.Total == 0 {
-			l.Infof("usage.Total == 0, skip partition %+#v", f.Part)
+			l.Debugf("usage.Total == 0, skip partition %+#v", f.Part)
 			continue
 		}
 
