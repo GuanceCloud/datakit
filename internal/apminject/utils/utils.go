@@ -7,6 +7,7 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -91,9 +92,13 @@ func WithForceUpgradeLib(y bool) Opt {
 }
 
 type AgentAddr struct {
-	Host    string
-	Port    string
-	UDSAddr string
+	DkHost string
+	DkPort string
+	DkUds  string
+
+	SDHost string
+	SDPort string
+	SDUds  string
 }
 
 const (
@@ -102,43 +107,74 @@ const (
 	DefaultDKPort   = "9529"
 	DefaultDKUDS    = "/var/run/datakit/datakit.sock"
 
+	StatsDConfPath    = "/usr/local/datakit/conf.d/statsd/statsd.conf"
+	DefaultStatsDHost = "127.0.0.1"
+	DefaultStatsDPort = "8125"
+	DefaultStatsDUDS  = "/var/run/datakit/statsd.sock"
+
 	// used for container.
-	EnvDKSocketAddr = "ENV_DATAKIT_SOCKET_ADDR"
+	EnvDKSocketAddr     = "ENV_DATAKIT_SOCKET_ADDR"
+	EnvStatsdSocketAddr = "ENV_DATAKIT_STATSD_SOCKET_ADDR"
 )
 
+type iptsCfg struct {
+	Inputs map[string][]map[string]any `toml:"inputs"`
+}
+
 func GetDKAddr() *AgentAddr {
-	confPath := DatakitConfPath
 	var aAddr AgentAddr
-	if v := os.Getenv(EnvDKSocketAddr); v != "" {
+
+	// unix addr first
+	if v := getEnv(EnvDKSocketAddr, DefaultDKUDS); v != "" {
+		if v := getEnv(EnvStatsdSocketAddr, DefaultStatsDUDS); v != "" {
+			if _, err := os.Stat(v); err == nil {
+				aAddr.SDUds = v
+			}
+		}
 		if _, err := os.Stat(v); err == nil {
-			aAddr.UDSAddr = v
+			aAddr.DkUds = v
 			return &aAddr
 		}
 	}
 
-	if _, err := os.Stat(DefaultDKUDS); err == nil {
-		aAddr.UDSAddr = DefaultDKUDS
-	}
+	aAddr.SDHost = DefaultStatsDHost
+	aAddr.SDPort = DefaultStatsDPort
 
-	aAddr.Host, aAddr.Port = DefaultDKHost, DefaultDKPort
-	v := map[string]any{}
-	if _, err := toml.DecodeFile(confPath, &v); err != nil {
-		return &aAddr
-	}
-
-	if httpAPI, ok := v["http_api"]; ok {
-		if v, ok := httpAPI.(map[string]any); ok {
-			if l, ok := v["listen"]; ok {
-				if l, ok := l.(string); ok {
-					if h, p, e := net.SplitHostPort(l); e == nil {
-						aAddr.Host, aAddr.Port = h, p
+	var sdCfg iptsCfg
+	if err := loadConfig(StatsDConfPath, &sdCfg); err == nil {
+		if sd, ok := sdCfg.Inputs["statsd"]; ok && len(sd) > 0 {
+			if c, ok := sd[0]["service_address"]; ok {
+				if c, ok := c.(string); ok {
+					if host, port, err := net.SplitHostPort(c); err == nil {
+						if host == "" {
+							host = "127.0.0.1"
+						}
+						aAddr.SDHost = host
+						aAddr.SDPort = port
 					}
 				}
 			}
-			if l, ok := v["listen_socket"]; ok {
-				if l, ok := l.(string); ok && l != "" {
-					if _, err := os.Stat(l); err == nil {
-						aAddr.UDSAddr = l
+		}
+	}
+
+	aAddr.DkHost, aAddr.DkPort = DefaultDKHost, DefaultDKPort
+
+	var dkconf map[string]any
+	if err := loadConfig(DatakitConfPath, &dkconf); err == nil {
+		if httpAPI, ok := dkconf["http_api"]; ok {
+			if v, ok := httpAPI.(map[string]any); ok {
+				if l, ok := v["listen"]; ok {
+					if l, ok := l.(string); ok {
+						if h, p, e := net.SplitHostPort(l); e == nil {
+							aAddr.DkHost, aAddr.DkPort = h, p
+						}
+					}
+				}
+				if l, ok := v["listen_socket"]; ok {
+					if l, ok := l.(string); ok && l != "" {
+						if _, err := os.Stat(l); err == nil {
+							aAddr.DkUds = l
+						}
 					}
 				}
 			}
@@ -146,4 +182,18 @@ func GetDKAddr() *AgentAddr {
 	}
 
 	return &aAddr
+}
+
+func loadConfig(filePath string, v any) error {
+	if _, err := toml.DecodeFile(filePath, v); err != nil {
+		return fmt.Errorf("failed to load config %w", err)
+	}
+	return nil
+}
+
+func getEnv(name, defaultValue string) string {
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return defaultValue
 }

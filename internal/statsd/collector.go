@@ -37,14 +37,14 @@ type Collector struct {
 	mmap map[string]string
 
 	sync.Mutex
-	// Lock for preventing a data race during resource cleanup
-	cleanup sync.Mutex
+
 	// accept channel tracks how many active connections there are, if there
 	// is an available bool in accept, then we are below the maximum and can
 	// accept the connection
 	accept chan bool
 	// drops tracks the number of dropped metrics.
-	drops int
+	dropsUnix int
+	drops     int
 
 	// Channel for all incoming statsd packets
 	in   chan job
@@ -63,9 +63,9 @@ type Collector struct {
 	// bucket -> influx templates
 	Templates []string // NOTE: Deprecated
 
+	UnixConn *net.UnixConn
 	// Protocol listeners
 	UDPlistener *net.UDPConn
-	TCPlistener *net.TCPListener
 
 	// track current connections so we can close them in Stop()
 	conns map[string]*net.TCPConn
@@ -275,30 +275,6 @@ func (col *Collector) stop() {
 		if err := col.UDPlistener.Close(); err != nil {
 			col.opts.l.Warnf("Close: %s, ignored", err)
 		}
-	} else if col.TCPlistener != nil {
-		// Ignore the returned error as we cannot do anything about it anyway
-		//nolint:errcheck,revive
-		if err := col.TCPlistener.Close(); err != nil {
-			col.opts.l.Warnf("Close: %s, ignored", err)
-		}
-
-		// Close all open TCP connections
-		//  - get all conns from the s.conns map and put into slice
-		//  - this is so the forget() function doesnt conflict with looping
-		//    over the s.conns map
-		var conns []*net.TCPConn
-		col.cleanup.Lock()
-		for _, conn := range col.conns {
-			conns = append(conns, conn)
-		}
-		col.cleanup.Unlock()
-		for _, conn := range conns {
-			// Ignore the returned error as we cannot do anything about it anyway
-			//nolint:errcheck,revive
-			if err := conn.Close(); err != nil {
-				col.opts.l.Warnf("Close: %s, ignored", err)
-			}
-		}
 	}
 
 	col.Unlock()
@@ -333,7 +309,6 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 	col := &Collector{
 		opts:        &opt,
 		UDPlistener: udplistener,
-		TCPlistener: tcplistener,
 		mmap:        map[string]string{},
 	}
 
@@ -375,6 +350,9 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 	if col.isUDP() {
 		if err := col.setupUDPServer(); err != nil {
 			return nil, err
+		}
+		if err := col.setupUnixServer(); err != nil {
+			col.opts.l.Warn("set up unix server failed: %s", err.Error())
 		}
 	} else {
 		return nil, fmt.Errorf("TCP not supported")

@@ -48,12 +48,12 @@ func main() {
 	}
 
 	addr := injUtils.GetDKAddr()
-	if addr != nil && addr.UDSAddr != "" {
+	if addr != nil && addr.DkUds != "" {
 		injectEnvs = append(injectEnvs, [2]string{
-			injUtils.EnvDKSocketAddr, addr.UDSAddr,
+			injUtils.EnvDKSocketAddr, addr.DkUds,
 		})
 		dirList = append(dirList, MntDir{
-			Path:             path.Dir(addr.UDSAddr),
+			Path:             path.Dir(addr.DkUds),
 			SkipCheckCtrPath: true,
 		})
 	}

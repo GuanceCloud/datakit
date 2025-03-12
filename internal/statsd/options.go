@@ -13,6 +13,7 @@ import (
 
 type option struct {
 	protocol               string
+	serviceUnixAddress     string
 	serviceAddress         string
 	statsdSourceKey        string
 	statsdHostKey          string
@@ -45,6 +46,10 @@ type CollectorOption func(opt *option)
 
 func WithProtocol(args string) CollectorOption {
 	return func(opt *option) { opt.protocol = args }
+}
+
+func WithServiceUnixAddress(args string) CollectorOption {
+	return func(opt *option) { opt.serviceUnixAddress = args }
 }
 
 func WithServiceAddress(args string) CollectorOption {

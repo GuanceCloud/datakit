@@ -437,7 +437,7 @@ func applyFlags() {
 				runtime.GOARCH,
 				DataKitVersion))
 
-		datakitAPMInjJavaLibURL = path.Join(InstallerBaseURL, "apm_lib/dd-java-agent.jar")
+		datakitAPMInjJavaLibURL, _ = url.JoinPath(InstallerBaseURL, "apm_lib/dd-java-agent.jar")
 	}
 }
 
