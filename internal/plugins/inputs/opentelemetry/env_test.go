@@ -60,7 +60,7 @@ func TestReadEnv(t *testing.T) {
 				WPConfig:         &workerpool.WorkerPoolConfig{Buffer: 1000, Threads: 100},
 				LocalCacheConfig: &storage.StorageConfig{Path: "./otel_storage", Capacity: 5120},
 				HTTPConfig:       &httpConfig{StatusCodeOK: 200, TraceAPI: "/otel/v1/traces", MetricAPI: "/otel/v1/metrics"},
-				GRPCConfig:       &grpcConfig{Address: "127.0.0.1:4317"},
+				GRPCConfig:       &gRPC{Address: "127.0.0.1:4317"},
 				ExpectedHeaders:  map[string]string{"ex_version": "1.2.3", "ex_name": "env_resource_name"},
 			},
 		},

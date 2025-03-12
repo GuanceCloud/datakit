@@ -20,7 +20,15 @@ import (
 	_ "google.golang.org/grpc/encoding/gzip"
 )
 
-func runGRPCV1(addr string, ipt *Input) {
+type gRPC struct {
+	Address string `toml:"addr" json:"addr"`
+
+	otelSvr        *grpc.Server
+	afterGatherRun itrace.AfterGatherHandler
+	feeder         dkio.Feeder
+}
+
+func (gc *gRPC) runGRPCV1(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("### opentelemetry grpc server v1 listening on %s failed: %v", addr, err.Error())
@@ -29,28 +37,35 @@ func runGRPCV1(addr string, ipt *Input) {
 	}
 	log.Debugf("### opentelemetry grpc v1 listening on: %s", addr)
 
-	otelSvr = grpc.NewServer(itrace.DefaultGRPCServerOpts...)
-	trace.RegisterTraceServiceServer(otelSvr, &TraceServiceServer{})
-	metrics.RegisterMetricsServiceServer(otelSvr, &MetricsServiceServer{})
-	logs.RegisterLogsServiceServer(otelSvr, &LogsServiceServer{Ipt: ipt})
+	gc.otelSvr = grpc.NewServer(itrace.DefaultGRPCServerOpts...)
+	trace.RegisterTraceServiceServer(gc.otelSvr, &TraceServiceServer{Gather: gc.afterGatherRun})
+	metrics.RegisterMetricsServiceServer(gc.otelSvr, &MetricsServiceServer{feeder: gc.feeder})
+	logs.RegisterLogsServiceServer(gc.otelSvr, &LogsServiceServer{feeder: gc.feeder})
 
-	if err = otelSvr.Serve(listener); err != nil {
-		log.Error(err.Error())
+	if err = gc.otelSvr.Serve(listener); err != nil {
+		log.Errorf("grpc server err=%v", err)
 	}
 
-	log.Debug("### opentelemetry grpc v1 exits")
+	log.Info("OPenTelemetry grpc v1 exits")
+}
+
+func (gc *gRPC) stop() {
+	if gc.otelSvr != nil {
+		gc.otelSvr.GracefulStop()
+	}
 }
 
 type TraceServiceServer struct {
 	trace.UnimplementedTraceServiceServer
+	Gather itrace.AfterGatherHandler
 }
 
 func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTraceServiceRequest) (
 	*trace.ExportTraceServiceResponse, error,
 ) {
-	if afterGatherRun != nil {
+	if tss.Gather != nil {
 		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
-			afterGatherRun.Run(inputName, dktraces)
+			tss.Gather.Run(inputName, dktraces)
 		}
 	}
 
@@ -59,19 +74,20 @@ func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTr
 
 type MetricsServiceServer struct {
 	metrics.UnimplementedMetricsServiceServer
+	feeder dkio.Feeder
 }
 
 func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
-	parseResourceMetricsV2(msreq.ResourceMetrics)
+	parseResourceMetricsV2(msreq.ResourceMetrics, mss.feeder)
 
 	return &metrics.ExportMetricsServiceResponse{}, nil
 }
 
 type LogsServiceServer struct {
 	logs.UnimplementedLogsServiceServer
-	Ipt *Input
+	feeder dkio.Feeder
 }
 
 func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogsServiceRequest) (out *logs.ExportLogsServiceResponse, err error) {
@@ -81,7 +97,7 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 	start := time.Now()
 	pts := ParseLogsRequest(logsReq.GetResourceLogs())
 	if len(pts) != 0 {
-		if err := l.Ipt.feeder.FeedV2(point.Logging, pts,
+		if err := l.feeder.FeedV2(point.Logging, pts,
 			dkio.WithInputName(inputName),
 			dkio.WithCollectCost(time.Since(start)),
 		); err != nil {

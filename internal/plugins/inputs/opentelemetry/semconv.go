@@ -21,6 +21,9 @@ const (
 	otelDBSystemKey        = "db_system"
 	otelMessagingSystemKey = "messaging_system"
 	otelRPCSystemKey       = "rpc_system"
+	defaultTraceAPI        = "/otel/v1/traces"
+	defaultMetricAPI       = "/otel/v1/metrics"
+	defaultLogAPI          = "/otel/v1/logs"
 )
 
 const (

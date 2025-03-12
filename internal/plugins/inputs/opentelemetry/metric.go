@@ -17,7 +17,10 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
+func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, feeder dkio.Feeder) {
+	if feeder == nil {
+		return
+	}
 	start := time.Now()
 	var pts []*point.Point
 	for _, resmc := range resmcs {
@@ -119,7 +122,7 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 				}
 
 				if len(pts) >= 100 {
-					if err := iptGlobal.feeder.FeedV2(point.Metric, pts,
+					if err := feeder.FeedV2(point.Metric, pts,
 						dkio.WithInputName(inputName),
 						dkio.WithCollectCost(time.Since(start)),
 					); err != nil {
@@ -131,7 +134,7 @@ func parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 		}
 	}
 
-	_ = iptGlobal.feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.WithCollectCost(time.Since(start)))
+	_ = feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.WithCollectCost(time.Since(start)))
 }
 
 func attributesToTag(src []*common.KeyValue) map[string]string {

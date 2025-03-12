@@ -72,6 +72,7 @@ const (
 	TagSpanType         = "span_type"
 	TagVersion          = "version"
 	TagDKFingerprintKey = "dk_fingerprint"
+	TagBaseService      = "base_service"
 
 	// line protocol fields.
 	FieldDuration   = "duration"

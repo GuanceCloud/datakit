@@ -165,7 +165,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				ipt.HTTPConfig = &httpconf
 			}
 		case "ENV_INPUT_OTEL_GRPC":
-			var grpcconf grpcConfig
+			var grpcconf gRPC
 			if err := json.Unmarshal([]byte(value), &grpcconf); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
