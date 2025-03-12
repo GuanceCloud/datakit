@@ -6,7 +6,6 @@
 package ccommon
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -63,12 +62,4 @@ func TestFeedLastErrorLoop(t *testing.T) {
 			FeedLastErrorLoop(inputName, l, tt.args.errString, tt.args.ch)
 		})
 	}
-}
-
-func TestPrint(t *testing.T) {
-	err := fmt.Errorf("some error")
-
-	t.Run("Println", func(t *testing.T) {
-		fmt.Println("failed:", err.Error())
-	})
 }

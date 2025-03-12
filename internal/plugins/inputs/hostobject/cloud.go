@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 const (
@@ -157,7 +159,19 @@ func (ipt *Input) SetCloudProvider() error {
 			ipt.Tags["cloud_provider"] = cp
 			return nil
 		}
+
+		// for long time running, do not block service start/stop command.
+		select {
+		case <-datakit.Exit.Wait():
+			l.Infof("%s exit on sem", inputName)
+			return nil
+		case <-ipt.semStop.Wait():
+			l.Infof("%s return on sem", inputName)
+			return nil
+		default: // pass
+		}
 	}
+
 	return fmt.Errorf("did not match any cloud provider")
 }
 

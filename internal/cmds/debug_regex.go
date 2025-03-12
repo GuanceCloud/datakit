@@ -12,6 +12,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 func regexMatching(configFile string) error {
@@ -52,15 +54,15 @@ func regexMatching(configFile string) error {
 		return fmt.Errorf("unable to parse regex %s, err: %w", texts[0], err)
 	}
 
-	fmt.Printf("============= regex rule =============\n")
-	fmt.Printf("%s\n", texts[0])
+	cp.Printf("============= regex rule =============\n")
+	cp.Printf("%s\n", texts[0])
 
-	fmt.Printf("\n========== matching results ==========\n")
+	cp.Printf("\n========== matching results ==========\n")
 	for _, text := range texts[1:] {
 		if matcher.MatchString(text) {
-			fmt.Printf("%4s:  %s\n", "Ok", text)
+			cp.Printf("%4s:  %s\n", "Ok", text)
 		} else {
-			fmt.Printf("%4s:  %s\n", "Fail", text)
+			cp.Printf("%4s:  %s\n", "Fail", text)
 		}
 	}
 

@@ -20,6 +20,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 var (
@@ -142,7 +144,7 @@ func runClients() {
 		panic(err.Error())
 	}
 
-	fmt.Printf("Benchmark metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	cp.Printf("Benchmark metrics:\n%s", metrics.MetricFamily2Text(mfs))
 }
 
 func main() {

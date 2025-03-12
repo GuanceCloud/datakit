@@ -7,7 +7,6 @@ package promremote
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -115,7 +114,7 @@ func TestInput_serveWrite(t *testing.T) {
 				s := v.LineProto()
 				s = s[:strings.LastIndex(s, " ")]
 				gotStr = append(gotStr, s)
-				fmt.Printf("%q\n", s)
+				t.Logf("%q\n", s)
 			}
 
 			assert.Equal(t, tt.want, gotStr)
@@ -177,7 +176,7 @@ func TestInput_serveWrite_with_source(t *testing.T) {
 				s := v.LineProto()
 				s = s[:strings.LastIndex(s, " ")]
 				gotStr = append(gotStr, s)
-				fmt.Printf("%q\n", s)
+				t.Logf("%q\n", s)
 			}
 
 			assert.Equal(t, gotStr, tt.want)

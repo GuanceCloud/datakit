@@ -48,9 +48,9 @@ var (
 	flagENVDatakitHome = fsENV.String(ENVDatakitHome, "", "set datakit home env variable")
 	flagENVHomeDir     = fsENV.String(ENVDKUpgraderHome, "", "set dk_upgrader home env variable")
 	fsENVUsage         = func() {
-		fmt.Printf("usage: dk_upgrader env [options]\n\n")
-		fmt.Printf("set dk_upgrader service runtime environmant virables\n\n")
-		fmt.Println(fsENV.FlagUsagesWrapped(0))
+		cp.Printf("usage: dk_upgrader env [options]\n\n")
+		cp.Printf("set dk_upgrader service runtime environmant virables\n\n")
+		cp.Println(fsENV.FlagUsagesWrapped(0))
 	}
 
 	//
@@ -65,9 +65,9 @@ var (
 	flagServiceUninstall = fsService.BoolP("uninstall", "U", false, "uninstall dk_upgrader service")
 	flagServiceReinstall = fsService.BoolP("reinstall", "I", false, "reinstall dk_upgrader service")
 	fsServiceUsage       = func() {
-		fmt.Printf("usage: dk_upgrader service [options]\n\n")
-		fmt.Printf("Service used to manage dk_upgrader service\n\n")
-		fmt.Println(fsService.FlagUsagesWrapped(0))
+		cp.Printf("usage: dk_upgrader service [options]\n\n")
+		cp.Printf("Service used to manage dk_upgrader service\n\n")
+		cp.Println(fsService.FlagUsagesWrapped(0))
 	}
 
 	g = datakit.G("control")

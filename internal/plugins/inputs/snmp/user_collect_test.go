@@ -7,7 +7,6 @@
 package snmp
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -63,7 +62,7 @@ func TestInput_doCollectUserObject(t *testing.T) {
 			assert.NoError(t, err)
 
 			arr := GetPointLineProtos(pts)
-			fmt.Println("", arr)
+			t.Log(arr)
 			assert.Equal(t, tt.want, arr)
 		})
 	}

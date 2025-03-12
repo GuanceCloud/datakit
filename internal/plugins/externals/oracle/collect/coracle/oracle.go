@@ -17,6 +17,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/jmoiron/sqlx"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
 )
@@ -85,7 +87,7 @@ func NewInput(infoMsgs []string, opt *ccommon.Option) ccommon.IInput {
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}); err != nil {
-		fmt.Println("set root log failed:", err.Error())
+		cp.Println("set root log failed:", err.Error())
 	}
 
 	if opt.InstanceDesc != "" { // add description to logger

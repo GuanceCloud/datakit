@@ -762,7 +762,7 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, suffixFn suffixFu
 			dstFilePath := filepath.Join(dstDir, dstName)
 			err := info.copyFile(srcFilePath, dstFilePath, transform)
 			if err != nil {
-				fmt.Printf("error writing file %s: %s\n", dstFilePath, err)
+				cp.Errorf("error writing file %s: %s\n", dstFilePath, err)
 				continue
 			}
 		}

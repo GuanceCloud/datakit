@@ -66,7 +66,7 @@ func parseLineProto() error {
 			return err
 		}
 
-		cp.Output("%s\n", string(j))
+		cp.Printf("%s\n", string(j))
 	} else {
 		cp.Infof("Parse %d points OK, with %d measurements and %d time series.\n",
 			len(pts), len(measurements), len(hashids))

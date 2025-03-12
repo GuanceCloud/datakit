@@ -8,9 +8,9 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/jessevdk/go-flags"
+
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/db2/collect"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/db2/collect/ccommon"
 )
@@ -18,12 +18,8 @@ import (
 var opt ccommon.Option
 
 func main() {
-	// input := bufio.NewScanner(os.Stdin)
-	// input.Scan()
-	// fmt.Println(input.Text())
-
 	if _, err := flags.Parse(&opt); err != nil {
-		fmt.Println("flags.Parse error:", err.Error())
+		cp.Println("flags.Parse error:", err.Error())
 		return
 	}
 
@@ -33,5 +29,5 @@ func main() {
 
 	collect.Run(&opt)
 
-	fmt.Println("exiting...")
+	cp.Println("exiting...")
 }

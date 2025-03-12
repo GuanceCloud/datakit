@@ -6,7 +6,6 @@
 package confd
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -211,7 +210,7 @@ func Test_handleConfdData(t *testing.T) {
 			confdInputs = make(map[string][]*inputs.ConfdInfo)
 			handleConfdData(tt.args.data)
 			checkGot(t, confdInputs, tt.wants)
-			fmt.Println(confdInputs)
+			t.Log(confdInputs)
 		})
 	}
 }

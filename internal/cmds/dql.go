@@ -461,7 +461,7 @@ func (dc *dqlCmd) doShow(c *queryResult) {
 			return
 		}
 
-		cp.Output("%s\n", j)
+		cp.Printf("%s\n", j)
 	default:
 		rows = dc.prettyShow(c)
 	}
@@ -520,24 +520,24 @@ func sortColumns(r *models.Row) {
 
 //nolint:deadcode,unused
 func showRow(r *models.Row) {
-	cp.Output("%d columns\n", len(r.Columns))
+	cp.Printf("%d columns\n", len(r.Columns))
 
 	for i, col := range r.Columns {
 		if i < len(r.Columns)-1 {
-			cp.Output("%s, ", col)
+			cp.Printf("%s, ", col)
 		} else {
-			cp.Output("%s\n", col)
+			cp.Printf("%s\n", col)
 		}
 	}
 
-	cp.Output("%d values\n", len(r.Values))
+	cp.Printf("%d values\n", len(r.Values))
 	for _, vals := range r.Values {
-		cp.Output("value width: %d\n", len(vals))
+		cp.Printf("value width: %d\n", len(vals))
 		for i, v := range vals {
 			if i < len(vals)-1 {
-				cp.Output("%v, ", v)
+				cp.Printf("%v, ", v)
 			} else {
-				cp.Output("%v\n", v)
+				cp.Printf("%v\n", v)
 			}
 		}
 	}
@@ -572,7 +572,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 		col := s.Columns[colIdx]
 
 		if v, ok := s.Tags[col]; ok {
-			cp.Output(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
+			cp.Printf(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
 			addSug(col)
 			continue
 		}
@@ -628,7 +628,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 			// pass
 		}
 
-		cp.Output(fmtStr+valFmt, col, " ", val[colIdx])
+		cp.Printf(fmtStr+valFmt, col, " ", val[colIdx])
 		addSug(s.Columns[colIdx])
 	}
 }
@@ -646,12 +646,12 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 		case 1:
 
 			if s.Name == "" {
-				cp.Output("<unknown>\n")
+				cp.Printf("<unknown>\n")
 			} else {
-				cp.Output("%s\n", s.Name)
+				cp.Printf("%s\n", s.Name)
 			}
 
-			cp.Output("%s\n", "-------------------")
+			cp.Printf("%s\n", "-------------------")
 			for _, val := range s.Values {
 				if len(val) == 0 {
 					continue
@@ -661,7 +661,7 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 					addSug(str)
 				}
 
-				cp.Output("%s\n", val[0])
+				cp.Printf("%s\n", val[0])
 				nrows++
 			}
 
@@ -672,7 +672,7 @@ func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
 
 			for _, val := range s.Values {
-				cp.Output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
+				cp.Printf("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++
 				dc.prettyShowRow(s, val, fmtStr)
 			}

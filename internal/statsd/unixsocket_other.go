@@ -13,5 +13,6 @@ import (
 )
 
 func (col *Collector) setupUnixServer() error {
+	_ = col.dropsUnix
 	return fmt.Errorf("not implemented")
 }

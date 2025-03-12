@@ -36,7 +36,7 @@ func (s *emptySender) checkToken(token, scheme, host string) (bool, error) {
 }
 
 func (s *emptySender) send(url string, pt *pt.Point) error {
-	cp.Output("%s\n", pt.LineProto())
+	cp.Printf("%s\n", pt.LineProto())
 	cp.Infof("# Got 1 point for dataway(%s) | Ctrl+c to exit.\n", url)
 	return nil
 }

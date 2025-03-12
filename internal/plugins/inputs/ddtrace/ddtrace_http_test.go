@@ -10,7 +10,6 @@ package ddtrace
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -19,14 +18,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-
 	"github.com/ugorji/go/codec"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -118,7 +114,7 @@ func BenchmarkDDTrace_Msgsize(b *testing.B) {
 		}
 		resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+			b.Logf("request failed with status code %d\n", resp.StatusCode)
 		}
 	}
 
@@ -167,7 +163,7 @@ func TestDDTrace(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+		t.Logf("request failed with status code %d\n", resp.StatusCode)
 	}
 	resp.Body.Close()
 
@@ -209,7 +205,7 @@ func TestDDTrace(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+		t.Logf("request failed with status code %d\n", resp.StatusCode)
 	}
 	resp.Body.Close()
 

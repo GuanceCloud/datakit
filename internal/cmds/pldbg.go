@@ -189,7 +189,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 
 		sort.Strings(lines)
 		for _, l := range lines {
-			fmt.Println(l)
+			cp.Println(l)
 		}
 	} else {
 		buf := bytes.NewBuffer([]byte{})
@@ -199,7 +199,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 		if err := encoder.Encode(result); err != nil {
 			return err
 		}
-		fmt.Printf("%s\n", buf.String())
+		cp.Println(buf.String())
 	}
 
 	cp.Infof("---------------\n")

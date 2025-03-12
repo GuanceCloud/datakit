@@ -108,7 +108,7 @@ func TestIOConfig(t *testing.T) {
 func TestMinHeap(t *testing.T) {
 	heap := newMinHeap(16)
 
-	fmt.Println(heap.getTop())
+	t.Log(heap.getTop())
 
 	tm1, _ := time.Parse("2006-01-02 15:04:05Z07:00", "2022-06-08 15:04:06Z")
 	tm2, _ := time.Parse("2006-01-02 15:04:05Z07:00", "2022-06-06 15:04:06Z")
@@ -139,9 +139,9 @@ func TestMinHeap(t *testing.T) {
 
 	heap.push(pb3)
 
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 
 	pb4 := &profileBase{
 		profileID: "44444444444444",
@@ -151,35 +151,34 @@ func TestMinHeap(t *testing.T) {
 
 	heap.push(pb4)
 
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 
 	pb := heap.pop()
+	assert.Equal(t, pb, pb2)
 
-	fmt.Println(pb == pb2)
-
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 
 	heap.remove(pb3)
 
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 
 	heap.remove(pb1)
 
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 
 	heap.push(pb2)
 
-	fmt.Println("top: ", heap.getTop())
-	fmt.Println("heap.Len: ", heap.Len())
-	fmt.Println(heap.indexes)
+	t.Log("top: ", heap.getTop())
+	t.Log("heap.Len: ", heap.Len())
+	t.Log(heap.indexes)
 }
 
 // go test -v -timeout 30s -run ^Test_originAddTagsSafe$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile

@@ -21,6 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/confd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -82,7 +83,7 @@ func main() {
 	applyFlags()
 
 	if err := datakit.SavePid(); err != nil {
-		fmt.Println(err.Error())
+		cp.Println(err.Error())
 		os.Exit(-1)
 	}
 

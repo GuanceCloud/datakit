@@ -188,7 +188,7 @@ func (cs *caseSpec) lasterror(c *gin.Context) {
 		cs.t.Logf("%s", err.Error())
 		return
 	}
-	fmt.Println("uri ==>", uri)
+	cs.t.Log("uri ==>", uri)
 
 	body, err := io.ReadAll(c.Request.Body)
 	defer c.Request.Body.Close()
@@ -196,7 +196,7 @@ func (cs *caseSpec) lasterror(c *gin.Context) {
 		cs.t.Logf("%s", err.Error())
 		return
 	}
-	fmt.Println("lasterror ==>", string(body))
+	cs.t.Log("lasterror ==>", string(body))
 }
 
 func (cs *caseSpec) checkPoint(pts []*point.Point) error {

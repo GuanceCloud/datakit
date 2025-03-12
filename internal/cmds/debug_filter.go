@@ -74,9 +74,9 @@ func debugFilter(filterConf, data []byte) error {
 		for i, tfdata := range tfdatas {
 			if j := conds.Eval(tfdata); j >= 0 {
 				cp.Infof("Dropped\n\n")
-				cp.Output("\t%s\n\n", pts[i].LineProto())
+				cp.Printf("\t%s\n\n", pts[i].LineProto())
 				cp.Infof("By %dth rule(cost %s) from category %q:\n\n", j+1, time.Since(start), point.CatString(k))
-				cp.Output("\t%+s\n", v[j])
+				cp.Printf("\t%+s\n", v[j])
 			}
 		}
 	}

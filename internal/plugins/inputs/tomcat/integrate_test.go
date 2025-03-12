@@ -955,7 +955,7 @@ func (cs *caseSpec) runHTTPTests(r *testutils.RemoteInfo) {
 	for _, v := range cs.serverPorts {
 		for path, count := range cs.mPathCount {
 			newURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(r.Host, v), path)
-			fmt.Printf("start GET: %s\n", newURL)
+			cs.t.Logf("start GET: %s\n", newURL)
 
 			if cs.runHTTPWithTimeout(newURL, count) {
 				break
@@ -994,7 +994,7 @@ func (cs *caseSpec) runHTTPWithTimeout(newURL string, count int) bool {
 
 					resp, err := netClient.Get(newURL)
 					if err != nil {
-						fmt.Printf("HTTP GET failed: %v\n", err)
+						cs.t.Logf("HTTP GET failed: %v\n", err)
 						return
 					}
 					defer resp.Body.Close()

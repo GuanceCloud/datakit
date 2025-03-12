@@ -7,7 +7,6 @@ package pyroscope
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -32,7 +31,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(string(out))
+	t.Log(string(out))
 
 	var md2 Metadata
 
@@ -40,8 +39,8 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println("start: ", time.Time(*md2.Start))
-	fmt.Println("end: ", time.Time(*md2.End))
+	t.Log("start: ", time.Time(*md2.Start))
+	t.Log("end: ", time.Time(*md2.End))
 
 	var m map[string]any
 
@@ -52,7 +51,7 @@ func TestMetadata(t *testing.T) {
 	headers := json2FormValues(m)
 
 	for k, v := range headers {
-		fmt.Println(k, ":", v)
+		t.Log(k, ":", v)
 	}
 }
 
@@ -83,7 +82,7 @@ func TestJson2StringMap(t *testing.T) {
 	strMap := json2FormValues(v)
 
 	for key, val := range strMap {
-		fmt.Println(key, ":", val)
+		t.Log(key, ":", val)
 	}
 }
 
@@ -114,5 +113,5 @@ func TestParseTags(t *testing.T) {
 		t.Logf("%s : %s \n", k, v)
 	}
 
-	fmt.Println(metrics.JoinTags(metadata))
+	t.Log(metrics.JoinTags(metadata))
 }

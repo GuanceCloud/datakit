@@ -9,7 +9,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -156,11 +155,8 @@ func TestHandleSourcemap(t *testing.T) {
 func TestScanModuleSymbolFile(t *testing.T) {
 	t.Skip("skipped: this case should rewrite")
 	file, err := scanModuleSymbolFile("/Users/zy/software/source_map/iOS", "App")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(file)
-	}
+	assert.NoError(t, err)
+	t.Log(file)
 }
 
 func TestScanIOSCrashAddress(t *testing.T) {
@@ -171,11 +167,11 @@ func TestScanIOSCrashAddress(t *testing.T) {
 	assert.NoError(t, err)
 
 	for moduleName, addresses := range address {
-		fmt.Printf("module-name: %s\n", moduleName)
+		t.Logf("module-name: %s\n", moduleName)
 		for start, crashAddresses := range addresses {
-			fmt.Printf("start: %+#v\n", start)
+			t.Logf("start: %+#v\n", start)
 			for _, addr := range crashAddresses {
-				fmt.Printf("addr: %+#v\n", addr)
+				t.Logf("addr: %+#v\n", addr)
 			}
 		}
 	}
@@ -194,11 +190,9 @@ func TestRunAtosTool(t *testing.T) {
 
 	cmd := exec.Command("/Users/zy/.cargo/bin/atosl", args...)
 	output, err := cmd.Output()
-	if err != nil {
-		fmt.Println("err: ", err)
-	}
+	assert.NoError(t, err)
 
-	fmt.Println(string(output))
+	t.Logf(string(output))
 }
 
 func TestScanABI(t *testing.T) {
@@ -207,7 +201,7 @@ func TestScanABI(t *testing.T) {
 
 	abi := scanABI(string(crash))
 
-	fmt.Println(abi)
+	t.Logf(abi)
 
 	assert.Equal(t, abi, "arm64-v8a")
 }

@@ -6,7 +6,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -292,7 +291,7 @@ func Test_SearchDir(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootDir := prepareDirs(tc.testDirName, tc.preparedDirs, tc.preparedFiles)
-			fmt.Printf("rootDir = %s\n", rootDir)
+			t.Logf("rootDir = %s\n", rootDir)
 
 			out := SearchDir(rootDir, tc.suffix, tc.ignoreDirs...)
 			for k, v := range out {

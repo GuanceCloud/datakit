@@ -51,7 +51,7 @@ func runToolFlags() error {
 	case *flagToolDefaultMainConfig:
 
 		defconf := config.DefaultConfig()
-		fmt.Println(defconf.String())
+		cp.Println(defconf.String())
 		os.Exit(0)
 
 	case *flagToolCloudInfo:
@@ -137,7 +137,7 @@ func runToolFlags() error {
 			os.Exit(-1)
 		}
 
-		cp.Output("%s", replacedData)
+		cp.Printf("%s", replacedData)
 		os.Exit(0)
 
 	case *flagToolRemoveApmAutoInject:

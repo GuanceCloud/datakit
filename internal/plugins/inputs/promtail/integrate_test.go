@@ -304,7 +304,7 @@ func (cs *caseSpec) run() error {
 	startListen:
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			if strings.Contains(err.Error(), "address already in use") {
-				fmt.Println(err.Error())
+				cs.t.Log(err.Error())
 				goto startListen
 			}
 			panic(err)

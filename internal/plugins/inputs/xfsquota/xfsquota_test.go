@@ -6,7 +6,6 @@
 package xfsquota
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,6 +49,6 @@ zhangsan        81920      51200      81920     00  [6 days]
 		res, err := parseQuotaOutput(tc.in)
 		assert.NoError(t, err)
 
-		fmt.Println(res)
+		t.Log(res)
 	}
 }

@@ -6,8 +6,6 @@
 package cmds
 
 import (
-	"fmt"
-
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -31,7 +29,7 @@ var dbDir = []string{
 func updateIPDB() error {
 	installDir := datakit.DataDir + "/ipdb/"
 	for idx, c := range allDB {
-		fmt.Printf("Start downloading %s...\n", c)
+		cp.Printf("Start downloading %s...\n", c)
 		c = baseURL + c
 
 		proxy := ""

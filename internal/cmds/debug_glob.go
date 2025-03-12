@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 )
 
@@ -53,13 +54,13 @@ func globPath(configFile string) error {
 		return fmt.Errorf("unable to parse glob rules, err: %w", err)
 	}
 
-	fmt.Printf("============= glob paths ============\n")
+	cp.Printf("============= glob paths ============\n")
 	for _, path := range globPaths {
-		fmt.Printf("%s\n", path)
+		cp.Printf("%s\n", path)
 	}
-	fmt.Printf("\n========== found the files ==========\n")
+	cp.Printf("\n========== found the files ==========\n")
 	for _, path := range paths {
-		fmt.Printf("%s\n", path)
+		cp.Printf("%s\n", path)
 	}
 
 	return nil

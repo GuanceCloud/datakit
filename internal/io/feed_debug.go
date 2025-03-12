@@ -27,7 +27,7 @@ func (fo *debugOutput) Reader(cat point.Category) <-chan *feedOption {
 
 func (fo *debugOutput) Write(data *feedOption) error {
 	for _, pt := range data.pts {
-		cp.Output("%s\n", pt.LineProto())
+		cp.Printf("%s\n", pt.LineProto())
 	}
 
 	timeSeriesStr := ""

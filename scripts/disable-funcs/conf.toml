@@ -1,0 +1,7 @@
+src = ["internal/", ]
+skip_dirs = ["internal/colorprint", ]
+skip_files = []
+
+[pkg_functions]
+	fmt = ["Println", "Printf", ]
+

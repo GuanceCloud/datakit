@@ -210,7 +210,6 @@ func (w *Watcher) registerSubWatcher(serviceName string, client *consulapi.Clien
 				}
 
 				l.Debugf("delete a job, id:%s", id)
-				fmt.Printf("delete a job, id:%s", id)
 				w.doConsulJob(&consulapi.AgentService{
 					// here is ip, not id, because in ipt.userSpecificDevices key is ip.
 					ID: svc.ip,

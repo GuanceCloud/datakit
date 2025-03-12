@@ -13,6 +13,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
 type monitorSource interface {
@@ -65,7 +66,7 @@ func (m *FileMonitor) FetchData() (map[string]*dto.MetricFamily, error) {
 
 	defer func() {
 		if err := reader.Close(); err != nil {
-			fmt.Printf("failed to close file: %v", err)
+			cp.Printf("failed to close file: %v", err)
 		}
 	}()
 

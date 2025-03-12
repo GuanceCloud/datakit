@@ -284,7 +284,7 @@ func CategoryDirName() map[string]string {
 	}
 }
 
-func SetWorkDir(dir string) {
+func SetupWorkDir(dir string) {
 	InstallDir = dir
 
 	l.Infof("set workdir to %q", dir)
@@ -309,7 +309,10 @@ func SetWorkDir(dir string) {
 	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 	RecorderDir = filepath.Join(InstallDir, "recorder")
+}
 
+func SetWorkDir(dir string) {
+	SetupWorkDir(dir)
 	InitDirs()
 }
 

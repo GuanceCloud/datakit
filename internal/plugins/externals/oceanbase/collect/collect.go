@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/ccommon"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oceanbase/collect/coceanbase"
 )
@@ -63,7 +64,7 @@ var infoMsgs []string
 func PrintInfof(format string, args ...interface{}) {
 	str := fmt.Sprintf(format, args...)
 
-	fmt.Println(str)
+	cp.Println(str)
 
 	infoMsgs = append(infoMsgs, str)
 }

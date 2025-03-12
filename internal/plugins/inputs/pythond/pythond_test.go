@@ -8,7 +8,6 @@ package pythond
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -44,7 +43,7 @@ func TestGetCliPyScript(t *testing.T) {
 
 	expectMD5 := "3701245679c4e4e4a4b9c7bafdba8947"
 
-	fmt.Println(cli)
+	t.Log(cli)
 	assert.Equal(t, expectMD5, md5sum(cli), "md5 not equal!")
 
 	datakit.InstallDir = originInstallDir

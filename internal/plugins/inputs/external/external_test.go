@@ -10,7 +10,6 @@ package external
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -180,7 +179,7 @@ func TestInput(t *testing.T) {
 			for i := range tc.inputs {
 				ipt := tc.inputs[i]
 				if i == idx { // resume it
-					fmt.Printf("resume %s\n", ipt.Name)
+					t.Logf("resume %s\n", ipt.Name)
 					ipt.Resume()
 				} else {
 					ipt.Pause()
@@ -189,7 +188,7 @@ func TestInput(t *testing.T) {
 			time.Sleep(roundInterval)
 			round++
 			if round >= 3 {
-				fmt.Printf("terminat inputs...")
+				t.Log("terminat inputs...")
 				for i := range tc.inputs {
 					ipt := tc.inputs[i]
 					ipt.Terminate()

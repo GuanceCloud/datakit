@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,12 +16,12 @@ func TestGitURL(t *testing.T) {
 	const e = "https://username:password@github.com/username/repository.git"
 
 	u, err := giturls.Parse(e)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	t.Log(u.Scheme)
-	t.Log(u.User.Password())
+	assert.NoError(t, err)
+
+	assert.Equal(t, "username", u.User.Username())
+	pass, ok := u.User.Password()
+	assert.Equal(t, "password", pass)
+	assert.True(t, ok)
 }
 
 func TestGetCPUMax(t *testing.T) {

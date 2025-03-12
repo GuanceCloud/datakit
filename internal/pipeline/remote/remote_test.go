@@ -349,7 +349,7 @@ func TestDoPull(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fmt.Printf("TestDoPull: tc.name = %s\n", tc.name)
+			t.Logf("TestDoPull: tc.name = %s\n", tc.name)
 
 			mock := newPipelineRemoteMock()
 			mock.readFileData = tc.configContent

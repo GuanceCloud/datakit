@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
@@ -69,7 +70,7 @@ func uploadLog(urls []string) error {
 	if resp.StatusCode == 200 {
 		resJSON := successRes{}
 		if err := json.Unmarshal(respBody, &resJSON); err == nil {
-			fmt.Printf("Upload to oss: %s\n", resJSON.Content)
+			cp.Printf("Upload to oss: %s\n", resJSON.Content)
 		} else {
 			return fmt.Errorf("upload failed: %w", err)
 		}

@@ -85,7 +85,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 		})
 	}
 
-	fmt.Printf("\n")
+	cp.Printf("\n")
 	dl.CurDownloading = "apm-inject"
 	injTo := filepath.Join(c.installDir, dirInject, dirInjectSubInject)
 	cp.Infof("Downloading %s => %s\n", c.launcherURL, injTo)
@@ -99,7 +99,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	}
 
 	if c.ddJavaLibURL != "" {
-		fmt.Printf("\n")
+		cp.Printf("\n")
 		dl.CurDownloading = "apm-lib-java"
 		injTo = filepath.Join(c.installDir, dirInject, dirInjectSubLib,
 			"java", "dd-java-agent.jar")
@@ -111,7 +111,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	}
 
 	if c.pyLib {
-		fmt.Printf("\n")
+		cp.Printf("\n")
 		cp.Infof("Installing ddtrace python library\n")
 		py, err := exec.LookPath("python3")
 		if err != nil {

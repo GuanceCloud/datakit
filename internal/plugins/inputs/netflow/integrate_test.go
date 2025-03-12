@@ -245,14 +245,14 @@ func (cs *caseSpec) run() error {
 		Port: 0,
 	})
 	if err != nil {
-		fmt.Println("net.ListenUDP failed:" + err.Error())
+		cs.t.Log("net.ListenUDP failed:" + err.Error())
 		return err
 	}
 	defer ln.Close()
 
 	_, port, err := net.SplitHostPort(ln.LocalAddr().String())
 	if err != nil {
-		fmt.Println("net.SplitHostPort failed:" + err.Error())
+		cs.t.Log("net.SplitHostPort failed:" + err.Error())
 		return err
 	}
 	cs.t.Logf("listening port " + port + "...")
@@ -369,7 +369,7 @@ func (cs *caseSpec) run() error {
 
 	cs.t.Logf("get %d points", len(pts))
 	for _, pt := range pts {
-		fmt.Println(pt.LineProto())
+		cs.t.Log(pt.LineProto())
 	}
 
 	cs.mCount = make(map[string]struct{})

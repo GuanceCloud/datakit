@@ -54,7 +54,7 @@ func showVersion(curverStr string) {
 		buildTag = "elinker"
 	}
 
-	fmt.Printf(`
+	cp.Printf(`
        Version: %s
         Commit: %s
         Branch: %s
