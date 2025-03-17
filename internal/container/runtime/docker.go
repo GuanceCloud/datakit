@@ -208,7 +208,7 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 }
 
 func (d *dockerClient) ContainerStats(id string) (*types.StatsJSON, error) {
-	resp, err := d.client.ContainerStatsOneShot(context.Background(), id)
+	resp, err := d.client.ContainerStats(context.Background(), id, false /*no stream*/)
 	if err != nil {
 		return nil, err
 	}
