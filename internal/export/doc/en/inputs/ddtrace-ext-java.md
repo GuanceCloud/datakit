@@ -24,7 +24,6 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 - Get the input parameter information of a specific function
 - MongoDB obfuscation
 - Supported DM8 Database
-- Supported `trace-128-bit-id`
 - Supported Apache Pulsar MQ
 - Support placing `trace_id` in the response header
 - Support putting the requested header information into the span tags

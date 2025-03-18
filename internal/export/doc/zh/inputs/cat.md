@@ -110,35 +110,6 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 ---
 
-## 观测云链路和指标 {#trace-metric}
-
-### 观测云链路 {#guance-trace}
-
-登录观测云，点击 应用性能检测 -> 链路 查看链路详情。
-
-<!-- markdownlint-disable MD033 -->
-<figure>
-  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/cat-gateway.png" style="height: 500px" alt="链路详情页面">
-  <figcaption> 链路详情页面 </figcaption>
-</figure>
-
-
-[//]: # (<img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/cat-gateway.png" height="500">  )
-
-### 观测云指标 {#guance-metric}
-
-先[下载仪表板](https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/DianPing-Cat%20%E7%9B%91%E6%8E%A7%E8%A7%86%E5%9B%BE.json){:target="_blank"}
-
-在观测云，点击 场景 -> 仪表板 -> 新建仪表板。 导入下载好的 JSON 文件即可。
-
-效果展示：
-
-<!-- markdownlint-disable MD046 MD033 -->
-<figure >
-  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/metric.png" style="height: 500px" alt="cat 监控视图">
-  <figcaption> cat 监控视图 </figcaption>
-</figure>
-
 
 ## 数据字段说明 {#fields}
 
