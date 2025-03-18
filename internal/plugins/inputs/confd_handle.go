@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
@@ -50,7 +50,7 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 				l.Info("before set pipelines")
 
 				if m, ok := plval.GetManager(); ok && m != nil {
-					m.LoadScriptsFromWorkspace(plmanager.NSConfd,
+					m.LoadScriptsFromWorkspace(constants.NSConfd,
 						datakit.ConfdPipelineDir, nil)
 				}
 			}

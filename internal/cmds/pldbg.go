@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/manager"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -106,7 +107,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 
 	switch cat { //nolint:exhaustive
 	case point.Logging:
-		fieldsSrc := map[string]interface{}{pipeline.FieldMessage: txt}
+		fieldsSrc := map[string]any{constants.FieldMessage: txt}
 		kvs := point.NewKVs(fieldsSrc)
 		opt := append(point.DefaultLoggingOptions(), point.WithTime(time.Now()))
 		newPt := point.NewPointV2(name, kvs, opt...)
@@ -155,7 +156,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 		return nil
 	}
 
-	result := map[string]interface{}{}
+	result := map[string]any{}
 	maxWidth := 0
 
 	if *flagPLDate {
@@ -215,19 +216,19 @@ func plScriptTmpStore(category point.Category) (*manager.ScriptStore, map[string
 	errs := map[string]map[string]error{}
 
 	{ // default
-		ns := manager.NSDefault
+		ns := constants.NSDefault
 		plPath := filepath.Join(datakit.InstallDir, "pipeline")
 		scripts, _ := manager.ReadWorkspaceScripts(plPath)
 		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], nil)
 	}
 	{ // gitrepo
-		ns := manager.NSGitRepo
+		ns := constants.NSGitRepo
 		plPath := filepath.Join(datakit.GitReposRepoFullPath, "pipeline")
 		scripts, _ := manager.ReadWorkspaceScripts(plPath)
 		errs[ns] = store.UpdateScriptsWithNS(ns, scripts[category], nil)
 	}
 	{ // remote
-		ns := manager.NSRemote
+		ns := constants.NSRemote
 		plPath := filepath.Join(datakit.PipelineRemoteDir, plremote.GetConentFileName())
 		if tarMap, err := targzutil.ReadTarToMap(plPath); err == nil {
 			allCategory := plremote.ConvertContentMapToThreeMap(tarMap)

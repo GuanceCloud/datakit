@@ -15,7 +15,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
@@ -137,9 +138,9 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 			continue
 		}
 		fields := map[string]interface{}{
-			"message_length":      len(cnt),
-			pipeline.FieldMessage: string(cnt),
-			pipeline.FieldStatus:  pipeline.DefaultStatus,
+			"message_length":       len(cnt),
+			constants.FieldMessage: string(cnt),
+			constants.FieldStatus:  pipeline.DefaultStatus,
 		}
 
 		pt := point.NewPointV2(
@@ -156,7 +157,7 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 
 	if err := sk.opt.feeder.FeedV2(point.Logging, pts,
 		dkio.WithInputName("socketLog/"+sk.opt.source),
-		dkio.WithPipelineOption(&manager.Option{
+		dkio.WithPipelineOption(&lang.LogOption{
 			DisableAddStatusField: sk.opt.disableAddStatusField,
 			IgnoreStatus:          sk.opt.ignoreStatus,
 			ScriptMap:             map[string]string{sk.opt.source: sk.opt.pipeline},

@@ -28,7 +28,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/timeout"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -679,12 +679,12 @@ func ReloadDataKit(ctx context.Context) error {
 				if m, ok := plval.GetManager(); ok && m != nil {
 					// git
 					if config.GitHasEnabled() {
-						m.LoadScriptsFromWorkspace(manager.NSGitRepo,
+						m.LoadScriptsFromWorkspace(constants.NSGitRepo,
 							filepath.Join(datakit.GitReposRepoFullPath, "pipeline"), nil)
 					}
 					// local
 					plPath := filepath.Join(datakit.InstallDir, "pipeline")
-					m.LoadScriptsFromWorkspace(manager.NSDefault, plPath, nil)
+					m.LoadScriptsFromWorkspace(constants.NSDefault, plPath, nil)
 				}
 
 			case 4:

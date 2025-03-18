@@ -21,7 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/network/ws"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	gws "github.com/gobwas/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -171,7 +171,7 @@ func (ipt *Input) setup() bool {
 
 		if err := ipt.feeder.FeedV2(point.Logging, pts,
 			dkio.WithInputName(name),
-			dkio.WithPipelineOption(&plmanager.Option{
+			dkio.WithPipelineOption(&lang.LogOption{
 				ScriptMap: map[string]string{msg.Source: msg.Pipeline},
 			}),
 		); err != nil {

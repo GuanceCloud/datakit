@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/ast"
@@ -48,7 +51,7 @@ func (r *ScriptResult) PtsCreated() map[point.Category][]*point.Point {
 }
 
 func RunPl(category point.Category, pts []*point.Point,
-	plOpt *plmanager.Option,
+	plOpt *lang.LogOption,
 ) (reslt *ScriptResult, retErr error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -83,7 +86,7 @@ func RunPl(category point.Category, pts []*point.Point,
 		}
 
 		if v, ok := plval.GetOffload(); ok && v != nil &&
-			script.NS() == plmanager.NSRemote &&
+			script.NS() == constants.NSRemote &&
 			category == point.Logging {
 			ptsOffload = append(ptsOffload, pt)
 			continue
@@ -152,7 +155,7 @@ func RunPl(category point.Category, pts []*point.Point,
 
 func searchScript(cat point.Category,
 	pt *point.Point, scriptMap map[string]string,
-) (*plmanager.PlScript, bool) {
+) (*platypus.PlScript, bool) {
 	if pt == nil {
 		return nil, false
 	}

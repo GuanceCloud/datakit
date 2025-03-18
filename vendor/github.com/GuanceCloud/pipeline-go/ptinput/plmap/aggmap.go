@@ -34,7 +34,7 @@ type AggBuckets struct {
 	sync.RWMutex
 }
 
-func NewAggBuks(upFn UploadFunc, globalTags [][2]string) *AggBuckets {
+func NewAggBkt(upFn UploadFunc, globalTags [][2]string) *AggBuckets {
 	return &AggBuckets{
 		uploadDataFn: upFn,
 		data:         map[point.Category]map[string]*bucket{},

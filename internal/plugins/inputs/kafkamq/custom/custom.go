@@ -15,7 +15,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/IBM/sarama"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
@@ -180,7 +180,7 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 
 		if err := mq.feeder.FeedV2(category, []*point.Point{pt},
 			dkio.WithInputName(topic),
-			dkio.WithPipelineOption(&plmanager.Option{
+			dkio.WithPipelineOption(&lang.LogOption{
 				ScriptMap: plMap,
 			}),
 		); err != nil {

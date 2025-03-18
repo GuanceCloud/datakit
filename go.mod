@@ -374,7 +374,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20250312025914-0375dfaf129b
+	github.com/GuanceCloud/cliutils v1.1.22-0.20250314090958-b5edf229655a
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -392,7 +392,7 @@ require (
 	github.com/valyala/fastjson v1.6.3
 )
 
-require github.com/GuanceCloud/pipeline-go v1.0.0
+require github.com/GuanceCloud/pipeline-go v1.0.1
 
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

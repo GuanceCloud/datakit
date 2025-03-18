@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	plscript "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -90,7 +90,7 @@ func DefaultFeeder() Feeder {
 type Option struct {
 	CollectCost time.Duration
 	PostTimeout time.Duration
-	PlOption    *plscript.Option
+	PlOption    *lang.LogOption
 	Version     string
 }
 
@@ -102,7 +102,7 @@ type feedOption struct {
 	version string
 
 	cat      point.Category
-	plOption *plscript.Option
+	plOption *lang.LogOption
 
 	noGlobalTags,
 	syncSend,
@@ -127,7 +127,7 @@ func WithPostTimeout(du time.Duration) FeedOption {
 	return func(fo *feedOption) { fo.postTimeout = du }
 }
 
-func WithPipelineOption(po *plscript.Option) FeedOption {
+func WithPipelineOption(po *lang.LogOption) FeedOption {
 	return func(fo *feedOption) { fo.plOption = po }
 }
 
@@ -296,7 +296,7 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 
 // beforeFeed apply pipeline and filter handling on pts.
 func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
-	var plopt *plscript.Option
+	var plopt *lang.LogOption
 	if opt != nil {
 		plopt = opt.plOption
 	}

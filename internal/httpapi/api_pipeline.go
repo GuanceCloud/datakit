@@ -18,7 +18,8 @@ import (
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
 
@@ -133,7 +134,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	}
 	ptsLi := &pldebugFeed{}
 
-	buks := plmap.NewAggBuks(ptsLi.uploadfn, gtags)
+	buks := plmap.NewAggBkt(ptsLi.uploadfn, gtags)
 
 	// parse pipeline script
 	plRunner, err := parsePipeline(category, reqBody.ScriptName+".p", scriptContent, buks)
@@ -243,7 +244,7 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 func parsePipeline(category point.Category, scriptName string,
 	scripts map[string]string, buks *plmap.AggBuckets,
-) (*manager.PlScript, error) {
+) (*platypus.PlScript, error) {
 	success, faild := pipeline.NewPipelineMulti(category, scripts, buks)
 	if err, ok := faild[scriptName]; ok && err != nil {
 		return nil, err
@@ -270,7 +271,7 @@ func pointName(category, name string) string {
 	}
 }
 
-func benchPipeline(runner *manager.PlScript, cat point.Category, pt *point.Point) string {
+func benchPipeline(runner *platypus.PlScript, cat point.Category, pt *point.Point) string {
 	benchmarkResult := testing.Benchmark(func(b *testing.B) {
 		b.Helper()
 		for n := 0; n < b.N; n++ {
@@ -368,7 +369,7 @@ func decodeDataAndConv2Point(category point.Category, name string, req *pipeline
 				return nil, err
 			}
 			kvs := point.NewKVs(map[string]interface{}{
-				pipeline.FieldMessage: string(data),
+				constants.FieldMessage: string(data),
 			})
 			pt := point.NewPointV2(name, kvs, opts...)
 			result = append(result, pt)

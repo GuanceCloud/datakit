@@ -18,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -267,7 +267,7 @@ func (ipt *Input) feed(pending []*DataStruct) {
 	}
 	if len(pts) > 0 {
 		if err := ipt.feeder.FeedV2(point.Logging, pts,
-			dkio.WithPipelineOption(&plmanager.Option{
+			dkio.WithPipelineOption(&lang.LogOption{
 				ScriptMap: map[string]string{
 					ipt.Source: ipt.Pipeline,
 				},

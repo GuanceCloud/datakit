@@ -12,7 +12,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
@@ -127,8 +128,8 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 				name: source,
 				tags: tags,
 				fields: map[string]interface{}{
-					pipeline.FieldMessage: e.Line,
-					pipeline.FieldStatus:  pipeline.DefaultStatus,
+					constants.FieldMessage: e.Line,
+					constants.FieldStatus:  pipeline.DefaultStatus,
 				},
 				ts: now,
 			}
@@ -140,7 +141,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	if err := ipt.feeder.FeedV2(point.Logging, pts,
 		dkio.WithInputName(source),
-		dkio.WithPipelineOption(&plmanager.Option{
+		dkio.WithPipelineOption(&lang.LogOption{
 			ScriptMap: map[string]string{source: pipelinePath},
 		}),
 	); err != nil {
