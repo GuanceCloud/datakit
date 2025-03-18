@@ -250,7 +250,6 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 				}
 			}
 
-			klog.Infof("FLAG metrics: %v", metrics)
 			return metrics, nil
 		}
 	}
