@@ -1,7 +1,8 @@
 nav:
   - index.md
-  - changelog-2025.md
-  - '更新日志（2021~2024）': changelog.md
+  - '更新日志':
+    - changelog-2025.md
+    - '2021~2024': changelog.md
 
   - 'DataKit 介绍':
     - datakit-arch.md

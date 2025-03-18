@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/pipeline-go/ptinput/funcs"
@@ -102,6 +103,7 @@ type Params struct {
 	PipelineFuncs       string
 	PipelineFuncsEN     string
 	DatakitConfSample   string
+	Year                string // year of current time
 
 	// Measurements used to render metric info into markdown documents.
 	Measurements []*inputs.MeasurementInfo
@@ -143,6 +145,7 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 		ReleaseDate:    git.BuildAt,
 		AvailableArchs: archs,
 		Measurements:   measurements,
+		Year:           fmt.Sprintf("%d", time.Now().Year()),
 	}
 
 	if inp, ok := ipt.(inputs.GetENVDoc); ok {
@@ -165,6 +168,7 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 		NonInputENVSample:   make(map[string]string),
 		NonInputENVSampleZh: make(map[string]string),
 		DatakitConfSample:   datakit.DatakitConfSample,
+		Year:                fmt.Sprintf("%d", time.Now().Year()),
 	}
 
 	if _, ok := nonInputDocs[fileName]; ok {
@@ -207,6 +211,7 @@ func buildPipelineDocs(
 
 		DatakitConfSample: datakit.DatakitConfSample,
 		PipelineFuncs:     sb.String(),
+		Year:              fmt.Sprintf("%d", time.Now().Year()),
 	}
 
 	if buf, err := renderBuf(md, p); err != nil {

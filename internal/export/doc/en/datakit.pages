@@ -1,7 +1,8 @@
 nav:
   - index.md
-  - changelog-2025.md
-  - 'Changelog(2021~2024)': changelog.md
+  - 'Changelog':
+    - changelog-2025.md
+    - '2021~2024': changelog.md
 
   - 'DataKit Intro':
     - 'Intro to Overall Architecture': datakit-arch.md

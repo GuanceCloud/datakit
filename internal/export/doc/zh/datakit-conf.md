@@ -87,17 +87,35 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 [:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
 
-出于安全考虑，Datakit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过公网（或从本地局域网的其它机器）来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
+出于安全考虑，Datakit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过其它机器或公网来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
 
 ```toml
 [http_api]
   public_apis = [
-    # 放行 /metrics 接口访问
+    # 放行 Datakit 自身指标暴露接口 /metrics
     "/metrics",
+    # ... # 其它接口
   ]
 ```
 
-默认情况下，只开启了 Ping 接口以及基本的数据上传接口访问，所有其它接口都是禁止外部访问的，而采集器对应的接口，比如 trace 类采集器，一旦开启采集器之后，默认就能外部访问。Kubernetes 中增加 API 白名单参见[这里](datakit-daemonset-deploy.md#env-http-api)。
+默认情况下，`public_apis` 为空。出于便捷和兼容性考虑，默认开放了 Ping 接口（`/v1/ping`）以及基本的数据上传接口（"/v1/write/:category"），所有其它接口都是禁止外部访问的。而采集器对应的接口，比如 trace 类采集器，一旦开启采集器之后，其访问自动放开，默认就能外部访问。
+
+Kubernetes 中增加 API 白名单参见[这里](datakit-daemonset-deploy.md#env-http-api)。
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    一旦 `public_apis` 不为空，则默认开启的那些 API 接口需要**再次手动添加**：
+
+    ```toml
+    [http_api]
+      public_apis = [
+        "/v1/write/metric",
+        "/v1/write/logging",
+        # ...
+      ]
+    ```
+<!-- markdownlint-enable -->
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 

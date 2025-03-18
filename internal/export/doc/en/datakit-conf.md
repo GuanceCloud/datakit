@@ -82,22 +82,40 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     See [here](datakit-daemonset-deploy.md#env-http-api).
 <!-- markdownlint-enable -->
 
-
-### HTTP API Whitelist {#public-apis}
+### HTTP API Access Control {#public-apis}
 
 [:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
 
-For security reasons, Datakit defaults to restricting access to some of its own APIs, which can only be accessed via localhost. If Datakit is deployed in a public network environment and there is a need to request these APIs over the public network (or from other machines in the local LAN), you can modify the following `public_apis` field configuration in the *datakit.conf*:
+For security reasons, Datakit restricts the access to some of its own APIs by default (these APIs can only be accessed via localhost). If DataKit is deployed in a public network environment and you need to request these APIs from other machines or the public network, you can modify the configuration of the following `public_apis` field in *datakit.conf*:
 
 ```toml
 [http_api]
   public_apis = [
-    # Allow access to the /metrics endpoint
+    # Allow access to the Datakit's own metric exposure interface /metrics
     "/metrics",
+
+    # ... Other interfaces
   ]
 ```
 
-By default, only the Ping interface and basic data upload interfaces are accessible from external sources, while all other interfaces are prohibited from external access. For collector-specific interfaces, such as those for trace collectors, they are accessible externally by default once the collector is enabled. For instructions on adding API whitelists in Kubernetes, refer to [this section](datakit-daemonset-deploy.md#env-http-api).
+By default, `public_apis` is empty. For the sake of convenience and compatibility, the Ping API (`/v1/ping`) and the basic data upload APIs ("/v1/write/:category") are open by default, and all other APIs are prohibited from external access. For the APIs corresponding to collectors, such as tracing collectors, once the collector is enabled, its APIs will be automatically opened and can be accessed externally by default.
+
+For adding an API whitelist in Kubernetes, please refer to [here](datakit-daemonset-deploy.md#env-http-api).
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    Once `public_apis` is not empty, the APIs that are enabled by default need to be **manually added again**:
+
+    ```toml
+    [http_api]
+      public_apis = [
+        "/v1/write/metric",
+        "/v1/write/logging",
+        # ...
+      ]
+    ```
+<!-- markdownlint-enable -->
 
 ## Global Tag Modification {#set-global-tag}
 
