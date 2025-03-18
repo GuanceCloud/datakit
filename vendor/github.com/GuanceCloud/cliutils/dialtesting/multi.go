@@ -218,7 +218,7 @@ func (t *MultiTask) runHTTPStep(step *MultiStep) (map[string]interface{}, error)
 
 	if err == nil {
 		if len(result) > 0 && result["status"] != "OK" {
-			err = fmt.Errorf("run http step task failed")
+			err = fmt.Errorf("run HTTP step task failed: %s", result["fail_reason"])
 		}
 	}
 

@@ -18,7 +18,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/confd/backends"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/r3labs/diff/v3"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -503,7 +503,7 @@ func getPipelineData() {
 
 	if m, ok := plval.GetManager(); ok && m != nil {
 		m.LoadScriptsFromWorkspace(
-			manager.NSConfd, datakit.ConfdPipelineDir, nil)
+			constants.NSConfd, datakit.ConfdPipelineDir, nil)
 	}
 }
 

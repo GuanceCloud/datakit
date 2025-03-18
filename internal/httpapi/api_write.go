@@ -18,7 +18,7 @@ import (
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -350,7 +350,7 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 
 	if x := q.Get(argPipelineSource); x != "" {
 		wr.plName = x + ".p"
-		wr.FeedOptions = append(wr.FeedOptions, dkio.WithPipelineOption(&plmanager.Option{
+		wr.FeedOptions = append(wr.FeedOptions, dkio.WithPipelineOption(&lang.LogOption{
 			ScriptMap: map[string]string{x: x + ".p"},
 		}))
 	}

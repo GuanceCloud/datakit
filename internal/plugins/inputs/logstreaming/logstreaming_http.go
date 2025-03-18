@@ -17,7 +17,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -95,7 +96,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 
 		urlstr   = param.url.String()
 		logPtOpt = point.DefaultLoggingOptions()
-		plopt    *plmanager.Option
+		plopt    *lang.LogOption
 		pts      []*point.Point
 		now      = time.Now()
 	)
@@ -106,7 +107,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	}
 
 	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
-		plopt = &plmanager.Option{
+		plopt = &lang.LogOption{
 			ScriptMap: map[string]string{
 				source: scriptName,
 			},
@@ -154,7 +155,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 					for k, v := range v {
 						switch k {
 						case "log":
-							kvs = kvs.Add(pipeline.FieldMessage, v, false, true)
+							kvs = kvs.Add(constants.FieldMessage, v, false, true)
 						case "date":
 							switch v := v.(type) {
 							case float64:
@@ -191,7 +192,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 
 		if !decJSON {
 			var kvs point.KVs
-			kvs = kvs.Add(pipeline.FieldMessage, string(body), false, true)
+			kvs = kvs.Add(constants.FieldMessage, string(body), false, true)
 
 			pts = append(pts, point.NewPointV2(source, kvs, append(
 				logPtOpt,
@@ -211,8 +212,8 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		for scanner.Scan() {
 			var kvs point.KVs
 
-			kvs = kvs.Add(pipeline.FieldMessage, scanner.Text(), false, true)
-			kvs = kvs.Add(pipeline.FieldStatus, pipeline.DefaultStatus, false, true)
+			kvs = kvs.Add(constants.FieldMessage, scanner.Text(), false, true)
+			kvs = kvs.Add(constants.FieldStatus, pipeline.DefaultStatus, false, true)
 			pt := point.NewPointV2(source, kvs,
 				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...)
 			pts = append(pts, pt)

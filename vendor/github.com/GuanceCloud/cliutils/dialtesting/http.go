@@ -28,6 +28,8 @@ var (
 	_ ITask     = (*HTTPTask)(nil)
 )
 
+const MaxBodySize = 10 * 1024
+
 type HTTPTask struct {
 	*Task
 	URL              string             `json:"url"`
@@ -149,7 +151,11 @@ func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]inter
 
 	if v, ok := fields[`fail_reason`]; ok && !notSave && len(v.(string)) != 0 && t.resp != nil {
 		message[`response_header`] = t.resp.Header
-		message[`response_body`] = string(t.respBody)
+		respBody := string(t.respBody)
+		if len(respBody) > MaxBodySize {
+			respBody = respBody[:MaxBodySize] + "..."
+		}
+		message[`response_body`] = respBody
 	}
 
 	fields[`response_dns`] = t.dnsParseTime

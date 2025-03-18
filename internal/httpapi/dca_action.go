@@ -23,6 +23,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
 	"github.com/GuanceCloud/platypus/pkg/token"
@@ -442,7 +443,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 		case point.Logging:
 			kvs := point.NewTags(datakit.DataKitRuntimeInfo.GlobalHostTags)
 			kvs = append(kvs, point.NewKVs(map[string]interface{}{
-				pipeline.FieldMessage: data,
+				constants.FieldMessage: data,
 			})...)
 			pts = append(pts, point.NewPointV2(
 				body.ScriptName, kvs, point.DefaultLoggingOptions()...))

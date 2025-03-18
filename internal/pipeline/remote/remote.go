@@ -18,7 +18,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -247,7 +247,7 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 			managerWkr.UpdateDefaultScript(nil)
 			if m, ok := plval.GetManager(); ok && m != nil {
 				// cleanup all remote scripts
-				m.LoadScripts(plmanager.NSRemote, nil, nil)
+				m.LoadScripts(constants.NSRemote, nil, nil)
 			}
 
 			// remove lcoal files
@@ -455,5 +455,5 @@ func loadContentPipeline(in map[point.Category]map[string]string) {
 	for cat, val := range in {
 		inS[cat] = val
 	}
-	managerWkr.LoadScripts(plmanager.NSRemote, inS, nil)
+	managerWkr.LoadScripts(constants.NSRemote, inS, nil)
 }

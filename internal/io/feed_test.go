@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -61,7 +62,7 @@ func TestRunpl(t *T.T) {
 			},
 
 			option: &Option{
-				PlOption: &manager.Option{
+				PlOption: &lang.LogOption{
 					ScriptMap: map[string]string{
 						"a_with_opt": "a.p",
 					},
@@ -82,7 +83,7 @@ func TestRunpl(t *T.T) {
 			epts: nil, // filtered
 
 			option: &Option{
-				PlOption: &manager.Option{
+				PlOption: &lang.LogOption{
 					ScriptMap: map[string]string{
 						"a_with_opt": "a.p",
 					},
@@ -98,7 +99,7 @@ func TestRunpl(t *T.T) {
 			if !ok {
 				t.Error("!ok")
 			}
-			m.LoadScripts(manager.NSRemote,
+			m.LoadScripts(constants.NSRemote,
 				map[point.Category]map[string]string{
 					point.Logging: {"a.p": "add_key('a', 1)"},
 				}, nil)

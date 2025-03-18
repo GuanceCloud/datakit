@@ -8,17 +8,17 @@ package pipeline
 import (
 	"time"
 
-	plmanager "github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
 )
 
 const (
 	// pipeline关键字段.
-	FieldTime       = plmanager.FieldTime
-	FieldMessage    = plmanager.FieldMessage
-	FieldStatus     = plmanager.FieldStatus
-	PlLoggingSource = plmanager.PlLoggingSource
+	FieldTime       = constants.FieldTime
+	FieldMessage    = constants.FieldMessage
+	FieldStatus     = constants.FieldStatus
+	PlLoggingSource = constants.PlLoggingSource
 
-	DefaultStatus = plmanager.DefaultStatus
+	DefaultStatus = constants.DefaultStatus
 )
 
 //nolint:structcheck,unused

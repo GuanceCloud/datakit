@@ -1,26 +1,19 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the MIT License.
-// This product includes software developed at Guance Cloud (https://www.guance.com/).
-// Copyright 2021-present Guance, Inc.
-
-package manager
+package lang
 
 import (
 	"strings"
 
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	plast "github.com/GuanceCloud/platypus/pkg/ast"
 )
 
-const (
-	// pipeline关键字段.
-	FieldTime       = "time"
-	FieldMessage    = "message"
-	FieldStatus     = "status"
-	PlLoggingSource = "source"
-
-	DefaultStatus = "unknown"
-)
+type LogOption struct {
+	MaxFieldValLen        int // deprecated
+	DisableAddStatusField bool
+	IgnoreStatus          []string
+	ScriptMap             map[string]string
+}
 
 var statusMap = map[string]string{
 	"f":        "emerg",
@@ -53,7 +46,7 @@ func normalizeStatus(status string) string {
 	if s, ok := statusMap[status]; ok {
 		status = s
 	} else if status == "" {
-		status = DefaultStatus
+		status = constants.DefaultStatus
 	}
 
 	return status
@@ -69,9 +62,9 @@ func filterByStatus(stats string, filterRule []string) bool {
 }
 
 func ProcLoggingStatus(plpt ptinput.PlInputPt, disable bool, ignore []string) {
-	status := DefaultStatus
+	status := constants.DefaultStatus
 
-	if s, _, err := plpt.Get(FieldStatus); err == nil {
+	if s, _, err := plpt.Get(constants.FieldStatus); err == nil {
 		if s, ok := s.(string); ok {
 			status = s
 		}
@@ -79,7 +72,7 @@ func ProcLoggingStatus(plpt ptinput.PlInputPt, disable bool, ignore []string) {
 
 	if !disable {
 		status = normalizeStatus(status)
-		_ = plpt.Set(FieldStatus, status, plast.String)
+		_ = plpt.Set(constants.FieldStatus, status, plast.String)
 	}
 
 	if filterByStatus(status, ignore) {

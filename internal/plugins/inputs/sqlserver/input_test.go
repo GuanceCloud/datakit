@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	_ "github.com/microsoft/go-mssqldb"
 	"github.com/stretchr/testify/assert"
@@ -190,9 +191,16 @@ func TestPipeline(t *testing.T) {
 			}(),
 		}
 
-		pl, errs := manager.NewScripts(map[string]string{
-			"test.p": pScrpit,
-		}, nil, "", point.Logging)
+		pl, errs := platypus.NewScripts(
+			map[string]string{
+				"test.p": pScrpit,
+			},
+			lang.WithCat(point.Logging),
+			lang.WithCache(),
+			lang.WithPtWindow(),
+			lang.WithAggBkt(func(point.Category, string, any) error { return nil }, nil),
+			lang.WithNS(""),
+		)
 
 		if len(errs) > 0 {
 			t.Fatal(errs)

@@ -12,24 +12,19 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	"github.com/GuanceCloud/pipeline-go/stats"
 )
 
 var log = logger.DefaultSLogger("pl-script")
 
-const (
-	NSDefault = "default" // 内置 pl script， 优先级最低
-	NSGitRepo = "gitrepo" // git 管理的 pl script
-	NSConfd   = "confd"   // confd 管理的 pl script
-	NSRemote  = "remote"  // remote pl script，优先级最高
-)
-
 var nsSearchOrder = [4]string{
-	NSRemote, // 优先级最高的 ns
-	NSConfd,
-	NSGitRepo,
-	NSDefault,
+	constants.NSRemote, // 优先级最高的 ns
+	constants.NSConfd,
+	constants.NSGitRepo,
+	constants.NSDefault,
 }
 
 func InitLog() {
@@ -40,18 +35,18 @@ func InitStore(manager *Manager, installDir string, tags map[string]string) {
 	stats.InitLog()
 
 	plPath := filepath.Join(installDir, "pipeline")
-	manager.LoadScriptsFromWorkspace(NSDefault, plPath, tags)
+	manager.LoadScriptsFromWorkspace(constants.NSDefault, plPath, tags)
 }
 
 func NSFindPriority(ns string) int {
 	switch ns {
-	case NSDefault:
+	case constants.NSDefault:
 		return 0 // lowest priority
-	case NSGitRepo:
+	case constants.NSGitRepo:
 		return 1
-	case NSConfd:
+	case constants.NSConfd:
 		return 2
-	case NSRemote:
+	case constants.NSRemote:
 		return 3
 	default:
 		return -1
@@ -65,7 +60,7 @@ type ScriptStore struct {
 
 	defultScript string
 
-	index     map[string]*PlScript
+	index     map[string]*platypus.PlScript
 	indexLock sync.RWMutex
 
 	cfg ManagerCfg
@@ -73,21 +68,21 @@ type ScriptStore struct {
 
 type scriptStorage struct {
 	sync.RWMutex
-	scripts map[string](map[string]*PlScript)
+	scripts map[string](map[string]*platypus.PlScript)
 }
 
 func NewScriptStore(category point.Category, cfg ManagerCfg) *ScriptStore {
 	return &ScriptStore{
 		category: category,
 		storage: scriptStorage{
-			scripts: map[string]map[string]*PlScript{
-				NSRemote:  {},
-				NSConfd:   {},
-				NSGitRepo: {},
-				NSDefault: {},
+			scripts: map[string]map[string]*platypus.PlScript{
+				constants.NSRemote:  {},
+				constants.NSConfd:   {},
+				constants.NSGitRepo: {},
+				constants.NSDefault: {},
 			},
 		},
-		index: map[string]*PlScript{},
+		index: map[string]*platypus.PlScript{},
 		cfg:   cfg,
 	}
 }
@@ -104,7 +99,7 @@ func (store *ScriptStore) GetDefaultScript() string {
 	return store.defultScript
 }
 
-func (store *ScriptStore) IndexGet(name string) (*PlScript, bool) {
+func (store *ScriptStore) IndexGet(name string) (*platypus.PlScript, bool) {
 	store.indexLock.RLock()
 	defer store.indexLock.RUnlock()
 	if v, ok := store.index[name]; ok {
@@ -113,7 +108,7 @@ func (store *ScriptStore) IndexGet(name string) (*PlScript, bool) {
 	return nil, false
 }
 
-func (store *ScriptStore) IndexDefault() (*PlScript, bool) {
+func (store *ScriptStore) IndexDefault() (*platypus.PlScript, bool) {
 	store.indexLock.RLock()
 	defer store.indexLock.RUnlock()
 
@@ -127,13 +122,13 @@ func (store *ScriptStore) Count() int {
 	store.storage.RLock()
 	defer store.storage.RUnlock()
 
-	return len(store.storage.scripts[NSRemote]) +
-		len(store.storage.scripts[NSConfd]) +
-		len(store.storage.scripts[NSGitRepo]) +
-		len(store.storage.scripts[NSDefault])
+	return len(store.storage.scripts[constants.NSRemote]) +
+		len(store.storage.scripts[constants.NSConfd]) +
+		len(store.storage.scripts[constants.NSGitRepo]) +
+		len(store.storage.scripts[constants.NSDefault])
 }
 
-func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
+func (store *ScriptStore) GetWithNs(name, ns string) (*platypus.PlScript, bool) {
 	store.storage.RLock()
 	defer store.storage.RUnlock()
 	if s, ok := store.storage.scripts[ns][name]; ok {
@@ -142,14 +137,14 @@ func (store *ScriptStore) GetWithNs(name, ns string) (*PlScript, bool) {
 	return nil, false
 }
 
-func (store *ScriptStore) indexStore(script *PlScript) {
+func (store *ScriptStore) indexStore(script *platypus.PlScript) {
 	store.indexLock.Lock()
 	defer store.indexLock.Unlock()
 
 	if store.index == nil {
-		store.index = map[string]*PlScript{}
+		store.index = map[string]*platypus.PlScript{}
 	}
-	store.index[script.name] = script
+	store.index[script.Name()] = script
 }
 
 func (store *ScriptStore) indexDelete(name string) {
@@ -159,54 +154,55 @@ func (store *ScriptStore) indexDelete(name string) {
 	delete(store.index, name)
 }
 
-func (store *ScriptStore) indexUpdate(script *PlScript) {
+func (store *ScriptStore) indexUpdate(script *platypus.PlScript) {
 	if script == nil {
 		return
 	}
 
-	curScript, ok := store.IndexGet(script.name)
+	curScript, ok := store.IndexGet(script.Name())
 
 	if !ok {
 		store.indexStore(script)
 
-		stats.WriteUpdateTime(script.tags)
+		stats.WriteUpdateTime(script.Meta())
 		stats.WriteEvent(&stats.ChangeEvent{
-			Name:     script.name,
-			Category: script.category,
-			NS:       script.ns,
-			Script:   script.script,
+			Name:     script.Name(),
+			Category: script.Category(),
+			NS:       script.NS(),
+			Script:   script.Content(),
 			Op:       stats.EventOpIndex,
 			Time:     time.Now(),
-		}, script.tags)
+		}, script.Meta())
 		return
 	}
 
-	nsCur := NSFindPriority(curScript.ns)
-	nsNew := NSFindPriority(script.ns)
+	nsCur := NSFindPriority(curScript.NS())
+	nsNew := NSFindPriority(script.NS())
 	if nsNew >= nsCur {
 		store.indexStore(script)
-		stats.WriteUpdateTime(curScript.tags)
-		stats.WriteUpdateTime(script.tags)
+		stats.WriteUpdateTime(curScript.Meta())
+		stats.WriteUpdateTime(script.Meta())
 		stats.WriteEvent(&stats.ChangeEvent{
-			Name:      script.name,
-			Category:  script.category,
-			NS:        script.ns,
-			NSOld:     curScript.ns,
-			Script:    script.script,
-			ScriptOld: curScript.script,
+			Name:      script.Name(),
+			Category:  script.Category(),
+			NS:        script.NS(),
+			NSOld:     curScript.NS(),
+			Script:    script.Content(),
+			ScriptOld: curScript.Content(),
 			Op:        stats.EventOpIndexUpdate,
 			Time:      time.Now(),
-		}, script.tags)
+		}, script.Meta())
 	}
 }
 
-func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[string](map[string]*PlScript)) {
+func (store *ScriptStore) indexDeleteAndBack(name, ns string,
+	scripts4back map[string](map[string]*platypus.PlScript)) {
 	curScript, ok := store.IndexGet(name)
 	if !ok {
 		return
 	}
 
-	nsCur := NSFindPriority(curScript.ns)
+	nsCur := NSFindPriority(curScript.NS())
 	if NSFindPriority(ns) != nsCur {
 		return
 	}
@@ -220,12 +216,12 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 
 		stats.WriteEvent(&stats.ChangeEvent{
 			Name:     name,
-			Category: curScript.category,
-			NS:       curScript.ns,
-			Script:   curScript.script,
+			Category: curScript.Category(),
+			NS:       curScript.NS(),
+			Script:   curScript.Content(),
 			Op:       stats.EventOpIndexDelete,
 			Time:     time.Now(),
-		}, curScript.tags)
+		}, curScript.Meta())
 		return
 	}
 
@@ -233,17 +229,17 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 		if v, ok := scripts4back[v]; ok {
 			if s, ok := v[name]; ok {
 				store.indexStore(s)
-				stats.WriteUpdateTime(s.tags)
+				stats.WriteUpdateTime(s.Meta())
 				stats.WriteEvent(&stats.ChangeEvent{
 					Name:      name,
-					Category:  s.category,
-					NS:        s.ns,
-					NSOld:     curScript.ns,
-					Script:    s.script,
-					ScriptOld: curScript.script,
+					Category:  s.Category(),
+					NS:        s.NS(),
+					NSOld:     curScript.NS(),
+					Script:    s.Content(),
+					ScriptOld: curScript.Content(),
 					Op:        stats.EventOpIndexDeleteAndBack,
 					Time:      time.Now(),
-				}, s.tags)
+				}, s.Meta())
 				return
 			}
 		}
@@ -253,12 +249,12 @@ func (store *ScriptStore) indexDeleteAndBack(name, ns string, scripts4back map[s
 
 	stats.WriteEvent(&stats.ChangeEvent{
 		Name:     name,
-		Category: curScript.category,
-		NS:       curScript.ns,
-		Script:   curScript.script,
+		Category: curScript.Category(),
+		NS:       curScript.NS(),
+		Script:   curScript.Content(),
 		Op:       stats.EventOpIndexDelete,
 		Time:     time.Now(),
-	}, curScript.tags)
+	}, curScript.Meta())
 }
 
 func (store *ScriptStore) UpdateScriptsWithNS(ns string,
@@ -268,12 +264,20 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string,
 	defer store.storage.Unlock()
 
 	if _, ok := store.storage.scripts[ns]; !ok {
-		store.storage.scripts[ns] = map[string]*PlScript{}
+		store.storage.scripts[ns] = map[string]*platypus.PlScript{}
 	}
 
-	aggBuk := plmap.NewAggBuks(store.cfg.upFn, store.cfg.gTags)
-	retScripts, retErr := NewScripts(namedScript, scriptTags, ns, store.category,
-		aggBuk)
+	retScripts, retErr := platypus.NewScripts(
+		namedScript,
+
+		lang.WithMeta(scriptTags),
+		lang.WithNS(ns),
+		lang.WithCat(store.category),
+
+		lang.WithAggBkt(store.cfg.upFn, store.cfg.gTags),
+		lang.WithCache(),
+		lang.WithPtWindow(),
+	)
 
 	for name, err := range retErr {
 		var errStr string
@@ -307,49 +311,34 @@ func (store *ScriptStore) UpdateScriptsWithNS(ns string,
 		store.indexDeleteAndBack(name, ns, store.storage.scripts)
 
 		if v, ok := store.storage.scripts[ns][name]; ok {
-			if v.plBuks != nil {
-				v.plBuks.StopAllBukScanner()
-			}
-			if v.cache != nil {
-				v.cache.Stop()
-			}
-			if v.ptWindow != nil {
-				v.ptWindow.Deprecated()
-			}
+			v.Cleanup()
+
 			delete(store.storage.scripts[ns], name)
 		}
 		stats.WriteEvent(&change, sTags)
 	}
 
 	// 如果上一次的集合中的脚本不存在于当前结果，则删除
-	for name, curScript := range store.storage.scripts[ns] {
+	for name, sc := range store.storage.scripts[ns] {
 		if newScript, ok := retScripts[name]; ok { // 有更新
 			store.storage.scripts[ns][name] = newScript
-			stats.WriteUpdateTime(newScript.tags)
+			stats.WriteUpdateTime(newScript.Meta())
 			store.indexUpdate(newScript)
 		} else { // 删除
-			stats.WriteUpdateTime(curScript.tags)
+			stats.WriteUpdateTime(sc.Meta())
 			store.indexDeleteAndBack(name, ns, store.storage.scripts)
 			delete(store.storage.scripts[ns], name)
 		}
 
 		// 清理之前一个脚本的资源
-		if curScript.plBuks != nil {
-			curScript.plBuks.StopAllBukScanner()
-		}
-		if curScript.cache != nil {
-			curScript.cache.Stop()
-		}
-		if curScript.ptWindow != nil {
-			curScript.ptWindow.Deprecated()
-		}
+		sc.Cleanup()
 	}
 
 	// 执行新增操作
 	for name, newScript := range retScripts {
 		if _, ok := store.storage.scripts[ns][name]; !ok {
 			store.storage.scripts[ns][name] = newScript
-			stats.WriteUpdateTime(newScript.tags)
+			stats.WriteUpdateTime(newScript.Meta())
 			store.indexUpdate(newScript)
 		}
 	}

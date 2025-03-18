@@ -18,6 +18,8 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
@@ -45,7 +47,7 @@ func InitPipeline(cfg *plval.PipelineCfg, upFn plmap.UploadFunc, gTags map[strin
 	return plval.InitPlVal(cfg, upFn, gTags, installDir)
 }
 
-func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*plmap.AggBuckets) (*plmanager.PlScript, error) {
+func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*plmap.AggBuckets) (*platypus.PlScript, error) {
 	name, script, err := plmanager.ReadScript(path)
 	if err != nil {
 		return nil, err
@@ -54,8 +56,17 @@ func NewPlScriptSampleFromFile(category point.Category, path string, buks ...*pl
 	return NewPlScriptSimple(category, name, script, buks...)
 }
 
-func NewPlScriptSimple(category point.Category, name, script string, buks ...*plmap.AggBuckets) (*plmanager.PlScript, error) {
-	scs, errs := plmanager.NewScripts(map[string]string{name: script}, nil, "", category, buks...)
+func NewPlScriptSimple(category point.Category, name, script string, buks ...*plmap.AggBuckets) (*platypus.PlScript, error) {
+	var bkt *plmap.AggBuckets
+	if len(buks) > 0 {
+		bkt = buks[0]
+	}
+	scs, errs := platypus.NewScripts(map[string]string{name: script},
+		lang.WithCat(category),
+		lang.WithCache(),
+		lang.WithPtWindow(),
+		lang.WithAggBktUser(bkt),
+	)
 
 	if v, ok := errs[name]; ok {
 		return nil, v
@@ -69,16 +80,22 @@ func NewPlScriptSimple(category point.Category, name, script string, buks ...*pl
 }
 
 func NewPipelineMulti(category point.Category, scripts map[string]string, buks *plmap.AggBuckets,
-) (map[string]*plmanager.PlScript, map[string]error) {
-	return plmanager.NewScripts(scripts, nil, "", category, buks)
+) (map[string]*platypus.PlScript, map[string]error) {
+	return platypus.NewScripts(scripts,
+		lang.WithCat(category),
+
+		lang.WithCache(),
+		lang.WithPtWindow(),
+		lang.WithAggBktUser(buks),
+	)
 }
 
 type Pipeline struct {
-	Script *plmanager.PlScript
+	Script *platypus.PlScript
 }
 
-func (p *Pipeline) Run(cat point.Category, pt *point.Point, plOpt *plmanager.Option,
-	signal plruntime.Signal, buks ...*plmap.AggBuckets,
+func (p *Pipeline) Run(cat point.Category, pt *point.Point, plOpt *lang.LogOption,
+	signal plruntime.Signal,
 ) (ptinput.PlInputPt, error) {
 	if p.Script == nil || p.Script.Engine() == nil {
 		return nil, fmt.Errorf("pipeline engine not initialized")
@@ -95,10 +112,6 @@ func (p *Pipeline) Run(cat point.Category, pt *point.Point, plOpt *plmanager.Opt
 	}
 	if v, ok := plval.GetIPDB(); ok {
 		plpt.SetIPDB(v)
-	}
-
-	if len(buks) > 0 {
-		p.Script.SetAggBuks(buks[0])
 	}
 
 	if err := p.Script.Run(plpt, signal, plOpt); err != nil {

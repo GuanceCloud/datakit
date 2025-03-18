@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	"github.com/GuanceCloud/pipeline-go/ptinput/plmap"
 )
 
@@ -69,7 +70,7 @@ func (m *Manager) GetScriptRelation() *ScriptRelation {
 }
 
 func (m *Manager) QueryScript(category point.Category, name string,
-	DisableDefaultP ...struct{}) (*PlScript, bool) {
+	DisableDefaultP ...struct{}) (*platypus.PlScript, bool) {
 
 	if v, ok := m.whichStore(category); ok {
 		if ss, ok := v.IndexGet(name); ok {

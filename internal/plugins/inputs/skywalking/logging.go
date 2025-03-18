@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	loggingv3 "github.com/GuanceCloud/tracing-protos/skywalking-gen-go/logging/v3"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
 func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {
@@ -61,7 +61,7 @@ func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {
 	opts = append(opts, point.WithTime(time.Now()))
 	return point.NewPointV2(plog.Service,
 			append(point.NewTags(extraTags), point.NewKVs(map[string]interface{}{
-				pipeline.FieldMessage: line,
+				constants.FieldMessage: line,
 			})...),
 			opts...),
 		nil

@@ -12,9 +12,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/lang"
+	"github.com/GuanceCloud/pipeline-go/lang/platypus"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
 )
+
+const MaxErrorMessageSize = 1024
 
 type ScriptHTTPRequestResponse struct {
 	Header     http.Header `json:"header"`
@@ -77,8 +80,7 @@ func postScriptDo(script string, bodyBytes []byte, resp *http.Response) (*Script
 }
 
 func runPipeline(script string, response *ScriptHTTPRequestResponse, vars *Vars) (*ScriptResult, error) {
-
-	var scriptName = "script"
+	scriptName := "script"
 
 	script = fmt.Sprintf(`
 	content = load_json(_)
@@ -92,7 +94,16 @@ func runPipeline(script string, response *ScriptHTTPRequestResponse, vars *Vars)
 	add_key(vars, vars)
 	`, script)
 
-	pls, errs := manager.NewScripts(map[string]string{scriptName: script}, nil, "", point.Logging, nil)
+	pls, errs := platypus.NewScripts(
+		map[string]string{scriptName: script},
+		lang.WithCat(point.Logging),
+	)
+
+	defer func() {
+		for _, pl := range pls {
+			pl.Cleanup()
+		}
+	}()
 
 	for k, v := range errs {
 		return nil, fmt.Errorf("new scripts failed: %s, %v", k, v)
@@ -141,6 +152,11 @@ func runPipeline(script string, response *ScriptHTTPRequestResponse, vars *Vars)
 		return nil, fmt.Errorf("vars not found")
 	} else if err := json.Unmarshal([]byte(getFiledString(val)), &vars); err != nil {
 		return nil, fmt.Errorf("unmarshal vars failed: %w", err)
+	}
+
+	// limit error message length
+	if len(result.ErrorMessage) > MaxErrorMessageSize {
+		result.ErrorMessage = result.ErrorMessage[:MaxErrorMessageSize] + "..."
 	}
 
 	return &ScriptResult{

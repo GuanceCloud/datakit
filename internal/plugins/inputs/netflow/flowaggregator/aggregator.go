@@ -13,9 +13,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/common"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netflow/metrics"
@@ -148,8 +148,8 @@ func (agg *FlowAggregator) sendFlows(flows []*common.Flow, flushTime time.Time) 
 		if logging.Fields == nil {
 			logging.Fields = make(map[string]interface{})
 		}
-		logging.Fields[pipeline.FieldMessage] = string(payloadBytes)
-		logging.Fields[pipeline.FieldStatus] = OK
+		logging.Fields[constants.FieldMessage] = string(payloadBytes)
+		logging.Fields[constants.FieldStatus] = OK
 		logging.Fields["bytes"] = flowPayload.Bytes
 		logging.Fields["dest_ip"] = flowPayload.Destination.IP
 		logging.Fields["dest_port"] = flowPayload.Destination.Port

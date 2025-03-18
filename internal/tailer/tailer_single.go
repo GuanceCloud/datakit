@@ -16,7 +16,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/GuanceCloud/pipeline-go/manager"
+	"github.com/GuanceCloud/pipeline-go/constants"
+	"github.com/GuanceCloud/pipeline-go/lang"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -377,9 +378,9 @@ func (t *Single) feedToRemote(pending [][]byte) {
 	for _, text := range pending {
 		t.readLines++
 		fields := map[string]interface{}{
-			"filepath":           t.filepath,
-			"log_read_lines":     t.readLines,
-			pipeline.FieldStatus: pipeline.DefaultStatus,
+			"filepath":            t.filepath,
+			"log_read_lines":      t.readLines,
+			constants.FieldStatus: pipeline.DefaultStatus,
 		}
 
 		if t.opt.enableDebugFields {
@@ -405,7 +406,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 		t.readLines++
 
 		kvs := make(point.KVs, 0, len(t.tags)+4)
-		kvs = kvs.Add(pipeline.FieldMessage, string(cnt), false, false)
+		kvs = kvs.Add(constants.FieldMessage, string(cnt), false, false)
 
 		if t.shouldAddField("filepath") {
 			kvs = kvs.Add("filepath", t.filepath, false, false)
@@ -413,8 +414,8 @@ func (t *Single) feedToIO(pending [][]byte) {
 		if t.shouldAddField("log_read_lines") {
 			kvs = kvs.Add("log_read_lines", t.readLines, false, false)
 		}
-		if t.shouldAddField(pipeline.FieldStatus) {
-			kvs = kvs.AddTag(pipeline.FieldStatus, pipeline.DefaultStatus)
+		if t.shouldAddField(constants.FieldStatus) {
+			kvs = kvs.AddTag(constants.FieldStatus, constants.DefaultStatus)
 		}
 
 		if t.shouldAddField("inside_filepath") && t.insideFilepath != "" {
@@ -450,7 +451,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 		point.Logging,
 		pts,
 		dkio.WithInputName("logging/"+t.opt.source),
-		dkio.WithPipelineOption(&manager.Option{
+		dkio.WithPipelineOption(&lang.LogOption{
 			DisableAddStatusField: t.opt.disableAddStatusField,
 			IgnoreStatus:          t.opt.ignoreStatus,
 			ScriptMap:             map[string]string{t.opt.source: t.opt.pipeline},
