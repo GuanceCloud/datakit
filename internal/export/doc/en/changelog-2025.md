@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.69.1 (March 18, 2025) {#cl-1.69.1}
+
+This release is a hotfix, with the following updates:
+
+### Bug Fixes {#cl-1.69.1 - fix}
+
+- Fixed the issue of incorrect CPU collection for Docker containers (#2589).
+- Fixed the memory leak problem caused by the script execution of the dial-testing collector (#2588).
+- Optimized the error messages of the multi-step dial test (#2567).
+- Other documentation update (#2590)
+
+---
+
 ## 1.69.0 (March 12, 2025) {#cl-1.69.0}
 
 This release is an iterative release, with the following updates:
@@ -23,7 +36,7 @@ This release is an iterative release, with the following updates:
 
 ### Compatibility Adjustments {#cl-1.69.0-brk}
 
-- Optimized the disk collector to ignore some file system types and mount points (#2366).
+- Optimized the disk collector to ignore some file system types and mount points (#2566).
 
     Adjusted the disk metric collection and updated the disk list collection in the host object. The main differences are as follows:
 

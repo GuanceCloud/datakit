@@ -62,11 +62,13 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
 
     > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) default enabled this limit.
     
-    As DataKit needs to receive a large number of external data writes, in order to avoid causing huge overhead to the host node, the following HTTP configuration can be modified (it is not turned on by default):
-    
+    Since DataKit needs to receive a large amount of external data writing, in order to avoid imposing a huge overhead on the node where it is located, Datakit has set a QPS limit of 20 requests per second for the API by default:
+
     ```toml
     [http_api]
-      request_rate_limit = 20.0 # Limit HTTP request(client IP + route) QPS
+      request_rate_limit = 20.0 # Limits the QPS of requests initiated by each client (IP + API route)
+      # If there is indeed a large amount of data to be written, we can appropriately increase the limit
+      # to avoid data loss (clients will receive an HTTP 429 error code when the request limit is exceeded).
     ```
     
     ### Other Settings {#http-other-settings}

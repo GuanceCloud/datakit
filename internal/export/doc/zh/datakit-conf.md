@@ -62,11 +62,13 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能。
     
-    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，可修改如下 HTTP 配置（默认不开启）：
+    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，Datakit 默认给 API 设置了 20/s 的 QPS 限制：
     
     ```toml
     [http_api]
-      request_rate_limit = 20.0 # 限制每个客户端（IP + API 路由）发起请求的 QPS 限制
+      request_rate_limit = 20.0 # 限制每个客户端（IP + API 路由）每秒发起请求的 QPS 限制
+
+      # 如果确实有大量数据写入，可酌情调大限制，避免数据丢失（请求超限后客户端会收到 HTTP 429 错误码）
     ```
 
     ### 其它设置 {#http-other-settings}
