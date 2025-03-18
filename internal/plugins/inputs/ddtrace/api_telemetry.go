@@ -129,8 +129,37 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 	log.Debugf("parse RequestType=%s", string(requestType))
 
 	switch requestType {
-	case RequestTypeAppStarted,
-		RequestTypeDependenciesLoaded,
+	case RequestTypeAppStarted:
+		bts, err := json.Marshal(payload)
+		if err != nil {
+			log.Errorf("err=%v", err)
+			return
+		}
+		start := &AppStarted{}
+		err = json.Unmarshal(bts, start)
+		if err != nil {
+			log.Errorf("can unmarshal to AppStarted err=%v", err)
+			return
+		}
+		if len(start.Configuration) > 0 {
+			for _, conf := range start.Configuration {
+				if conf.Name == "trace_tags" {
+					str, ok := (conf.Value).(string)
+					if ok {
+						kvsStr := strings.Split(str, ",")
+						for _, st := range kvsStr {
+							kvs := strings.Split(st, ":")
+							if len(kvs) == 2 {
+								ob.tags[kvs[0]] = kvs[1]
+							}
+						}
+					}
+				}
+			}
+		}
+		ob.setField(string(requestType), string(bts))
+		ob.change = true
+	case RequestTypeDependenciesLoaded,
 		RequestTypeAppClientConfigurationChange,
 		RequestTypeAppProductChange,
 		RequestTypeAppIntegrationsChange:
