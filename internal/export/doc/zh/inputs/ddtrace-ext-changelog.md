@@ -42,6 +42,14 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.47.1-guance {#cl-1.47.1-guance}
+
+### 修复 {#cl-1.47.1-guance-fix}
+
+- 修复 Dubbo Response 不生效的问题。
+- 合并最新分支 v1.47.1
+
+
 ## v1.42.8-guance {#cl-1.42.8-guance}
 
 ### 修复 {#cl-1.42.8-guance-fix}

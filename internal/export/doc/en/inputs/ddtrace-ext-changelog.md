@@ -25,6 +25,14 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.47.1-guance {#cl-1.47.1-guance}
+
+### fix {#cl-1.47.1-guance-fix}
+
+- Fix the problem that Dubbo Response does not take effect.
+- Merge DDTrace Tag: v1.47.1.
+
+
 ## v1.42.8-guance {#cl-1.42.8-guance}
 
 ### fix {#cl-1.42.8-guance-fix}

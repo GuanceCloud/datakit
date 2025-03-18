@@ -103,33 +103,6 @@ Notes on configuration files:
 
 ---
 
-## Guance Trace and Metric {#trace-metric}
-
-### Guance trace {#guance-trace}
-
-login guance.com, and click on Application Performance.
-
-<!-- markdownlint-disable MD033 -->
-<figure>
-  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/cat-gateway.png" style="height: 500px" alt=" trace details">
-  <figcaption> trace details </figcaption>
-</figure>
-
-
-### Guance metric {#guance-metric}
-
-To [download dashboard](https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/DianPing-Cat%20%E7%9B%91%E6%8E%A7%E8%A7%86%E5%9B%BE.json){:target="_blank"}
-
-At guance `Scenes` -> `dashboard` to `Create Dashboard`.
-
-Effect display:
-
-<!-- markdownlint-disable MD046 MD033 -->
-<figure >
-  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/cat/metric.png" style="height: 500px" alt="cat metric">
-  <figcaption> cat metric </figcaption>
-</figure>
-
 
 ## Metric {#metric}
 

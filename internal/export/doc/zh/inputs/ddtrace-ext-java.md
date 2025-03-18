@@ -23,7 +23,6 @@ tags      :
 - 获取特定函数的入参信息
 - 支持 `MongoDB` 脱敏
 - 支持达梦国产数据库
-- [支持 trace-id 128 位](ddtrace-128-trace-id.md){:target="_blank"}
 - 支持 `PowerJob` 框架
 - 支持 `Apache Pulsar` 消息队列
 - 支持将链路 ID 放到响应的头部中
