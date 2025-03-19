@@ -78,6 +78,9 @@ func (lc *logInstance) parseLogConfigs() error {
 		lc.configs = configs
 
 		for _, cfg := range lc.configs {
+			if cfg.Disable {
+				continue
+			}
 			if cfg.Multiline != "" {
 				cfg.MultilinePatterns = []string{cfg.Multiline}
 			}
@@ -117,6 +120,9 @@ func (lc *logInstance) addStdout() {
 	}
 
 	for _, cfg := range lc.configs {
+		if cfg.Disable {
+			continue
+		}
 		if (cfg.Type == "" || cfg.Type == "stdout") && cfg.Path == "" {
 			cfg.Path = lc.logPath
 		}
