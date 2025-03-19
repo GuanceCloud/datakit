@@ -195,7 +195,8 @@ func CORSMiddleware(c *gin.Context) {
 	// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
 	c.Writer.Header().Set("Access-Control-Max-Age", "7200")
 	if c.Request.Method == "OPTIONS" {
-		c.AbortWithStatus(http.StatusNoContent)
+		c.Status(http.StatusNoContent)
+		c.Abort()
 		return
 	}
 	c.Next()
