@@ -94,7 +94,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 	param := &itrace.TraceParameters{
 		URLPath: req.URL.Path,
-		Media:   req.Header.Get("Content-Type"),
+		Media:   itrace.GetContentType(req),
 		Body:    pbuf,
 	}
 

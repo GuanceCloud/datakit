@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
@@ -260,5 +261,60 @@ func randTags() randSpanOption {
 				dkspan.MustAddTag(k, v)
 			}
 		}
+	}
+}
+
+func TestGetContentType(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		expected    string
+	}{
+		{
+			name:        "Standard JSON",
+			contentType: "application/json",
+			expected:    "application/json",
+		},
+		{
+			name:        "JSON with charset",
+			contentType: "application/json; charset=utf-8",
+			expected:    "application/json",
+		},
+		{
+			name:        "Empty Content-Type",
+			contentType: "",
+			expected:    "",
+		},
+		{
+			name:        "Text plain",
+			contentType: "text/plain",
+			expected:    "text/plain",
+		},
+		{
+			name:        "Text plain with charset",
+			contentType: "text/plain; charset=iso-8859-1",
+			expected:    "text/plain",
+		},
+		{
+			name:        "Multipart form data",
+			contentType: "multipart/form-data; boundary=something",
+			expected:    "multipart/form-data",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// 创建一个模拟的 http.Request
+			req := httptest.NewRequest("GET", "/", nil)
+			req.Header.Set("Content-Type", tt.contentType)
+
+			// 调用 GetContentType 方法
+			result := GetContentType(req)
+
+			// 检查结果是否符合预期
+			if result != tt.expected {
+				t.Errorf("GetContentType() = %v, expected %v", result, tt.expected)
+			}
+		})
 	}
 }
