@@ -21,9 +21,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type mountstatsMetric struct {
+type MountstatsMetric struct {
 	Rw         bool `toml:"rw"`
-	Transport  bool `toml:"transoprt"`
+	Transport  bool `toml:"transport"`
 	Event      bool `toml:"event"`
 	Operations bool `toml:"operations"`
 }
@@ -390,6 +390,12 @@ func (m *mountstatsMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 				DataType: inputs.DurationSecond,
 				Unit:     inputs.NCount,
 				Desc:     "Duration all requests took from when a request was enqueued to when it was completely handled for a given operation, in seconds.",
+			},
+			"operations_latency_seconds": &inputs.FieldInfo{
+				Type:     inputs.Gauge,
+				DataType: inputs.Float,
+				Unit:     inputs.DurationSecond,
+				Desc:     "Average RPC latency (RTT) for a given operation, in seconds.",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -800,27 +806,28 @@ func parseNFSTransportStats(ss []string, statVersion string) (*procfs.NFSTranspo
 
 func collectMountStatsOperation(mount *procfs.Mount, operations []procfs.NFSOperationStats, ts int64) ([]inputs.MeasurementV2, error) {
 	ms := []inputs.MeasurementV2{}
-	m := &mountstatsMeasurement{
-		name: "nfs_mountstats",
-		tags: map[string]string{
-			"device":     mount.Device,
-			"mountpoint": mount.Mount,
-			"type":       mount.Type,
-		},
-		fields: map[string]interface{}{},
-		ts:     ts,
-	}
-	// operations
 	for _, op := range operations {
-		m.tags["operation"] = op.Operation
-		m.fields["operations_requests_total"] = op.Requests
-		m.fields["operations_transmissions_total"] = op.Transmissions
-		m.fields["operations_major_timeouts_total"] = op.MajorTimeouts
-		m.fields["operations_sent_bytes_total"] = op.BytesSent
-		m.fields["operations_received_bytes_total"] = op.BytesReceived
-		m.fields["operations_queue_time_seconds_total"] = float64(op.CumulativeQueueMilliseconds%float64Mantissa) / 1000.0
-		m.fields["operations_response_time_seconds_total"] = float64(op.CumulativeTotalResponseMilliseconds%float64Mantissa) / 1000.0
-		m.fields["operations_request_time_seconds_total"] = float64(op.CumulativeTotalRequestMilliseconds%float64Mantissa) / 1000.0
+		m := &mountstatsMeasurement{
+			name: "nfs_mountstats",
+			tags: map[string]string{
+				"device":     mount.Device,
+				"mountpoint": mount.Mount,
+				"type":       mount.Type,
+				"operation":  op.Operation,
+			},
+			fields: map[string]interface{}{
+				"operations_requests_total":              op.Requests,
+				"operations_transmissions_total":         op.Transmissions,
+				"operations_major_timeouts_total":        op.MajorTimeouts,
+				"operations_sent_bytes_total":            op.BytesSent,
+				"operations_received_bytes_total":        op.BytesReceived,
+				"operations_queue_time_seconds_total":    float64(op.CumulativeQueueMilliseconds%float64Mantissa) / 1000.0,
+				"operations_response_time_seconds_total": float64(op.CumulativeTotalResponseMilliseconds%float64Mantissa) / 1000.0,
+				"operations_request_time_seconds_total":  float64(op.CumulativeTotalRequestMilliseconds%float64Mantissa) / 1000.0,
+				"operations_latency_seconds":             op.AverageRTTMilliseconds / 1000.0,
+			},
+			ts: ts,
+		}
 
 		ms = append(ms, m)
 	}

@@ -32,7 +32,7 @@ type Input struct {
 	Interval time.Duration
 
 	Tags             map[string]string `toml:"tags"`
-	MountstatsMetric mountstatsMetric  `toml:"mountstats"`
+	MountstatsMetric MountstatsMetric  `toml:"mountstats"`
 	NFSd             bool              `toml:"nfsd"`
 
 	feeder       dkio.Feeder
