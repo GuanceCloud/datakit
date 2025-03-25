@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -26,7 +27,9 @@ const (
 	filePrefix = "/tmp/dk_inject_rewrite_"
 
 	ddtraceRun     = "ddtrace-run"
-	ddtraceJarPath = "/usr/local/datakit/apm_inject/lib/java/dd-java-agent.jar"
+	ddtraceLibName = "dd-java-agent.jar"
+
+	ddtraceJarPath = "/usr/local/datakit/apm_inject/lib/java/" + ddtraceLibName
 )
 
 var (
@@ -137,9 +140,13 @@ func rewrite(param *reArgs) (*reArgs, error) {
 
 		for i := 1; i < len(param.argv); i++ {
 			p := strings.TrimSpace(param.argv[i])
-			p = strings.ToLower(p)
 			if strings.HasPrefix(p, "-javaagent:") {
-				return nil, errAlreadyInjected
+				v := strings.TrimPrefix(p, "-javaagent:")
+				if path.Base(strings.TrimSpace(v)) ==
+					path.Base(strings.TrimSpace(
+						ddtraceJarPath)) {
+					return nil, errAlreadyInjected
+				}
 			}
 		}
 

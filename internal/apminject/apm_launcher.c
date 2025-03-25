@@ -283,6 +283,7 @@ int execve(const char *path, char *const argv[], char *const envp[])
 
     if (!gen_inject_tmpid_b16(tmpid))
     {
+        debug_log("gen tmpid failed\n");
         return old_execve(path, argv, envp);
     }
 
