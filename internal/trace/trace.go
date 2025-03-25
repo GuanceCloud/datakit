@@ -356,9 +356,19 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 		return
 	}
 
-	contentType = httpapi.GetHeader(req, "Content-Type")
+	contentType = GetContentType(req)
 
 	return
+}
+
+func GetContentType(req *http.Request) string {
+	contentType := req.Header.Get("Content-Type")
+	if contentType == "" {
+		return ""
+	}
+	parts := strings.Split(contentType, ";")
+
+	return strings.TrimSpace(parts[0])
 }
 
 type TraceParameters struct {

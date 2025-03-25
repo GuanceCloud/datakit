@@ -44,7 +44,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 
 	param := &itrace.TraceParameters{
 		URLPath: apiv1Path,
-		Media:   req.Header.Get("Content-Type"),
+		Media:   itrace.GetContentType(req),
 		Encode:  req.Header.Get("Content-Encoding"),
 		Body:    pbuf,
 	}
@@ -114,7 +114,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 
 	param := &itrace.TraceParameters{
 		URLPath: apiv2Path,
-		Media:   req.Header.Get("Content-Type"),
+		Media:   itrace.GetContentType(req),
 		Encode:  req.Header.Get("Content-Encoding"),
 		Body:    pbuf,
 	}
