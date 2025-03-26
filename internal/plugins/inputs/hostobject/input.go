@@ -112,6 +112,8 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 	start := time.Now()
 
+	pcommon.SetLog()
+
 	for {
 		l.Debugf("start collecting...")
 		if err := ipt.collect(start.UnixNano()); err != nil {

@@ -70,6 +70,8 @@ type Input struct {
 func (ipt *Input) Run() {
 	ipt.setup()
 
+	pcommon.SetLog()
+
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
