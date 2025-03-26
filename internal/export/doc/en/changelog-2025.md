@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.70.0 (March 26, 2025) {#cl-1.70.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.70.0-new}
+
+- KubernetesPrometheus added the up metric (#2577).
+
+### Bug Fixes {#cl-1.70.0-fix}
+
+- Fixed the issue that the disable of Pod stdout log collection is ineffective in some cases (#2570).
+- Optimized the handling of extremely long multi-line logs (exceeding the maximum allowed HTTP Post length) (#2572).
+- Fixed the cross-origin issue when OpenTelemetry receives the trace data pushed by the front end (#2592).
+- Fixed the issue of APM auto-injection failure (#2594).
+- Fixed the issue that the disk collector fails to obtain the disk usage (#2597).
+- Fixed the issue of the Zipkin collector handling `application/json; charset=utf-8` (#2599).
+- Fixed memory leak in lsblk collector (!3458)
+
+### Function Optimization {#cl-1.70.0-opt}
+
+- The SQLServer collector added support for the 2008 version (#2584).
+- The database collectors (MySQL/Oracle/PostgreSQL/SQLServer) added a metric disable feature (some metrics are not collected to relieve the pressure on the database caused by the collection itself). At the same time, metrics are recorded were made for the SQL execution during the collection process (#2579).
+- User-defined tags were added to the custom objects collected by DDTrace (#2593).
+- The NFS collector added read and write latency metrics (#2601).
+
+---
+
 ## 1.69.1 (March 18, 2025) {#cl-1.69.1}
 
 This release is a hotfix, with the following updates:
