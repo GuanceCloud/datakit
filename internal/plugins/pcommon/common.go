@@ -9,12 +9,16 @@ package pcommon
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/disk"
 )
 
-var l = logger.DefaultSLogger("pcommon")
+var (
+	once sync.Once
+	l    = logger.DefaultSLogger("pcommon")
+)
 
 // TrimPartitionHostPath remove host-path prefix in p's device name and mountpoint.
 func TrimPartitionHostPath(hostpath string, p *disk.PartitionStat) *disk.PartitionStat {
@@ -61,13 +65,20 @@ func FilterUsage(ds DiskStats, hostRoot string) (arr []FilesystemStats, err erro
 	}
 
 	for i := range parts {
-		p := TrimPartitionHostPath(hostRoot, &parts[i])
+		p := &parts[i]
 
 		du, err := ds.Usage(p.Mountpoint)
 		if err != nil {
-			l.Warnf("Usage: %s, ignored", err)
+			l.Warnf("Usage on partition %+#v: %s, ignored", p, err)
 			continue
 		}
+
+		p = TrimPartitionHostPath(hostRoot, &parts[i])
+
+		// NOTE: prefer p.Path, du.Path may need to trim host-path prefix
+		du.Path = p.Mountpoint
+
+		l.Debugf("add partition %+#v, usage: %+#v", p, du)
 
 		arr = append(arr, FilesystemStats{
 			Usage: du,
@@ -86,4 +97,8 @@ func (dk *DiskStatsImpl) Usage(path string) (*disk.UsageStat, error) {
 
 func (dk *DiskStatsImpl) Partitions() ([]disk.PartitionStat, error) {
 	return disk.Partitions(true)
+}
+
+func SetLog() {
+	once.Do(func() { l = logger.SLogger("pcommon") })
 }
