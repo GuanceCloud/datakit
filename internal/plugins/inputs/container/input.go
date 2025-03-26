@@ -58,7 +58,6 @@ type Input struct {
 	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingSearchInterval                 time.Duration     `toml:"logging_search_interval"`
-	LoggingMaxMultilineLifeDuration       time.Duration     `toml:"logging_max_multiline_life_duration"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`

@@ -11,8 +11,7 @@ const (
 	NewMultiline State = iota + 1
 	Written
 	NoContext
-	OverTime
-	OverLength
+	FlushPartial
 )
 
 func (state State) String() string {
@@ -23,10 +22,8 @@ func (state State) String() string {
 		return "written"
 	case NoContext:
 		return "no-context"
-	case OverTime:
-		return "overtime"
-	case OverLength:
-		return "overlength"
+	case FlushPartial:
+		return "flush-partial"
 	}
 	return "unknown"
 }

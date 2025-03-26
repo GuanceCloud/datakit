@@ -87,6 +87,7 @@ const sampleCfg = `
 
 type DeprecatedConf struct {
 	LoggingMinFlushInterval                           time.Duration `toml:"logging_min_flush_interval"`
+	LoggingMaxMultilineLifeDuration                   time.Duration `toml:"logging_max_multiline_life_duration"`
 	LoggingBlockingMode                               bool          `toml:"logging_blocking_mode"`
 	LoggingForceFlushLimit                            int           `toml:"logging_force_flush_limit"`
 	ExcludePauseContainer                             bool          `toml:"exclude_pause_container"`

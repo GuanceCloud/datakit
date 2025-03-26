@@ -36,10 +36,8 @@ type option struct {
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	multilinePatterns []string
-	// 最大多行存在时间，避免堆积过久
-	maxMultilineLifeDuration time.Duration
-	maxMultilineLength       int64
+	multilinePatterns  []string
+	maxMultilineLength int64
 
 	// 最大文件打开数量
 	maxOpenFiles int
@@ -116,15 +114,8 @@ func EnableMultiline(b bool) Option { return func(opt *option) { opt.enableMulti
 func WithMultilinePatterns(arr []string) Option {
 	return func(opt *option) { opt.multilinePatterns = arr }
 }
-
-func WithMaxMultilineLifeDuration(dur time.Duration) Option {
-	return func(opt *option) {
-		if dur > 0 {
-			opt.maxMultilineLifeDuration = dur
-		}
-	}
-}
 func WithMaxMultilineLength(n int64) Option { return func(opt *option) { opt.maxMultilineLength = n } }
+
 func WithRemoveAnsiEscapeCodes(b bool) Option {
 	return func(opt *option) { opt.removeAnsiEscapeCodes = b }
 }

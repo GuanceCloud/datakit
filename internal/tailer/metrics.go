@@ -16,9 +16,11 @@ var (
 	openfilesVec          *prometheus.GaugeVec
 	rotateVec             *prometheus.CounterVec
 	parseFailVec          *prometheus.CounterVec
-	socketLogConnect      *prometheus.CounterVec
-	socketLogCount        *prometheus.CounterVec
-	socketLogLength       *prometheus.SummaryVec
+	multilineStateVec     *prometheus.CounterVec
+
+	socketLogConnect *prometheus.CounterVec
+	socketLogCount   *prometheus.CounterVec
+	socketLogLength  *prometheus.SummaryVec
 )
 
 func setupMetrics() {
@@ -27,7 +29,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "receive_create_event_total",
-			Help:      "Total number of 'CREATE' events received",
+			Help:      "Total number of received create events",
 		},
 		[]string{
 			"source",
@@ -40,7 +42,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "discard_log_total",
-			Help:      "Total logs discarded based on the whitelist",
+			Help:      "Total number of discarded based on the whitelist",
 		},
 		[]string{
 			"source",
@@ -66,7 +68,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "file_rotate_total",
-			Help:      "Total tailer rotated",
+			Help:      "Total number of file rotations performed",
 		},
 		[]string{
 			"source",
@@ -79,7 +81,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "parse_fail_total",
-			Help:      "Total tailer parsing failed",
+			Help:      "Total number of failed parse attempts",
 		},
 		[]string{
 			"source",
@@ -88,12 +90,25 @@ func setupMetrics() {
 		},
 	)
 
+	multilineStateVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "multiline_state_total",
+			Help:      "Total number of multiline states encountered",
+		},
+		[]string{
+			"source",
+			"state",
+		},
+	)
+
 	socketLogConnect = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
-			Subsystem: "input_logging_socket",
-			Name:      "connect_status_total",
-			Help:      "Connect and close count for net.conn",
+			Subsystem: "tailer",
+			Name:      "socket_connect_status_total",
+			Help:      "Total number of socket connection status events",
 		},
 		[]string{"network", "status"},
 	)
@@ -101,9 +116,9 @@ func setupMetrics() {
 	socketLogCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
-			Subsystem: "input_logging_socket",
-			Name:      "feed_message_count_total",
-			Help:      "Socket feed to IO message count",
+			Subsystem: "tailer",
+			Name:      "socket_feed_message_count_total",
+			Help:      "Total number of messages fed to the socket",
 		},
 		[]string{
 			"network",
@@ -113,9 +128,9 @@ func setupMetrics() {
 	socketLogLength = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "input_logging_socket",
-			Name:      "log_length",
-			Help:      "Record the length of each log line",
+			Subsystem: "tailer",
+			Name:      "socket_log_length",
+			Help:      "Length of the log for socket communication",
 			Objectives: map[float64]float64{
 				0.5:  0.05,
 				0.90: 0.01,
@@ -130,6 +145,7 @@ func setupMetrics() {
 		discardVec,
 		openfilesVec,
 		parseFailVec,
+		multilineStateVec,
 		rotateVec,
 		socketLogLength,
 		socketLogCount,
