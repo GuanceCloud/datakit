@@ -179,6 +179,9 @@ func ReadLinesOffsetN(filename string, offset uint, n int) ([]string, error) {
 	if err != nil {
 		return []string{""}, err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
 	var ret []string
 

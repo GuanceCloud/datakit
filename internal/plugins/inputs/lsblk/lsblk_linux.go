@@ -16,9 +16,8 @@ import (
 )
 
 func (ipt *Input) collectLsblkInfo() ([]BlockDeviceStat, error) {
-	if ipt.partitionMap == nil {
-		return nil, fmt.Errorf("no partition map")
-	}
+	// 在每次采集前清空 partitionMap
+	ipt.partitionMap = make(map[string]*BlockDeviceStat)
 	mountedPartitions, err := ipt.getMountedPartitions(false)
 	if err != nil {
 		return nil, err
@@ -36,19 +35,24 @@ func (ipt *Input) collectLsblkInfo() ([]BlockDeviceStat, error) {
 	// 处理mountpoint和parent都可能有多个值的情况
 	devices = ipt.processDevices(devices)
 
-	// 过滤exclude的device
-	devices = ipt.filterDevices(devices)
-
 	return devices, nil
 }
 
 func (ipt *Input) getAllDevices() ([]BlockDeviceStat, error) {
 	path := hostSys("/dev/block")
-	devices := make([]BlockDeviceStat, 0)
-
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return devices, err
+		return nil, err
+	}
+	devices := make([]BlockDeviceStat, 0, len(entries))
+
+	excluded := func(x string, arr []string) bool {
+		for _, fs := range arr {
+			if strings.EqualFold(x, fs) {
+				return true
+			}
+		}
+		return false
 	}
 
 	for _, entry := range entries {
@@ -77,6 +81,11 @@ func (ipt *Input) getAllDevices() ([]BlockDeviceStat, error) {
 				setDetailInfo(&device, devicePath)
 			}
 
+			// 在添加设备之前进行过滤
+			if excluded(device.Name, ipt.ExcludeDevice) {
+				continue
+			}
+
 			devices = append(devices, device)
 		}
 	}
@@ -97,6 +106,15 @@ func (ipt *Input) getMountedPartitions(all bool) ([]BlockDeviceStat, error) {
 	}
 
 	ret := make([]BlockDeviceStat, 0, len(lines))
+
+	excluded := func(x string, arr []string) bool {
+		for _, fs := range arr {
+			if strings.EqualFold(x, fs) {
+				return true
+			}
+		}
+		return false
+	}
 
 	for _, line := range lines {
 		var d BlockDeviceStat
@@ -160,6 +178,11 @@ func (ipt *Input) getMountedPartitions(all bool) ([]BlockDeviceStat, error) {
 			ipt.partitionMap[d.MajMin] = &d
 		}
 
+		// 在添加设备之前进行过滤
+		if excluded(d.Name, ipt.ExcludeDevice) {
+			continue
+		}
+
 		ret = append(ret, d)
 	}
 
@@ -167,7 +190,7 @@ func (ipt *Input) getMountedPartitions(all bool) ([]BlockDeviceStat, error) {
 }
 
 func (ipt *Input) processDevices(devices []BlockDeviceStat) []BlockDeviceStat {
-	var newDevices []BlockDeviceStat
+	newDevices := make([]BlockDeviceStat, 0, len(devices))
 
 	for _, device := range devices {
 		tuList := cartesianProduct(device.MountPoints, device.Parents)
@@ -178,26 +201,5 @@ func (ipt *Input) processDevices(devices []BlockDeviceStat) []BlockDeviceStat {
 		}
 	}
 
-	return newDevices
-}
-
-func (ipt *Input) filterDevices(device []BlockDeviceStat) []BlockDeviceStat {
-	var newDevices []BlockDeviceStat
-
-	excluded := func(x string, arr []string) bool {
-		for _, fs := range arr {
-			if strings.EqualFold(x, fs) {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, d := range device {
-		if excluded(d.Name, ipt.ExcludeDevice) {
-			continue
-		}
-		newDevices = append(newDevices, d)
-	}
 	return newDevices
 }
