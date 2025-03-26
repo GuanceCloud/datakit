@@ -163,7 +163,7 @@ func (p *Pod) startScrape(ctx context.Context, key, traits string, item *corev1.
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
 			promscrape.WithExtraTags(cfg.tags))
 
-		prom, err := newPromScraper(p.role, key, cfg.urlstr, checkPausedFunc, opts)
+		prom, err := newPromScraper(p.role, key, cfg.urlstr, cfg.measurement, p.feeder, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue
