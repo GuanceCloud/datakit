@@ -224,21 +224,21 @@ database = "%s"
 			if err != nil {
 				return err
 			}
-			_, err = ipt.query(`
+			_, err = ipt.query("", `
 			CREATE TABLE Persons ( PersonID int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(255));
 			`)
 			if err != nil {
 				return err
 			}
 
-			_, err = ipt.query("insert into Persons (LastName, FirstName) values('a', 'b')")
+			_, err = ipt.query("", "insert into Persons (LastName, FirstName) values('a', 'b')")
 			if err != nil {
 				return err
 			}
 
 			for i := 0; i < 2; i++ {
 				go func() {
-					_, err = ipt.query(`
+					_, err = ipt.query("", `
 					begin transaction;
 					update Persons set FirstName='bb' where LastName='a';
 				`)

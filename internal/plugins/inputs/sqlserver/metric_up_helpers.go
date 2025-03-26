@@ -7,7 +7,7 @@ package sqlserver
 
 import (
 	"fmt"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -29,27 +29,15 @@ func (ipt *Input) getUpJob() string {
 }
 
 func (ipt *Input) getUpInstance() string {
-	// 解析 URL
-	parsedURL, err := url.Parse(ipt.Host)
-	if err != nil {
-		l.Error("Error parsing URL:", err)
-		return err.Error()
+	port := "1433"
+	host := ipt.Host
+	parts := strings.Split(ipt.Host, ":")
+	if len(parts) == 2 {
+		host = parts[0]
+		port = parts[1]
 	}
 
-	host := parsedURL.Hostname()
-
-	if host == "" {
-		host = ipt.Host
-	}
-
-	port := parsedURL.Port()
-
-	if port == "" {
-		port = "1433"
-	}
-	// 拼接成 ip:port 的形式
-	ipPort := fmt.Sprintf("%s:%s", host, port)
-	return ipPort
+	return fmt.Sprintf("%s:%s", host, port)
 }
 
 func (ipt *Input) buildUpPoints() ([]*point.Point, error) {

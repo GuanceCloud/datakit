@@ -41,7 +41,7 @@ DECLARE
 	,@Columns AS nvarchar(max) = ''
 	,@Tables AS nvarchar(max) = ''
 
-IF @MajorMinorVersion >= 1050 BEGIN
+IF @MajorMinorVersion > 1050 BEGIN
 	/*in [volume_mount_point] any trailing "\" char will be automatically removed by datakit */
 	SET @Columns += N'
 	,[volume_mount_point]'
@@ -90,16 +90,20 @@ DECLARE
 	,@Columns AS nvarchar(MAX) = ''
 
 
+IF @MajorMinorVersion > 1050 BEGIN
+	SET @Columns += N'
+	,(si.physical_memory_kb*1024) AS [physical_memory]
+	,si.virtual_memory_kb AS [virtual_memory]
+	,(si.committed_kb*1024) AS [committed_memory]
+	,(si.committed_target_kb*1024) AS [target_memory]'
+END
+
 SET @SqlStatement = '
 SELECT
 	 ''sqlserver'' AS [measurement]
 	,REPLACE(@@SERVERNAME, ''\'', '':'') AS [sqlserver_host]
 	,(si.ms_ticks) AS [uptime]
 	,si.[cpu_count]
-	,(si.physical_memory_kb*1024) AS [physical_memory]
-	,si.virtual_memory_kb AS [virtual_memory]
-	,(si.committed_kb*1024) AS [committed_memory]
-	,(si.committed_target_kb*1024) AS [target_memory]
 	,(SELECT [total_physical_memory_kb] FROM sys.[dm_os_sys_memory]) AS [server_memory]
 	,dbs.[db_online]
 	,dbs.[db_restoring]
@@ -931,7 +935,7 @@ END
 DECLARE
 	@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int)*100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
 
-IF @MajorMinorVersion >= 1050 BEGIN
+IF @MajorMinorVersion > 1050 BEGIN
 	SELECT DISTINCT
 		'sqlserver_volumespace' AS [measurement]
 		,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]

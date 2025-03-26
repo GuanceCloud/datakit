@@ -35,7 +35,7 @@ func (m *replicationMeasurement) Point() *point.Point {
 //nolint:lll,funlen
 func (m *replicationMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mysql_replication",
+		Name: metricNameMySQLReplication,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"Connect_Retry:": &inputs.FieldInfo{
@@ -205,7 +205,7 @@ func (m *replicationLogMeasurement) Point() *point.Point {
 func (m *replicationLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Record the replication string information.",
-		Name: "mysql_replication_log",
+		Name: metricNameMySQLReplicationLog,
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"Master_Host": &inputs.FieldInfo{

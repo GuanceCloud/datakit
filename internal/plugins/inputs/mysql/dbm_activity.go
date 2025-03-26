@@ -99,7 +99,7 @@ func (m *dbmActivityMeasurement) Point() *point.Point {
 func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Collect the waiting event of the current thread",
-		Name: "mysql_dbm_activity",
+		Name: metricNameMySQLDbmActivity,
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"query_signature": &inputs.FieldInfo{
@@ -366,7 +366,7 @@ func (ipt *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 		}
 
 		m := &dbmActivityMeasurement{
-			name:     "mysql_dbm_activity",
+			name:     metricNameMySQLDbmActivity,
 			tags:     tags,
 			fields:   fields,
 			election: ipt.Election,
@@ -393,7 +393,7 @@ type connectionRow struct {
 }
 
 func getActiveConnections(i *Input) (connectionRows []connectionRow) {
-	rows := i.q(connectionsQuerySQL)
+	rows := i.q(connectionsQuerySQL, getMetricName(metricNameMySQLDbmActivity, "active_connections"))
 
 	if rows == nil {
 		return
@@ -472,7 +472,7 @@ func (r activityRowSlice) Less(i, j int) bool {
 func (r activityRowSlice) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
 func getActivityRows(i *Input) (activityRows []activityRow) {
-	rows := i.q(activityQuerySQL)
+	rows := i.q(activityQuerySQL, getMetricName(metricNameMySQLDbmActivity, "activity_rows"))
 	if rows == nil {
 		return
 	}

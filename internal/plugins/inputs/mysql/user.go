@@ -35,7 +35,7 @@ func (m *userMeasurement) Point() *point.Point {
 func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL user information",
-		Name: "mysql_user_status",
+		Name: metricNameMySQLUserStatus,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			// status

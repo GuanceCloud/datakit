@@ -38,6 +38,18 @@ const (
 	maxInterval = 15 * time.Minute
 	minInterval = 10 * time.Second
 	strMariaDB  = "MariaDB"
+
+	metricNameMySQL               = "mysql"
+	metricNameMySQLReplication    = "mysql_replication"
+	metricNameMySQLSchema         = "mysql_schema"
+	metricNameMySQLTableSchema    = "mysql_table_schema"
+	metricNameMySQLUserStatus     = "mysql_user_status"
+	metricNameMySQLInnodb         = "mysql_innodb"
+	metricNameMySQLDbmMetric      = "mysql_dbm_metric"
+	metricNameMySQLDbmSample      = "mysql_dbm_sample"
+	metricNameMySQLDbmActivity    = "mysql_dbm_activity"
+	metricNameMySQLReplicationLog = "mysql_replication_log"
+	metricNameMySQLCustomQueries  = "mysql_custom_queries"
 )
 
 var (
@@ -76,17 +88,18 @@ type mysqllog struct {
 }
 
 type Input struct {
-	Host        string      `toml:"host"`
-	Port        int         `toml:"port"`
-	User        string      `toml:"user"`
-	Pass        string      `toml:"pass"`
-	Sock        string      `toml:"sock"`
-	Tables      []string    `toml:"tables"`
-	Users       []string    `toml:"users"`
-	Dbm         bool        `toml:"dbm"`
-	DbmMetric   dbmMetric   `toml:"dbm_metric"`
-	DbmSample   dbmSample   `toml:"dbm_sample"`
-	DbmActivity dbmActivity `toml:"dbm_activity"`
+	Host              string      `toml:"host"`
+	Port              int         `toml:"port"`
+	User              string      `toml:"user"`
+	Pass              string      `toml:"pass"`
+	Sock              string      `toml:"sock"`
+	Tables            []string    `toml:"tables"`
+	Users             []string    `toml:"users"`
+	MetricExcludeList []string    `toml:"metric_exclude_list"`
+	Dbm               bool        `toml:"dbm"`
+	DbmMetric         dbmMetric   `toml:"dbm_metric"`
+	DbmSample         dbmSample   `toml:"dbm_sample"`
+	DbmActivity       dbmActivity `toml:"dbm_activity"`
 
 	Replica      bool `toml:"replication"`
 	GroupReplica bool `toml:"group_replication"`
@@ -124,7 +137,7 @@ type Input struct {
 
 	// response   []map[string]interface{}
 	tail       *tailer.Tailer
-	collectors []func() ([]*point.Point, error)
+	collectors map[string]func() ([]*point.Point, error)
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -347,7 +360,13 @@ func (ipt *Input) globalTag() {
 	}
 }
 
-func (ipt *Input) q(s string) rows {
+func (ipt *Input) q(s string, names ...string) rows {
+	var name string
+	if len(names) == 1 {
+		name = names[0]
+	}
+
+	start := time.Now()
 	rows, err := ipt.db.Query(s)
 	if err != nil {
 		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
@@ -358,6 +377,12 @@ func (ipt *Input) q(s string) rows {
 		closeRows(rows)
 		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
+	}
+
+	metricName, sqlName := getMetricNames(name)
+
+	if len(metricName) > 0 {
+		sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(start)) / float64(time.Second))
 	}
 
 	return rows
@@ -535,24 +560,27 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		return map[point.Category][]*point.Point{}, err
 	}
 
-	if len(ipt.collectors) == 0 {
-		ipt.collectors = []func() ([]*point.Point, error){
-			ipt.metricCollectMysql,              // mysql
-			ipt.metricCollectMysqlReplication,   // mysql_replication
-			ipt.metricCollectMysqlSchema,        // mysql_schema
-			ipt.metricCollectMysqlTableSschema,  // mysql_table_schema
-			ipt.metricCollectMysqlUserStatus,    // mysql_user_status
-			ipt.metricCollectMysqlCustomQueries, // mysql_custom_queries
-		}
-	}
-
 	var ptsMetric,
 		ptsLoggingMetric,
 		ptsLoggingSample,
 		ptsCustomerObject []*point.Point
 
-	for idx, f := range ipt.collectors {
-		l.Debugf("collecting %d(%v)...", idx, f)
+	// collect basic metrics
+	for _, metricName := range []string{
+		metricNameMySQL,
+		metricNameMySQLReplication,
+		metricNameMySQLSchema,
+		metricNameMySQLTableSchema,
+		metricNameMySQLUserStatus,
+		metricNameMySQLCustomQueries,
+	} {
+		f, ok := ipt.collectors[metricName]
+		if !ok {
+			l.Debugf("collector %s not found", metricName)
+			continue
+		}
+
+		l.Debugf("collecting %s...", metricName, f)
 
 		pts, err := f()
 		if err != nil {
@@ -565,71 +593,86 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 	}
 
 	if ipt.InnoDB {
-		// mysql_innodb
-		pts, err := ipt.metricCollectMysqlInnodb()
-		if err != nil {
-			l.Errorf("metricCollectMysqlInnodb failed: %s", err.Error())
-		}
+		f, ok := ipt.collectors[metricNameMySQLInnodb]
+		if ok {
+			// mysql_innodb
+			pts, err := f()
+			if err != nil {
+				l.Errorf("metricCollectMysqlInnodb failed: %s", err.Error())
+			}
 
-		if len(pts) > 0 {
-			ptsMetric = append(ptsMetric, pts...)
+			if len(pts) > 0 {
+				ptsMetric = append(ptsMetric, pts...)
+			}
 		}
 	}
 
 	if ipt.Replica {
-		// mysql_replication_log
-		pts, err := ipt.buildMysqlReplicationLog()
-		if err != nil {
-			l.Errorf("metricCollectMysqlReplicationLog failed: %s", err.Error())
-		}
+		f, ok := ipt.collectors[metricNameMySQLReplicationLog]
+		if ok {
+			// mysql_replication_log
+			pts, err := f()
+			if err != nil {
+				l.Errorf("metricCollectMysqlReplicationLog failed: %s", err.Error())
+			}
 
-		if len(pts) > 0 {
-			ptsLoggingMetric = append(ptsLoggingMetric, pts...)
+			if len(pts) > 0 {
+				ptsLoggingMetric = append(ptsLoggingMetric, pts...)
+			}
 		}
 	}
 
 	if ipt.Dbm && (ipt.DbmMetric.Enabled || ipt.DbmSample.Enabled || ipt.DbmActivity.Enabled) {
 		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql")})
 		if ipt.DbmMetric.Enabled {
-			g.Go(func(ctx context.Context) error {
-				// mysql_dbm_metric
-				pts, err := ipt.metricCollectMysqlDbmMetric()
-				if err != nil {
-					l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
-				}
+			f, ok := ipt.collectors[metricNameMySQLDbmMetric]
+			if ok {
+				g.Go(func(ctx context.Context) error {
+					// mysql_dbm_metric
+					pts, err := f()
+					if err != nil {
+						l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
+					}
 
-				if len(pts) > 0 {
-					ptsLoggingMetric = append(ptsLoggingMetric, pts...)
-				}
-				return nil
-			})
+					if len(pts) > 0 {
+						ptsLoggingMetric = append(ptsLoggingMetric, pts...)
+					}
+					return nil
+				})
+			}
 		}
 
 		if ipt.DbmSample.Enabled {
-			g.Go(func(ctx context.Context) error {
-				// mysql_dbm_sample
-				pts, err := ipt.metricCollectMysqlDbmSample()
-				if err != nil {
-					l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
-				}
+			f, ok := ipt.collectors[metricNameMySQLDbmSample]
+			if ok {
+				g.Go(func(ctx context.Context) error {
+					// mysql_dbm_sample
+					pts, err := f()
+					if err != nil {
+						l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
+					}
 
-				if len(pts) > 0 {
-					ptsLoggingSample = append(ptsLoggingSample, pts...)
-				}
-				return nil
-			})
+					if len(pts) > 0 {
+						ptsLoggingSample = append(ptsLoggingSample, pts...)
+					}
+					return nil
+				})
+			}
 		}
 
 		if ipt.DbmActivity.Enabled {
-			g.Go(func(ctx context.Context) error {
-				// mysql_dbm_activity
-				if pts, err := ipt.metricCollectMysqlDbmActivity(); err != nil {
-					l.Errorf("Collect mysql dbm activity failed: %s", err.Error())
-				} else if len(pts) > 0 {
-					ptsLoggingSample = append(ptsLoggingSample, pts...)
-				}
-				return nil
-			})
+			f, ok := ipt.collectors[metricNameMySQLDbmActivity]
+			if ok {
+				g.Go(func(ctx context.Context) error {
+					// mysql_dbm_activity
+					if pts, err := f(); err != nil {
+						l.Errorf("Collect mysql dbm activity failed: %s", err.Error())
+					} else if len(pts) > 0 {
+						ptsLoggingSample = append(ptsLoggingSample, pts...)
+					}
+					return nil
+				})
+			}
 		}
 
 		err := g.Wait()
@@ -692,12 +735,38 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
+func (ipt *Input) initCollectors() {
+	l.Infof("init collectors, metric exclude list: %v", ipt.MetricExcludeList)
+
+	ipt.collectors = map[string]func() ([]*point.Point, error){
+		metricNameMySQL:               ipt.metricCollectMysql,
+		metricNameMySQLReplication:    ipt.metricCollectMysqlReplication,
+		metricNameMySQLSchema:         ipt.metricCollectMysqlSchema,
+		metricNameMySQLTableSchema:    ipt.metricCollectMysqlTableSschema,
+		metricNameMySQLUserStatus:     ipt.metricCollectMysqlUserStatus,
+		metricNameMySQLInnodb:         ipt.metricCollectMysqlInnodb,
+		metricNameMySQLDbmMetric:      ipt.metricCollectMysqlDbmMetric,
+		metricNameMySQLDbmSample:      ipt.metricCollectMysqlDbmSample,
+		metricNameMySQLDbmActivity:    ipt.metricCollectMysqlDbmActivity,
+		metricNameMySQLReplicationLog: ipt.buildMysqlReplicationLog,
+	}
+
+	for _, metricName := range ipt.MetricExcludeList {
+		delete(ipt.collectors, metricName)
+	}
+
+	ipt.collectors[metricNameMySQLCustomQueries] = ipt.metricCollectMysqlCustomQueries // mysql_custom_queries
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger("mysql")
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
+	// init collectors
+	ipt.initCollectors()
 
 	// Try until init OK.
 	for {

@@ -34,7 +34,7 @@ func (m *schemaMeasurement) Point() *point.Point {
 
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "mysql_schema",
+		Name: metricNameMySQLSchema,
 		Desc: "MySQL schema information",
 		Type: "metric",
 		Fields: map[string]interface{}{
