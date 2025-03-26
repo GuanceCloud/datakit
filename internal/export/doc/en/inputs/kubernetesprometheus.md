@@ -427,6 +427,23 @@ data:
 
 ## FAQ {#faq}
 
+### Recording the UP Metric {#collector-up}
+
+The `up` metric is an important built-in metric used to represent the health status of a target, primarily for monitoring whether the target is in a "healthy" running state. The Kubernetes Prometheus collector enables the `up` metric by default, providing real-time data on whether the target service is available.
+
+The `up` metric belongs to the `collector` metric set and contains three label fields: `job`, `host`, and `instance`, as well as one key metric field `up`. The meanings of these fields are as follows:
+
+- `job`: The name of the collection task. This label has two naming conventions:
+    - Manually specified `measurement` in the Kubernetes Prometheus configuration, and the `measurement` is not empty. For example, `kube-etcd`.
+    - Composed of the target service's Namespace and Name. For example, `middleware/etcd-abc`.
+- `instance`: The instance of the collection target, represented as `IP:PORT`. For example, `172.16.10.10:9090`.
+- `host`: The host of the collection target, which is the `IP` address of the target. If the value is `localhost` or a loopback address (e.g., `127.0.0.1`), this value will be an empty string.
+- `up`: Represents the running status of the target.
+    - When the value is `1`, it means the target is running and accessible (i.e., the target is "up").
+    - When the value is `0`, it means the target is unavailable, usually indicating that the target is unreachable or has failed (i.e., the target is "down").
+
+Additionally, the `up` metric set automatically adds Datakit's global `election_tags`.
+
 ### Selector Description and Examples {#selector-example}
 
 The `selector` parameter is frequently used in `kubectl` commands. For example, to find Pods with labels containing `tier=control-plane` and `component=kube-controller-manager`, you can use the following command:
