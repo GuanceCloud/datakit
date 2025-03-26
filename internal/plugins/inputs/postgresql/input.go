@@ -79,7 +79,16 @@ const sampleConfig = `
   #
   interval = "10s"
 
+  ## Set true to enable election
+  #
+  election = true
+
+  ## Metric name in metric_exclude_list will not be collected.
+  #
+  metric_exclude_list = [""]
+
   ## Relations config
+  #
   # The list of relations/tables can be specified to track per-relation metrics. To collect relation
   # relation_name refer to the name of a relation, either relation_name or relation_regex must be set.
   # relation_regex is a regex rule, only takes effect when relation_name is not set.
@@ -93,9 +102,6 @@ const sampleConfig = `
   # relation_regex = "<TABLE_PATTERN>"
   # schemas = ["public"]
   # relkind = ["r", "p"]
-
-  ## Set true to enable election
-  election = true
 
   ## Run a custom SQL query and collect corresponding metrics.
   #
@@ -186,16 +192,17 @@ type customQuery struct {
 }
 
 type Input struct {
-	Address          string            `toml:"address"`
-	Outputaddress    string            `toml:"outputaddress"`
-	IgnoredDatabases []string          `toml:"ignored_databases"`
-	Databases        []string          `toml:"databases"`
-	Interval         string            `toml:"interval"`
-	Tags             map[string]string `toml:"tags"`
-	mergedTags       map[string]string
-	Relations        []Relation     `toml:"relations"`
-	CustomQuery      []*customQuery `toml:"custom_queries"`
-	Log              *postgresqllog `toml:"log"`
+	Address           string            `toml:"address"`
+	Outputaddress     string            `toml:"outputaddress"`
+	IgnoredDatabases  []string          `toml:"ignored_databases"`
+	Databases         []string          `toml:"databases"`
+	Interval          string            `toml:"interval"`
+	MetricExcludeList []string          `toml:"metric_exclude_list"`
+	Tags              map[string]string `toml:"tags"`
+	mergedTags        map[string]string
+	Relations         []Relation     `toml:"relations"`
+	CustomQuery       []*customQuery `toml:"custom_queries"`
+	Log               *postgresqllog `toml:"log"`
 
 	Version            string
 	Uptime             int
@@ -223,6 +230,7 @@ type Input struct {
 	semStop  *cliutils.Sem // start stop signal
 
 	collectFuncs     map[string]func() error
+	relationMetrics  map[string]relationMetric
 	metricQueryCache map[string]*queryCacheItem
 
 	UpState int
@@ -332,12 +340,14 @@ func (ipt *Input) executeQuery(cache *queryCacheItem) error {
 		measurementInfo = inputMeasurement{}.Info()
 	}
 
+	start := time.Now()
 	rows, err := ipt.service.Query(cache.query)
 	if err != nil {
 		return err
 	}
 	defer rows.Close() //nolint:errcheck
 
+	sqlQueryCostSummary.WithLabelValues(measurementInfo.Name, measurementInfo.Name).Observe(float64(time.Since(start)) / float64(time.Second))
 	if columns, err = rows.Columns(); err != nil {
 		return err
 	}
@@ -466,7 +476,7 @@ func (ipt *Input) getRelationMetrics() error {
 		return fmt.Errorf("no relations set")
 	}
 
-	for _, relationInfo := range relationMetrics {
+	for _, relationInfo := range ipt.relationMetrics {
 		cacheName := fmt.Sprintf("%s_%s", RelationMetric, relationInfo.name)
 		cache, ok := ipt.metricQueryCache[cacheName]
 
@@ -928,31 +938,42 @@ func (ipt *Input) init() error {
 
 	// setup collectors
 	ipt.collectFuncs = map[string]func() error{
-		"db":          ipt.getDBMetrics,
-		"replication": ipt.getReplicationMetrics,
-		"bgwriter":    ipt.getBgwMetrics,
-		"connection":  ipt.getConnectionMetrics,
-		"customQuery": ipt.getCustomQueryMetrics,
+		"postgresql":             ipt.getDBMetrics,
+		"postgresql_replication": ipt.getReplicationMetrics,
+		"postgresql_bgwriter":    ipt.getBgwMetrics,
+		"postgresql_connection":  ipt.getConnectionMetrics,
 	}
 
 	if V140.LessThan(*ipt.version) || V140.Equal(*ipt.version) {
-		ipt.collectFuncs["replication_slot"] = ipt.getReplicationSlotMetrics
+		ipt.collectFuncs["postgresql_replication_slot"] = ipt.getReplicationSlotMetrics
 	}
 
 	if V130.LessThan(*ipt.version) || V130.Equal(*ipt.version) {
-		ipt.collectFuncs["slru"] = ipt.getSlruMetrics
-	}
-
-	if len(ipt.Relations) > 0 {
-		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
+		ipt.collectFuncs["postgresql_slru"] = ipt.getSlruMetrics
 	}
 
 	if V92.LessThan(*ipt.version) || V92.Equal(*ipt.version) {
-		ipt.collectFuncs["dynamic"] = ipt.getDynamicQueryMetrics
+		ipt.collectFuncs["postgresql_conflict"] = ipt.getDynamicQueryMetrics
 	}
 
 	if V94.LessThan(*ipt.version) || V94.Equal(*ipt.version) {
-		ipt.collectFuncs["archiver"] = ipt.getArchiverMetrics
+		ipt.collectFuncs["postgresql_archiver"] = ipt.getArchiverMetrics
+	}
+
+	ipt.relationMetrics = map[string]relationMetric{}
+	for _, m := range relationMetrics {
+		ipt.relationMetrics[m.measurementInfo.Name] = m
+	}
+
+	for _, metric := range ipt.MetricExcludeList {
+		delete(ipt.collectFuncs, metric)
+		delete(ipt.relationMetrics, metric)
+	}
+
+	ipt.collectFuncs["customQuery"] = ipt.getCustomQueryMetrics
+
+	if len(ipt.Relations) > 0 {
+		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
 	}
 
 	return nil

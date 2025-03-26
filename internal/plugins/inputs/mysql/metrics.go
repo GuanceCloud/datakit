@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package oracle
+package mysql
 
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
@@ -16,7 +16,7 @@ func metricsSetup() {
 	sqlQueryCostSummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
-			Subsystem: "input_oracle",
+			Subsystem: "input_mysql",
 			Name:      "sql_query_cost_seconds",
 			Help:      "Time cost to query sql",
 

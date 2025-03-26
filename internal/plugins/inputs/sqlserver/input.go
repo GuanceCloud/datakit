@@ -90,7 +90,7 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 // getCustomQueryMetrics collect custom SQL query metrics.
 func (ipt *Input) getCustomQueryMetrics() {
 	for _, customQuery := range ipt.CustomQuery {
-		res, err := ipt.query(customQuery.SQL)
+		res, err := ipt.query(customQuery.Metric, customQuery.SQL)
 		if err != nil {
 			l.Warnf("collect custom query [%s] failed: %s", customQuery.SQL, err.Error())
 			continue
@@ -428,7 +428,7 @@ func (ipt *Input) Run() {
 			l.Debugf("not leader, skipped")
 		} else {
 			ipt.setUpState()
-			l.Infof("start to collect")
+			l.Debugf("start to collect")
 			ipt.getMetric()
 			if len(collectCache) > 0 {
 				err := ipt.feeder.FeedV2(point.Metric, collectCache,
@@ -504,19 +504,19 @@ func (ipt *Input) getMetric() {
 	ipt.start = now
 
 	// simple metric points
-	for _, v := range query {
-		ipt.handRow(v, now, false)
+	for k, v := range ipt.collectQuery {
+		ipt.handRow(k, v, false)
 	}
 
 	// simple logging points
-	for _, v := range loggingQuery {
+	for k, v := range ipt.collectLoggingQuery {
 		if strings.Contains(v, "__COLLECT_INTERVAL_SECONDS__") {
 			v = strings.ReplaceAll(v, "__COLLECT_INTERVAL_SECONDS__", fmt.Sprintf("%.0f", collectInterval.Seconds()))
 		}
 		if strings.Contains(v, "__DATABASE__") {
 			v = strings.ReplaceAll(v, "__DATABASE__", ipt.Database)
 		}
-		ipt.handRow(v, now, true)
+		ipt.handRow(k, v, true)
 	}
 
 	// collectFuncs collect metrics that can't be collected by simple SQL query.
@@ -533,20 +533,28 @@ func (ipt *Input) getMetric() {
 	ipt.getPerformanceCounters()
 }
 
-func (ipt *Input) handRow(query string, ts time.Time, isLogging bool) {
+func (ipt *Input) handRow(name, query string, isLogging bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
+	start := time.Now()
 	rows, err := ipt.db.QueryContext(ctx, query)
 	if err != nil {
 		l.Error(err.Error())
 		ipt.lastErr = err
 		return
 	}
+
 	defer rows.Close() //nolint:errcheck
 
 	if err := rows.Err(); err != nil {
 		l.Errorf("rows.Err: %s", err)
 		return
+	}
+
+	metricName, sqlName := getMetricNames(name)
+
+	if len(metricName) > 0 {
+		sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(start)) / float64(time.Second))
 	}
 
 	OrderedColumns, err := rows.Columns()
@@ -660,9 +668,33 @@ func (ipt *Input) init() {
 		ipt.Database = "master"
 	}
 
-	ipt.collectFuncs = map[string]func() error{
+	collectFuncs := map[string]func() error{
 		"sqlserver_database_files": ipt.getDatabaseFilesMetrics,
 	}
+
+	ipt.collectFuncs = map[string]func() error{}
+	ipt.collectLoggingQuery = map[string]string{}
+	ipt.collectQuery = map[string]string{}
+
+	for k, v := range query {
+		ipt.collectQuery[k] = v
+	}
+
+	for k, v := range loggingQuery {
+		ipt.collectLoggingQuery[k] = v
+	}
+
+	for k, v := range collectFuncs {
+		ipt.collectFuncs[k] = v
+	}
+
+	// exclude metric
+	for _, v := range ipt.MetricExcludeList {
+		delete(ipt.collectQuery, v)
+		delete(ipt.collectLoggingQuery, v)
+		delete(ipt.collectFuncs, v)
+	}
+
 	var err error
 	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
 	if err != nil {
@@ -673,7 +705,7 @@ func (ipt *Input) init() {
 }
 
 func (ipt *Input) getDatabaseFilesMetrics() error {
-	data, err := ipt.query(fmt.Sprintf(`use [%s];
+	data, err := ipt.query("sqlserver_database_files", fmt.Sprintf(`use [%s];
 		select file_id,type as file_type,physical_name,state_desc,size,state
 		from sys.database_files
 	`, ipt.Database))
@@ -726,9 +758,10 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 	return nil
 }
 
-func (ipt *Input) query(sql string) (resRows []map[string]*interface{}, err error) {
+func (ipt *Input) query(name, sql string) (resRows []map[string]*interface{}, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
+	start := time.Now()
 	rows, err := ipt.db.QueryContext(ctx, sql)
 	if err != nil {
 		return
@@ -737,6 +770,12 @@ func (ipt *Input) query(sql string) (resRows []map[string]*interface{}, err erro
 
 	if err = rows.Err(); err != nil {
 		return
+	}
+
+	metricName, sqlName := getMetricNames(name)
+
+	if len(metricName) > 0 {
+		sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(start)) / float64(time.Second))
 	}
 
 	columns, err := rows.Columns()
@@ -806,6 +845,21 @@ func getValue[T any](rawValue interface{}) (res T, err error) {
 	}
 
 	return
+}
+
+func getMetricNames(name string) (string, string) {
+	names := strings.SplitN(name, ":", 2)
+	metricName := ""
+	sqlName := ""
+	if len(names) == 1 {
+		metricName = names[0]
+		sqlName = names[0]
+	} else if len(names) == 2 {
+		metricName = names[0]
+		sqlName = names[1]
+	}
+
+	return metricName, sqlName
 }
 
 func defaultInput() *Input {

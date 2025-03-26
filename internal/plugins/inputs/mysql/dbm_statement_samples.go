@@ -106,7 +106,7 @@ type planObj struct {
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Select some of the SQL statements with high execution time, collect their execution plans, and collect various performance indicators during the actual execution process.",
-		Name: "mysql_dbm_sample",
+		Name: metricNameMySQLDbmSample,
 		Type: "logging",
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
@@ -278,14 +278,14 @@ func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
 	enabledSQL := `SELECT name
 	FROM performance_schema.setup_consumers
 	WHERE enabled = 'YES' AND name LIKE 'events_statements_%'`
-	enabledConsumers := getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL))
+	enabledConsumers := getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
 
 	if len(enabledConsumers) < 3 {
 		err := enablePerformanceSchemaConsumers(i)
 		if err != nil {
 			l.Warn(err)
 		} else {
-			enabledConsumers = getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL))
+			enabledConsumers = getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
 		}
 	}
 

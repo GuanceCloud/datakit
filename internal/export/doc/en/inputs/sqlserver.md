@@ -22,7 +22,7 @@ SQL Server Collector collects SQL Server `waitstats`, `database_io` and other re
 
 ## Configuration {#config}
 
-SQL Server  version >= 2012, tested version:
+SQL Server  version >= 2008, tested version:
 
 - [x] 2017
 - [x] 2019

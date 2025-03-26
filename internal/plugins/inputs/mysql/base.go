@@ -36,7 +36,7 @@ func (m *baseMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "mysql",
+		Name: metricNameMySQL,
 		Type: "metric",
 		Fields: map[string]interface{}{
 			// huge max-values

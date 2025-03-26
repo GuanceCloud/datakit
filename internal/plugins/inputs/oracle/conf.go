@@ -32,6 +32,9 @@ const (
   ## slow query time threshold defined. If larger than this, the executed sql will be reported.
   slow_query_time = "0s"
 
+  ## Metric name in metric_exclude_list will not be collected.
+  metric_exclude_list = [""]
+
   ## Set true to enable election
   election = true
 

@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
@@ -66,13 +67,13 @@ func (ipt *Input) collectMysql() error {
 	ipt.binlog = map[string]interface{}{}
 
 	// We should first collect global MySQL metrics
-	if res := globalStatusMetrics(ipt.q("SHOW /*!50002 GLOBAL */ STATUS;")); res != nil {
+	if res := globalStatusMetrics(ipt.q("SHOW /*!50002 GLOBAL */ STATUS;", getMetricName(metricNameMySQL, "show_global_status"))); res != nil {
 		ipt.globalStatus = res
 	} else {
 		l.Warn("collect_show_status_failed")
 	}
 
-	if res := globalVariablesMetrics(ipt.q("SHOW GLOBAL VARIABLES;")); res != nil {
+	if res := globalVariablesMetrics(ipt.q("SHOW GLOBAL VARIABLES;", getMetricName(metricNameMySQL, "show_global_variables"))); res != nil {
 		ipt.globalVariables = res
 
 		// Detect if binlog enabled
@@ -87,7 +88,7 @@ func (ipt *Input) collectMysql() error {
 	}
 
 	if ipt.binLogOn {
-		if res := binlogMetrics(ipt.q("SHOW BINARY LOGS;")); res != nil {
+		if res := binlogMetrics(ipt.q("SHOW BINARY LOGS;", getMetricName(metricNameMySQL, "show_binary_logs"))); res != nil {
 			ipt.binlog = res
 		} else {
 			l.Warn("collect_show_binlog_failed")
@@ -104,14 +105,14 @@ func (ipt *Input) collectMysqlReplication() error {
 	ipt.mGroupReplication = map[string]interface{}{}
 
 	const sqlSelect = "SELECT VERSION();"
-	version := getCleanMysqlVersion(ipt.q(sqlSelect))
+	version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQLReplication, "select_version")))
 	if version == nil {
 		err = errors.New("version_nil")
 		return err
 	}
 	queryReplicationSQL := "SHOW SLAVE STATUS;"
 	if ipt.Replica {
-		if res := replicationMetrics(ipt.q(queryReplicationSQL)); res != nil {
+		if res := replicationMetrics(ipt.q(queryReplicationSQL, getMetricName(metricNameMySQLReplication, "show_slave_status"))); res != nil {
 			ipt.mReplication = res
 			// change Slave_IO_Running and Slave_SQL_Running to bool
 			if hasKey(ipt.mReplication, "Slave_IO_Running") {
@@ -124,7 +125,7 @@ func (ipt *Input) collectMysqlReplication() error {
 			l.Warn("collect_replica_status_failed")
 		}
 		queryWorkerThreadsSQL := `SELECT THREAD_ID, NAME FROM performance_schema.threads WHERE NAME LIKE '%worker';`
-		if res, err := ipt.getQueryRows(queryWorkerThreadsSQL); err != nil {
+		if res, err := ipt.getQueryRows(queryWorkerThreadsSQL, getMetricName(metricNameMySQLReplication, "replica_threads")); err != nil {
 			return err
 		} else {
 			ipt.mReplication["Replicas_connected"] = len(res.rows)
@@ -140,7 +141,7 @@ func (ipt *Input) collectMysqlReplication() error {
 	`
 
 	if ipt.GroupReplica {
-		if res := replicationMetrics(ipt.q(queryGroupReplicationSQL)); res != nil {
+		if res := replicationMetrics(ipt.q(queryGroupReplicationSQL, getMetricName(metricNameMySQLReplication, "group_replica_status"))); res != nil {
 			ipt.mGroupReplication = res
 		} else {
 			l.Warn("collect_group_replica_status_failed")
@@ -159,7 +160,7 @@ func (ipt *Input) collectMysqlSchema() error {
 		FROM     information_schema.tables
 		GROUP BY table_schema;
 	`
-	if res := getCleanSchemaData(ipt.q(querySizePerschemaSQL)); res != nil {
+	if res := getCleanSchemaData(ipt.q(querySizePerschemaSQL, getMetricName(metricNameMySQLSchema, "table_schema_size"))); res != nil {
 		ipt.mSchemaSize = res
 	} else {
 		l.Warn("collect_schema_size_failed")
@@ -171,7 +172,7 @@ func (ipt *Input) collectMysqlSchema() error {
 	WHERE schema_name IS NOT NULL
 	GROUP BY schema_name;
 	`
-	if res := getCleanSchemaData(ipt.q(queryExecPerTimeSQL)); res != nil {
+	if res := getCleanSchemaData(ipt.q(queryExecPerTimeSQL, getMetricName(metricNameMySQLSchema, "events_statements_summary_by_digest"))); res != nil {
 		ipt.mSchemaQueryExecTime = res
 	} else {
 		l.Warn("collect_schema_failed")
@@ -185,7 +186,7 @@ func (ipt *Input) collectMysqlInnodb() error {
 
 	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
-	if res := getCleanInnodb(ipt.q(globalInnodbSQL)); res != nil {
+	if res := getCleanInnodb(ipt.q(globalInnodbSQL, getMetricName(metricNameMySQLInnodb, "innodb_metrics"))); res != nil {
 		ipt.mInnodb = res
 	} else {
 		l.Warnf("collect_innodb_failed")
@@ -273,7 +274,7 @@ var whiteSpaceReg = regexp.MustCompile(" +")
 //nolint:funlen
 func (ipt *Input) getInnodbStatus() (statusRes map[string]int64, err error) {
 	innodbStatusSQL := "SHOW /*!50000 ENGINE*/ INNODB STATUS"
-	if res, err := ipt.getQueryRows(innodbStatusSQL); err != nil {
+	if res, err := ipt.getQueryRows(innodbStatusSQL, getMetricName(metricNameMySQLInnodb, "show_innodb_status")); err != nil {
 		return statusRes, err
 	} else {
 		if len(res.rows) == 0 {
@@ -624,7 +625,13 @@ type rowResponse struct {
 	rows        [][]*interface{}
 }
 
-func (ipt *Input) getQueryRows(sqlText string) (res rowResponse, err error) {
+func (ipt *Input) getQueryRows(sqlText string, names ...string) (res rowResponse, err error) {
+	var name string
+	if len(names) == 1 {
+		name = names[0]
+	}
+
+	start := time.Now()
 	rows, err := ipt.db.Query(sqlText)
 	if err != nil {
 		return
@@ -633,6 +640,12 @@ func (ipt *Input) getQueryRows(sqlText string) (res rowResponse, err error) {
 	if err = rows.Err(); err != nil {
 		closeRows(rows)
 		return
+	}
+
+	metricName, sqlName := getMetricNames(name)
+
+	if len(metricName) > 0 {
+		sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(start)) / float64(time.Second))
 	}
 
 	columns, err := rows.Columns()
@@ -697,7 +710,7 @@ func (ipt *Input) collectMysqlTableSchema() error {
 		tableSchemaSQL = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSQL, filterStr)
 	}
 
-	if res := getCleanTableSchema(ipt.q(tableSchemaSQL)); res != nil {
+	if res := getCleanTableSchema(ipt.q(tableSchemaSQL, getMetricName(metricNameMySQLTableSchema, "table_schema"))); res != nil {
 		ipt.mTableSchema = res
 	} else {
 		l.Warnf("collect_table_schema_failed")
@@ -726,7 +739,7 @@ func (ipt *Input) collectMysqlUserStatus() error {
 		userSQL = fmt.Sprintf("%s where user in (%s);", userSQL, filterStr)
 	}
 
-	if res := getCleanUserStatusName(ipt.q(userSQL)); res != nil {
+	if res := getCleanUserStatusName(ipt.q(userSQL, getMetricName(metricNameMySQLUserStatus, "mysql_user"))); res != nil {
 		ipt.mUserStatusName = res
 	} else {
 		l.Warn("collect_user_name_failed")
@@ -744,12 +757,16 @@ func (ipt *Input) collectMysqlUserStatus() error {
     `
 
 	for user := range ipt.mUserStatusName {
-		if res := getCleanUserStatusVariable(ipt.q(fmt.Sprintf(userQuerySQL, user))); res != nil {
+		if res := getCleanUserStatusVariable(
+			ipt.q(fmt.Sprintf(userQuerySQL, user),
+				getMetricName(metricNameMySQLUserStatus, "user_status"))); res != nil {
 			ipt.mUserStatusVariable = make(map[string]map[string]interface{})
 			ipt.mUserStatusVariable[user] = res
 		}
 
-		if res := getCleanUserStatusConnection(ipt.q(fmt.Sprintf(userConnSQL, user))); res != nil {
+		if res := getCleanUserStatusConnection(
+			ipt.q(fmt.Sprintf(userConnSQL, user),
+				getMetricName(metricNameMySQLUserStatus, "users_connection"))); res != nil {
 			ipt.mUserStatusConnection = make(map[string]map[string]interface{})
 			ipt.mUserStatusConnection[user] = res
 		}
@@ -770,7 +787,7 @@ func (ipt *Input) collectMysqlCustomQueries() error {
 	ipt.mCustomQueries = map[string][]map[string]interface{}{}
 
 	for _, item := range ipt.Query {
-		arr := getCleanMysqlCustomQueries(ipt.q(item.SQL))
+		arr := getCleanMysqlCustomQueries(ipt.q(item.SQL, item.Metric))
 		if arr == nil {
 			continue
 		}
@@ -804,7 +821,7 @@ func (ipt *Input) collectMysqlDbmMetric() error {
 		WHERE digest_text NOT LIKE 'EXPLAIN %' OR digest_text IS NULL
 		ORDER BY count_star DESC LIMIT 10000`
 
-	dbmRows := getCleanSummaryRows(ipt.q(statementSummarySQL))
+	dbmRows := getCleanSummaryRows(ipt.q(statementSummarySQL, getMetricName(metricNameMySQLDbmMetric, "events_statements_summary_by_digest")))
 	if dbmRows == nil {
 		err = fmt.Errorf("collect_summary_rows_failed")
 		return err
@@ -833,7 +850,7 @@ func (ipt *Input) collectMysqlDbmSample() error {
 	if len(ipt.dbmSampleCache.globalStatusTable) == 0 {
 		if len(ipt.dbmSampleCache.version.version) == 0 {
 			const sqlSelect = "SELECT VERSION();"
-			version := getCleanMysqlVersion(ipt.q(sqlSelect))
+			version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQLDbmSample, "select_version")))
 			if version == nil {
 				err = errors.New("version_nil")
 				return err

@@ -59,15 +59,6 @@ var (
   ## A query string that specifies connection specific options as <name>=<value> pairs.
   # query_string = "authSource=admin&authMechanism=SCRAM-SHA-256"
 
-  ## A list of Mongodb servers URL
-  ## Note: must escape special characters in password before connect to Mongodb server, otherwise parse will failed.
-  ## Form: "mongodb://[user ":" pass "@"] host [ ":" port]"
-  ## Some examples:
-  ## mongodb://user:pswd@localhost:27017/?authMechanism=SCRAM-SHA-256&authSource=admin
-  ## mongodb://user:pswd@127.0.0.1:27017,
-  ## mongodb://10.10.3.33:18832,
-  # servers = ["mongodb://127.0.0.1:27017"]
-
   ## When true, collect replica set stats
   gather_replica_set_stats = false
 

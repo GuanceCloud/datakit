@@ -62,12 +62,12 @@ func (ipt *Input) collectOracleProcess() (category point.Category, pts []*point.
 	rows := []processesRowDB{}
 
 	if sql, ok := ipt.cacheSQL[metricName]; ok {
-		if err = selectWrapper(ipt, &rows, sql); err != nil {
+		if err = selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_process")); err != nil {
 			err = fmt.Errorf("failed to collect processes info: %w", err)
 			return
 		}
 	} else {
-		err = selectWrapper(ipt, &rows, SQLProcess)
+		err = selectWrapper(ipt, &rows, SQLProcess, getMetricName(metricName, "oracle_process"))
 		ipt.cacheSQL[metricName] = SQLProcess
 		l.Infof("Query for metric [%s], sql: %s", metricName, SQLProcess)
 		if err != nil {
@@ -75,7 +75,7 @@ func (ipt *Input) collectOracleProcess() (category point.Category, pts []*point.
 				ipt.cacheSQL[metricName] = SQLProcessOld
 				l.Infof("Query for metric [%s], sql: %s", metricName, SQLProcessOld)
 				// oracle old version. 11g
-				if err = selectWrapper(ipt, &rows, SQLProcessOld); err != nil {
+				if err = selectWrapper(ipt, &rows, SQLProcessOld, getMetricName(metricName, "oracle_process_old")); err != nil {
 					err = fmt.Errorf("failed to collect old processes info: %w", err)
 					return
 				}
@@ -151,12 +151,12 @@ func (ipt *Input) collectOracleTableSpace() (category point.Category, pts []*poi
 	rows := []tableSpaceRowDB{}
 
 	if sql, ok := ipt.cacheSQL[metricName]; ok {
-		if err = selectWrapper(ipt, &rows, sql); err != nil {
+		if err = selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_tablespace")); err != nil {
 			err = fmt.Errorf("failed to collect table space: %w", err)
 			return
 		}
 	} else {
-		err = selectWrapper(ipt, &rows, SQLTableSpace)
+		err = selectWrapper(ipt, &rows, SQLTableSpace, getMetricName(metricName, "oracle_tablespace"))
 		ipt.cacheSQL[metricName] = SQLTableSpace
 		l.Infof("Query for metric [%s], sql: %s", metricName, SQLTableSpace)
 		if err != nil {
@@ -164,7 +164,7 @@ func (ipt *Input) collectOracleTableSpace() (category point.Category, pts []*poi
 				ipt.cacheSQL[metricName] = SQLTableSpaceOld
 				l.Infof("Query for metric [%s], sql: %s", metricName, SQLTableSpaceOld)
 				// oracle old version. 11g
-				if err = selectWrapper(ipt, &rows, SQLTableSpaceOld); err != nil {
+				if err = selectWrapper(ipt, &rows, SQLTableSpaceOld, getMetricName(metricName, "oracle_tablespace_old")); err != nil {
 					err = fmt.Errorf("failed to collect old table space info: %w", err)
 					return
 				}
@@ -327,20 +327,20 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 	rows := []sysmetricsRowDB{}
 	containerMetricName := fmt.Sprintf("%s-container", metricName)
 	if sql, ok := ipt.cacheSQL[containerMetricName]; ok {
-		if err = selectWrapper(ipt, &rows, sql); err != nil {
+		if err = selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_con_system")); err != nil {
 			err = fmt.Errorf("failed to collect system metrics: %w", err)
 			return
 		}
 	} else {
 		containerSQL := fmt.Sprintf(SQLSystem, "v$con_sysmetric")
-		err = selectWrapper(ipt, &rows, containerSQL)
+		err = selectWrapper(ipt, &rows, containerSQL, getMetricName(metricName, "oracle_con_system"))
 		ipt.cacheSQL[containerMetricName] = containerSQL
 		l.Infof("Query for metric [%s], sql: %s", metricName, containerSQL)
 		if err != nil {
 			if strings.Contains(err.Error(), "ORA-00942: table or view does not exist") {
 				ipt.cacheSQL[containerMetricName] = SQLSystemOld
 				l.Infof("Query for metric [%s], sql: %s", metricName, SQLSystemOld)
-				if err = selectWrapper(ipt, &rows, SQLSystemOld); err != nil {
+				if err = selectWrapper(ipt, &rows, SQLSystemOld, getMetricName(metricName, "oracle_con_system_old")); err != nil {
 					err = fmt.Errorf("failed to collect old system metrics: %w", err)
 					return
 				}
@@ -397,13 +397,13 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 	systemMetricName := fmt.Sprintf("%s-system", metricName)
 
 	if sql, ok := ipt.cacheSQL[systemMetricName]; ok {
-		if err = selectWrapper(ipt, &rows, sql); err != nil {
+		if err = selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_system")); err != nil {
 			err = fmt.Errorf("failed to collect system metrics: %w", err)
 			return
 		}
 	} else {
 		systemSQL := fmt.Sprintf(SQLSystem, "v$sysmetric") + " ORDER BY begin_time ASC, metric_name ASC"
-		err = selectWrapper(ipt, &rows, systemSQL)
+		err = selectWrapper(ipt, &rows, systemSQL, getMetricName(metricName, "oracle_system"))
 		ipt.cacheSQL[systemMetricName] = systemSQL
 		l.Infof("Query for metric [%s], sql: %s", metricName, systemSQL)
 		if err != nil {
@@ -732,10 +732,10 @@ type maxQueryRowDB struct {
 
 func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Point, err error) {
 	category = point.Logging
-
+	metricName := "oracle_log"
 	if len(ipt.lastActiveTime) == 0 {
 		rows := []maxQueryRowDB{}
-		err = selectWrapper(ipt, &rows, SQLQueryMaxActive)
+		err = selectWrapper(ipt, &rows, SQLQueryMaxActive, getMetricName(metricName, "slow_query_active"))
 		if err != nil {
 			err = fmt.Errorf("failed to collect max query info: %w", err)
 			return
@@ -754,7 +754,7 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 
 	query := fmt.Sprintf(SQLSlow, ipt.slowQueryTime.Microseconds(), ipt.lastActiveTime)
 
-	err = selectWrapper(ipt, &rows, query)
+	err = selectWrapper(ipt, &rows, query, getMetricName(metricName, "slow_query"))
 	if err != nil {
 		err = fmt.Errorf("failed to collect slow query info: %w", err)
 		return
@@ -886,7 +886,7 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 			"status":  "warning",
 			"message": string(jsn),
 		}
-		pts = append(pts, ipt.buildPoint("oracle_log", nil, fields, true))
+		pts = append(pts, ipt.buildPoint(metricName, nil, fields, true))
 	}
 
 	return category, pts, nil
@@ -955,10 +955,39 @@ func (ipt *Input) buildPoint(name string, tags map[string]string, fields map[str
 	return point.NewPointV2(name, kvs, opts...)
 }
 
-func selectWrapper[T any](ipt *Input, s T, sql string) error {
+func getMetricNames(name string) (string, string) {
+	names := strings.SplitN(name, ":", 2)
+	metricName := ""
+	sqlName := ""
+	if len(names) == 1 {
+		metricName = names[0]
+		sqlName = names[0]
+	} else if len(names) == 2 {
+		metricName = names[0]
+		sqlName = names[1]
+	}
+
+	return metricName, sqlName
+}
+
+func getMetricName(metricName, sqlName string) string {
+	if sqlName == "" {
+		return metricName
+	} else {
+		return metricName + ":" + sqlName
+	}
+}
+
+func selectWrapper[T any](ipt *Input, s T, sql string, names ...string) error {
 	now := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
+
+	var name string
+	if len(names) == 1 {
+		name = names[0]
+	}
+
 	err := ipt.db.SelectContext(ctx, s, sql)
 	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
 		if err := ipt.initDBConnect(); err != nil {
@@ -969,6 +998,10 @@ func selectWrapper[T any](ipt *Input, s T, sql string) error {
 	if err != nil {
 		l.Errorf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
 	} else {
+		metricName, sqlName := getMetricNames(name)
+		if len(sqlName) > 0 {
+			sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(now)) / float64(time.Second))
+		}
 		l.Debugf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
 	}
 

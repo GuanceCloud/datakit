@@ -25,7 +25,7 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 	}
 	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-	m.name = "mysql"
+	m.name = metricNameMySQL
 	for key, value := range ipt.Tags {
 		m.tags[key] = value
 	}
@@ -102,7 +102,7 @@ func (ipt *Input) buildMysqlReplication() ([]*gcPoint.Point, error) {
 	}
 	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-	m.name = "mysql_replication"
+	m.name = metricNameMySQLReplication
 
 	for key, value := range ipt.Tags {
 		m.tags[key] = value
@@ -139,7 +139,7 @@ func (ipt *Input) buildMysqlReplicationLog() ([]*gcPoint.Point, error) {
 	}
 	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-	m.name = "mysql_replication_log"
+	m.name = metricNameMySQLReplicationLog
 
 	for key, value := range ipt.Tags {
 		m.tags[key] = value
@@ -164,7 +164,7 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 	// SchemaSize
 	for k, v := range ipt.mSchemaSize {
 		m := &schemaMeasurement{
-			name:     "mysql_schema",
+			name:     metricNameMySQLSchema,
 			tags:     map[string]string{},
 			fields:   make(map[string]interface{}),
 			election: ipt.Election,
@@ -188,7 +188,7 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 
 	for k, v := range ipt.mSchemaQueryExecTime {
 		m := &schemaMeasurement{
-			name:     "mysql_schema",
+			name:     metricNameMySQLSchema,
 			tags:     make(map[string]string),
 			fields:   make(map[string]interface{}),
 			election: ipt.Election,
@@ -228,7 +228,7 @@ func (ipt *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
 	}
 	setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-	m.name = "mysql_innodb"
+	m.name = metricNameMySQLInnodb
 
 	for key, value := range ipt.Tags {
 		m.tags[key] = value
@@ -256,7 +256,7 @@ func (ipt *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
 		}
 		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-		m.name = "mysql_table_schema"
+		m.name = metricNameMySQLTableSchema
 
 		for key, value := range ipt.Tags {
 			m.tags[key] = value
@@ -295,7 +295,7 @@ func (ipt *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
 		}
 		setHostTagIfNotLoopback(m.tags, ipt.Host)
 
-		m.name = "mysql_user_status"
+		m.name = metricNameMySQLUserStatus
 
 		for key, value := range ipt.Tags {
 			m.tags[key] = value
@@ -334,7 +334,7 @@ func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 
 	for _, row := range ipt.dbmMetricRows {
 		m := &dbmStateMeasurement{
-			name: "mysql_dbm_metric",
+			name: metricNameMySQLDbmMetric,
 			tags: map[string]string{
 				"service": "mysql",
 				"status":  "info",
@@ -437,7 +437,7 @@ func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 		}
 
 		m := &dbmSampleMeasurement{
-			name:     "mysql_dbm_sample",
+			name:     metricNameMySQLDbmSample,
 			tags:     tags,
 			fields:   fields,
 			election: ipt.Election,

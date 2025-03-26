@@ -48,18 +48,19 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host            string `toml:"host"`
-	Port            int    `toml:"port"`
-	User            string `toml:"user"`
-	Password        string `toml:"password"`
-	Interval        datakit.Duration
-	Timeout         string `toml:"connect_timeout"`
-	Service         string `toml:"service"`
-	timeoutDuration time.Duration
-	Query           []*customQuery    `toml:"custom_queries"`
-	SlowQueryTime   string            `toml:"slow_query_time"`
-	Election        bool              `toml:"election"`
-	Tags            map[string]string `toml:"tags"`
+	Host              string `toml:"host"`
+	Port              int    `toml:"port"`
+	User              string `toml:"user"`
+	Password          string `toml:"password"`
+	Interval          datakit.Duration
+	Timeout           string   `toml:"connect_timeout"`
+	Service           string   `toml:"service"`
+	MetricExcludeList []string `toml:"metric_exclude_list"`
+	timeoutDuration   time.Duration
+	Query             []*customQuery    `toml:"custom_queries"`
+	SlowQueryTime     string            `toml:"slow_query_time"`
+	Election          bool              `toml:"election"`
+	Tags              map[string]string `toml:"tags"`
 
 	Version            string
 	Uptime             int
@@ -209,6 +210,10 @@ func (ipt *Input) Init() {
 		"oracle_tablespace": ipt.collectOracleTableSpace,
 		"oracle_system":     ipt.collectOracleSystem,
 	}
+	for _, metric := range ipt.MetricExcludeList {
+		delete(ipt.collectors, metric)
+	}
+
 	// cache sql
 	ipt.cacheSQL = make(map[string]string)
 	// slow query

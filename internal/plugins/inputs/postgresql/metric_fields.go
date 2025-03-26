@@ -13,12 +13,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-var relationMetrics = []struct {
+type relationMetric struct {
 	name            string
 	query           string
 	measurementInfo *inputs.MeasurementInfo
 	schemaField     string
-}{
+}
+
+var relationMetrics = []relationMetric{
 	{
 		name: "lock metrics",
 		query: `

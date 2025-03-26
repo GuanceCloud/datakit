@@ -46,6 +46,9 @@ var (
   ## connection timeout default: 30s
   connect_timeout = "30s"
 
+  ## Metric name in metric_exclude_list will not be collected.
+  metric_exclude_list = [""]
+
   ## parameters to be added to the connection string
   ## Examples:
   ##   "encrypt=disable"
@@ -103,21 +106,22 @@ default_time(time, "+0")
 
 	minInterval = time.Second * 5
 	maxInterval = time.Second * 30
-	query       = []string{
-		sqlServerWaitStatsCategorized,
-		sqlServerDatabaseIO,
-		sqlServerProperties,
-		sqlServerSchedulers,
-		sqlServerVolumeSpace,
-		sqlServerDatabaseSize,
-		sqlServerDatabaseBackup,
+	query       = map[string]string{
+		"sqlserver_waitstats":       sqlServerWaitStatsCategorized,
+		"sqlserver_database_io":     sqlServerDatabaseIO,
+		"sqlserver":                 sqlServerProperties,
+		"sqlserver_schedulers":      sqlServerSchedulers,
+		"sqlserver_volumespace":     sqlServerVolumeSpace,
+		"sqlserver_database_size":   sqlServerDatabaseSize,
+		"sqlserver_database_backup": sqlServerDatabaseBackup,
 	}
-	loggingQuery = []string{
-		sqlServerLockTable,
-		sqlServerLockRow,
-		sqlServerLockDead,
-		sqlServerLogicIO,
-		sqlServerWorkerTime,
+
+	loggingQuery = map[string]string{
+		"sqlserver_lock_table":  sqlServerLockTable,
+		"sqlserver_lock_row":    sqlServerLockRow,
+		"sqlserver_lock_dead":   sqlServerLockDead,
+		"sqlserver_logical_io":  sqlServerLogicIO,
+		"sqlserver_worker_time": sqlServerWorkerTime,
 	}
 )
 
@@ -134,6 +138,7 @@ type Input struct {
 	Password             string            `toml:"password"`
 	Interval             datakit.Duration  `toml:"interval"`
 	InstanceName         string            `toml:"instance_name"`
+	MetricExcludeList    []string          `toml:"metric_exclude_list"`
 	ConnectionParameters string            `toml:"connection_parameters,omitempty"`
 	Tags                 map[string]string `toml:"tags"`
 	Log                  *sqlserverlog     `toml:"log"`
@@ -170,7 +175,9 @@ type Input struct {
 	tagger  datakit.GlobalTagger
 	opt     point.Option
 
-	collectFuncs map[string]func() error
+	collectFuncs        map[string]func() error
+	collectQuery        map[string]string
+	collectLoggingQuery map[string]string
 
 	UpState int
 }

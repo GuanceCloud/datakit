@@ -36,7 +36,7 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL table information",
 		Type: "metric",
-		Name: "mysql_table_schema",
+		Name: metricNameMySQLTableSchema,
 		Fields: map[string]interface{}{
 			// status
 			"data_free": &inputs.FieldInfo{

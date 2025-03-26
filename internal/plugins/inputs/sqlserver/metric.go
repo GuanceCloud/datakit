@@ -72,10 +72,10 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"cpu_count":           newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable"),
 			"uptime":              newTimeFieldInfo("Total time elapsed since the last computer restart"),
-			"committed_memory":    newByteFieldInfo("The amount of memory committed to the memory manager"),
-			"physical_memory":     newByteFieldInfo("Total physical memory on the machine"),
-			"virtual_memory":      newByteFieldInfo("Amount of virtual memory available to the process in user mode."),
-			"target_memory":       newByteFieldInfo("Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed."),
+			"committed_memory":    newByteFieldInfo("The amount of memory committed to the memory manager. Version > 2008"),
+			"physical_memory":     newByteFieldInfo("Total physical memory on the machine. Version > 2008"),
+			"virtual_memory":      newByteFieldInfo("Amount of virtual memory available to the process in user mode. Version > 2008"),
+			"target_memory":       newByteFieldInfo("Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed. Version > 2008"),
 			"db_online":           newCountFieldInfo("Num of database state in online"),
 			"db_offline":          newCountFieldInfo("Num of database state in offline"),
 			"db_recovering":       newCountFieldInfo("Num of database state in recovering"),
@@ -254,6 +254,7 @@ type VolumeSpace struct {
 func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_volumespace",
+		Desc: "The version should be greater than SQL Server 2008.",
 		Type: "metric",
 		Fields: map[string]interface{}{
 			"volume_available_space_bytes": newByteFieldInfo("Available free space on the volume"),

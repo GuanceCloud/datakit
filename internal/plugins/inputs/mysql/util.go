@@ -237,3 +237,26 @@ func setHostTagIfNotLoopback(tags map[string]string, host string) {
 		tags["host"] = host
 	}
 }
+
+func getMetricNames(name string) (string, string) {
+	names := strings.SplitN(name, ":", 2)
+	metricName := ""
+	sqlName := ""
+	if len(names) == 1 {
+		metricName = names[0]
+		sqlName = names[0]
+	} else if len(names) == 2 {
+		metricName = names[0]
+		sqlName = names[1]
+	}
+
+	return metricName, sqlName
+}
+
+func getMetricName(metricName, sqlName string) string {
+	if sqlName == "" {
+		return metricName
+	} else {
+		return metricName + ":" + sqlName
+	}
+}
