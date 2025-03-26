@@ -47,9 +47,8 @@ type Single struct {
 	mult    *multiline.Multiline
 	reader  reader.Reader
 
-	offset     int64
-	readLines  int64
-	flushScore int
+	offset    int64
+	readLines int64
 
 	partialContentBuff bytes.Buffer
 
@@ -88,9 +87,7 @@ func (t *Single) setup() error {
 		}
 	}
 
-	t.mult, err = multiline.New(t.opt.multilinePatterns,
-		multiline.WithMaxLength(int(t.opt.maxMultilineLength)),
-		multiline.WithMaxLifeDuration(t.opt.maxMultilineLifeDuration))
+	t.mult, err = multiline.New(t.opt.multilinePatterns, multiline.WithMaxLength(int(t.opt.maxMultilineLength)))
 	if err != nil {
 		return err
 	}
@@ -263,15 +260,10 @@ func (t *Single) forwardMessage(ctx context.Context) {
 			if !errors.Is(err, reader.ErrReadEmpty) {
 				t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
 			}
-			t.flushScore++
-			if t.flushScore >= 3 {
-				t.flushCache()
-				t.resetFlushScore()
-			}
+			t.flushCache()
 			time.Sleep(defaultSleepDuration)
 			continue
 		}
-		t.resetFlushScore()
 	}
 }
 
@@ -461,10 +453,6 @@ func (t *Single) feedToIO(pending [][]byte) {
 	}
 }
 
-func (t *Single) resetFlushScore() {
-	t.flushScore = 0
-}
-
 func (t *Single) flushCache() {
 	if t.mult != nil && t.mult.BuffLength() > 0 {
 		text := t.mult.Flush()
@@ -502,7 +490,10 @@ func (t *Single) multiline(text []byte) []byte {
 	if !t.opt.enableMultiline || t.mult == nil {
 		return text
 	}
-	res, _ := t.mult.ProcessLine(text)
+	res, state := t.mult.ProcessLine(text)
+	if state == multiline.FlushPartial {
+		multilineStateVec.WithLabelValues(t.opt.source, state.String()).Inc()
+	}
 	return res
 }
 

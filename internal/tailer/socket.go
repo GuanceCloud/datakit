@@ -58,8 +58,7 @@ func (sk *SocketLogger) setup() error {
 		return nil
 	}
 
-	if _, err := multiline.New(sk.opt.multilinePatterns,
-		multiline.WithMaxLifeDuration(sk.opt.maxMultilineLifeDuration)); err != nil {
+	if _, err := multiline.New(sk.opt.multilinePatterns, multiline.WithMaxLength(int(sk.opt.maxMultilineLength))); err != nil {
 		sk.log.Warn(err)
 		return err
 	}
@@ -235,8 +234,7 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 			rd := reader.NewReader(conn)
 			// must not error
-			mult, _ := multiline.New(s.opt.multilinePatterns,
-				multiline.WithMaxLifeDuration(s.opt.maxMultilineLifeDuration))
+			mult, _ := multiline.New(s.opt.multilinePatterns, multiline.WithMaxLength(int(s.opt.maxMultilineLength)))
 
 			for {
 				select {

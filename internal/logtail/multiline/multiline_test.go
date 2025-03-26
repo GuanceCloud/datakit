@@ -7,7 +7,6 @@ package multiline
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -86,21 +85,6 @@ func TestMultilineMatchLimit(t *testing.T) {
 		assert.Equal(t, NoContext, state)
 	})
 
-	t.Run("flush-duration", func(t *testing.T) {
-		patterns := []string{"^\\S"}
-		m, err := New(patterns, WithMaxLifeDuration(time.Millisecond*100))
-		assert.NoError(t, err)
-
-		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
-		assert.Equal(t, NewMultiline, state)
-
-		time.Sleep(time.Millisecond * 150)
-
-		res, state := m.ProcessLineString("\t1234567890-1234567890-1234567890")
-		assert.Equal(t, "2021-05-31T11:15:26.043419Z INFO\n\t1234567890-1234567890-1234567890", res)
-		assert.Equal(t, OverTime, state)
-	})
-
 	t.Run("max-length-50", func(t *testing.T) {
 		patterns := []string{"^\\S"}
 		m, err := New(patterns, WithMaxLength(50))
@@ -111,7 +95,7 @@ func TestMultilineMatchLimit(t *testing.T) {
 
 		res, state := m.ProcessLineString("\t1234567890-1234567890-1234567890")
 		assert.Equal(t, "2021-05-31T11:15:26.043419Z INFO\n\t1234567890-1234567890-1234567890", res)
-		assert.Equal(t, OverLength, state)
+		assert.Equal(t, FlushPartial, state)
 	})
 }
 
@@ -180,5 +164,34 @@ func TestTrimRightSpace(t *testing.T) {
 			out := []byte(tc.out)
 			assert.Equal(t, TrimRightSpace(in), out)
 		})
+	}
+}
+
+func TestFlushPartial(t *testing.T) {
+	in := []string{
+		"2021-05-31T11:15:26 INFO 123", // len(28)
+		"    A-0123456789",             // len(16)
+		"    B-0123456789",
+		"    C-0123456789",
+		"    D-0123456789",
+		"    E-0123456789",
+	}
+
+	out := []string{
+		"",
+		"2021-05-31T11:15:26 INFO 123\n    A-0123456789",
+		"",
+		"    B-0123456789\n    C-0123456789",
+		"",
+		"    D-0123456789\n    E-0123456789",
+	}
+
+	patterns := []string{"^\\S"}
+	m, err := New(patterns, WithMaxLength(30))
+	assert.NoError(t, err)
+
+	for idx := range in {
+		res, _ := m.ProcessLineString(in[idx])
+		assert.Equal(t, out[idx], res)
 	}
 }

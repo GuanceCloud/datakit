@@ -69,7 +69,6 @@ func (c *container) tailingLogs(ins *logInstance) {
 			tailer.WithMultilinePatterns(cfg.MultilinePatterns),
 			tailer.WithGlobalTags(mergedTags),
 			tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-			tailer.WithMaxMultilineLifeDuration(c.ipt.LoggingMaxMultilineLifeDuration),
 			tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.ipt.LoggingRemoveAnsiEscapeCodes),
 			tailer.WithMaxOpenFiles(c.ipt.LoggingMaxOpenFiles),
 			tailer.WithFromBeginning(cfg.FromBeginning || c.ipt.LoggingFileFromBeginning),
