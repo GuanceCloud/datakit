@@ -171,7 +171,7 @@ func (e *Endpoints) startScrape(ctx context.Context, key, traits string, item *c
 				return checkPaused(ctx, cfg.nodeName == "")
 			}
 
-			prom, err := newPromScraper(RoleEndpoints, key, cfg.urlstr, checkPausedFunc, opts)
+			prom, err := newPromScraper(RoleEndpoints, key, cfg.urlstr, cfg.measurement, e.feeder, checkPausedFunc, opts)
 			if err != nil {
 				klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 				continue
@@ -250,7 +250,7 @@ func tryCreateScrapeForEndpoints(
 			return checkPaused(ctx, cfg.nodeName == "")
 		}
 
-		prom, err := newPromScraper(role, key, cfg.urlstr, checkPausedFunc, opts)
+		prom, err := newPromScraper(role, key, cfg.urlstr, cfg.measurement, feeder, checkPausedFunc, opts)
 		if err != nil {
 			klog.Warnf("fail new prom %s for %s", cfg.urlstr, err)
 			continue

@@ -19,9 +19,16 @@ import (
 )
 
 type promScraper struct {
-	role, key      string
-	urlstr, remote string
-	pm             *promscrape.PromScraper
+	role   string // e.g. pod/node
+	urlstr string
+	pm     *promscrape.PromScraper
+
+	key      string // e.g. namespace/name
+	job      string
+	host     string // e.g. 172.16.10.10
+	instance string // e.g. 172.16.10.10:8080
+	remote   string // e.g. :8080/metrics
+	feeder   dkio.Feeder
 
 	checkPaused func() bool
 	retryCount  int
@@ -32,21 +39,31 @@ func newPromScraper(
 	role Role,
 	key string,
 	urlstr string,
+	measurement string,
+	feeder dkio.Feeder,
 	checkPaused func() bool,
 	opts []promscrape.Option,
 ) (*promScraper, error) {
 	var err error
 	p := promScraper{
 		role:        string(role),
-		key:         key,
 		urlstr:      urlstr,
+		key:         key,
+		job:         key, // default use key
+		feeder:      feeder,
 		checkPaused: checkPaused,
+	}
+	if measurement != "" {
+		p.job = measurement
 	}
 
 	u, err := url.Parse(urlstr)
-	if err == nil {
-		p.remote = fmt.Sprintf(":%s%s", u.Port(), u.Path)
+	if err != nil {
+		return nil, err
 	}
+	p.host = splitHost(u.Host)
+	p.instance = u.Host
+	p.remote = fmt.Sprintf(":%s%s", u.Port(), u.Path)
 
 	p.pm, err = promscrape.NewPromScraper(opts...)
 	if err != nil {
@@ -59,7 +76,11 @@ func newPromScraper(
 func (p *promScraper) targetURL() string  { return p.urlstr }
 func (p *promScraper) resetRetryCount()   { p.retryCount = 0 }
 func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
-func (p *promScraper) markAsTerminated()  { p.terminated.Store(true) }
+
+func (p *promScraper) markAsTerminated() {
+	p.recordUp(0, 0)
+	p.terminated.Store(true)
+}
 
 func (p *promScraper) shouldScrape() bool {
 	if p.checkPaused != nil {
@@ -71,6 +92,8 @@ func (p *promScraper) shouldScrape() bool {
 
 func (p *promScraper) scrape(defaultTimestamp int64) error {
 	start := time.Now()
+	p.recordUp(1, defaultTimestamp)
+
 	p.pm.SetTimestamp(defaultTimestamp)
 	err := p.pm.ScrapeURL(p.urlstr)
 	collectCostVec.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
@@ -85,6 +108,29 @@ func (p *promScraper) shouldRetry(maxScrapeRetry int) (bool, int) {
 	return true, p.retryCount
 }
 
+func (p *promScraper) recordUp(up int, timestamp int64) {
+	var kvs point.KVs
+	kvs = kvs.AddTag("job", p.job)
+	kvs = kvs.AddTag("instance", p.instance)
+	kvs = kvs.AddTag("host", p.host)
+	kvs = kvs.AddV2("up", up, false)
+
+	if timestamp == 0 {
+		timestamp = time.Now().UnixNano()
+	}
+
+	pt := point.NewPointV2("collector", kvs, append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))...)
+
+	if err := p.feeder.FeedV2(
+		point.Metric,
+		[]*point.Point{pt},
+		dkio.WithInputName("kubernetesprometheus-collector"),
+		dkio.WithElection(true),
+	); err != nil {
+		klog.Warnf("failed to feed collector metrics: %s, ignored", err)
+	}
+}
+
 func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
 	source := fmt.Sprintf("kubernetesprometheus/%s::%s", role, key)
 	remote := key
@@ -94,14 +140,9 @@ func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opt
 			return nil
 		}
 
-		if err := feeder.FeedV2(
-			point.Metric,
-			pts,
-			dkio.WithInputName(source),
-		); err != nil {
+		if err := feeder.FeedV2(point.Metric, pts, dkio.WithInputName(source)); err != nil {
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}
-
 		collectPtsVec.WithLabelValues(string(role), key).Add(float64(len(pts)))
 		return nil
 	}
