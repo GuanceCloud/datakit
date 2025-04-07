@@ -18,8 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/avast/retry-go"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -315,6 +317,9 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 	if w.gzip == 1 {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
+
+	// add package id
+	req.Header.Set("X-Pkg-Id", cliutils.XID("dk_"))
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
 	for k, v := range ep.httpHeaders {
