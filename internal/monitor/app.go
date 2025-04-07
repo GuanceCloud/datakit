@@ -118,57 +118,53 @@ func Start(opts ...APPOption) {
 		}
 	}
 
-	go app.refreshData()
 	app.setup()
-	if err := app.run(); err != nil {
-		l.Errorf("app.run: %s", err.Error())
+
+	go app.refreshData()
+
+	if err := app.app.Run(); err != nil {
+		l.Fatalf("app.SetRoot: %s", err.Error())
 	}
 }
 
 func (app *monitorAPP) refreshData() {
-	go func() {
-		tick := time.NewTicker(app.refresh)
-		defer tick.Stop()
-		var err error
+	tick := time.NewTicker(app.refresh)
+	defer tick.Stop()
+	var err error
 
-		n := 0
+	n := 0
 
-		for {
-			app.anyError = nil
-			app.mfs, err = app.src.FetchData()
-			if err != nil {
-				app.anyError = fmt.Errorf("request stats failed: %w", err)
+	for {
+		app.anyError = nil
+		app.mfs, err = app.src.FetchData()
+		if err != nil {
+			app.anyError = fmt.Errorf("request stats failed: %w", err)
+		}
+
+		if app.dumpMetrics && len(app.mfs) > 0 {
+			var arr []*dto.MetricFamily
+			for _, v := range app.mfs {
+				arr = append(arr, v)
 			}
 
-			if app.dumpMetrics && len(app.mfs) > 0 {
-				var arr []*dto.MetricFamily
-				for _, v := range app.mfs {
-					arr = append(arr, v)
-				}
-
-				if err := ioutil.WriteFile(".monitor-metrics", []byte(metrics.MetricFamily2Text(arr)), os.ModePerm); err != nil {
-					l.Warnf("dumpMetrics: %s, ignored", err.Error())
-				} else {
-					l.Debug("dump to .monitor-metrics ok")
-				}
-			}
-
-			app.render()
-			app.app = app.app.Draw() // NOTE: cause DATA RACE
-
-			<-tick.C // wait
-			n++
-
-			if app.maxRun > 0 && n >= app.maxRun {
-				app.app.Stop()
-				return
+			if err := ioutil.WriteFile(".monitor-metrics", []byte(metrics.MetricFamily2Text(arr)), os.ModePerm); err != nil {
+				l.Warnf("dumpMetrics: %s, ignored", err.Error())
+			} else {
+				l.Debug("dump to .monitor-metrics ok")
 			}
 		}
-	}()
-}
 
-func (app *monitorAPP) run() error {
-	return app.app.Run() // NOTE: cause DATA RACE
+		app.render()
+		app.app = app.app.Draw() // NOTE: cause DATA RACE
+
+		<-tick.C // wait
+		n++
+
+		if app.maxRun > 0 && n >= app.maxRun {
+			app.app.Stop()
+			return
+		}
+	}
 }
 
 func (app *monitorAPP) inputClicked(input string) func() bool {

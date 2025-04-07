@@ -85,4 +85,6 @@ func setCmdRootLog(rl string) {
 	export.SetLog()
 
 	l = logger.SLogger("cmds")
+
+	l.Infof("set root log file to %q ok", rl)
 }

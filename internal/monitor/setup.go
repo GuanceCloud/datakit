@@ -6,8 +6,6 @@
 package monitor
 
 import (
-	"os"
-
 	"github.com/rivo/tview"
 )
 
@@ -119,7 +117,5 @@ func (app *monitorAPP) setup() {
 	app.flex = tview.NewFlex()
 	app.setupFlex()
 
-	if err := app.app.SetRoot(app.flex, true).EnableMouse(true).Run(); err != nil {
-		os.Exit(1)
-	}
+	app.app.SetRoot(app.flex, true).EnableMouse(true)
 }

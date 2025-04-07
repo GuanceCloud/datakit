@@ -21,10 +21,10 @@ func (app *monitorAPP) renderExitPrompt(mfs map[string]*dto.MetricFamily) {
 	}
 
 	if !beyondUsage {
-		fmt.Fprintf(app.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit",
+		fmt.Fprintf(app.exitPrompt, "[green]Refresh: %s. monitor: %s | Press ctrl+c to exit",
 			app.refresh, time.Since(app.start).String())
 	} else {
-		fmt.Fprintf(app.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit | [red] Beyond Usage",
+		fmt.Fprintf(app.exitPrompt, "[green]Refresh: %s. monitor: %s | Press ctrl+c to exit | [red] Beyond Usage",
 			app.refresh, time.Since(app.start).String())
 	}
 }
