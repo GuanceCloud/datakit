@@ -109,6 +109,8 @@ func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 	pt.SetField("involved_uid", string(item.InvolvedObject.UID))
 	pt.SetField("involved_name", item.InvolvedObject.Name)
 	pt.SetField("involved_namespace", item.InvolvedObject.Namespace)
+	pt.SetField("source_component", item.Source.Component)
+	pt.SetField("source_host", item.Source.Host)
 	pt.SetField("resource_version", item.ResourceVersion)
 	pt.SetField("message", item.Message)
 
@@ -158,6 +160,8 @@ func (*event) Info() *inputs.MeasurementInfo {
 			"involved_uid":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The UID of involved object."},
 			"involved_name":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Name must be unique within a namespace for involved object."},
 			"involved_namespace": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Namespace defines the space within which each name must be unique for involved object."},
+			"source_component":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Component from which the event is generated."},
+			"source_host":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Node name on which the event is generated."},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Details of event log"},
 		},
 	}
