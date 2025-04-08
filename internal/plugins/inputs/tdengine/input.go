@@ -138,6 +138,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithSource(inputName),
 		tailer.WithService(inputName),
 		tailer.WithPipeline(ipt.Pipeline),
+		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
