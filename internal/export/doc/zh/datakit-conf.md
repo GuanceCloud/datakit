@@ -315,6 +315,10 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
 
 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
 
+WAL 用于缓存 Datakit 来不及上传的数据，当突发有较大的数据采集时，如果来不及发送，Datakit 会将其写入磁盘队列，避免阻塞数据采集，影响数据的实时性。
+
+WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限制，新采集的数据就写不进去导致丢弃。如果不希望丢弃这些数据，可以将该数据类型（一般是日志 `L`）配置到 `no_drop_categories` 列表中。此时数据不会主动丢弃，但会阻塞数据采集。
+
 在 `[dataway.wal]` 中，我们可以调整 WAL 队列的配置：
 
 ```toml
@@ -323,6 +327,7 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
      workers = 0                       # flush workers on WAL(default to CPU limited cores)
      mem_cap = 0                       # in-memory queue capacity(default to CPU limited cores)
      fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
+     #no_drop_categories = ["L"]       # category list that do not drop data if WAL disk full
 ```
 
 磁盘文件位于 Datakit 安装目录的 *cache/dw-wal* 目录下：

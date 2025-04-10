@@ -38,6 +38,15 @@ func WithFILODrop(on bool) CacheOption {
 	}
 }
 
+// WithNoDrop set no-drop policy during Put() when cache's size
+// almost reached it's capacity(). When set no-drop, the Put()
+// will fail immediately with a error.
+func WithNoDrop(on bool) CacheOption {
+	return func(c *DiskCache) {
+		c.noDrop = on
+	}
+}
+
 // WithNoLock set .lock on or off.
 //
 // File '.lock' used to exclude Open() on same path.

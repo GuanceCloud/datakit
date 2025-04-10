@@ -28,16 +28,19 @@ type Cache interface {
 
 type WALConf struct {
 	MaxCapacityGB          float64       `toml:"max_capacity_gb"`
-	Workers                int           `toml:"workers"`
-	MemCap                 int           `toml:"mem_cap,omitempty"`
 	Path                   string        `toml:"path,omitempty"`
 	FailCacheCleanInterval time.Duration `toml:"fail_cache_clean_interval"`
+
+	NoDropCategories []string `toml:"no_drop_categories"`
+	Workers          int      `toml:"workers"`
+	MemCap           int      `toml:"mem_cap,omitempty"`
 }
 
 type WALQueue struct {
-	disk Cache
-	mem  chan *body
-	dw   *Dataway // back-ref to dataway configures
+	disk   Cache
+	mem    chan *body
+	dw     *Dataway // back-ref to dataway configures
+	noDrop bool
 }
 
 func NewWAL(dw *Dataway, c Cache) *WALQueue {
@@ -87,10 +90,24 @@ func (q *WALQueue) Put(b *body) error {
 		putStatus = "drop"
 		return err
 	} else {
+		retried := 0
+	__retry:
 		if err := q.disk.Put(x); err != nil {
-			putStatus = "drop"
+			if errors.Is(err, diskcache.ErrCacheFull) && q.noDrop {
+				time.Sleep(time.Second)
+				retried++
+				l.Warnf("WAL full, %d retrying...", retried)
+				goto __retry
+			} else {
+				putStatus = "drop"
+			}
+
 			return err
 		} else {
+			if retried > 0 {
+				l.Warnf("WAL retried %d times", retried)
+				walPutRetriedVec.WithLabelValues(b.cat().Alias()).Observe(float64(retried))
+			}
 			// NOTE: do not set putStatus here, we'll update walPointCounterVec during Get().
 			return nil
 		}
@@ -186,37 +203,69 @@ func (q *WALQueue) DiskGet(fn walBodyCallback, opts ...bodyOpt) error {
 	return nil
 }
 
-func (dw *Dataway) doSetupWAL(cacheDir string) (*WALQueue, error) {
-	dc, err := diskcache.Open(
-		diskcache.WithPath(cacheDir),
-		diskcache.WithNoLock(true),            // disable .lock file checking
-		diskcache.WithFILODrop(true),          // drop new data if cache full, no matter normal WAL or fail-cache WAL.
-		diskcache.WithWakeup(defaultRotateAt), // short wakeup on wal queue
-		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30))),
-	)
+func (dw *Dataway) doSetupWAL(opts ...diskcache.CacheOption) (*WALQueue, error) {
+	dc, err := diskcache.Open(opts...)
 	if err != nil {
-		l.Errorf("NewWALCache %s with capacity %f GB: %s", cacheDir, dw.WAL.MaxCapacityGB, err.Error())
 		return nil, err
 	}
-
-	l.Infof("diskcache.New ok(%q) of %fGiB", cacheDir, dw.WAL.MaxCapacityGB)
 
 	return NewWAL(dw, dc), nil
 }
 
 func (dw *Dataway) setupWAL() error {
 	for _, cat := range point.AllCategories() {
-		if wal, err := dw.doSetupWAL(filepath.Join(dw.WAL.Path, cat.String())); err != nil {
+		cacheDir := filepath.Join(dw.WAL.Path, cat.String())
+		opts := []diskcache.CacheOption{
+			diskcache.WithPath(cacheDir),
+			diskcache.WithNoLock(true),            // disable .lock file checking
+			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
+			diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB * float64(1<<30))),
+		}
+
+		if dw.isNoDropWAL(cat) {
+			opts = append(opts,
+				diskcache.WithNoDrop(true), // no-drop any data if cache full.
+			)
+		} else {
+			opts = append(opts,
+				diskcache.WithFILODrop(true), // drop new data if cache full, no matter normal WAL or fail-cache WAL.
+			)
+		}
+
+		if wal, err := dw.doSetupWAL(opts...); err != nil {
+			l.Errorf("NewWALCache %s with capacity %f GB: %s", cacheDir, dw.WAL.MaxCapacityGB, err.Error())
 			return err
 		} else {
+			wal.noDrop = dw.isNoDropWAL(cat)
 			dw.walq[cat] = wal
+			l.Infof("diskcache.New on %q ok(%+#v)", cat.Alias(), wal)
 		}
 	}
 
-	if wal, err := dw.doSetupWAL(filepath.Join(dw.WAL.Path, "fc")); err != nil {
+	// setup fail-cache
+	if wal, err := dw.doSetupWAL(
+		diskcache.WithPath(filepath.Join(dw.WAL.Path, "fc")),
+		diskcache.WithFILODrop(true), // under fail-cache, still drop data if WAL disk full(no matter which category)
+		diskcache.WithNoLock(true),
+		diskcache.WithWakeup(defaultRotateAt),
+		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30)))); err != nil {
 		return err
 	} else {
 		dw.walFail = wal
 	}
 	return nil
+}
+
+func (dw *Dataway) isNoDropWAL(cat point.Category) bool {
+	if dw.WAL == nil { // all categories are drop if WAL full.
+		return false
+	}
+
+	for _, c := range dw.WAL.NoDropCategories {
+		if c == cat.Alias() {
+			return true
+		}
+	}
+
+	return false
 }

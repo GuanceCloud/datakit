@@ -64,6 +64,7 @@ func AllCategories() []Category {
 		Network,
 		KeyEvent,
 		Object,
+		ObjectChange,
 		CustomObject,
 		Logging,
 		Tracing,
