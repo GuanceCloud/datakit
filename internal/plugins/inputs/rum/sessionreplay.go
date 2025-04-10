@@ -111,7 +111,7 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 			} else {
 				log.Errorf("unable to parse session replay multipart form: %s, body length: %d", err, len(body))
 			}
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
 
@@ -136,6 +136,18 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 				filterKV[k] = v[0]
 			} else {
 				filterKV[k] = ""
+			}
+		}
+
+		// apply the global host tags
+		for k, v := range datakit.GlobalHostTags() {
+			if _, ok := formValues[k]; !ok {
+				formValues[k] = &ValuesSlice{
+					Values: []string{v},
+				}
+			}
+			if _, ok := filterKV[k]; !ok {
+				filterKV[k] = v
 			}
 		}
 

@@ -66,7 +66,11 @@ type Metadata struct {
 
 func resolveLanguage(runtimes []string) metrics.Language {
 	for _, r := range runtimes {
-		r = strings.ToLower(r)
+		if lang, ok := metrics.LangMaps[r]; ok {
+			return lang
+		}
+	}
+	for _, r := range runtimes {
 		for name, lang := range metrics.LangMaps {
 			if strings.Contains(r, name) {
 				return lang
@@ -77,7 +81,7 @@ func resolveLanguage(runtimes []string) metrics.Language {
 }
 
 func ResolveLanguage(metadata map[string]string) metrics.Language {
-	runtimes := []string{strings.TrimSuffix(metadata["spyName"], "spy")}
+	runtimes := []string{strings.ToLower(strings.TrimSuffix(metadata["spyName"], "spy"))}
 	return resolveLanguage(runtimes)
 }
 

@@ -185,134 +185,6 @@ type pyroscopeOpts struct {
 	cacheData sync.Map // key: name, value: *cacheDetail
 }
 
-type minHeap struct {
-	buckets []*profileBase
-	indexes map[*profileBase]int
-}
-
-func newMinHeap(initCap int) *minHeap {
-	return &minHeap{
-		buckets: make([]*profileBase, 0, initCap),
-		indexes: make(map[*profileBase]int, initCap),
-	}
-}
-
-func (mh *minHeap) Swap(i, j int) {
-	mh.indexes[mh.buckets[i]], mh.indexes[mh.buckets[j]] = j, i
-	mh.buckets[i], mh.buckets[j] = mh.buckets[j], mh.buckets[i]
-}
-
-func (mh *minHeap) Less(i, j int) bool {
-	return mh.buckets[i].birth.Before(mh.buckets[j].birth)
-}
-
-func (mh *minHeap) Len() int {
-	return len(mh.buckets)
-}
-
-func (mh *minHeap) siftUp(idx int) {
-	if idx >= len(mh.buckets) {
-		errMsg := fmt.Sprintf("siftUp: index[%d] out of bounds[%d]", idx, len(mh.buckets))
-		log.Error(errMsg)
-		panic(errMsg)
-	}
-
-	for idx > 0 {
-		parent := (idx - 1) / 2
-
-		if !mh.Less(idx, parent) {
-			break
-		}
-
-		// Swap
-		mh.Swap(idx, parent)
-		idx = parent
-	}
-}
-
-func (mh *minHeap) siftDown(idx int) {
-	for {
-		left := idx*2 + 1
-		if left >= mh.Len() {
-			break
-		}
-
-		minIdx := idx
-		if mh.Less(left, minIdx) {
-			minIdx = left
-		}
-
-		right := left + 1
-		if right < mh.Len() && mh.Less(right, minIdx) {
-			minIdx = right
-		}
-
-		if minIdx == idx {
-			break
-		}
-
-		mh.Swap(idx, minIdx)
-		idx = minIdx
-	}
-}
-
-func (mh *minHeap) push(pb *profileBase) {
-	mh.buckets = append(mh.buckets, pb)
-	mh.indexes[pb] = mh.Len() - 1
-	mh.siftUp(mh.Len() - 1)
-}
-
-func (mh *minHeap) pop() *profileBase {
-	if mh.Len() == 0 {
-		return nil
-	}
-
-	top := mh.getTop()
-	mh.remove(top)
-	return top
-}
-
-func (mh *minHeap) remove(pb *profileBase) {
-	idx, ok := mh.indexes[pb]
-	if !ok {
-		log.Errorf("pb not found in the indexes, profileID = %s", pb.profileID)
-		return
-	}
-	if idx >= mh.Len() {
-		errMsg := fmt.Sprintf("remove: index[%d] out of bounds [%d]", idx, mh.Len())
-		log.Error(errMsg)
-		panic(errMsg)
-	}
-
-	if mh.buckets[idx] != pb {
-		errMsg := fmt.Sprintf("remove: idx of the buckets[%p] not equal the removing target[%p]", mh.buckets[idx], pb)
-		log.Error(errMsg)
-		panic(errMsg)
-	}
-	// delete the idx
-	mh.buckets[idx] = mh.buckets[mh.Len()-1]
-	mh.indexes[mh.buckets[idx]] = idx
-	mh.buckets = mh.buckets[:mh.Len()-1]
-
-	if idx < mh.Len() {
-		mh.siftDown(idx)
-	}
-	delete(mh.indexes, pb)
-}
-
-func (mh *minHeap) getTop() *profileBase {
-	if mh.Len() == 0 {
-		return nil
-	}
-	return mh.buckets[0]
-}
-
-type profileBase struct {
-	profileID string
-	birth     time.Time
-	point     *point.Point
-}
-
 func defaultDiskCachePath() string {
 	return filepath.Join(datakit.CacheDir, defaultDiskCacheFileName)
 }
@@ -566,9 +438,14 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		subCustomTags = metrics.NewTags(strings.Split(metadata[metrics.SubCustomTagsKey], ","))
 	}
 
+	globalHostTags := datakit.GlobalHostTags()
 	language := metrics.ResolveLang(metadata)
 	if ipt.GenerateMetrics {
-		allCustomTags := make(map[string]string, len(ipt.Tags)+len(subCustomTags))
+		allCustomTags := make(map[string]string, len(ipt.Tags)+len(subCustomTags)+len(globalHostTags))
+		// global host tags have the lowest priority.
+		for k, v := range globalHostTags {
+			allCustomTags[k] = v
+		}
 		for k, v := range ipt.Tags {
 			allCustomTags[k] = v
 		}
@@ -600,6 +477,12 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		if old, ok := metadata[tk]; !ok || old != tv {
 			customTagsDefined = true
 			metadata[tk] = tv
+		}
+	}
+	for k, v := range globalHostTags {
+		if _, ok := metadata[k]; !ok {
+			customTagsDefined = true
+			metadata[k] = v
 		}
 	}
 

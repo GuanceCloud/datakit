@@ -16,7 +16,7 @@ DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`
 <!-- markdownlint-disable MD046 -->
 ???+ Note
 
-    Datakit 目前支持 `dd-trace-java 1.19.x` 及以下版本，更高版本未经测试，兼容性未知，如遇兼容性问题，可反馈给我们。
+    Datakit 目前支持 `dd-trace-java 1.47.x` 及以下版本，更高版本未经测试，兼容性未知，如使用上遇到问题，可向我们反馈。
 <!-- markdownlint-enable -->
 
 `dd-trace-java` 目前集成了两套分析引擎：[`Datadog Profiler`](https://github.com/datadog/java-profiler){:target="_blank"} 和 JDK 内置的 [`JFR(Java Flight Recorder)`](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm){:target="_blank"}，
@@ -66,18 +66,18 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
 
 部分参数说明：
 
-| 参数名                                       | 对应的环境变量                               | 说明                                                                     |
-|-------------------------------------------|---------------------------------------|------------------------------------------------------------------------|
-| `-Ddd.profiling.enabled`                  | DD_PROFILING_ENABLED                  | 是否开启 profiling 功能                                                      |
-| `-Ddd.profiling.allocation.enabled`       | DD_PROFILING_ALLOCATION_ENABLED       | 是否开启 `JFR` 引擎的内存分配采样，可能会对性能有一定影响，建议高版本 JDK 使用 `Datadog Profiler`       |
-| `-Ddd.profiling.heap.enabled`             | DD_PROFILING_HEAP_ENABLED             | 是否开启 `JFR` 引擎堆内存对象采样                                                   |
-| `-Ddd.profiling.directallocation.enabled` | DD_PROFILING_DIRECTALLOCATION_ENABLED | 是否启用 `JFR` 引擎 JVM 直接内存分配采样                                             |
-| `-Ddd.profiling.ddprof.enabled`           | DD_PROFILING_DDPROF_ENABLED           | 是否启用 `Datadog Profiler` 分析引擎                                           |
-| `-Ddd.profiling.ddprof.cpu.enabled`       | DD_PROFILING_DDPROF_CPU_ENABLED       | 是否启用 `Datadog Profiler` CPU 分析                                         |
-| `-Ddd.profiling.ddprof.wall.enabled`      | DD_PROFILING_DDPROF_WALL_ENABLED      | 是否启用 `Datadog Profiler` Wall time 采集，此选项关系到 Trace 和 Profile 之间的关联，建议开启 |
-| `-Ddd.profiling.ddprof.alloc.enabled`     | DD_PROFILING_DDPROF_ALLOC_ENABLED     | 是否启用 `Datadog Profiler` 引擎的内存分析                                        |
-| `-Ddd.profiling.ddprof.liveheap.enabled`  | DD_PROFILING_DDPROF_LIVEHEAP_ENABLED  | 是否启用 `Datadog Profiler` 引擎 Heap 分析                                     |
-| `-Ddd.profiling.ddprof.memleak.enabled`   | DD_PROFILING_DDPROF_MEMLEAK_ENABLED   | 是否启用 `Datadog Profiler` 引擎内存泄漏采样分析                                     |
+| 参数名                                       | 对应环境变量                                | 说明                                                                                                                          |
+|-------------------------------------------|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `-Ddd.profiling.enabled`                  | DD_PROFILING_ENABLED                  | 是否开启 profiling 功能                                                                                                           |
+| `-Ddd.profiling.allocation.enabled`       | DD_PROFILING_ALLOCATION_ENABLED       | 是否开启 `JFR` 内存 Allocation 分析，高负载应用可能会对性能产生一定影响，建议 JDK11 及以上版本使用 `Datadog Profiler` Allocation 功能                             |
+| `-Ddd.profiling.heap.enabled`             | DD_PROFILING_HEAP_ENABLED             | 是否开启 `JFR` 内存 Heap 对象采样                                                                                                     |
+| `-Ddd.profiling.directallocation.enabled` | DD_PROFILING_DIRECTALLOCATION_ENABLED | 是否启用 `JFR` JVM 直接内存分配采样                                                                                                     |
+| `-Ddd.profiling.ddprof.enabled`           | DD_PROFILING_DDPROF_ENABLED           | 是否启用 `Datadog Profiler` 分析引擎                                                                                                |
+| `-Ddd.profiling.ddprof.cpu.enabled`       | DD_PROFILING_DDPROF_CPU_ENABLED       | 是否启用 `Datadog Profiler` CPU 分析                                                                                              |
+| `-Ddd.profiling.ddprof.wall.enabled`      | DD_PROFILING_DDPROF_WALL_ENABLED      | 是否启用 `Datadog Profiler` Wall time 采集，此选项影响 Trace 和 Profile 之间关联的精确性，建议开启                                                    |
+| `-Ddd.profiling.ddprof.alloc.enabled`     | DD_PROFILING_DDPROF_ALLOC_ENABLED     | 是否启用 `Datadog Profiler` 引擎的内存 Allocation 分析，经验证在 JDK8 上目前无法开启，对于 JDK8 请酌情选用 `-Ddd.profiling.allocation.enabled` 并关注对系统性能的影响 |
+| `-Ddd.profiling.ddprof.liveheap.enabled`  | DD_PROFILING_DDPROF_LIVEHEAP_ENABLED  | 是否启用 `Datadog Profiler` 引擎当前存活的 Heap 分析                                                                                     |
+| `-Ddd.profiling.ddprof.memleak.enabled`   | DD_PROFILING_DDPROF_MEMLEAK_ENABLED   | 是否启用 `Datadog Profiler` 引擎内存泄漏分析                                                                                            |
 
 
 程序运行后，约 1 分钟后即可在观测云平台查看相关数据。

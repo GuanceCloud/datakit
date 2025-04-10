@@ -17,8 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
-
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/pyroscope-io/pyroscope/pkg/agent/types"
@@ -39,6 +37,7 @@ import (
 	"github.com/pyroscope-io/pyroscope/pkg/util/cumulativepprof"
 	"github.com/sirupsen/logrus"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 )
@@ -198,6 +197,13 @@ func (h ingestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	labels := getPyroscopeTagFromLabels(input.Metadata.Key.Labels())
 	for k, v := range labels {
 		originAddTagsSafe(iTags, k, v)
+	}
+
+	// apply the global host tags
+	for k, v := range datakit.GlobalHostTags() {
+		if _, ok := iTags[k]; !ok {
+			iTags[k] = v
+		}
 	}
 
 	h.report.SetVar(&pyroscopeDatakitReport{
