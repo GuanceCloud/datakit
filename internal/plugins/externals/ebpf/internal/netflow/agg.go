@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
 
 type BaseKey struct {
@@ -24,6 +24,7 @@ type BaseKey struct {
 	DNATAddr string
 	DNATPort uint32
 
+	PID   int
 	NetNS string
 }
 
@@ -31,8 +32,6 @@ type aggKey struct {
 	BaseKey
 	sType string
 	dType string
-
-	pid int
 
 	family      string
 	direction   string
@@ -65,7 +64,7 @@ func calLatency(l []int64) int64 {
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,
-	addTags map[string]string, k8sNetInfo *k8sinfo.K8sNetInfo,
+	addTags map[string]string, k8sNetInfo *cli.K8sInfo,
 ) (*point.Point, error) {
 	tags := map[string]string{
 		"family": key.family,
@@ -79,7 +78,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 
-		"pid": strconv.FormatInt(int64(key.pid), 10),
+		"pid": strconv.FormatInt(int64(key.PID), 10),
 
 		"netns": key.NetNS,
 	}
@@ -214,7 +213,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 
 	key.processName = info.ProcessName
 
-	if IsIncomingFromK8s(k8sNetInfo, key.SAddr,
+	if IsIncomingFromK8s(k8sNetInfo, key.PID, key.SAddr,
 		key.SPort, key.Transport) {
 		key.direction = DirectionIncoming
 	}
@@ -231,7 +230,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 	}
 
 	// pid
-	key.pid = int(info.Pid)
+	key.PID = int(info.Pid)
 
 	var value *aggValue
 	// agg latency and count ++
@@ -260,7 +259,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 }
 
 func (agg *FlowAgg) ToPoint(tags map[string]string,
-	k8sInfo *k8sinfo.K8sNetInfo,
+	k8sInfo *cli.K8sInfo,
 ) []*point.Point {
 	var result []*point.Point
 

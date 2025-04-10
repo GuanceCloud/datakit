@@ -21,13 +21,13 @@ import (
 	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l4log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/dumpstd"
 
 	// nolint:gosec
@@ -321,12 +321,21 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 	log.Info("datakit-ebpf starting ...")
 
-	k8sinfo, err := k8sinfo.NewK8sInfo(fl.K8sInfo.URL,
-		fl.K8sInfo.BearerToken, fl.K8sInfo.BearerTokenPath)
-	if err != nil {
+	if len(fl.K8sInfo.WorkloadLabels) > 0 {
+		log.Infof("append k8s workload labels: `%s`, label prefix: `%s`",
+			strings.Join(fl.K8sInfo.WorkloadLabels, ","),
+			fl.K8sInfo.WorkloadLabelPrefix)
+	}
+
+	var k8sinfo *cli.K8sInfo
+	if c, err := cli.NewK8sClientFromBearer(fl.K8sInfo); err != nil {
 		log.Warn(err)
 	} else {
-		k8sinfo.AutoUpdate(ctx)
+		criLi, _ := cli.NewCRIDefault()
+		k8sinfo = cli.NewK8sInfo(c, criLi)
+	}
+	if k8sinfo != nil {
+		k8sinfo.AutoUpdate(ctx, time.Second*20)
 		netflow.SetK8sNetInfo(k8sinfo)
 		dnsflow.SetK8sNetInfo(k8sinfo)
 		l4log.SetK8sNetInfo(k8sinfo)

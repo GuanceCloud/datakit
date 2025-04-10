@@ -17,7 +17,7 @@ import (
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 	"golang.org/x/sys/unix"
 )
@@ -29,9 +29,9 @@ const (
 	NetProtoHTTP NetProtoTyp = "http"
 )
 
-var k8sNetInfo *k8sinfo.K8sNetInfo
+var k8sNetInfo *cli.K8sInfo
 
-func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+func SetK8sNetInfo(n *cli.K8sInfo) {
 	k8sNetInfo = n
 }
 
@@ -252,8 +252,8 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 	if conns.runtime != nil && len(conns.blacklist) > 0 {
 		var sPod, dPod string
 		if k8sNetInfo != nil {
-			sPod = k8sNetInfo.QueryPodName(k.SrcIP, uint32(k.SrcPort), "tcp")
-			dPod = k8sNetInfo.QueryPodName(k.DstIP, uint32(k.DstPort), "tcp")
+			sPod = k8sNetInfo.QueryPodName(0, k.SrcIP)
+			dPod = k8sNetInfo.QueryPodName(0, k.DstIP)
 		}
 		elem := &netParams{
 			tcp:       true,

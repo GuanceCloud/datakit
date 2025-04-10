@@ -18,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"golang.org/x/sys/unix"
 )
 
@@ -47,7 +47,7 @@ type dnsRecorder interface {
 
 var dnsRecord dnsRecorder
 
-var k8sNetInfo *k8sinfo.K8sNetInfo
+var k8sNetInfo *cli.K8sInfo
 
 func SetDNSRecord(r dnsRecorder) {
 	dnsRecord = r
@@ -57,7 +57,7 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+func SetK8sNetInfo(n *cli.K8sInfo) {
 	k8sNetInfo = n
 }
 
@@ -348,16 +348,19 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	return pt, nil
 }
 
-func IsIncomingFromK8s(k8sNetInfo *k8sinfo.K8sNetInfo, srcIP string,
+func IsIncomingFromK8s(k8sNetInfo *cli.K8sInfo, pid int, srcIP string,
 	srcPort uint32, transport string,
 ) bool {
 	if k8sNetInfo != nil {
-		return k8sNetInfo.IsServer(srcIP, srcPort, transport)
+		if t, ok := k8sNetInfo.IsServer(pid,
+			transport, srcIP, int(srcPort)); ok {
+			return t
+		}
 	}
 	return false
 }
 
-func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo,
+func AddK8sTags2Map(k8sNetInfo *cli.K8sInfo,
 	basekey *BaseKey, mTags map[string]string,
 ) map[string]string {
 	if mTags == nil {
@@ -371,57 +374,74 @@ func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo,
 	if k8sNetInfo != nil {
 		srcK8sFlag := false
 		dstK8sFlag := false
-		if k8sNetInfo.IsServer(basekey.SAddr, basekey.SPort, basekey.Transport) {
+		if t, ok := k8sNetInfo.IsServer(basekey.PID, basekey.Transport,
+			basekey.SAddr, int(basekey.SPort)); ok && t {
 			mTags["direction"] = DirectionIncoming
 		}
-		if srcPoName, srcSvcName, ns, srcDeployment, err := k8sNetInfo.QueryPodInfo(
-			basekey.SAddr, basekey.SPort, basekey.Transport); err == nil {
+		if t, ok := k8sNetInfo.QueryPodInfo(
+			basekey.PID, basekey.SAddr, int(basekey.SPort), basekey.Transport); ok && t != nil {
 			srcK8sFlag = true
-			mTags["src_k8s_namespace"] = ns
-			mTags["src_k8s_pod_name"] = srcPoName
-			mTags["src_k8s_service_name"] = srcSvcName
-			mTags["src_k8s_deployment_name"] = srcDeployment
-		} else {
-			srcSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(
-				basekey.SAddr, basekey.SPort, basekey.Transport)
-			if err == nil {
-				srcK8sFlag = true
-				mTags["src_k8s_namespace"] = ns
-				mTags["src_k8s_pod_name"] = NoValue
-				mTags["src_k8s_service_name"] = srcSvcName
-				mTags["src_k8s_deployment_name"] = dp
+			mTags["src_k8s_namespace"] = t.NS
+			mTags["src_k8s_pod_name"] = t.PodName
+			mTags["src_k8s_service_name"] = t.SvcName
+			mTags["src_k8s_deployment_name"] = t.WorkloadName
+			mTags["src_k8s_workload"] = t.WorkloadName
+			mTags["src_k8s_workload_type"] = t.Kind.String()
+
+			for k, v := range t.Labels {
+				if _, ok := mTags[k]; !ok {
+					mTags[k] = v
+				}
 			}
+		} else if t, ok := k8sNetInfo.QuerySvcInfo(
+			basekey.Transport, basekey.SAddr, int(basekey.SPort)); ok && t != nil {
+			srcK8sFlag = true
+			mTags["src_k8s_namespace"] = t.Chain.Tag.NS
+			mTags["src_k8s_pod_name"] = NoValue
+			mTags["src_k8s_service_name"] = t.Svc.Name
+			mTags["src_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+			mTags["src_k8s_workload"] = t.Chain.Tag.WorkloadName
+			mTags["src_k8s_workload_type"] = t.Chain.Tag.Kind.String()
 		}
 
 		if basekey.DNATAddr != "" && basekey.DNATPort != 0 {
-			if dstPodName, dstSvcName, ns, dstDeployment, err := k8sNetInfo.QueryPodInfo(
-				basekey.DNATAddr, basekey.DNATPort, basekey.Transport); err == nil {
-				mTags["dst_k8s_namespace"] = ns
-				mTags["dst_k8s_pod_name"] = dstPodName
-				mTags["dst_k8s_service_name"] = dstSvcName
-				mTags["dst_k8s_deployment_name"] = dstDeployment
+			if t, ok := k8sNetInfo.QueryPodInfo(
+				0, basekey.DNATAddr, int(basekey.DNATPort), basekey.Transport); ok && t != nil {
+				dstK8sFlag = true
+				mTags["dst_k8s_namespace"] = t.NS
+				mTags["dst_k8s_pod_name"] = t.PodName
+				mTags["dst_k8s_service_name"] = t.SvcName
+				mTags["dst_k8s_deployment_name"] = t.WorkloadName
+				mTags["dst_k8s_workload"] = t.WorkloadName
+				mTags["dst_k8s_workload_type"] = t.Kind.String()
+				goto skip_dst
 			}
 		}
 
-		if dstPodName, dstSvcName, ns, dstDeployment, err := k8sNetInfo.QueryPodInfo(
-			basekey.DAddr, basekey.DPort, basekey.Transport); err == nil {
+		if t, ok := k8sNetInfo.QueryPodInfo(0,
+			basekey.DAddr, int(basekey.DPort), basekey.Transport); ok && t != nil {
 			// k.dport
 			dstK8sFlag = true
-			mTags["dst_k8s_namespace"] = ns
-			mTags["dst_k8s_pod_name"] = dstPodName
-			mTags["dst_k8s_service_name"] = dstSvcName
-			mTags["dst_k8s_deployment_name"] = dstDeployment
+			mTags["dst_k8s_namespace"] = t.NS
+			mTags["dst_k8s_pod_name"] = t.PodName
+			mTags["dst_k8s_service_name"] = t.SvcName
+			mTags["dst_k8s_deployment_name"] = t.WorkloadName
+			mTags["dst_k8s_workload"] = t.WorkloadName
+			mTags["dst_k8s_workload_type"] = t.Kind.String()
 		} else {
-			dstSvcName, ns, dp, err := k8sNetInfo.QuerySvcInfo(
-				basekey.DAddr, basekey.DPort, basekey.Transport)
-			if err == nil {
+			if t, ok := k8sNetInfo.QuerySvcInfo(basekey.Transport,
+				basekey.DAddr, int(basekey.DPort)); ok && t != nil {
 				dstK8sFlag = true
-				mTags["dst_k8s_namespace"] = ns
-				mTags["dst_k8s_service_name"] = dstSvcName
-				mTags["dst_k8s_deployment_name"] = dp
+				mTags["dst_k8s_namespace"] = t.Chain.Tag.NS
+				mTags["dst_k8s_pod_name"] = NoValue
+				mTags["dst_k8s_service_name"] = t.Svc.Name
+				mTags["dst_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+				mTags["dst_k8s_workload"] = t.Chain.Tag.WorkloadName
+				mTags["dst_k8s_workload_type"] = t.Chain.Tag.Kind.String()
 			}
 		}
 
+	skip_dst:
 		if srcK8sFlag || dstK8sFlag {
 			mTags["sub_source"] = "K8s"
 			if !srcK8sFlag {
@@ -429,12 +449,16 @@ func AddK8sTags2Map(k8sNetInfo *k8sinfo.K8sNetInfo,
 				mTags["src_k8s_pod_name"] = NoValue
 				mTags["src_k8s_service_name"] = NoValue
 				mTags["src_k8s_deployment_name"] = NoValue
+				mTags["src_k8s_workload"] = NoValue
+				mTags["src_k8s_workload_type"] = NoValue
 			}
 			if !dstK8sFlag {
 				mTags["dst_k8s_namespace"] = NoValue
 				mTags["dst_k8s_pod_name"] = NoValue
 				mTags["dst_k8s_service_name"] = NoValue
 				mTags["dst_k8s_deployment_name"] = NoValue
+				mTags["dst_k8s_workload"] = NoValue
+				mTags["dst_k8s_workload_type"] = NoValue
 			}
 		}
 	}
