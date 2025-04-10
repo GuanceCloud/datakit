@@ -261,6 +261,7 @@ ulimit = 64000
     #workers = 4          # flush workers on WAL(default to CPU limited cores)
     #mem_cap = 4          # in-memory queue capacity(default to CPU limited cores)
     #fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
+    #no_drop_categories = ["L"]        # category list that disable drop data when disk cache full
 
 
 ################################################

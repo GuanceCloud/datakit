@@ -452,7 +452,7 @@ func loadInstallerEnvs(mc *config.Config) *config.Config {
 		l.Infof("set WAL workers to %d", mc.Dataway.WAL.Workers)
 	}
 
-	if WALCapacity != mc.Dataway.WAL.MaxCapacityGB {
+	if WALCapacity > 0 && WALCapacity != mc.Dataway.WAL.MaxCapacityGB {
 		mc.Dataway.WAL.MaxCapacityGB = WALCapacity
 		l.Infof("set WAL cap to %f GB", mc.Dataway.WAL.MaxCapacityGB)
 	}

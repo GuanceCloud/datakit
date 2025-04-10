@@ -180,6 +180,22 @@ var (
 		[]string{"category", "status"},
 	)
 
+	walPutRetriedVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "wal_put_retried",
+			Help:      "WAL put retried on disk full",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"category"},
+	)
+
 	bytesCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -261,6 +277,7 @@ func Metrics() []prometheus.Collector {
 		bodyCounterVec,
 		ptsCounterVec,
 		walPointCounterVec,
+		walPutRetriedVec,
 		bytesCounterVec,
 		writeDropPointsCounterVec,
 		apiSumVec,
@@ -282,6 +299,7 @@ func metricsReset() {
 	bodyCounterVec.Reset()
 	ptsCounterVec.Reset()
 	walPointCounterVec.Reset()
+	walPutRetriedVec.Reset()
 	bytesCounterVec.Reset()
 	writeDropPointsCounterVec.Reset()
 	apiSumVec.Reset()
@@ -304,6 +322,7 @@ func doRegister() {
 		bodyCounterVec,
 		ptsCounterVec,
 		walPointCounterVec,
+		walPutRetriedVec,
 		bytesCounterVec,
 		writeDropPointsCounterVec,
 		apiSumVec,

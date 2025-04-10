@@ -480,6 +480,10 @@ func (c *Config) loadDatawayEnvs() {
 				c.Dataway.WAL.FailCacheCleanInterval = x
 			}
 		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_WAL_NO_DROP_CATEGORIES"); v != "" {
+			c.Dataway.WAL.NoDropCategories = strings.Split(v, ",")
+		}
 	} else {
 		l.Errorf("WAL not set, should not been here")
 	}

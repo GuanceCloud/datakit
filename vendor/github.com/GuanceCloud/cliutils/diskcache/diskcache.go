@@ -106,6 +106,7 @@ type DiskCache struct {
 	noFallbackOnError, // ignore Fn() error
 	noPos, // no position
 	filoDrop, // first-in-last-out drop, meas we chooes to drop the new-comming data first
+	noDrop, // disable drop on cache full
 	noLock bool // no file lock
 
 	// labels used to export prometheus flags

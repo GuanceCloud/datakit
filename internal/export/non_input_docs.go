@@ -238,15 +238,23 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_WORKERS",
 			Type:    doc.Int,
-			Desc:    "Set WAL workers, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
-			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			Desc:    "Set WAL workers, default to limited CPU cores X 8 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL worker 个数，默认为 CPU 配额核心数 X 8 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_WAL_MEM_CAPACITY",
 			Type:    doc.Int,
-			Desc:    "Set WAL memory queue length, default to limited CPU cores X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
-			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 X 2 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			Desc:    "Set WAL memory queue length, default to limited CPU cores X 8 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 内存队列长度，默认为 CPU 配额核心数 X 8 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_WAL_NO_DROP_CATEGORIES",
+			Type:    doc.List,
+			Desc:    "Set category list that do not drop data if WAL disk full [:octicons-tag-24: Version-1.71.0](changelog.md#cl-1.71.0)",
+			DescZh:  "当 WAL 磁盘限定容量写满时，设置不主动丢弃的数据类型列表 [:octicons-tag-24: Version-1.71.0](changelog.md#cl-1.71.0)",
+			Example: "`'L,T,N'`",
 		},
 
 		{

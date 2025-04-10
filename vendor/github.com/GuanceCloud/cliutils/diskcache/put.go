@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+// IsFull test if reach max capacity limit after put newData into cache.
+func (c *DiskCache) IsFull(newData []byte) bool {
+	return c.capacity > 0 && c.size.Load()+int64(len(newData)) > c.capacity
+}
+
 // Put write @data to disk cache, if reached batch size, a new batch is rotated.
 // Put is safe to call concurrently with other operations and will
 // block until all other operations finish.
@@ -29,7 +34,11 @@ func (c *DiskCache) Put(data []byte) error {
 		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 	}()
 
-	if c.capacity > 0 && c.size.Load()+int64(len(data)) > c.capacity {
+	if c.IsFull(data) {
+		if c.noDrop {
+			return ErrCacheFull
+		}
+
 		if c.filoDrop { // do not accept new data
 			droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(len(data)))
 			return ErrCacheFull

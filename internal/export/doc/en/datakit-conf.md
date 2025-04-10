@@ -317,6 +317,10 @@ See [here](datakit-daemonset-deploy.md#env-dataway) for configuration under Kube
 
 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
 
+WAL is used to cache data that Datakit cannot upload in time. When there is a sudden large amount of data collection and the data cannot be sent in time, Datakit will write it into a disk queue to avoid blocking data collection and affecting data real-time performance.
+
+The WAL disk queue has a default disk size limit. When the cached data volume exceeds this limit, newly collected data cannot be written and will be discarded. If you do not want to drop such data, you can configure the data type (generally logging `L`) in the `no_drop_categories` list. In this case, the data will not be actively dropped, but it will block data collection.
+
 In the `[dataway.wal]` section, we can adjust the configuration of the WAL queue:
 
 ```toml
@@ -325,6 +329,7 @@ In the `[dataway.wal]` section, we can adjust the configuration of the WAL queue
      workers = 0                       # flush workers on WAL (default to CPU limited cores)
      mem_cap = 0                       # in-memory queue capacity (default to CPU limited cores)
      fail_cache_clean_interval = "30s" # duration for cleaning failed uploaded data
+     #no_drop_categories = ["L"]       # category list that do not drop data if WAL disk full
 ```
 
 The disk files are located in the *cache/dw-wal* directory under the Datakit installation directory:
