@@ -22,11 +22,11 @@ import (
 	"github.com/cilium/ebpf"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"golang.org/x/sys/unix"
 
 	expRand "golang.org/x/exp/rand"
@@ -334,7 +334,7 @@ type apiTracerConfig struct {
 	enableTrace bool
 	procFilter  *sysmonitor.ProcessFilter
 	protos      map[protodec.L7Protocol]struct{}
-	k8sNetInfo  *k8sinfo.K8sNetInfo
+	k8sNetInfo  *cli.K8sInfo
 	selfPid     int
 }
 
@@ -374,7 +374,7 @@ func WithProtos(protos map[protodec.L7Protocol]struct{}) APITracerOpt {
 	}
 }
 
-func WithK8sNetInfo(k8sNetInfo *k8sinfo.K8sNetInfo) APITracerOpt {
+func WithK8sNetInfo(k8sNetInfo *cli.K8sInfo) APITracerOpt {
 	return func(cfg *apiTracerConfig) {
 		cfg.k8sNetInfo = k8sNetInfo
 	}

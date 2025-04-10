@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
 
 type aggKey struct {
@@ -36,7 +36,7 @@ type aggValue struct {
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,
-	addTags map[string]string, k8sNetInfo *k8sinfo.K8sNetInfo,
+	addTags map[string]string, k8sNetInfo *cli.K8sInfo,
 ) (*point.Point, error) {
 	tags := map[string]string{
 		"family": key.family,
@@ -200,7 +200,7 @@ func (agg *FlowAggTCP) Append(info *PMeta, stats *TCPMetrics, netns string,
 }
 
 func (agg *FlowAggTCP) ToPoint(tags map[string]string,
-	k8sInfo *k8sinfo.K8sNetInfo,
+	k8sInfo *cli.K8sInfo,
 ) []*point.Point {
 	var result []*point.Point
 

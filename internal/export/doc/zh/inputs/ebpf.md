@@ -220,10 +220,20 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_SAMPLING_RATE`
     - 示例：`0.50`
 
-- `samping_rate_pts_per_min`
+- `sampling_rate_pts_per_min`
     - 描述：设置 eBPF 采集器上报数据时的每分钟数据量阈值，动态调整采样率
     - 环境变量：`ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN`
     - 示例：`1500`
+
+- `workload_labels`
+    - 描述：设置需要添加到数据的 K8s workload 所有指定的标签
+    - 环境变量：`ENV_INPUT_EBPF_WORKLOAD_LABELS`
+    - 示例：`app,project_id`
+
+- `workload_label_prefix`
+    - 描述：为 k8s 的 workload 标签添加前缀
+    - 环境变量：`ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
+    - 示例：`k8s_workload_label_`
 
 <!-- markdownlint-enable -->
 

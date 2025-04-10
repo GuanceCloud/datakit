@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 )
 
@@ -41,7 +41,7 @@ var _protoSet = &ProtoSet{
 type AggPool interface {
 	Proto() L7Protocol
 	Obs(conn *comm.ConnectionInfo, data *ProtoData)
-	Export(tags map[string]string, k8sInfo *k8sinfo.K8sNetInfo) []*point.Point
+	Export(tags map[string]string, k8sInfo *cli.K8sInfo) []*point.Point
 	Cleanup()
 }
 

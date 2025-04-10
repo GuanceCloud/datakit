@@ -227,6 +227,17 @@ Configuration items:
     - Description: Set the data volume threshold per minute when the eBPF collector reports data, and dynamically adjust the sampling rate
     - Environment variable: `ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN`
     - Example: `1500`
+
+- `workload_labels`
+    - Description: Set all specified labels of the K8s workload to be added to the data
+    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABELS`
+    - Example: `app,project_id`
+
+- `workload_label_prefix`
+    - Description: Add a prefix to the k8s workload label
+    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
+    - Example: `k8s_workload_label_`
+
 <!-- markdownlint-enable -->
 
 ## eBPF Tracing function {#ebpf-tracing}

@@ -12,7 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
 
 const (
@@ -27,9 +27,9 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-var k8sNetInfo *k8sinfo.K8sNetInfo
+var k8sNetInfo *cli.K8sInfo
 
-func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+func SetK8sNetInfo(n *cli.K8sInfo) {
 	k8sNetInfo = n
 }
 

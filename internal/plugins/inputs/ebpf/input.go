@@ -45,9 +45,12 @@ var (
 )
 
 type K8sConf struct {
-	K8sURL            string `toml:"kubernetes_url"`
-	K8sBearerToken    string `toml:"bearer_token"`
-	K8sBearerTokenStr string `toml:"bearer_token_string"`
+	URL            string `toml:"kubernetes_url"`
+	BearerToken    string `toml:"bearer_token"`
+	BearerTokenStr string `toml:"bearer_token_string"`
+
+	WorkloadLabels      []string `toml:"workload_labels"`
+	WorkloadLabelPrefix string   `toml:"workload_label_prefix"`
 }
 
 type Input struct {
@@ -151,17 +154,32 @@ loop:
 		ipt.Input.Args = append(ipt.Input.Args, "--hostname", config.Cfg.Hostname)
 	}
 
-	if ipt.K8sURL != "" {
+	if ipt.URL != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("DKE_K8S_URL=%s", ipt.K8sConf.K8sURL))
+			fmt.Sprintf("DKE_K8S_URL=%s", ipt.K8sConf.URL))
 	}
-	if ipt.K8sBearerToken != "" {
+	if ipt.BearerToken != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("DKE_K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.K8sBearerToken))
+			fmt.Sprintf("DKE_K8S_BEARER_TOKEN_PATH=%s", ipt.K8sConf.BearerToken))
 	}
-	if ipt.K8sBearerTokenStr != "" {
+	if ipt.BearerTokenStr != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
-			fmt.Sprintf("DKE_K8S_BEARER_TOKEN=%s", ipt.K8sConf.K8sBearerTokenStr))
+			fmt.Sprintf("DKE_K8S_BEARER_TOKEN=%s", ipt.K8sConf.BearerTokenStr))
+	}
+	if len(ipt.WorkloadLabels) > 0 {
+		ipt.Input.Envs = append(
+			ipt.Input.Envs,
+			fmt.Sprintf("DKE_K8S_WORKLOAD_LABELS=%s",
+				strings.Join(ipt.WorkloadLabels, ","),
+			),
+		)
+		if ipt.WorkloadLabelPrefix != "" {
+			ipt.Input.Envs = append(
+				ipt.Input.Envs,
+				fmt.Sprintf("K8S_WORKLOAD_LABEL_PREFIX=%s",
+					ipt.WorkloadLabelPrefix),
+			)
+		}
 	}
 	if ipt.NetlogBlacklist != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
@@ -351,6 +369,9 @@ func (*Input) AvailableArchs() []string {
 //
 // ENV_INPUT_EBPF_SAMPLING_RATE           : string
 // ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN : string.
+//
+// ENV_INPUT_EBPF_WORKLOAD_LABELS      : []string
+// ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX: string.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
 		ipt.PprofHost = v
@@ -362,6 +383,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	if pluginList, ok := envs["ENV_INPUT_EBPF_ENABLED_PLUGINS"]; ok {
 		l.Debugf("add enabled_plugins from ENV: %v", pluginList)
 		ipt.EnabledPlugins = strings.Split(pluginList, ",")
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_WORKLOAD_LABELS"]; ok {
+		ipt.WorkloadLabels = strings.Split(v, ",")
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX"]; ok {
+		ipt.WorkloadLabelPrefix = v
 	}
 
 	if l7netEnabledList, ok := envs["ENV_INPUT_EBPF_L7NET_ENABLED"]; ok {

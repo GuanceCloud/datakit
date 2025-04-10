@@ -12,9 +12,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
 
 type HTTPAggP struct {
@@ -174,7 +174,7 @@ func (agg *HTTPAggP) Proto() L7Protocol {
 	return ProtoHTTP
 }
 
-func (agg *HTTPAggP) Export(tags map[string]string, k8sInfo *k8sinfo.K8sNetInfo) []*point.Point {
+func (agg *HTTPAggP) Export(tags map[string]string, k8sInfo *cli.K8sInfo) []*point.Point {
 	agg.RLock()
 	defer agg.RUnlock()
 	var result []*point.Point
@@ -203,7 +203,7 @@ func newHTTPAggP(p L7Protocol) AggPool {
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,
-	addTags map[string]string, k8sNetInfo *k8sinfo.K8sNetInfo,
+	addTags map[string]string, k8sNetInfo *cli.K8sInfo,
 ) (*point.Point, error) {
 	tags := map[string]string{
 		"family": key.family,

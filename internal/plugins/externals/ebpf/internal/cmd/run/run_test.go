@@ -3,7 +3,13 @@
 
 package run
 
-import "testing"
+import (
+	"context"
+	"testing"
+	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
+)
 
 func TestDKE(t *testing.T) {
 	runCmd(nil, &Flag{
@@ -34,4 +40,18 @@ func TestDKE(t *testing.T) {
 		},
 		PIDFile: "/tmp/ebpf.pid",
 	})
+}
+
+func TestXxx(t *testing.T) {
+	var k8sinfo *cli.K8sInfo
+	if c, err := cli.NewK8sClientFromKubeConfig("", []string{"app"}, "lb_"); err != nil {
+		log.Warn(err)
+	} else {
+		criLi, _ := cli.NewCRIDefault()
+		k8sinfo = cli.NewK8sInfo(c, criLi)
+	}
+
+	k8sinfo.AutoUpdate(context.Background(), time.Second*5)
+
+	t.Log("finished")
 }

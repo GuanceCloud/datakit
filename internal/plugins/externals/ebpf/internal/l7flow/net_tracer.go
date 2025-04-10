@@ -13,11 +13,11 @@ import (
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 )
 
@@ -189,7 +189,7 @@ type ConnWatcher struct {
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 
 	tags        map[string]string
-	k8sInfo     *k8sinfo.K8sNetInfo
+	k8sInfo     *cli.K8sInfo
 	enableTrace bool
 
 	sync.Mutex
@@ -327,7 +327,7 @@ type Tracer struct {
 	aggPool map[protodec.L7Protocol]protodec.AggPool
 
 	tags    map[string]string
-	k8sInfo *k8sinfo.K8sNetInfo
+	k8sInfo *cli.K8sInfo
 
 	processFilter  *sysmonitor.ProcessFilter
 	protocolFilter *protoKernelFilter

@@ -33,6 +33,11 @@ const configSample = `
   ## or 
   # bearer_token_string = "<your-token-string>"
   
+  ## k8s workload labels
+  ##
+  # workload_labels = ["app"]  
+  # workload_label_prefix = ""
+
   ## all supported plugins:
   ## - "ebpf-net"  :
   ##     contains L4-network(netflow), L7-network(httpflow, dnsflow) collection
