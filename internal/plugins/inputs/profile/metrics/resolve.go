@@ -66,6 +66,7 @@ const (
 	PHP     Language = "php"
 	DotNet  Language = "dotnet"
 	CPP     Language = "cpp"
+	Rust    Language = "rust"
 	UnKnown Language = "unknown"
 )
 
@@ -103,21 +104,29 @@ const (
 )
 
 var LangMaps = map[string]Language{
-	"java":    Java,
-	"jvm":     Java,
-	"py":      Python,
-	"python":  Python,
-	"ruby":    Ruby,
-	"node":    NodeJS,
-	"nodejs":  NodeJS,
-	"node.js": NodeJS,
-	"php":     PHP,
-	".net":    DotNet,
-	"dotnet":  DotNet,
-	"c#":      DotNet,
-	"csharp":  DotNet,
-	"golang":  Golang,
-	"go":      Golang,
+	"javascript":   NodeJS,
+	"pyroscope-rs": Rust,
+	"cplusplus":    CPP,
+	"java":         Java,
+	"jvm":          Java,
+	"kotlin":       Java,
+	"scala":        Java,
+	"python":       Python,
+	"dotnet":       DotNet,
+	"ruby":         Ruby,
+	"nodejs":       NodeJS,
+	"node.js":      NodeJS,
+	"node":         NodeJS,
+	"rust":         Rust,
+	"php":          PHP,
+	"cpp":          CPP,
+	"c++":          CPP,
+	".net":         DotNet,
+	"c#":           DotNet,
+	"csharp":       DotNet,
+	"golang":       Golang,
+	"go":           Golang,
+	"js":           NodeJS,
 }
 
 type RFC3339Time time.Time

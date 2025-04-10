@@ -42,12 +42,16 @@ func (g *dynamicGlobalTaggerImpl) HostTags() map[string]string     { return Glob
 func (g *dynamicGlobalTaggerImpl) ElectionTags() map[string]string { return GlobalElectionTags() }
 
 func (g *dynamicGlobalTaggerImpl) Updated() bool {
-	return g.ver.Load() != tagVersion.Load()
+	version, tagVer := g.ver.Load(), tagVersion.Load()
+	if version != tagVer {
+		return g.ver.CompareAndSwap(version, tagVer) // use CAS to do the atomic updating
+	}
+	return false
 }
 
 // UpdateVersion set tagger's current version.
 func (g *dynamicGlobalTaggerImpl) UpdateVersion() {
-	g.ver.Store(tagVersion.Load())
+	// no-op
 }
 
 // DefaultGlobalTagger get a tagger that always return nothing.
