@@ -30,6 +30,11 @@ func (app *monitorAPP) renderGolangRuntimeTable(mfs map[string]*dto.MetricFamily
 	gcSummary := app.mfs["datakit_gc_summary_seconds"]
 	openFiles := app.mfs["datakit_open_files"]
 
+	if osMemStat == nil || goMemStat == nil {
+		l.Warn("no metric on datakit_golang_mem_usage/datakit_mem_stat")
+		return
+	}
+
 	if goroutines != nil && len(goroutines.Metric) == 1 {
 		m := goroutines.Metric[0]
 		table.SetCell(row, 0,

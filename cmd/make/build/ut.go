@@ -179,7 +179,7 @@ func UnitTestDataKit() error {
 			}
 
 			nIdx++
-			cp.Printf("run huge test %q\n", pkg)
+			cp.Printf("[%s] run huge test %q\n", time.Now(), pkg)
 			ut.doWork(&job{
 				UTID:    utID,
 				index:   nIdx,

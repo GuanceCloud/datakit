@@ -36,6 +36,9 @@ func (app *monitorAPP) renderWALStatTable(mfs map[string]*dto.MetricFamily, colA
 	}
 
 	ptsTotal := mfs["datakit_io_wal_point_total"]
+	if ptsTotal == nil {
+		return
+	}
 
 	if ptsTotal == nil {
 		return

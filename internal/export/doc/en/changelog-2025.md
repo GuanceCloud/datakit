@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.71.0 (Thu Apr 10 CST 2025) {#cl-1.71.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.71.0-new}
+
+- Pyroscope added support for Rust (#2602).
+
+### Bug Fixes {#cl-1.71.0-fix}
+
+- Fixed the issue that monitor may crash in some cases (#2610).
+- Fixed the issue of APM automatic instrumentation failure (#2607).
+- In the log collection of some collectors, the automatic segmentation of the log length was supplemented to avoid the loss of long logs (#2613).
+- Fixed the issue that the custom tags of the dial test collector cannot be reported (#2616).
+
+### Function Optimization {#cl-1.71.0-opt}
+
+- Added X-Pkg-ID to the HTTP header for data packet tracking (#2587).
+- Added the `source_host/source_component` fields to the data collected from Kubernetes events (#2606).
+- In the DDTrace resource catalog collection, the user-defined tags were promoted to first-level fields to enable sinking (#2609).
+- Optimized the DDTrace sampling strategy. For traces with sampler-keep, Datakit will no longer sample but directly retain them (#2614).
+- The WAL disk cache allows some data categories not to discard data when the disk is full (#2620).
+- Added global tags to Profile and RUM session replay data to enable sinking (#2621).
+- The eBPF collection added more Kubernetes labels, such as `cronjob/daemonset/statefulset`, etc. (#2571).
+- Other optimizations (#2615).
+
+---
+
 ## 1.70.0 (March 26, 2025) {#cl-1.70.0}
 
 This release is an iterative release, with the following main updates:

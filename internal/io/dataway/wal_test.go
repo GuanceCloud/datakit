@@ -201,7 +201,6 @@ func TestNoDrop(t *T.T) {
 				WithBodyCallback(dw.enqueueBody),
 				WithHTTPEncoding(dw.contentEncoding))
 
-			defer wg.Done()
 			for {
 				w.buildPointsBody()
 				time.Sleep(time.Millisecond * 10) // quick compactor
@@ -216,7 +215,6 @@ func TestNoDrop(t *T.T) {
 
 		flusher := func(cat point.Category) {
 			f := dw.newFlusher(cat)
-			defer wg.Done()
 
 			for {
 				select {
@@ -246,29 +244,35 @@ func TestNoDrop(t *T.T) {
 
 		wg.Add(1)
 		go func() { // logging compactor
+			defer wg.Done()
 			compactor(point.Logging)
 		}()
 
 		wg.Add(1)
 		go func() { // logging compactor
+			defer wg.Done()
 			compactor(point.Metric)
 		}()
 
 		wg.Add(1)
 		go func() { // loggging flusher
+			defer wg.Done()
 			flusher(point.Logging)
 		}()
 
 		wg.Add(1)
 		go func() { // metric flusher: drop data if WAL disk full
+			defer wg.Done()
 			flusher(point.Metric)
 		}()
 
-		time.Sleep(time.Minute)
+		time.Sleep(time.Second * 30)
 
 		close(exit)
 
-		wg.Wait()
+		// DO not wait here, some blocking retry write may not exit until write ok, but the
+		// flush worker may has been exited on close of exit, and the retry will not terminate.
+		// wg.Wait()
 
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(Metrics()...)
