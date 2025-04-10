@@ -151,7 +151,7 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 							kvs := strings.Split(st, ":")
 							if len(kvs) == 2 {
 								ob.tags[kvs[0]] = kvs[1]
-								setCustomTags([]string{ob.tags[kvs[0]]})
+								setCustomTags([]string{kvs[0]})
 							}
 						}
 					}
