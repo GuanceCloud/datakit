@@ -133,7 +133,7 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 	}
 
 	tags := make(map[string]string)
-	for k, v := range ipt.Tags {
+	for k, v := range ipt.RegionTags {
 		tags[k] = v
 	}
 

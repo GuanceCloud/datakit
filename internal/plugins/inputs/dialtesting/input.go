@@ -86,7 +86,8 @@ type Input struct {
 	DisableInternalNetworkTask      bool              `toml:"disable_internal_network_task,omitempty"`
 	DisabledInternalNetworkCIDRList []string          `toml:"disabled_internal_network_cidr_list,omitempty"`
 
-	Tags map[string]string
+	Tags       map[string]string
+	RegionTags map[string]string
 
 	semStop              *cliutils.Sem // start stop signal
 	cli                  *http.Client  // class string
@@ -641,7 +642,7 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 		return nil, fmt.Errorf("invalid task type")
 	}
 
-	l.Debugf("input tags: %+#v", ipt.Tags)
+	l.Debugf("input region tags: %+#v", ipt.RegionTags)
 
 	dialer := newDialer(t, ipt)
 	dialer.done = ipt.semStop.Wait()
@@ -727,15 +728,15 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				switch v_ := v.(type) {
 				case bool:
 					if v_ {
-						ipt.Tags[k] = `true`
+						ipt.RegionTags[k] = `true`
 					} else {
-						ipt.Tags[k] = `false`
+						ipt.RegionTags[k] = `false`
 					}
 
 				case string:
 					if len(v_) > 0 {
 						if k != "name" && k != "status" && k != "name_en" {
-							ipt.Tags[k] = v_
+							ipt.RegionTags[k] = v_
 						} else {
 							l.Debugf("ignore tag %s:%s from region info", k, v_)
 						}
@@ -1044,8 +1045,9 @@ func (ipt *Input) stopAlltask() {
 
 func defaultInput() *Input {
 	return &Input{
-		Tags:    map[string]string{},
-		semStop: cliutils.NewSem(),
+		Tags:       map[string]string{},
+		RegionTags: map[string]string{},
+		semStop:    cliutils.NewSem(),
 		variables: Variable{
 			data:             map[string]dt.Variable{},
 			taskData:         map[string]map[string]dt.Variable{},

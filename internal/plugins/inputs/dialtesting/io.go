@@ -42,12 +42,21 @@ func (d *dialer) pointsFeed(urlStr string) {
 	tags["datakit_version"] = datakit.Version
 	tags["node_name"] = d.regionName
 
-	// the lowest priority
+	// df tags
 	for k, v := range d.dfTags {
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
 		} else {
 			l.Debugf("ignore df tag %s: %s", k, v)
+		}
+	}
+
+	// custom tags
+	for k, v := range d.ipt.Tags {
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+		} else {
+			l.Warnf("duplicate tag, ignore custom tag %s", k)
 		}
 	}
 
