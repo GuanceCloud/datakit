@@ -151,6 +151,7 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 							kvs := strings.Split(st, ":")
 							if len(kvs) == 2 {
 								ob.tags[kvs[0]] = kvs[1]
+								setCustomTags([]string{ob.tags[kvs[0]]})
 							}
 						}
 					}
@@ -158,6 +159,7 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 			}
 		}
 		ob.setField(string(requestType), string(bts))
+		log.Debugf("type=%s body=%s", requestType, string(bts))
 		ob.change = true
 	case RequestTypeDependenciesLoaded,
 		RequestTypeAppClientConfigurationChange,
@@ -169,6 +171,7 @@ func (ob *Telemetry) parseEvent(requestType RequestType, payload interface{}) {
 			return
 		}
 		ob.setField(string(requestType), string(bts))
+		log.Debugf("Dependencies type=%s body=%s", requestType, string(bts))
 		ob.change = true
 	case RequestTypeAppHeartbeat,
 		RequestTypeDistributions:
@@ -241,6 +244,7 @@ func (ipt *Input) OMInitAndRunning() {
 		for {
 			select {
 			case ob := <-ipt.om.OBChan:
+				ipt.om.obsLock.Lock()
 				err := ipt.feeder.FeedV2(
 					point.CustomObject,
 					[]*point.Point{ob.toPoint()},
@@ -249,6 +253,7 @@ func (ipt *Input) OMInitAndRunning() {
 				if err != nil {
 					log.Errorf("feed err=%v", err)
 				}
+				ipt.om.obsLock.Unlock()
 			case <-ipt.semStop.Wait():
 				return nil
 			}
@@ -260,10 +265,12 @@ func (om *Manager) parseTelemetryRequest(header http.Header, bts []byte) {
 	om.obsLock.Lock()
 	defer om.obsLock.Unlock()
 	if requestT := header.Get("Dd-Telemetry-Request-Type"); requestT == "" {
+		log.Errorf("request type is null")
 		return
 	}
 
 	if version := header.Get("Dd-Telemetry-Api-Version"); version != "v2" {
+		log.Errorf("request Dd-Telemetry-Api-Version is not v2 :%s", version)
 		return
 	}
 	body := &Body{}
