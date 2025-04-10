@@ -192,9 +192,9 @@ static bool gen_inject_tmpid_b16(char *tmpid)
 
 static bool try_apm_inject_process(char *const argv[], char *const envp[])
 {
-    pid_t c1_pid = fork();
+    pid_t sub_process = fork();
 
-    switch (c1_pid)
+    switch (sub_process)
     {
     case -1:
         debug_perror("fork error");
@@ -203,8 +203,8 @@ static bool try_apm_inject_process(char *const argv[], char *const envp[])
         ;
         // a label can only be part of a statement
         // and a declaration is not a statement
-        pid_t g1_rewrite_pid = fork();
-        switch (g1_rewrite_pid)
+        pid_t child_rewriter = fork();
+        switch (child_rewriter)
         {
         case -1:
             debug_perror("fork rewrite process");
@@ -217,39 +217,38 @@ static bool try_apm_inject_process(char *const argv[], char *const envp[])
                 debug_perror("run rewrite process `" DATAKIT_INJ_REWRITE_PROC "`");
             }
             _exit(0);
-        default:
-            break;
         }
 
-        pid_t g2_timer_pid = fork();
-        switch (g2_timer_pid)
+        pid_t child_watchdog = fork();
+        switch (child_watchdog)
         {
         case -1:
             debug_perror("fork watchdog timer");
-            kill(g1_rewrite_pid, SIGKILL);
+            kill(child_rewriter, SIGKILL);
+            wait(0);
             _exit(1);
         case 0: // grandson process 2
             // software watchdog timer
             sleep(1);
             _exit(0);
-        default:
-            break;
         }
 
-        pid_t g_x = wait(0); // skip check `errno`
+        pid_t child_exited = wait(0); // skip check `errno`
+
         int stat = 0;
-        if (g_x == g2_timer_pid)
+        if (child_exited == child_watchdog)
         {
             // timeout
             debug_log("rewrite process timeout\n");
-            kill(g1_rewrite_pid, SIGKILL);
+            kill(child_rewriter, SIGKILL);
             stat = 1;
         }
         else
         {
-            kill(g2_timer_pid, SIGKILL);
+            kill(child_watchdog, SIGKILL);
         }
 
+        wait(0);
         _exit(stat);
     default:
         break;
@@ -257,7 +256,7 @@ static bool try_apm_inject_process(char *const argv[], char *const envp[])
 
     // parent process
     int stat = 0;
-    waitpid(c1_pid, &stat, 0);
+    waitpid(sub_process, &stat, 0);
 
     return WEXITSTATUS(stat) == 0 ? true : false;
 }

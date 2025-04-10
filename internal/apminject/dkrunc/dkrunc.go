@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,8 @@ import (
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/dkrunc/utils"
+
+	reUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/rewriter/utils"
 
 	injUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 )
@@ -26,8 +29,10 @@ type MntDir struct {
 	ReadOnly         bool
 }
 
+var log = &Log{}
+
 func main() {
-	log := NewLog("/usr/local/datakit/apm_inject/log/dkrunc.log")
+	log = NewLog("/usr/local/datakit/apm_inject/log/dkrunc.log")
 	defer log.Close()
 	eventRec := &EventRec{
 		Time: time.Now().Format(time.RFC3339),
@@ -73,7 +78,7 @@ func main() {
 		args = append(args, os.Args[1:]...)
 	}
 
-	exitCode, err := utils.RunCmd("runc", args, os.Stdout, os.Stderr)
+	exitCode, err := runCmd("runc", args)
 	if err != nil {
 		eventRec.Errors = append(eventRec.Errors, err.Error())
 	}
@@ -84,6 +89,27 @@ func main() {
 	}
 
 	os.Exit(exitCode) //nolint:gocritic
+}
+
+func runCmd(name string, args []string) (int, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Start()
+	if err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		return -1, err
+	}
+
+	var exitCode int
+	err = cmd.Wait()
+	if cmd.ProcessState != nil {
+		exitCode = cmd.ProcessState.ExitCode()
+	}
+
+	return exitCode, err
 }
 
 func tryInjectSpec(bundle string, spec *Spec, dirList []MntDir, injectEnvs [][2]string) (*Spec, error) {
@@ -111,6 +137,12 @@ func tryInjectSpec(bundle string, spec *Spec, dirList []MntDir, injectEnvs [][2]
 		spec.Process.Env = append(spec.Process.Env,
 			strings.Join(injectEnvs[i][:], "="))
 	}
+
+	if s, err := tryModProcSpec(spec); err == nil {
+		if s != nil {
+			spec = s
+		}
+	}
 	return spec, nil
 }
 
@@ -131,6 +163,64 @@ func checkContainerEnv(spec *Spec, injEnvs [][2]string) error {
 	}
 
 	return nil
+}
+
+func tryModProcSpec(spec *Spec) (*Spec, error) {
+	if p := spec.Process; p == nil || len(spec.Process.Args) < 1 {
+		return nil, fmt.Errorf("process parameters do not meet the conditions")
+	}
+
+	arg0 := spec.Process.Args[0]
+
+	if arg0 != "java" && strings.HasSuffix(arg0, "/java") {
+		return nil, fmt.Errorf("not recognized as a java program")
+	}
+
+	if spec.Root == nil || spec.Root.Path == "" {
+		return nil, fmt.Errorf("container root path not found")
+	}
+
+	var pathEnv string
+	for _, envVar := range spec.Process.Env {
+		parts := strings.SplitN(envVar, "=", 2)
+		if len(parts) == 2 && parts[0] == "PATH" {
+			pathEnv = parts[1]
+		}
+	}
+
+	if ok, err := checkJavaInContainer(spec.Root.Path, pathEnv, arg0); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, fmt.Errorf("unsupported java")
+	}
+
+	agentDir := filepath.Join(utils.DirInjectSubLib, "java/dd-java-agent.jar")
+
+	if _, err := os.Stat(agentDir); err != nil {
+		return nil, fmt.Errorf("stat dd-java-agent.jar: %w", err)
+	}
+
+	for i := 1; i < len(spec.Process.Args[1:]); i++ {
+		p := strings.TrimSpace(spec.Process.Args[i])
+		if strings.HasPrefix(p, "-javaagent:") {
+			v := strings.TrimPrefix(p, "-javaagent:")
+			if path.Base(strings.TrimSpace(v)) ==
+				path.Base(agentDir) {
+				return nil, fmt.Errorf("already injected")
+			}
+		}
+	}
+
+	args := []string{spec.Process.Args[0], fmt.Sprintf("-javaagent:%s", agentDir)}
+	args = append(args, spec.Process.Args[1:]...)
+	spec.Process.Args = args
+	spec.Process.Env = append(spec.Process.Env,
+		fmt.Sprintf("DD_TRACE_AGENT_URL=unix://%s", injUtils.DefaultDKUDS),
+		fmt.Sprintf("DD_JMXFETCH_STATSD_HOST=unix://%s", injUtils.DefaultStatsDUDS),
+		"DD_JMXFETCH_STATSD_PORT=0",
+	)
+
+	return spec, nil
 }
 
 func setContainerMount(root string, dirList []MntDir, mnts map[string]struct{}) ([]specs.Mount, error) {
@@ -267,4 +357,64 @@ func (log *Log) Close() {
 	if log.file != nil {
 		log.Close() //nolint:gosec,errcheck
 	}
+}
+
+func FindBinary(rootfs, envPath, binaryName string) (string, error) {
+	pathDirs := strings.Split(envPath, string(os.PathListSeparator))
+
+	for _, dir := range pathDirs {
+		fullPath := filepath.Join(rootfs, dir, binaryName)
+		if _, err := os.Stat(fullPath); err == nil {
+			if isExecutable(fullPath) {
+				return fullPath, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("binary %s not found", binaryName)
+}
+
+func isExecutable(filePath string) bool {
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return false
+	}
+	mode := info.Mode()
+	return mode&0o111 != 0
+}
+
+func checkJavaInContainer(rootfs string, envPath string, binName string) (bool, error) {
+	var binPath string
+	if filepath.IsAbs(binName) {
+		binPath = filepath.Join(rootfs, binName)
+		if !isExecutable(binPath) {
+			return false, fmt.Errorf("file %s is not executable", binPath)
+		}
+	} else {
+		if v, err := FindBinary(rootfs, envPath, binName); err == nil {
+			binPath = v
+		} else {
+			return false, err
+		}
+	}
+	if binPath == "" {
+		return false, fmt.Errorf("binary %s not found", binName)
+	}
+
+	cmd := exec.Command(binPath, "-version")
+	o, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
+	}
+
+	ver, err := reUtils.GetJavaVersion(string(o))
+	if err != nil {
+		return false, err
+	}
+
+	if ver < 8 {
+		return false, reUtils.ErrUnsupportedJava
+	}
+
+	return true, nil
 }

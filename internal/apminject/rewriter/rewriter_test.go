@@ -6,6 +6,8 @@
 package main
 
 import (
+	"debug/elf"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,4 +52,24 @@ func TestRegexp(t *testing.T) {
 	assert.True(t, pyScriptWhitelist("/home/xx/flask"))
 	assert.True(t, pyScriptWhitelist("/home/xx/gunicorn"))
 	assert.False(t, pyScriptWhitelist("/home/xx/abcdefg"))
+
+	v, err := DetectArch("/bin/sh")
+	t.Log(v, err)
+}
+
+func DetectArch(filePath string) (string, error) {
+	f, err := elf.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close() //nolint:errcheck
+
+	switch f.Machine { //nolint:exhaustive
+	case elf.EM_AARCH64:
+		return "arm64", nil
+	case elf.EM_X86_64:
+		return "amd64", nil
+	default:
+		return "", fmt.Errorf("unsupported arch: %v", f.Machine)
+	}
 }
