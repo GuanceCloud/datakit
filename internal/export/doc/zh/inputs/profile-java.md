@@ -31,7 +31,7 @@ DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`
     - Oracle JDK 8u352+, 11.0.17+, 17.0.5+
     - OpenJ9 JDK 8u372+, 11.0.18+, 17.0.6+
 
-=== "Java Flight Recorder"
+=== "JFR"
 
     - OpenJDK 11+
     - Oracle JDK 11+
@@ -41,8 +41,8 @@ DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`
     ???+ Note
 
         `JFR` 是 Oracle JDK 8 的商业特性，默认是关闭的，如需启用需在启动项目时增加参数 `-XX:+UnlockCommercialFeatures -XX:+FlightRecorder`，而从 JDK 11 开始，`JFR` 已经成为开源项目且不再是 Oracle JDK 的商业特性。
-<!-- markdownlint-enable -->
 
+<!-- markdownlint-enable -->
 
 开启 profiling
 
