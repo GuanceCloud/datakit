@@ -1,887 +1,2047 @@
 {
-  "dashboardBindSet": [],
-  "dashboardExtend": {},
+  "title": "<<.Dashboard.etcd_view_title>>",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "Disk": true,
+      "Server": true,
+      "<<.Dashboard.overview>>": true,
+      "Memstats": true,
+      "File Descriptors": true
+    }
+  },
   "dashboardMapping": [],
   "dashboardOwnerType": "node",
-  "dashboardType": "CUSTOM",
   "iconSet": {
-    "icon": "https://static-res.guance.com/dataflux-template/dashboard/etcd/icon.svg",
-    "url": "https://static-res.guance.com/dataflux-template/dashboard/etcd/etcd.png"
+    "url": null,
+    "icon": null
   },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
   "main": {
+    "vars": [
+      {
+        "name": "<<.Dashboard.cluster_name>>",
+        "seq": 0,
+        "datasource": "dataflux",
+        "code": "cluster_name_k8s",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['etcd'], keyin=['cluster_name_k8s'])[2m]",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "__all__",
+            "value": "__all__"
+          }
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true
+      }
+    ],
     "charts": [
       {
         "extend": {
-          "fixedGroupByTime": null,
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "units": [],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
             "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
+            "bgColor": "#498BFE",
+            "mappings": [],
             "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
             "showTitle": true,
-            "stackType": "time",
-            "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.leaders>>",
-                "name": "<<.Dashboard.leaders>>",
-                "unit": "<<.Dashboard.num_unit>>",
-                "units": [
-                  "custom",
-                  "<<.Dashboard.num_unit>>"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": null
+          "name": "<<.Dashboard.overview>>"
+        },
+        "name": "<<.Dashboard.node_count>>",
+        "pos": {
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "series_sum(\"M::`etcd`:(count_distinct(`etcd_server_has_leader`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_has_leader",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "a583b0e0-6bf7-11ef-b716-6b2ad851bd33",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "count_distinct",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "#498BFE",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.overview>>"
         },
         "name": "<<.Dashboard.leaders>>",
         "pos": {
-          "h": 12,
+          "h": 7,
+          "w": 4,
+          "x": 0,
+          "y": 7
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(max(`etcd_server_has_leader`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_has_leader",
+              "filters": [
+                {
+                  "id": "4c679080-62ab-11ef-ac1f-8fcf0913cb17",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "bar",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.overview>>"
+        },
+        "name": "<<.Dashboard.health_check_success>>",
+        "pos": {
+          "h": 7,
+          "w": 10,
+          "x": 4,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "difference(\"M::`etcd`:(avg(`etcd_server_health_success`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_health_success",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "abcdcff0-6763-11ef-a0f2-eb0b9113b1a1",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.overview>>"
+        },
+        "name": "<<.Dashboard.health_check_failed>>",
+        "pos": {
+          "h": 7,
+          "w": 10,
+          "x": 14,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "difference(\"M::`etcd`:(last(`etcd_server_health_failures`) AS `failures`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\")",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "failures",
+              "field": "etcd_server_health_failures",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "22101c30-6bf7-11ef-b716-6b2ad851bd33",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "difference(\"M::`etcd`:(last(`etcd_server_heartbeat_send_failures_total`) AS `heartbeat failures`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\")",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "heartbeat failures",
+              "field": "etcd_server_heartbeat_send_failures_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "d90b3120-6762-11ef-a0f2-eb0b9113b1a1",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "difference"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "received",
+                "name": "received",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.network>>"
+        },
+        "name": "<<.Dashboard.bytes_received_grpc>>",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_network_client_grpc_received_bytes_total`) AS `received`) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "received",
+              "field": "etcd_network_client_grpc_received_bytes_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "b9604ec0-6ce2-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.server_state>>"
+        },
+        "name": "<<.Dashboard.leader_change_number>>",
+        "pos": {
+          "h": 9,
           "w": 8,
           "x": 0,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "<<.Dashboard.leaders>>",
+              "q": "M::`etcd`:(max(`etcd_server_leader_changes_seen_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' }",
               "code": "A",
-              "dataSource": "etcd",
-              "field": "server_has_leader",
-              "fieldFunc": "avg",
-              "fieldType": "float",
               "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_leader_changes_seen_total",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "c9a2ca91-28ee-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
+                  "id": "8c72f540-6cd6-11ef-9e46-3dfa4be62c40",
                   "op": "=",
-                  "value": "#{instance}"
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
                 }
               ],
-              "funcList": [],
               "groupBy": [],
-              "groupByTime": "",
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "max",
+              "fieldType": "float",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_has_leader`) AS `<<.Dashboard.leaders>>`) { `instance` = '#{instance}' }",
+              "dataSource": "etcd",
               "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "units": [],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
             "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
+            "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.bytes_received_grpc>>",
-                "name": "<<.Dashboard.bytes_received_grpc>>",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              },
-              {
-                "key": "<<.Dashboard.bytes_sent_grpc>>",
-                "name": "<<.Dashboard.bytes_sent_grpc>>",
-                "unit": "",
-                "units": [
-                  "digital",
-                  "B"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": null
+          "name": "<<.Dashboard.file_description>>"
         },
-        "name": "<<.Dashboard.grpc_bytes>>",
+        "name": "<<.Dashboard.used_file_description>>",
         "pos": {
-          "h": 12,
-          "w": 8,
-          "x": 16,
+          "h": 10,
+          "w": 12,
+          "x": 0,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "<<.Dashboard.bytes_received_grpc>>",
+              "q": "M::`etcd`:(last(`process_open_fds`) AS `open`) { `cluster_name_k8s` = '#{cluster_name_k8s}' }",
               "code": "A",
-              "dataSource": "etcd",
-              "field": "network_client_grpc_received_bytes_total",
-              "fieldFunc": "avg",
-              "fieldType": "float",
               "fill": null,
+              "type": "simple",
+              "alias": "open",
+              "field": "process_open_fds",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "e9c65491-28ee-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
+                  "id": "a53e5680-6cd3-11ef-9e46-3dfa4be62c40",
                   "op": "=",
-                  "value": "#{instance}"
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
                 }
               ],
-              "funcList": [],
               "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`network_client_grpc_received_bytes_total`) AS `<<.Dashboard.bytes_received_grpc>>`) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
-            },
-            "type": "sequence",
-            "unit": ""
-          },
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "<<.Dashboard.bytes_sent_grpc>>",
-              "code": "B",
-              "dataSource": "etcd",
-              "field": "network_client_grpc_sent_bytes_total",
-              "fieldFunc": "avg",
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
               "fieldType": "float",
-              "fill": null,
-              "fillNum": null,
-              "filters": [
-                {
-                  "id": "e93b0481-28ee-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
-                  "op": "=",
-                  "value": "#{instance}"
-                }
-              ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`network_client_grpc_sent_bytes_total`) AS `<<.Dashboard.bytes_sent_grpc>>`) { `instance` = '#{instance}' }",
+              "dataSource": "etcd",
               "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "timeInterval": "default",
-            "titleDesc": "",
             "units": [
               {
-                "key": "last(server_leader_changes_seen_total)",
-                "name": "last(server_leader_changes_seen_total)",
-                "unit": "<<.Dashboard.time_unit>>",
+                "key": "A / B",
+                "name": "A / B",
+                "unit": "",
                 "units": [
-                  "custom",
-                  "<<.Dashboard.time_unit>>"
+                  "percent",
+                  "percent_decimal"
                 ]
               }
             ],
-            "xAxisShowType": "time",
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": null
+          "name": "<<.Dashboard.disk>>"
         },
-        "name": "<<.Dashboard.leader_change_number>>",
+        "name": "<<.Dashboard.wal_call_fsync_duration>>",
         "pos": {
-          "h": 12,
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_disk_wal_fsync_duration_seconds_sum`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_disk_wal_fsync_duration_seconds_sum",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2419c040-6ce6-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "sent",
+                "name": "sent",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.network>>"
+        },
+        "name": "<<.Dashboard.bytes_sent_grpc>>",
+        "pos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(avg(`etcd_network_client_grpc_sent_bytes_total`) AS `sent`) { `cluster_name_k8s` = '#{cluster_name_k8s}' }",
+              "code": "A",
+              "fill": null,
+              "type": "dql",
+              "alias": "sent",
+              "field": "etcd_network_client_grpc_sent_bytes_total",
+              "index": "",
+              "fillNum": null,
+              "filters": [
+                {
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "indexes": [],
+              "labelOp": "",
+              "funcList": [],
+              "interval": "",
+              "fieldFunc": "avg",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "dataSourceFunc": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.server_state>>"
+        },
+        "name": "<<.Dashboard.proposals_failed_total>>",
+        "pos": {
+          "h": 9,
           "w": 8,
           "x": 8,
           "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_failed_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
               "alias": "",
-              "code": "A",
-              "dataSource": "etcd",
-              "field": "server_leader_changes_seen_total",
-              "fieldFunc": "avg",
-              "fieldType": "float",
-              "fill": null,
+              "field": "etcd_server_proposals_failed_total",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "d1fb2ca1-28ee-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
+                  "id": "a3158ca0-6cdf-11ef-9e46-3dfa4be62c40",
                   "op": "=",
-                  "value": "#{instance}"
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_leader_changes_seen_total`)) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.consensus_proposals_applied_number>>",
-                "name": "<<.Dashboard.consensus_proposals_applied_number>>",
-                "unit": "<<.Dashboard.num_unit>>",
-                "units": [
-                  "custom",
-                  "<<.Dashboard.num_unit>>"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "<<.Dashboard.consensus_proposals_applied_number>>",
-        "pos": {
-          "h": 15,
-          "w": 12,
-          "x": 0,
-          "y": 27
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "<<.Dashboard.consensus_proposals_applied_number>>",
-              "code": "A",
-              "dataSource": "etcd",
-              "field": "server_proposals_applied_total",
-              "fieldFunc": "avg",
-              "fieldType": "float",
-              "fill": null,
-              "fillNum": null,
-              "filters": [
-                {
-                  "id": "12c4fe81-171b-11ee-b883-dbd52faeed3d",
-                  "logic": "and",
-                  "name": "instance",
-                  "op": "=",
-                  "value": "#{instance}"
-                }
+              "groupBy": [
+                "host"
               ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
               "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
               "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_applied_total`) AS `<<.Dashboard.consensus_proposals_applied_number>>`) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "units": [],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
             "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
+            "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.consensus_proposals_submitted_number>>",
-                "name": "<<.Dashboard.consensus_proposals_submitted_number>>",
-                "unit": "<<.Dashboard.num_unit>>",
-                "units": [
-                  "custom",
-                  "<<.Dashboard.num_unit>>"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": null
+          "name": "<<.Dashboard.server_state>>"
         },
-        "name": "<<.Dashboard.consensus_proposals_submitted_number>>",
+        "name": "<<.Dashboard.proposals_pending_number>>",
         "pos": {
-          "h": 15,
-          "w": 12,
-          "x": 12,
-          "y": 27
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 0
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "<<.Dashboard.consensus_proposals_submitted_number>>",
-              "code": "B",
-              "dataSource": "etcd",
-              "field": "server_proposals_committed_total",
-              "fieldFunc": "avg",
-              "fieldType": "float",
+              "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_pending`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
               "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_proposals_pending",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "cbc2a7e1-28ef-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
+                  "id": "5064c470-6ce0-11ef-9e46-3dfa4be62c40",
                   "op": "=",
-                  "value": "#{instance}"
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
                 }
               ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
               "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_committed_total`) AS `<<.Dashboard.consensus_proposals_submitted_number>>`) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
-            },
-            "type": "sequence",
-            "unit": ""
-          }
-        ],
-        "type": "sequence"
-      },
-      {
-        "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
-          "settings": {
-            "alias": [],
-            "chartType": "areaLine",
-            "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
-            "fixedTime": "",
-            "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
-            "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
-            "showTitle": true,
-            "stackType": "time",
-            "timeInterval": "default",
-            "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.consensus_proposals_pending_number>>",
-                "name": "<<.Dashboard.consensus_proposals_pending_number>>",
-                "unit": "<<.Dashboard.num_unit>>",
-                "units": [
-                  "custom",
-                  "<<.Dashboard.num_unit>>"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
-            "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
-        },
-        "group": {
-          "name": null
-        },
-        "name": "<<.Dashboard.consensus_proposals_pending_number>>",
-        "pos": {
-          "h": 15,
-          "w": 12,
-          "x": 12,
-          "y": 12
-        },
-        "queries": [
-          {
-            "color": "",
-            "datasource": "dataflux",
-            "name": "",
-            "qtype": "dql",
-            "query": {
-              "alias": "<<.Dashboard.consensus_proposals_pending_number>>",
-              "code": "D",
-              "dataSource": "etcd",
-              "field": "server_proposals_pending",
               "fieldFunc": "avg",
               "fieldType": "float",
-              "fill": null,
-              "fillNum": null,
-              "filters": [
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
                 {
-                  "id": "b6b7ff81-28ef-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
-                  "op": "=",
-                  "value": "#{instance}"
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
                 }
               ],
-              "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_pending`) AS `<<.Dashboard.consensus_proposals_pending_number>>`) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
+              "withLabels": [],
+              "groupByTime": ""
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
       },
       {
         "extend": {
-          "fixedTime": "",
-          "isRefresh": false,
           "settings": {
             "alias": [],
-            "chartType": "areaLine",
+            "units": [],
             "colors": [],
-            "compareColors": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareColorsDark": {
-              "dayCompare": "rgba(213,217,226,0.5)",
-              "hourCompare": "#D5D9E2",
-              "monthCompare": "rgba(213,217,226,0.12)",
-              "weekCompare": "rgba(213,217,226,0.25)"
-            },
-            "compareColorsLight": {
-              "dayCompare": "rgba(11,11,12,0.5)",
-              "hourCompare": "#0B0B0C",
-              "monthCompare": "rgba(11,11,12,0.12)",
-              "weekCompare": "rgba(11,11,12,0.3)"
-            },
-            "compareTitle": "",
-            "compareType": "",
-            "currentChartType": "sequence",
-            "density": "medium",
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
             "fixedTime": "",
             "isPercent": false,
-            "isTimeInterval": true,
-            "legendPostion": "none",
-            "legendValues": "",
-            "levels": [],
-            "onlyShowGroupName": false,
-            "openCompare": false,
             "openStack": false,
-            "showFieldMapping": false,
-            "showLine": false,
+            "precision": "2",
+            "showLabel": false,
             "showTitle": true,
             "stackType": "time",
-            "timeInterval": "default",
             "titleDesc": "",
-            "units": [
-              {
-                "key": "<<.Dashboard.failed_proposals_number>>",
-                "name": "<<.Dashboard.failed_proposals_number>>",
-                "unit": "<<.Dashboard.num_unit>>",
-                "units": [
-                  "custom",
-                  "<<.Dashboard.num_unit>>"
-                ]
-              }
-            ],
-            "xAxisShowType": "time",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
             "yAxixMaxVal": null,
-            "yAxixMinVal": null
-          }
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
         },
         "group": {
-          "name": null
+          "name": "<<.Dashboard.server_state>>"
         },
-        "name": "<<.Dashboard.failed_proposals_number>>",
+        "name": "<<.Dashboard.proposals_committed_total>>",
         "pos": {
-          "h": 15,
-          "w": 12,
+          "h": 9,
+          "w": 8,
           "x": 0,
-          "y": 12
+          "y": 9
         },
+        "type": "sequence",
         "queries": [
           {
-            "color": "",
-            "datasource": "dataflux",
             "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "alias": "<<.Dashboard.failed_proposals_number>>",
-              "code": "C",
-              "dataSource": "etcd",
-              "field": "server_proposals_failed_total",
-              "fieldFunc": "avg",
-              "fieldType": "float",
+              "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_committed_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
               "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_proposals_committed_total",
               "fillNum": null,
               "filters": [
                 {
-                  "id": "acf278e1-28ef-11ed-8317-9b4e16f34476",
-                  "logic": "and",
-                  "name": "instance",
+                  "id": "1e300680-6ce1-11ef-9e46-3dfa4be62c40",
                   "op": "=",
-                  "value": "#{instance}"
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.server_state>>"
+        },
+        "name": "<<.Dashboard.proposals_applied_total>>",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 8,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_applied_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_proposals_applied_total",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "bb6207a0-6ce1-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.server_state>>"
+        },
+        "name": "<<.Dashboard.proposals_committed_un_applied_total>>",
+        "pos": {
+          "h": 9,
+          "w": 8,
+          "x": 16,
+          "y": 9
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A-B, A=\"irate(\\\"M::`etcd`:(avg(`etcd_server_proposals_applied_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\\\").series_sum()\", B=\"irate(\\\"M::`etcd`:(avg(`etcd_server_proposals_committed_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\\\").series_sum()\")",
+              "code": "B",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_applied_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "etcd_server_proposals_applied_total",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "26dab1d0-6ce2-11ef-9e46-3dfa4be62c40",
+                      "op": "=",
+                      "name": "cluster_name_k8s",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{cluster_name_k8s}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "etcd",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "irate"
+                    },
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "withLabels": [],
+                  "groupByTime": ""
+                },
+                {
+                  "q": "irate(\"M::`etcd`:(avg(`etcd_server_proposals_committed_total`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "",
+                  "field": "etcd_server_proposals_committed_total",
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "279f6160-6ce2-11ef-9e46-3dfa4be62c40",
+                      "op": "=",
+                      "name": "cluster_name_k8s",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{cluster_name_k8s}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "etcd",
+                  "queryFuncs": [
+                    {
+                      "args": [],
+                      "name": "irate"
+                    },
+                    {
+                      "args": [],
+                      "name": "series_sum"
+                    }
+                  ],
+                  "withLabels": [],
+                  "groupByTime": ""
                 }
               ],
               "funcList": [],
-              "groupBy": [],
-              "groupByTime": "",
-              "namespace": "metric",
-              "q": "M::`etcd`:(AVG(`server_proposals_failed_total`) AS `<<.Dashboard.failed_proposals_number>>`) { `instance` = '#{instance}' }",
-              "queryFuncs": [],
-              "type": "simple",
-              "withLabels": []
+              "expression": "A-B"
             },
-            "type": "sequence",
-            "unit": ""
+            "datasource": "dataflux"
           }
-        ],
-        "type": "sequence"
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(process_resident_memory_bytes)",
+                "name": "avg(process_resident_memory_bytes)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.overview>>"
+        },
+        "name": "<<.Dashboard.memory>>",
+        "pos": {
+          "h": 7,
+          "w": 10,
+          "x": 4,
+          "y": 7
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(avg(`process_resident_memory_bytes`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "process_resident_memory_bytes",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "0fd78b40-6cd6-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "avg(process_resident_memory_bytes)",
+                "name": "avg(process_resident_memory_bytes)",
+                "unit": "",
+                "units": [
+                  "digital",
+                  "B"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.overview>>"
+        },
+        "name": "<<.Dashboard.storage>>",
+        "pos": {
+          "h": 7,
+          "w": 10,
+          "x": 14,
+          "y": 7
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(avg(`etcd_mvcc_db_total_size_in_bytes`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_mvcc_db_total_size_in_bytes",
+              "filters": [
+                {
+                  "id": "88823320-6c12-11ef-b716-6b2ad851bd33",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "B"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.file_description>>"
+        },
+        "name": "<<.Dashboard.max_file_description>>",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(last(`process_max_fds`) AS `max`) { `cluster_name_k8s` = '#{cluster_name_k8s}' }",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "max",
+              "field": "process_max_fds",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "9bcff090-6cd3-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "A / B",
+                "name": "A / B",
+                "unit": "",
+                "units": [
+                  "percent",
+                  "percent_decimal"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "showLine": false,
+            "unitType": "custom",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "<<.Dashboard.disk>>"
+        },
+        "name": "<<.Dashboard.disk_backend_commit_duration>>",
+        "pos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_disk_backend_commit_duration_seconds_sum`)) { `cluster_name_k8s` = '#{cluster_name_k8s}' } BY `host`\").series_sum()",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_disk_backend_commit_duration_seconds_sum",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "2419c040-6ce6-11ef-9e46-3dfa4be62c40",
+                  "op": "=",
+                  "name": "cluster_name_k8s",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{cluster_name_k8s}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "host"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                },
+                {
+                  "args": [],
+                  "name": "series_sum"
+                }
+              ],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
       }
     ],
-    "groups": [],
-    "type": "template",
-    "vars": [
+    "groups": [
       {
-        "code": "cluster_name_k8s",
-        "datasource": "dataflux",
-        "definition": {
-          "defaultVal": {
-            "label": "*",
-            "value": "re(`.*`)"
-          },
-          "field": "",
-          "metric": "",
-          "object": "",
-          "tag": "",
-          "value": "show_tag_value(from=['etcd'], keyin=['cluster_name_k8s'])[2m]"
-        },
-        "hide": 0,
-        "isHiddenAsterisk": 0,
-        "name": "<<.Dashboard.cluster_name>>",
-        "seq": 0,
-        "type": "QUERY",
-        "valueSort": "default"
+        "name": "<<.Dashboard.overview>>",
+        "extend": {
+          "bgColor": ""
+        }
       },
       {
-        "code": "instance",
-        "datasource": "dataflux",
-        "definition": {
-          "defaultVal": {
-            "label": "*",
-            "value": "re(`.*`)"
-          },
-          "field": "",
-          "metric": "",
-          "object": "",
-          "tag": "",
-          "value": "show_tag_value(from=['etcd'], keyin=['instance']){cluster_name_k8s='#{cluster_name_k8s}'}[2m]"
-        },
-        "hide": 0,
-        "isHiddenAsterisk": 0,
-        "name": "Instance",
-        "seq": 1,
-        "type": "QUERY",
-        "valueSort": "default"
+        "name": "<<.Dashboard.network>>",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "<<.Dashboard.disk>>",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "<<.Dashboard.server_state>>",
+        "extend": {
+          "bgColor": ""
+        }
+      },
+      {
+        "name": "<<.Dashboard.file_description>>",
+        "extend": {
+          "bgColor": ""
+        }
       }
-    ]
-  },
-  "summary": "",
-  "tagInfo": [
-    {
-      "id": "tag_22aa0e051a6744a4b8b76a2039d884ab",
-      "name": "<<.Dashboard.view>>"
-    }
-  ],
-  "tags": [],
-  "thumbnail": "",
-  "title": "<<.Dashboard.title>>"
+    ],
+    "type": "template"
+  }
 }

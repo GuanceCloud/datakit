@@ -386,7 +386,7 @@ func (i *Integration) buildTemplate(templateDir, inputName string, lang inputs.I
 		} else {
 			// check if JSON ok
 			if !json.Valid(buf) {
-				return fmt.Errorf("invalid JSON on input %q[%q]", inputName, k)
+				return fmt.Errorf("invalid JSON on input %q[%q]: %s", inputName, k, string(buf))
 			}
 
 			i.docs[filepath.Join(i.opt.topDir, templateDir, lang.String(), k, "meta.json")] = buf

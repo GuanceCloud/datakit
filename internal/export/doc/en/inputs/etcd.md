@@ -10,8 +10,8 @@ dashboard :
   - desc  : 'etcd-k8s'
     path  : 'dashboard/en/etcd-k8s'    
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'ETCD'
+    path  : 'monitor/en/etcd'
 ---
 
 

@@ -10,8 +10,8 @@ dashboard :
   - desc  : 'etcd-k8s'
     path  : 'dashboard/zh/etcd-k8s'    
 monitor   :
-  - desc  : '暂无'            # 缺少监控视图示例
-    path  : '-'
+  - desc  : 'ETCD'
+    path  : 'monitor/zh/etcd'
 ---
 
 
