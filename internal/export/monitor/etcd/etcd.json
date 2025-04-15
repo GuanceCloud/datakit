@@ -1,0 +1,210 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1h",
+        "title": "<<.Monitor.leader_change_title>>",
+        "groupBy": [
+          "cluster_name_k8s"
+        ],
+        "message": "<<.Monitor.leader_change_message>>",
+        "targets": [
+          {
+            "dql": "irate(\"M::`etcd`:(avg(`etcd_server_leader_changes_seen_total`)) BY `cluster_name_k8s`\")",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 3600,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "3"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "3"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "6e441c6a-7175-4e08-975e-1221f7c0aff2",
+            "qtype": "dql",
+            "query": {
+              "q": "irate(\"M::`etcd`:(avg(`etcd_server_leader_changes_seen_total`)) BY `cluster_name_k8s`\")",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_leader_changes_seen_total",
+              "groupBy": [
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "queryFuncs": [
+                {
+                  "args": [],
+                  "name": "irate"
+                }
+              ],
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "<<.Monitor.no_leader_title>>",
+        "groupBy": [
+          "cluster_name_k8s"
+        ],
+        "message": "<<.Monitor.no_leader_message>>",
+        "targets": [
+          {
+            "dql": "M::`etcd`:(max(`etcd_server_has_leader`)) BY `cluster_name_k8s`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "0"
+                  ],
+                  "operator": "="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "combineExpr": "A && B"
+        },
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 2
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "0"
+                ],
+                "operator": "="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "6672e7f4-809d-41df-87ed-27ad9f668b72",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`etcd`:(max(`etcd_server_has_leader`)) BY `cluster_name_k8s`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "etcd_server_has_leader",
+              "groupBy": [
+                "cluster_name_k8s"
+              ],
+              "funcList": [],
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "etcd",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
