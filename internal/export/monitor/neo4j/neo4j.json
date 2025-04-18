@@ -1,0 +1,350 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "<<.Monitor.database_db_query_execution_title>>",
+        "groupBy": [
+          "instance",
+          "db"
+        ],
+        "message": "<<.Monitor.database_db_query_execution_message>>",
+        "targets": [
+          {
+            "dql": "M::`neo4j`:(avg(`database_db_query_execution_latency_millis`)) BY `instance`, `db`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "eventCharts": [],
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "eventChartEnable": false,
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "8103c6fb-4cbb-4492-980a-e92992c74573",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`neo4j`:(avg(`database_db_query_execution_latency_millis`)) BY `instance`, `db`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "database_db_query_execution_latency_millis",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "db"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "neo4j",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "Neo4j"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "<<.Monitor.page_cache_hit_ratio_title>>",
+        "groupBy": [
+          "instance"
+        ],
+        "message": "<<.Monitor.page_cache_hit_ratio_message>>",
+        "targets": [
+          {
+            "dql": "M::`neo4j`:(last(`dbms_page_cache_hit_ratio`)) BY `instance`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "95"
+                  ],
+                  "operator": "<"
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "eventCharts": [],
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "eventChartEnable": false,
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "95"
+                ],
+                "operator": "<"
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "25dc52c0-e789-4701-9f84-24ada5fee666",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`neo4j`:(last(`dbms_page_cache_hit_ratio`)) BY `instance`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "dbms_page_cache_hit_ratio",
+              "filters": [],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "neo4j",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "Prometheus"
+        },
+        {
+          "name": "Neo4j"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "5m",
+        "title": "<<.Monitor.vm_gc_time_total_title>>",
+        "groupBy": [
+          "instance",
+          "gc"
+        ],
+        "message": "<<.Monitor.vm_gc_time_total_message>>",
+        "targets": [
+          {
+            "dql": "M::`neo4j`:(last(`dbms_vm_gc_time_total`)) BY `instance`, `gc`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "1000"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "combineExpr": "A && B",
+          "openMatchTimes": false
+        },
+        "eventCharts": [],
+        "noDataTitle": "",
+        "noDataMessage": "",
+        "atNoDataAccounts": [],
+        "eventChartEnable": false,
+        "disableCheckEndTime": false,
+        "notificationMessage": "",
+        "recoverNeedPeriodCount": 2,
+        "openNotificationMessage": false,
+        "noDataNotificationMessage": "",
+        "openNoDataNotificationMessage": false
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "1000"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "6bec4938-a8f4-4ca6-8367-a0a5d2156b2a",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`neo4j`:(last(`dbms_vm_gc_time_total`)) BY `instance`, `gc`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "dbms_vm_gc_time_total",
+              "filters": [],
+              "groupBy": [
+                "instance",
+                "gc"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "neo4j",
+              "groupByTime": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [
+        {
+          "name": "Prometheus"
+        },
+        {
+          "name": "Neo4j"
+        }
+      ],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "default",
+      "alertPolicyNames": []
+    }
+  ]
+}
