@@ -86,7 +86,10 @@ func (p *pos) dumpFile() error {
 	if data, err := p.MarshalBinary(); err != nil {
 		return err
 	} else {
-		return os.WriteFile(p.fname, data, 0o600)
+		if err := os.WriteFile(p.fname, data, 0o600); err != nil {
+			return fmt.Errorf("dumpFile(%q): %w", p.fname, err)
+		}
+		return nil
 	}
 }
 

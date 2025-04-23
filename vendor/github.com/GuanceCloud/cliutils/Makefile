@@ -1,6 +1,8 @@
+GOLINT_BINARY         ?= golangci-lint
+
 lint: lint_deps
-	@golangci-lint --version
-	@golangci-lint run --fix | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+	@$(GOLINT_BINARY) --version
+	@$(GOLINT_BINARY) run --fix | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
 
 lint_deps: gofmt vet
 

@@ -349,7 +349,7 @@ func (t *MultiTask) init() error {
 	return nil
 }
 
-// TODO
+// TODO.
 func (t *MultiTask) getHostName() ([]string, error) {
 	hostNames := []string{}
 	for _, step := range t.Steps {
@@ -371,7 +371,7 @@ func (t *MultiTask) getHostName() ([]string, error) {
 	return hostNames, nil
 }
 
-// TODO
+// TODO.
 func (t *MultiTask) getVariableValue(variable Variable) (string, error) {
 	return "", fmt.Errorf("not support")
 }

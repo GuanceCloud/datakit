@@ -17,7 +17,11 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
-const INVALIDIP = "Invalid IP address"
+const (
+	INVALIDIP    = "Invalid IP address"
+	CfgGeoIPFile = "geoip_file"
+	CfgISPFile   = "isp_file"
+)
 
 var _ ipdb.IPdb = (*Geoip)(nil)
 
@@ -35,48 +39,95 @@ func InitLog() {
 }
 
 type Geoip struct {
-	db *geoip2.Reader
+	geo *geoip2.Reader
+	isp *geoip2.Reader
 }
 
-func (g *Geoip) loadIPLib(f string) error {
-	if !utils.FileExist(f) {
-		l.Warnf("%v not found", f)
+func (g *Geoip) loadIPLib(geo string, isp string) error {
+	if !utils.FileExist(geo) {
+		l.Warnf("%v not found", geo)
 		return nil
 	}
 
-	db, err := openDB(f)
+	db, err := openDB(geo)
 	if err != nil {
 		return err
 	} else {
-		g.db = db
+		g.geo = db
+	}
+
+	if utils.FileExist(isp) {
+		if ispDB, err := openDB(isp); err == nil {
+			g.isp = ispDB
+		}
 	}
 
 	return nil
 }
 
-func (g *Geoip) Init(dataDir string, config map[string]string) {
-	l.Debug("use geolite2 db")
-	ipdbDir := filepath.Join(dataDir, "ipdb", "geolite2", "GeoLite2-City_20220617")
+func NewGeoip(dir string, config map[string]string) *Geoip {
+	g := Geoip{}
+
 	ipdbFile := "GeoLite2-City.mmdb"
 
-	if file, ok := config["geoip_file"]; ok {
+	if file, ok := config[CfgGeoIPFile]; ok {
 		if len(file) > 0 {
 			ipdbFile = file
 		}
 	}
 
-	if err := g.loadIPLib(filepath.Join(ipdbDir, ipdbFile)); err != nil {
+	ispFile := "GeoIP2-ISP.mmdb"
+	if file, ok := config[CfgISPFile]; ok {
+		if len(file) > 0 {
+			ispFile = file
+		}
+	}
+
+	if err := g.loadIPLib(
+		filepath.Join(dir, ipdbFile),
+		filepath.Join(dir, ispFile)); err != nil {
+		l.Warnf("geolite2 load ip lib error: %s", err.Error())
+	}
+
+	return &g
+}
+
+// Init deprecated
+func (g *Geoip) Init(dataDir string, config map[string]string) {
+	l.Debug("use geolite2 db")
+	dir := filepath.Join(dataDir, "ipdb", "geolite2", "GeoLite2-City_20220617")
+	ipdbFile := "GeoLite2-City.mmdb"
+
+	if file, ok := config[CfgGeoIPFile]; ok {
+		if len(file) > 0 {
+			ipdbFile = file
+		}
+	}
+
+	var ispFile string
+
+	if file, ok := config[CfgISPFile]; ok {
+		if len(file) > 0 {
+			ispFile = file
+		}
+	}
+
+	if err := g.loadIPLib(
+		filepath.Join(dir, ipdbFile),
+		filepath.Join(dir, ispFile)); err != nil {
 		l.Warnf("geolite2 load ip lib error: %s", err.Error())
 	}
 }
 
 func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 	record := &ipdb.IPdbRecord{}
-	if g.db == nil {
+	if g.geo == nil {
 		return record, nil
 	}
 
-	r, err := g.get(ip)
+	ipParse := net.ParseIP(ip)
+
+	r, err := g.get(ipParse)
 	if err != nil {
 		return record, err
 	}
@@ -86,30 +137,29 @@ func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 		record.Timezone = INVALIDIP
 		record.Region = INVALIDIP
 		record.Country = INVALIDIP
+		record.Isp = INVALIDIP
 		return record, nil
+	} else {
+		record.City = r.City.Names["en"]
+		record.Timezone = r.Location.TimeZone
+		if len(r.Subdivisions) != 0 {
+			record.Region = r.Subdivisions[0].Names["en"]
+		}
+		record.Country = r.Country.IsoCode
+		record.Isp = g.searchISP(ipParse)
+		return record.CheckData(), err
 	}
-
-	record.City = r.City.Names["en"]
-	record.Timezone = r.Location.TimeZone
-	if len(r.Subdivisions) != 0 {
-		record.Region = r.Subdivisions[0].Names["en"]
-	}
-	record.Country = r.Country.Names["en"]
-	record.Isp = g.SearchIsp(ip)
-
-	return record.CheckData(), err
 }
 
-func (g *Geoip) get(ip string) (*geoip2.City, error) {
-	if g.db == nil {
+func (g *Geoip) get(ip net.IP) (*geoip2.City, error) {
+	if ip == nil {
+		return nil, fmt.Errorf("empty ip")
+	}
+	if g.geo == nil {
 		return nil, fmt.Errorf("GEO DB not set")
 	}
-	ipParse := net.ParseIP(ip)
-	// ip invalid
-	if ipParse == nil {
-		return nil, nil
-	}
-	r, err := g.db.City(ipParse)
+
+	r, err := g.geo.City(ip)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +167,21 @@ func (g *Geoip) get(ip string) (*geoip2.City, error) {
 	return r, nil
 }
 
-func (g *Geoip) SearchIsp(ip string) string {
+func (g *Geoip) searchISP(ip net.IP) string {
+	if g.isp != nil && ip != nil {
+		if s, err := g.isp.ISP(ip); err == nil {
+			return s.ISP
+		}
+	}
 	return "unknown"
+}
+
+func (g *Geoip) SearchIsp(ip string) string {
+	ipParse := net.ParseIP(ip)
+	// ip invalid
+	if ipParse == nil {
+		return "unknown"
+	}
+
+	return g.searchISP(ipParse)
 }

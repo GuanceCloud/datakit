@@ -7,6 +7,7 @@ package point
 
 import (
 	"encoding/json"
+	"fmt"
 	sync "sync"
 	"time"
 )
@@ -73,6 +74,7 @@ func (d *Decoder) reset() {
 	d.easyproto = false
 }
 
+// nolint: gocritic
 func detectTimestampPrecision(ts int64) int64 {
 	if ts/1e9 < 10 { // sec
 		return ts * int64(time.Second)
@@ -91,6 +93,7 @@ func (d *Decoder) doDecode(data []byte, c *cfg) ([]*Point, error) {
 		err error
 	)
 
+	//nolint:exhaustive
 	switch d.enc {
 	case JSON:
 		if err := json.Unmarshal(data, &pts); err != nil {
@@ -132,6 +135,9 @@ func (d *Decoder) doDecode(data []byte, c *cfg) ([]*Point, error) {
 			d.detailedError = err
 			return nil, simplifyLPError(err)
 		}
+
+	default:
+		return nil, fmt.Errorf("not support encode: %s", d.enc)
 	}
 
 	return pts, err

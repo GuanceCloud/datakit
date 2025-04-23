@@ -46,7 +46,7 @@ var (
 	// Get on no data cache.
 	ErrNoData = errors.New("no data")
 
-	// Diskcache full, no data can be write now
+	// Diskcache full, no data can be write now.
 	ErrCacheFull = errors.New("cache full")
 
 	// Invalid cache filename.
@@ -105,12 +105,14 @@ type DiskCache struct {
 	noSync, // NoSync if enabled, may cause data missing, default false
 	noFallbackOnError, // ignore Fn() error
 	noPos, // no position
-	filoDrop, // first-in-last-out drop, meas we chooes to drop the new-comming data first
+	filoDrop, // first-in-last-out drop, meas we chooes to drop the new-coming data first
 	noDrop, // disable drop on cache full
 	noLock bool // no file lock
 
 	// labels used to export prometheus flags
 	labels []string
+
+	LastErr error
 }
 
 func (c *DiskCache) String() string {

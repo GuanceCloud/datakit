@@ -87,7 +87,7 @@ func TestRunpl(t *T.T) {
 					ScriptMap: map[string]string{
 						"a_with_opt": "a.p",
 					},
-					IgnoreStatus: []string{"unknown"},
+					IgnoreStatus: []string{"info"},
 				},
 			},
 		},

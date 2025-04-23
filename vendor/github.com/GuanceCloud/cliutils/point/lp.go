@@ -29,6 +29,7 @@ const (
 )
 
 func (p Precision) String() string {
+	//nolint:exhaustive
 	switch p {
 	case PrecNS:
 		return "n"

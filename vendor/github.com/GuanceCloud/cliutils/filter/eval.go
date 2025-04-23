@@ -438,6 +438,4 @@ func (e *BinaryExpr) singleEval(data KVs) bool {
 	return false
 }
 
-var (
-	nilVal = &NilLiteral{}
-)
+var nilVal = &NilLiteral{}

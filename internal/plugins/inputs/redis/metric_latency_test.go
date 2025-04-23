@@ -48,7 +48,7 @@ func TestInput_parseLatencyData(t *testing.T) {
 				list: "latency latest: [[command 1699346177 250 1000]]",
 			},
 			want: []string{
-				"redis_latency,foo=bar,host=HOST cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"unknown\"",
+				"redis_latency,foo=bar,host=HOST cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"info\"",
 			},
 			wantErr: false,
 		},
@@ -65,7 +65,7 @@ func TestInput_parseLatencyData(t *testing.T) {
 				list: "latency latest: [[command 1699346177 250 1000]]",
 			},
 			want: []string{
-				"redis_latency,election=TRUE,foo=bar cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"unknown\"",
+				"redis_latency,election=TRUE,foo=bar cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"info\"",
 			},
 			wantErr: false,
 		},
@@ -82,8 +82,8 @@ func TestInput_parseLatencyData(t *testing.T) {
 				list: "latency latest: [[command 1699346177 250 1000] [xxxxx 1699346178 251 1001]]",
 			},
 			want: []string{
-				"redis_latency,foo=bar,host=HOST cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"unknown\"",
-				"redis_latency,foo=bar,host=HOST cost_time=251i,event_name=\"xxxxx\",max_cost_time=1001i,message=\"xxxxx cost time 251ms,max_cost_time 1001ms\",occur_time=1699346178i,status=\"unknown\"",
+				"redis_latency,foo=bar,host=HOST cost_time=250i,event_name=\"command\",max_cost_time=1000i,message=\"command cost time 250ms,max_cost_time 1000ms\",occur_time=1699346177i,status=\"info\"",
+				"redis_latency,foo=bar,host=HOST cost_time=251i,event_name=\"xxxxx\",max_cost_time=1001i,message=\"xxxxx cost time 251ms,max_cost_time 1001ms\",occur_time=1699346178i,status=\"info\"",
 			},
 			wantErr: false,
 		},

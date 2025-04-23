@@ -38,7 +38,7 @@ func (c *DiskCache) rotate() error {
 	eof := make([]byte, dataHeaderLen)
 	binary.LittleEndian.PutUint32(eof, EOFHint)
 	if _, err := c.wfd.Write(eof); err != nil { // append EOF to file end
-		return err
+		return fmt.Errorf("rotate on write EOF: %w", err)
 	}
 
 	// NOTE: EOF bytes do not count to size
@@ -65,13 +65,13 @@ func (c *DiskCache) rotate() error {
 
 	// close current writing file
 	if err := c.wfd.Close(); err != nil {
-		return err
+		return fmt.Errorf("rotate on close wfd: %w", err)
 	}
 	c.wfd = nil
 
 	// rename data -> data.0004
 	if err := os.Rename(c.curWriteFile, newfile); err != nil {
-		return err
+		return fmt.Errorf("rotate on Rename(%q, %q): %w", c.curWriteFile, newfile, err)
 	}
 
 	c.dataFiles = append(c.dataFiles, newfile)

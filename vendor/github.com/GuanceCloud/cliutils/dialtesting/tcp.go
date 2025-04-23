@@ -16,7 +16,7 @@ import (
 
 var (
 	_ TaskChild = (*TCPTask)(nil)
-	_ ITask = (*TCPTask)(nil)
+	_ ITask     = (*TCPTask)(nil)
 )
 
 const defaultTCPTimeout = 30 * time.Second

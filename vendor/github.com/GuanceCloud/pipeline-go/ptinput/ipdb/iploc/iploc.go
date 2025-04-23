@@ -19,6 +19,11 @@ import (
 	"github.com/ip2location/ip2location-go"
 )
 
+const (
+	CfgIPLocFile = "iploc_file"
+	CfgISPFile   = "isp_file"
+)
+
 var _ ipdb.IPdb = (*IPloc)(nil)
 
 var l = logger.DefaultSLogger("iploc")
@@ -50,18 +55,49 @@ type IPloc struct {
 	ispDB map[string]string
 }
 
-func (iploc *IPloc) Init(dataDir string, config map[string]string) {
-	ipdbDir := filepath.Join(dataDir, "ipdb", "iploc")
+func NewIPLoc(dir string, config map[string]string) *IPloc {
+	iploc := &IPloc{}
 	iplocFile := "iploc.bin"
 	ispFile := "ip2isp.txt"
 
-	if file, ok := config["iploc_file"]; ok {
+	if file, ok := config[CfgIPLocFile]; ok {
 		if len(file) > 0 {
 			iplocFile = file
 		}
 	}
 
-	if file, ok := config["isp_file"]; ok {
+	if file, ok := config[CfgISPFile]; ok {
+		if len(file) > 0 {
+			ispFile = file
+		}
+	}
+
+	if err := iploc.loadIPLib(filepath.Join(dir, iplocFile)); err != nil {
+		l.Warnf("iploc load ip lib error: %s", err.Error())
+	}
+
+	iploc.ispDB = map[string]string{}
+
+	if err := iploc.loadISP(filepath.Join(dir, ispFile)); err != nil {
+		l.Warnf("isp file load error: %s", err.Error())
+	}
+
+	return iploc
+}
+
+// Init deprecated
+func (iploc *IPloc) Init(dataDir string, config map[string]string) {
+	ipdbDir := filepath.Join(dataDir, "ipdb", "iploc")
+	iplocFile := "iploc.bin"
+	ispFile := "ip2isp.txt"
+
+	if file, ok := config[CfgIPLocFile]; ok {
+		if len(file) > 0 {
+			iplocFile = file
+		}
+	}
+
+	if file, ok := config[CfgISPFile]; ok {
 		if len(file) > 0 {
 			ispFile = file
 		}

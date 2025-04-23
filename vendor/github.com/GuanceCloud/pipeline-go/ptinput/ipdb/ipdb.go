@@ -13,7 +13,7 @@ import (
 )
 
 type IPdb interface {
-	Init(dataDir string, config map[string]string)
+	Init(dataDir string, config map[string]string) //deprecated
 	Geo(ip string) (*IPdbRecord, error)
 	SearchIsp(ip string) string
 }

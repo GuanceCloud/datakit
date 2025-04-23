@@ -100,9 +100,10 @@ func (c *DiskCache) putPart(part []byte) error {
 // StreamPut read from r for bytes and write to storage.
 //
 // If we read the data from some network stream(such as HTTP response body),
-// we can use StreamPut to avoid a intermidiate buffer to accept the huge(may be) body.
+// we can use StreamPut to avoid a intermediate buffer to accept the huge(may be) body.
 func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 	var (
+		//nolint:ineffassign
 		n           = 0
 		total       = 0
 		err         error
@@ -123,8 +124,9 @@ func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 	}
 
 	defer func() {
-		if total > 0 && err != nil { // fallback to origin postion
-			if _, serr := c.wfd.Seek(startOffset, os.SEEK_SET); serr != nil {
+		if total > 0 && err != nil { // fallback to origin position
+			if _, serr := c.wfd.Seek(startOffset, io.SeekStart); serr != nil {
+				c.LastErr = serr
 			}
 		}
 

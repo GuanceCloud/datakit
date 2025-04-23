@@ -37,7 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20250410055335-851beefc4c3c
+# github.com/GuanceCloud/cliutils v1.1.22-0.20250423115841-118da498760e
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -97,7 +97,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.0.1
+# github.com/GuanceCloud/pipeline-go v1.0.3
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants

@@ -468,7 +468,7 @@ func (x KVs) shuffle() KVs {
 	rand.Seed(time.Now().UnixNano())
 	n := len(x)
 	for i := 0; i < n; i++ {
-		j := rand.Intn(n)
+		j := rand.Intn(n) // nolint:gosec
 		x[i], x[j] = x[j], x[i]
 	}
 	return x

@@ -46,7 +46,7 @@ type ConfigVar struct {
 var TypeVariableGlobal = "global"
 
 type Variable struct {
-	Id          int    `json:"id,omitempty"`
+	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
 	UUID        string `json:"uuid,omitempty"`
 	TaskID      string `json:"task_id,omitempty"`
@@ -168,7 +168,7 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 	}
 	if taskString != "" {
 		if err := json.Unmarshal([]byte(taskString), &task); err != nil {
-			return nil, fmt.Errorf("json.Unmarshal failed: %s, task json: %s", err.Error(), taskString)
+			return nil, fmt.Errorf("json.Unmarshal failed: %w, task json: %s", err, taskString)
 		}
 	} else {
 		bytes, _ := json.Marshal(task)
@@ -401,7 +401,7 @@ func (t *Task) GetGlobalVars() []string {
 	return vars
 }
 
-// RenderTempate render template and init task.
+// RenderTemplateAndInit render template and init task.
 func (t *Task) RenderTemplateAndInit(globalVariables map[string]Variable) error {
 	// first render
 	if !t.inited {
@@ -416,7 +416,7 @@ func (t *Task) RenderTemplateAndInit(globalVariables map[string]Variable) error 
 
 	fm := template.FuncMap{}
 
-	allVars := append(t.ConfigVars, t.ExtractedVars...)
+	allVars := append(t.ConfigVars, t.ExtractedVars...) // nolint:gocritic
 	allVars = append(allVars, t.CustomVars...)
 
 	for _, v := range allVars {

@@ -110,7 +110,6 @@ func (c *cfg) reset() {
 	c.enableDotInKey = true
 	c.enableStrField = true
 	c.enableU64Field = true
-
 }
 
 func WithMaxKVComposeLen(n int) Option   { return func(c *cfg) { c.maxTagKeyValComposeLen = n } }
