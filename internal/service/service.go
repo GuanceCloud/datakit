@@ -42,6 +42,14 @@ func WithUser(userName string) serviceOption {
 	}
 }
 
+func WithUserPW(pw string) serviceOption {
+	return func(sconf *service.Config) {
+		if pw != "" {
+			sconf.Option["Password"] = pw
+		}
+	}
+}
+
 func WithMemLimit(mem string) serviceOption {
 	return func(sconf *service.Config) {
 		if mem != "" {
