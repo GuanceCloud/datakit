@@ -54,7 +54,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			ENVName:   "INPUT_HOSTOBJECT_IGNORE_MOUNTPOINTS",
 			ConfField: "ignore_mountpoints",
 			Type:      doc.String,
-			Default:   "`^(/usr/local/datakit/.*|/run/containerd/.*)$",
+			Default:   "`^(/usr/local/datakit/.*|/run/containerd/.*)$`",
 			Desc:      "Ignore disks with these mount points",
 			DescZh:    "磁盘列表采集时忽略特定的挂载点",
 		},

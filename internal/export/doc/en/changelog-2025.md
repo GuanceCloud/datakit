@@ -1,5 +1,28 @@
 # Changelog
 
+
+## 1.72.0 (2025/04/23) {#cl-1.72.0}
+
+This release is an iterative update, with the following key changes:
+
+### New Features {#cl-1.72.0-new}
+
+- Added the Windows Remote collector, which supports remote collection of basic information from Windows hosts via SNMP/WMI (#2591).
+- Added collection for major Kubernetes object changes (#2514).
+- Added a RUM environment variable API to the Datakit HTTP API (#2622).
+
+### Bug Fixes {#cl-1.72.0-fix}
+
+- Fixed an issue where the `LoggingSourceMultilineMap` configuration was not taking effect (#2625).
+
+### Function Optimizations {#cl-1.72.0-opt}
+
+- In major database collectors, custom metric collection now supports setting independent collection intervals (#2604).
+- In log collection, the default log level has been changed from `unknown` to `info` (#2628).
+- Other adjustments (#2564/#2603).
+
+---
+
 ## 1.71.0 (Thu Apr 10 CST 2025) {#cl-1.71.0}
 
 This release is an iterative release, with the following main updates:
