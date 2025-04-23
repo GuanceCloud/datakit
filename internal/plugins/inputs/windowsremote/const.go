@@ -36,7 +36,7 @@ const sampleCfg = `
   scan_interval = "10m"
 
   ## Set to 'true' to enable election.
-  election = false
+  election = true
   ## Maximum number of workers. Default value is calculated as datakit.AvailableCPUs * 2 + 1.
   worker_num = 0
 

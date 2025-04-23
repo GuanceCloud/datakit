@@ -10,6 +10,7 @@ package class
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
 )
@@ -47,7 +48,7 @@ func (disk *Win32_LogicalDisk) ToPoint() *point.Point {
 	used := disk.Size - disk.FreeSpace
 	var kvs point.KVs
 	kvs = kvs.AddTag("device", disk.DeviceID).
-		AddTag("host", disk.SystemName).
+		AddTag("host", strings.ToLower(disk.SystemName)).
 		AddTag("fstype", disk.FileSystem).
 		AddV2("free", disk.FreeSpace, false).
 		AddV2("total", disk.Size, false).
