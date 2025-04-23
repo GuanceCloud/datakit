@@ -79,7 +79,7 @@ $domain = @(
 # DK_VERBOSE                  : Verbose mode not support under Windows, it seems that bitstransfer do not got `-v` like options.
 # DK_INSTALL_RUM_SYMBOL_TOOLS : There was no source map related tools under Windows
 # DK_INSTALL_EXTERNALS        : All external inputs(eBPF/oracle/...) not working under Windows
-# DK_USER_NAME: We must use administrator under Windows
+# DK_USER_NAME: We must use administrator under Windows.
 
 $x = [Environment]::GetEnvironmentVariable("DK_UPGRADE")
 if ($x -ne $null) {

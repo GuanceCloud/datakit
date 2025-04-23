@@ -6,6 +6,27 @@
 //go:build windows
 // +build windows
 
+/*
+Package wmi provides a WQL interface for WMI on Windows.
+
+Example code to print names of running processes:
+
+	type Win32_Process struct {
+		Name string
+	}
+
+	func main() {
+		var dst []Win32_Process
+		q := wmi.CreateQuery(&dst, "")
+		err := wmi.Query(q, &dst)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for i, v := range dst {
+			println(i, v.Name)
+		}
+	}
+*/
 package wmi
 
 import (
@@ -13,6 +34,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -24,6 +46,8 @@ import (
 	"github.com/go-ole/go-ole/oleutil"
 )
 
+var l = log.New(os.Stdout, "", log.LstdFlags)
+
 var (
 	ErrInvalidEntityType = errors.New("wmi: invalid entity type")
 	// ErrNilCreateObject is the error returned if CreateObject returns nil even
@@ -32,8 +56,8 @@ var (
 	lock               sync.Mutex
 )
 
-// SFalse is returned by CoInitializeEx if it was already called on this thread.
-const SFalse = 0x00000001
+// S_FALSE is returned by CoInitializeEx if it was already called on this thread.
+const S_FALSE = 0x00000001
 
 // QueryNamespace invokes Query with the given namespace on the local machine.
 func QueryNamespace(query string, dst interface{}, namespace string) error {
@@ -49,7 +73,8 @@ func QueryNamespace(query string, dst interface{}, namespace string) error {
 //
 // By default, the local machine and default namespace are used. These can be
 // changed using connectServerArgs. See
-// http://msdn.microsoft.com/en-us/library/aa393720.aspx for details.
+// https://docs.microsoft.com/en-us/windows/desktop/WmiSdk/swbemlocator-connectserver
+// for details.
 //
 // Query is a wrapper around DefaultClient.Query.
 func Query(query string, dst interface{}, connectServerArgs ...interface{}) error {
@@ -57,6 +82,14 @@ func Query(query string, dst interface{}, connectServerArgs ...interface{}) erro
 		return DefaultClient.Query(query, dst, connectServerArgs...)
 	}
 	return DefaultClient.SWbemServicesClient.Query(query, dst, connectServerArgs...)
+}
+
+// CallMethod calls a method named methodName on an instance of the class named
+// className, with the given params.
+//
+// CallMethod is a wrapper around DefaultClient.CallMethod.
+func CallMethod(connectServerArgs []interface{}, className, methodName string, params []interface{}) (int32, error) {
+	return DefaultClient.CallMethod(connectServerArgs, className, methodName, params)
 }
 
 // A Client is an WMI query client.
@@ -90,8 +123,102 @@ type Client struct {
 	SWbemServicesClient *SWbemServices
 }
 
-// DefaultClient is the default Client and is used by Query, QueryNamespace.
+// DefaultClient is the default Client and is used by Query, QueryNamespace, and CallMethod.
 var DefaultClient = &Client{}
+
+// coinitService coinitializes WMI service. If no error is returned, a cleanup function
+// is returned which must be executed (usually deferred) to clean up allocated resources.
+func (c *Client) coinitService(connectServerArgs ...interface{}) (*ole.IDispatch, func(), error) {
+	var unknown *ole.IUnknown
+	var wmi *ole.IDispatch
+	var serviceRaw *ole.VARIANT
+
+	// be sure teardown happens in the reverse
+	// order from that which they were created
+	deferFn := func() {
+		if serviceRaw != nil {
+			serviceRaw.Clear()
+		}
+		if wmi != nil {
+			wmi.Release()
+		}
+		if unknown != nil {
+			unknown.Release()
+		}
+		ole.CoUninitialize()
+	}
+
+	// if we error'ed here, clean up immediately
+	var err error
+	defer func() {
+		if err != nil {
+			deferFn()
+		}
+	}()
+
+	err = ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
+	if err != nil {
+		oleCode := err.(*ole.OleError).Code()
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			return nil, nil, err
+		}
+	}
+
+	unknown, err = oleutil.CreateObject("WbemScripting.SWbemLocator")
+	if err != nil {
+		return nil, nil, err
+	} else if unknown == nil {
+		return nil, nil, ErrNilCreateObject
+	}
+
+	wmi, err = unknown.QueryInterface(ole.IID_IDispatch)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// service is a SWbemServices
+	serviceRaw, err = oleutil.CallMethod(wmi, "ConnectServer", connectServerArgs...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return serviceRaw.ToIDispatch(), deferFn, nil
+}
+
+// CallMethod calls a WMI method named methodName on an instance
+// of the class named className. It passes in the arguments given
+// in params. Use connectServerArgs to customize the machine and
+// namespace; by default, the local machine and default namespace
+// are used. See
+// https://docs.microsoft.com/en-us/windows/desktop/WmiSdk/swbemlocator-connectserver
+// for details.
+func (c *Client) CallMethod(connectServerArgs []interface{}, className, methodName string, params []interface{}) (int32, error) {
+	service, cleanup, err := c.coinitService(connectServerArgs...)
+	if err != nil {
+		return 0, fmt.Errorf("coinit: %v", err)
+	}
+	defer cleanup()
+
+	// Get class
+	classRaw, err := oleutil.CallMethod(service, "Get", className)
+	if err != nil {
+		return 0, fmt.Errorf("CallMethod Get class %s: %v", className, err)
+	}
+	class := classRaw.ToIDispatch()
+	defer classRaw.Clear()
+
+	// Run method
+	resultRaw, err := oleutil.CallMethod(class, methodName, params...)
+	if err != nil {
+		return 0, fmt.Errorf("CallMethod %s.%s: %v", className, methodName, err)
+	}
+	resultInt, ok := resultRaw.Value().(int32)
+	if !ok {
+		return 0, fmt.Errorf("return value was not an int32: %v (%T)", resultRaw, resultRaw)
+	}
+
+	return resultInt, nil
+}
 
 // Query runs the WQL query and appends the values to dst.
 //
@@ -102,7 +229,8 @@ var DefaultClient = &Client{}
 //
 // By default, the local machine and default namespace are used. These can be
 // changed using connectServerArgs. See
-// http://msdn.microsoft.com/en-us/library/aa393720.aspx for details.
+// https://docs.microsoft.com/en-us/windows/desktop/WmiSdk/swbemlocator-connectserver
+// for details.
 func (c *Client) Query(query string, dst interface{}, connectServerArgs ...interface{}) error {
 	dv := reflect.ValueOf(dst)
 	if dv.Kind() != reflect.Ptr || dv.IsNil() {
@@ -119,36 +247,11 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
-	if err != nil {
-		oleCode := err.(*ole.OleError).Code() //nolint:errorlint
-		if oleCode != ole.S_OK && oleCode != SFalse {
-			return err
-		}
-	}
-	defer ole.CoUninitialize()
-
-	unknown, err := oleutil.CreateObject("WbemScripting.SWbemLocator")
-	if err != nil {
-		return err
-	} else if unknown == nil {
-		return ErrNilCreateObject
-	}
-	defer unknown.Release()
-
-	wmi, err := unknown.QueryInterface(ole.IID_IDispatch)
+	service, cleanup, err := c.coinitService(connectServerArgs...)
 	if err != nil {
 		return err
 	}
-	defer wmi.Release()
-
-	// service is a SWbemServices
-	serviceRaw, err := oleutil.CallMethod(wmi, "ConnectServer", connectServerArgs...)
-	if err != nil {
-		return err
-	}
-	service := serviceRaw.ToIDispatch()
-	defer serviceRaw.Clear() //nolint:errcheck
+	defer cleanup()
 
 	// result is a SWBemObjectSet
 	resultRaw, err := oleutil.CallMethod(service, "ExecQuery", query)
@@ -156,7 +259,7 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 		return err
 	}
 	result := resultRaw.ToIDispatch()
-	defer resultRaw.Clear() //nolint:errcheck
+	defer resultRaw.Clear()
 
 	count, err := oleInt64(result, "Count")
 	if err != nil {
@@ -167,7 +270,7 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 	if err != nil {
 		return err
 	}
-	defer enumProperty.Clear() //nolint:errcheck
+	defer enumProperty.Clear()
 
 	enum, err := enumProperty.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
 	if err != nil {
@@ -194,10 +297,10 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 
 			ev := reflect.New(elemType)
 			if err = c.loadEntity(ev.Interface(), item); err != nil {
-				if _, ok := err.(*FieldMismatchError); ok { //nolint:errorlint
+				if _, ok := err.(*ErrFieldMismatch); ok {
 					// We continue loading entities even in the face of field mismatch errors.
 					// If we encounter any other error, that other error is returned. Otherwise,
-					// an FieldMismatchError is returned.
+					// an ErrFieldMismatch is returned.
 					errFieldMismatch = err
 				} else {
 					return err
@@ -216,207 +319,36 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 	return errFieldMismatch
 }
 
-func (c *Client) QueryEx(query string, propNames []string,
-	connectServerArgs ...interface{},
-) ([]map[string]interface{}, error) {
-	lock.Lock()
-	defer lock.Unlock()
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
-	if err != nil {
-		var oerr *ole.OleError
-		if errors.As(err, &oerr) {
-			oe := err.(*ole.OleError) //nolint:forcetypeassert,errorlint
-			oleCode := oe.Code()
-			if oleCode != ole.S_OK && oleCode != SFalse {
-				return nil, err
-			}
-		}
-	}
-	defer ole.CoUninitialize()
-
-	unknown, err := oleutil.CreateObject("WbemScripting.SWbemLocator")
-	if err != nil {
-		return nil, err
-	} else if unknown == nil {
-		return nil, ErrNilCreateObject
-	}
-	defer unknown.Release()
-
-	wmi, err := unknown.QueryInterface(ole.IID_IDispatch)
-	if err != nil {
-		return nil, err
-	}
-	defer wmi.Release()
-
-	// service is a SWbemServices
-	serviceRaw, err := oleutil.CallMethod(wmi, "ConnectServer", connectServerArgs...)
-	if err != nil {
-		return nil, err
-	}
-	service := serviceRaw.ToIDispatch()
-	defer serviceRaw.Clear() //nolint:errcheck
-
-	// result is a SWBemObjectSet
-	resultRaw, err := oleutil.CallMethod(service, "ExecQuery", query)
-	if err != nil {
-		return nil, err
-	}
-	result := resultRaw.ToIDispatch()
-	defer resultRaw.Clear() //nolint:errcheck
-
-	count, err := oleInt64(result, "Count")
-	if err != nil {
-		return nil, err
-	}
-	_ = count
-
-	enumProperty, err := result.GetProperty("_NewEnum")
-	if err != nil {
-		return nil, err
-	}
-	defer enumProperty.Clear() //nolint:errcheck
-
-	enum, err := enumProperty.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
-	if err != nil {
-		return nil, err
-	}
-	if enum == nil {
-		return nil, fmt.Errorf("can't get IEnumVARIANT, enum is nil")
-	}
-	defer enum.Release()
-
-	fieldsArr := []map[string]interface{}{}
-
-	for itemRaw, length, err := enum.Next(1); length > 0; itemRaw, length, err = enum.Next(1) {
-		if err != nil {
-			return nil, err
-		}
-
-		err := func() error {
-			// item is a SWbemObject, but really a Win32_Process
-			item := itemRaw.ToIDispatch()
-			defer item.Release()
-
-			fields, err := c.loadEntityEx(propNames, item)
-			if err != nil {
-				return err
-			}
-
-			fieldsArr = append(fieldsArr, fields)
-
-			return nil
-		}()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return fieldsArr, nil
-}
-
-// FieldMismatchError is returned when a field is to be loaded into a different
+// ErrFieldMismatch is returned when a field is to be loaded into a different
 // type than the one it was stored from, or when a field is missing or
 // unexported in the destination struct.
 // StructType is the type of the struct pointed to by the destination argument.
-type FieldMismatchError struct {
+type ErrFieldMismatch struct {
 	StructType reflect.Type
 	FieldName  string
 	Reason     string
 }
 
-func (e *FieldMismatchError) Error() string {
+func (e *ErrFieldMismatch) Error() string {
 	return fmt.Sprintf("wmi: cannot load field %q into a %q: %s",
 		e.FieldName, e.StructType, e.Reason)
 }
 
 var timeType = reflect.TypeOf(time.Time{})
 
-func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]interface{}, error) { //nolint:unparam
-	fields := map[string]interface{}{}
-
-	if len(props) > 0 {
-		for _, n := range props {
-			prop, err := oleutil.GetProperty(src, n)
-			if err != nil {
-				log.Printf("W! fail to get property %s", n)
-				continue
-			}
-			//	defer prop.Clear() //nolint:errcheck
-
-			if prop.VT == 0x1 { // VT_NULL
-				continue
-			}
-
-			switch val := prop.Value().(type) {
-			case int8, int16, int32, int64, int:
-				v := reflect.ValueOf(val).Int()
-				fields[n] = v
-			case uint8, uint16, uint32, uint64:
-				v := reflect.ValueOf(val).Uint()
-				fields[n] = v
-			case bool:
-				fields[n] = val
-			case string:
-				fields[n] = val
-			case float32:
-				fields[n] = float64(val)
-			case float64:
-				fields[n] = val
-			default:
-				log.Printf("unknown data type")
-			}
-			_ = prop.Clear()
-		}
-	}
-	// oleutil.ForEach(src, func(v *ole.VARIANT) error {
-	// 	defer v.Clear()
-
-	// 	if v.VT == 0x1 { //VT_NULL
-	// 		return nil
-	// 	}
-
-	// 	switch val := v.Value().(type) {
-	// 	case int8, int16, int32, int64, int:
-	// 		v := reflect.ValueOf(val).Int()
-	// 		fields[n] = v
-	// 	case uint8, uint16, uint32, uint64:
-	// 		v := reflect.ValueOf(val).Uint()
-	// 		fields[n] = v
-	// 	case bool:
-	// 		fields[n] = val
-	// 	case string:
-	// 		fields[n] = val
-	// 	case float32:
-	// 		fields[n] = float64(val)
-	// 	case float64:
-	// 		fields[n] = val
-	// 	default:
-	// 		log.Printf("unknown data type")
-	// 	}
-	// 	return nil
-	// })
-
-	return fields, nil
-}
-
 // loadEntity loads a SWbemObject into a struct pointer.
-// nolint
 func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismatch error) {
 	v := reflect.ValueOf(dst).Elem()
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		of := f
 		isPtr := f.Kind() == reflect.Ptr
-		if isPtr {
-			ptr := reflect.New(f.Type().Elem())
-			f.Set(ptr)
-			f = f.Elem()
-		}
 		n := v.Type().Field(i).Name
+		if n[0] < 'A' || n[0] > 'Z' {
+			continue
+		}
 		if !f.CanSet() {
-			return &FieldMismatchError{
+			return &ErrFieldMismatch{
 				StructType: of.Type(),
 				FieldName:  n,
 				Reason:     "CanSet() is false",
@@ -425,7 +357,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 		prop, err := oleutil.GetProperty(src, n)
 		if err != nil {
 			if !c.AllowMissingFields {
-				errFieldMismatch = &FieldMismatchError{
+				errFieldMismatch = &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "no such struct field",
@@ -433,9 +365,15 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			}
 			continue
 		}
-		defer prop.Clear() //nolint:errcheck
+		defer prop.Clear()
 
-		if prop.VT == 0x1 { // VT_NULL
+		if isPtr && !(c.PtrNil && prop.VT == 0x1) {
+			ptr := reflect.New(f.Type().Elem())
+			f.Set(ptr)
+			f = f.Elem()
+		}
+
+		if prop.VT == 0x1 { //VT_NULL
 			continue
 		}
 
@@ -448,7 +386,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				f.SetUint(uint64(v))
 			default:
-				return &FieldMismatchError{
+				return &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not an integer class",
@@ -462,7 +400,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				f.SetUint(v)
 			default:
-				return &FieldMismatchError{
+				return &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not an integer class",
@@ -506,7 +444,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Bool:
 				f.SetBool(val)
 			default:
-				return &FieldMismatchError{
+				return &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not a bool",
@@ -517,12 +455,24 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Float32:
 				f.SetFloat(float64(val))
 			default:
-				return &FieldMismatchError{
+				return &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not a Float32",
 				}
 			}
+		case float64:
+			switch f.Kind() {
+			case reflect.Float32, reflect.Float64:
+				f.SetFloat(val)
+			default:
+				return &ErrFieldMismatch{
+					StructType: of.Type(),
+					FieldName:  n,
+					Reason:     "not a Float64",
+				}
+			}
+
 		default:
 			if f.Kind() == reflect.Slice {
 				switch f.Type().Elem().Kind() {
@@ -560,7 +510,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 						f.Set(fArr)
 					}
 				default:
-					return &FieldMismatchError{
+					return &ErrFieldMismatch{
 						StructType: of.Type(),
 						FieldName:  n,
 						Reason:     fmt.Sprintf("unsupported slice type (%T)", val),
@@ -574,7 +524,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 					}
 					break
 				}
-				return &FieldMismatchError{
+				return &ErrFieldMismatch{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     fmt.Sprintf("unsupported type (%T)", val),
@@ -602,7 +552,7 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 		return multiArgTypeInvalid, nil
 	}
 	elemType = v.Type().Elem()
-	switch elemType.Kind() { //nolint:exhaustive
+	switch elemType.Kind() {
 	case reflect.Struct:
 		return multiArgTypeStruct, elemType
 	case reflect.Ptr:
@@ -610,7 +560,6 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 		if elemType.Kind() == reflect.Struct {
 			return multiArgTypeStructPtr, elemType
 		}
-	default:
 	}
 	return multiArgTypeInvalid, nil
 }
@@ -620,16 +569,19 @@ func oleInt64(item *ole.IDispatch, prop string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer v.Clear() //nolint:errcheck
+	defer v.Clear()
 
-	i := v.Val
+	i := int64(v.Val)
 	return i, nil
 }
 
 // CreateQuery returns a WQL query string that queries all columns of src. where
 // is an optional string that is appended to the query, to be used with WHERE
 // clauses. In such a case, the "WHERE" string should appear at the beginning.
-func CreateQuery(src interface{}, where string) string {
+// The wmi class is obtained by the name of the type. You can pass a optional
+// class throught the variadic class parameter which is useful for anonymous
+// structs.
+func CreateQuery(src interface{}, where string, class ...string) string {
 	var b bytes.Buffer
 	b.WriteString("SELECT ")
 	s := reflect.Indirect(reflect.ValueOf(src))
@@ -646,7 +598,11 @@ func CreateQuery(src interface{}, where string) string {
 	}
 	b.WriteString(strings.Join(fields, ", "))
 	b.WriteString(" FROM ")
-	b.WriteString(t.Name())
+	if len(class) > 0 {
+		b.WriteString(class[0])
+	} else {
+		b.WriteString(t.Name())
+	}
 	b.WriteString(" " + where)
 	return b.String()
 }

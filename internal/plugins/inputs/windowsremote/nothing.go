@@ -3,5 +3,4 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package wmi collect Windows WMI metrics
-package wmi
+package windowsremote
