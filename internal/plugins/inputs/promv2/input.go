@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -51,8 +52,9 @@ type Input struct {
 	chPause chan bool
 	pause   bool
 
-	Feeder dkio.Feeder
-	Tagger datakit.GlobalTagger
+	Feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
+	semStop *cliutils.Sem // start stop signal
 
 	lastStart time.Time
 
@@ -91,7 +93,11 @@ func (ipt *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			ipt.log.Info("prom exit")
+			ipt.log.Info("promv2 exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.log.Info("promv2 return")
 			return
 
 		case ipt.pause = <-ipt.chPause:
@@ -216,6 +222,12 @@ func (ipt *Input) callback(pts []*point.Point) error {
 	return nil
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
 func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
@@ -245,6 +257,7 @@ func newProm() *Input {
 		Tags:        make(map[string]string),
 		Feeder:      dkio.DefaultFeeder(),
 		Tagger:      datakit.DefaultGlobalTagger(),
+		semStop:     cliutils.NewSem(),
 		Interval:    time.Second * 30,
 	}
 }
