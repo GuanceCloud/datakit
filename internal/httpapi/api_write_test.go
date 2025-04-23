@@ -423,7 +423,7 @@ m1 f1=1i,f2="abc" 123`),
 		{
 			"logging-no-status",
 			[]byte(`[{ "measurement": "some", "fields": { "f1": 123 }, "time": 123 }]`),
-			[]byte(`some f1=123,status="unknown" 123`),
+			[]byte(`some f1=123,status="info" 123`),
 			point.JSON,
 			point.DefaultLoggingOptions(),
 		},
@@ -1372,7 +1372,7 @@ func TestPBPointEscaped(t *T.T) {
 
 		mfs, err := reg.Gather()
 		assert.NoError(t, err)
-		m := metrics.GetMetric(mfs, "pointpool_escaped", 0)
+		m := metrics.GetMetric(mfs, "pointpool_escaped_total", 0)
 
 		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
 

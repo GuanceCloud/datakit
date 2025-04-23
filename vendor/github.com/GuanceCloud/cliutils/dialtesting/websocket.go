@@ -22,7 +22,7 @@ import (
 
 var (
 	_ TaskChild = (*WebsocketTask)(nil)
-	_ ITask = (*WebsocketTask)(nil)
+	_ ITask     = (*WebsocketTask)(nil)
 )
 
 type WebsocketResponseTime struct {
@@ -272,7 +272,6 @@ func (t *WebsocketTask) clear() {
 }
 
 func (t *WebsocketTask) run() error {
-
 	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
 

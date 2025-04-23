@@ -171,7 +171,7 @@ func TestPipeline(t *testing.T) {
 					`message`: logs[0],
 					`msg`:     `Server is listening on [ ::1 <ipv6> 1431] accept sockets 1.`,
 					`origin`:  `spid28s`,
-					`status`:  `unknown`,
+					`status`:  `info`,
 				}
 				return point.NewPointV2(source,
 					point.NewKVs(fields),
@@ -185,7 +185,7 @@ func TestPipeline(t *testing.T) {
 					`message`: logs[1],
 					`msg`:     `Common language runtime (CLR) functionality initialized.`,
 					`origin`:  `Server`,
-					`status`:  `unknown`,
+					`status`:  `info`,
 				}
 				return point.NewPointV2(source,
 					point.NewKVs(fields),

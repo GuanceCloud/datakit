@@ -109,7 +109,7 @@ func (c *DiskCache) openWriteFile() error {
 	// write append fd, always write to the same-name file
 	wfd, err := os.OpenFile(c.curWriteFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, c.filePerms)
 	if err != nil {
-		return fmt.Errorf("under openWriteFile, OpenFile: %w", err)
+		return fmt.Errorf("under openWriteFile, OpenFile(%q): %w", c.curWriteFile, err)
 	}
 
 	c.wfdLastWrite = time.Now()

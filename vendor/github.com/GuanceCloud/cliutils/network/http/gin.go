@@ -224,7 +224,8 @@ func CORSMiddlewareV2(allowedOrigins []string) gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Max-Age", "7200")
 		}
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
+			c.Status(http.StatusNoContent)
+			c.Abort()
 			return
 		}
 		c.Next()

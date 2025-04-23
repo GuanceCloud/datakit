@@ -283,7 +283,7 @@ func TestGetPoint(t *testing.T) {
 				"duration":       int64(7319000),
 				"finished_at":    int64(1652020916871),
 				"message":        "jenkins-test-ci-master-5",
-				"status":         "unknown",
+				"status":         "info",
 			},
 		},
 		{
@@ -309,7 +309,7 @@ func TestGetPoint(t *testing.T) {
 				"build_id":          "33",
 				"build_started_at":  int64(1652020914276),
 				"message":           "Shell Script",
-				"status":            "unknown",
+				"status":            "info",
 			},
 		},
 		{
@@ -336,7 +336,7 @@ func TestGetPoint(t *testing.T) {
 				"build_finished_at": int64(1652020915376),
 				"build_id":          "34",
 				"build_started_at":  int64(1652020915097),
-				"status":            "unknown",
+				"status":            "info",
 			},
 		},
 		{

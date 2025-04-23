@@ -7,7 +7,7 @@ const (
 	FieldStatus     = "status"
 	PlLoggingSource = "source"
 
-	DefaultStatus = "unknown"
+	DefaultStatus = "info"
 	NSDefault     = "default" // 内置 pl script， 优先级最低
 	NSGitRepo     = "gitrepo" // git 管理的 pl script
 	NSConfd       = "confd"   // confd 管理的 pl script

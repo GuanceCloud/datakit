@@ -401,7 +401,7 @@ func (p *Point) Keys() *Keys {
 // Size get underling data size in byte(exclude warning/debug info).
 //
 // NOTE: This is a approxmate size, not equal to the final protobuf size of
-// the point. For precise size, use PBSize() instead(and is slower)
+// the point. For precise size, use PBSize() instead(and is slower).
 func (p *Point) Size() int {
 	n := len(p.pt.Name)
 	for _, kv := range p.pt.Fields {

@@ -7,13 +7,6 @@ package point
 
 import (
 	"fmt"
-
-	"github.com/GuanceCloud/cliutils/logger"
-)
-
-var (
-	// logger for debugging, do NOT add logging in release code.
-	l = logger.DefaultSLogger("point")
 )
 
 // EncodeV2 set points to be encoded.

@@ -7,7 +7,7 @@ package point
 
 const (
 	defaultObjectName    = "default"
-	defaultLoggingStatus = "unknown"
+	DefaultLoggingStatus = "info"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 	KeyDate        = NewKey("date", I)
 
 	KeyName   = NewKey("name", S, defaultObjectName)
-	KeyStatus = NewKey("status", S, defaultLoggingStatus)
+	KeyStatus = NewKey("status", S, DefaultLoggingStatus)
 )
 
 var (

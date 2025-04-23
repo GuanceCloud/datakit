@@ -116,6 +116,7 @@ func (e *Encoder) getPayload(pts []*Point) ([]byte, error) {
 		err     error
 	)
 
+	//nolint:exhaustive
 	switch e.enc {
 	case Protobuf:
 		pbpts := e.pbpts
@@ -151,6 +152,8 @@ func (e *Encoder) getPayload(pts []*Point) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, fmt.Errorf("not support encode %s", e.enc)
 	}
 
 	if e.fn != nil {
@@ -233,9 +236,7 @@ func (e *Encoder) Encode(pts []*Point) ([][]byte, error) {
 	return e.doEncode(pts)
 }
 
-var (
-	errTooSmallBuffer = errors.New("too small buffer")
-)
+var errTooSmallBuffer = errors.New("too small buffer")
 
 func (e *Encoder) LastErr() error {
 	return e.lastErr
@@ -253,6 +254,7 @@ func (e *Encoder) LastTrimmed() int {
 	return e.trimmedPts
 }
 
+//nolint:lll
 func (e *Encoder) String() string {
 	return fmt.Sprintf("encoding: %s, parts: %d, byte size: %d, e.batchSize: %d, lastPtsIdx: %d, total pts: %d, total bytes: %d, trimmed: %d, skipped: %d, lastErr: %v",
 		e.enc, e.parts, e.bytesSize, e.batchSize, e.lastPtsIdx, e.totalPts, e.totalBytes, e.trimmedPts, e.skippedPts, e.lastErr,

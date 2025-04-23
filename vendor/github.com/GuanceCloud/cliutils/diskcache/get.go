@@ -49,7 +49,7 @@ func (c *DiskCache) Get(fn Fn) error {
 	return c.doGet(nil, fn)
 }
 
-// BufGet fetch new data from disk cache, and read into buf
+// BufGet fetch new data from disk cache, and read into buf.
 func (c *DiskCache) BufGet(buf []byte, fn Fn) error {
 	return c.doGet(buf, fn)
 }
@@ -125,7 +125,7 @@ retry:
 	if len(buf) < nbytes {
 		// seek to next read position
 		if _, err := c.rfd.Seek(int64(nbytes), io.SeekCurrent); err != nil {
-			return err
+			return fmt.Errorf("rfd.Seek(%d): %w", nbytes, err)
 		}
 
 		droppedDataVec.WithLabelValues(c.path, reasonTooSmallReadBuffer).Observe(float64(nbytes))
@@ -133,7 +133,7 @@ retry:
 	}
 
 	if n, err := c.rfd.Read(buf[:nbytes]); err != nil {
-		return err
+		return fmt.Errorf("rfd.Read(%d buf): %w", len(buf[:nbytes]), err)
 	} else if n != nbytes {
 		return ErrUnexpectedReadSize
 	}
@@ -146,7 +146,7 @@ retry:
 		// seek back
 		if !c.noFallbackOnError {
 			if _, serr := c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); serr != nil {
-				return serr
+				return fmt.Errorf("c.rfd.Seek(%d) on FallbackOnError: %w", -int64(dataHeaderLen+nbytes), serr)
 			}
 
 			seekBackVec.WithLabelValues(c.path).Inc()

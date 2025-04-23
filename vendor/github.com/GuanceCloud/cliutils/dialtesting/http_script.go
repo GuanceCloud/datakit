@@ -106,7 +106,7 @@ func runPipeline(script string, response *ScriptHTTPRequestResponse, vars *Vars)
 	}()
 
 	for k, v := range errs {
-		return nil, fmt.Errorf("new scripts failed: %s, %v", k, v)
+		return nil, fmt.Errorf("new scripts failed: %s, %w", k, v)
 	}
 
 	pl, ok := pls[scriptName]

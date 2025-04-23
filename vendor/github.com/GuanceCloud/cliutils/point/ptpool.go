@@ -18,7 +18,7 @@ var (
 	poolGetDesc    = p8s.NewDesc("pointpool_pool_get_total", "Get count from reserved channel", nil, nil)
 	poolPutDesc    = p8s.NewDesc("pointpool_pool_put_total", "Put count to reserved channel", nil, nil)
 	poolMallocDesc = p8s.NewDesc("pointpool_malloc_total", "New object malloc from pool", nil, nil)
-	poolEscaped    = p8s.NewDesc("pointpool_escaped", "Points that not comes from pool", nil, nil)
+	poolEscaped    = p8s.NewDesc("pointpool_escaped_total", "Points that not comes from pool", nil, nil)
 )
 
 type PointPool interface {
@@ -407,7 +407,7 @@ func (cpp *ReservedCapPointPool) Collect(ch chan<- p8s.Metric) {
 	ch <- p8s.MustNewConstMetric(poolGetDesc, p8s.CounterValue, float64(cpp.poolGet()))
 	ch <- p8s.MustNewConstMetric(poolPutDesc, p8s.CounterValue, float64(cpp.poolPut()))
 
-	ch <- p8s.MustNewConstMetric(reservedCapacityDesc, p8s.CounterValue, float64(cpp.capacity))
+	ch <- p8s.MustNewConstMetric(reservedCapacityDesc, p8s.GaugeValue, float64(cpp.capacity))
 	ch <- p8s.MustNewConstMetric(poolMallocDesc, p8s.CounterValue, float64(cpp.malloc.Load()))
 	ch <- p8s.MustNewConstMetric(poolEscaped, p8s.CounterValue, float64(cpp.escaped.Load()))
 }
