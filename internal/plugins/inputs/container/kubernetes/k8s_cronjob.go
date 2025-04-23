@@ -7,122 +7,186 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apibatchv1 "k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	cronjobMetricMeasurement = "kube_cronjob"
-	cronjobObjectMeasurement = "kubernetes_cron_jobs"
+	cronjobMetricMeasurement       = "kube_cronjob"
+	cronjobObjectMeasurement       = "kubernetes_cron_jobs"
+	cronjobObjectChangeMeasurement = "kubernetes_cron_jobs"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("cronjob", true, false, newCronjob)
+	registerResource("cronjob", false, newCronjob)
 	registerMeasurements(&cronjobMetric{}, &cronjobObject{})
 }
 
 type cronjob struct {
-	client    k8sClient
-	continued string
-	//    e.g. map["kube-system"]= 10
+	client  k8sClient
+	cfg     *Config
 	counter map[string]int
 }
 
-func newCronjob(client k8sClient) resource {
-	return &cronjob{client: client, counter: make(map[string]int)}
+func newCronjob(client k8sClient, cfg *Config) resource {
+	return &cronjob{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (c *cronjob) count() []pointV2 { return buildCountPoints("cronjob", c.counter) }
+func (c *cronjob) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := c.client.GetCronJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (c *cronjob) hasNext() bool { return c.continued != "" }
+		pts := c.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-cronjob-metric", c.cfg.Feeder, pts, true)
 
-func (c *cronjob) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      c.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := c.client.GetCronJobs(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("cronjob", c.counter, timestamp)
+	feedMetric("k8s-counter", c.cfg.Feeder, counterPts, true)
+}
+
+func (c *cronjob) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := c.client.GetCronJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := c.buildObjectPoints(list)
+		feedObject("k8s-cronjob-object", c.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (c *cronjob) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Batch().V1().CronJobs()
+	if informer == nil {
+		klog.Warn("cannot get cronjob informer")
+		return
 	}
 
-	c.continued = list.Continue
-	return &cronjobMetadata{c, list}, nil
-}
-
-type cronjobMetadata struct {
-	parent *cronjob
-	list   *apibatchv1.CronJobList
-}
-
-func (m *cronjobMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
-
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(cronjobMetricMeasurement)
-
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("cronjob", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		if item.Spec.Suspend != nil {
-			met.SetField("spec_suspend", *item.Spec.Suspend)
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldCronjobObj, ok := oldObj.(*apibatchv1.CronJob)
+		if !ok {
+			klog.Warnf("converting to CronJob object failed, %v", oldObj)
+			return
 		}
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		newCronjobObj, ok := newObj.(*apibatchv1.CronJob)
+		if !ok {
+			klog.Warnf("converting to CronJob object failed, %v", newObj)
+			return
+		}
 
-		m.parent.counter[item.Namespace]++
+		difftext, err := diffObject(oldCronjobObj.Spec, newCronjobObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(c.cfg.Feeder, cronjobObjectChangeMeasurement, difftext, newCronjobObj)
+		}
 	}
 
-	return res
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-func (m *cronjobMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(cronjobObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("cron_job_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
-
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("schedule", item.Spec.Schedule)
-		obj.SetField("active_jobs", len(item.Status.Active))
-		obj.SetField("suspend", false)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("cronjob", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		if item.Spec.Suspend != nil {
-			obj.SetField("suspend", *item.Spec.Suspend)
+			kvs = kvs.AddV2("spec_suspend", *item.Spec.Suspend, false)
+		}
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForMetric.All, c.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
+		pt := point.NewPointV2(cronjobMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
+
+		c.counter[item.Namespace]++
+	}
+
+	return pts
+}
+
+func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
+
+	for _, item := range list.Items {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("cron_job_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
+
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("schedule", item.Spec.Schedule, false)
+		kvs = kvs.AddV2("active_jobs", len(item.Status.Active), false)
+
+		if item.Spec.Suspend != nil {
+			kvs = kvs.AddV2("suspend", *item.Spec.Suspend, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
 
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForNonMetric.All, c.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
+		pt := point.NewPointV2(cronjobObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type cronjobMetric struct{}

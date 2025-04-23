@@ -8,175 +8,241 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	nodeMetricMeasurement = "kube_node"
-	nodeObjectMeasurement = "kubernetes_nodes"
+	nodeMetricMeasurement       = "kube_node"
+	nodeObjectMeasurement       = "kubernetes_nodes"
+	nodeObjectChangeMeasurement = "kubernetes_nodes"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("node", false, false, newNode)
+	registerResource("node", false, newNode)
 	registerMeasurements(&nodeMetric{}, &nodeObject{})
 }
 
 type node struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newNode(client k8sClient) resource {
-	return &node{client: client, counter: make(map[string]int)}
+func newNode(client k8sClient, cfg *Config) resource {
+	return &node{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (n *node) count() []pointV2 { return buildCountPoints("node", n.counter) }
+func (n *node) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := n.client.GetNodes().List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (n *node) hasNext() bool { return n.continued != "" }
+		pts := n.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-node-metric", n.cfg.Feeder, pts, true)
 
-func (n *node) getMetadata(ctx context.Context, _, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      n.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := n.client.GetNodes().List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("node", n.counter, timestamp)
+	feedMetric("k8s-counter", n.cfg.Feeder, counterPts, true)
+}
+
+func (n *node) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := n.client.GetNodes().List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := n.buildObjectPoints(list)
+		feedObject("k8s-node-object", n.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (n *node) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Core().V1().Nodes()
+	if informer == nil {
+		klog.Warn("cannot get node informer")
+		return
 	}
 
-	n.continued = list.Continue
-	return &nodeMetadata{n, list}, nil
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldNodeObj, ok := oldObj.(*apicorev1.Node)
+		if !ok {
+			klog.Warnf("converting to Node object failed, %v", oldObj)
+			return
+		}
+
+		newNodeObj, ok := newObj.(*apicorev1.Node)
+		if !ok {
+			klog.Warnf("converting to Node object failed, %v", newObj)
+			return
+		}
+
+		difftext, err := diffObject(oldNodeObj.Spec, newNodeObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(n.cfg.Feeder, nodeObjectChangeMeasurement, difftext, newNodeObj)
+		}
+	}
+
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-type nodeMetadata struct {
-	parent *node
-	list   *apicorev1.NodeList
-}
+func (n *node) buildMetricPoints(list *apicorev1.NodeList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-func (m *nodeMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(nodeMetricMeasurement)
-
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("node", item.Name)
-		// "resource", "unit"
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("node", item.Name)
 
 		t := item.Status.Allocatable["cpu"]
-		met.SetField("cpu_allocatable", t.AsApproximateFloat64())
+		kvs = kvs.AddV2("cpu_allocatable", t.AsApproximateFloat64(), false)
 
 		m := item.Status.Allocatable["memory"]
-		met.SetField("memory_allocatable", m.AsApproximateFloat64())
+		kvs = kvs.AddV2("memory_allocatable", m.AsApproximateFloat64(), false)
 
 		p := item.Status.Allocatable["pods"]
-		met.SetField("pods_allocatable", p.AsApproximateFloat64())
+		kvs = kvs.AddV2("pods_allocatable", p.AsApproximateFloat64(), false)
 
 		e := item.Status.Allocatable["ephemeral-storage"]
-		met.SetField("ephemeral_storage_allocatable", e.AsApproximateFloat64())
+		kvs = kvs.AddV2("ephemeral_storage_allocatable", e.AsApproximateFloat64(), false)
 
 		t2 := item.Status.Capacity["cpu"]
-		met.SetField("cpu_capacity", t2.AsApproximateFloat64())
+		kvs = kvs.AddV2("cpu_capacity", t2.AsApproximateFloat64(), false)
 
 		m2 := item.Status.Capacity["memory"]
-		met.SetField("memory_capacity", m2.AsApproximateFloat64())
+		kvs = kvs.AddV2("memory_capacity", m2.AsApproximateFloat64(), false)
 
 		p2 := item.Status.Capacity["pods"]
-		met.SetField("pods_capacity", p2.AsApproximateFloat64())
+		kvs = kvs.AddV2("pods_capacity", p2.AsApproximateFloat64(), false)
 
 		e2 := item.Status.Capacity["ephemeral-storage"]
-		met.SetField("ephemeral_storage_capacity", e2.AsApproximateFloat64())
+		kvs = kvs.AddV2("ephemeral_storage_capacity", e2.AsApproximateFloat64(), false)
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, n.cfg.LabelAsTagsForMetric.All, n.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(n.cfg.ExtraTags)...)
+		pt := point.NewPointV2(nodeMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
 	}
 
-	m.parent.counter[""] += len(m.list.Items)
+	n.counter[""] += len(list.Items)
 
-	return res
+	return pts
 }
 
-func (m *nodeMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(nodeObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("node_name", item.Name)
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("node_name", item.Name)
 		for _, condition := range item.Status.Conditions {
 			if condition.Reason == "KubeletReady" {
-				obj.SetTag("status", fmt.Sprintf("%v", condition.Type))
+				kvs = kvs.AddTag("status", string(condition.Type))
 				break
 			}
 		}
 
-		obj.SetTag("role", "node")
 		if _, ok := item.Labels["node-role.kubernetes.io/master"]; ok {
-			obj.SetTag("role", "master")
+			kvs = kvs.AddTag("role", "master")
+		} else {
+			kvs = kvs.AddTag("role", "node")
 		}
 
 		for _, address := range item.Status.Addresses {
 			if address.Type == apicorev1.NodeInternalIP {
-				obj.SetTag("internal_ip", address.Address)
+				kvs = kvs.AddTag("internal_ip", address.Address)
 				break
 			}
 		}
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("kubelet_version", item.Status.NodeInfo.KubeletVersion)
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("kubelet_version", item.Status.NodeInfo.KubeletVersion, false)
 
 		if len(item.Spec.Taints) != 0 {
 			if taints, err := json.Marshal(item.Spec.Taints); err == nil {
-				obj.SetField("taints", string(taints))
+				kvs = kvs.AddV2("taints", string(taints), false)
 			}
 		}
 
-		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
-		}
-
 		if item.Spec.Unschedulable {
-			obj.SetField("unschedulable", "yes")
+			kvs = kvs.AddV2("unschedulable", "yes", false)
 		} else {
-			obj.SetField("unschedulable", "no")
+			kvs = kvs.AddV2("unschedulable", "no", false)
 		}
 
 		for _, condition := range item.Status.Conditions {
 			if condition.Type == apicorev1.NodeReady {
-				obj.SetField("node_ready", strings.ToLower(string(condition.Status)))
+				kvs = kvs.AddV2("node_ready", strings.ToLower(string(condition.Status)), false)
 				break
 			}
 		}
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
-
-		if conf.EnableExtractK8sLabelAsTagsV1 {
-			obj.SetLabelAsTags(item.Labels, true /*all labels*/, nil)
-		} else {
-			obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
+		if y, err := yaml.Marshal(item); err == nil {
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
-		res = append(res, obj)
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
+
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
+
+		if n.cfg.EnableExtractK8sLabelAsTagsV1 {
+			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, true /*all labels*/, nil)...)
+		} else {
+			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, n.cfg.LabelAsTagsForNonMetric.All, n.cfg.LabelAsTagsForNonMetric.Keys)...)
+		}
+		kvs = append(kvs, point.NewTags(n.cfg.ExtraTags)...)
+		pt := point.NewPointV2(nodeObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type nodeMetric struct{}

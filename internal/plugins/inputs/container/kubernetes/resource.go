@@ -7,34 +7,66 @@ package kubernetes
 
 import (
 	"context"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 )
 
-type resourceType struct {
-	name       string
-	namespaced bool
-	nodeLocal  bool
+var (
+	maxMessageLength   int   = 256 * 1024 // 256KB
+	queryLimit         int64 = 100
+	allNamespaces            = ""
+	emptyFieldSelector       = ""
+
+	measurements []inputs.Measurement
+)
+
+func Measurements() []inputs.Measurement {
+	return measurements
 }
 
-type resourceConstructor func(k8sClient) resource
-
-var resources = map[resourceType]resourceConstructor{}
-
-type resource interface {
-	getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error)
-	count() []pointV2
-	hasNext() bool
+func registerMeasurements(meas ...inputs.Measurement) {
+	measurements = append(measurements, meas...)
 }
 
-type metadata interface {
-	newMetric(conf *Config) pointKVs
-	newObject(conf *Config) pointKVs
-}
+type (
+	resourceConstructor func(client k8sClient, cfg *Config) resource
 
-func registerResource(name string, namespaced, nodeLocal bool, rt resourceConstructor) {
-	resources[resourceType{name, namespaced, nodeLocal}] = rt
+	resource interface {
+		gatherMetric(ctx context.Context, timestamp int64 /*nanoseconds*/)
+		gatherObject(ctx context.Context)
+		addObjectChangeInformer(informerFactory informers.SharedInformerFactory)
+	}
+)
+
+var (
+	nodeLocalResources         []resourceConstructor // pod, dfpv
+	nodeLocalResourcesNames    []string
+	nonNodeLocalResources      []resourceConstructor // other
+	nonNodeLocalResourcesNames []string
+)
+
+func registerResource(name string, nodeLocal bool, rc resourceConstructor) {
+	name = "k8s-" + name
+	if nodeLocal {
+		nodeLocalResources = append(nodeLocalResources, rc)
+		nodeLocalResourcesNames = append(nodeLocalResourcesNames, name)
+		return
+	}
+	nonNodeLocalResources = append(nonNodeLocalResources, rc)
+	nonNodeLocalResourcesNames = append(nonNodeLocalResourcesNames, name)
 }
 
 type LabelsOption struct {
 	All  bool
 	Keys []string
+}
+
+func newListOptions(fieldSelector, continued string) metav1.ListOptions {
+	return metav1.ListOptions{
+		Limit:         queryLimit,
+		FieldSelector: fieldSelector,
+		Continue:      continued,
+	}
 }

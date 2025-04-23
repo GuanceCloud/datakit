@@ -7,13 +7,13 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 )
 
 const (
@@ -22,57 +22,55 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("endpoint", true, false, newEndpoint)
+	registerResource("endpoint", false, newEndpoint)
 	registerMeasurements(&endpointMetric{})
 }
 
 type endpoint struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newEndpoint(client k8sClient) resource {
-	return &endpoint{client: client, counter: make(map[string]int)}
+func newEndpoint(client k8sClient, cfg *Config) resource {
+	return &endpoint{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (e *endpoint) count() []pointV2 { return buildCountPoints("endpoint", e.counter) }
+func (e *endpoint) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := e.client.GetEndpoints(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (e *endpoint) hasNext() bool { return e.continued != "" }
+		pts := e.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-endpoint-metric", e.cfg.Feeder, pts, true)
 
-func (e *endpoint) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      e.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := e.client.GetEndpoints(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
-	}
-
-	e.continued = list.Continue
-	return &endpointMetadata{e, list}, nil
+	counterPts := buildPointsFromCounter("endpoint", e.counter, timestamp)
+	feedMetric("k8s-counter", e.cfg.Feeder, counterPts, true)
 }
 
-type endpointMetadata struct {
-	parent *endpoint
-	list   *apicorev1.EndpointsList
-}
+func (*endpoint) gatherObject(_ context.Context)                            { /* nil */ }
+func (*endpoint) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
-func (m *endpointMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(endpointMetricMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("endpoint", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		met.SetField("address_available", 0)
-		met.SetField("address_not_ready", 0)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("endpoint", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		var available, notReady int
 		for _, subset := range item.Subsets {
@@ -80,20 +78,18 @@ func (m *endpointMetadata) newMetric(conf *Config) pointKVs {
 			notReady += len(subset.NotReadyAddresses)
 		}
 
-		met.SetField("address_available", available)
-		met.SetField("address_not_ready", notReady)
+		kvs = kvs.AddV2("address_available", available, false)
+		kvs = kvs.AddV2("address_not_ready", notReady, false)
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, e.cfg.LabelAsTagsForMetric.All, e.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(e.cfg.ExtraTags)...)
+		pt := point.NewPointV2(endpointMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
 
-		m.parent.counter[item.Namespace]++
+		e.counter[item.Namespace]++
 	}
 
-	return res
-}
-
-func (m *endpointMetadata) newObject(conf *Config) pointKVs {
-	return nil
+	return pts
 }
 
 type endpointMetric struct{}

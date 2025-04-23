@@ -7,96 +7,136 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	persistentvolumeObjectMeasurement = "kubernetes_persistentvolumes"
+	persistentvolumeObjectMeasurement       = "kubernetes_persistentvolumes"
+	persistentvolumeObjectChangeMeasurement = "kubernetes_persistentvolumes"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("persistentvolume", false, false, newPersistentvolume)
+	registerResource("persistentvolume", false, newPersistentvolume)
 	registerMeasurements(&persistentvolumeObject{})
 }
 
 type persistentvolume struct {
-	client    k8sClient
-	continued string
+	client k8sClient
+	cfg    *Config
 }
 
-func newPersistentvolume(client k8sClient) resource {
-	return &persistentvolume{client: client}
+func newPersistentvolume(client k8sClient, cfg *Config) resource {
+	return &persistentvolume{client: client, cfg: cfg}
 }
 
-func (c *persistentvolume) count() []pointV2 { return nil }
+func (p *persistentvolume) gatherMetric(ctx context.Context, timestamp int64) {
+	// nil
+}
 
-func (c *persistentvolume) hasNext() bool { return c.continued != "" }
+func (p *persistentvolume) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := p.client.GetPersistentVolumes().List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (c *persistentvolume) getMetadata(ctx context.Context, _, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      c.continued,
-		FieldSelector: fieldSelector,
+		pts := p.buildObjectPoints(list)
+		feedObject("k8s-persistentvolume-object", p.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (p *persistentvolume) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Core().V1().PersistentVolumes()
+	if informer == nil {
+		klog.Warn("cannot get persistentvolume informer")
+		return
 	}
 
-	list, err := c.client.GetPersistentVolumes().List(ctx, opt)
-	if err != nil {
-		return nil, err
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldPersistentVolumeObj, ok := oldObj.(*apicorev1.PersistentVolume)
+		if !ok {
+			klog.Warnf("converting to PersistentVolume object failed, %v", oldObj)
+			return
+		}
+
+		newPersistentVolumeObj, ok := newObj.(*apicorev1.PersistentVolume)
+		if !ok {
+			klog.Warnf("converting to PersistentVolume object failed, %v", newObj)
+			return
+		}
+
+		difftext, err := diffObject(oldPersistentVolumeObj.Spec, newPersistentVolumeObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(p.cfg.Feeder, persistentvolumeObjectChangeMeasurement, difftext, newPersistentVolumeObj)
+		}
 	}
 
-	c.continued = list.Continue
-	return &persistentvolumeMetadata{c, list}, nil
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-type persistentvolumeMetadata struct {
-	parent *persistentvolume
-	list   *apicorev1.PersistentVolumeList
-}
+func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-func (m *persistentvolumeMetadata) newMetric(conf *Config) pointKVs {
-	return nil
-}
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-func (m *persistentvolumeMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
-
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(persistentvolumeObjectMeasurement)
-
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("persistentvolume_name", item.Name)
-
-		obj.SetField("phase", string(item.Status.Phase))
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("persistentvolume_name", item.Name)
+		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
 		if item.Spec.ClaimRef != nil && item.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
-			obj.SetField("claimRef_name", item.Spec.ClaimRef.Name)
-			obj.SetField("claimRef_namespace", item.Spec.ClaimRef.Namespace)
+			kvs = kvs.AddV2("claimRef_name", item.Spec.ClaimRef.Name, false)
+			kvs = kvs.AddV2("claimRef_namespace", item.Spec.ClaimRef.Namespace, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
 
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
+		pt := point.NewPointV2(persistentvolumeObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type persistentvolumeObject struct{}

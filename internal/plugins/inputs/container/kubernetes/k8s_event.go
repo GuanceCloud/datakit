@@ -10,8 +10,6 @@ import (
 	"strconv"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,10 +27,10 @@ func init() {
 	registerMeasurements(&event{})
 }
 
-func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
-	list, err := k.client.GetEvents("").List(context.Background(), metav1.ListOptions{Limit: 1})
+func (k *Kube) gatherEvent(ctx context.Context) {
+	list, err := k.client.GetEvents(allNamespaces).List(context.Background(), metav1.ListOptions{Limit: 1})
 	if err != nil {
-		klog.Warnf("failed to load events, err: %s", err)
+		klog.Warnf("query events failed, err: %s", err)
 		return
 	}
 
@@ -47,42 +45,29 @@ func (k *Kube) gatherEvent(feed func([]*point.Point) error) {
 
 	w, err := watch.NewRetryWatcher(resourceVersion, &cache.ListWatch{WatchFunc: watchFunc})
 	if err != nil {
-		klog.Warnf("failed to retry watch events, err: %s", err)
+		klog.Warnf("watch events failed, err: %s", err)
 		return
 	}
 	defer w.Stop()
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			return
-
-		case <-k.done:
-			klog.Infof("event terminated")
+		case <-ctx.Done():
+			klog.Infof("k8s event exit")
 			return
 
 		case event, ok := <-w.ResultChan():
-			if k.paused() {
-				klog.Info("not leader for election, exit")
-				return
-			}
-
 			if !ok {
 				klog.Warnf("event channel is closed, exit")
 				return
 			}
-
-			pts := k.newEvent(&event)
-			if err := feed(pts); err != nil {
-				klog.Warn(err)
-			} else {
-				collectPtsVec.WithLabelValues("events").Add(float64(len(pts)))
-			}
+			pts := k.buildEventPoints(&event)
+			feedLogging("k8s-event", k.cfg.Feeder, pts)
 		}
 	}
 }
 
-func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
+func (k *Kube) buildEventPoints(event *kubewatch.Event) []*point.Point {
 	//nolint:exhaustive
 	switch event.Type {
 	case kubewatch.Bookmark, kubewatch.Deleted:
@@ -98,21 +83,21 @@ func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 		return nil
 	}
 
-	pt := typed.NewPointKV(eventLoggingMeasurement)
-	pt.SetTag("uid", string(item.UID))
-	pt.SetTag("type", item.Type)
-	pt.SetTag("reason", item.Reason)
-	pt.SetTag("from_node", k.cfg.NodeName)
-	pt.SetTags(k.cfg.ExtraTags)
+	var kvs point.KVs
+	kvs = kvs.AddTag("uid", string(item.UID))
+	kvs = kvs.AddTag("type", item.Type)
+	kvs = kvs.AddTag("reason", item.Reason)
+	kvs = kvs.AddTag("from_node", k.cfg.NodeName)
 
-	pt.SetField("involved_kind", item.InvolvedObject.Kind)
-	pt.SetField("involved_uid", string(item.InvolvedObject.UID))
-	pt.SetField("involved_name", item.InvolvedObject.Name)
-	pt.SetField("involved_namespace", item.InvolvedObject.Namespace)
-	pt.SetField("source_component", item.Source.Component)
-	pt.SetField("source_host", item.Source.Host)
-	pt.SetField("resource_version", item.ResourceVersion)
-	pt.SetField("message", item.Message)
+	kvs = kvs.AddV2("involved_kind", item.InvolvedObject.Kind, false)
+	kvs = kvs.AddV2("involved_uid", string(item.InvolvedObject.UID), false)
+	kvs = kvs.AddV2("involved_name", item.InvolvedObject.Name, false)
+	kvs = kvs.AddV2("involved_namespace", item.InvolvedObject.Namespace, false)
+	kvs = kvs.AddV2("source_component", item.Source.Component, false)
+	kvs = kvs.AddV2("source_host", item.Source.Host, false)
+
+	kvs = kvs.AddV2("resource_version", item.ResourceVersion, false)
+	kvs = kvs.AddV2("message", item.Message, false)
 
 	status := "unknown"
 	switch item.Type {
@@ -123,13 +108,14 @@ func (k *Kube) newEvent(event *kubewatch.Event) []*point.Point {
 	default:
 		// nil
 	}
-	pt.SetField("status", status)
 
-	pts := pointKVs{pt}
+	kvs = kvs.AddV2("status", status, false)
+	kvs = append(kvs, point.NewTags(k.cfg.ExtraTags)...)
+	pt := point.NewPointV2(eventLoggingMeasurement, kvs, append(point.DefaultLoggingOptions(), point.WithTime(item.CreationTimestamp.Time))...)
 
 	// record resourceVersion
 	k.lastEventResourceVersion = item.ResourceVersion
-	return transToPoint(pts, append(point.DefaultLoggingOptions(), point.WithTime(item.CreationTimestamp.Time)))
+	return []*point.Point{pt}
 }
 
 // nolint
@@ -142,7 +128,7 @@ func latestResourveVersion(v1, v2 string) string {
 	return v1
 }
 
-type event struct{ *typed.PointKV }
+type event struct{}
 
 //nolint:lll
 func (*event) Info() *inputs.MeasurementInfo {

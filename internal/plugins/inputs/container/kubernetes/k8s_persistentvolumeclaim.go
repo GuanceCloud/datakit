@@ -7,102 +7,142 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	persistentvolumeclaimObjectMeasurement = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimObjectMeasurement       = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimObjectChangeMeasurement = "kubernetes_persistentvolumeclaims"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("persistentvolumeclaim", false, false, newPersistentvolumeclaim)
+	registerResource("persistentvolumeclaim", false, newPersistentvolumeclaim)
 	registerMeasurements(&persistentvolumeclaimObject{})
 }
 
 type persistentvolumeclaim struct {
-	client    k8sClient
-	continued string
+	client k8sClient
+	cfg    *Config
 }
 
-func newPersistentvolumeclaim(client k8sClient) resource {
-	return &persistentvolumeclaim{client: client}
+func newPersistentvolumeclaim(client k8sClient, cfg *Config) resource {
+	return &persistentvolumeclaim{client: client, cfg: cfg}
 }
 
-func (c *persistentvolumeclaim) count() []pointV2 { return nil }
+func (p *persistentvolumeclaim) gatherMetric(ctx context.Context, timestamp int64) { /* nil */ }
 
-func (c *persistentvolumeclaim) hasNext() bool { return c.continued != "" }
+func (p *persistentvolumeclaim) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := p.client.GetPersistentVolumeClaims(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (c *persistentvolumeclaim) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      c.continued,
-		FieldSelector: fieldSelector,
+		pts := p.buildObjectPoints(list)
+		feedObject("k8s-persistentvolumeclaim-object", p.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (p *persistentvolumeclaim) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Core().V1().PersistentVolumeClaims()
+	if informer == nil {
+		klog.Warn("cannot get persistentvolumeclaim informer")
+		return
 	}
 
-	list, err := c.client.GetPersistentVolumeClaims(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldPersistentVolumeClaimObj, ok := oldObj.(*apicorev1.PersistentVolumeClaim)
+		if !ok {
+			klog.Warnf("converting to PersistentVolumeClaim object failed, %v", oldObj)
+			return
+		}
+
+		newPersistentVolumeClaimObj, ok := newObj.(*apicorev1.PersistentVolumeClaim)
+		if !ok {
+			klog.Warnf("converting to PersistentVolumeClaim object failed, %v", newObj)
+			return
+		}
+
+		difftext, err := diffObject(oldPersistentVolumeClaimObj.Spec, newPersistentVolumeClaimObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(p.cfg.Feeder, persistentvolumeclaimObjectChangeMeasurement, difftext, newPersistentVolumeClaimObj)
+		}
 	}
 
-	c.continued = list.Continue
-	return &persistentvolumeclaimMetadata{c, list}, nil
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-type persistentvolumeclaimMetadata struct {
-	parent *persistentvolumeclaim
-	list   *apicorev1.PersistentVolumeClaimList
-}
+func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolumeClaimList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-func (m *persistentvolumeclaimMetadata) newMetric(conf *Config) pointKVs {
-	return nil
-}
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-func (m *persistentvolumeclaimMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("persistentvolumeclaim_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(persistentvolumeclaimObjectMeasurement)
-
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("persistentvolumeclaim_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
-
-		obj.SetField("phase", string(item.Status.Phase))
-		obj.SetField("volume_name", item.Spec.VolumeName)
+		kvs = kvs.AddV2("volume_name", item.Spec.VolumeName, false)
 		if item.Spec.VolumeMode != nil {
-			obj.SetField("volume_mode", string(*item.Spec.VolumeMode))
+			kvs = kvs.AddV2("volume_mode", string(*item.Spec.VolumeMode), false)
 		}
 		if item.Spec.StorageClassName != nil {
-			obj.SetField("storage_class_name", *item.Spec.StorageClassName)
+			kvs = kvs.AddV2("storage_class_name", *item.Spec.StorageClassName, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
 
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
+		pt := point.NewPointV2(persistentvolumeclaimObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type persistentvolumeclaimObject struct{}

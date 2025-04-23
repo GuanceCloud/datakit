@@ -7,13 +7,15 @@
 package container
 
 import (
+	"context"
 	"fmt"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 
@@ -30,27 +32,22 @@ type Input struct {
 	DeprecatedDockerEndpoint    string   `toml:"docker_endpoint"`
 	DeprecatedContainerdAddress string   `toml:"containerd_address"`
 
-	EnableContainerMetric                 bool     `toml:"enable_container_metric"`
-	EnableK8sMetric                       bool     `toml:"enable_k8s_metric"`
-	EnablePodMetric                       bool     `toml:"enable_pod_metric"`
-	EnableK8sEvent                        bool     `toml:"enable_k8s_event"`
-	EnableK8sNodeLocal                    bool     `toml:"enable_k8s_node_local"`
-	DeprecatedEnableExtractK8sLabelAsTags bool     `toml:"extract_k8s_label_as_tags"`
-	ExtractK8sLabelAsTagsV2               []string `toml:"extract_k8s_label_as_tags_v2"`
-	ExtractK8sLabelAsTagsV2ForMetric      []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`
-	Election                              bool     `toml:"election"`
+	EnableContainerMetric bool `toml:"enable_container_metric"`
+	EnableK8sMetric       bool `toml:"enable_k8s_metric"`
+	EnablePodMetric       bool `toml:"enable_pod_metric"`
+	EnableK8sEvent        bool `toml:"enable_k8s_event"`
+	EnableK8sNodeLocal    bool `toml:"enable_k8s_node_local"`
+	EnableCollectK8sJob   bool `toml:"enable_collect_k8s_job"`
 
-	K8sURL               string `toml:"kubernetes_url"`
-	K8sBearerToken       string `toml:"bearer_token"`
-	K8sBearerTokenString string `toml:"bearer_token_string"`
-	disableCollectK8sJob bool
+	EnableExtractK8sLabelAsTags      bool     `toml:"extract_k8s_label_as_tags"` // Deprecated
+	ExtractK8sLabelAsTagsV2          []string `toml:"extract_k8s_label_as_tags_v2"`
+	ExtractK8sLabelAsTagsV2ForMetric []string `toml:"extract_k8s_label_as_tags_v2_for_metric"`
 
 	ContainerMaxConcurrent int      `toml:"container_max_concurrent"`
 	ContainerIncludeLog    []string `toml:"container_include_log"`
 	ContainerExcludeLog    []string `toml:"container_exclude_log"`
-
-	PodIncludeMetric []string `toml:"pod_include_metric"`
-	PodExcludeMetric []string `toml:"pod_exclude_metric"`
+	PodIncludeMetric       []string `toml:"pod_include_metric"`
+	PodExcludeMetric       []string `toml:"pod_exclude_metric"`
 
 	LoggingEnableMultline                 bool              `toml:"logging_enable_multiline"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
@@ -64,8 +61,6 @@ type Input struct {
 	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
 	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`
 
-	CollectMetricInterval time.Duration `toml:"-"`
-
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
 
@@ -73,7 +68,6 @@ type Input struct {
 	Tagger datakit.GlobalTagger
 
 	semStop *cliutils.Sem // start stop signal
-	pause   *atomic.Bool
 	chPause chan bool
 }
 
@@ -84,7 +78,7 @@ func (*Input) GetPipeline() []*tailer.Option           { return nil }
 func (*Input) RunPipeline()                            { /*nil*/ }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return getCollectorMeasurement() }
-func (ipt *Input) ElectionEnabled() bool               { return ipt.Election }
+func (*Input) ElectionEnabled() bool                   { return true }
 func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelK8s, datakit.LabelDocker}
 }
@@ -92,11 +86,28 @@ func (*Input) AvailableArchs() []string {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	l.Info("container input started")
+	l.Info("container input start")
 	ipt.setup()
 
-	ipt.tryStartDiscovery()
-	ipt.runCollect()
+	var wg sync.WaitGroup
+	g := goroutine.NewGroup(goroutine.Option{Name: "container"})
+
+	collectors := newCollectors(ipt)
+
+	for _, collector := range collectors {
+		wg.Add(1)
+		func(c Collector) {
+			g.Go(func(_ context.Context) error {
+				defer wg.Done()
+
+				c.StartCollect()
+				return nil
+			})
+		}(collector)
+	}
+
+	wg.Wait()
+	l.Info("container input exit")
 }
 
 func (ipt *Input) setup() {
@@ -109,6 +120,13 @@ func (ipt *Input) setup() {
 
 	ipt.Endpoints = unique(ipt.Endpoints)
 	l.Infof("endpoints: %v", ipt.Endpoints)
+
+	if ipt.LoggingSearchInterval <= 0 {
+		ipt.LoggingSearchInterval = loggingInterval
+	}
+	if ipt.ContainerMaxConcurrent <= 0 {
+		ipt.ContainerMaxConcurrent = datakit.AvailableCPUs + 1
+	}
 }
 
 func (ipt *Input) Terminate() {
@@ -138,21 +156,18 @@ func (ipt *Input) Resume() error {
 }
 
 func newInput() *Input {
-	pause := &atomic.Bool{}
-	pause.Store(true)
 	return &Input{
 		EnableContainerMetric:     true,
 		EnableK8sMetric:           true,
 		EnableK8sEvent:            true,
 		EnableK8sNodeLocal:        true,
+		EnableCollectK8sJob:       true,
 		Tags:                      make(map[string]string),
 		LoggingEnableMultline:     true,
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
-		Election:                  true,
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
-		pause:                     pause,
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
 		semStop:                   cliutils.NewSem(),
 	}

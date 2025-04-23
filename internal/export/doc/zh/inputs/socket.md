@@ -46,6 +46,8 @@ UDP 指标需要操作系统有 `nc` 程序
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
+
+    在 Kubernetes 环境下，Datakit 域名是 `datakit-service.datakit.svc`，日志发送端可以指定 Datakit 域名作为接收端。通常只推荐 UDP 协议使用域名，TCP 协议可能存在多行数据缺少上下文的情况。
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}

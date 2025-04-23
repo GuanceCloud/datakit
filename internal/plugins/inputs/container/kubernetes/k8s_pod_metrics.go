@@ -9,47 +9,10 @@ import (
 	"context"
 	"fmt"
 
-	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsv1alpha1 "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	v1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
-
-func sumCPULimits(pod *apicorev1.Pod) int64 {
-	var sum int64
-	for _, c := range pod.Spec.Containers {
-		limit := c.Resources.Limits["cpu"]
-		sum += limit.MilliValue()
-	}
-	return sum
-}
-
-func sumMemoryLimits(pod *apicorev1.Pod) int64 {
-	var sum int64
-	for _, c := range pod.Spec.Containers {
-		limit := c.Resources.Limits["memory"]
-		sum += limit.Value()
-	}
-	return sum
-}
-
-func sumCPURequests(pod *apicorev1.Pod) int64 {
-	var sum int64
-	for _, c := range pod.Spec.Containers {
-		req := c.Resources.Requests["cpu"]
-		sum += req.MilliValue()
-	}
-	return sum
-}
-
-func sumMemoryRequests(pod *apicorev1.Pod) int64 {
-	var sum int64
-	for _, c := range pod.Spec.Containers {
-		req := c.Resources.Requests["memory"]
-		sum += req.Value()
-	}
-	return sum
-}
 
 type nodeCapacity struct {
 	nodeName              string
@@ -87,7 +50,7 @@ type podSrvMetric struct {
 	ephemeralStorageCapacityBytes  int64
 }
 
-type PodMetricsCollect interface {
+type PodMetricsClient interface {
 	GetPodMetrics(ctx context.Context, namespace, name string) (*podSrvMetric, error)
 }
 
@@ -153,7 +116,7 @@ func (p *podMetricsFromKubelet) GetPodMetrics(ctx context.Context, namespace, na
 		if m != nil {
 			p.metricsCache = m
 		}
-		podMetricsQueryCountVec.WithLabelValues("kubelet").Inc()
+		podMetricsQueryCountVec.WithLabelValues("kubelet-pod").Inc()
 	}
 	return hitPodMetrics(p.metricsCache, namespace, name)
 }
@@ -167,7 +130,7 @@ func (p *podMetricsFromKubelet) GetPodsVolumeInfo(ctx context.Context) ([]*podVo
 		if m != nil {
 			p.metricsCache = m
 		}
-		podMetricsQueryCountVec.WithLabelValues("kubelet").Inc()
+		podMetricsQueryCountVec.WithLabelValues("kubelet-volume").Inc()
 	}
 	return composePodsVolumeInfo(p.metricsCache)
 }

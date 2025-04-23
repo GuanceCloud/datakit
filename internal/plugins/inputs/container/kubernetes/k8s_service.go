@@ -7,123 +7,187 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	serviceMetricMeasurement = "kube_service"
-	serviceObjectMeasurement = "kubernetes_services"
+	serviceMetricMeasurement       = "kube_service"
+	serviceObjectMeasurement       = "kubernetes_services"
+	serviceObjectChangeMeasurement = "kubernetes_services"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("service", true, false, newService)
+	registerResource("service", false, newService)
 	registerMeasurements(&serviceMetric{}, &serviceObject{})
 }
 
 type service struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newService(client k8sClient) resource {
-	return &service{client: client, counter: make(map[string]int)}
+func newService(client k8sClient, cfg *Config) resource {
+	return &service{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (s *service) count() []pointV2 { return buildCountPoints("service", s.counter) }
+func (s *service) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := s.client.GetServices(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (s *service) hasNext() bool { return s.continued != "" }
+		pts := s.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-service-metric", s.cfg.Feeder, pts, true)
 
-func (s *service) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      s.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := s.client.GetServices(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("service", s.counter, timestamp)
+	feedMetric("k8s-counter", s.cfg.Feeder, counterPts, true)
+}
+
+func (s *service) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := s.client.GetServices(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := s.buildObjectPoints(list)
+		feedObject("k8s-service-object", s.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (s *service) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Core().V1().Services()
+	if informer == nil {
+		klog.Warn("cannot get service informer")
+		return
 	}
 
-	s.continued = list.Continue
-	return &serviceMetadata{s, list}, nil
-}
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldServiceObj, ok := oldObj.(*apicorev1.Service)
+		if !ok {
+			klog.Warnf("converting to Service object failed, %v", oldObj)
+			return
+		}
 
-type serviceMetadata struct {
-	parent *service
-	list   *apicorev1.ServiceList
-}
+		newServiceObj, ok := newObj.(*apicorev1.Service)
+		if !ok {
+			klog.Warnf("converting to Service object failed, %v", newObj)
+			return
+		}
 
-func (m *serviceMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+		difftext, err := diffObject(oldServiceObj.Spec, newServiceObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(serviceMetricMeasurement)
-
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("service", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		met.SetField("ports", len(item.Spec.Ports))
-
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
-
-		m.parent.counter[item.Namespace]++
+		if difftext != "" {
+			processObjectChange(s.cfg.Feeder, serviceObjectChangeMeasurement, difftext, newServiceObj)
+		}
 	}
 
-	return res
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-func (m *serviceMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(serviceObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("service_name", item.Name)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("service", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		obj.SetTag("namespace", item.Namespace)
-		obj.SetTag("type", fmt.Sprintf("%v", item.Spec.Type))
+		kvs = kvs.AddV2("ports", len(item.Spec.Ports), false)
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("cluster_ip", item.Spec.ClusterIP)
-		obj.SetField("external_name", item.Spec.ExternalName)
-		obj.SetField("external_traffic_policy", fmt.Sprintf("%v", item.Spec.ExternalTrafficPolicy))
-		obj.SetField("session_affinity", fmt.Sprintf("%v", item.Spec.SessionAffinity))
-		obj.SetField("external_ips", strings.Join(item.Spec.ExternalIPs, ","))
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForMetric.All, s.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
+		pt := point.NewPointV2(serviceMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
+
+		s.counter[item.Namespace]++
+	}
+
+	return pts
+}
+
+func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
+
+	for _, item := range list.Items {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("service_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("type", string(item.Spec.Type))
+
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("cluster_ip", item.Spec.ClusterIP, false)
+		kvs = kvs.AddV2("external_name", item.Spec.ExternalName, false)
+		kvs = kvs.AddV2("external_traffic_policy", string(item.Spec.ExternalTrafficPolicy), false)
+		kvs = kvs.AddV2("session_affinity", string(item.Spec.SessionAffinity), false)
+		kvs = kvs.AddV2("external_ips", strings.Join(item.Spec.ExternalIPs, ","), false)
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
 
-		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector)
-		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
+
+		kvs = append(kvs, point.NewTags(item.Spec.Selector)...)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
+		pt := point.NewPointV2(serviceObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type serviceMetric struct{}

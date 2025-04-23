@@ -13,7 +13,6 @@ import (
 var (
 	collectCostVec *prometheus.SummaryVec
 	collectPtsVec  *prometheus.CounterVec
-	totalCostVec   *prometheus.SummaryVec
 )
 
 func setupMetrics() {
@@ -22,7 +21,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input",
 			Name:      "container_collect_cost_seconds",
-			Help:      "Container collect cost",
+			Help:      "Total time (in seconds) spent collecting container metrics",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,
@@ -40,19 +39,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input",
 			Name:      "container_collect_pts_total",
-			Help:      "Container collect point total",
-		},
-		[]string{
-			"category",
-		},
-	)
-
-	totalCostVec = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input",
-			Name:      "container_total_collect_cost_seconds",
-			Help:      "Total container collect cost",
+			Help:      "Total number of points collected from containers",
 		},
 		[]string{
 			"category",
@@ -62,6 +49,5 @@ func setupMetrics() {
 	metrics.MustRegister(
 		collectCostVec,
 		collectPtsVec,
-		totalCostVec,
 	)
 }
