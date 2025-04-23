@@ -70,6 +70,7 @@ var (
 		datakit.UsageTrace,
 		datakit.NTPSync,
 		datakit.RemoteJob,
+		datakit.EnvVariable,
 	}
 
 	AvailableDataways          = []string{}

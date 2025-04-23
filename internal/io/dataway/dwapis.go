@@ -333,6 +333,39 @@ func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, 
 	return ep.sendReq(req)
 }
 
+// GetEnvVariable used to get env variable.
+func (dw *Dataway) GetEnvVariable(param map[string]string) (*http.Response, error) {
+	if len(dw.eps) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	requrl, ok := ep.categoryURL[datakit.EnvVariable]
+	if !ok {
+		return nil, fmt.Errorf("no env_variable URL available")
+	}
+
+	if strings.Contains(requrl, "?token") {
+		for k, v := range param {
+			requrl += fmt.Sprintf("&%s=%s", k, v)
+		}
+	} else {
+		return nil, fmt.Errorf("token missing")
+	}
+
+	req, err := http.NewRequest("GET", requrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("delete object label error: %w", err)
+	}
+
+	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
+	for k, v := range ep.httpHeaders {
+		req.Header.Set(k, v)
+	}
+
+	return ep.sendReq(req)
+}
+
 func (dw *Dataway) GetEndpoints() []*endPoint {
 	return dw.eps
 }

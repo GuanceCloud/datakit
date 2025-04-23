@@ -885,6 +885,33 @@ HTTP Code: 400
 }
 ```
 
+## `/v1/env_variable` | `GET` {#api-env-variable}
+
+[:octicons-tag-24: Version-1.72.0](changelog.md#cl-1.72.0)
+
+获取 RUM 环境变量列表。
+
+请求参数说明。
+
+|           参数 | 描述                                                            | 类型     |
+| ---: | --- | --- |
+| `app_id` |  用户访问应用唯一 ID 标识                    | `string` |
+
+``` shell
+curl "127.0.0.1:9529/v1/env_variable?app_id=app_id"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+  "content": {
+    "R.app.key": "value"
+  }
+}
+```
+
 ## `/v1/sourcemap` | `PUT` {#api-sourcemap-upload}
 
 [:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
