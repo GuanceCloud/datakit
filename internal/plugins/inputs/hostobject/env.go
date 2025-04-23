@@ -154,6 +154,16 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			Desc:      "Cloud metadata Token URL mapping",
 			DescZh:    "云服务商获取元数据的 Token URL 映射",
 		},
+
+		{
+			FieldName: "DisableCloudProviderSync",
+			ENVName:   "INPUT_HOSTOBJECT_DISABLE_CLOUD_PROVIDER_SYNC",
+			ConfField: "disable_cloud_provider_sync",
+			Type:      doc.Boolean,
+			Example:   "`true`",
+			Desc:      "Disable cloud metadata",
+			DescZh:    "禁止同步主机云信息",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_", infos)
@@ -252,7 +262,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_URL: %s, ignore", err)
 		} else {
 			ipt.CloudMetaURL = cloudMetaURL
-			l.Debugf("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
+			l.Infof("loaded cloud_meta_url from ENV: %v", cloudMetaURL)
 		}
 	}
 
@@ -263,7 +273,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL: %s, ignore", err)
 		} else {
 			ipt.CloudMetaTokenURL = cloudMetaTokenURL
-			l.Debugf("loaded cloud_meta_token_url from ENV: %v", cloudMetaTokenURL)
+			l.Infof("loaded cloud_meta_token_url from ENV: %v", cloudMetaTokenURL)
+		}
+	}
+
+	if s, ok := envs["ENV_INPUT_HOSTOBJECT_DISABLE_CLOUD_PROVIDER_SYNC"]; ok {
+		if disabled, err := strconv.ParseBool(s); disabled {
+			l.Info("cloud sync disabled")
+			ipt.DisableCloudProviderSync = true
+		} else {
+			l.Debugf("strconv.ParseBool: %s, ignored", err)
 		}
 	}
 
