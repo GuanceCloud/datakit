@@ -89,6 +89,7 @@ const (
 	TokenCheck        = "/v1/check/token"
 	UsageTrace        = "/v1/datakit/usage_trace"
 	NTPSync           = "/v1/ntp"
+	EnvVariable       = "/v1/env_variable"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"

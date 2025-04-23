@@ -8,16 +8,23 @@ package rum
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 	T "testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 )
 
 func TestLimitReaderClose(t *T.T) {
@@ -111,4 +118,33 @@ func TestZipInject(t *T.T) {
 		t.Logf("%s", filepath.Join("/a/b/c", "/d/e"))
 		t.Logf("%s", filepath.Join("a/b/c", "/d/e"))
 	})
+}
+
+func TestEnvVariableHandler(t *testing.T) {
+	expectedVariableBody := `{content:{"a":"b"}}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(expectedVariableBody))
+	}))
+	defer server.Close()
+
+	config.Cfg.Dataway.URLs = []string{server.URL + "?token=xxxxx"}
+	err := config.Cfg.Dataway.Init()
+	assert.NoError(t, err)
+
+	ipt := defaultInput()
+	router := gin.New()
+
+	router.GET("/v1/env_variable", httpapi.RawHTTPWrapper(nil, ipt.handleEnvVariable))
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	resp, err := http.Get(fmt.Sprintf("%s/v1/env_variable", ts.URL))
+	assert.NoError(t, err)
+
+	respBody, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedVariableBody, string(respBody))
 }

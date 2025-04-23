@@ -885,6 +885,33 @@ HTTP Code: 400
 }
 ```
 
+## `/v1/env_variable` | `GET` {#api-env-variable}
+
+[:octicons-tag-24: Version-1.72.0](changelog.md#cl-1.72.0)
+
+Retrieve RUM environment variables.
+
+Request parameter description:
+
+| Parameter      | Description | Type    |
+| ---: | --- | --- |
+| `app_id` | The unique ID identifier for user access to the application| `string` |
+
+``` shell
+curl "127.0.0.1:9529/v1/env_variable?app_id=app_id"
+```
+
+Success return example:
+
+``` json
+status_code: 200
+Response: {
+  "content": {
+    "R.app.key": "value"
+  }
+}
+```
+
 ## `/v1/sourcemap` | `PUT` {#api-sourcemap-upload}
 
 [:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)

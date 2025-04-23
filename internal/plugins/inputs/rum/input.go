@@ -23,8 +23,10 @@ import (
 	"github.com/GuanceCloud/cliutils/filter"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/metrics"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/gobwas/glob"
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
@@ -260,6 +262,37 @@ func (ipt *Input) RegHTTPHandler() {
 	httpapi.RegHTTPRoute(http.MethodGet, "/v1/sourcemap/check", ipt.handleSourcemapCheck)
 	httpapi.RegHTTPRoute(http.MethodPut, "/v1/sourcemap", ipt.handleSourcemapUpload)
 	httpapi.RegHTTPRoute(http.MethodDelete, "/v1/sourcemap", ipt.handleSourcemapDelete)
+
+	// enbale env variable api
+	httpapi.RegHTTPRoute(http.MethodGet, "/v1/env_variable", ipt.handleEnvVariable)
+}
+
+func (ipt *Input) handleEnvVariable(_ http.ResponseWriter, req *http.Request, _ ...interface{}) (interface{}, error) {
+	dw := config.Cfg.Dataway
+	if dw == nil {
+		return nil, uhttp.Errorf(httpapi.ErrInvalidAPIHandler, "dataway is nil")
+	}
+
+	param := map[string]string{
+		"app_id": req.URL.Query().Get("app_id"),
+		"scope":  "rum",
+	}
+
+	resp, err := dw.GetEnvVariable(param)
+	if err != nil {
+		log.Errorf("create or update object labels: %s", err)
+		return nil, err
+	}
+
+	j, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorf("read response body %s", err)
+		return nil, err
+	}
+
+	defer req.Body.Close() // nolint:errcheck
+
+	return uhttp.RawJSONBody(j), nil
 }
 
 func (ipt *Input) loadCDNListConf() error {
@@ -463,6 +496,8 @@ func (ipt *Input) Terminate() {
 	httpapi.RemoveHTTPRoute(http.MethodGet, "/v1/sourcemap/check")
 	httpapi.RemoveHTTPRoute(http.MethodPut, "/v1/sourcemap")
 	httpapi.RemoveHTTPRoute(http.MethodDelete, "/v1/sourcemap")
+
+	httpapi.RemoveHTTPRoute(http.MethodGet, "/v1/env_variable")
 }
 
 func defaultInput() *Input {
