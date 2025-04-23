@@ -103,7 +103,6 @@ func (ipt *Input) FeedErrUpMetric() {
 	if len(pts) > 0 {
 		l.Debug("feed up metric")
 		if err := ipt.feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(ipt.start)),
 			dkio.WithElection(ipt.Election),
 			dkio.WithInputName(inputName),
 		); err != nil {

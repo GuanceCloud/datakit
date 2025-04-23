@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func setHostTagIfNotLoopback(tags map[string]string, ipAndPort string) {
+func getHostTagIfNotLoopback(ipAndPort string) string {
 	// default port
 	if !strings.Contains(ipAndPort, ":") {
 		ipAndPort += ":1433"
@@ -20,10 +20,12 @@ func setHostTagIfNotLoopback(tags map[string]string, ipAndPort string) {
 	host, _, err := net.SplitHostPort(ipAndPort)
 	if err != nil {
 		l.Debugf("split host and port: %v", err)
-		return
+		return ""
 	}
 
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
+		return host
 	}
+
+	return ""
 }

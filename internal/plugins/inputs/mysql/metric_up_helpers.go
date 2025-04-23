@@ -12,7 +12,6 @@ import (
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func (ipt *Input) setUpState() {
@@ -32,33 +31,20 @@ func (ipt *Input) getUpInstance() string {
 }
 
 func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
-	ms := []inputs.MeasurementV2{}
-	tags := map[string]string{
-		"job":      ipt.getUpJob(),
-		"instance": ipt.getUpInstance(),
-	}
-	fields := map[string]interface{}{
-		"up": ipt.UpState,
-	}
-	m := &upMeasurement{
-		name:     "collector",
-		tags:     tags,
-		fields:   fields,
-		election: ipt.Election,
-	}
-	l.Debugf("build up %s points:%s", inputName, m.Point().LineProto())
-	ms = append(ms, m)
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		for k, v := range ipt.Tags {
-			for _, pt := range pts {
-				pt.AddTag(k, v)
-			}
-		}
-		return pts, nil
+	var pts []*point.Point
+	opts := ipt.getKVsOpts()
+	kvs := ipt.getKVs()
+
+	kvs = kvs.AddTag("job", ipt.getUpJob())
+	kvs = kvs.AddTag("instance", ipt.getUpInstance())
+
+	kvs = kvs.Add("up", ipt.UpState, false, true)
+
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, point.NewPointV2("collector", kvs, opts...))
 	}
 
-	return []*point.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) FeedUpMetric() {

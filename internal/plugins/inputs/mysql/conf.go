@@ -74,6 +74,7 @@ const (
   #   metric = "mysql_custom"
   #   tags = ["engine", "table_schema"]
   #   fields = ["table_count"] 
+  #   interval = "10s"
 
   ## Config dbm metric 
   [inputs.mysql.dbm_metric]

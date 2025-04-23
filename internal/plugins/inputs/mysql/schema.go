@@ -15,7 +15,6 @@ type schemaMeasurement struct {
 	name     string
 	tags     map[string]string
 	fields   map[string]interface{}
-	ts       int64
 	election bool
 }
 

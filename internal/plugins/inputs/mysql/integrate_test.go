@@ -200,8 +200,8 @@ func (cs *caseSpec) run() error {
 	// wait data
 	start = time.Now()
 	cs.t.Logf("wait points...")
+
 	pts := []*point.Point{}
-	// merge pts
 	for i := 0; i < 4; i++ {
 		ps, err := cs.feeder.AnyPoints(10 * time.Second)
 		if err != nil {

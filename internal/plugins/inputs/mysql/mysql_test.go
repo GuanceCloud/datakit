@@ -445,7 +445,7 @@ func TestMetricCollectMysqlGeneral(t *testing.T) {
 		Tags: make(map[string]string),
 	}
 
-	err := input.initDBConnect()
+	err := input.initCfg()
 	assert.NoError(t, err)
 
 	input.initDbm()

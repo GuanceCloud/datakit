@@ -46,16 +46,16 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host            string `toml:"host"`
-	Port            int    `toml:"port"`
-	User            string `toml:"user"`
-	Password        string `toml:"password"`
-	Tenant          string `toml:"tenant"`
-	Cluster         string `toml:"cluster"`
-	Database        string `toml:"database"`
-	Mode            string `toml:"mode"`
-	Interval        datakit.Duration
-	Timeout         string `toml:"connect_timeout"`
+	Host            string           `toml:"host"`
+	Port            int              `toml:"port"`
+	User            string           `toml:"user"`
+	Password        string           `toml:"password"`
+	Tenant          string           `toml:"tenant"`
+	Cluster         string           `toml:"cluster"`
+	Database        string           `toml:"database"`
+	Mode            string           `toml:"mode"`
+	Interval        datakit.Duration `toml:"interval"`
+	Timeout         string           `toml:"connect_timeout"`
 	timeoutDuration time.Duration
 	Query           []*customQuery    `toml:"custom_queries"`
 	SlowQueryTime   string            `toml:"slow_query_time"`

@@ -249,7 +249,6 @@ func (cs *caseSpec) run() error {
 }
 
 type imageInfo struct {
-	Input
 	images    []string
 	serviceOK serviceOKFunc
 }
@@ -370,10 +369,6 @@ timeout = "30s"
 			ipt.feeder = feeder
 
 			ipt.Service = "XE"
-			if img.Service != "" {
-				ipt.Service = img.Service
-			}
-
 			ms := measurementsInfo
 			if base.measurementsInfo != nil {
 				ms = base.measurementsInfo
