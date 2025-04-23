@@ -10,24 +10,20 @@ import (
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // metric build line proto
 
 func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
-	m := &baseMeasurement{
-		i:        ipt,
-		resData:  make(map[string]interface{}),
-		tags:     map[string]string{},
-		fields:   make(map[string]interface{}),
-		election: ipt.Election,
-	}
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
+	kvs := ipt.getKVs()
 
-	m.name = metricNameMySQL
-	for key, value := range ipt.Tags {
-		m.tags[key] = value
+	m := &baseMeasurement{
+		i:       ipt,
+		resData: make(map[string]interface{}),
 	}
 
 	for k, v := range ipt.globalStatus {
@@ -74,440 +70,294 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("buildMysql metric %v value %v parse error %v", key, value, err)
-				return []*gcPoint.Point{}, err
+				return pts, err
 			} else {
-				m.fields[key] = val
+				kvs = kvs.Add(key, val, false, true)
 			}
 		} else {
 			l.Warnf("field %q:%v not in list", key, value)
 		}
 	}
 
-	if len(m.fields) > 0 {
-		pts := getPointsFromMeasurement([]inputs.MeasurementV2{m})
-		return pts, nil
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQL, kvs, opts...))
 	}
 
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlReplication() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
 
-	m := &replicationMeasurement{
-		tags:     map[string]string{},
-		resData:  make(map[string]interface{}),
-		fields:   make(map[string]interface{}),
-		election: ipt.Election,
-	}
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
+	m := &replicationMeasurement{}
 
-	m.name = metricNameMySQLReplication
-
-	for key, value := range ipt.Tags {
-		m.tags[key] = value
-	}
-
+	kvs := ipt.getKVs()
 	// Replication
-	m.fields = getMetricFields(ipt.mReplication, m.Info())
+	for k, v := range getMetricFields(ipt.mReplication, m.Info()) {
+		kvs = kvs.Add(k, v, false, true)
+	}
 
 	// Group Replication
-	m.resData = getMetricFields(ipt.mGroupReplication, m.Info())
-
-	for k, v := range m.resData {
-		m.fields[k] = v
+	for k, v := range getMetricFields(ipt.mGroupReplication, m.Info()) {
+		kvs = kvs.Add(k, v, false, true)
 	}
 
-	if len(m.fields) > 0 {
-		ms = append(ms, m)
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLReplication, kvs, opts...))
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlReplicationLog() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts(gcPoint.Logging)
 
-	m := &replicationLogMeasurement{
-		tags:     map[string]string{},
-		fields:   make(map[string]interface{}),
-		election: ipt.Election,
-	}
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
+	m := &replicationLogMeasurement{}
 
-	m.name = metricNameMySQLReplicationLog
-
-	for key, value := range ipt.Tags {
-		m.tags[key] = value
+	kvs := ipt.getKVs()
+	for k, v := range getMetricFields(ipt.mReplication, m.Info()) {
+		kvs = kvs.Add(k, v, false, true)
 	}
 
-	m.fields = getMetricFields(ipt.mReplication, m.Info())
-
-	if len(m.fields) > 0 {
-		ms = append(ms, m)
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLReplicationLog, kvs, opts...))
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
 
 	// SchemaSize
 	for k, v := range ipt.mSchemaSize {
-		m := &schemaMeasurement{
-			name:     metricNameMySQLSchema,
-			tags:     map[string]string{},
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
+		kvs := ipt.getKVs()
 
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
+		kvs = kvs.AddTag("schema_name", k)
 
 		size := cast.ToFloat64(v)
+		kvs = kvs.Add("schema_size", size, false, true)
 
-		m.fields["schema_size"] = size
-		m.tags["schema_name"] = k
-		m.ts = ipt.start.UnixNano()
-
-		if len(m.fields) > 0 {
-			ms = append(ms, m)
-		}
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLSchema, kvs, opts...))
 	}
 
 	for k, v := range ipt.mSchemaQueryExecTime {
-		m := &schemaMeasurement{
-			name:     metricNameMySQLSchema,
-			tags:     make(map[string]string),
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
+		kvs := ipt.getKVs()
 
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
+		kvs = kvs.AddTag("schema_name", k)
 
 		size := cast.ToInt64(v)
+		kvs = kvs.Add("query_run_time_avg", size, false, true)
 
-		m.fields["query_run_time_avg"] = size
-		m.tags["schema_name"] = k
-		m.ts = ipt.start.UnixNano()
-
-		if len(m.fields) > 0 {
-			ms = append(ms, m)
-		}
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLSchema, kvs, opts...))
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
+	kvs := ipt.getKVs()
 
-	m := &innodbMeasurement{
-		tags:     map[string]string{},
-		fields:   make(map[string]interface{}),
-		election: ipt.Election,
-	}
-	setHostTagIfNotLoopback(m.tags, ipt.Host)
-
-	m.name = metricNameMySQLInnodb
-
-	for key, value := range ipt.Tags {
-		m.tags[key] = value
+	m := &innodbMeasurement{}
+	for k, v := range getMetricFields(ipt.mInnodb, m.Info()) {
+		kvs = kvs.Add(k, v, false, true)
 	}
 
-	m.fields = getMetricFields(ipt.mInnodb, m.Info())
-
-	ms = append(ms, m)
-
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLInnodb, kvs, opts...))
 	}
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
 
 	for _, v := range ipt.mTableSchema {
-		m := &tbMeasurement{
-			tags:     map[string]string{},
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
-
-		m.name = metricNameMySQLTableSchema
-
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
+		kvs := ipt.getKVs()
 
 		for kk, vv := range v {
 			switch kk {
 			case "table_schema", "table_name", "table_type", "engine", "version":
 				if vvv, ok := vv.(string); ok {
-					m.tags[kk] = vvv
+					kvs = kvs.AddTag(kk, vvv)
 				}
 			case "table_rows", "data_length", "index_length", "data_free":
-				m.fields[kk] = vv
+				kvs = kvs.Add(kk, vv, false, true)
 			}
 		}
 
-		ms = append(ms, m)
+		if kvs.FieldCount() > 0 {
+			pts = append(pts, gcPoint.NewPointV2(metricNameMySQLTableSchema, kvs, opts...))
+		}
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts()
 
 	for user := range ipt.mUserStatusName {
-		m := &userMeasurement{
-			tags:     map[string]string{},
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
+		kvs := ipt.getKVs()
 
-		m.name = metricNameMySQLUserStatus
+		// tags
+		kvs = kvs.AddTag("user", user)
 
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
-
-		m.tags["user"] = user
-
+		// fields
 		for k, v := range ipt.mUserStatusVariable[user] {
-			m.fields[k] = v
+			kvs = kvs.Add(k, v, false, true)
 		}
 
 		if _, ok := ipt.mUserStatusConnection[user]["current_connect"]; ok {
-			m.fields["current_connect"] = ipt.mUserStatusConnection[user]["current_connect"]
+			kvs = kvs.Add("current_connect", ipt.mUserStatusConnection[user]["current_connect"], false, true)
 		}
 
 		if _, ok := ipt.mUserStatusConnection[user]["total_connect"]; ok {
-			m.fields["total_connect"] = ipt.mUserStatusConnection[user]["total_connect"]
+			kvs = kvs.Add("total_connect", ipt.mUserStatusConnection[user]["total_connect"], false, true)
 		}
 
-		if len(m.fields) == 0 {
-			continue
+		if kvs.FieldCount() > 0 {
+			pts = append(pts, gcPoint.NewPointV2(metricNameMySQLUserStatus, kvs, opts...))
 		}
-
-		ms = append(ms, m)
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts(gcPoint.Logging)
 
 	for _, row := range ipt.dbmMetricRows {
-		m := &dbmStateMeasurement{
-			name: metricNameMySQLDbmMetric,
-			tags: map[string]string{
-				"service": "mysql",
-				"status":  "info",
-			},
-			fields:   make(map[string]interface{}),
-			election: ipt.Election,
-		}
-		setHostTagIfNotLoopback(m.tags, ipt.Host)
+		kvs := ipt.getKVs()
 
+		// tags
+		kvs = kvs.AddTag("service", "mysql")
+		kvs = kvs.AddTag("status", "info")
+		if len(row.schemaName) > 0 {
+			kvs = kvs.AddTag("schema_name", row.schemaName)
+		} else {
+			kvs = kvs.AddTag("schema_name", "-")
+		}
+
+		// fields
 		if len(row.digestText) > 0 {
-			m.fields["message"] = row.digestText
+			kvs = kvs.Add("message", row.digestText, false, true)
 		}
 
 		if len(row.digest) > 0 {
-			m.tags["digest"] = row.digest
-		}
-
-		if len(row.schemaName) > 0 {
-			m.tags["schema_name"] = row.schemaName
-		} else {
-			m.tags["schema_name"] = "-"
+			kvs = kvs.Add("digest", row.digest, false, true)
 		}
 
 		if len(row.querySignature) > 0 {
-			m.tags["query_signature"] = row.querySignature
+			kvs = kvs.Add("query_signature", row.querySignature, false, true)
 		}
 
-		m.fields["count_star"] = row.countStar
-		m.fields["sum_timer_wait"] = row.sumTimerWait
-		m.fields["sum_lock_time"] = row.sumLockTime
-		m.fields["sum_errors"] = row.sumErrors
-		m.fields["sum_rows_affected"] = row.sumRowsAffected
-		m.fields["sum_rows_sent"] = row.sumRowsSent
-		m.fields["sum_rows_examined"] = row.sumRowsExamined
-		m.fields["sum_select_scan"] = row.sumSelectScan
-		m.fields["sum_select_full_join"] = row.sumSelectFullJoin
-		m.fields["sum_no_index_used"] = row.sumNoIndexUsed
-		m.fields["sum_no_good_index_used"] = row.sumNoGoodIndexUsed
+		kvs = kvs.Add("count_star", row.countStar, false, true)
+		kvs = kvs.Add("sum_timer_wait", row.sumTimerWait, false, true)
+		kvs = kvs.Add("sum_lock_time", row.sumLockTime, false, true)
+		kvs = kvs.Add("sum_errors", row.sumErrors, false, true)
+		kvs = kvs.Add("sum_rows_affected", row.sumRowsAffected, false, true)
+		kvs = kvs.Add("sum_rows_sent", row.sumRowsSent, false, true)
+		kvs = kvs.Add("sum_rows_examined", row.sumRowsExamined, false, true)
+		kvs = kvs.Add("sum_select_scan", row.sumSelectScan, false, true)
+		kvs = kvs.Add("sum_select_full_join", row.sumSelectFullJoin, false, true)
+		kvs = kvs.Add("sum_no_index_used", row.sumNoIndexUsed, false, true)
+		kvs = kvs.Add("sum_no_good_index_used", row.sumNoGoodIndexUsed, false, true)
 
-		for key, value := range ipt.Tags {
-			m.tags[key] = value
-		}
-
-		ms = append(ms, m)
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLDbmMetric, kvs, opts...))
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
 func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+	var pts []*gcPoint.Point
+	opts := ipt.getKVsOpts(gcPoint.Logging)
 
 	for _, plan := range ipt.dbmSamplePlans {
-		tags := map[string]string{
-			"service":           "mysql",
-			"current_schema":    plan.currentSchema,
-			"plan_definition":   plan.planDefinition,
-			"plan_signature":    plan.planSignature,
-			"query_signature":   plan.querySignature,
-			"resource_hash":     plan.resourceHash,
-			"digest_text":       plan.digestText,
-			"query_truncated":   plan.queryTruncated,
-			"network_client_ip": plan.networkClientIP,
-			"digest":            plan.digest,
-			"processlist_db":    plan.processlistDB,
-			"processlist_user":  plan.processlistUser,
-			"status":            "info",
-		}
-		setHostTagIfNotLoopback(tags, ipt.Host)
+		kvs := ipt.getKVs()
 
-		// append extra tags
-		for key, value := range ipt.Tags {
-			tags[key] = value
-		}
+		// tags
+		kvs = kvs.AddTag("service", "mysql")
+		kvs = kvs.AddTag("current_schema", plan.currentSchema)
+		kvs = kvs.AddTag("plan_definition", plan.planDefinition)
+		kvs = kvs.AddTag("plan_signature", plan.planSignature)
+		kvs = kvs.AddTag("query_signature", plan.querySignature)
+		kvs = kvs.AddTag("resource_hash", plan.resourceHash)
+		kvs = kvs.AddTag("digest_text", plan.digestText)
+		kvs = kvs.AddTag("query_truncated", plan.queryTruncated)
+		kvs = kvs.AddTag("network_client_ip", plan.networkClientIP)
+		kvs = kvs.AddTag("digest", plan.digest)
+		kvs = kvs.AddTag("processlist_db", plan.processlistDB)
+		kvs = kvs.AddTag("processlist_user", plan.processlistUser)
+		kvs = kvs.AddTag("status", "info")
+		// fields
+		kvs = kvs.Add("timestamp", plan.timestamp, false, true)
+		kvs = kvs.Add("duration", plan.duration, false, true)
+		kvs = kvs.Add("lock_time_ns", plan.lockTimeNs, false, true)
+		kvs = kvs.Add("no_good_index_used", plan.noGoodIndexUsed, false, true)
+		kvs = kvs.Add("no_index_used", plan.noIndexUsed, false, true)
+		kvs = kvs.Add("rows_affected", plan.rowsAffected, false, true)
+		kvs = kvs.Add("rows_examined", plan.rowsExamined, false, true)
+		kvs = kvs.Add("rows_sent", plan.rowsSent, false, true)
+		kvs = kvs.Add("select_full_join", plan.selectFullJoin, false, true)
+		kvs = kvs.Add("select_full_range_join", plan.selectFullRangeJoin, false, true)
+		kvs = kvs.Add("select_range", plan.selectRange, false, true)
+		kvs = kvs.Add("select_range_check", plan.selectRangeCheck, false, true)
+		kvs = kvs.Add("select_scan", plan.selectScan, false, true)
+		kvs = kvs.Add("sort_merge_passes", plan.sortMergePasses, false, true)
+		kvs = kvs.Add("sort_range", plan.sortRange, false, true)
+		kvs = kvs.Add("sort_rows", plan.sortRows, false, true)
+		kvs = kvs.Add("sort_scan", plan.sortScan, false, true)
+		kvs = kvs.Add("timer_wait_ns", plan.duration, false, true)
+		kvs = kvs.Add("message", plan.digestText, false, true)
 
-		fields := map[string]interface{}{
-			"timestamp":              plan.timestamp,
-			"duration":               plan.duration,
-			"lock_time_ns":           plan.lockTimeNs,
-			"no_good_index_used":     plan.noGoodIndexUsed,
-			"no_index_used":          plan.noIndexUsed,
-			"rows_affected":          plan.rowsAffected,
-			"rows_examined":          plan.rowsExamined,
-			"rows_sent":              plan.rowsSent,
-			"select_full_join":       plan.selectFullJoin,
-			"select_full_range_join": plan.selectFullRangeJoin,
-			"select_range":           plan.selectRange,
-			"select_range_check":     plan.selectRangeCheck,
-			"select_scan":            plan.selectScan,
-			"sort_merge_passes":      plan.sortMergePasses,
-			"sort_range":             plan.sortRange,
-			"sort_rows":              plan.sortRows,
-			"sort_scan":              plan.sortScan,
-			"timer_wait_ns":          plan.duration,
-			"message":                plan.digestText,
-		}
-
-		m := &dbmSampleMeasurement{
-			name:     metricNameMySQLDbmSample,
-			tags:     tags,
-			fields:   fields,
-			election: ipt.Election,
-		}
-		ms = append(ms, m)
+		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLDbmSample, kvs, opts...))
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-
-	return []*gcPoint.Point{}, nil
+	return pts, nil
 }
 
-func (ipt *Input) buildMysqlCustomQueries() ([]*gcPoint.Point, error) {
-	ms := []inputs.MeasurementV2{}
+func (ipt *Input) getCustomQueryPoints(query *customQuery, arr []map[string]interface{}) []*gcPoint.Point {
+	var pts []*gcPoint.Point
 
-	for hs, items := range ipt.mCustomQueries {
-		var qy *customQuery
-		for _, v := range ipt.Query {
-			if hs == v.md5Hash {
-				qy = v
-				break
+	if query == nil {
+		return pts
+	}
+
+	opts := ipt.getKVsOpts()
+
+	for _, item := range arr {
+		kvs := ipt.getKVs()
+
+		for _, tgKey := range query.Tags {
+			if value, ok := item[tgKey]; ok {
+				kvs = kvs.AddTag(tgKey, cast.ToString(value))
+				delete(item, tgKey)
 			}
 		}
-		if qy == nil {
-			continue
+
+		for _, fdKey := range query.Fields {
+			if value, ok := item[fdKey]; ok {
+				// transform all fields to float64
+				kvs = kvs.Add(fdKey, cast.ToFloat64(value), false, true)
+			}
 		}
 
-		for _, item := range items {
-			m := &customerMeasurement{
-				name:     qy.Metric,
-				tags:     map[string]string{},
-				fields:   make(map[string]interface{}),
-				election: ipt.Election,
-			}
-			setHostTagIfNotLoopback(m.tags, ipt.Host)
-
-			for key, value := range ipt.Tags {
-				m.tags[key] = value
-			}
-
-			for _, tgKey := range qy.Tags {
-				if value, ok := item[tgKey]; ok {
-					m.tags[tgKey] = cast.ToString(value)
-					delete(item, tgKey)
-				}
-			}
-
-			for _, fdKey := range qy.Fields {
-				if value, ok := item[fdKey]; ok {
-					// transform all fields to float64
-					m.fields[fdKey] = cast.ToFloat64(value)
-				}
-			}
-
-			m.ts = ipt.start.UnixNano()
-
-			if len(m.fields) > 0 {
-				ms = append(ms, m)
-			}
+		if kvs.FieldCount() > 0 {
+			pts = append(pts, gcPoint.NewPointV2(query.Metric, kvs, opts...))
 		}
 	}
 
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*gcPoint.Point{}, nil
+	return pts
 }
 
 func (ipt *Input) buildMysqlCustomerObject() ([]*gcPoint.Point, error) {
@@ -560,4 +410,43 @@ func getMetricFields(fields map[string]interface{}, info *inputs.MeasurementInfo
 	}
 
 	return newFields
+}
+
+func (ipt *Input) getKVsOpts(categorys ...gcPoint.Category) []gcPoint.Option {
+	var opts []gcPoint.Option
+
+	category := gcPoint.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case gcPoint.Logging:
+		opts = gcPoint.DefaultLoggingOptions()
+	case gcPoint.Metric:
+		opts = gcPoint.DefaultMetricOptions()
+	case gcPoint.Object:
+		opts = gcPoint.DefaultObjectOptions()
+	default:
+		opts = gcPoint.DefaultMetricOptions()
+	}
+
+	if ipt.Election {
+		opts = append(opts, gcPoint.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	opts = append(opts, gcPoint.WithTimestamp(ipt.start.UnixNano()))
+
+	return opts
+}
+
+func (ipt *Input) getKVs() gcPoint.KVs {
+	var kvs gcPoint.KVs
+
+	// add extended tags
+	for k, v := range ipt.Tags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	return kvs
 }

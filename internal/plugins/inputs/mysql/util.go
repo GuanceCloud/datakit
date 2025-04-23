@@ -232,10 +232,12 @@ func isListHasStr(list []string, str string) bool {
 	return false
 }
 
-func setHostTagIfNotLoopback(tags map[string]string, host string) {
+func getHostTag(host string) string {
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		tags["host"] = host
+		return host
 	}
+
+	return ""
 }
 
 func getMetricNames(name string) (string, string) {

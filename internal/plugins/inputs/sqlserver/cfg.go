@@ -78,6 +78,7 @@ var (
   #   '''
   #   metric = "sqlserver_custom_stat"
   #   tags = ["counter_name","cntr_type"]
+  #   interval = "10s"
   #   fields = ["cntr_value"]
 
   # [inputs.sqlserver.log]
@@ -98,6 +99,7 @@ default_time(time, "+0")
 	inputName            = `sqlserver`
 	customObjectFeedName = inputName + "/CO"
 	loggingFeedName      = inputName + "/L"
+	customQueryFeedName  = inputName + "/custom_query"
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
 
@@ -105,7 +107,7 @@ default_time(time, "+0")
 	loggingCollectCache []*point.Point
 
 	minInterval = time.Second * 5
-	maxInterval = time.Second * 30
+	maxInterval = time.Minute * 10
 	query       = map[string]string{
 		"sqlserver_waitstats":       sqlServerWaitStatsCategorized,
 		"sqlserver_database_io":     sqlServerDatabaseIO,
@@ -126,10 +128,11 @@ default_time(time, "+0")
 )
 
 type customQuery struct {
-	SQL    string   `toml:"sql"`
-	Metric string   `toml:"metric"`
-	Tags   []string `toml:"tags"`
-	Fields []string `toml:"fields"`
+	SQL      string           `toml:"sql"`
+	Metric   string           `toml:"metric"`
+	Tags     []string         `toml:"tags"`
+	Fields   []string         `toml:"fields"`
+	Interval datakit.Duration `toml:"interval"`
 }
 
 type Input struct {
@@ -180,6 +183,45 @@ type Input struct {
 	collectLoggingQuery map[string]string
 
 	UpState int
+}
+
+func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
+	var opts []point.Option
+
+	category := point.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case point.Logging:
+		opts = point.DefaultLoggingOptions()
+	case point.Metric:
+		opts = point.DefaultMetricOptions()
+	case point.Object:
+		opts = point.DefaultObjectOptions()
+	default:
+		opts = point.DefaultMetricOptions()
+	}
+
+	if ipt.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	opts = append(opts, point.WithTimestamp(ipt.start.UnixNano()))
+
+	return opts
+}
+
+func (ipt *Input) getKVs() point.KVs {
+	var kvs point.KVs
+
+	// add extended tags
+	for k, v := range ipt.Tags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	return kvs
 }
 
 type sqlserverlog struct {
@@ -275,41 +317,46 @@ func obfuscateSQL(text string) (sql string) {
 	}
 }
 
-func transformData(measurement string, tags map[string]string, fields map[string]interface{}) {
-	if tags == nil {
-		return
+func transformData(measurement string, kvs point.KVs) point.KVs {
+	if kvs == nil {
+		return nil
 	}
+
 	switch measurement {
 	case "sqlserver_lock_dead":
-		if field, ok := fields["blocking_text"]; ok {
-			if text, isString := field.(string); isString {
-				fields["blocking_text"] = obfuscateSQL(text)
-				fields["message"] = fields["blocking_text"]
+		if field := kvs.Fields().Get("blocking_text"); field != nil && !field.IsTag {
+			if text, isString := field.Raw().(string); isString {
+				obfuscatedText := obfuscateSQL(text)
+				kvs = kvs.Add("message", obfuscatedText, false, true)
+				kvs = kvs.Add("blocking_text", obfuscatedText, false, true)
 			}
 		}
 	case "sqlserver_logical_io":
-		if field, ok := fields["message"]; ok {
-			if text, isString := field.(string); isString {
-				fields["message"] = obfuscateSQL(text)
+		if field := kvs.Fields().Get("message"); field != nil && !field.IsTag {
+			if text, isString := field.Raw().(string); isString {
+				kvs = kvs.Add("message", obfuscateSQL(text), false, true)
 			}
 		}
 	case "sqlserver_database_size":
-		if field, ok := fields["data_size"]; ok {
-			if data, isUint := field.([]uint8); isUint {
+		if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
+			if data, isUint := field.Raw().([]uint8); isUint {
 				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-					fields["data_size"] = dataSize
+					kvs = kvs.Add("data_size", dataSize, false, true)
 				}
 			}
-		}
-		if field, ok := fields["log_size"]; ok {
-			if data, isUint := field.([]uint8); isUint {
-				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-					fields["log_size"] = dataSize
+
+			if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
+				if data, isUint := field.Raw().([]uint8); isUint {
+					if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
+						kvs = kvs.Add("log_size", dataSize, false, true)
+					}
 				}
 			}
 		}
 	default:
 	}
+
+	return kvs
 }
 
 var counterNameMap = map[string]string{

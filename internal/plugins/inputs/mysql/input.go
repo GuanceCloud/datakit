@@ -49,12 +49,12 @@ const (
 	metricNameMySQLDbmSample      = "mysql_dbm_sample"
 	metricNameMySQLDbmActivity    = "mysql_dbm_activity"
 	metricNameMySQLReplicationLog = "mysql_replication_log"
-	metricNameMySQLCustomQueries  = "mysql_custom_queries"
 )
 
 var (
 	inputName            = "mysql"
 	customObjectFeedName = inputName + "/CO"
+	customQueryFeedName  = inputName + "/custom_query"
 	loggingFeedName      = inputName + "/L"
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger("mysql")
@@ -69,12 +69,11 @@ type TLS struct {
 }
 
 type customQuery struct {
-	SQL    string   `toml:"sql"`
-	Metric string   `toml:"metric"`
-	Tags   []string `toml:"tags"`
-	Fields []string `toml:"fields"`
-
-	md5Hash string
+	SQL      string           `toml:"sql"`
+	Metric   string           `toml:"metric"`
+	Interval datakit.Duration `toml:"interval"`
+	Tags     []string         `toml:"tags"`
+	Fields   []string         `toml:"fields"`
 }
 
 type mysqllog struct {
@@ -109,8 +108,8 @@ type Input struct {
 	Timeout         string `toml:"connect_timeout"`
 	timeoutDuration time.Duration
 
-	Service  string `toml:"service"`
-	Interval datakit.Duration
+	Service  string           `toml:"service"`
+	Interval datakit.Duration `toml:"interval"`
 
 	TLS  *TLS              `toml:"tls"`
 	Tags map[string]string `toml:"tags"`
@@ -178,9 +177,6 @@ type Input struct {
 
 	// collected metrics - mysql_dbm_sample
 	dbmSamplePlans []planObj
-
-	// collected metrics - mysql custom queries
-	mCustomQueries map[string][]map[string]interface{}
 
 	lastErrors []string
 }
@@ -358,6 +354,11 @@ func (ipt *Input) globalTag() {
 	if len(ipt.Service) > 0 {
 		ipt.Tags["service_name"] = ipt.Service
 	}
+
+	hostTag := getHostTag(ipt.Host)
+	if len(hostTag) > 0 {
+		ipt.Tags["host"] = hostTag
+	}
 }
 
 func (ipt *Input) q(s string, names ...string) rows {
@@ -386,32 +387,6 @@ func (ipt *Input) q(s string, names ...string) rows {
 	}
 
 	return rows
-}
-
-// init db connect.
-func (ipt *Input) initDBConnect() error {
-	isNeedConnect := false
-
-	if ipt.db == nil {
-		isNeedConnect = true
-	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer func() {
-			cancel()
-		}()
-
-		if err := ipt.db.PingContext(ctx); err != nil {
-			isNeedConnect = true
-		}
-	}
-
-	if isNeedConnect {
-		if err := ipt.initCfg(); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // mysql.
@@ -473,19 +448,6 @@ func (ipt *Input) metricCollectMysqlUserStatus() ([]*point.Point, error) {
 	}
 
 	pts, err := ipt.buildMysqlUserStatus()
-	if err != nil {
-		return []*point.Point{}, err
-	}
-	return pts, nil
-}
-
-// mysql_custom_queries.
-func (ipt *Input) metricCollectMysqlCustomQueries() ([]*point.Point, error) {
-	if err := ipt.collectMysqlCustomQueries(); err != nil {
-		return []*point.Point{}, err
-	}
-
-	pts, err := ipt.buildMysqlCustomQueries()
 	if err != nil {
 		return []*point.Point{}, err
 	}
@@ -556,10 +518,6 @@ func (ipt *Input) handleLastError() {
 }
 
 func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
-	if err := ipt.initDBConnect(); err != nil {
-		return map[point.Category][]*point.Point{}, err
-	}
-
 	var ptsMetric,
 		ptsLoggingMetric,
 		ptsLoggingSample,
@@ -572,7 +530,6 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		metricNameMySQLSchema,
 		metricNameMySQLTableSchema,
 		metricNameMySQLUserStatus,
-		metricNameMySQLCustomQueries,
 	} {
 		f, ok := ipt.collectors[metricName]
 		if !ok {
@@ -755,8 +712,87 @@ func (ipt *Input) initCollectors() {
 	for _, metricName := range ipt.MetricExcludeList {
 		delete(ipt.collectors, metricName)
 	}
+}
 
-	ipt.collectors[metricNameMySQLCustomQueries] = ipt.metricCollectMysqlCustomQueries // mysql_custom_queries
+func (ipt *Input) runCustomQuery(query *customQuery) {
+	if query == nil {
+		return
+	}
+
+	// use input interval as default
+	duration := ipt.Interval.Duration
+	// use custom query interval if set
+	if query.Interval.Duration > 0 {
+		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	start := time.Now()
+	for {
+		if ipt.pause {
+			l.Debugf("not leader, custom query skipped")
+		} else {
+			// collect custom query
+			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
+			arr := getCleanMysqlCustomQueries(ipt.q(query.SQL, query.Metric))
+			if arr != nil {
+				points := ipt.getCustomQueryPoints(query, arr)
+				if len(points) > 0 {
+					if err := ipt.feeder.FeedV2(point.Metric, points,
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(customQueryFeedName),
+					); err != nil {
+						ipt.feeder.FeedLastError(err.Error(),
+							metrics.WithLastErrorInput(customQueryFeedName),
+							metrics.WithLastErrorCategory(point.Metric),
+						)
+						l.Errorf("feed custom query failed: %s", err.Error())
+					}
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Info("mysql custom query exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("mysql custom query return")
+			return
+
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
+			start = time.UnixMilli(nextts)
+		}
+	}
+}
+
+func (ipt *Input) runCustomQueries() {
+	if len(ipt.Query) == 0 {
+		return
+	}
+
+	l.Infof("start to run custom queries, total %d queries", len(ipt.Query))
+
+	g := goroutine.NewGroup(goroutine.Option{
+		Name:         "mysql_custom_query",
+		PanicTimes:   6,
+		PanicTimeout: 10 * time.Second,
+	})
+	for _, q := range ipt.Query {
+		func(q *customQuery) {
+			g.Go(func(ctx context.Context) error {
+				ipt.runCustomQuery(q)
+				return nil
+			})
+		}(q)
+	}
 }
 
 func (ipt *Input) Run() {
@@ -814,6 +850,9 @@ func (ipt *Input) Run() {
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 	ipt.start = time.Now()
+
+	// run custom queries
+	ipt.runCustomQueries()
 
 	for {
 		if ipt.pause {

@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
 func hasKey(m map[string]interface{}, key string) bool {
@@ -778,25 +776,6 @@ func (ipt *Input) collectMysqlUserStatus() error {
 
 	if len(ipt.mUserStatusConnection) == 0 {
 		l.Warnf("collect_user_connection_failed")
-	}
-
-	return nil
-}
-
-func (ipt *Input) collectMysqlCustomQueries() error {
-	ipt.mCustomQueries = map[string][]map[string]interface{}{}
-
-	for _, item := range ipt.Query {
-		arr := getCleanMysqlCustomQueries(ipt.q(item.SQL, item.Metric))
-		if arr == nil {
-			continue
-		}
-		if item.md5Hash == "" {
-			hs := hashcode.GetMD5String32([]byte(item.SQL))
-			item.md5Hash = hs
-		}
-		ipt.mCustomQueries[item.md5Hash] = make([]map[string]interface{}, 0)
-		ipt.mCustomQueries[item.md5Hash] = arr
 	}
 
 	return nil

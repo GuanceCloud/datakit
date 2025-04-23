@@ -16,6 +16,7 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/coreos/go-semver/semver"
+	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -73,6 +74,13 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 }
 
 func (m *MockCollectService) Stop() {}
+func (m *MockCollectService) Ping() error {
+	if m.startError == 1 {
+		return mockError{}
+	}
+	return nil
+}
+
 func (m *MockCollectService) Start() error {
 	if m.startError == 1 {
 		return mockError{}
@@ -118,6 +126,7 @@ func getTrueData(mockFields map[string]interface{}) map[string]interface{} {
 			switch v.(type) {
 			case []uint8:
 				// PASS: ignore string field
+				trueData[k] = cast.ToFloat64(v)
 			default:
 				trueData[k] = v
 			}
@@ -139,7 +148,7 @@ func TestCollect(t *testing.T) {
 	assert.Nil(t, input.collectCache)
 
 	mockFields := map[string]interface{}{
-		"numbackends":    int64(1),
+		"numbackends":    float64(1),
 		"invalid_fields": int64(1),
 		"blks_read":      []uint8("blks_read"),
 		"datname":        []uint8("datname"),

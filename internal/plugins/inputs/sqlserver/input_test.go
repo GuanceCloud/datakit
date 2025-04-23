@@ -93,7 +93,7 @@ func TestFilterDBInstance(t *testing.T) {
 			n := Input{}
 			n.DBFilter = tc.dbFilter
 			n.initDBFilterMap()
-			assert.Equal(t, tc.expectedFilterOut, n.filterOutDBName(tc.tags))
+			assert.Equal(t, tc.expectedFilterOut, n.filterOutDBName(tc.tags["database_name"]))
 		})
 	}
 }
@@ -145,7 +145,9 @@ func Test_setHostTagIfNotLoopback(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setHostTagIfNotLoopback(tt.args.tags, tt.args.ipAndPort)
+			if host := getHostTagIfNotLoopback(tt.args.ipAndPort); host != "" {
+				tt.args.tags["host"] = host
+			}
 			assert.Equal(t, tt.expected, tt.args.tags)
 		})
 	}

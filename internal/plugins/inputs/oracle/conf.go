@@ -48,6 +48,7 @@ const (
   #   metric = "oracle_custom"
   #   tags = ["GROUP_ID", "METRIC_NAME"]
   #   fields = ["VALUE"]
+  #   interval = "10s"
 
   [inputs.oracle.tags]
     # some_tag = "some_value"

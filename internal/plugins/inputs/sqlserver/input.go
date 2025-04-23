@@ -87,54 +87,6 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
-// getCustomQueryMetrics collect custom SQL query metrics.
-func (ipt *Input) getCustomQueryMetrics() {
-	for _, customQuery := range ipt.CustomQuery {
-		res, err := ipt.query(customQuery.Metric, customQuery.SQL)
-		if err != nil {
-			l.Warnf("collect custom query [%s] failed: %s", customQuery.SQL, err.Error())
-			continue
-		}
-
-		for _, row := range res {
-			tags := map[string]string{}
-			fields := map[string]interface{}{}
-
-			setHostTagIfNotLoopback(tags, ipt.Host)
-			for k, v := range ipt.Tags {
-				tags[k] = v
-			}
-
-			for _, tag := range customQuery.Tags {
-				if _, ok := row[tag]; ok {
-					tags[tag] = fmt.Sprintf("%v", *row[tag])
-				} else {
-					l.Warnf("specified tag %s not found", tag)
-				}
-			}
-
-			for _, field := range customQuery.Fields {
-				if _, ok := row[field]; ok {
-					fields[field] = *row[field]
-				} else {
-					l.Warn("specified field %s not found", field)
-				}
-			}
-
-			m := MetricMeasurment{
-				Measurement: Measurement{
-					name:     customQuery.Metric,
-					tags:     tags,
-					fields:   fields,
-					election: ipt.Election,
-				},
-			}
-
-			collectCache = append(collectCache, m.Point())
-		}
-	}
-}
-
 func (ipt *Input) getPerformanceCounters() {
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
@@ -167,7 +119,6 @@ func (ipt *Input) getPerformanceCounters() {
 	}
 
 	tags := make(map[string]string)
-	setHostTagIfNotLoopback(tags, ipt.Host)
 	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
@@ -378,6 +329,114 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
+func (ipt *Input) runCustomQuery(query *customQuery) {
+	if query == nil {
+		return
+	}
+
+	// use input interval as default
+	duration := ipt.Interval.Duration
+	// use custom query interval if set
+	if query.Interval.Duration > 0 {
+		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	start := time.Now()
+	for {
+		if ipt.pause {
+			l.Debugf("not leader, custom query skipped")
+		} else {
+			// collect custom query
+			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
+			res, err := ipt.query(query.Metric, query.SQL)
+			if err != nil {
+				l.Warnf("collect custom query [%s] failed: %s", query.SQL, err.Error())
+			} else {
+				opt := ipt.getKVsOpts()
+				opt = append(opt, point.WithTimestamp(start.UnixNano()))
+				pts := []*point.Point{}
+				for _, row := range res {
+					kvs := ipt.getKVs()
+					for _, tag := range query.Tags {
+						if _, ok := row[tag]; ok {
+							kvs = kvs.AddTag(tag, fmt.Sprintf("%v", *row[tag]))
+						} else {
+							l.Warnf("specified tag %s not found", tag)
+						}
+					}
+
+					for _, field := range query.Fields {
+						if _, ok := row[field]; ok {
+							kvs = kvs.Add(field, *row[field], false, true)
+						} else {
+							l.Warn("specified field %s not found", field)
+						}
+					}
+
+					if kvs.FieldCount() > 0 {
+						pts = append(pts, point.NewPointV2(query.Metric, kvs, opt...))
+					}
+				}
+
+				if len(pts) > 0 {
+					if err := ipt.feeder.FeedV2(point.Metric, pts,
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(customQueryFeedName),
+					); err != nil {
+						ipt.feeder.FeedLastError(err.Error(),
+							metrics.WithLastErrorInput(customQueryFeedName),
+							metrics.WithLastErrorCategory(point.Metric),
+						)
+						l.Errorf("feed custom query failed: %s", err.Error())
+					}
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Info("custom query exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("custom query return")
+			return
+
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
+			start = time.UnixMilli(nextts)
+		}
+	}
+}
+
+func (ipt *Input) runCustomQueries() {
+	if len(ipt.CustomQuery) == 0 {
+		return
+	}
+
+	l.Infof("start to run custom queries, total %d queries", len(ipt.CustomQuery))
+
+	g := goroutine.NewGroup(goroutine.Option{
+		Name:         "sqlserver_custom_query",
+		PanicTimes:   6,
+		PanicTimeout: 10 * time.Second,
+	})
+	for _, q := range ipt.CustomQuery {
+		func(q *customQuery) {
+			g.Go(func(ctx context.Context) error {
+				ipt.runCustomQuery(q)
+				return nil
+			})
+		}(q)
+	}
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("sqlserver start")
@@ -413,6 +472,9 @@ func (ipt *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("sqlserver exit")
 			return
+		case <-ipt.semStop.Wait():
+			l.Info("sqlserver exit")
+			return
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
@@ -423,6 +485,9 @@ func (ipt *Input) Run() {
 			l.Warnf("Close: %s", err)
 		}
 	}()
+
+	// run custom queries
+	ipt.runCustomQueries()
 
 	for {
 		if ipt.pause {
@@ -467,18 +532,19 @@ func (ipt *Input) Run() {
 			}
 			ipt.FeedUpMetric()
 			ipt.FeedCoPts()
-			select {
-			case <-tick.C:
-			case <-datakit.Exit.Wait():
-				ipt.exit()
-				l.Info("sqlserver exit")
-				return
+		}
 
-			case <-ipt.semStop.Wait():
-				ipt.exit()
-				l.Info("sqlserver return")
-				return
-			}
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Info("sqlserver exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("sqlserver return")
+			return
 		}
 	}
 }
@@ -527,9 +593,6 @@ func (ipt *Input) getMetric() {
 		}
 	}
 
-	// custom query from the config
-	ipt.getCustomQueryMetrics()
-
 	// get performance counters metrics
 	ipt.getPerformanceCounters()
 }
@@ -565,6 +628,11 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 		return
 	}
 
+	category := point.Metric
+	if isLogging {
+		category = point.Logging
+	}
+	opts := ipt.getKVsOpts(category)
 	for rows.Next() {
 		var columnVars []interface{}
 		// var fields = make(map[string]interface{})
@@ -586,12 +654,7 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 			return
 		}
 		measurement := ""
-		tags := make(map[string]string)
-		setHostTagIfNotLoopback(tags, ipt.Host)
-		for k, v := range ipt.Tags {
-			tags[k] = v
-		}
-		fields := make(map[string]interface{})
+		kvs := ipt.getKVs()
 		for header, val := range columnMap {
 			if str, ok := (*val).(string); ok {
 				if header == "measurement" {
@@ -601,42 +664,34 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 
 				trimText := strings.TrimSuffix(str, "\\")
 				if isLogging {
-					fields[header] = trimText
+					kvs = kvs.Add(header, trimText, false, true)
 				} else {
-					tags[header] = trimText
+					kvs = kvs.AddTag(header, trimText)
 				}
 			} else if t, ok := (*val).(time.Time); ok {
-				fields[header] = t.UnixMilli()
+				kvs = kvs.Add(header, t.UnixMilli(), false, true)
 			} else {
 				if *val == nil {
 					continue
 				}
-				fields[header] = *val
+				kvs = kvs.Add(header, *val, false, true)
 			}
 		}
-		if len(fields) == 0 {
+		if kvs.FieldCount() == 0 {
 			continue
 		}
-		if ipt.filterOutDBName(tags) {
+		if ipt.filterOutDBName(kvs.GetTag("database_name")) {
 			continue
 		}
 
-		var opts []point.Option
 		if isLogging {
-			tags["status"] = "info"
-			opts = point.DefaultLoggingOptions()
-		} else {
-			opts = point.DefaultMetricOptions()
+			kvs = kvs.AddTag("status", "info")
 		}
 
-		if ipt.Election {
-			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-		}
-
-		transformData(measurement, tags, fields)
+		kvs = transformData(measurement, kvs)
 
 		point := point.NewPointV2(measurement,
-			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
+			kvs, opts...)
 
 		if isLogging {
 			loggingCollectCache = append(loggingCollectCache, point)
@@ -648,17 +703,13 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 
 // filterOutDBName filters out metrics according to their database_name tag.
 // Metrics with database_name tag specified in db_filter are filtered out and not fed to IO.
-func (ipt *Input) filterOutDBName(tags map[string]string) bool {
+func (ipt *Input) filterOutDBName(name string) bool {
 	if len(ipt.dbFilterMap) == 0 {
 		return false
 	}
-	db, has := tags["database_name"]
-	if !has {
-		return false
-	}
 
-	if _, filterOut := ipt.dbFilterMap[db]; filterOut {
-		l.Debugf("filter out metric from db: %s", db)
+	if _, filterOut := ipt.dbFilterMap[name]; filterOut {
+		l.Debugf("filter out metric from db: %s", name)
 		return true
 	}
 	return false
@@ -703,6 +754,17 @@ func (ipt *Input) init() {
 	}
 
 	ipt.initDBFilterMap()
+
+	// init Tags and set host tag
+	if ipt.Tags == nil {
+		ipt.Tags = make(map[string]string)
+	}
+	if _, ok := ipt.Tags["host"]; !ok {
+		host := getHostTagIfNotLoopback(ipt.Host)
+		if len(host) > 0 {
+			ipt.Tags["host"] = host
+		}
+	}
 }
 
 func (ipt *Input) getDatabaseFilesMetrics() error {
@@ -723,7 +785,6 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 		tags := make(map[string]string)
 		fields := make(map[string]interface{})
 
-		setHostTagIfNotLoopback(tags, ipt.Host)
 		for k, v := range ipt.Tags {
 			tags[k] = v
 		}

@@ -8,6 +8,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/jackc/pgx/v5"
@@ -31,6 +32,7 @@ type SQLService struct {
 	Address string
 
 	pool *pgxpool.Pool
+	mu   sync.RWMutex
 }
 
 type pgxRow struct {
@@ -48,6 +50,8 @@ func (r *pgxRow) Columns() ([]string, error) {
 }
 
 func (p *SQLService) Start() (err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.pool != nil {
 		p.pool.Close()
 	}
@@ -67,12 +71,26 @@ func (p *SQLService) Start() (err error) {
 }
 
 func (p *SQLService) Stop() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.pool != nil {
 		p.pool.Close()
 	}
 }
 
+func (p *SQLService) Ping() error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.pool == nil {
+		return fmt.Errorf("pool is nil")
+	}
+
+	return p.pool.Ping(context.Background())
+}
+
 func (p *SQLService) Query(query string) (Rows, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if p.pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}

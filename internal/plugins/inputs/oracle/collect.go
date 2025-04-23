@@ -19,7 +19,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
-	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 )
@@ -87,26 +86,27 @@ func (ipt *Input) collectOracleProcess() (category point.Category, pts []*point.
 	}
 
 	pts = make([]*point.Point, 0)
+	opts := ipt.getKVsOpts()
 	for _, row := range rows {
-		tags := map[string]string{}
+		kvs := ipt.getKVs()
 		if row.PdbName.Valid {
-			tags["pdb_name"] = row.PdbName.String
+			kvs = kvs.AddTag("pdb_name", row.PdbName.String)
 		}
 
 		if row.Program.Valid {
-			tags["program"] = row.Program.String
-		}
-		fields := map[string]interface{}{
-			"pga_alloc_mem":    row.PGAAllocMem,
-			"pga_freeable_mem": row.PGAFreeableMem,
-			"pga_max_mem":      row.PGAMaxMem,
-			"pga_used_mem":     row.PGAUsedMem,
-		}
-		if row.PID > 0 {
-			fields["pid"] = row.PID
+			kvs = kvs.AddTag("program", row.Program.String)
 		}
 
-		pts = append(pts, ipt.buildPoint(metricName, tags, fields, false))
+		kvs = kvs.Add("pga_alloc_mem", row.PGAAllocMem, false, true)
+		kvs = kvs.Add("pga_freeable_mem", row.PGAFreeableMem, false, true)
+		kvs = kvs.Add("pga_max_mem", row.PGAMaxMem, false, true)
+		kvs = kvs.Add("pga_used_mem", row.PGAUsedMem, false, true)
+
+		if row.PID > 0 {
+			kvs = kvs.Add("pid", row.PID, false, true)
+		}
+
+		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 	}
 
 	return category, pts, nil
@@ -176,22 +176,20 @@ func (ipt *Input) collectOracleTableSpace() (category point.Category, pts []*poi
 	}
 
 	pts = make([]*point.Point, 0)
+	opts := ipt.getKVsOpts()
 	for _, row := range rows {
-		tags := map[string]string{
-			"tablespace_name": row.TablespaceName,
-		}
+		kvs := ipt.getKVs()
+		kvs = kvs.AddTag("tablespace_name", row.TablespaceName)
 		if row.PdbName.Valid {
-			tags["pdb_name"] = row.PdbName.String
+			kvs = kvs.AddTag("pdb_name", row.PdbName.String)
 		}
 
-		fields := map[string]interface{}{
-			"in_use":     row.InUse,
-			"off_use":    row.Offline,
-			"ts_size":    row.Size,
-			"used_space": row.Used,
-		}
+		kvs = kvs.Add("in_use", row.InUse, false, true)
+		kvs = kvs.Add("off_use", row.Offline, false, true)
+		kvs = kvs.Add("ts_size", row.Size, false, true)
+		kvs = kvs.Add("used_space", row.Used, false, true)
 
-		pts = append(pts, ipt.buildPoint(metricName, tags, fields, false))
+		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 	}
 
 	return category, pts, nil
@@ -352,8 +350,9 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 	}
 
 	pts = make([]*point.Point, 0)
-	tags := map[string]string{}
-	fields := map[string]interface{}{}
+	opts := ipt.getKVsOpts()
+	kvs := ipt.getKVs()
+
 	makeTagsAndFields := func(row sysmetricsRowDB, isExistedMap map[string]bool) {
 		if metric, ok := systemCols[row.MetricName.String]; ok {
 			value := row.Value.Float64
@@ -361,14 +360,14 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 				value /= 100
 			}
 			if row.PdbName.Valid {
-				tags["pdb_name"] = row.PdbName.String
+				kvs = kvs.AddTag("pdb_name", row.PdbName.String)
 			}
 
 			alias, ok := dic[metric.DDmetric]
 			if ok {
-				fields[alias] = value
+				kvs = kvs.Add(alias, value, false, true)
 			} else {
-				fields[metric.DDmetric] = value
+				kvs = kvs.Add(metric.DDmetric, value, false, true)
 			}
 
 			if isExistedMap != nil {
@@ -382,8 +381,8 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 		makeTagsAndFields(row, isExistedContainerMetric)
 	}
 
-	if len(fields) > 0 {
-		pts = append(pts, ipt.buildPoint(metricName, tags, fields, false))
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 	}
 
 	// if old version, return
@@ -392,8 +391,7 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 	}
 
 	rows = rows[:0]
-	tags = map[string]string{}
-	fields = map[string]interface{}{}
+	kvs = ipt.getKVs()
 	systemMetricName := fmt.Sprintf("%s-system", metricName)
 
 	if sql, ok := ipt.cacheSQL[systemMetricName]; ok {
@@ -425,24 +423,35 @@ func (ipt *Input) collectOracleSystem() (category point.Category, pts []*point.P
 		makeTagsAndFields(row, isExistedGlobalMetric)
 	}
 
-	if len(fields) > 0 {
-		pts = append(pts, ipt.buildPoint(metricName, tags, fields, false))
+	if kvs.FieldCount() > 0 {
+		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 	}
 
 	return category, pts, nil
 }
 
-func (ipt *Input) q(s string) rows {
+func (ipt *Input) q(s string, names ...string) rows {
+	now := time.Now()
 	rows, err := ipt.db.Query(s)
 	if err != nil {
 		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
 	}
 
+	var name string
+	if len(names) == 1 {
+		name = names[0]
+	}
+
 	if err := rows.Err(); err != nil {
 		closeRows(rows)
 		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
 		return nil
+	} else {
+		metricName, sqlName := getMetricNames(name)
+		if len(sqlName) > 0 {
+			sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(now)) / float64(time.Second))
+		}
 	}
 
 	return rows
@@ -876,83 +885,60 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 	}
 
 	pts = make([]*point.Point, 0)
+	opts := ipt.getKVsOpts(point.Logging)
 	for _, v := range mResults {
 		jsn, err := json.Marshal(v)
 		if err != nil {
 			l.Warnf("Marshal json failed: %s, ignore this result", err.Error())
 			continue
 		}
-		fields := map[string]interface{}{
-			"status":  "warning",
-			"message": string(jsn),
-		}
-		pts = append(pts, ipt.buildPoint(metricName, nil, fields, true))
+		kvs := ipt.getKVs()
+		kvs = kvs.Add("status", "warning", false, true)
+		kvs = kvs.Add("message", string(jsn), false, true)
+
+		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
 	}
 
 	return category, pts, nil
 }
 
-func (ipt *Input) collectCustomQuery() (category point.Category, pts []*point.Point, err error) {
-	category = point.Metric
-
-	pts = make([]*point.Point, 0)
-	for _, item := range ipt.Query {
-		arr := getCleanCustomQueries(ipt.q(item.SQL))
-		if len(arr) == 0 {
-			continue
-		}
-
-		for _, row := range arr {
-			fields := make(map[string]interface{})
-			tags := make(map[string]string)
-
-			for _, tgKey := range item.Tags {
-				if value, ok := row[tgKey]; ok {
-					tags[tgKey] = cast.ToString(value)
-					delete(row, tgKey)
-				}
-			}
-
-			for _, fdKey := range item.Fields {
-				if value, ok := row[fdKey]; ok {
-					// transform all fields to float64
-					fields[fdKey] = cast.ToFloat64(value)
-				}
-			}
-
-			if len(fields) > 0 {
-				pts = append(pts, ipt.buildPoint(item.Metric, tags, fields, false))
-			}
-		}
-	}
-
-	return category, pts, nil
-}
-
-func (ipt *Input) buildPoint(name string, tags map[string]string, fields map[string]interface{}, isLogging bool) *point.Point {
+func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
 	var opts []point.Option
 
-	if isLogging {
+	category := point.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case point.Logging:
 		opts = point.DefaultLoggingOptions()
-	} else {
+	case point.Metric:
+		opts = point.DefaultMetricOptions()
+	case point.Object:
+		opts = point.DefaultObjectOptions()
+	default:
 		opts = point.DefaultMetricOptions()
 	}
 
-	opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	if ipt.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
 	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
-	kvs := point.NewTags(tags)
+	return opts
+}
+
+func (ipt *Input) getKVs() point.KVs {
+	var kvs point.KVs
 
 	// add extended tags
 	for k, v := range ipt.mergedTags {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	for k, v := range fields {
-		kvs = kvs.Add(k, v, false, true)
-	}
-
-	return point.NewPointV2(name, kvs, opts...)
+	return kvs
 }
 
 func getMetricNames(name string) (string, string) {
@@ -990,7 +976,7 @@ func selectWrapper[T any](ipt *Input, s T, sql string, names ...string) error {
 
 	err := ipt.db.SelectContext(ctx, s, sql)
 	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
-		if err := ipt.initDBConnect(); err != nil {
+		if err := ipt.setupDB(); err != nil {
 			_ = ipt.db.Close()
 		}
 	}

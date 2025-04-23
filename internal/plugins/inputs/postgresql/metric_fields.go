@@ -6,8 +6,6 @@
 package postgresql
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -113,7 +111,6 @@ type inputMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
-	ts     time.Time
 	ipt    *Input
 }
 

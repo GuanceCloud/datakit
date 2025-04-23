@@ -21,6 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-semver/semver"
+	"github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -34,6 +35,7 @@ import (
 var (
 	inputName                                 = "postgresql"
 	customObjectFeedName                      = inputName + "/CO"
+	customQueryFeedName                       = inputName + "/custom_query"
 	catalogName                               = "db"
 	l                                         = logger.DefaultSLogger(inputName)
 	_                    inputs.ElectionInput = (*Input)(nil)
@@ -114,6 +116,7 @@ const sampleConfig = `
   #   metric = "postgresql_custom_stat"
   #   tags = ["datname" ]
   #   fields = ["numbackends", "blks_read"]
+  #   interval = "10s"
 
   ## Log collection
   #
@@ -162,6 +165,7 @@ type Rows interface {
 type Service interface {
 	Start() error
 	Stop()
+	Ping() error
 	Query(string) (Rows, error)
 	SetAddress(string)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
@@ -185,10 +189,11 @@ type queryCacheItem struct {
 
 // customQuery represents configuration for executing a custom query.
 type customQuery struct {
-	SQL    string   `toml:"sql"`
-	Metric string   `toml:"metric"`
-	Tags   []string `toml:"tags"`
-	Fields []string `toml:"fields"`
+	SQL      string           `toml:"sql"`
+	Metric   string           `toml:"metric"`
+	Tags     []string         `toml:"tags"`
+	Fields   []string         `toml:"fields"`
+	Interval datakit.Duration `toml:"interval"`
 }
 
 type Input struct {
@@ -196,7 +201,7 @@ type Input struct {
 	Outputaddress     string            `toml:"outputaddress"`
 	IgnoredDatabases  []string          `toml:"ignored_databases"`
 	Databases         []string          `toml:"databases"`
-	Interval          string            `toml:"interval"`
+	Interval          datakit.Duration  `toml:"interval"`
 	MetricExcludeList []string          `toml:"metric_exclude_list"`
 	Tags              map[string]string `toml:"tags"`
 	mergedTags        map[string]string
@@ -214,7 +219,6 @@ type Input struct {
 
 	service      Service
 	tail         *tailer.Tailer
-	duration     time.Duration
 	collectCache []*point.Point
 	host         string
 
@@ -325,14 +329,15 @@ func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	return sanitizedAddress, err
 }
 
-func (ipt *Input) executeQuery(cache *queryCacheItem) error {
+func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) {
 	var (
 		columns []string
 		err     error
+		points  []*point.Point
 	)
 
 	if cache == nil || cache.query == "" {
-		return fmt.Errorf("query cache is empty")
+		return nil, fmt.Errorf("query cache is empty")
 	}
 
 	measurementInfo := cache.measurementInfo
@@ -343,53 +348,35 @@ func (ipt *Input) executeQuery(cache *queryCacheItem) error {
 	start := time.Now()
 	rows, err := ipt.service.Query(cache.query)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rows.Close() //nolint:errcheck
 
 	sqlQueryCostSummary.WithLabelValues(measurementInfo.Name, measurementInfo.Name).Observe(float64(time.Since(start)) / float64(time.Second))
 	if columns, err = rows.Columns(); err != nil {
-		return err
+		return nil, err
 	}
 
 	for rows.Next() {
 		columnMap, err := ipt.service.GetColumnMap(rows, columns)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = ipt.accRow(columnMap, measurementInfo)
-		if err != nil {
-			return err
+		if point := ipt.makePoints(columnMap, measurementInfo); point != nil {
+			points = append(points, point)
 		}
 	}
 
-	return nil
+	return points, nil
 }
 
-func (ipt *Input) getCustomQueryMetrics() error {
-	for _, customQuery := range ipt.CustomQuery {
-		tags := map[string]interface{}{}
-		fields := map[string]interface{}{}
-		for _, tag := range customQuery.Tags {
-			tags[tag] = tag
-		}
-		for _, field := range customQuery.Fields {
-			fields[field] = field
-		}
-
-		queryItem := &queryCacheItem{
-			query: customQuery.SQL,
-			measurementInfo: &inputs.MeasurementInfo{
-				Name:   customQuery.Metric,
-				Tags:   tags,
-				Fields: fields,
-			},
-		}
-
-		if err := ipt.executeQuery(queryItem); err != nil {
-			l.Warnf("collect custom query [%s] error: %s", customQuery.SQL, err.Error())
-		}
+func (ipt *Input) executeQuery(cache *queryCacheItem) error {
+	if points, err := ipt.getQueryPoints(cache); err != nil {
+		return fmt.Errorf("getQueryPoints error: %w", err)
+	} else {
+		ipt.collectCache = append(ipt.collectCache, points...)
 	}
+
 	return nil
 }
 
@@ -756,12 +743,20 @@ func (ipt *Input) setVersion() error {
 	return nil
 }
 
+func (ipt *Input) startService() error {
+	if err := ipt.service.Ping(); err != nil {
+		if err := ipt.service.Start(); err != nil {
+			return fmt.Errorf("start service failed: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (ipt *Input) Collect() error {
 	var err error
 
-	defer ipt.service.Stop() //nolint:errcheck
-	err = ipt.service.Start()
-	if err != nil {
+	if err := ipt.startService(); err != nil {
 		return fmt.Errorf("start service failed: %w", err)
 	}
 
@@ -789,19 +784,15 @@ func (ipt *Input) Collect() error {
 	return g.Wait()
 }
 
-func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inputs.MeasurementInfo) error {
-	tags := map[string]string{}
+func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo *inputs.MeasurementInfo) *point.Point {
+	var kvs point.KVs
 	if ipt.host != "" {
-		tags["host"] = ipt.host
+		kvs = kvs.AddTag("host", ipt.host)
 	}
 
-	if ipt.Tags != nil {
-		for k, v := range ipt.Tags {
-			tags[k] = v
-		}
+	for k, v := range ipt.Tags {
+		kvs = kvs.AddTag(k, v)
 	}
-
-	fields := make(map[string]interface{})
 
 	if measurementInfo == nil {
 		measurementInfo = inputMeasurement{}.Info()
@@ -817,7 +808,8 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inp
 			isMeasurementTag = true
 		}
 
-		stringVal := ""
+		stringVal := "" // unit8 to string
+		isField := true // set isField to be true when the type is uint8 or string
 		if *val != nil {
 			switch trueVal := (*val).(type) {
 			case []uint8:
@@ -825,32 +817,36 @@ func (ipt *Input) accRow(columnMap map[string]*interface{}, measurementInfo *inp
 			case string:
 				stringVal = trueVal
 			default:
-				fields[col] = trueVal
+				stringVal = cast.ToString(trueVal)
+				isField = true
 			}
 
-			if len(stringVal) > 0 {
-				if isMeasurementTag {
-					tags[col] = stringVal
-				} else if numVal, err := strconv.ParseInt(stringVal, 10, 64); err == nil {
-					fields[col] = numVal
+			if isMeasurementTag {
+				kvs = kvs.AddTag(col, stringVal)
+			} else {
+				switch {
+				case len(stringVal) > 0:
+					kvs = kvs.Add(col, cast.ToFloat64(stringVal), false, true)
+				case isField:
+					kvs = kvs.Add(col, *val, false, true)
 				}
 			}
 		}
 	}
 
-	if len(fields) > 0 {
-		name := inputName
+	if kvs.FieldCount() > 0 {
+		opts := point.DefaultMetricOptions()
+		if ipt.Election {
+			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+		}
+		opts = append(opts, point.WithTimestamp(time.Now().UnixNano()))
+
+		metricName := inputName
 		if measurementInfo != nil {
-			name = measurementInfo.Name
+			metricName = measurementInfo.Name
 		}
-		ms := &inputMeasurement{
-			name:   name,
-			fields: fields,
-			tags:   tags,
-			ts:     time.Now(),
-			ipt:    ipt,
-		}
-		ipt.collectCache = append(ipt.collectCache, ms.Point())
+
+		return point.NewPointV2(metricName, kvs, opts...)
 	}
 
 	return nil
@@ -892,13 +888,12 @@ func (ipt *Input) RunPipeline() {
 }
 
 const (
-	maxInterval = 1 * time.Minute
-	minInterval = 1 * time.Second
+	maxInterval = 10 * time.Minute
+	minInterval = 10 * time.Second
 )
 
 func (ipt *Input) init() error {
 	ipt.service.SetAddress(ipt.Address)
-	defer ipt.service.Stop() //nolint:errcheck
 	err := ipt.service.Start()
 	if err != nil {
 		return err
@@ -971,8 +966,6 @@ func (ipt *Input) init() error {
 		delete(ipt.relationMetrics, metric)
 	}
 
-	ipt.collectFuncs["customQuery"] = ipt.getCustomQueryMetrics
-
 	if len(ipt.Relations) > 0 {
 		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
 	}
@@ -980,26 +973,118 @@ func (ipt *Input) init() error {
 	return nil
 }
 
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
-
-	duration, err := time.ParseDuration(ipt.Interval)
-	if err != nil {
-		l.Error("invalid interval, %s", err.Error())
-		return
-	} else if duration <= 0 {
-		l.Error("invalid interval, cannot be less than zero")
+func (ipt *Input) runCustomQueries() {
+	if len(ipt.CustomQuery) == 0 {
 		return
 	}
+
+	l.Infof("start to run custom queries, total %d queries", len(ipt.CustomQuery))
+
+	g := goroutine.NewGroup(goroutine.Option{
+		Name:         "postgresql_custom_query",
+		PanicTimes:   6,
+		PanicTimeout: 10 * time.Second,
+	})
+	for _, q := range ipt.CustomQuery {
+		func(q *customQuery) {
+			g.Go(func(ctx context.Context) error {
+				ipt.runCustomQuery(q)
+				return nil
+			})
+		}(q)
+	}
+}
+
+func (ipt *Input) runCustomQuery(query *customQuery) {
+	if query == nil {
+		return
+	}
+
+	// use input interval as default
+	duration := ipt.Interval.Duration
+	// use custom query interval if set
+	if query.Interval.Duration > 0 {
+		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	start := time.Now()
+	for {
+		if ipt.pause {
+			l.Debugf("not leader, custom query skipped")
+		} else {
+			// collect custom query
+			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
+
+			tags := map[string]interface{}{}
+			fields := map[string]interface{}{}
+			for _, tag := range query.Tags {
+				tags[tag] = tag
+			}
+			for _, field := range query.Fields {
+				fields[field] = field
+			}
+
+			queryItem := &queryCacheItem{
+				query: query.SQL,
+				measurementInfo: &inputs.MeasurementInfo{
+					Name:   query.Metric,
+					Tags:   tags,
+					Fields: fields,
+				},
+			}
+
+			if err := ipt.startService(); err != nil {
+				l.Warnf("start service failed: %s", err.Error())
+			} else {
+				if points, err := ipt.getQueryPoints(queryItem); err != nil {
+					l.Errorf("collect custom query [%s] failed: %s", query.SQL, err.Error())
+				} else if len(points) > 0 {
+					if err := ipt.feeder.FeedV2(point.Metric, points,
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(customQueryFeedName),
+					); err != nil {
+						ipt.feeder.FeedLastError(err.Error(),
+							metrics.WithLastErrorInput(customQueryFeedName),
+						)
+						l.Errorf("feed failed: %s", err.Error())
+					}
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Info("custom query exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("custom query return")
+			return
+
+		case tt := <-tick.C:
+			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
+			start = time.UnixMilli(nextts)
+		}
+	}
+}
+
+func (ipt *Input) Run() {
+	l = logger.SLogger(inputName)
 
 	if err := ipt.setHostIfNotLoopback(); err != nil {
 		l.Errorf("failed to set host: %v", err)
 		return
 	}
 
-	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	tick := time.NewTicker(ipt.duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 
 	defer tick.Stop()
 
@@ -1030,6 +1115,11 @@ func (ipt *Input) Run() {
 		case <-tick.C:
 		}
 	}
+
+	defer ipt.service.Stop() //nolint:errcheck
+
+	// run custom queries
+	ipt.runCustomQueries()
 
 	for {
 		select {
@@ -1199,7 +1289,6 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewInput(service Service) *Input {
 	input := &Input{
-		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
