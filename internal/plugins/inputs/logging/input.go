@@ -291,14 +291,16 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		Type: "logging",
 		Desc: "Use the `source` of the config，if empty then use `default`",
 		Tags: map[string]interface{}{
-			"filename": inputs.NewTagInfo(`The base name of the file.`),
 			"host":     inputs.NewTagInfo(`Host name`),
-			"service":  inputs.NewTagInfo("Use the `service` of the config."),
+			"service":  inputs.NewTagInfo("The name of the service, if `service` is empty then use `source`."),
+			"filepath": inputs.NewTagInfo("The filepath to the log file on the host system where the log is stored."),
 		},
 		Fields: map[string]interface{}{
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
-			"status":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, default is `unknown`[^1]."},
-			"log_read_lines": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The lines of the read file."},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
+			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, default is `info`[^1]."},
+			"log_read_lines":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The lines of the read file."},
+			"log_file_inode":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The inode of the log file, which uniquely identifies it on the file system (requires enabling the global configuration `enable_debug_fields`)."},
+			"log_read_offset": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The current offset in the log file where reading has occurred, used to track progress during log collection (requires enabling the global configuration `enable_debug_fields`)."},
 			"`__docid`": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Unit:     inputs.UnknownUnit,
