@@ -7,15 +7,15 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 )
 
 const (
@@ -25,126 +25,153 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("replicaset", true, false, newReplicaset)
+	registerResource("replicaset", false, newReplicaset)
 	registerMeasurements(&replicasetMetric{}, &replicasetObject{})
 }
 
 type replicaset struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newReplicaset(client k8sClient) resource {
-	return &replicaset{client: client, counter: make(map[string]int)}
+func newReplicaset(client k8sClient, cfg *Config) resource {
+	return &replicaset{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (r *replicaset) count() []pointV2 { return buildCountPoints("replicaset", r.counter) }
+func (r *replicaset) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := r.client.GetReplicaSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (r *replicaset) hasNext() bool { return r.continued != "" }
+		pts := r.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-replicaset-metric", r.cfg.Feeder, pts, true)
 
-func (r *replicaset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      r.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := r.client.GetReplicaSets(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("replicaset", r.counter, timestamp)
+	feedMetric("k8s-counter", r.cfg.Feeder, counterPts, true)
+}
+
+func (r *replicaset) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := r.client.GetReplicaSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := r.buildObjectPoints(list)
+		feedObject("k8s-replicaset-Object", r.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
 	}
-
-	r.continued = list.Continue
-	return &replicasetMetadata{r, list}, nil
 }
 
-type replicasetMetadata struct {
-	parent *replicaset
-	list   *apiappsv1.ReplicaSetList
-}
+func (r *replicaset) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
-func (m *replicasetMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(replicasetMetricMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("replicaset", item.Name)
-		met.SetTag("replica_set", item.Name) // Deprecated
-		met.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("replicaset", item.Name)
+		kvs = kvs.AddTag("replica_set", item.Name) // Deprecated
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		met.SetField("replicas", item.Status.Replicas)
-		met.SetField("replicas_ready", item.Status.ReadyReplicas)
-		met.SetField("replicas_available", item.Status.AvailableReplicas)
-		met.SetField("fully_labeled_replicas", item.Status.FullyLabeledReplicas)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
+		kvs = kvs.AddV2("fully_labeled_replicas", item.Status.FullyLabeledReplicas, false)
 
 		if item.Spec.Replicas != nil {
-			met.SetField("replicas_desired", *item.Spec.Replicas)
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
 		}
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForMetric.All, r.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
+		pt := point.NewPointV2(replicasetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
 
-		m.parent.counter[item.Namespace]++
+		r.counter[item.Namespace]++
 	}
 
-	return res
+	return pts
 }
 
-func (m *replicasetMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(replicasetObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("replicaset_name", item.Name)
-		obj.SetTag("replica_set_name", item.Name) // Deprecated
-		obj.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("replicaset_name", item.Name)
+		kvs = kvs.AddTag("replica_set_name", item.Name) // Deprecated
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		if len(item.OwnerReferences) != 0 {
 			switch item.OwnerReferences[0].Kind {
 			case "Deployment":
-				obj.SetTag("deployment", item.OwnerReferences[0].Name)
+				kvs = kvs.AddTag("deployment", item.OwnerReferences[0].Name)
 			case "StatefulSet":
-				obj.SetTag("statefulset", item.OwnerReferences[0].Name)
+				kvs = kvs.AddTag("statefulset", item.OwnerReferences[0].Name)
 			default:
 				// nil
 			}
 		}
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("replicas", item.Status.Replicas)
-		obj.SetField("replicas_ready", item.Status.ReadyReplicas)
-		obj.SetField("replicas_available", item.Status.AvailableReplicas)
-		obj.SetField("ready", item.Status.ReadyReplicas)         // Deprecated
-		obj.SetField("available", item.Status.AvailableReplicas) // Deprecated
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
+		kvs = kvs.AddV2("ready", item.Status.ReadyReplicas, false)         // Deprecated
+		kvs = kvs.AddV2("available", item.Status.AvailableReplicas, false) // Deprecated
 
 		if item.Spec.Replicas != nil {
-			obj.SetField("replicas_desired", *item.Spec.Replicas)
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
 
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForNonMetric.All, r.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
+		pt := point.NewPointV2(replicasetObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type replicasetMetric struct{}

@@ -7,131 +7,198 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	apiappsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	statefulsetMetricMeasurement = "kube_statefulset"
-	statefulsetObjectMeasurement = "kubernetes_statefulsets"
+	statefulsetMetricMeasurement       = "kube_statefulset"
+	statefulsetObjectMeasurement       = "kubernetes_statefulsets"
+	statefulsetObjectChangeMeasurement = "kubernetes_statefulsets"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("statefulset", true, false, newStatefulset)
+	registerResource("statefulset", false, newStatefulset)
 	registerMeasurements(&statefulsetMetric{}, &statefulsetObject{})
 }
 
 type statefulset struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newStatefulset(client k8sClient) resource {
-	return &statefulset{client: client, counter: make(map[string]int)}
+func newStatefulset(client k8sClient, cfg *Config) resource {
+	return &statefulset{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (s *statefulset) count() []pointV2 { return buildCountPoints("statefulset", s.counter) }
+func (s *statefulset) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := s.client.GetStatefulSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (s *statefulset) hasNext() bool { return s.continued != "" }
+		pts := s.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-statefulset-metric", s.cfg.Feeder, pts, true)
 
-func (s *statefulset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      s.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := s.client.GetStatefulSets(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("statefulset", s.counter, timestamp)
+	feedMetric("k8s-counter", s.cfg.Feeder, counterPts, true)
+}
+
+func (s *statefulset) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := s.client.GetStatefulSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := s.buildObjectPoints(list)
+		feedObject("k8s-statefulset-object", s.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (s *statefulset) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Apps().V1().StatefulSets()
+	if informer == nil {
+		klog.Warn("cannot get statefulset informer")
+		return
 	}
 
-	s.continued = list.Continue
-	return &statefulsetMetadata{s, list}, nil
-}
-
-type statefulsetMetadata struct {
-	parent *statefulset
-	list   *apiappsv1.StatefulSetList
-}
-
-func (m *statefulsetMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
-
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(statefulsetMetricMeasurement)
-
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("statefulset", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		met.SetField("replicas", item.Status.Replicas)
-		met.SetField("replicas_updated", item.Status.UpdatedReplicas)
-		met.SetField("replicas_ready", item.Status.ReadyReplicas)
-		met.SetField("replicas_current", item.Status.CurrentReplicas)
-		met.SetField("replicas_available", item.Status.AvailableReplicas)
-
-		if item.Spec.Replicas != nil {
-			met.SetField("replicas_desired", *item.Spec.Replicas)
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldStatefulSetObj, ok := oldObj.(*apiappsv1.StatefulSet)
+		if !ok {
+			klog.Warnf("converting to StatefulSet object failed, %v", oldObj)
+			return
 		}
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		newStatefulSetObj, ok := newObj.(*apiappsv1.StatefulSet)
+		if !ok {
+			klog.Warnf("converting to StatefulSet object failed, %v", newObj)
+			return
+		}
 
-		m.parent.counter[item.Namespace]++
+		difftext, err := diffObject(oldStatefulSetObj.Spec, newStatefulSetObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(s.cfg.Feeder, statefulsetObjectChangeMeasurement, difftext, newStatefulSetObj)
+		}
 	}
 
-	return res
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-func (m *statefulsetMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (s *statefulset) buildMetricPoints(list *apiappsv1.StatefulSetList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(statefulsetObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("statefulset_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("statefulset", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("replicas", item.Status.Replicas)
-		obj.SetField("replicas_updated", item.Status.UpdatedReplicas)
-		obj.SetField("replicas_ready", item.Status.ReadyReplicas)
-		obj.SetField("replicas_current", item.Status.CurrentReplicas)
-		obj.SetField("replicas_available", item.Status.AvailableReplicas)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_current", item.Status.CurrentReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
 
 		if item.Spec.Replicas != nil {
-			obj.SetField("replicas_desired", *item.Spec.Replicas)
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
+		}
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForMetric.All, s.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
+		pt := point.NewPointV2(statefulsetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
+
+		s.counter[item.Namespace]++
+	}
+
+	return pts
+}
+
+func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
+
+	for _, item := range list.Items {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("statefulset_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
+
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_current", item.Status.CurrentReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
+
+		if item.Spec.Replicas != nil {
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
 
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
+		pt := point.NewPointV2(statefulsetObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type statefulsetMetric struct{}

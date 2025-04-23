@@ -7,166 +7,228 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	deploymentMetricMeasurement = "kube_deployment"
-	deploymentObjectMeasurement = "kubernetes_deployments"
+	deploymentMetricMeasurement       = "kube_deployment"
+	deploymentObjectMeasurement       = "kubernetes_deployments"
+	deploymentObjectChangeMeasurement = "kubernetes_deployments"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("deployment", true, false, newDeployment)
+	registerResource("deployment", false, newDeployment)
 	registerMeasurements(&deploymentMetric{}, &deploymentObject{})
 }
 
 type deployment struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newDeployment(client k8sClient) resource {
-	return &deployment{client: client, counter: make(map[string]int)}
+func newDeployment(client k8sClient, cfg *Config) resource {
+	return &deployment{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (d *deployment) count() []pointV2 { return buildCountPoints("deployment", d.counter) }
+func (d *deployment) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := d.client.GetDeployments(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (d *deployment) hasNext() bool { return d.continued != "" }
+		pts := d.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-deployment-metric", d.cfg.Feeder, pts, true)
 
-func (d *deployment) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      d.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := d.client.GetDeployments(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("deployment", d.counter, timestamp)
+	feedMetric("k8s-counter", d.cfg.Feeder, counterPts, true)
+}
+
+func (d *deployment) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := d.client.GetDeployments(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := d.buildObjectPoints(list)
+		feedObject("k8s-deployment-object", d.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (d *deployment) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Apps().V1().Deployments()
+	if informer == nil {
+		klog.Warn("cannot get deployment informer")
+		return
 	}
 
-	d.continued = list.Continue
-	return &deploymentMetadata{d, list}, nil
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldDeploymentObj, ok := oldObj.(*apiappsv1.Deployment)
+		if !ok {
+			klog.Warnf("converting to Deployment object failed, %v", oldObj)
+			return
+		}
+
+		newDeploymentObj, ok := newObj.(*apiappsv1.Deployment)
+		if !ok {
+			klog.Warnf("converting to Deployment object failed, %v", newObj)
+			return
+		}
+
+		difftext, err := diffObject(oldDeploymentObj.Spec, newDeploymentObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
+
+		if difftext != "" {
+			processObjectChange(d.cfg.Feeder, deploymentObjectChangeMeasurement, difftext, newDeploymentObj)
+		}
+	}
+
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-type deploymentMetadata struct {
-	parent *deployment
-	list   *apiappsv1.DeploymentList
-}
+func (d *deployment) buildMetricPoints(list *apiappsv1.DeploymentList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-func (m *deploymentMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(deploymentMetricMeasurement)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("deployment", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("deployment", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		met.SetField("replicas", item.Status.Replicas)
-		met.SetField("replicas_updated", item.Status.UpdatedReplicas)
-		met.SetField("replicas_ready", item.Status.ReadyReplicas)
-		met.SetField("replicas_available", item.Status.AvailableReplicas)
-		met.SetField("replicas_unavailable", item.Status.UnavailableReplicas)
-		met.SetField("rollingupdate_max_unavailable", 0)
-		met.SetField("rollingupdate_max_surge", 0)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
+		kvs = kvs.AddV2("replicas_unavailable", item.Status.UnavailableReplicas, false)
 
 		if item.Spec.Replicas != nil {
-			met.SetField("replicas_desired", *item.Spec.Replicas)
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, true)
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				met.SetField("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
+				kvs = kvs.AddV2("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false)
 			}
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				met.SetField("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue())
+				kvs = kvs.AddV2("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false)
 			}
 		}
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForMetric.All, d.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(deploymentMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
 
-		m.parent.counter[item.Namespace]++
+		d.counter[item.Namespace]++
 	}
 
-	return res
+	return pts
 }
 
-func (m *deploymentMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(deploymentObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("deployment_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("deployment_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("paused", item.Spec.Paused)
-		obj.SetField("replicas", item.Status.Replicas)
-		obj.SetField("replicas_updated", item.Status.UpdatedReplicas)
-		obj.SetField("replicas_ready", item.Status.ReadyReplicas)
-		obj.SetField("replicas_available", item.Status.AvailableReplicas)
-		obj.SetField("replicas_unavailable", item.Status.UnavailableReplicas)
-		obj.SetField("strategy", fmt.Sprintf("%v", item.Spec.Strategy.Type))
-		obj.SetField("rollingupdate_max_unavailable", 0)
-		obj.SetField("rollingupdate_max_surge", 0)
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("paused", item.Spec.Paused, false)
+		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
+		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
+		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
+		kvs = kvs.AddV2("replicas_unavailable", item.Status.UnavailableReplicas, false)
+		kvs = kvs.AddV2("strategy", string(item.Spec.Strategy.Type), false)
 
 		if item.Spec.Replicas != nil {
-			obj.SetField("replicas_desired", *item.Spec.Replicas)
+			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				obj.SetField("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
-				// Deprecated
-				obj.SetField("max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
+				kvs = kvs.AddV2("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false)
+				kvs = kvs.AddV2("max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false) // Deprecated
 			}
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				obj.SetField("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue())
-				// Deprecated
-				obj.SetField("max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue())
+				kvs = kvs.AddV2("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false)
+				kvs = kvs.AddV2("max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false) // Deprecated
 			}
 		}
 
 		// Deprecated
-		obj.SetField("up_dated", item.Status.UpdatedReplicas)
-		obj.SetField("ready", item.Status.ReadyReplicas)
-		obj.SetField("available", item.Status.AvailableReplicas)
-		obj.SetField("unavailable", item.Status.UnavailableReplicas)
+		kvs = kvs.AddV2("up_dated", item.Status.UpdatedReplicas, false)
+		kvs = kvs.AddV2("ready", item.Status.ReadyReplicas, false)
+		kvs = kvs.AddV2("available", item.Status.AvailableReplicas, false)
+		kvs = kvs.AddV2("unavailable", item.Status.UnavailableReplicas, false)
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
 
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
+
+		// message 不包含 Selector 和 Labels
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(deploymentObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type deploymentMetric struct{}

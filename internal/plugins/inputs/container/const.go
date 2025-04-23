@@ -12,8 +12,9 @@ import (
 const (
 	inputName = "container"
 
-	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 60
+	objectInterval  = time.Minute * 5
+	metricInterval  = time.Second * 60
+	loggingInterval = time.Second * 60
 
 	maxMessageLength = 256 * 1024 // 256KB
 )
@@ -31,6 +32,7 @@ const sampleCfg = `
   enable_pod_metric       = false
   enable_k8s_event        = true
   enable_k8s_node_local   = true
+  enable_collect_k8s_job  = true
 
   ## Add resource Label as Tags (container use Pod Label), need to specify Label keys.
   ## e.g. ["app", "name"]
@@ -41,20 +43,12 @@ const sampleCfg = `
   container_include_log = []
   container_exclude_log = ["image:*logfwd*", "image:*datakit*"]
 
-  kubernetes_url = "https://kubernetes.default:443"
+  ## Pods metric to include and exclude, default collect all pods. Globs accepted.
+  pod_include_metric = []
+  pod_exclude_metric = []
 
-  ## Authorization level:
-  ##   bearer_token -> bearer_token_string -> TLS
-  ## Use bearer token for authorization. ('bearer_token' takes priority)
-  ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
-  bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
-  # bearer_token_string = "<your-token-string>"
-
-  ## Set true to enable election for k8s metric collection
-  election = true
-
-  logging_enable_multiline             = true
-  logging_auto_multiline_detection     = true
+  logging_enable_multiline              = true
+  logging_auto_multiline_detection      = true
   logging_auto_multiline_extra_patterns = []
 
   ## Only retain the fields specified in the whitelist.

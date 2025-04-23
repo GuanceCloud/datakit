@@ -7,15 +7,15 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apibatchv1 "k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 )
 
 const (
@@ -25,61 +25,85 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("job", true, false, newJob)
+	registerResource("job", false, newJob)
 	registerMeasurements(&jobMetric{}, &jobObject{})
 }
 
 type job struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newJob(client k8sClient) resource {
-	return &job{client: client, counter: make(map[string]int)}
+func newJob(client k8sClient, cfg *Config) resource {
+	return &job{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (j *job) count() []pointV2 { return buildCountPoints("job", j.counter) }
-
-func (j *job) hasNext() bool { return j.continued != "" }
-
-func (j *job) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      j.continued,
-		FieldSelector: fieldSelector,
+func (j *job) gatherMetric(ctx context.Context, timestamp int64) {
+	if !j.cfg.EnableCollectJob {
+		return
 	}
 
-	list, err := j.client.GetJobs(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	var continued string
+	for {
+		list, err := j.client.GetJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := j.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-job-metric", j.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
 	}
 
-	j.continued = list.Continue
-	return &jobMetadata{j, list}, nil
+	counterPts := buildPointsFromCounter("job", j.counter, timestamp)
+	feedMetric("k8s-counter", j.cfg.Feeder, counterPts, true)
 }
 
-type jobMetadata struct {
-	parent *job
-	list   *apibatchv1.JobList
+func (j *job) gatherObject(ctx context.Context) {
+	if !j.cfg.EnableCollectJob {
+		return
+	}
+
+	var continued string
+	for {
+		list, err := j.client.GetJobs(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := j.buildObjectPoints(list)
+		feedObject("k8s-job-object", j.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
 }
 
-func (m *jobMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+func (j *job) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(jobMetricMeasurement)
+func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("job", item.Name)
-		met.SetTag("namespace", item.Namespace)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		met.SetField("active", item.Status.Active)
-		met.SetField("failed", item.Status.Failed)
-		met.SetField("succeeded", item.Status.Succeeded)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("job", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		met.SetField("completion_succeeded", 0)
-		met.SetField("completion_failed", 0)
+		kvs = kvs.AddV2("active", item.Status.Active, false)
+		kvs = kvs.AddV2("failed", item.Status.Failed, false)
+		kvs = kvs.AddV2("succeeded", item.Status.Succeeded, false)
 
 		var succeeded, failed int
 		for _, condition := range item.Status.Conditions {
@@ -92,70 +116,73 @@ func (m *jobMetadata) newMetric(conf *Config) pointKVs {
 				// nil
 			}
 		}
+		kvs = kvs.AddV2("completion_succeeded", succeeded, false)
+		kvs = kvs.AddV2("completion_failed", failed, false)
 
-		met.SetField("completion_succeeded", succeeded)
-		met.SetField("completion_failed", failed)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForMetric.All, j.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
+		pt := point.NewPointV2(jobMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
 
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
-
-		m.parent.counter[item.Namespace]++
+		j.counter[item.Namespace]++
 	}
 
-	return res
+	return pts
 }
 
-func (m *jobMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(jobObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("job_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("job_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("active", item.Status.Active)
-		obj.SetField("succeeded", item.Status.Succeeded)
-		obj.SetField("failed", item.Status.Failed)
-		obj.SetField("parallelism", 0)
-		obj.SetField("completions", 0)
-		obj.SetField("active_deadline", 0)
-		obj.SetField("backoff_limit", 0)
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("active", item.Status.Active, false)
+		kvs = kvs.AddV2("succeeded", item.Status.Succeeded, false)
+		kvs = kvs.AddV2("failed", item.Status.Failed, false)
 
 		if item.Spec.Parallelism != nil {
-			obj.SetField("parallelism", *item.Spec.Parallelism)
+			kvs = kvs.AddV2("parallelism", *item.Spec.Parallelism, false)
 		}
 		if item.Spec.Completions != nil {
-			obj.SetField("completions", *item.Spec.Completions)
+			kvs = kvs.AddV2("completions", *item.Spec.Completions, false)
 		}
 		if item.Spec.ActiveDeadlineSeconds != nil {
-			obj.SetField("active_deadline", *item.Spec.ActiveDeadlineSeconds)
+			kvs = kvs.AddV2("active_deadline", *item.Spec.ActiveDeadlineSeconds, false)
 		}
 		if item.Spec.BackoffLimit != nil {
-			obj.SetField("backoff_limit", *item.Spec.BackoffLimit)
+			kvs = kvs.AddV2("backoff_limit", *item.Spec.BackoffLimit, false)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
 
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-		res = append(res, obj)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForNonMetric.All, j.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
+		pt := point.NewPointV2(jobObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type jobMetric struct{}

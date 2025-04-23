@@ -8,10 +8,10 @@ package kubernetes
 import (
 	"context"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 )
 
 const (
@@ -21,124 +21,124 @@ const (
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("dfpv", false, true, newDfpv)
+	registerResource("dfpv", true, newDfpv)
 	registerMeasurements(&dfpvMetric{}, &dfpvObject{})
 }
 
 type dfpv struct {
 	client k8sClient
+	cfg    *Config
 }
 
-func newDfpv(client k8sClient) resource {
-	return &dfpv{client: client}
+func newDfpv(client k8sClient, cfg *Config) resource {
+	return &dfpv{client: client, cfg: cfg}
 }
 
-func (c *dfpv) count() []pointV2 { return nil }
+func (d *dfpv) gatherMetric(ctx context.Context, timestamp int64) {
+	if !d.cfg.NodeLocal {
+		return
+	}
 
-func (c *dfpv) hasNext() bool { return false }
-
-func (c *dfpv) getMetadata(ctx context.Context, ns, _ string) (metadata, error) {
-	data := newPodMetricsFromKubelet(c.client)
-	pvcList, err := c.client.GetPersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{ResourceVersion: "0"})
+	list, err := newPodMetricsFromKubelet(d.client).GetPodsVolumeInfo(context.TODO())
 	if err != nil {
-		klog.Warnf("get pvc list fail, err: %s", err)
+		klog.Warnf("query for pod-volume failed, err: %s", err)
+		return
 	}
-	return &dfpvMetadata{data, pvcList}, nil
+
+	pts := d.buildMetricPoints(list, timestamp)
+	feedMetric("k8s-dfpv-metric", d.cfg.Feeder, pts, false)
 }
 
-type dfpvMetadata struct {
-	metricsData *podMetricsFromKubelet
-	pvcList     *apicorev1.PersistentVolumeClaimList
-}
+func (d *dfpv) gatherObject(ctx context.Context) {
+	if !d.cfg.NodeLocal {
+		return
+	}
 
-func (m *dfpvMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
-
-	volumes, err := m.metricsData.GetPodsVolumeInfo(context.TODO())
+	list, err := newPodMetricsFromKubelet(d.client).GetPodsVolumeInfo(context.TODO())
 	if err != nil {
-		klog.Warnf("pod-volume info fail, err: %s, skip", err)
-		return nil
+		klog.Warnf("query for pod-volume failed, err: %s", err)
+		return
 	}
 
-	for _, info := range volumes {
-		met := typed.NewPointKV(dfpvMetricMeasurement)
-
-		met.SetTag("name", info.pvcName+"/"+info.podName)
-		met.SetTag("pvc_name", info.pvcName)
-		met.SetTag("node_name", info.nodeName)
-		met.SetTag("pod_name", info.podName)
-		met.SetTag("namespace", info.namespace)
-		met.SetTag("volume_mount_name", info.volumeMountName)
-
-		met.SetField("available", info.available)
-		met.SetField("capacity", info.capacity)
-		met.SetField("used", info.used)
-		met.SetField("inodes", info.inodes)
-		met.SetField("inodes_used", info.inodesUsed)
-		met.SetField("inodes_free", info.inodesFree)
-
-		if info.capacity != 0 {
-			met.SetField("used_percent", float64(info.used)/float64(info.capacity)*100) // percent
-		}
-
-		if m.pvcList != nil {
-			for _, pvc := range m.pvcList.Items {
-				if pvc.Namespace == info.namespace && pvc.Name == info.pvcName {
-					met.SetLabelAsTags(pvc.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForMetric.Keys)
-				}
-			}
-		}
-
-		res = append(res, met)
-	}
-
-	return res
+	pts := d.buildObjectPoints(list)
+	feedObject("k8s-dfpv-object", d.cfg.Feeder, pts, false)
 }
 
-func (m *dfpvMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (d *dfpv) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
-	volumes, err := m.metricsData.GetPodsVolumeInfo(context.TODO())
-	if err != nil {
-		klog.Warnf("pod-volume info fail, err: %s, skip", err)
-		return nil
-	}
+func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, info := range volumes {
-		obj := typed.NewPointKV(dfpvObjectMeasurement)
+	for _, item := range list {
+		var kvs point.KVs
 
-		obj.SetTag("name", info.pvcName+"/"+info.podName)
-		obj.SetTag("pvc_name", info.pvcName)
-		obj.SetTag("node_name", info.nodeName)
-		obj.SetTag("pod_name", info.podName)
-		obj.SetTag("namespace", info.namespace)
-		obj.SetTag("volume_mount_name", info.volumeMountName)
+		kvs = kvs.AddTag("name", item.pvcName+"/"+item.podName)
+		kvs = kvs.AddTag("pvc_name", item.pvcName)
+		kvs = kvs.AddTag("node_name", item.nodeName)
+		kvs = kvs.AddTag("pod_name", item.podName)
+		kvs = kvs.AddTag("namespace", item.namespace)
+		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
 
-		obj.SetField("available", info.available)
-		obj.SetField("capacity", info.capacity)
-		obj.SetField("used", info.used)
-		obj.SetField("inodes", info.inodes)
-		obj.SetField("inodes_used", info.inodesUsed)
-		obj.SetField("inodes_free", info.inodesFree)
+		kvs = kvs.AddV2("available", item.available, false)
+		kvs = kvs.AddV2("capacity", item.capacity, false)
+		kvs = kvs.AddV2("used", item.used, false)
+		kvs = kvs.AddV2("inodes", item.inodes, false)
+		kvs = kvs.AddV2("inodes_used", item.inodesUsed, false)
+		kvs = kvs.AddV2("inodes_free", item.inodesFree, false)
 
-		if info.capacity != 0 {
-			obj.SetField("used_percent", float64(info.used)/float64(info.capacity)*100) // percent
+		if item.capacity != 0 {
+			kvs = kvs.AddV2("used_percent", float64(item.used)/float64(item.capacity)*100, false) // percent
 		}
 
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-
-		if m.pvcList != nil {
-			for _, pvc := range m.pvcList.Items {
-				if pvc.Namespace == info.namespace && pvc.Name == info.pvcName {
-					obj.SetLabelAsTags(pvc.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
-				}
-			}
-		}
-
-		res = append(res, obj)
+		//
+		// dfpv 不使用 LabelAsTagsForMetric
+		//
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(dfpvMetricMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
+}
+
+func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
+
+	for _, item := range list {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("name", item.pvcName+"/"+item.podName)
+		kvs = kvs.AddTag("pvc_name", item.pvcName)
+		kvs = kvs.AddTag("node_name", item.nodeName)
+		kvs = kvs.AddTag("pod_name", item.podName)
+		kvs = kvs.AddTag("namespace", item.namespace)
+		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
+
+		kvs = kvs.AddV2("available", item.available, false)
+		kvs = kvs.AddV2("capacity", item.capacity, false)
+		kvs = kvs.AddV2("used", item.used, false)
+		kvs = kvs.AddV2("inodes", item.inodes, false)
+		kvs = kvs.AddV2("inodes_used", item.inodesUsed, false)
+		kvs = kvs.AddV2("inodes_free", item.inodesFree, false)
+
+		if item.capacity != 0 {
+			kvs = kvs.AddV2("used_percent", float64(item.used)/float64(item.capacity)*100, false) // percent
+		}
+
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		//
+		// dfpv 不使用 LabelAsTagsForNonMetric
+		//
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(dfpvObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
+	}
+
+	return pts
 }
 
 type dfpvMetric struct{}

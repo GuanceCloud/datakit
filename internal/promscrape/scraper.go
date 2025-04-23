@@ -113,7 +113,8 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 			kvs = kvs.AddTag(key, value)
 		}
 
-		pts = append(pts, point.NewPointV2(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...))
+		pt := point.NewPointV2(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...)
+		pts = append(pts, pt)
 	}
 
 	return p.opt.callback(pts)

@@ -7,129 +7,195 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/typed"
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	daemonsetMetricMeasurement = "kube_daemonset"
-	daemonsetObjectMeasurement = "kubernetes_daemonset"
+	daemonsetMetricMeasurement       = "kube_daemonset"
+	daemonsetObjectMeasurement       = "kubernetes_daemonset"
+	daemonsetObjectChangeMeasurement = "kubernetes_daemonsets"
 )
 
 //nolint:gochecknoinits
 func init() {
-	registerResource("daemonset", true, false, newDaemonset)
+	registerResource("daemonset", false, newDaemonset)
 	registerMeasurements(&daemonsetMetric{}, &daemonsetObject{})
 }
 
 type daemonset struct {
-	client    k8sClient
-	continued string
-	counter   map[string]int
+	client  k8sClient
+	cfg     *Config
+	counter map[string]int
 }
 
-func newDaemonset(client k8sClient) resource {
-	return &daemonset{client: client, counter: make(map[string]int)}
+func newDaemonset(client k8sClient, cfg *Config) resource {
+	return &daemonset{client: client, cfg: cfg, counter: make(map[string]int)}
 }
 
-func (d *daemonset) count() []pointV2 { return buildCountPoints("daemonset", d.counter) }
+func (d *daemonset) gatherMetric(ctx context.Context, timestamp int64) {
+	var continued string
+	for {
+		list, err := d.client.GetDaemonSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
 
-func (d *daemonset) hasNext() bool { return d.continued != "" }
+		pts := d.buildMetricPoints(list, timestamp)
+		feedMetric("k8s-daemonset-metric", d.cfg.Feeder, pts, true)
 
-func (d *daemonset) getMetadata(ctx context.Context, ns, fieldSelector string) (metadata, error) {
-	opt := metav1.ListOptions{
-		Limit:         queryLimit,
-		Continue:      d.continued,
-		FieldSelector: fieldSelector,
+		if continued == "" {
+			break
+		}
 	}
 
-	list, err := d.client.GetDaemonSets(ns).List(ctx, opt)
-	if err != nil {
-		return nil, err
+	counterPts := buildPointsFromCounter("daemonset", d.counter, timestamp)
+	feedMetric("k8s-counter", d.cfg.Feeder, counterPts, true)
+}
+
+func (d *daemonset) gatherObject(ctx context.Context) {
+	var continued string
+	for {
+		list, err := d.client.GetDaemonSets(allNamespaces).List(ctx, newListOptions(emptyFieldSelector, continued))
+		if err != nil {
+			klog.Warn(err)
+			break
+		}
+		continued = list.Continue
+
+		pts := d.buildObjectPoints(list)
+		feedObject("k8s-daemonset-object", d.cfg.Feeder, pts, true)
+
+		if continued == "" {
+			break
+		}
+	}
+}
+
+func (d *daemonset) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+	informer := informerFactory.Apps().V1().DaemonSets()
+	if informer == nil {
+		klog.Warn("cannot get daemonset informer")
+		return
 	}
 
-	d.continued = list.Continue
-	return &daemonsetMetadata{d, list}, nil
-}
+	updateFunc := func(oldObj, newObj interface{}) {
+		oldDaemonsetObj, ok := oldObj.(*apiappsv1.DaemonSet)
+		if !ok {
+			klog.Warnf("converting to DaemonSet object failed, %v", oldObj)
+			return
+		}
 
-type daemonsetMetadata struct {
-	parent *daemonset
-	list   *apiappsv1.DaemonSetList
-}
+		newDaemonsetObj, ok := newObj.(*apiappsv1.DaemonSet)
+		if !ok {
+			klog.Warnf("converting to DaemonSet object failed, %v", newObj)
+			return
+		}
 
-func (m *daemonsetMetadata) newMetric(conf *Config) pointKVs {
-	var res pointKVs
+		difftext, err := diffObject(oldDaemonsetObj.Spec, newDaemonsetObj.Spec)
+		if err != nil {
+			klog.Warnf("marshal failed, err: %s", err)
+			return
+		}
 
-	for _, item := range m.list.Items {
-		met := typed.NewPointKV(daemonsetMetricMeasurement)
-
-		met.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		met.SetTag("daemonset", item.Name)
-		met.SetTag("namespace", item.Namespace)
-
-		met.SetField("desired", item.Status.DesiredNumberScheduled)
-		met.SetField("scheduled", item.Status.CurrentNumberScheduled)
-		met.SetField("misscheduled", item.Status.NumberMisscheduled)
-		met.SetField("ready", item.Status.NumberReady)
-		met.SetField("updated", item.Status.UpdatedNumberScheduled)
-		met.SetField("daemons_available", item.Status.NumberAvailable)
-		met.SetField("daemons_unavailable", item.Status.NumberUnavailable)
-
-		met.SetLabelAsTags(item.Labels, conf.LabelAsTagsForMetric.All, conf.LabelAsTagsForMetric.Keys)
-		res = append(res, met)
-
-		m.parent.counter[item.Namespace]++
+		if difftext != "" {
+			processObjectChange(d.cfg.Feeder, daemonsetObjectChangeMeasurement, difftext, newDaemonsetObj)
+		}
 	}
 
-	return res
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(_ interface{}) { /* skip */ },
+		DeleteFunc: func(_ interface{}) { /* skip */ },
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			updateFunc(oldObj, newObj)
+		},
+	})
 }
 
-func (m *daemonsetMetadata) newObject(conf *Config) pointKVs {
-	var res pointKVs
+func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp int64) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultMetricOptions()
 
-	for _, item := range m.list.Items {
-		obj := typed.NewPointKV(daemonsetObjectMeasurement)
+	for _, item := range list.Items {
+		var kvs point.KVs
 
-		obj.SetTag("name", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("uid", fmt.Sprintf("%v", item.UID))
-		obj.SetTag("daemonset_name", item.Name)
-		obj.SetTag("namespace", item.Namespace)
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("daemonset", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		obj.SetField("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
-		obj.SetField("desired", item.Status.DesiredNumberScheduled)
-		obj.SetField("scheduled", item.Status.CurrentNumberScheduled)
-		obj.SetField("misscheduled", item.Status.NumberMisscheduled)
-		obj.SetField("ready", item.Status.NumberReady)
-		obj.SetField("updated", item.Status.UpdatedNumberScheduled)
-		obj.SetField("daemons_available", item.Status.NumberAvailable)
-		obj.SetField("daemons_unavailable", item.Status.NumberUnavailable)
+		kvs = kvs.AddV2("desired", item.Status.DesiredNumberScheduled, false)
+		kvs = kvs.AddV2("scheduled", item.Status.CurrentNumberScheduled, false)
+		kvs = kvs.AddV2("misscheduled", item.Status.NumberMisscheduled, false)
+		kvs = kvs.AddV2("ready", item.Status.NumberReady, false)
+		kvs = kvs.AddV2("updated", item.Status.UpdatedNumberScheduled, false)
+		kvs = kvs.AddV2("daemons_available", item.Status.NumberAvailable, false)
+		kvs = kvs.AddV2("daemons_unavailable", item.Status.NumberUnavailable, false)
+
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForMetric.All, d.cfg.LabelAsTagsForMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(daemonsetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pts = append(pts, pt)
+
+		d.counter[item.Namespace]++
+	}
+
+	return pts
+}
+
+func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Point {
+	var pts []*point.Point
+	opts := point.DefaultObjectOptions()
+
+	for _, item := range list.Items {
+		var kvs point.KVs
+
+		kvs = kvs.AddTag("name", string(item.UID))
+		kvs = kvs.AddTag("uid", string(item.UID))
+		kvs = kvs.AddTag("daemonset_name", item.Name)
+		kvs = kvs.AddTag("namespace", item.Namespace)
+
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.AddV2("desired", item.Status.DesiredNumberScheduled, false)
+		kvs = kvs.AddV2("scheduled", item.Status.CurrentNumberScheduled, false)
+		kvs = kvs.AddV2("misscheduled", item.Status.NumberMisscheduled, false)
+		kvs = kvs.AddV2("ready", item.Status.NumberReady, false)
+		kvs = kvs.AddV2("updated", item.Status.UpdatedNumberScheduled, false)
+		kvs = kvs.AddV2("daemons_available", item.Status.NumberAvailable, false)
+		kvs = kvs.AddV2("daemons_unavailable", item.Status.NumberUnavailable, false)
 
 		if y, err := yaml.Marshal(item); err == nil {
-			obj.SetField("yaml", string(y))
+			kvs = kvs.AddV2("yaml", string(y), false)
 		}
+		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
-		obj.SetFields(transLabels(item.Labels))
-		obj.SetField("annotations", typed.MapToJSON(item.Annotations))
-		obj.SetField("message", typed.TrimString(obj.String(), maxMessageLength))
-		obj.DeleteField("annotations")
-		obj.DeleteField("yaml")
+		msg := pointutil.PointKVsToJSON(kvs)
+		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+
+		kvs = kvs.Del("annotations")
+		kvs = kvs.Del("yaml")
 
 		if item.Spec.Selector != nil {
-			obj.SetTags(item.Spec.Selector.MatchLabels)
+			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
-		obj.SetLabelAsTags(item.Labels, conf.LabelAsTagsForNonMetric.All, conf.LabelAsTagsForNonMetric.Keys)
 
-		res = append(res, obj)
+		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
+		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
+		pt := point.NewPointV2(daemonsetObjectMeasurement, kvs, opts...)
+		pts = append(pts, pt)
 	}
 
-	return res
+	return pts
 }
 
 type daemonsetMetric struct{}
@@ -158,7 +224,7 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type daemonsetObject struct{ typed.PointKV }
+type daemonsetObject struct{}
 
 //nolint:lll
 func (*daemonsetObject) Info() *inputs.MeasurementInfo {

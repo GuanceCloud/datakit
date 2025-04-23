@@ -276,7 +276,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 	github.com/sercand/kuberesolver v2.4.0+incompatible // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/sergi/go-diff v1.2.0
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
@@ -327,7 +327,7 @@ require (
 	k8s.io/client-go v0.25.0
 	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/cri-api v0.20.6
-	k8s.io/klog/v2 v2.80.1
+	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
 	k8s.io/metrics v0.20.5
 	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85

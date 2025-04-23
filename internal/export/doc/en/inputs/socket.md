@@ -46,6 +46,8 @@ UDP metrics require the operating system to have `nc` programs.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+
+    In Kubernetes, the Datakit domain is `datakit-service.datakit.svc`, and the log sender can specify the Datakit domain as the receiver. Typically, only the UDP protocol is recommended for using the domain name, as the TCP protocol may encounter issues with missing context in multiline data.
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}
