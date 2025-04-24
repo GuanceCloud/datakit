@@ -3036,7 +3036,7 @@
         "group": {
           "name": "<<.Dashboard.group_log>>"
         },
-        "name": "MonogoDB(WARN&ERROR)",
+        "name": "MongoDB(WARN&ERROR)",
         "pos": {
           "h": 21,
           "w": 24,

@@ -19,6 +19,7 @@ This release is an iterative update, with the following key changes:
 
 - In major database collectors, custom metric collection now supports setting independent collection intervals (#2604).
 - In log collection, the default log level has been changed from `unknown` to `info` (#2628).
+- Add environment to disable host cloud-meta sync (#2631)
 - Other adjustments (#2564/#2603).
 
 ---

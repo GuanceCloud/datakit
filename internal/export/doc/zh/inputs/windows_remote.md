@@ -1,10 +1,10 @@
 ---
-title     : 'windows_remote'
-summary   : 'Collect metrics and object data from SNMP or WMI devices'
+title     : 'Windows Remote'
+summary   : '通过 SNMP 或 WMI 远程采集 Windows 主机'
 tags:
   - 'SNMP'
   - 'WMI'
-__int_icon      : 'icon/snmp'
+__int_icon      : 'icon/windows'
 dashboard :
   - desc  : 'N/A'
     path  : '-'

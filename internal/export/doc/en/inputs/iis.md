@@ -5,7 +5,7 @@ tags:
   - 'WINDOWS'
   - 'IIS'
   - 'WEB SERVER'
-__int_icon      : 'icon/iis'
+__int_icon      : 'icon/windows'
 dashboard :
   - desc  : 'IIS'
     path  : 'dashboard/en/iis'

@@ -3,7 +3,7 @@ title     : 'Windows Event'
 summary   : 'Collect event logs in Windows'
 tags:
   - 'WINDOWS'
-__int_icon      : 'icon/winevent'
+__int_icon      : 'icon/windows'
 dashboard :
   - desc  : 'N/A'
     path  : '-'

@@ -3,7 +3,7 @@ title     : 'Windows 事件'
 summary   : '采集 Windows 中的事件日志'
 tags:
   - 'WINDOWS'
-__int_icon      : 'icon/winevent'
+__int_icon      : 'icon/windows'
 dashboard :
   - desc  : '暂无'
     path  : '-'
