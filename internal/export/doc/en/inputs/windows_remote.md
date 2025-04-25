@@ -236,17 +236,46 @@ wmic /node:"<TargetIP>" /user:".\datakit" /password:"<Password>" os get Name
 
 ✅ Expected Result: Returns the target host's `Name` information.
 
+At this point, the machine being collected has been configured.
+
 ---
 
-### DataKit Deployment {#datakit-deployment}
+## DataKit Deployment {#datakit-deployment}
 
-**Step 1**: Install DataKit
+### 1. Create User Permissions {#creat-user}
 
-Install DataKit using the official script, then:
+**Objective**: Create a dedicated user `datakit` with WMI permissions to serve as the service startup account.
 
-Set `mode` to `wmi` in the collector config file (Config path: `C:\Program Files\datakit\conf.d\wmi.conf`).
+1. **Execute the User Creation Script**  
+   After running the provided script, the system will automatically create the user `datakit` and grant it WMI operation permissions.
 
-**Step 2**: Configure Service Permissions
+2. **Verify User Permissions**
+
+   Ensure the user has the following permissions:
+
+   - Remote WMI access permissions
+   - "Log on as a service" permission (to be configured in later steps)
+
+---
+
+### 2. Installation and Configuration {#config-wmi}
+
+**Objective**: Complete DataKit installation and configure WMI collection mode.
+
+1. **Install via Official Script**  
+   After executing the installation command, DataKit will be deployed by default to:  
+   `C:\Program Files\datakit`
+
+2. **Modify Collector Configuration**  
+   Edit the configuration file:  
+   `C:\Program Files\datakit\conf.d\windows_remote\windows_remote.conf`
+
+---
+
+### 3. Configure Service Permissions {#config-user}
+
+**Key Notes:**
+The DataKit service must be started using the dedicated account `datakit`, which requires the "Log on as a service" permission.
 
 Method 1: GUI
 
@@ -255,5 +284,153 @@ Method 1: GUI
 3. Go to Log On tab → Select This account  • Account format: `.\datakit` (local) or `Domain\User`
 4. Enter the password and confirm
 
+Method 2: PowerShell
 
-After the modification is completed, DataKit will be restarted to collect WMI metrics and logs.
+Add user : `Log On as a service`, and change `datakit` server:
+
+```shell
+$username = ".\datakit"
+$password = 'xxxxxxxxx'
+
+$service = Get-WmiObject win32_service -filter "DisplayName like 'datakit'"
+
+
+Set-ExecutionPolicy Bypass -Scope Process
+
+
+function Add-ServiceLogonRight {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Username
+    )
+
+    try {
+        $tempPath = [System.IO.Path]::GetTempFileName()
+        $tmpFile = New-Item -Path $tempPath -ItemType File -Force
+
+        secedit /export /cfg "$tmpFile.inf" | Out-Null
+
+        $content = Get-Content "$tmpFile.inf" -Encoding ASCII
+        
+        if ($content -match "^SeServiceLogonRight\s*=") {
+            $content = $content -replace "^SeServiceLogonRight\s*=.*", "`$0, $Username"
+        } else {
+            $content += "`r`nSeServiceLogonRight = $Username"
+        }
+
+        $content | Set-Content "$tmpFile.inf" -Encoding ASCII
+
+        secedit /import /cfg "$tmpFile.inf" /db "$tmpFile.sdb" | Out-Null
+        secedit /configure /db "$tmpFile.sdb" /cfg "$tmpFile.inf" | Out-Null
+
+        Write-Host " user $Username add to Log on as a server"
+    }
+    catch {
+        Write-Error " error: $_"
+    }
+    finally {
+        Remove-Item "$tmpFile*" -Force -ErrorAction SilentlyContinue
+    }
+}
+
+
+Add-ServiceLogonRight -Username "datakit"
+
+# Stop the service if it's running
+if ($service.State -eq "Running") {
+    Write-Host "Stopping service $($service.DisplayName)..."
+    $stopResult = $service.StopService()
+    if ($stopResult.ReturnValue -eq "0") {
+        Write-Host "$($service.DisplayName) stopped successfully."
+    } else {
+        Write-Warning "Failed to stop $($service.DisplayName). Return Value: $($stopResult.ReturnValue). Proceeding with credential change."
+    }
+    # Wait a short time after stopping
+    Start-Sleep -Seconds 15
+}
+
+Start-Sleep -Seconds 3 # Wait before attempting to change
+$returnValue = $service.Change($Null,$Null,$Null,$Null,$Null,$Null,$username,$password,$Null,$Null,$Null)
+Write-Host "return value is $($returnValue.ReturnValue)"
+if ($returnValue.ReturnValue -eq "0") {
+    Write-Host "Successfully changed credentials for $($service.DisplayName)"
+} elseif ($returnValue.ReturnValue -eq "15") {
+    Write-Warning "Service database is locked for $($service.DisplayName). Retrying in 10 seconds..."
+    Start-Sleep -Seconds 10
+    $returnValue = $service.Change($Null,$Null,$Null,$Null,$Null,$Null,$username,$password)
+    if ($returnValue.ReturnValue -eq "0") {
+        Write-Host "Successfully changed credentials for $($service.DisplayName) after retry"
+    } else {
+        Write-Error "Failed to change credentials for $($service.DisplayName) after retry. Return Value: $($returnValue.ReturnValue)"
+    }
+} else {
+    Write-Error "Failed to change credentials for $($service.DisplayName). Return Value: $($returnValue.ReturnValue)"
+}
+
+$service.StartService()
+
+```
+
+---
+
+
+### Verify Deployment Results {#verify-results}
+
+1. **Check Service Status**
+
+   ```shell
+   Get-Service datakit
+   ```
+
+   Confirm that the service status is **Running**.
+
+2. **View Collected Metrics**
+
+   ```shell
+   datakit monitor
+   ```
+
+   The output should include WMI-related metrics (e.g., data from the `windows_remote` collector).
+
+3. **Troubleshoot with Logs**
+
+   Inspect the log files at:
+   `C:\Program Files\datakit\log`
+
+## Appendix {#appendix}
+
+When querying host performance metrics via the WMI (Windows Management Instrumentation) protocol, the following classes are utilized:
+
+| Class Name                                     | DataKit            | type    |
+|:-----------------------------------------------|:-------------------|:--------|
+| Win32_PerfFormattedData_PerfOS_Processor       | cpu                | metric  |
+| win32_Processor                                | host_object cpu    | object  |
+| Win32_LogicalDisk                              | host_object disk   | object  |
+| Win32_OperatingSystem                          | host_object system | object  |
+| Win32_OperatingSystem                          | mem                | object  |
+| Win32_PerfFormattedData_Tcpip_NetworkInterface | net                | metric  |
+| Win32_PerfFormattedData_PerfDisk_PhysicalDisk  | diskio             | metric  |
+| Win32_PerfFormattedData_PerfProc_Process       | host_processes     | object  |
+| Win32_Process                                  | host_processes     | object  |
+| Win32_NTLogEvent                               | log                | logging |
+
+Query these classes to verify metrics:
+
+```shell
+# Retrieve CPU metric information
+Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor | Select-Object *
+
+# Retrieve System information
+Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object *
+
+# And so on...
+```
+
+Special queries for metrics:
+
+- When querying `Win32_NetworkAdapterConfiguration`, use the query parameter `where IPEnabled = TRUE` to ensure the network adapter status.
+- When querying `Win32_LogicalDisk`, specify local disks with `where DriveType=3`.
+- When querying disk performance metrics from `Win32_PerfFormattedData_PerfDisk_PhysicalDisk`, use `where Name = '_Total'`.
+- For CPU performance metrics from `Win32_PerfFormattedData_PerfOS_Processor`, use `where Name = '_Total'`.
+
+All queries are executed within the namespace `root\cimv2`.

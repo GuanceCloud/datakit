@@ -52,7 +52,6 @@ func (ipt *Input) startCollect() {
 
 		case tt := <-tickers[0].C:
 			if !ipt.isPause() {
-				l.Infof("start metrics")
 				nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), metricInterval.Milliseconds())
 				start = time.UnixMilli(nextts)
 				ipt.collectMetricFromIPs(ips, start.UnixNano())

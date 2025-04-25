@@ -22,7 +22,7 @@ func getIPsInRange(ips, cidrs []string, protocol string, targetPorts []int) []st
 	var reachableIPs []string
 	for _, ip := range foundIPs {
 		for _, port := range targetPorts {
-			l.Infof("is port open %s", ip)
+			l.Debugf("is port open %s", ip)
 			if isPortOpen(protocol, ip, port, time.Second*3) {
 				reachableIPs = append(reachableIPs, ip)
 				l.Infof("add %s", ip)
