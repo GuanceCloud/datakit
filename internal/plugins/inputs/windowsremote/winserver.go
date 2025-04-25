@@ -182,7 +182,7 @@ func (s *winServer) toObjectPoints() []*point.Point {
 	for _, p := range s.Process {
 		pts = append(pts, p.ToPoint(s.tags))
 	}
-	l.Infof("toObjectPoints pts %d", len(pts))
+	l.Debugf("toObjectPoints pts %d", len(pts))
 	return pts
 }
 

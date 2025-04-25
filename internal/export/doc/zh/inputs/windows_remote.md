@@ -105,6 +105,8 @@ snmpwalk -v 2c -c datakit <Localhost IP> .1.3.6.1.2.1.1.1.0
 
 二：防火墙配置
 
+被采集的服务器需要放开防火墙规则，如何防火墙已经关闭，这里跳过。
+
 ```powershell
 # 允许 WMI DCOM 通信
 New-NetFirewallRule -DisplayName "WMI_DCOM" -Direction Inbound -Protocol TCP -LocalPort 135 -Action Allow -Program "%SystemRoot%\system32\svchost.exe" -Service rpcss
@@ -119,7 +121,9 @@ New-NetFirewallRule -DisplayName "WMI_UnsecApp" -Direction Inbound -Action Allow
 
 三：用户权限配置
 
-运行 PowerShell 脚本创建专用用户并授权访问 WMI 命名空间：
+运行 PowerShell 脚本创建专用用户并授权访问 WMI 命名空间，执行前填写密码：
+
+> 该脚本的作用是创建用户、添加用户组、赋予权限。无论是采集方还是被采集的一方都需要创建这样的一个用户，否则就需要用管理员用户。
 
 ```shell
 <#
@@ -254,30 +258,193 @@ wmic /node:"<IP>" /user:".\datakit" /password:"<password>" os get Name
 
 ---
 
-### DataKit 部署流程 {#install-datakit}
+## DataKit 部署流程 {#install-datakit}
 
-**安装 DataKit：**
+### 一、创建专用用户并配置 WMI 权限 {#creat-user}
 
-通过官方脚本安装 DataKit，安装完成后：
+**目标**：创建具备 WMI 权限的专用用户 `datakit`，作为服务启动账户。
 
-修改采集器配置文件中的 `mode` 为 `wmi` 配置 IP 地址。
-   （默认配置文件路径：`C:\Program Files\datakit\conf.d\wmi.conf`）
+1. **执行用户创建脚本**  
+   运行上面提供的脚本后，系统将自动创建用户 `datakit`，并赋予其 WMI 操作权限。
 
-配置服务权限：
+2. **验证用户权限**  
+   确保用户具有以下权限：
+   - WMI 远程访问权限
+   - "作为服务登录"权限（后续步骤配置）
 
-DataKit 安装后没有采集远程服务器的权限，需要修改权限才可以。
+### 二、安装并配置 {#config-wmi}
+**目标**：完成 DataKit 安装，配置 WMI 采集模式。
 
-同样需要使用上面的脚本，添加用户和赋予权限。但是 需要再增加一个权限：“作为服务登录”。
+1. **通过官方脚本安装**  
+   执行安装命令后，DataKit 将默认部署至：  
+   `C:\Program Files\datakit`
 
-   > 注意：此用户为 DataKit 服务的启动用户，虽然名称都是一样的，但并非采集用户。
-
-**方法一**：手动配置图形界面添加用户和权限
-
-1. 打开服务管理器（`services.msc`）
-2. 找到 `datakit` 服务 → 右键选择 属性
-3. 切换至 登录 标签页 → 选择 此账户 → 账户名格式：`.\datakit`（本地用户）或 `domain\username`
-4. 输入密码并确认（包括弹框确定）
+2. **修改采集器配置**  
+   编辑配置文件：  
+   `C:\Program Files\datakit\conf.d\windows_remote\windows_remote.conf`
 
 
+### 三、配置服务权限 {#config-user}
+**关键注意事项**：  
+DataKit 服务需使用专用账户 `datakit` 启动，此账户需具备"作为服务登录"权限。
 
-修改完成之后会重启 DataKit ，就可以采集 WMI 指标和日志了。
+***方法一：图形界面手动配置***
+
+1. 打开服务管理器：  
+   `Win + R` → 输入 `services.msc` → 回车
+
+2. 配置 DataKit 服务属性：
+   - 右键选择 **DataKit 服务** → **属性**
+   - 进入 **登录** 选项卡
+   - 选择 **此账户** → 输入：  
+     `.\datakit`（本地用户）或 `DOMAIN\datakit`（域用户）
+   - 输入预设密码并确认
+
+***方法二： PowerShell 脚本自动化***
+
+```shell
+$username = ".\datakit"
+$password = 'xxxxxxxxx'
+
+$service = Get-WmiObject win32_service -filter "DisplayName like 'datakit'"
+
+
+Set-ExecutionPolicy Bypass -Scope Process
+
+
+function Add-ServiceLogonRight {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Username
+    )
+
+    try {
+        $tempPath = [System.IO.Path]::GetTempFileName()
+        $tmpFile = New-Item -Path $tempPath -ItemType File -Force
+
+        secedit /export /cfg "$tmpFile.inf" | Out-Null
+
+        $content = Get-Content "$tmpFile.inf" -Encoding ASCII
+        
+        if ($content -match "^SeServiceLogonRight\s*=") {
+            $content = $content -replace "^SeServiceLogonRight\s*=.*", "`$0, $Username"
+        } else {
+            $content += "`r`nSeServiceLogonRight = $Username"
+        }
+
+        $content | Set-Content "$tmpFile.inf" -Encoding ASCII
+
+        secedit /import /cfg "$tmpFile.inf" /db "$tmpFile.sdb" | Out-Null
+        secedit /configure /db "$tmpFile.sdb" /cfg "$tmpFile.inf" | Out-Null
+
+        Write-Host " user $Username add to Log on as a server"
+    }
+    catch {
+        Write-Error " error: $_"
+    }
+    finally {
+        Remove-Item "$tmpFile*" -Force -ErrorAction SilentlyContinue
+    }
+}
+
+
+Add-ServiceLogonRight -Username "datakit"
+
+# Stop the service if it's running
+if ($service.State -eq "Running") {
+    Write-Host "Stopping service $($service.DisplayName)..."
+    $stopResult = $service.StopService()
+    if ($stopResult.ReturnValue -eq "0") {
+        Write-Host "$($service.DisplayName) stopped successfully."
+    } else {
+        Write-Warning "Failed to stop $($service.DisplayName). Return Value: $($stopResult.ReturnValue). Proceeding with credential change."
+    }
+    # Wait a short time after stopping
+    Start-Sleep -Seconds 15
+}
+
+Start-Sleep -Seconds 3 # Wait before attempting to change
+$returnValue = $service.Change($Null,$Null,$Null,$Null,$Null,$Null,$username,$password,$Null,$Null,$Null)
+Write-Host "return value is $($returnValue.ReturnValue)"
+if ($returnValue.ReturnValue -eq "0") {
+    Write-Host "Successfully changed credentials for $($service.DisplayName)"
+} elseif ($returnValue.ReturnValue -eq "15") {
+    Write-Warning "Service database is locked for $($service.DisplayName). Retrying in 10 seconds..."
+    Start-Sleep -Seconds 10
+    $returnValue = $service.Change($Null,$Null,$Null,$Null,$Null,$Null,$username,$password)
+    if ($returnValue.ReturnValue -eq "0") {
+        Write-Host "Successfully changed credentials for $($service.DisplayName) after retry"
+    } else {
+        Write-Error "Failed to change credentials for $($service.DisplayName) after retry. Return Value: $($returnValue.ReturnValue)"
+    }
+} else {
+    Write-Error "Failed to change credentials for $($service.DisplayName). Return Value: $($returnValue.ReturnValue)"
+}
+
+$service.StartService()
+
+```
+
+---
+
+### 四、验证部署结果 {#Verify-results}
+
+1. **检查服务状态**
+
+   ```shell
+   Get-Service datakit
+   ```
+
+   确认服务状态为 **Running**。
+
+2. **查看采集指标**
+
+   ```shell
+   datakit monitor
+   ```
+
+   输出应包含 WMI 相关指标（如 `windows_remote` 采集器数据）。
+
+3. **日志排查**
+
+   检查日志文件：
+   `C:\Program Files\datakit\log`
+
+## 附录 {#appendix}
+
+通过 WMI（Windows Management Instrumentation）协议查询主机性能指标时，是通过以下几个 Class 来获取的：
+
+| Class Name                                     | DataKit            | type    |
+|:-----------------------------------------------|:-------------------|:--------|
+| Win32_PerfFormattedData_PerfOS_Processor       | cpu                | metric  |
+| win32_Processor                                | host_object cpu    | object  |
+| Win32_LogicalDisk                              | host_object disk   | object  |
+| Win32_OperatingSystem                          | host_object system | object  |
+| Win32_OperatingSystem                          | mem                | object  |
+| Win32_PerfFormattedData_Tcpip_NetworkInterface | net                | metric  |
+| Win32_PerfFormattedData_PerfDisk_PhysicalDisk  | diskio             | metric  |
+| Win32_PerfFormattedData_PerfProc_Process       | host_processes     | object  |
+| Win32_Process                                  | host_processes     | object  |
+| Win32_NTLogEvent                               | log                | logging |
+
+
+查询这些 Class 验证指标：
+
+```shell
+#获取 CPU 指标信息
+Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor  | Select-Object *
+
+#获取 System 信息
+Get-CimInstance -ClassName Win32_OperatingSystem  | Select-Object *
+
+#等等
+```
+
+查询指标中一些特殊的请求：
+
+- 查询 `Win32_NetworkAdapterConfiguration` 时使用查询参数：`where IPEnabled = TRUE` 确保网卡状态。
+- 查询 `Win32_LogicalDisk` 指定磁盘类型为本地磁盘：`where DriveType=3`
+- 查询磁盘性能指标 `Win32_PerfFormattedData_PerfDisk_PhysicalDisk` 时，使用的 `where Name = '_Total'`
+- cpu 性能指标 `Win32_PerfFormattedData_PerfOS_Processor` 使用 `where Name = '_Total'`
+
+所有的查询都是在命名空间 `root\cimv2` 中获取的。
