@@ -109,7 +109,7 @@ graph LR
 
 : Zipkin 是一个分布式循迹系统用于收集时序化数据来完成系统监控和发现服务级别的系统问题。Zipkin 提供了包括收集数据和数据查询一体的解决方案，你可以基于一个 TraceID 在 Zipkin 的 UI 直接从日志跳进链路并提供基于多样化数据的检索能力。
 
-[Datakit](https://docs.guance.com/datakit/datakit-tracing/){:target="_blank"}
+[Datakit](datakit-tracing.md)
 
 : 不同于以上几种循迹系统，Datakit 提供的解决方案本身并不产生任何程序执行状态数据（Span）也不会改变数据组织形态。Datakit 监听在网络端口上接收各大主流循迹系统发送的链路数据。Datakit 的循迹模块不仅仅提供开箱即用的能力同时几乎是零配置的，使用者可以从任何其他循迹系统中无摩擦的过度到 Datakit 中。
 
