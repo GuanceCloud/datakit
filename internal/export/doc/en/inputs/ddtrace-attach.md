@@ -9,6 +9,9 @@ __int_icon: 'icon/ddtrace'
 ---
 
 This Java tool is mainly used to inject DDTrace-Java agent into the currently running Java process without manually configuring and restarting the host Java process.
+
+DataKit also supports [dynamic instrumentation](../datakit/datakit-install/#apm-instrumentation){:target="_blank"} , which has fewer limitations and can be operated according to the documentation.
+
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 

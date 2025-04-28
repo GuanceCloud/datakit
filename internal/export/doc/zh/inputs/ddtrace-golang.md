@@ -22,6 +22,7 @@ DDTrace 推出编译时接入 APM 需要安装 [orchestrion](https://github.com/
 
 - Go 版本必须 **1.18+**
 - 必须使用 **Go Module** 管理项目。
+- 安装 DataKit 并开启 [DDTrace 采集器](ddtrace.md){:target="_blank"}
 
 安装 Orchestrion
 

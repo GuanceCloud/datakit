@@ -11,6 +11,12 @@ __int_icon: 'icon/ddtrace'
 
 Integrating APM into Java is quite convenient, as it does not require any modifications to the business code; you only need to inject the corresponding agent.
 
+## Preconditions {#requirements}
+
+Install DataKit and enable the [DDTrace Collector](ddtrace.md){:target="_block"}. If you want to collect some JVM runtime metrics, you need to enable the [StatsD Collector](statsd.md){:target="_block"}.
+
+Require JDK version 1.8 or above.
+
 ## Install Dependencies {#dependence}
 
 <!-- markdownlint-disable MD046 -->
@@ -221,3 +227,9 @@ Below are the explanations for each command-line parameter and their correspondi
     **ENV**: `DD_PROFILING_ENABLED`
 
     Enable Profiling control, after enabling, the Profiling information during the Java application runtime will also be collected and reported to Datakit.
+
+
+## More {#more-reading}
+
+- Secondary development version [DDTrace JAVA extend](ddtrace-ext-java.md){:target="_blank"}
+- By default, JVM metrics will be collected, specific metrics: [metrics](jvm.md#metric){:target="_blank"}
