@@ -15,6 +15,7 @@ There are two ways to instrument your Go application:
 
 - **Ensures maximum coverage** of your tracing instrumentation.
 - **Does not require source code modifications**, making it ideal for integrating at the CI/CD level.
+- Install DataKit and config [DDTrace](ddtrace.md){:target="_blank"}
 
 ## 2. Manual Instrumentation {#manual}
 

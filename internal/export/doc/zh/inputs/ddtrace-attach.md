@@ -22,6 +22,8 @@ __int_icon: 'icon/ddtrace'
 
 本 Java 工具主要用于将 DDTrace-Java agent 注入到当前已经运行的 Java 进程中，无需手动配置和重启宿主 Java 进程。
 
+DataKit 同样支持 [动态插桩](../datakit/datakit-install/#apm-instrumentation){:target="_blank"} ，局限性更小，可以根据文档进行操作。
+
 ## 原理 {#principle}
 
 Agent 注入的基本原理是通过 */proc/[Java-PID]*（或者 */tmp/*）目录下的一个文件，注入

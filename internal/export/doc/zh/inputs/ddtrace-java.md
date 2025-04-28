@@ -11,6 +11,12 @@ __int_icon: 'icon/ddtrace'
 
 Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应的 agent 即可。
 
+## 前置条件 {#requirements}
+
+安装 DataKit 并开启 [DDTrace 采集器](ddtrace.md){:target="_blank"} ，如果想要采集 JVM 运行时的一些指标需要开启 [StatsD 采集器](statsd.md){:target="_blank"} 。
+
+要求 jdk 版本在 1.8 及以上。
+
 ## 安装依赖 {#dependence}
 
 <!-- markdownlint-disable MD046 -->
@@ -383,3 +389,8 @@ public AjaxResult billing(String tag) {
 ```
 
 此时再次请求接口则不会产生异常信息，这是因为在方法内部捕捉异常并处理之后就不会抛出被探针捕获。
+
+## 更多 {#more-reading}
+
+- 二开版本的 [DDTrace JAVA 扩展内容](ddtrace-ext-java.md)
+- 默认会采集指标，具体 [指标集列表](jvm.md#metric)
