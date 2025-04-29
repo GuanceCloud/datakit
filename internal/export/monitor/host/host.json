@@ -1,0 +1,908 @@
+{
+  "checkers": [
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_mem_usage_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_mem_usage_message>>",
+        "targets": [
+          {
+            "dql": "M::`mem`:(LAST(`used_percent`)) BY `host`",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "conditionLogic": "and"
+            },
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "conditionLogic": "and"
+          },
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "713bbfc3-a189-4a1a-8039-1776da67c5d0",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`mem`:(LAST(`used_percent`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "used_percent",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "mem",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_cpu_usage_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_cpu_usage_message>>",
+        "targets": [
+          {
+            "dql": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "d10d4505-aca8-48c5-b80a-2ce8f24b26cd",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(100 - A, A=\"M::`cpu`:(LAST(`usage_idle`)) BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`cpu`:(LAST(`usage_idle`)) BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "usage_idle",
+                  "filters": [],
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "cpu",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "100 - A"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_mem_free_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_mem_free_message>>",
+        "targets": [
+          {
+            "dql": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "100"
+                  ],
+                  "operator": "<="
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "100"
+                ],
+                "operator": "<="
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "65abbb09-1301-4ef7-b154-c81352c90373",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(A/1024/1024, A=\"M::`mem`:(LAST(`available`)) BY `host`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`mem`:(LAST(`available`)) BY `host`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "available",
+                  "groupBy": [
+                    "host"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "integer",
+                  "namespace": "metric",
+                  "dataSource": "mem",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "A/1024/1024"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_cpu_load_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_cpu_load_message>>",
+        "targets": [
+          {
+            "dql": "M::`system`:(LAST(`load5_per_core`)) BY `host`",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2",
+                    "5"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "conditionLogic": "and"
+            },
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "2",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "conditionLogic": "and"
+          },
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": ">"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "f691f977-6b4c-401f-bb73-d8913faa47e1",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`system`:(LAST(`load5_per_core`)) BY `host`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "load5_per_core",
+              "filters": [],
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "system",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_disk_free_title>>",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "message": "<<.Monitor.host_disk_free_message>>",
+        "targets": [
+          {
+            "dql": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5",
+                    "10"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "conditionLogic": "and"
+            },
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": "<"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "10",
+                  "5"
+                ],
+                "operator": "between"
+              }
+            ],
+            "conditionLogic": "and"
+          },
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "5"
+                ],
+                "operator": "<"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "4c123741-2f0a-4c67-9887-fee9cb651835",
+            "qtype": "dql",
+            "query": {
+              "q": "eval(100-A, A=\"M::`disk`:(LAST(`used_percent`)) BY `host`, `device`\")",
+              "code": "Result",
+              "type": "expression",
+              "alias": "",
+              "children": [
+                {
+                  "q": "M::`disk`:(LAST(`used_percent`)) BY `host`, `device`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "",
+                  "field": "used_percent",
+                  "filters": [],
+                  "groupBy": [
+                    "host",
+                    "device"
+                  ],
+                  "fieldFunc": "last",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "disk",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                }
+              ],
+              "funcList": [],
+              "expression": "100-A"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_swap_usage_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_swap_usage_message>>",
+        "targets": [
+          {
+            "dql": "M::`swap`:(LAST(`used_percent`)) BY `host`",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "90"
+                  ],
+                  "operator": ">"
+                }
+              ],
+              "conditionLogic": "and"
+            },
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "80",
+                    "90"
+                  ],
+                  "operator": "between"
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "90"
+                ],
+                "operator": ">"
+              }
+            ],
+            "conditionLogic": "and"
+          },
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "80",
+                  "90"
+                ],
+                "operator": "between"
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "889b6426-b112-47ed-bf80-17ab7347c7f5",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`swap`:(LAST(`used_percent`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "used_percent",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "swap",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_inode_free_title>>",
+        "groupBy": [
+          "host",
+          "device"
+        ],
+        "message": "<<.Monitor.host_inode_free_message>>",
+        "targets": [
+          {
+            "dql": "M::`disk`:(last(`inodes_used_percent`)) BY `host`, `device`",
+            "alias": "Result",
+            "qtype": "dql"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "atAccounts": [],
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "95"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "infoEvent": false,
+          "openMatchTimes": false,
+          "openOkConditions": false
+        },
+        "eventCharts": [],
+        "atNoDataAccounts": [],
+        "eventChartEnable": false,
+        "disableCheckEndTime": false,
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "critical",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "95"
+                ],
+                "operator": ">="
+              }
+            ],
+            "matchTimes": 1,
+            "conditionLogic": "and"
+          }
+        ],
+        "manager": [],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "b3cfb628-67c5-45c5-b502-41ffcef605c0",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`disk`:(last(`inodes_used_percent`)) BY `host`, `device`",
+              "code": "Result",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "inodes_used_percent",
+              "limit": null,
+              "fillNum": null,
+              "filters": [],
+              "groupBy": [
+                "host",
+                "device"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "disk",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default"
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "issueLevelUUID": "",
+        "needRecoverIssue": false,
+        "isNeedCreateIssue": false,
+        "issueDfStatus": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    },
+    {
+      "jsonScript": {
+        "type": "simpleCheck",
+        "every": "1m",
+        "title": "<<.Monitor.host_iowait_title>>",
+        "groupBy": [
+          "host"
+        ],
+        "message": "<<.Monitor.host_iowait_message>>",
+        "targets": [
+          {
+            "dql": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`",
+            "alias": "Result"
+          }
+        ],
+        "channels": [],
+        "interval": 300,
+        "checkerOpt": {
+          "rules": [
+            {
+              "status": "warning",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "60"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "conditionLogic": "and"
+            }
+          ]
+        },
+        "recoverNeedPeriodCount": 1
+      },
+      "extend": {
+        "rules": [
+          {
+            "status": "warning",
+            "conditions": [
+              {
+                "alias": "Result",
+                "operands": [
+                  "60"
+                ],
+                "operator": ">="
+              }
+            ],
+            "conditionLogic": "and"
+          }
+        ],
+        "funcName": "",
+        "querylist": [
+          {
+            "uuid": "a4e4a3dd-0b1b-4cec-b90b-ae9a6f1c0c09",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`cpu`:(LAST(`usage_iowait`)) BY `host`",
+              "code": "Result",
+              "type": "simple",
+              "alias": "",
+              "field": "usage_iowait",
+              "groupBy": [
+                "host"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "cpu",
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ],
+        "needRecoverIssue": false,
+        "issueLevelUUID": "",
+        "issueDfStatus": [],
+        "manager": []
+      },
+      "is_disable": false,
+      "tagInfo": [],
+      "secret": "",
+      "type": "trigger",
+      "monitorName": "<<.Monitor.monitor_name>>",
+      "alertPolicyNames": []
+    }
+  ]
+}
