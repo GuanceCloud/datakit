@@ -5,7 +5,7 @@ skip: 'not-searchable-on-index-page'
 
 ## 前言 {#head}
 
-日志采集（logging）是观测云 Datakit 重要的一项，它将主动采集或被动接收的日志数据加以处理，最终上传到观测云中心。日志采集按照数据来源可以分为 “网络流数据” 和 “本地磁盘文件” 两种。
+日志采集（logging）是<<<custom_key.brand_name>>> Datakit 重要的一项，它将主动采集或被动接收的日志数据加以处理，最终上传到<<<custom_key.brand_name>>>中心。日志采集按照数据来源可以分为 “网络流数据” 和 “本地磁盘文件” 两种。
 
 ### 网络流数据 {#network}
 
@@ -312,8 +312,8 @@ Datakit 会定期检查当前正在采集的文件是否发生 rotate，检查�
 补充链接：
 
 - [glob 模式介绍](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}
-- [Datakit 自动多行配置](https://docs.guance.com/integrations/logging/#auto-multiline){:target="_blank"}
-- [Datakit Pipeline 处理](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
+- [Datakit 自动多行配置](https://docs.<<<custom_key.brand_main_domain>>>/integrations/logging/#auto-multiline){:target="_blank"}
+- [Datakit Pipeline 处理](https://docs.<<<custom_key.brand_main_domain>>>/datakit/pipeline/){:target="_blank"}
 - [Docker 截断超过 16KiB 日志的讨论](https://github.com/moby/moby/issues/34855){:target="_blank"}
 - [Docker 截断超过 16KiB 的源码](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13){:target="_blank"}
 - [Docker logging driver](https://docs.docker.com/config/containers/logging/local/){:target="_blank"}

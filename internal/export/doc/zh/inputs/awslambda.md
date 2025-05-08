@@ -27,8 +27,8 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 - [通过 Zip 创建层](https://docs.aws.amazon.com/zh_cn/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 
     - zip 下载地址：
-        - [Linux amd64](https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip)
-        - [Linux arm64](https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip)
+        - [Linux amd64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-amd64.zip)
+        - [Linux arm64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-arm64.zip)
 
     - 打开 Lambda 控制台的 [Layers page](https://console.amazonaws.cn/lambda/home#/layers){:target="_blank"}（层页面）。
     - 选择 **Create layer**（创建层）。
@@ -46,7 +46,7 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 
 ### 配置所需的环境变量 {#config-env}
 
-- ENV_DATAWAY=`https://openway.guance.com?token=<your-token>`
+- ENV_DATAWAY=`https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>`
 
 ## 指标 {#metric}
 

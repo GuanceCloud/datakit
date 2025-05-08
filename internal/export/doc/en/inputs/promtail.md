@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Start an HTTP endpoint to listen and receive Promtail log data and report it to Guance Cloud.
+Start an HTTP endpoint to listen and receive Promtail log data and report it to <<<custom_key.brand_name>>>.
 
 ## Configuration {#config}
 

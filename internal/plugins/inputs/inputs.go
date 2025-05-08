@@ -44,7 +44,7 @@ var (
 	ConfigInfo = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
 		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
 		ConfigDir:    datakit.ConfdDir,
-		SampleConfig: datakit.DatakitConfSample,
+		SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
 	}}
 	ConfigFileHash = map[string]struct{}{}
 	panicInputs    = map[string]int{}

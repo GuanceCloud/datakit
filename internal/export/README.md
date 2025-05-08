@@ -13,11 +13,11 @@ Datakit 文档目录结构遵循如下约定：
 
 - 在中英目录下，分别有 *inputs/*、*pipeline/* 两个目录以及一堆 *xxx.md* 文件
 
-  - *inputs* 存放采集器文档，包括跟采集器关联的文档，以 ddtrace 为例，除了采集器文档，各种语言的示例文档，都应该归入 *inputs/* 目录下，这些文档会发布到[集成](https://docs.guance.com/integrations/integration-index/)中。
-  - *pipeline* 存放 Pipeline 有关的文档，其文档会发布到[自定义开发](https://docs.guance.com/pipeline/use-pipeline/)中。
-  - *xxx.md* 这些才是 Datakit 自身的文档，其不含任何采集器有关的文档，比如 Datakit 安装、工具链使用等文档。其文档会发布到 [Datakit 文档](https://docs.guance.com/datakit/) 中。 
+  - *inputs* 存放采集器文档，包括跟采集器关联的文档，以 ddtrace 为例，除了采集器文档，各种语言的示例文档，都应该归入 *inputs/* 目录下，这些文档会发布到[集成](https://docs.<<<custom_key.brand_main_domain>>>/integrations/integration-index/)中。
+  - *pipeline* 存放 Pipeline 有关的文档，其文档会发布到[自定义开发](https://docs.<<<custom_key.brand_main_domain>>>/pipeline/use-pipeline/)中。
+  - *xxx.md* 这些才是 Datakit 自身的文档，其不含任何采集器有关的文档，比如 Datakit 安装、工具链使用等文档。其文档会发布到 [Datakit 文档](https://docs.<<<custom_key.brand_main_domain>>>/datakit/) 中。 
 
-由于 Datakit 的文档目前分出了 3 批导出，在 docs.guance.com 站点，它们分别分流到了不同的顶级目录，如果要引用的话，需加上对应的目录跳转，比如 *prom.md* 中如果要引用 *datakit-tools-how-to.md* 中的某一个章节，需这样写：
+由于 Datakit 的文档目前分出了 3 批导出，在 docs.<<<custom_key.brand_main_domain>>> 站点，它们分别分流到了不同的顶级目录，如果要引用的话，需加上对应的目录跳转，比如 *prom.md* 中如果要引用 *datakit-tools-how-to.md* 中的某一个章节，需这样写：
 
 ```markdown
 这里引用一下[工具的使用](../datakit/datakit-tools-how-to.md#some-section)方式...
@@ -78,7 +78,7 @@ monitor   :
 ``` shell
 ▾ dist/
   ▾ export/
-    ▾ guance-doc/docs/  # 最终导出到 docs.guance.com 的文档（含 datakit 文档和采集器文档）
+    ▾ guance-doc/docs/  # 最终导出到 docs.<<<custom_key.brand_main_domain>>> 的文档（含 datakit 文档和采集器文档）
       ▸ en/
       ▸ zh/
     ▾ integration/      # 最终导出到集成的内容，含文档/dashboard/monitor
@@ -101,11 +101,11 @@ monitor[monitor];
 other["其它资源（PL有关）"];
 oss[(OSS)];
 integration[dataflux-template];
-guance_doc[docs.guance.com];
+guance_doc[docs.<<<custom_key.brand_main_domain>>>];
 
-guance_doc_dk["docs.guance.com/datakit"];
-guance_doc_integration["docs.guance.com/integrations"];
-guance_doc_dev["docs.guance.com/developers/"];
+guance_doc_dk["docs.<<<custom_key.brand_main_domain>>>/datakit"];
+guance_doc_integration["docs.<<<custom_key.brand_main_domain>>>/integrations"];
+guance_doc_dev["docs.<<<custom_key.brand_main_domain>>>/developers/"];
 
 guance_doc --> |xxx.md|guance_doc_dk;
 guance_doc --> |inputs/*.md|guance_doc_integration;

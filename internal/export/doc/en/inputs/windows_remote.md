@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-The Windows Remote Collector gathers various Windows basic metrics and objects remotely via WMI or SNMP, and uploads the data to Guance Cloud to help monitor and analyze Windows system anomalies.
+The Windows Remote Collector gathers various Windows basic metrics and objects remotely via WMI or SNMP, and uploads the data to help monitor and analyze Windows system anomalies.
 
 ## Configuration {#config}
 

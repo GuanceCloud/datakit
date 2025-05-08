@@ -24,7 +24,7 @@ var (
 	sLogger      service.Logger
 )
 
-type serviceOption func(sconf *service.Config)
+type ServiceOption func(sconf *service.Config)
 
 func Name() string {
 	return serviceName
@@ -34,7 +34,7 @@ func DisplayName() string {
 	return displayName
 }
 
-func WithUser(userName string) serviceOption {
+func WithUser(userName string) ServiceOption {
 	return func(sconf *service.Config) {
 		if userName != "" {
 			sconf.UserName = userName
@@ -42,15 +42,7 @@ func WithUser(userName string) serviceOption {
 	}
 }
 
-func WithUserPW(pw string) serviceOption {
-	return func(sconf *service.Config) {
-		if pw != "" {
-			sconf.Option["Password"] = pw
-		}
-	}
-}
-
-func WithMemLimit(mem string) serviceOption {
+func WithMemLimit(mem string) ServiceOption {
 	return func(sconf *service.Config) {
 		if mem != "" {
 			sconf.Option["MemoryLimit"] = mem
@@ -58,7 +50,7 @@ func WithMemLimit(mem string) serviceOption {
 	}
 }
 
-func WithCPULimit(cpu string) serviceOption {
+func WithCPULimit(cpu string) ServiceOption {
 	return func(sconf *service.Config) {
 		if cpu != "" {
 			sconf.Option["CPUQuota"] = cpu
@@ -66,20 +58,20 @@ func WithCPULimit(cpu string) serviceOption {
 	}
 }
 
-func WithName(name string) serviceOption {
+func WithName(name string) ServiceOption {
 	return func(sconf *service.Config) {
 		sconf.Name = name
 		sconf.DisplayName = name
 	}
 }
 
-func WithDescription(desc string) serviceOption {
+func WithDescription(desc string) ServiceOption {
 	return func(sconf *service.Config) {
 		sconf.Description = desc
 	}
 }
 
-func WithExecutable(exec string, args []string) serviceOption {
+func WithExecutable(exec string, args []string) ServiceOption {
 	return func(sconf *service.Config) {
 		sconf.Executable = exec
 		sconf.Arguments = args
@@ -88,7 +80,7 @@ func WithExecutable(exec string, args []string) serviceOption {
 
 type program struct{}
 
-func NewService(opts ...serviceOption) (service.Service, error) {
+func NewService(opts ...ServiceOption) (service.Service, error) {
 	scfg := &service.Config{
 		Option: map[string]any{
 			"RestartSec":         10, // 重启间隔.
@@ -110,7 +102,7 @@ func NewService(opts ...serviceOption) (service.Service, error) {
 	}
 
 	if runtime.GOOS == "darwin" {
-		scfg.Name = "com.guance.datakit"
+		scfg.Name = "com.datakit"
 	}
 
 	prog := &program{}

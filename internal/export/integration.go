@@ -68,11 +68,16 @@ func (i *Integration) Export() error {
 		}
 
 		l.Infof("exporting miscs(%s)...", lang)
-		if err := i.exportMiscs(lang); err != nil {
+		if err := i.ExportMiscs(lang); err != nil {
 			return err
 		}
 	}
 
+	return i.DumpFile()
+}
+
+// DumpFile write all exported docs to disk.
+func (i *Integration) DumpFile() error {
 	// prepare dirs
 	dirs := map[string]bool{}
 	for k := range i.docs {
@@ -98,8 +103,8 @@ func (i *Integration) Export() error {
 
 func (i *Integration) Check() error { return nil }
 
-// exportMisc export pipeline sample/docs(base64)/metric docs.
-func (i *Integration) exportMiscs(lang inputs.I18n) error {
+// ExportMiscs export pipeline sample/docs(base64)/metric docs.
+func (i *Integration) ExportMiscs(lang inputs.I18n) error {
 	if j, err := exportMetaInfo(inputs.Inputs); err != nil {
 		return err
 	} else {
@@ -379,7 +384,7 @@ func (i *Integration) buildTemplate(templateDir, inputName string, lang inputs.I
 
 	for k, t := range templateMap {
 		l.Infof("render %s...", k)
-		buf, err := renderBuf(t, p)
+		buf, err := p.renderBuf(t)
 		if err != nil {
 			return fmt.Errorf("renderBuf: render on input %q[%q]: %w",
 				inputName, k, err)

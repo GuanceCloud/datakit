@@ -98,7 +98,7 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 
 默认日志是开启的，要关闭日志采集的话，exporter 配置为空即可：`-Dotel.logs.exporter=none`
 
-更多关于 V2 版本的重大修改请查看官方文档或者 GitHub 观测云版本说明： [Github-GuanCe-v2.11.0](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases/tag/v2.11.0-guance){:target="_blank"}
+更多关于 V2 版本的重大修改请查看官方文档或者 GitHub <<<custom_key.brand_name>>>版本说明： [Github-GuanCe-v2.11.0](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases/tag/v2.11.0-guance){:target="_blank"}
 
 ## 常规命令 {#sdk-configuration}
 
@@ -207,7 +207,7 @@ Datakit 只接收 OTLP 的数据，OTLP 有三种数据类型： `gRPC` ， `htt
 -Dotel.resource.attributes=username=myName,env=1.1.0
 ```
 
-并修改配置文件中的白名单，这样就可以在观测云的链路详情的一级标签出现自定义的标签。
+并修改配置文件中的白名单，这样就可以在<<<custom_key.brand_name>>>的链路详情的一级标签出现自定义的标签。
 
 ```toml
 customer_tags = ["sink_project", "username","env"]
@@ -239,12 +239,12 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 ???+ warning "metric"
 
     从版本 [DataKit 1.68.0](../datakit/changelog-2025.md#cl-1.68.0) 开始指标集名称做了改动：
-    所有发送到观测云的指标有一个统一的指标集的名字： `otel_service` 
+    所有发送到<<<custom_key.brand_name>>>的指标有一个统一的指标集的名字： `otel_service` 
     如果已经有了仪表板，将已有的仪表板导出后统一将 `otel-serivce` 改为 `otel_service` 再导入即可。
 
 <!-- markdownlint-enable -->
 
-在将 **Histogram** 指标转到观测云的时候有些指标做了特殊处理：
+在将 **Histogram** 指标转到<<<custom_key.brand_name>>>的时候有些指标做了特殊处理：
 
 - OpenTelemetry 的直方图桶会被直接映射到 Prometheus 的直方图桶。
 - 每个桶的计数会被转换为 Prometheus 的累积计数格式。
@@ -272,8 +272,6 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 这种转换使得 OpenTelemetry 收集的直方图数据能够无缝集成到 Prometheus 中，并利用 Prometheus 的强大查询和可视化功能进行分析。
 
-
-
 ## 数据字段说明 {#fields}
 
 {{ range $i, $m := .Measurements }}
@@ -295,7 +293,7 @@ OpenTelemetry Java Agent 从应用程序中通过 JMX 协议获取 MBean 的指�
 
 ## 指标中删除的标签 {#del-metric}
 
-OTEL 上报的指标中有很多无用的标签，这些都是 String 类型，由于太占用内存和带宽就做了删除，不会上传到观测云中心。
+OTEL 上报的指标中有很多无用的标签，这些都是 String 类型，由于太占用内存和带宽就做了删除，不会上传到<<<custom_key.brand_name>>>。
 
 这些标签包括：
 
@@ -353,4 +351,4 @@ Datakit 目前提供了如下两种语言的最佳实践：
 - [Golang SDK](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
 - [官方使用手册](https://opentelemetry.io/docs/){:target="_blank"}
 - [环境变量配置](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
-- [观测云二次开发版本](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- [<<<custom_key.brand_name>>>二次开发版本](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}

@@ -34,7 +34,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 数据分类：
 
-| 数据类型简写 | 类型                | 说明        | 当前版本的 Datakit 是否接入 | 对应到观测云中的数据类型     |
+| 数据类型简写 | 类型                | 说明        | 当前版本的 Datakit 是否接入 | 对应到<<<custom_key.brand_name>>>中的数据类型     |
 |--------|-------------------|:----------|:------------------:|:-----------------|
 | t      | transaction start | 事务开始      |        true        | trace            |
 | T      | transaction end   | 事务结束      |        true        | trace            |
@@ -52,7 +52,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
     - 数据全在 Datakit 中，cat 的 web 页面已经没有数据，所以启动的意义不大，并且页面报错： **出问题 CAT 的服务端[xxx.xxx]**
     - 配置客户端行为可以在 client 的启动中做
-    - cat server 也会将 transaction 数据发送到 dk，造成观测云页面大量的垃圾数据
+    - cat server 也会将 transaction 数据发送到 dk，造成<<<custom_key.brand_name>>>页面大量的垃圾数据
 
 
 - 不启动 cat server： 在 Datakit 中配置

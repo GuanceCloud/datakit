@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Collect Kafka indicators and logs and report them to Guance Cloud to help you monitor and analyze various abnormal situations of Kafka.
+Collect Kafka indicators and logs and report them to <<<custom_key.brand_name>>> to help you monitor and analyze various abnormal situations of Kafka.
 
 ## Configuration {#config}
 

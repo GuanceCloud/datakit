@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Monitor Prometheus Remote Write data and report it to Guance Cloud.
+Monitor Prometheus Remote Write data and report it to <<<custom_key.brand_name>>>.
 
 ## Configuration {#config}
 

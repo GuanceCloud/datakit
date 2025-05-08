@@ -16,7 +16,7 @@ monitor   :
 
 ---
 
-PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 PostgreSQL 各种异常情况。
+PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标，并将指标采集到<<<custom_key.brand_name>>>，帮助监控分析 PostgreSQL 各种异常情况。
 
 ## 配置 {#config}
 

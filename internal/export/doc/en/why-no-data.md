@@ -46,18 +46,18 @@ access-control-allow-origin: *
 
 If the status code 404 is displayed, it means the connection with Dataway is normal.
 
-For SAAS, the Dataway address is `https://openway.guance.com`.
+For SAAS, the Dataway address is `https://openway.<<<custom_key.brand_main_domain>>>`.
 
 If you get the following result, it indicates there is a network problem:
 
 ```shell
-curl: (6) Could not resolve host: openway.guance.com
+curl: (6) Could not resolve host: openway.<<<custom_key.brand_main_domain>>>
 ```
 
 If you find an error log like the following in the Datakit log (*/var/log/datakit/log*), it means there is a problem with the current environment's connection to Dataway, which may be restricted by the firewall:
 
 ```shell
-request url https://openway.guance.com/v1/write/xxx/token=tkn_xxx  failed:  ... context deadline exceeded...
+request url https://openway.<<<custom_key.brand_main_domain>>>/v1/write/xxx/token=tkn_xxx  failed:  ... context deadline exceeded...
 ```
 
 ## Host Related {#iss-host}
@@ -121,7 +121,7 @@ In Kubernetes, insufficient resources (memory) may cause Datakit OOM, leaving no
 ```yaml
   containers:
   - name: datakit
-    image: pubrepo.guance.com/datakit:datakit:<VERSION>
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit:datakit:<VERSION>
     resources:
       requests:
         memory: "128Mi"
@@ -416,7 +416,7 @@ Only environment variables starting with `ENV_` are obtained, and environment va
 
 The content of the configuration file is processed by regular replacement, such as:
 
-- `https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` is replaced with `https://openway.guance.com?token=******`
+- `https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` is replaced with `https://openway.<<<custom_key.brand_main_domain>>>?token=******`
 - `pass = "1111111"` is replaced with `pass = "******"`
 - `postgres://postgres:123456@localhost/test` is replaced with `postgres://postgres:******@localhost/test`
 
@@ -573,8 +573,8 @@ graph TD
   %% node definitions
   no_data[No data];
   debug_fail{No result};
-  monitor[Check <a href='https://docs.guance.com/datakit/datakit-monitor/'>monitor</a>  status];
-  debug_input[<a href='https://docs.guance.com/datakit/why-no-data/#check-input-conf'>Debug collector configuration</a>];
+  monitor[Check <a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-monitor/'>monitor</a>  status];
+  debug_input[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/why-no-data/#check-input-conf'>Debug collector configuration</a>];
   read_faq[Check the FAQ in the documentation];
   dql[DQL query];
   beyond_usage[Is the data exceeding the limit];
@@ -584,8 +584,8 @@ graph TD
   check_time[Check the machine time];
   check_token[Check the workspace token];
   check_version[Check the Datakit version];
-  dk_service_ok[<a href='https://docs.guance.com/datakit/datakit-service-how-to/&#39;&gt;Is the Datakit service running normally</a>];
-  check_changelog[<a href='https://docs.guance.com/datakit/changelog&#39;&gt;Check if the issue has been fixed in the changelog</a>];
+  dk_service_ok[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-service-how-to/&#39;&gt;Is the Datakit service running normally</a>];
+  check_changelog[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/changelog&#39;&gt;Check if the issue has been fixed in the changelog</a>];
   is_input_ok[Is the collector running normally];
   is_input_enabled[Is the collector enabled];
   enable_input[Enable the collector];
@@ -613,7 +613,7 @@ graph TD
   is_input_ok -->|Yes| dataway_upload_ok -->|Yes| dql;
   is_input_ok --> filtered --> sinked;
 
-  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>Collect information</a>];
+  trouble_shooting[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/why-no-data/#bug-report'>Collect information</a>];
 
   debug_fail --> trouble_shooting;
   trouble_shooting --> ligai;

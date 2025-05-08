@@ -5,7 +5,7 @@
 kafkamq 理论上不做数据的二次处理，交给指定的采集器处理，如果是自定义的数据结构也交给 PL 处理。定制化的东西不应该出现在这里，这样会增加维护成本。
 
 ## SkyWalking
-订阅 kafka 的消息并消费发送到观测云。 其中 topic 是固定的。
+订阅 kafka 的消息并消费发送到<<<custom_key.brand_name>>>。 其中 topic 是固定的。
 
 - skywalking-metrics
 - skywalking-profilings 
@@ -16,7 +16,7 @@ kafkamq 理论上不做数据的二次处理，交给指定的采集器处理，
 
 如果用户配置了 namespace， 那么 topic 就是 `$namespace-topic`
 
-其中 `segments` `metrics` `logging` 会发送到观测云。剩下的目前仅接收 不做处理。
+其中 `segments` `metrics` `logging` 会发送到<<<custom_key.brand_name>>>。剩下的目前仅接收 不做处理。
 
 数据结构也是固定的，数据结构 go 代码 [github](https://github.com/apache/skywalking-data-collect-protocol)  本地位置 inputs/skywalking/compiled/
 

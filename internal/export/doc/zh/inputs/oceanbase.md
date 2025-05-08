@@ -71,7 +71,7 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 
 ## 慢查询支持 {#slow}
 
-Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测云，在日志中显示，来源名是 `oceanbase_log`。
+Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oceanbase_log`。
 
 该功能默认情况下是关闭的，用户可以在 OceanBase 的配置文件中将其打开，方法如下：
 

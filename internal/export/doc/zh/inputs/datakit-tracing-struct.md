@@ -40,18 +40,18 @@ title: 'Datakit Tracing 数据结构'
 
 - Field
 
-| Metric        | Description                            | Type   | Unit |
-| ---           | ---                                    | ---    | ---  |
-| `create_time` | Guancedb storage create timestamp [^1] | int    | s    |
-| `duration`    | Span duration                          | int    | us   |
-| `message`     | Raw data content                       | string |      |
-| `parent_id`   | Parent ID of span                      | string |      |
-| `priority`    | priority rules                         | string |      |
-| `resource`    | Resource of service                    | string |      |
-| `span_id`     | Span ID                                | string |      |
-| `start`       | Span start timestamp                   | int    | us   |
-| `time`        | Datakit received timestamp             | int    | ns   |
-| `trace_id`    | Trace ID                               | string |      |
+| Metric        | Description                   | Type   | Unit |
+| ---           | ---                           | ---    | ---  |
+| `create_time` | storage create timestamp [^1] | int    | s    |
+| `duration`    | Span duration                 | int    | us   |
+| `message`     | Raw data content              | string |      |
+| `parent_id`   | Parent ID of span             | string |      |
+| `priority`    | priority rules                | string |      |
+| `resource`    | Resource of service           | string |      |
+| `span_id`     | Span ID                       | string |      |
+| `start`       | Span start timestamp          | int    | us   |
+| `time`        | Datakit received timestamp    | int    | ns   |
+| `trace_id`    | Trace ID                      | string |      |
 
 [^1]: 该字段在 Datakit 采集时不存在，只有落库到存储之后才会追加。
 

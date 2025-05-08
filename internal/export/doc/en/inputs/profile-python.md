@@ -11,7 +11,7 @@ DataKit Python profiling supports [dd-trace-py](https://github.com/DataDog/dd-tr
 
 ## Requirements {#py-spy-requirement}
 
-Install [DataKit](https://www.guance.com){:target="_blank"} and enable [profile](profile.md#config) input.
+Install [DataKit](https://www.<<<custom_key.brand_main_domain>>>){:target="_blank"} and enable [profile](profile.md#config) input.
 
 ## Use dd-trace-py {#ddtrace}
 
@@ -67,7 +67,7 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ### View Profile {#view}
 
-After a minute or two, you can visualize your profiles on the [APM -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} .
+After a minute or two, you can visualize your profiles on the [APM -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} .
 
 ## Use `py-spy` {#py-spy}
 
@@ -147,4 +147,4 @@ py-spy-for-datakit datakit \
   -- python3 server.py  # There is a blank in front of python3
 ```
 
-After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile){:target="_blank"}.
+After a minute or two, you can visualize your profiles on the [profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"}.

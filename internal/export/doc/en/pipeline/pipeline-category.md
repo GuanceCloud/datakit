@@ -10,7 +10,7 @@ Since DataKit 1.4.0, you can directly operate DataKit to collect data through th
 ???+ attention
     - Pipeline is applied to all data and is currently in the experimental stage, so there is no guarantee that incompatible adjustments will be made to the mechanism or behavior later.
     - Even data reported through the [DataKit API](../../datakit/apis.md) supports Pipeline processing.
-    - Using Pipeline to process the existing data (especially non-logging data) may destroy the existing data structure and lead to abnormal performance of the data on Guance Cloud.
+    - Using Pipeline to process the existing data (especially non-logging data) may destroy the existing data structure and lead to abnormal performance of the data on <<<custom_key.brand_name>>>.
     - Before applying Pipeline, be sure to use the [Pipeline debugging tool](pipeline-quick-start.md#debug) to confirm that the data processing is as expected.
 
 Pipeline can do the following on the data collected by DataKit:
@@ -77,7 +77,7 @@ Currently, Pipeline scripts are divided into four namespaces by source, with ind
 
 | Namespace | table of contents | Supported data categories | describe |
 | - | -  | - | - |
-| `remote`  | *[DataKit installation path]/pipeline_remote*                  | CO, E, L, M, N, O, P, R, S, T | Guance Cloud console management script            |
+| `remote`  | *[DataKit installation path]/pipeline_remote*                  | CO, E, L, M, N, O, P, R, S, T | <<<custom_key.brand_name>>> console management script            |
 | `confd`   | *[DataKit installation path]/pipeline_cond*                    | CO, E, L, M, N, O, P, R, S, T | Confd-managed scripts                |
 | `gitrepo` | *[DataKit installation path]/pipeline_gitrepos/[repo-name]*  | CO, E, L, M, N, O, P, R, S, T | Git-managed scripts                 |
 | `default` | *[DataKit installation path]/pipeline*                         | CO, E, L, M, N, O, P, R, S, T | DataKit-generated scripts or user-written    |
@@ -135,8 +135,8 @@ The above four types of Pipeline directories store Pipeline scripts as follows:
 There are four matching policies for data and script names, which will be judged from the 4th (highest priority) to the 1st, and if the high priority policy is satisfied, the low priority policy will not be executed:
 
 1. Add the script file extension `.p` of Pipeline to the data characteristic string generated according to the input data, and find the script of the corresponding category.
-1. The default script of the data category set for all data under this category in the Guance Cloud console.
-1. The mapping relationship between data and scripts set in the Guance Cloud console.
+1. The default script of the data category set for all data under this category in the <<<custom_key.brand_name>>> console.
+1. The mapping relationship between data and scripts set in the <<<custom_key.brand_name>>> console.
 1. Specify the script in the collector configuration file.
 
 All of the above data and script matching strategies depend on the data feature strings of the data; for different types of data, the generation strategies of the data feature strings are different:

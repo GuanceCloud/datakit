@@ -295,10 +295,10 @@ Compile and run
     ```
 <!-- markdownlint-enable -->
 
-After running the program for a while, you can see trace data similar to the following in GuanceCloud:
+After running the program for a while, you can see trace data similar to the following in <<<custom_key.brand_name>>>:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/golang-ddtrace-example.png){  width="800"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/golang-ddtrace-example.png){  width="800"}
   <figcaption>Golang program trace data display</figcaption>
 </figure>
 

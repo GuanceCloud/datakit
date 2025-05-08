@@ -1,16 +1,16 @@
 # Introduction to the Overall Architecture of DataKit
 ---
 
-Datakit is a basic data collection tool running on the user's local machine, which is mainly used to collect various metrics, logs and other data of system operation, and summarize them to [Guance Cloud](https://guance.com){:target="_blank"}. In Guance Cloud, users can view and analyze their own metrics, logs and other data.
+Datakit is a basic data collection tool running on the user's local machine, which is mainly used to collect various metrics, logs and other data of system operation, and summarize them to [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}. In <<<custom_key.brand_name>>>, users can view and analyze their own metrics, logs and other data.
 
-DataKit is an important data collection component in Guance Cloud, and almost all the data in Guance Cloud come from DataKit.
+DataKit is an important data collection component in <<<custom_key.brand_name>>>, and almost all the data in <<<custom_key.brand_name>>> come from DataKit.
 
 ## DataKit Basic Network Model {#network-arch}
 
-The DataKit network model is mainly divided into three layers, which can be simply summarized as user environment, DataWay and Guance Cloud center, as shown in the following figure:
+The DataKit network model is mainly divided into three layers, which can be simply summarized as user environment, DataWay and <<<custom_key.brand_name>>> center, as shown in the following figure:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-network-arch.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-network-arch.png){ width="800" }
   <figcaption> DataKit Basic Network Model </figcaption>
 </figure>
 
@@ -18,13 +18,13 @@ The DataKit network model is mainly divided into three layers, which can be simp
 
 > If the user's intranet environment does not open the external request, [Nginx can be used as a layer Proxy](../integrations/proxy.md#nginx-proxy), and [Proxy collector](../integrations/proxy.md) built in DataKit can also be used to realize traffic Proxy.
 
-1. After DataWay receives the data, it forwards to Guance Cloud, and the data sent to Guance Cloud has API signature.
-1. After Guance Cloud receives the legal data, it writes it into different storage according to different data types.
+1. After DataWay receives the data, it forwards to <<<custom_key.brand_name>>>, and the data sent to <<<custom_key.brand_name>>> has API signature.
+1. After <<<custom_key.brand_name>>> receives the legal data, it writes it into different storage according to different data types.
 
 For data collection services, under normal circumstances, part of the data is allowed to be lost (because the data itself is collected intermittently, and the data in the intermittent period can be regarded as a kind of data loss). At present, the whole data transmission link is protected as follows:
 
 1. When DataKit fails to send a DataWay for some network reason, DataKit caches up to a thousand points of data. When the cached data exceeds this amount, the cache will be cleaned up.
-1. DataWay may fail to send Guance Cloud for some reason, or because the traffic is too large to send it to Guance Cloud, DataWay will persist the data to disk. When the traffic is reduced or the network is restored, these data will be sent to Guance Cloud. Delayed data does not affect timeliness, and timestamps are attached to cached data.
+1. DataWay may fail to send <<<custom_key.brand_name>>> for some reason, or because the traffic is too large to send it to <<<custom_key.brand_name>>>, DataWay will persist the data to disk. When the traffic is reduced or the network is restored, these data will be sent to <<<custom_key.brand_name>>>. Delayed data does not affect timeliness, and timestamps are attached to cached data.
 
 The maximum amount of this disk can also be configured to protect the disk on DataWay in order not to burst the storage of the node. For data that exceeds the usage, DataWay also chooses to discard the data. However, this capacity is generally set to be relatively large.
 
@@ -33,7 +33,7 @@ The maximum amount of this disk can also be configured to protect the disk on Da
 The internal architecture of DataKit is relatively simple, as shown in the following figure:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-internal-arch.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-internal-arch.png){ width="800" }
   <figcaption> DataKit Internal Architecture </figcaption>
 </figure>
 
@@ -53,7 +53,7 @@ From top to bottom, the interior of DataKit is mainly divided into three layers:
 
 - Collection layer: responsible for collecting various data. According to the type of collection, it is divided into two categories:
     - Active collection type: This type of collector collects according to the configured fixed frequency, such as [CPU](../integrations/cpu.md), [network traffic](../integrations/net.md), [cloud dial test](../integrations/dialtesting.md), etc.
-    - Passive acquisition type: This kind of collector usually realizes acquisition by external data input, such as [RUM](../integrations/rum.md)、[Tracing](../integrations/ddtrace.md), etc. They generally run outside of DataKit, and can standardize the data through DataKit's open[Data Upload API](apis.md), and then upload it to Guance Cloud.
+    - Passive acquisition type: This kind of collector usually realizes acquisition by external data input, such as [RUM](../integrations/rum.md)、[Tracing](../integrations/ddtrace.md), etc. They generally run outside of DataKit, and can standardize the data through DataKit's open[Data Upload API](apis.md), and then upload it to <<<custom_key.brand_name>>>.
 
     Each different collector runs independently in an independent goroutine, and is protected by an outer layer. Even if a single collector collapses for some reasons (each collector can crash up to 6 times during the running period), it will not affect the overall operation of DataKit.
 

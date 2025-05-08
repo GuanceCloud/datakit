@@ -125,7 +125,7 @@ Select the appropriate installation package based on the operating system and Or
     > You can also download our pre-prepared dependency package directly:
 
     ```shell
-    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+    wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient;
@@ -143,7 +143,7 @@ Select the appropriate installation package based on the operating system and Or
     > You can also download our pre-prepared dependency package directly:
 
     ```shell
-    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+    wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
@@ -291,7 +291,7 @@ For all of the following data collections, the global election tags will added a
 
 ## Long running queries {#slow}
 
-Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oracle_log`.
+Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oracle_log`.
 
 This function is disabled by default, user could enabling it by modify Datakit's Oracle configuration like followings:
 

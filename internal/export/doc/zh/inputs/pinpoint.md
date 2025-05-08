@@ -91,7 +91,7 @@ $ java -javaagent:/path_to_pinpoint/pinpoint-bootstrap.jar \
 Datakit 链路数据遵循 OpenTracing 协议，Datakit 中一条链路是通过简单的父子（子 span 中存放父 span 的 id）结构串联起来且每个 span 对应一次函数调用
 
 <figure markdown>
-  ![OpenTracing](https://static.guance.com/images/datakit/datakit-opentracing.png){ width="600" }
+  ![OpenTracing](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-opentracing.png){ width="600" }
   <figcaption>OpenTracing</figcaption>
 </figure>
 
@@ -103,7 +103,7 @@ Pinpoint APM 链路数据较为复杂：
 - 一个 span 为一个服务的一次应答过程
 
 <figure markdown>
-  ![Pinpoint](https://static.guance.com/images/datakit/datakit-pinpoint.png){ width="600" }
+  ![Pinpoint](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-pinpoint.png){ width="600" }
   <figcaption>Pinpoint</figcaption>
 </figure>
 

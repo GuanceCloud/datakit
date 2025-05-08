@@ -232,7 +232,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/){:target="_blank"}。如下图所示：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/debug-golang-regexp.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/debug-golang-regexp.png){ width="800" }
 </figure>
 
 另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
@@ -249,7 +249,7 @@ KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方
 
 ### 动态加载流程 {#kv-load-flow}
 
-观测云平台允许用户通过 Web 客户端创建或更新 KV 键值对配置。DataKit 在运行过程中会定期从观测云平台拉取最新的 KV 配置，并与内存中现有的配置进行对比。如果检测到任何变化，DataKit 将遍历所有采集器配置文件，分别用新旧 KV 替换模板文件进行对比，以找出发生变化的配置文件。一旦发现这些配置文件有所改动，将重新加载由它们生成的所有采集器。
+<<<custom_key.brand_name>>>平台允许用户通过 Web 客户端创建或更新 KV 键值对配置。DataKit 在运行过程中会定期从<<<custom_key.brand_name>>>平台拉取最新的 KV 配置，并与内存中现有的配置进行对比。如果检测到任何变化，DataKit 将遍历所有采集器配置文件，分别用新旧 KV 替换模板文件进行对比，以找出发生变化的配置文件。一旦发现这些配置文件有所改动，将重新加载由它们生成的所有采集器。
 
 需要注意的是，这里的比较是以配置文件为单位进行的。这意味着如果一个配置文件中包含了多个采集器，只要该文件发生任何修改，所有由此配置文件生成的采集器都会被重新加载。
 
@@ -262,7 +262,7 @@ KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方
 
 ```mermaid
 flowchart TD
-    guance(Guance Cloud);
+    guance(<<<custom_key.brand_name>>>);
     web_client(web client);
     datakit(DataKit);
     changes{changes?};

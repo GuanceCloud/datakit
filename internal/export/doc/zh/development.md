@@ -464,12 +464,12 @@ alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut'
 额外的配置：
 
 - 如果要排除部分 package 的测试（它可能临时无法通过测试），在 `make ut` 后面增加对应 package 名称即可，例如：`UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp"`
-- 如果要将测试的指标发送到观测云，添加一个 Dataway 地址以及对应工作空间的 token 即可，比如 `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+- 如果要将测试的指标发送到<<<custom_key.brand_name>>>，添加一个 Dataway 地址以及对应工作空间的 token 即可，比如 `DATAWAY_URL="https://openway.<<<custom_key.brand_main_domain>>>/v1/write/logging?token=<YOUR-TOKEN>"`
 
 完整的例子如下：
 
 ```shell
-alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.<<<custom_key.brand_main_domain>>>/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
 ## 版本发布 {#release}
@@ -682,7 +682,7 @@ Generating report in profile001.pdf
 用同样的方式，可查看总分配内存 pprof 文件 `allocs`。PDF 的效果大概如下：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-pprof-pdf.png){ width="800" }
 </figure>
 
 更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}。

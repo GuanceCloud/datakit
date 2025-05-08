@@ -1,6 +1,6 @@
 ---
 title     : 'DDTrace Extensions'
-summary   : 'GuanceCloud Extensions on DDTrace'
+summary   : 'Extensions on DDTrace'
 __int_icon: 'icon/ddtrace'
 tags      :
   - 'DDTRACE'
@@ -67,7 +67,7 @@ DDTrace supported version: [v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
 The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data.
 Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
 
-To this end, secondary development was carried out on the Guance Cloud, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
+To this end, secondary development was carried out on the <<<custom_key.brand_name>>>, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
 
 how to config:
 
@@ -83,7 +83,7 @@ At present, only DDTrace and OTEL are connected in series, and there is currentl
 
 ## supported MongoDB obfuscation {#mongo-obfuscation}
 
-Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the Guance Cloud.
+Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the <<<custom_key.brand_name>>>.
 
 Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
 
@@ -106,9 +106,9 @@ supported version：
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
 
-1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
+1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
 
-2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.guance.com/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
+2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
 After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
 
@@ -128,7 +128,7 @@ ddtrace changes the default remote port 8126 to 9529.
 ## redis command args {#redis-command-args}
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
-Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the Guance Cloud link: `redis.command.args=key val`.
+Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the <<<custom_key.brand_name>>> link: `redis.command.args=key val`.
 
 Supported version:
 

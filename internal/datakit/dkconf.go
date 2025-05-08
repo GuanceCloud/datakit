@@ -5,7 +5,17 @@
 
 package datakit
 
-var DatakitConfSample = `
+import "fmt"
+
+// MainConfSample get default sample of datakit.conf.
+func MainConfSample(domain string) string {
+	return fmt.Sprintf(datakitConfSample, domain)
+}
+
+var (
+	BrandDomainTemplate = `<<<custom_key.brand_main_domain>>>`
+	BrandDomain         = "not-set" // we should set it during compile time
+	datakitConfSample   = `
 
 ################################################
 # Global configures
@@ -206,7 +216,7 @@ ulimit = 64000
   # urls: Dataway URL list
   # NOTE: do not configure multiple URLs here, it's a deprecated feature.
   urls = [
-    # "https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
+    # "https://openway.%s?token=<YOUR-WORKSPACE-TOKEN>"
   ]
 
   # Dataway HTTP timeout
@@ -383,3 +393,4 @@ ulimit = 64000
   interval = "30s"
   java_home=""
 `
+)

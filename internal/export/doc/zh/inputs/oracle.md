@@ -123,7 +123,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
     > 也可以直接下载我们预先准备好的依赖包：
 
     ```shell
-    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+    wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient;
@@ -141,7 +141,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
     > 也可以直接下载我们预先准备好的依赖包：
 
     ```shell
-    wget https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+    wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
         -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
         && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
         && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
@@ -295,7 +295,7 @@ apt-get install -y libaio-dev libaio1
 
 ## 慢查询支持 {#slow}
 
-Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给观测云，在日志中显示，来源名是 `oracle_log`。
+Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oracle_log`。
 
 该功能默认情况下是关闭的，用户可以在 Oracle 的配置文件中将其打开，方法如下：
 

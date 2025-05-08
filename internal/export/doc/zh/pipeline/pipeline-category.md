@@ -12,7 +12,7 @@
 
     - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
     - 即使是通过 [DataKit API](../../datakit/apis.md) 上报的数据也支持 Pipeline 处理。
-    - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在观测云上表现异常
+    - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在<<<custom_key.brand_name>>>上表现异常
     - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](pipeline-quick-start.md#debug)确认数据处理是否符合预期
 <!-- markdownlint-enable -->
 
@@ -77,7 +77,7 @@ Point {
 
 | 命名空间 | 目录 | 支持的数据类别 | 描述|
 | - | -  | - | - |
-| `remote`  | *[DataKit 安装目录]/pipeline_remote*                  | CO, E, L, M, N, O, P, R, S, T | 观测云控制台管理的脚本            |
+| `remote`  | *[DataKit 安装目录]/pipeline_remote*                  | CO, E, L, M, N, O, P, R, S, T | <<<custom_key.brand_name>>>控制台管理的脚本            |
 | `confd`   | *[DataKit 安装目录]/pipeline_cond*                    | CO, E, L, M, N, O, P, R, S, T | Confd 管理的脚本                |
 | `gitrepo` | *[DataKit 安装目录]/pipeline_gitrepos/[repo-name]*  | CO, E, L, M, N, O, P, R, S, T | Git 管理的脚本                  |
 | `default` | *[DataKit 安装目录]/pipeline*                         | CO, E, L, M, N, O, P, R, S, T | DataKit 生成的脚本或用户编写的    |
@@ -135,8 +135,8 @@ DataKit 在选择对应的 Pipeline 时，这四个命名空间内的脚本的�
 数据和脚本名的匹配策略有四条，将从第 4(最高优先级) 条到第 1 条进行判断，若满足高优先级策略则不执行低优先级的策略：
 
 1. 根据输入数据生成的数据特征字符串，加上 Pipeline 的脚本文件扩展名 `.p` ，查找对应类别的脚本
-1. 在观测云控制台为该类别下所有数据设置的数据类别的默认脚本
-1. 在观测云控制台设定的的数据与脚本的映射关系
+1. 在<<<custom_key.brand_name>>>控制台为该类别下所有数据设置的数据类别的默认脚本
+1. 在<<<custom_key.brand_name>>>控制台设定的的数据与脚本的映射关系
 1. 在采集器配置文件指定脚本
 
 <!-- 4. 上面的目录设定中，我们将应用于不同数据分类的 Pipeline 分别存放在对应的目录下，对 DataKit 而言，一旦采集到某类数据，会自动应用对应的 Pipeline 脚本进行处理。对不同类数据而言，脚本名生成策略主要分为几类： -->

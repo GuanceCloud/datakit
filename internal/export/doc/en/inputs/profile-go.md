@@ -186,4 +186,4 @@ Set the collection frequency, where 1/rate events are collected. Values set to 0
 - `version`: your app version
 - `enabled_types`: available events: `cpu, goroutine, heap, mutex, block`
 
-You should Restart DataKit after modification. After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile){:target="_blank"}.
+You should Restart DataKit after modification. After a minute or two, you can visualize your profiles on the [profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"}.

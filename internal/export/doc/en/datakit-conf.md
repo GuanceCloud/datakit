@@ -774,7 +774,7 @@ In the Kubernetes (K8S) environment, access to the Kubernetes API is required, s
     - apiGroups: ["batch"]
       resources: ["jobs", "cronjobs"]
       verbs: [ "get", "list", "watch"]
-    - apiGroups: ["guance.com"]
+    - apiGroups: ["<<<custom_key.brand_main_domain>>>"]
       resources: ["datakits"]
       verbs: ["get","list"]
     - apiGroups: ["monitoring.coreos.com"]

@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Collect NSQ operation data and report it to Guance Cloud in the form of indicators.
+Collect NSQ operation data and report it to <<<custom_key.brand_name>>> in the form of indicators.
 
 ## Configuration {#config}
 

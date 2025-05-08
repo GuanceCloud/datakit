@@ -25,7 +25,7 @@ func TestDefaultMainConf(t *testing.T) {
 	c.Ulimit = 0 // ulimit diff among OS platforms
 
 	x := DefaultConfig()
-	_, err := bstoml.Decode(datakit.DatakitConfSample, &x)
+	_, err := bstoml.Decode(datakit.MainConfSample(datakit.BrandDomain), &x)
 	require.NoError(t, err)
 
 	x.DefaultEnabledInputs = x.DefaultEnabledInputs[:0] // clear
@@ -297,7 +297,7 @@ hostname = "should-not-set"`,
 		},
 		{
 			name: "dk-conf-sample",
-			raw:  datakit.DatakitConfSample,
+			raw:  datakit.MainConfSample(""),
 		},
 	}
 

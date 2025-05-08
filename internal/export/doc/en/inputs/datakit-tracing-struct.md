@@ -41,20 +41,20 @@ Data conversion steps:
 
 - Field
 
-| Metric        | Description                            | Type   | Unit |
-| ---           | ---                                    | ---    | ---  |
-| `create_time` | Guancedb storage create timestamp [^1] | int    | s    |
-| `duration`    | Span duration                          | int    | us   |
-| `message`     | Raw data content                       | string |      |
-| `parent_id`   | Parent ID of span                      | string |      |
-| `priority`    | priority rules                         | string |      |
-| `resource`    | Resource of service                    | string |      |
-| `span_id`     | Span ID                                | string |      |
-| `start`       | Span start timestamp                   | int    | us   |
-| `time`        | Datakit received timestamp             | int    | ns   |
-| `trace_id`    | Trace ID                               | string |      |
+| Metric        | Description                   | Type   | Unit |
+| ---           | ---                           | ---    | ---  |
+| `create_time` | Storage create timestamp [^1] | int    | s    |
+| `duration`    | Span duration                 | int    | us   |
+| `message`     | Raw data content              | string |      |
+| `parent_id`   | Parent ID of span             | string |      |
+| `priority`    | priority rules                | string |      |
+| `resource`    | Resource of service           | string |      |
+| `span_id`     | Span ID                       | string |      |
+| `start`       | Span start timestamp          | int    | us   |
+| `time`        | Datakit received timestamp    | int    | ns   |
+| `trace_id`    | Trace ID                      | string |      |
 
-[^1]: This field created by the Guancedb storage, not exist in Datakit side.
+[^1]: This field created by the storage engine, not exist in Datakit side.
 
 `span_type` is the relative position of the current span in trace, and its value is described as follows:
 

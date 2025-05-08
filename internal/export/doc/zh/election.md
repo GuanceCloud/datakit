@@ -112,7 +112,7 @@ Elected default::defeat|host-abc
 以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 Datakit、2 个 MySQL 实例，且 Datakit 都开启了选举（DaemonSet 模式下，每个 Datakit 的配置都是一样的）以及 MySQL 采集器：
 
 - 一旦某个 Datakit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 Datakit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 Datakit 处于待命状态。
-- 观测云中心会判断当前选上的 Datakit 是否正常，如果异常，则强行踢掉该 Datakit，其它待命状态的 Datakit 将替代它
+- <<<custom_key.brand_name>>>中心会判断当前选上的 Datakit 是否正常，如果异常，则强行踢掉该 Datakit，其它待命状态的 Datakit 将替代它
 - 未开启选举的 Datakit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
 - 选举的范围是「工作空间+命名空间」级别的，单个「工作空间+命名空间」中，一次最多只能有一个 Datakit 被选上
     - 关于工作空间，在 *datakit.conf* 中，通过 Dataway 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token

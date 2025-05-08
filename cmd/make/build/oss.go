@@ -7,37 +7,37 @@ package build
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/GuanceCloud/cliutils"
 )
 
-func GetOSSClient() (*cliutils.OssCli, error) {
-	var ak, sk, bucket, ossHost string
+func getOSSInfo() (*cliutils.OssCli, error) {
+	var ak, sk, bucket, ossHost, path string
 
-	switch ReleaseType {
-	case ReleaseTesting, ReleaseProduction, ReleaseLocal:
-		tag := strings.ToUpper(ReleaseType)
-		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
-		if ak == "" {
-			return nil, errors.New("env " + tag + "_OSS_ACCESS_KEY" + " is not configured")
-		}
-		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
-		if sk == "" {
-			return nil, errors.New("env " + tag + "_OSS_SECRET_KEY" + " is not configured")
-		}
-		bucket = os.Getenv(tag + "_OSS_BUCKET")
-		if bucket == "" {
-			return nil, errors.New("env " + tag + "_OSS_BUCKET" + " is not configured")
-		}
-		ossHost = os.Getenv(tag + "_OSS_HOST")
-		if ossHost == "" {
-			return nil, errors.New("env " + tag + "_OSS_HOST" + " is not configured")
-		}
-	default:
-		return nil, fmt.Errorf("unknown release type: %s", ReleaseType)
+	ak = os.Getenv("OSS_ACCESS_KEY")
+	if ak == "" {
+		return nil, errors.New("env OSS_ACCESS_KEY is not configured")
+	}
+
+	sk = os.Getenv("OSS_SECRET_KEY")
+	if sk == "" {
+		return nil, errors.New("env OSS_SECRET_KEY is not configured")
+	}
+
+	bucket = os.Getenv("OSS_BUCKET")
+	if bucket == "" {
+		return nil, errors.New("env OSS_BUCKET is not configured")
+	}
+
+	ossHost = os.Getenv("OSS_HOST")
+	if ossHost == "" {
+		return nil, errors.New("env OSS_HOST is not configured")
+	}
+
+	path = os.Getenv("OSS_PATH")
+	if ossHost == "" {
+		return nil, errors.New("env OSS_PATH is not configured")
 	}
 
 	oc := &cliutils.OssCli{
@@ -46,10 +46,12 @@ func GetOSSClient() (*cliutils.OssCli, error) {
 		AccessKey:  ak,
 		SecretKey:  sk,
 		BucketName: bucket,
-		WorkDir:    "datakit",
+		WorkDir:    path,
 	}
+
 	if err := oc.Init(); err != nil {
 		return nil, err
 	}
+
 	return oc, nil
 }

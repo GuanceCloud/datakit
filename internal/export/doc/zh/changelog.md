@@ -147,7 +147,7 @@
 
 ### 新加功能 {#cl-1.63.0-new}
 
-- 增加 Datakit [下发任务支持](datakit-conf.md#remote-job)（目前该功能需手动启动，且观测云需升级到 1.98.181 及以上的版本），目前支持通过在前端页面上下发指令给 Datakit 来获取 JVM Dump（#2367）
+- 增加 Datakit [下发任务支持](datakit-conf.md#remote-job)（目前该功能需手动启动，且<<<custom_key.brand_name>>>需升级到 1.98.181 及以上的版本），目前支持通过在前端页面上下发指令给 Datakit 来获取 JVM Dump（#2367）
 
     在 Kubernetes 中执行时，需更新最新的 *datakit.yaml*，这里需要增加额外的 RBAC 权限
 
@@ -424,7 +424,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 
     那么 Nginx 日志不会通过 *nginx.p* 来切割，而是用 *default.p* 来切割。这个设置是不合理的，调整之后的优先级如下（优先级递减）：
 
-    1. 观测云页面上指定 `source` 对应的 Pipeline
+    1. <<<custom_key.brand_name>>>页面上指定 `source` 对应的 Pipeline
     1. 在采集器中指定 `source` 对应的 Pipeline
     1. `source` 取值能找到对应的 Pipeline（比如 `source` 为 `my-app` 的日志，在 Pipeline 对应的存放目录中能找到一个 *my-app.p*）
     1. 最后再使用 *default.p*
@@ -683,6 +683,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 - 升级中心底座至 [1.87.167](../deployment/changelog/2024.md#1.87.167)，或者
 - 修改 *datakit.conf* 中[上传协议配置 `content_encoding`](datakit-conf.md#dataway-settings)，将其改为 `v2`
 
+<<<% if custom_key.brand_key == 'guance' %>>>
 #### 对 InfluxDB 部署版的说明 {#cl-1.30.0-brk-influxdb}
 
 如果中心底座的时序存储是 InfluxDB，则 **不要升级 Datakit**，请保持在 1.29.1 这个最高版本。需后续中心升级之后，才能升级到更高的 Datakit 版本。
@@ -690,6 +691,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 另外，如果中心升级到了较新的版本（1.87.167+），则低版本的 Datakit 也 **不要采用 `v2` 上传协议**，请改用 `v1` 版本的上传协议。
 
 如果确实要要升级到较新的 Datakit 版本，请替换时序引擎为 GuanceDB for metrics。
+<<<% endif %>>>
 
 ---
 
@@ -1134,7 +1136,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 - Bug Report 新增更多信息收集（#1908）
 - 完善 Prom 采集过程中自身指标暴露（#1951）
 - 更新默认 IP 库以支持 IPv6（#1957）
-- 更新镜像名下载地址为 `pubrepo.guance.com`（#1949）
+- 更新镜像名下载地址为 `pubrepo.<<<custom_key.brand_main_domain>>>`（#1949）
 - 优化日志采集文件位置功能（#1961）
 - Kubernetes
     - 支持 Node-Local Pod 信息采集，以缓解选举节点压力（#1960）
@@ -1583,7 +1585,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 
 ### 兼容调整 {#cl-1.9.2-brk}
 
-- 移除 Kubernetes CRD `guance.com/datakits v1bate1` 对 logging 采集的支持（#1705）
+- 移除 Kubernetes CRD `<<<custom_key.brand_main_domain>>>/datakits v1bate1` 对 logging 采集的支持（#1705）
 
 ---
 
@@ -2191,7 +2193,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 - 新增 [Promtail 采集器](promtail.md)(#644)
 - 新增 [NVIDIA GPU 指标采集器](nvidia_smi.md)(#1005)
 - 支持发现（需手动开启） Kubernetes 集群中带有 Prometheus Service 的服务，并对之实施 Prometheus 指标采集(#1123)
-- 支持从 Kafka 中订阅基于 SkyWalking 的指标、日志、Trace 类数据，并将其分别以对应的数据类型上传到观测云(#1127)
+- 支持从 Kafka 中订阅基于 SkyWalking 的指标、日志、Trace 类数据，并将其分别以对应的数据类型上传到<<<custom_key.brand_name>>>(#1127)
 
 ### 问题修复 {#cl-1.4.17-fix}
 
@@ -2271,7 +2273,7 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 - 调整 Pipeline 有关的文档，将其移到「自定义开发」目录下：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cl-1.4.14-dk-docs.gif){ width="300"}
 </figure>
 
 ---
@@ -2312,25 +2314,25 @@ NOTE: 以下内容，合并到 1.62.0 版本发布
 - 采集器文档从原来「集成」移到 「DataKit」文档库(#1060)
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cl-1.4.13-dk-docs.gif){ width="300"}
 </figure>
 
 - DataKit 文档目录结构调整，减少了目录层级
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cl-1.4.13-dk-doc-dirs.gif){ width="300"}
 </figure>
 
 - 几乎每个采集器都增加了 k8s 配置入口
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cl-1.4.13-install-selector.gif){ width="800" }
 </figure>
 
 - 调整文档头部显示，除了操作系统标识外，对支持选举的采集器，增加选举标识
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cl-1.4.13-doc-header.gif){ width="800" }
 </figure>
 
 ---
@@ -3114,7 +3116,7 @@ volumes:
     - 移除 `json_all()` 函数，这个函数对于异常的 JSON 有严重的数据问题，故选择禁用之(#457)
     - 修正 `default_time()` 函数时区设置问题(#434)
 - 解决 [`Prom`](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
-- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml){:target="_blank"} 公网可直接下载
+- DataKit DaemonSet 安装的 [yaml 文件](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"} 公网可直接下载
 
 ---
 

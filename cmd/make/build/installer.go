@@ -7,59 +7,11 @@ package build
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
-	"text/template"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
-
-func generateInstallScript() error {
-	x := struct {
-		InstallBaseURL string
-		Version        string
-	}{
-		InstallBaseURL: DownloadCDN,
-		Version:        ReleaseVersion,
-	}
-
-	l.Infof("generating install scripts for version %q with base download URL %q",
-		ReleaseVersion, DownloadCDN)
-
-	for k, v := range map[string]string{
-		"install.template.sh":           "install.sh",
-		"install.template.ps1":          "install.ps1",
-		"datakit.template.yaml":         "datakit.yaml",
-		"datakit-elinker.template.yaml": "datakit-elinker.yaml",
-	} {
-		txt, err := os.ReadFile(filepath.Clean(k))
-		if err != nil {
-			return err
-		}
-
-		t := template.New("")
-		t, err = t.Parse(string(txt))
-		if err != nil {
-			return err
-		}
-
-		fd, err := os.OpenFile(filepath.Clean(v),
-			os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		l.Infof("creating install script %s from %s", v, k)
-		if err := t.Execute(fd, x); err != nil {
-			return err
-		}
-
-		fd.Close() //nolint:errcheck,gosec
-	}
-
-	return nil
-}
 
 func buildInstaller(outdir, goos, goarch string) error {
 	l.Debugf("building %s-%s/installer...", goos, goarch)
@@ -81,12 +33,12 @@ func buildInstaller(outdir, goos, goarch string) error {
 		}
 	}
 
+	ldflags := fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadCDN, ReleaseVersion)
+
+	l.Infof("set ldflags on installer: %q", ldflags)
 	cmdArgs = append(cmdArgs, []string{
 		"-o", filepath.Join(outdir, installerExe),
-		"-ldflags",
-		fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s",
-			DownloadCDN,
-			ReleaseVersion),
+		"-ldflags", ldflags,
 		"cmd/installer/main.go",
 	}...)
 

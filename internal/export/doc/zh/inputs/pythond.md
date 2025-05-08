@@ -224,7 +224,7 @@ Python SDK API 定义(详情参见 `datakit_framework.py`)：
 
 - 当 `df_source = monitor` 时：
 
-表示由观测云检测功能产生的事件，额外存在以下字段：
+表示由<<<custom_key.brand_name>>>检测功能产生的事件，额外存在以下字段：
 
 | 额外字段名        | 类型                | 是否必须 | 说明                                |
 | ----              | ----                | ----     | ----                                |

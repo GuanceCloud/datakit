@@ -48,7 +48,7 @@
 
 ## 工作原理 {#principle}
 
-`DataKit` 在查找到 `Pipeline` 数据处理脚本后将判断其是否为来自 ` 观测云 ` 的远程脚本，如果是则将数据转发到后级数据处理器处理（如 `DataKit`）。负载均衡方式为轮询。
+`DataKit` 在查找到 `Pipeline` 数据处理脚本后将判断其是否为来自 ` <<<custom_key.brand_name>>> ` 的远程脚本，如果是则将数据转发到后级数据处理器处理（如 `DataKit`）。负载均衡方式为轮询。
 
 ![Pipeline Offload](img/pipeline-offload.drawio.png)
 
@@ -68,8 +68,8 @@
 
 ```sh
 docker run --ulimit nofile=64000:64000 \
-  -e ENV_DATAWAY="https://openway.guance.com?token=<tkn_>" \
+  -e ENV_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<tkn_>" \
   -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
   -p 9590:9529 \
-  -d pubrepo.guance.com/datakit/datakit:<version>
+  -d pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>
 ```

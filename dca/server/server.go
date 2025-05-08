@@ -25,6 +25,7 @@ var l = logger.DefaultSLogger("server")
 
 type ServerOptions struct {
 	HTTPPort        string // HTTPPort is the port of HTTP server
+	PromListen      string // Prometheus metric export URL
 	ConsoleWebURL   string // ConsoleWebURL is the URL of console web page
 	ConsoleAPIURL   string // ConsoleAPIURL is the URL of console API
 	StaticBaseURL   string
@@ -107,6 +108,12 @@ func Start(opt *ServerOptions) error {
 
 	g.Go(func(ctx context.Context) error {
 		s := metrics.NewMetricServer()
+		if opt.PromListen != "" {
+			s.Listen = opt.PromListen
+		}
+
+		l.Infof("PromListen on: %q/%s", s.Listen, s.URL)
+
 		if err := s.Start(); err != nil {
 			l.Warnf("start metric server failed: %s", err.Error())
 		}

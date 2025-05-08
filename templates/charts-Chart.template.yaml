@@ -7,21 +7,14 @@ annotations:
   catalog.cattle.io/display-name: Datakit # The chart's name you want displayed in the UI
 type: application
 
-appVersion: 1.4.19
-version: 1.2.10
+appVersion: {{.Version}}
+version: {{.HelmVersion}}
 
-home: https://www.guance.com
-icon: https://static.guance.com/images/datakit/datakit-icon-white-bg.png
+home: https://www.{{.BrandDomain}}
+icon: https://static.{{.BrandDomain}}/images/datakit/datakit-icon-white-bg.png
 
 keywords:
 - Observability
-
-maintainers:
-- email: tanbiao@jiagouyun.com
-  name: tanbiao
-
-sources:
-- https://github.com/GuanceCloud/datakit
 
 dependencies:
 - condition: kubeStateMetricsEnabled

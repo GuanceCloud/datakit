@@ -10,8 +10,8 @@ DataKit Filter 用于对采集到的数据点进行筛选，用于过滤掉一�
 
 | 数据处理组件 | 支持本地配置     | 支持中心下发     | 支持数据丢弃     | 支持数据改写     | 使用方法                                                        |
 | ----         | ----             | ----             | ----             | ----             | ----                                                            |
-| Pipeline     | :material-check: | :material-check: | :material-check: | :material-check: | 通过在采集器中配置 Pipeline 或者在观测云 Studio 编写 Pipeline   |
-| Filter       | :material-check: | :material-check: | :material-check: | :octicons-x-16:  | 在观测云 Studio 编写 Pipeline 或者在 *datakit.conf* 中配置 filter |
+| Pipeline     | :material-check: | :material-check: | :material-check: | :material-check: | 通过在采集器中配置 Pipeline 或者在<<<custom_key.brand_name>>> Studio 编写 Pipeline   |
+| Filter       | :material-check: | :material-check: | :material-check: | :octicons-x-16:  | 在<<<custom_key.brand_name>>> Studio 编写 Pipeline 或者在 *datakit.conf* 中配置 filter |
 
 从表中可以看出，相比 Pipeline，如果只是简单的过滤掉部分数据，那么 Filter 是一种更便捷的数据筛选工具。
 
@@ -99,7 +99,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 <!-- markdownlint-disable MD046 -->
 ???+ warning
 
-    过滤器只适用于调试，日常使用的话，还是建议大家使用黑名单的网页模式。一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，**观测云 Studio 配置的黑名单将不再生效**。
+    过滤器只适用于调试，日常使用的话，还是建议大家使用黑名单的网页模式。一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，**<<<custom_key.brand_name>>> Studio 配置的黑名单将不再生效**。
 
     另外，黑名单功能在未来将被下线，最好的数据过滤方式还是通过 Pipeline 的 `drop()` 函数实现。
 <!-- markdownlint-enable -->
@@ -197,7 +197,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 使用 `datakit monitor -V` 命令可以查看过滤情况：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>查看 filter 过滤情况</figcaption>
 </figure>
 
@@ -306,7 +306,7 @@ while True:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
-<script src="https://static.guance.com/browser-sdk/v2/dataflux-rum.js" type="text/javascript"></script>
+<script src="https://static.<<<custom_key.brand_main_domain>>>/browser-sdk/v2/dataflux-rum.js" type="text/javascript"></script>
 <script>
   window.DATAFLUX_RUM &&
     window.DATAFLUX_RUM.init({

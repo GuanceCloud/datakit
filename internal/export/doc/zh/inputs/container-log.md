@@ -76,7 +76,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     ``` shell
     $ cat Dockerfile
-    FROM pubrepo.guance.com/base/ubuntu:18.04 AS base
+    FROM pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04 AS base
     Run mkdir -p /opt
     Run echo 'i=0; \n\
     while true; \n\
@@ -127,7 +127,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
         spec:
           containers:
           - name: log-output
-            image: pubrepo.guance.com/base/ubuntu:18.04
+            image: pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04
             args:
             - /bin/sh
             - -c
@@ -176,7 +176,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     ``` shell
     $ cat Dockerfile
-    FROM pubrepo.guance.com/base/ubuntu:18.04 AS base
+    FROM pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04 AS base
     Run mkdir -p /opt
     Run echo 'i=0; \n\
     while true; \n\
@@ -237,7 +237,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
         spec:
           containers:
           - name: logging-demo
-            image: pubrepo.guance.com/base/ubuntu:18.04
+            image: pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04
             args:
             - /bin/sh
             - -c
@@ -287,8 +287,8 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
 
-    - image : `image:pubrepo.guance.com/datakit/datakit:1.18.0`
-    - image_name : `image_name:pubrepo.guance.com/datakit/datakit`
+    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.18.0`
+    - image_name : `image_name:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit`
     - image_short_name : `image_short_name:datakit`
     - namespace : `namespace:datakit-ns`
 
@@ -322,7 +322,7 @@ Datakit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     - A：`hello/hello-http:latest`
     - B：`world/world-http:latest`
-    - C：`pubrepo.guance.com/datakit/datakit:1.2.0`
+    - C：`pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.2.0`
 
     如果只希望采集 Pod A 的日志，那么配置 ENV_INPUT_CONTAINER_CONTAINER_INCLUDE_LOG 即可：
 
@@ -405,7 +405,7 @@ Datakit 需要挂载 `/mnt/container_logs` hostPath 才能使得正常采集，�
     spec:
       containers:
       - name: datakit
-        image: pubrepo.guance.com/datakit/datakit:1.16.0
+        image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.16.0
         volumeMounts:
         - mountPath: /mnt/container_logs
           name: container-logs

@@ -90,7 +90,7 @@ dk_C --> dk_X_proxy;
 end
 
 subgraph "公网"
-dk_X_proxy --> |https://openway.guance.com|dw;
+dk_X_proxy ==> |https://openway.<<<custom_key.brand_main_domain>>>|dw;
 end
 ```
 
@@ -100,7 +100,7 @@ end
 
 - 内网 Datakit 连接 Proxy 时，需信任 Proxy 采集器提供的 HTTPS 证书（该证书肯定是一个非安全的证书，其证书源[在此](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}）
 - 一旦 Datakit 信任了该 HTTPS 证书，则 Proxy 采集器就能嗅探 HTTPS 包内容，继而可以记录更多请求有关的指标
-- Proxy 采集器记录完指标信息后，再将请求转发给 Dataway（用观测云安全的 HTTPS 证书）
+- Proxy 采集器记录完指标信息后，再将请求转发给 Dataway（用<<<custom_key.brand_name>>>安全的 HTTPS 证书）
 
 此处 Datakit 和 Proxy 之间虽然用了不安全的证书，但仅限于内网流量。Proxy 将流量转发到公网 Dataway 的时候，仍然使用的是安全的 HTTPS 证书。
 

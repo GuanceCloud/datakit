@@ -1,5 +1,6 @@
 FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
 ARG TARGETARCH
+ARG DIST_DIR
 
 RUN mkdir -p /usr/local/datakit \
     && mkdir -p /usr/local/datakit/externals \
@@ -40,6 +41,6 @@ esac;
 RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
     && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
 
-COPY dist/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
+COPY ${DIST_DIR}/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
 
 CMD ["/usr/local/datakit/datakit", "run", "-C"]

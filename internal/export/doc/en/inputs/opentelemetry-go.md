@@ -15,7 +15,7 @@ Before using OTEL to send Trace to Datakit, make sure you have [configured the c
 
 ## Next, implement in pseudo code {#code}
 
-Simulation scenario: A user's login request flows through various modules on the server and is returned to the client. Add link tracking and marking in each process, and finally log in to the Guance Cloud platform to check the processing time and service status of each module in this process.
+Simulation scenario: A user's login request flows through various modules on the server and is returned to the client. Add link tracking and marking in each process, and finally log in to the <<<custom_key.brand_name>>> platform to check the processing time and service status of each module in this process.
 
 Process introduction: The user requests to the web layer, after analysis, send to the service layer, need to query the database of the dao layer, and finally return the results to the user.
 
@@ -159,7 +159,7 @@ func main() {
 
 ## View Effect {#view}
 
-Log in to [Guance Cloud](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} and then view `application performance monitoring` -> `links` -> Click on a single `link`
+Log in to [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} and then view `application performance monitoring` -> `links` -> Click on a single `link`
 
 ![OTEL-go-example"](imgs/otel-go-example.png)
 

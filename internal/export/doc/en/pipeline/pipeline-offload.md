@@ -48,7 +48,7 @@ If the receiving end DataKit turns on the `ploffload` collector, it can be confi
 
 ## Working Principle {#principle}
 
-After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from GuanceCloud, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
+After `DataKit` finds the `Pipeline` data processing script, it will judge whether it is a remote script from <<<custom_key.brand_name>>>, and if so, forward the data to the post-level data processor for processing (such as `DataKit`). The load balancing method is round robin.
 
 ![`pipeline-offload`](img/pipeline-offload.drawio.png)
 
@@ -67,6 +67,6 @@ There are several ways to deploy the data processor (DataKit) for receiving comp
   Reference command:
 
   ```sh
-  docker run --ulimit nofile=64000:64000  -e ENV_DATAWAY="https://openway.guance.com?token=<tkn_>" -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
-  -p 9590:9529 -d pubrepo.guance.com/datakit/datakit:<version>
+  docker run --ulimit nofile=64000:64000  -e ENV_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<tkn_>" -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
+  -p 9590:9529 -d pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>
   ```

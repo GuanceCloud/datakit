@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
       - name: datakit-elinker 
-        image: pubrepo.guance.com/datakit/datakit-elinker:{{.Version}}
+        image: {{.DockerImageRepo}}/datakit-elinker:{{.Version}}
         imagePullPolicy: IfNotPresent
         env:
           - name: POD_NAME
@@ -58,7 +58,7 @@ spec:
                 apiVersion: v1
                 fieldPath: spec.nodeName
           - name: ENV_DATAWAY
-            value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+            value: https://openway.{{.BrandDomain}}?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
           - name: ENV_CLUSTER_NAME_K8S
             value: default
           - name: ENV_GLOBAL_HOST_TAGS

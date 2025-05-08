@@ -1,8 +1,3 @@
-# Unless explicitly stated otherwise all files in this repository are licensed
-# under the MIT License.
-# This product includes software developed at Guance Cloud (https://www.guance.com/).
-# Copyright 2021-present Guance, Inc.
-
 FROM eclipse-temurin:11.0.20_8-jdk as asyncprofiler
 WORKDIR /opt
 COPY ./async-profiler-2.9.2.tar.gz ./
@@ -10,8 +5,6 @@ RUN apt-get update && apt-get -y install make gcc g++
 RUN tar zxf async-profiler-2.9.2.tar.gz && mv async-profiler-2.9.2 async-profiler && cd async-profiler && make
 
 FROM eclipse-temurin:11.0.20_8-jdk
-LABEL authors="guance.com" \
-      email="zhangyi905@guance.com"
 RUN mkdir -p /app/async-profiler/build && if [ -f "$JAVA_HOME/bin/jps" ] && [ ! -f "/usr/bin/jps" ]; then \
      cp "$JAVA_HOME/bin/jps" /usr/bin/jps; \
     fi

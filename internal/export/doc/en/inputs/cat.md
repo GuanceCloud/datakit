@@ -56,7 +56,7 @@ Data Classification：
 
 The data is all in the Datakit, and the web page of cat no longer has data, so the significance of starting is not significant.
 
-Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the Guance Cloud page. It is not recommended to start a cat_ Home (cat server) service.
+Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the <<<custom_key.brand_name>>> page. It is not recommended to start a cat_ Home (cat server) service.
 
 The corresponding configuration can be configured in client.xml, please refer to the following text.
 
@@ -102,7 +102,6 @@ Notes on configuration files:
 1. `tcp_port`  client config `servers ip` address
 
 ---
-
 
 ## Metric {#metric}
 

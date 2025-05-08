@@ -192,7 +192,7 @@ These indicators are the rate of change per second, which is not actually the ca
 
 ## Collect JVM Metrics Through Jolokia  {#jvm-jolokia}
 
-JVM collector can take many metrics through JMX, and collect metrics into Guance Cloud to help analyze Java operation.
+JVM collector can take many metrics through JMX, and collect metrics into <<<custom_key.brand_name>>> to help analyze Java operation.
 
 ### Jolokia Config {#jolokia-config}
 

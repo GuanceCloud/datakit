@@ -1,3 +1,0 @@
-# 配置请参考：https://www.yuque.com/waquehq/docs/configuration
-repo: 'dataflux/vu476c' # for testing yuque repo
-pattern: '.docs/*.md'

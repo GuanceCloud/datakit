@@ -107,7 +107,7 @@ dotnet bin/Release/net7.0/<your-project-name>.dll
     `LD_PRELOAD="$DDTRACE_HOME/linux-arm64/Datadog.Linux.ApiWrapper.x64.so"`
 <!-- markdownlint-enable -->
 
-稍等几分钟后便可以在 [观测云控制台](https://console.guance.com/tracing/profile){:target="_blank"} 查看相关数据。
+稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。
 
 ### Windows IIS {#on-windows-iis}
 
@@ -158,4 +158,4 @@ net stop /y was
 net start w3svc
 ```
 
-稍等几分钟后便可以在 [观测云控制台](https://console.guance.com/tracing/profile){:target="_blank"} 查看相关数据。
+稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。

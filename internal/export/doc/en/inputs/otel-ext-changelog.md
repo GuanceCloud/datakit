@@ -1,6 +1,6 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Guance OTEL Plugins ChangeLog'
+title: 'OTEL Plugins ChangeLog'
 ---
 
 ## Intro {#intro}
@@ -16,7 +16,7 @@ Currently, OTEL has added the following technology stack extensions:
 
     ---
 
-    [SDK :material-download:](https://static.guance.com/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
     [:material-github:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"} ·
     [Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/new){:target="_blank"} ·
     [:octicons-history-16:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases){:target="_blank"}
@@ -43,7 +43,7 @@ Currently, OTEL has added the following technology stack extensions:
 ---
 
 ## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
-download this version jar: [v1.26.2-guance](https://static.guance.com/dd-image/opentelemetry-javaagent-1.26.2-guance.jar)
+download this version jar: [v1.26.2-guance](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-guance.jar)
 
 ### new {#cl-1.26.2-guance-new}
 

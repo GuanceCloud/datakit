@@ -14,8 +14,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/mdcheck/check"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
@@ -23,33 +23,58 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
+var (
+	mdCheck, mdMetaDir string
+
+	mdNoAutofix      = false
+	mdNoSectionCheck = false
+	sampleConfCheck  = false
+	doPub            = false
+	doPubeBPF        = false
+	pkgEBPF          = 0
+	downloadEBPF     = 0
+	buildISP         = false
+	ut               = false
+	dca              = false
+	export           = false
+	dwURL            = "not-set"
+	mdSkip           = ""
+
+	l = logger.DefaultSLogger("make")
+)
+
 func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.AppBin, "binary", build.AppBin, "binary name to build")
 	flag.StringVar(&build.AppName, "name", build.AppName, "same as -binary")
-	flag.StringVar(&build.BuildDir, "build-dir", "build", "output of build files")
 	flag.StringVar(&build.MainEntry, "main", "", "binary build entry")
-	flag.StringVar(&build.UploadAddr, "upload-addr", "", "dist where to upload to")
-	flag.StringVar(&build.DownloadCDN, "download-cdn", "", "dist where to download from")
-	flag.StringVar(&build.PubDir, "pub-dir", "pub", "")
+
+	flag.StringVar(&build.DistDir, "dist-dir", "pub", "")
 	flag.StringVar(&build.Archs, "archs", "local", "os archs")
 	flag.StringVar(&build.AWSRegions, "aws-regions", "cn-north-1,cn-northwest-1", "aws regions")
 	flag.BoolVar(&build.EnableUploadAWS, "enable-upload-aws", false, "enable upload aws")
 	flag.StringVar(&build.RaceDetection, "race", "off", "enable race deteciton")
 	flag.StringVar(&build.ReleaseType, "release", "", "build for local/testing/production")
+
+	flag.StringVar(&build.Brand, "brand", build.ValueNotSet, "brand URL")
+
 	flag.StringVar(&dwURL, "dataway-url", "", "set dataway URL(https://dataway.com/v1/write/logging?token=xxx) to push testing metrics")
 
 	flag.BoolVar(&build.NotifyOnly, "notify-only", false, "notify CI process")
 	flag.BoolVar(&doPub, "pub", false, `publish binaries to OSS: local/testing/production`)
 	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
-	flag.BoolVar(&pkgEBPF, "pkg-ebpf", false, `add datakit-ebpf to datakit tarball`)
-	flag.BoolVar(&downloadEBPF, "dl-ebpf", false, `download datakit-ebpf from OSS: local/testing/production`)
+
+	flag.IntVar(&pkgEBPF, "pkg-ebpf", 0, `add datakit-ebpf to datakit tar.gz`)
+	flag.IntVar(&downloadEBPF, "download-ebpf", 0, `download datakit-ebpf from OSS: local/testing/production`)
+
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
 
 	flag.BoolVar(&ut, "ut", false, "test all DataKit code")
 	flag.IntVar(&build.Parallel, "ut-parallel", runtime.NumCPU(), "specify concurrent worker on unit testing")
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
 	flag.StringVar(&build.UTOnly, "ut-only", "", "select packages for testing")
-
+	flag.IntVar(&build.OnlyExternalInputs, "only-external-inputs", 0, "only build external inputs")
+	flag.StringVar(&build.HelmChartDir, "helm-chart-dir", build.ValueNotSet, "set Helm workdir")
+	flag.StringVar(&build.DockerImageRepo, "docker-image-repo", build.ValueNotSet, "set docker image repo URL")
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
 	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")
 	flag.BoolVar(&mdNoAutofix, "mdcheck-no-autofix", false, "check markdown docs with autofix")
@@ -58,6 +83,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 
 	flag.BoolVar(&dca, "dca", false, "build DCA only")
+	flag.StringVar(&build.DCAVersion, "dca-version", build.ValueNotSet, "specify DCA version string")
 
 	//
 	// export related flags.
@@ -72,30 +98,12 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "specify version string in document's header")
 }
 
-var (
-	mdCheck, mdMetaDir string
-
-	mdNoAutofix      = false
-	mdNoSectionCheck = false
-	sampleConfCheck  = false
-	doPub            = false
-	doPubeBPF        = false
-	pkgEBPF          = false
-	downloadEBPF     = false
-	buildISP         = false
-	ut               = false
-	dca              = false
-	export           = false
-	dwURL            = "not-set"
-	mdSkip           = ""
-
-	l = logger.DefaultSLogger("make")
-)
-
 func applyFlags() {
+	build.LoadENVs()
+
 	if mdCheck != "" {
 		skips := strings.Split(mdSkip, ",")
-		cp.Infof("skip files %+#v\n", skips)
+		l.Infof("skip files %+#v", skips)
 
 		res, err := check.Check(
 			check.WithMarkdownDir(mdCheck),
@@ -105,16 +113,16 @@ func applyFlags() {
 			check.WithCheckSection(!mdNoSectionCheck),
 		)
 		if err != nil {
-			cp.Errorf("markdown check: %s\n", err.Error())
+			l.Errorf("markdown check: %s", err.Error())
 			os.Exit(-1)
 		}
 
 		for _, r := range res {
 			switch {
 			case r.Err != "":
-				cp.Errorf("%s: %q | Err: %s\n", r.Path, r.Text, r.Err)
+				l.Errorf("%s: %q | Err: %s", r.Path, r.Text, r.Err)
 			case r.Warn != "":
-				cp.Warnf("%s: Warn: %s\n", r.Path, r.Err)
+				l.Warnf("%s: Warn: %s", r.Path, r.Err)
 			}
 		}
 
@@ -127,7 +135,7 @@ func applyFlags() {
 
 	if sampleConfCheck {
 		if err := build.CheckSampleConf(inputs.Inputs); err != nil {
-			cp.Errorf("sample conf check: %s\n", err.Error())
+			l.Errorf("sample conf check: %s", err.Error())
 			os.Exit(-1)
 		}
 
@@ -178,10 +186,6 @@ func applyFlags() {
 		build.ReleaseVersion = x
 	}
 
-	if x := os.Getenv("DINGDING_TOKEN"); x != "" {
-		build.NotifyToken = x
-	}
-
 	vi := version.VerInfo{VersionString: build.ReleaseVersion}
 	if err := vi.Parse(); err != nil {
 		l.Fatalf("invalid version %s", build.ReleaseVersion)
@@ -219,9 +223,13 @@ func applyFlags() {
 	}
 
 	if doPub {
+		l.Infof("under publishing...")
 		build.NotifyStartPub()
-		if downloadEBPF {
-			build.PackageeBPF()
+		if downloadEBPF != 0 {
+			if err := build.PackageEBPF(); err != nil {
+				l.Errorf("build.PackageeBPF: %s", err)
+				return
+			}
 		}
 
 		if err := build.PubDatakit(); err != nil {
@@ -232,12 +240,16 @@ func applyFlags() {
 		}
 		return
 	} else {
+		l.Infof("under compiling...")
 		if err := build.Compile(); err != nil {
-			l.Error(err)
+			l.Errorf("build.Compile: %s", err)
 			build.NotifyFail(err.Error())
 		} else {
-			if pkgEBPF {
-				build.PackageeBPF()
+			if pkgEBPF != 0 {
+				if err := build.PackageEBPF(); err != nil {
+					l.Errorf("build.PackageeBPF: %s", err)
+					return
+				}
 			}
 			build.NotifyBuildDone()
 		}

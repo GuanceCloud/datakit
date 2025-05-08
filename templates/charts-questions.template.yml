@@ -2,7 +2,7 @@ questions:
 #image Configurationss
 - variable: defaultImage
   default: true
-  description: "Use default DataKit image or specify a custom one"
+  description: "Use default Datakit image or specify a custom one"
   label: Use Default DataKit Image
   type: boolean
   show_subquestion_if: false
@@ -10,12 +10,12 @@ questions:
   subquestions:
   - variable: image.repository
     default: "DataKit/agent"
-    description: "DataKit image name"
+    description: "Datakit image name"
     type: string
     label: DataKit Image Name
   - variable: image.tag
     default: "latest"
-    description: "DataKit Image Tag"
+    description: "Datakit Image Tag"
     type: string
     label: DataKit Image Tag
 
@@ -23,19 +23,19 @@ questions:
 - variable: datakit.dataway_url
   required: true
   default: ""
-  description: "Must be modified.The host of the DataKit intake server to send Agent data to, only set this option if you need the Agent to send data to a custom URL"
+  description: "Must be modified.The host of the Datakit intake server to send Agent data to, only set this option if you need the Agent to send data to a custom URL"
   type: string
   label: Dataway URL
   group: "Datakit Configuration"
 - variable: datakit.default_enabled_inputs
   default: ""
-  description: "Enable the default collector Configurations. For details, see https://yuque.com/dataflux/datakit/datakit-input-conf#764ffbc2"
+  description: "Enable the default collector Configurations. For details, see https://docs.{{.BrandDomain}}/en/datakit/datakit-input-conf/#default-enabled-inputs"
   type: string
   label: Enable The Default Inputs
   group: "Datakit Configuration"
 - variable: datakit.global_tags
   default: ""
-  description: "Datakit allows you to configure global tags for all the data it collects. These tags will be added to each piece of data collected by the Datakit by default. For details, see https://www.yuque.com/dataflux/datakit/datakit-conf#53181faf"
+  description: "Datakit allows you to configure global tags for all the data it collects. These tags will be added to each piece of data collected by the Datakit by default. For details, see https://docs.{{.BrandDomain}}/en/datakit/datakit-conf/#set-global-tag"
   type: string
   label: DataKit Global Tags
   group: "Datakit Configuration"
@@ -47,7 +47,7 @@ questions:
   group: "Datakit Configuration"
 - variable: datakit.log_level
   default: "info"
-  description: "Set DataKit logging level"
+  description: "Set Datakit logging level"
   type: enum
   options:
     - "stdout"
@@ -61,7 +61,7 @@ questions:
 #DataKit iploc
 - variable: iploc.enable
   default: false
-  description: "Enable DataKit install ipdb"
+  description: "Enable Datakit install ipdb"
   label: Install ipdb
   type: boolean
   show_subquestion_if: true
@@ -69,12 +69,12 @@ questions:
   subquestions:
     - variable: iploc.image.repository
       default: ""
-      description: "DataKit Iploc image name"
+      description: "Datakit Iploc image name"
       type: string
       label: DataKit Image Name
     - variable: iploc.image.tag
       default: ""
-      description: "DataKit Iploc Image Tag"
+      description: "Datakit Iploc Image Tag"
       type: string
       label: DataKit Image Tag
 
@@ -96,7 +96,7 @@ questions:
 
 - variable: git_repos.git_url
   default: ""
-  description: "You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git. For details, see https://www.yuque.com/dataflux/datakit/datakit-conf#90362fd0"
+  description: "You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git. For details, see https://docs.{{.BrandDomain}}/en/datakit/datakit-conf/#using-gitrepo"
   type: string
   label: The Git Hub Url
   group: "Git Management Configurations"
@@ -120,7 +120,7 @@ questions:
 
 - variable: git_repos.git_branch
   default: ""
-  description: "The DataKit Git Hub Branch"
+  description: "The Datakit Git Hub Branch"
   type: string
   label: The Git Branch
   group: "Git Management Configurations"

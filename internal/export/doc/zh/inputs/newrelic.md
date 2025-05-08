@@ -122,7 +122,7 @@ PS> iisreset
 
 #### 配置主机 {#configure-host-for-newrelic}
 
-由于 `New Relic Agent` 需要配置 `HTTPS` 完成数据传输所以进行主机配置前首先完成[证书的申请](certificate.md#self-signed-certificate-with-openssl)，由于 `New Relic Agent` 启动过程中需要完成证书合法性验证，这里需要完成 `CA` 的自签和自签 `CA` 的证书签发。完成证书认证链的签发后参考[观测云接入 NewRelic .NET 探针](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}和[Windows 服务器如何导入根证书和中间证书？](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"}进行证书的部署。
+由于 `New Relic Agent` 需要配置 `HTTPS` 完成数据传输所以进行主机配置前首先完成[证书的申请](certificate.md#self-signed-certificate-with-openssl)，由于 `New Relic Agent` 启动过程中需要完成证书合法性验证，这里需要完成 `CA` 的自签和自签 `CA` 的证书签发。完成证书认证链的签发后参考[<<<custom_key.brand_name>>>接入 NewRelic .NET 探针](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}和[Windows 服务器如何导入根证书和中间证书？](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"}进行证书的部署。
 
 完成证书部署后需要对 `hosts` 文件进行相应的配置已满足本地解析域名的能力 `hosts` 配置如下：
 
@@ -187,5 +187,5 @@ The client and server cannot communicate, because they do not possess a common a
 - [官方文档](https://docs.newrelic.com/){:target="_blank"}
 - [代码仓库](https://github.com/newrelic/newrelic-dotnet-agent){:target="_blank"}
 - [下载](https://download.newrelic.com/){:target="_blank"}
-- [观测云接入 NewRelic .NET 探针](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}
+- [<<<custom_key.brand_name>>>接入 NewRelic .NET 探针](https://blog.csdn.net/liurui_wuhan/article/details/132889536){:target="_blank"}
 - [Windows 服务器如何导入根证书和中间证书？](https://baijiahao.baidu.com/s?id=1738111820379111942&wfr=spider&for=pc){:target="_blank"}

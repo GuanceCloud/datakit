@@ -40,7 +40,7 @@ eBPF 链路功能分为 eBPF Span(以下简称 eSpan) 的采集器和汇集并�
 
 - Kubernetes 部署 DataKit ELinker：
 
-下载 [*datakit-elinker.yaml*](https://static.guance.com/datakit/datakit-elinker.yaml)，执行命令 `kubectl apply -f datakit-elinker.yaml`，可通过指定命名空间 `datakit-elinker`，如 `kubectl -n datakit-elinker get all -owide` 查看相关资源
+下载 [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-elinker.yaml)，执行命令 `kubectl apply -f datakit-elinker.yaml`，可通过指定命名空间 `datakit-elinker`，如 `kubectl -n datakit-elinker get all -owide` 查看相关资源
 
 *为了降低误操作造成的数据污染可能性，推荐部署 DataKit ELinker 而非 DataKit。DataKit 的 ELinker 版本相较于 DataKit 的二进制和镜像大小分别减少约 50% 和 75%。*
 
@@ -95,7 +95,7 @@ DataKit ELinker 或 DataKit 中的 `ebpftrace` 插件用于接收和链接 eBPF 
 
   ```yaml
   - name: ENV_DATAWAY
-    value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+    value: https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
   - name: ENV_INPUT_EBPFTRACE_WINDOW
     value: 20s # ebpf trace span link window
   - name: ENV_INPUT_EBPFTRACE_SAMPLING_RATE

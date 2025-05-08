@@ -190,7 +190,7 @@ java -javaagent:dd-java-agent.jar \
 
 ### 通过 Jolokia 采集 JVM 指标 {#jvm-jolokia}
 
-JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观测云，帮助分析 Java 运行情况。
+JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到<<<custom_key.brand_name>>>，帮助分析 Java 运行情况。
 
 ### 配置 {#jolokia-config}
 

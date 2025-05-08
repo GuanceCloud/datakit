@@ -18,13 +18,13 @@
 
 单击帐号下的「我的凭证」。
 
-![img](https://static.guance.com/images/datakit/vpcep_01.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_01.png)
 
 进入「我的凭证」页面，即可查看到所属租户的「帐号 ID」，如下所示。
 
-![img](https://static.guance.com/images/datakit/vpcep_02.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_02.png)
 
-复制该「账号 ID」并告知我方观测云的客户经理，加入其到我方白名单中。
+复制该「账号 ID」并告知我方<<<custom_key.brand_name>>>的客户经理，加入其到我方白名单中。
 
 ### 步骤二：购买终端节点 {#Purchase-nodes}
 
@@ -36,7 +36,7 @@
 
 在「终端节点」页面，单击「购买终端节点」。
 
-![img](https://static.guance.com/images/datakit/vpcep_03.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_03.png)
 
 根据界面提示配置参数。（**服务名称**需要用到上方表格中的**「接入终端节点服务的名称 ID」**）
 
@@ -56,7 +56,7 @@
 
 - 终端节点创建成功后，会生成一个「节点 IP」（就是私有 IP）和「内网域名」（如果在创建终端节点时您勾选了「创建内网域名」）。
 
-![img](https://static.guance.com/images/datakit/vpcep_04.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_04.png)
 
 - 您可以使用节点 IP 或内网域名访问终端节点服务，进行跨 VPC 资源通信。
 
@@ -68,11 +68,11 @@
 
 选择内网域名
 
-点击右上角「创建域名」，根据提示填入相应数据，域名填写主域名，建议使用 `guance.com` 作为主域名。
+点击右上角「创建域名」，根据提示填入相应数据，域名填写主域名，建议使用 `<<<custom_key.brand_main_domain>>>` 作为主域名。
 
 填入终端节点所在的 VPC。如下图所示：
 
-![img](https://static.guance.com/images/datakit/vpcep_05.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_05.png)
 
 创建成功后，点击管理解析
 
@@ -84,10 +84,10 @@
 
 然后点击确定。如下图所示：
 
-![img](https://static.guance.com/images/datakit/vpcep_06.png)
+![img](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/vpcep_06.png)
 
 登陆 VPC 内网的随便一台机器，用以下命令验证一下
 
 ```shell
-curl https://cn4-openway.guance.com
+curl https://cn4-openway.<<<custom_key.brand_main_domain>>>
 ```

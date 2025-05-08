@@ -6,6 +6,7 @@
 PY_SPY_IMAGE_VER=0.1.0
 ASYNC_PROFILER_IMAGE_VER=0.1.0
 PPROF_IMAGE_VER=0.1.0
+DOCKER_IMAGE_REPO?="not_set"
 
 TARGET=async-profiler go-pprof py-spy
 #TARGET=async-profiler py-spy go-pprof
@@ -16,19 +17,18 @@ build: $(TARGET)
 
 async-profiler:
 	cd async-profiler && docker buildx build --platform linux/arm64,linux/amd64 \
-		-t pubrepo.guance.com/datakit-operator/async-profiler:$(ASYNC_PROFILER_IMAGE_VER) \
-		-t pubrepo.guance.com/datakit-operator/async-profiler:latest \
+		-t $(DOCKER_IMAGE_REPO)/async-profiler:$(ASYNC_PROFILER_IMAGE_VER) \
+		-t $(DOCKER_IMAGE_REPO)/async-profiler:latest \
 		-f Dockerfile --push .
 
 go-pprof:
 	cd go-pprof && docker buildx build --platform linux/arm64,linux/amd64 \
-		-t pubrepo.guance.com/datakit-operator/go-pprof:$(PPROF_IMAGE_VER) \
-		-t pubrepo.guance.com/datakit-operator/go-pprof:latest \
+		-t $(DOCKER_IMAGE_REPO)/go-pprof:$(PPROF_IMAGE_VER) \
+		-t $(DOCKER_IMAGE_REPO)/go-pprof:latest \
 		-f Dockerfile --push .
 
 py-spy:
 	cd py-spy && docker buildx build --platform linux/arm64,linux/amd64 \
-        -t pubrepo.guance.com/datakit-operator/py-spy:$(PY_SPY_IMAGE_VER) \
-        -t pubrepo.guance.com/datakit-operator/py-spy:latest \
+        -t $(DOCKER_IMAGE_REPO)/py-spy:$(PY_SPY_IMAGE_VER) \
+        -t $(DOCKER_IMAGE_REPO)/py-spy:latest \
         -f Dockerfile --push .
-

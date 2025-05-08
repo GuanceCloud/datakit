@@ -93,7 +93,7 @@ During the installation of Datakit, an additional remote update service is insta
     ```shell hl_lines="2"
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 === "Offline Update"
@@ -106,7 +106,7 @@ During the installation of Datakit, an additional remote update service is insta
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_INSTALLER_BASE_URL="http://my.static.com/datakit"  \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 ???+ attention
@@ -117,7 +117,7 @@ During the installation of Datakit, an additional remote update service is insta
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_UPGRADE_LISTEN=0.0.0.0:19542 \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 ---

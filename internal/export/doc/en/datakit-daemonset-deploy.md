@@ -8,7 +8,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
 <!-- markdownlint-disable MD046 -->
 === "DaemonSet"
 
-    Download [`datakit.yaml`](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
+    Download [`datakit.yaml`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ???+ attention
     
@@ -18,14 +18,14 @@ This document describes how to install DataKit in K8s via DaemonSet.
     
     ```yaml
         - name: ENV_DATAWAY
-            value: https://openway.guance.com?token=<your-token> # Fill in the real address of DataWay here
+            value: https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token> # Fill in the real address of DataWay here
     ```
     
     If you choose another node, change the corresponding DataWay address here, such as AWS node:
     
     ```yaml
         - name: ENV_DATAWAY
-            value: https://aws-openway.guance.com?token=<your-token> 
+            value: https://aws-openway.<<<custom_key.brand_main_domain>>>?token=<your-token> 
     ```
     
     Install yaml
@@ -51,9 +51,9 @@ This document describes how to install DataKit in K8s via DaemonSet.
     
     ```shell
     $ helm install datakit datakit \
-               --repo  https://pubrepo.guance.com/chartrepo/datakit \
+               --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
                -n datakit --create-namespace \
-               --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+               --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" 
     ```
     
     View deployment status:
@@ -67,7 +67,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
     ```shell
     $ helm -n datakit get  values datakit -o yaml > values.yaml
     $ helm upgrade datakit datakit \
-        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
         -n datakit \
         -f values.yaml
     ```

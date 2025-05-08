@@ -9,7 +9,7 @@
 <!-- markdownlint-disable MD046 -->
 === "DaemonSet"
 
-    先下载 [*datakit.yaml*](https://static.guance.com/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
+    先下载 [*datakit.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
     
     ???+ attention
     
@@ -19,14 +19,14 @@
     
     ```yaml
     - name: ENV_DATAWAY
-      value: https://openway.guance.com?token=<your-token> # 此处填上 DataWay 真实地址
+      value: https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token> # 此处填上 DataWay 真实地址
     ```
     
     如果选择的是其它节点，此处更改对应的 Dataway 地址即可，如 AWS 节点：
     
     ```yaml
     - name: ENV_DATAWAY
-      value: https://aws-openway.guance.com?token=<your-token> 
+      value: https://aws-openway.<<<custom_key.brand_main_domain>>>?token=<your-token> 
     ```
     
     安装 yaml
@@ -53,9 +53,9 @@
     
     ```shell
     $ helm install datakit datakit \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
          -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.guance.com?token=<your-token>" 
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" 
     ```
     
     查看部署状态：
@@ -69,7 +69,7 @@
     ```shell
     $ helm -n datakit get  values datakit -o yaml > values.yaml
     $ helm upgrade datakit datakit \
-        --repo  https://pubrepo.guance.com/chartrepo/datakit \
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
         -n datakit \
         -f values.yaml
     ```

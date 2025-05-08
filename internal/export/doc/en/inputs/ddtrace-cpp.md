@@ -32,7 +32,7 @@ To apply DDTrace in C++ code, you need to modify the business code, and there is
     mkdir .build && cd .build && cmake .. && make && make install
     ```
 
-    If there are problems during the compilation of the SDK, you can temporarily use the [header files][5] and [dynamic libraries][6] prepared by GuanceCloud for testing.
+    If there are problems during the compilation of the SDK, you can temporarily use the [header files][5] and [dynamic libraries][6] prepared by <<<custom_key.brand_name>>> for testing.
 
 === "Windows"
 
@@ -40,11 +40,11 @@ To apply DDTrace in C++ code, you need to modify the business code, and there is
 
 ???+ attention "cmake installation"
 
-    cmake may not be able to install a higher version through yum or apt-get, it is recommended to directly download the latest version from its [official website][3]{:target="_blank"}. You can also directly use the [source code][1] or [Windows binary][2] hosted by GuanceCloud.
+    cmake may not be able to install a higher version through yum or apt-get, it is recommended to directly download the latest version from its [official website][3]{:target="_blank"}. You can also directly use the [source code][1] or [Windows binary][2] hosted by <<<custom_key.brand_name>>>.
 
     ```shell
     # Install cmake from source code
-    wget https://static.guance.com/gfw/cmake-3.24.2.tar.gz
+    wget https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2.tar.gz
     tar -zxvf cmake-3.24.2.tar.gz
     ./bootstrap --prefix=/usr/local
     make
@@ -137,10 +137,10 @@ LD_LIBRARY_PATH=/usr/local/lib64 DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=952
 
 You can place *libdd_opentracing.so* and the corresponding header files in any directory, then adjust `LD_LIBRARY_PATH` and `-I` parameters accordingly.
 
-After running the program for a while, you can see trace data similar to the following in GuanceCloud:
+After running the program for a while, you can see trace data similar to the following in <<<custom_key.brand_name>>>:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){  width="800"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cpp-ddtrace-example.png){  width="800"}
   <figcaption>C++ trace data display</figcaption>
 </figure>
 
@@ -191,11 +191,11 @@ Some commonly used ENVs are as follows. For more ENV support, please refer to [D
     Here you can inject a set of global tags, which will appear in each span and profile data. Multiple tags can be separated by spaces and commas, such as `layer:api,team:intake`, `layer:api team:intake`
 
 <!-- markdownlint-disable MD053 -->
-[1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
-[2]: https://static.guance.com/gfw/cmake-3.24.2-windows-x86_64.msi
+[1]: https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2.tar.gz
+[2]: https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2-windows-x86_64.msi
 [3]: https://cmake.org/download/
 [4]: ../datakit/datakit-conf.md#config-http-server
-[5]: https://static.guance.com/gfw/dd-cpp-include.tar.gz
-[6]: https://static.guance.com/gfw/libdd_opentracing.so
+[5]: https://static.<<<custom_key.brand_main_domain>>>/gfw/dd-cpp-include.tar.gz
+[6]: https://static.<<<custom_key.brand_main_domain>>>/gfw/libdd_opentracing.so
 [7]: https://docs.datadoghq.com/tracing/trace_collection/library_config/cpp/
 <!-- markdownlint-enable -->

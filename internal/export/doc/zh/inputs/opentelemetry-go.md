@@ -15,7 +15,7 @@ __int_icon: 'icon/opentelemetry'
 
 ## 接下来使用伪代码实现 {#code}
 
-模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录观测云平台查看在这个过程中每个模块的处理时间和服务状态。
+模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录<<<custom_key.brand_name>>>平台查看在这个过程中每个模块的处理时间和服务状态。
 
 流程介绍：用户请求到 web 层，解析后发送到 service 层，需要查询数据库的 dao 层，最终将结果返回到用户。
 
@@ -159,7 +159,7 @@ func main() {
 
 ## 效果查看 {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看「应用性能监测 -> 链路 -> 点击单条链路」
+登录 [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} 后查看「应用性能监测 -> 链路 -> 点击单条链路」
 
 ![not-set](imgs/otel-go-example.png)
 

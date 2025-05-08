@@ -110,7 +110,7 @@ Here's the breakdown:
 Take MySQL as an example. In the same cluster (such as k8s cluster), suppose there are 10 DataKits, 2 MySQL instances, and all DataKits have elections turned on (in DaemonSet mode, the configuration of each DataKit is the same) and MySQL collector:
 
 - Once a DataKit is elected, all MySQL data collection (the same is true for other election types) will be collected by the DataKit, regardless of whether the collected objects are one or more, and the winner takes all. Other DataKits that are not selected are on standby.
-- Guance Cloud will test whether the currently leader DataKit is alive(via heartbeat). If it is abnormal, the DataKit will be kicked off forcibly, and one of other DataKits in standby state will replace it.
+- <<<custom_key.brand_name>>> will test whether the currently leader DataKit is alive(via heartbeat). If it is abnormal, the DataKit will be kicked off forcibly, and one of other DataKits in standby state will replace it.
 - DataKit that does not open the election (it may not be in the current cluster). If MySQL collection is also configured, it will still collect MySQL data without election constraints.
 - The scope of the election is at the level of `workspace + election-namespace` . In a single `workspace + election-namespace`, only one DataKit can be selected as the leader at a time.
     - With regard to workspaces, in *datakit.conf*, it is represented by the `token` URL parameter in the DataWay address string, and each workspace has its corresponding token.

@@ -22,7 +22,7 @@ monitor   :
 
 ---
 
-This collector gathers resource usage metrics from vSphere clusters, including resources such as CPU, memory, and network, and reports this data to the Guance Cloud.
+This collector gathers resource usage metrics from vSphere clusters, including resources such as CPU, memory, and network, and reports this data to the <<<custom_key.brand_name>>>.
 
 ## Configuration {#config}
 

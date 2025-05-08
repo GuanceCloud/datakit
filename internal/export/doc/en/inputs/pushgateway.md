@@ -93,7 +93,7 @@ spec:
     spec:
       containers:
       - name: client
-        image: pubrepo.guance.com/base/curl
+        image: pubrepo.<<<custom_key.brand_main_domain>>>/base/curl
         imagePullPolicy: IfNotPresent
         env:
         - name: MY_NODE_NAME
@@ -125,7 +125,7 @@ spec:
           done
 ```
 
-- The metric set seen on the Guance Cloud page is `pushgateway`, with the field being `count`.
+- The metric set seen on the <<<custom_key.brand_name>>> page is `pushgateway`, with the field being `count`.
 
 ## Metric Sets and Tags {#measurement-and-tags}
 

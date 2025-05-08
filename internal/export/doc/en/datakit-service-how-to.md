@@ -76,14 +76,10 @@ Under Mac, you can use the following command instead:
 
 ```shell
 # Start DataKit
-sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# or
-sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 
 # Stop DataKit
-sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# or
-sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
+sudo launchctl unload -w /Library/LaunchDaemons/com.datakit.plist
 ```
 
 ### Service Uninstall and Reinstall {#uninstall-reinstall}

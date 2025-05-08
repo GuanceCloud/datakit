@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-采集 NSQ 运行数据并以指标的方式上报到观测云。
+采集 NSQ 运行数据并以指标的方式上报到<<<custom_key.brand_name>>>。
 
 
 ## 配置 {#config}

@@ -9,7 +9,7 @@
 ### helm 下载 DataKit Charts 包 {#dowbload-config}
 
 ```shell
-helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
+helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit --untar
 ```
 
 ### 修改 values.yaml {#values-configuration}
@@ -26,9 +26,9 @@ helm pull datakit --repo https://pubrepo.guance.com/chartrepo/datakit --untar
 ...
 datakit:
   # Datakit will send the indicator data to dataway. Please be sure to change the parameters
-  # @param dataway_url - string - optional - default: 'https://guance.com'
+  # @param dataway_url - string - optional - default: 'https://<<<custom_key.brand_main_domain>>>'
   # The host of the DataKit intake server to send Agent data to, only set this option
-  dataway_url: https://openway.guance.com?token=tkn_xxxxxxxxxx
+  dataway_url: https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxx
 ...
 ```
 
@@ -65,7 +65,7 @@ datakit:
 ```yaml
 # @param extraEnvs - array - optional
 # extra env Add env for customization
-# more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
+# more, see: https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env
 # You can add more than one parameter  
 extraEnvs:
  - name: ENV_NAMESPACE
@@ -127,7 +127,7 @@ dkconfig:
 
 ```shell
 helm install datakit datakit \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
          -n datakit --create-namespace \
          -f values.yaml
 ```
@@ -152,7 +152,7 @@ NOTES:
 
 ```shell
 helm install datakit datakit \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
          -n datakit --create-namespace \
          -f values.yaml \
          --version 1.5.x
@@ -168,7 +168,7 @@ helm install datakit datakit \
 
 ```shell
 helm upgrade datakit datakit \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
          -n datakit \
          -f values.yaml
 ```
@@ -191,9 +191,9 @@ helm uninstall datakit -n datakit
 
     datakit:
       # Datakit will send the indicator data to dataway. Please be sure to change the parameters
-      # @param dataway_url - string - optional - default: 'https://guance.com'
+      # @param dataway_url - string - optional - default: 'https://<<<custom_key.brand_main_domain>>>'
       # The host of the DataKit intake server to send Agent data to, only set this option
-      dataway_url: https://openway.guance.com?token=tkn_xxxxxxxxxx
+      dataway_url: https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxx
 
       # @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
       # It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
@@ -220,7 +220,7 @@ helm uninstall datakit -n datakit
       # @param repository - string - required
       # Define the repository to use:
       #
-      repository:  pubrepo.guance.com/datakit/datakit
+      repository:  pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit
 
       # @param tag - string - required
       # Define the Cluster-Agent version to use.
@@ -232,7 +232,7 @@ helm uninstall datakit -n datakit
       #
       pullPolicy: Always
 
-    # https://docs.guance.com/datakit/datakit-daemonset-deploy/
+    # https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/
 
     git_repos:
       # use git management DataKit input
@@ -240,7 +240,7 @@ helm uninstall datakit -n datakit
 
       # @param git_url - string - required
       # You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
-      # see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
+      # see https://docs.<<<custom_key.brand_main_domain>>>/best-practices/insight/datakit-daemonset/#git
       git_url: "-"
 
       # @param git_key_path - string - optional
@@ -265,14 +265,14 @@ helm uninstall datakit -n datakit
       is_use_key: false
 
     # If true, Datakit install ipdb.
-    # ref: https://docs.guance.com/datakit/datakit-tools-how-to/#install-ipdb
+    # ref: https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-tools-how-to/#install-ipdb
     iploc:
       enable: true
       image:
         # @param repository - string - required
         # Define the repository to use:
         #
-        repository: "pubrepo.guance.com/datakit/iploc"
+        repository: "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/iploc"
 
         # @param tag - string - required
         # Define the Cluster-Agent version to use.
@@ -281,7 +281,7 @@ helm uninstall datakit -n datakit
 
     # @param extraEnvs - array - optional
     # extra env Add env for customization
-    # more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
+    # more, see: https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env
     # You can add more than one parameter
     extraEnvs:
      - name: ENV_NAMESPACE
@@ -418,6 +418,6 @@ helm get values -n datakit datakit -o yaml > values.yaml
 #### 重新升级或安装 {#reinstall}
 
 ```shell
-helm upgrade -i -n datakit datakit  --repo  https://pubrepo.guance.com/chartrepo/datakit  -f values.yaml
+helm upgrade -i -n datakit datakit  --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit  -f values.yaml
 ```
 

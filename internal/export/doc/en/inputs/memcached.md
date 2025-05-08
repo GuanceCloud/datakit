@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Memcached collector can collect the running status metrics from Memcached instances, and collect the metrics to the Guance Cloud to help monitor and analyze various abnormal situations of Memcached.
+Memcached collector can collect the running status metrics from Memcached instances, and collect the metrics to the <<<custom_key.brand_name>>> to help monitor and analyze various abnormal situations of Memcached.
 
 ## Config {#config}
 

@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-启动一个 HTTP Server，接收日志文本数据，上报到观测云。HTTP URL 固定为：`/v1/write/logstreaming`，即 `http://Datakit_IP:PORT/v1/write/logstreaming`
+启动一个 HTTP Server，接收日志文本数据，上报到<<<custom_key.brand_name>>>。HTTP URL 固定为：`/v1/write/logstreaming`，即 `http://Datakit_IP:PORT/v1/write/logstreaming`
 
 > 注：如果 DataKit 以 DaemonSet 方式部署在 Kubernetes 中，可以使用 Service 方式访问，地址为 `http://datakit-service.datakit:9529`
 

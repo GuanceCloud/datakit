@@ -36,7 +36,7 @@ var (
 	configSample = `
 [[inputs.dk]]
 
-  # See https://docs.guance.com/datakit/datakit-metrics/#metrics for all metrics exported by Datakit.
+  # See https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-metrics/#metrics for all metrics exported by Datakit.
   metric_name_filter = [
     ### Collect all metrics(these may collect 300+ metrics of Datakit)
     ### if you want to collect all, make this rule the first in the list.

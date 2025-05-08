@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-The process collector can monitor various running processes in the system, acquire and analyze various metrics when the process is running, Including memory utilization rate, CPU time occupied, current state of the process, port of process monitoring, etc. According to various index information of process running, users can configure relevant alarms in Guance Cloud, so that users can know the state of the process, and maintain the failed process in time when the process fails.
+The process collector can monitor various running processes in the system, acquire and analyze various metrics when the process is running, Including memory utilization rate, CPU time occupied, current state of the process, port of process monitoring, etc. According to various index information of process running, users can configure relevant alarms in <<<custom_key.brand_name>>>, so that users can know the state of the process, and maintain the failed process in time when the process fails.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention

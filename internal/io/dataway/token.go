@@ -6,6 +6,7 @@
 package dataway
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -16,7 +17,16 @@ var tokenFormatMap = map[string]int{
 	"tokn":  24,
 }
 
+var (
+	ErrInvalidToken = errors.New("invalid token format")
+	ErrEmptyToken   = errors.New("empty token")
+)
+
 func CheckToken(token string) error {
+	if token == "" {
+		return ErrEmptyToken
+	}
+
 	parts := strings.Split(token, "_")
 
 	if len(parts) == 2 {
@@ -25,13 +35,13 @@ func CheckToken(token string) error {
 
 		if tokenLen, ok := tokenFormatMap[prefix]; ok {
 			if len(tokenVal) != tokenLen {
-				return fmt.Errorf("invalid token format, expect token length %d, but got %d",
-					tokenLen+len(prefix)+1, len(tokenVal)+len(prefix)+1)
+				return fmt.Errorf("%w, expect token length %d, but got %d",
+					ErrInvalidToken, tokenLen+len(prefix)+1, len(tokenVal)+len(prefix)+1)
 			} else {
 				return nil
 			}
 		}
 	}
 
-	return fmt.Errorf("token invalid format")
+	return ErrInvalidToken
 }

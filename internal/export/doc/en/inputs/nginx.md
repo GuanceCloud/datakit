@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-NGINX collector can take many metrics from NGINX instances, such as the total number of requests, connections, cache and other metrics, and collect the metrics into Guance Cloud to help monitor and analyze various abnormal situations of NGINX.
+NGINX collector can take many metrics from NGINX instances, such as the total number of requests, connections, cache and other metrics, and collect the metrics into <<<custom_key.brand_name>>> to help monitor and analyze various abnormal situations of NGINX.
 
 ## Config {#config}
 

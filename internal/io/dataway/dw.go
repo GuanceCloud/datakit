@@ -165,6 +165,8 @@ type Dataway struct {
 	globalTagsHTTPHeaderValue string
 
 	NTP *ntp `toml:"ntp"`
+
+	Token string `toml:"-"` // fast path to get main token
 }
 
 // ParseGlobalCustomerKeys parse custom tag keys used for sinker.
@@ -325,6 +327,11 @@ func (dw *Dataway) doInit() error {
 		dw.eps = append(dw.eps, ep)
 
 		dw.addDNSCache(ep.host)
+	}
+
+	// set main token
+	if len(dw.eps) > 0 {
+		dw.Token = dw.eps[0].token
 	}
 
 	return nil

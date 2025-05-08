@@ -52,7 +52,7 @@ Configure log4j. xml in resources and add `Socket Appender`:
      <!-- <SerializedLayout/>-->
 
      <!-- 注意：配置 compact eventEol 一定要是 true  这样单条日志输出为一行-->
-     <!-- 将日志发送到观测云上后会自动将 json 展开 所以在这里建议您将日志单条单行输出 -->
+     <!-- 将日志发送到<<<custom_key.brand_name>>>上后会自动将 json 展开 所以在这里建议您将日志单条单行输出 -->
      <!-- <JsonLayout  properties="true" compact="true" complete="false" eventEol="true"/>-->
  </Socket>
 

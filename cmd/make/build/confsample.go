@@ -26,7 +26,7 @@ func CheckSampleConf(allInputs map[string]inputs.Creator) error {
 	}
 
 	// check datakit.conf.sample
-	if err := isAllASCII(datakit.DatakitConfSample); err != nil {
+	if err := isAllASCII(datakit.MainConfSample(datakit.BrandDomainTemplate)); err != nil {
 		return fmt.Errorf("got non-ASCII characters within datakit.conf sample: %w", err)
 	}
 

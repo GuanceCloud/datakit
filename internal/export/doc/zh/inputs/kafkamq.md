@@ -169,7 +169,7 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 {"time": 1666492218, "dimensions": {"bk_biz_id": 225,"ip": "10.200.64.45" },  "metrics": { "cpu_usage_pct": 0.01}, "exemplar": null}
 ```
 
-有了数据格式，就可以手写 Pipeline 脚本。登录「观测云 -> 管理 -> 文本处理（Pipeline）编写脚本」。 如：
+有了数据格式，就可以手写 Pipeline 脚本。登录「<<<custom_key.brand_name>>> -> 管理 -> 文本处理（Pipeline）编写脚本」。 如：
 
 ```python
   data = load_json(message)
@@ -253,7 +253,7 @@ X-category=tracing
 外部插件有一些约束：
 
 - KafkaMQ 接收数据但不负责解析后序列化，因为这是定制化开发，无法为所有用户使用。
-- 外部插件解析后的数据可以发送到 [dk apis](../datakit/apis.md#api-v1-write) ，也可以返回到 KafkaMQ 再发送到观测云。
+- 外部插件解析后的数据可以发送到 [dk apis](../datakit/apis.md#api-v1-write) ，也可以返回到 KafkaMQ 再发送到<<<custom_key.brand_name>>>。
 - 通过 response 返回到 KafkaMQ 必须是 ***行协议格式***，如果是 `JSON` 格式需要带上头部信息： `Content-Type:application/json` 另外，返回的头部信息也应该带上类型： `X-category:tracing` 表示这个链路信息。
 - 外部插件收到数据，无论解析失败与否 都应该返回 200。
 - KafkaMQ 发送数据到外部插件如果出现超时，端口不存在等问题。会尝试重连。不再消费 Kafka 中的消息。

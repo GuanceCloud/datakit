@@ -20,9 +20,9 @@ monitor   :
 
 ---
 
-采集 Zabbix 服务的实时数据并发送到观测云中心。
+采集 Zabbix 服务的实时数据并发送到<<<custom_key.brand_name>>>中心。
 
-Zabbix 从 4.0 到 7.0 版本都支持将实时数据写到文件中。实时数据中有三种数据格式：`events/history/trends` ，其中 `history` 和 `trends` 都是以指标形式展示。而 `events` 则可以通过 [Webhook](https://www.zabbix.com/documentation/5.4/en/manual/config/notifications/media/webhook?hl=Webhook%2Cwebhook){:target="_blank"} 方式发送到观测云。
+Zabbix 从 4.0 到 7.0 版本都支持将实时数据写到文件中。实时数据中有三种数据格式：`events/history/trends` ，其中 `history` 和 `trends` 都是以指标形式展示。而 `events` 则可以通过 [Webhook](https://www.zabbix.com/documentation/5.4/en/manual/config/notifications/media/webhook?hl=Webhook%2Cwebhook){:target="_blank"} 方式发送到<<<custom_key.brand_name>>>。
 
 ## 配置 {#config}
 

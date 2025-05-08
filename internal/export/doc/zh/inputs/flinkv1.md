@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务器状态和网络的状态等多种指标，并将指标采集到观测云 ，帮助你监控分析 Flink 各种异常情况。
+Flink 采集器可以从 Flink 实例中采取很多指标，比如 Flink 服务器状态和网络的状态等多种指标，并将指标采集到<<<custom_key.brand_name>>> ，帮助你监控分析 Flink 各种异常情况。
 
 ## 配置 {#config}
 

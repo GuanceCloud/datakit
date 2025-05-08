@@ -92,7 +92,7 @@ $ java -javaagent:/path_to_pinpoint/pinpoint-bootstrap.jar \
 Datakit link data follows the OpenTracing protocol. A link in Datakit is concatenated through a simple parent-child (the child span stores the id of the parent span) structure and each span corresponds to a function call.
 
 <figure markdown>
-  ![OpenTracing](https://static.guance.com/images/datakit/datakit-opentracing.png){ width="600" }
+  ![OpenTracing](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-opentracing.png){ width="600" }
   <figcaption>OpenTracing</figcaption>
 </figure>
 
@@ -104,7 +104,7 @@ Pinpoint APM link data is more complex:
 - A span is a response process for a service
 
 <figure markdown>
-  ![Pinpoint](https://static.guance.com/images/datakit/datakit-pinpoint.png){ width="600" }
+  ![Pinpoint](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-pinpoint.png){ width="600" }
   <figcaption>Pinpoint</figcaption>
 </figure>
 

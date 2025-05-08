@@ -27,7 +27,7 @@
     - CPU 占比
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/cpu-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/cpu-usage.png){ width="800" }
     </figure>
     
     由于限制了 CPU 使用核数，这里 CPU 稳定在 200% 附近。
@@ -35,7 +35,7 @@
     - 内存消耗
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mem-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mem-usage.png){ width="800" }
     </figure>
     
     内存限制了 4GB，这里已经比较接近限制。当超过内存限制，Datakit POD 将被 OOM 重启。
@@ -45,7 +45,7 @@
     - 数据采集点数
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/collect-pts-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/collect-pts-irate.png){ width="800" }
     </figure>
     
     每个采集器采集的数据点数，排在首位的是一个 Prometheus 指标采集，每次采集的数据点比较多，其次是 Tracing 采集器。
@@ -53,7 +53,7 @@
     - Pipeline 处理点数
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/pl-pts-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/pl-pts-irate.png){ width="800" }
     </figure>
     
     这里是某个具体 Pipeline 处理数据点的情况，有一个 Pipeline 脚本（*kodo.p*）业务比较繁忙。
@@ -61,7 +61,7 @@
     - 网络发送
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/upload-bytes-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/upload-bytes-irate.png){ width="800" }
     </figure>
     
     采集到的数据点最终都要通过网络发送到中心，这里展示的是 GZip 之后的数据点 Payload （HTTP Body）上传 [^2] 情况。Tracing 因为其含有大量文本信息，所以其 Payload 特别大。
@@ -73,31 +73,31 @@
     - CPU 占比
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mid-cpu-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-cpu-usage.png){ width="800" }
     </figure>
 
     - 内存消耗
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mid-mem-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-mem-usage.png){ width="800" }
     </figure>
     
     - 数据采集点数
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mid-collect-pts-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-collect-pts-irate.png){ width="800" }
     </figure>
     
     - Pipeline 处理点数
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mid-pl-pts-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-pl-pts-irate.png){ width="800" }
     </figure>
     
     - 网络发送
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/mid-upload-bytes-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-upload-bytes-irate.png){ width="800" }
     </figure>
 
 === "低负载"
@@ -107,25 +107,25 @@
     - CPU 占比
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/low-cpu-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-cpu-usage.png){ width="800" }
     </figure>
 
     - 内存消耗
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/low-mem-usage.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-mem-usage.png){ width="800" }
     </figure>
 
     - 数据采集点数
     
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/low-collect-pts-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-collect-pts-irate.png){ width="800" }
     </figure>
 
     - 网络发送
 
     <figure markdown>
-    ![](https://static.guance.com/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
+    ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
     </figure>
 
 <!-- markdownlint-enable -->

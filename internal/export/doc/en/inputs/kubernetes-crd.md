@@ -25,7 +25,7 @@ If it is an upgraded version of DataKit, you need to add authentication in the `
 
 ```yaml
 - apiGroups:
-  - guance.com
+  - <<<custom_key.brand_main_domain>>>
   resources:
   - datakits
   verbs:
@@ -70,9 +70,9 @@ A complete example is as follows, including:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: datakits.guance.com
+  name: datakits.<<<custom_key.brand_main_domain>>>
 spec:
-  group: guance.com
+  group: <<<custom_key.brand_main_domain>>>
   versions:
   - name: v1beta1
     served: true
@@ -112,7 +112,7 @@ kind: Namespace
 metadata:
   name: datakit-crd
 ---
-apiVersion: "guance.com/v1beta1"
+apiVersion: "<<<custom_key.brand_main_domain>>>/v1beta1"
 kind: Datakit
 metadata:
   name: my-test-crd-object
@@ -160,9 +160,9 @@ cat <<EOF | kubectl apply -f -
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: datakits.guance.com
+  name: datakits.<<<custom_key.brand_main_domain>>>
 spec:
-  group: guance.com
+  group: <<<custom_key.brand_main_domain>>>
   versions:
     - name: v1beta1
       served: true
@@ -200,8 +200,8 @@ EOF
 View deployment:
 
 ```bash
-$ kubectl get crds | grep guance.com
-datakits.guance.com   2022-08-18T10:44:09Z
+$ kubectl get crds | grep <<<custom_key.brand_main_domain>>>
+datakits.<<<custom_key.brand_main_domain>>>   2022-08-18T10:44:09Z
 ```
 
 - Create a Datakit resource
@@ -211,7 +211,7 @@ Prometheus configuration can be found in [link](kubernetes-prom.md)
 Execute the following `yaml`:
 
 ```yaml
-apiVersion: guance.com/v1beta1
+apiVersion: <<<custom_key.brand_main_domain>>>/v1beta1
 kind: DataKit
 metadata:
   name: prom-ingress
@@ -255,8 +255,8 @@ datakit monitor
 ```
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/datakit-crd-ingress.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-crd-ingress.png){ width="800" }
   <figcaption> Ingress 数据采集 </figcaption>
 </figure>
 
-You can also log in to [Guance Cloud Platform](https://www.guance.com/){:target="_blank"}, "Indicator"-"Viewer" to view metric data
+You can also log in to [<<<custom_key.brand_name>>> Platform](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}, "Indicator"-"Viewer" to view metric data

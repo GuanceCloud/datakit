@@ -76,7 +76,7 @@ spec:
               name: tmp
         
         - name: datakit-profiler
-          image: pubrepo.guance.com/dataflux/async-profiler:0.1.0
+          image: pubrepo.<<<custom_key.brand_main_domain>>>/dataflux/async-profiler:0.1.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /etc/localtime  # Synchronize Container Timezone with host
@@ -127,4 +127,4 @@ DK_PROFILE_VERSION=v0.1.0 DK_PROFILE_ENV=testing ./profiling.sh
 
 Type `./profiling.sh -h` for more detail.
 
-1. Go to the page [https://console.guance.com/tracing/profile](https://console.guance.com/tracing/profile) to see profiling detail, it may take a minute or so to load.
+1. Go to the page [https://console.<<<custom_key.brand_main_domain>>>/tracing/profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile) to see profiling detail, it may take a minute or so to load.

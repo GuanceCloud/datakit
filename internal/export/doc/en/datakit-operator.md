@@ -27,11 +27,11 @@ Prerequisites:
 <!-- markdownlint-disable MD046 -->
 === "Deployment"
 
-    Download [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}, and follow these steps:
+    Download [*datakit-operator.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml){:target="_blank"}, and follow these steps:
     
     ``` shell
     $ kubectl create namespace datakit
-    $ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+    $ wget https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml
     $ kubectl apply -f datakit-operator.yaml
     $ kubectl get pod -n datakit
     
@@ -48,7 +48,7 @@ Prerequisites:
 
     ```shell
     $ helm install datakit-operator datakit-operator \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit-operator \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
          -n datakit --create-namespace
     ```
 
@@ -63,7 +63,7 @@ Prerequisites:
     ```shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
-        --repo https://pubrepo.guance.com/chartrepo/datakit-operator \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
         -n datakit \
         -f values.yaml
     ```
@@ -99,7 +99,7 @@ The default configuration is as follows:
             "enabled_namespaces":     [],
             "enabled_labelselectors": [],
             "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance",
+                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance",
             },
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
@@ -115,14 +115,14 @@ The default configuration is as follows:
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.28.1"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
             }
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.guance.com/datakit-operator/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.guance.com/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.guance.com/datakit-operator/go-pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.1.0",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",
@@ -143,9 +143,9 @@ The main configuration items are `ddtrace`, `logfwd`, and `profiler`, which spec
 
 The primary function of the Datakit Operator is to inject images and environment variables, using the `images` configuration to specify the image addresses. The `images` configuration consists of multiple Key/Value pairs, where the Key is fixed, and the Value is modified to specify the image address.
 
-Under normal circumstances, images are stored in `pubrepo.guance.com/datakit-operator`. However, for some special environments where accessing this image repository is not convenient, you can use the following method (taking the `dd-lib-java-init` image as an example):
+Under normal circumstances, images are stored in `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`. However, for some special environments where accessing this image repository is not convenient, you can use the following method (taking the `dd-lib-java-init` image as an example):
 
-1. In an environment where `pubrepo.guance.com` is accessible, pull the image `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`.
+1. In an environment where `pubrepo.<<<custom_key.brand_main_domain>>>` is accessible, pull the image `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`.
 1. Modify the JSON configuration, changing `admission_inject`->`ddtrace`->`images`->`java_agent_image` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and apply this YAML file.
 1. After this, the Datakit Operator will use the new Java Agent image path.
 
@@ -297,7 +297,7 @@ For example, to add an annotation:
         admission.datakit/java-lib.version: "v1.36.2-guance"
 ```
 
-This indicates that the image version to be injected for this Pod is `v1.36.2-guance`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-guance"`, similar to `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.36.2-guance`.
+This indicates that the image version to be injected for this Pod is `v1.36.2-guance`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-guance"`, similar to `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-guance`.
 
 <!-- markdownlint-disable MD013 -->
 ## Using Datakit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
@@ -482,7 +482,7 @@ $ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.contain
 log-container datakit-logfwd
 ```
 
-Finally, you can check whether the logs have been collected on the Guance Cloud Log Platform.
+Finally, you can check whether the logs have been collected on the <<<custom_key.brand_name>>> Log Platform.
 
 ## Datakit Operator Resource Changes {#datakit-operator-mutate-resource}
 
@@ -550,7 +550,7 @@ spec:
     - /bin/bash
     - -c
     - --
-    image: pubrepo.guance.com/base/ubuntu:18.04
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04
     imagePullPolicy: IfNotPresent
     name: demo
     volumeMounts:

@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-PostgreSQL collector can collect the running status index from PostgreSQL instance, and collect the index to Guance Cloud to help monitor and analyze various abnormal situations of PostgreSQL.
+PostgreSQL collector can collect the running status index from PostgreSQL instance, and collect the index to <<<custom_key.brand_name>>> to help monitor and analyze various abnormal situations of PostgreSQL.
 
 ## Configuration {#config}
 

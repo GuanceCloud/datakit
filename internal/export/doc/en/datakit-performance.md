@@ -26,7 +26,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
     - CPU Utilization
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/cpu-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/cpu-usage.png){ width="800" }
       </figure>
     
       Due to the limitation on the number of CPU cores used, the CPU usage here stabilizes around 200%.
@@ -34,7 +34,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
     - Memory Consumption
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mem-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mem-usage.png){ width="800" }
       </figure>
     
       The memory is limited to 4GB, which is quite close to the limit. If the memory limit is exceeded, the Datakit Pod will be restarted due to Out Of Memory (OOM).
@@ -44,7 +44,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
       - Data Collection Points
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/collect-pts-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/collect-pts-irate.png){ width="800" }
       </figure>
     
       The number of data points collected by each collector, with the top one being a Prometheus metric collection that collects a relatively large number of data points each time, followed by the Tracing collector.
@@ -52,7 +52,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
       - Pipeline Processing Points
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/pl-pts-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/pl-pts-irate.png){ width="800" }
       </figure>
     
       This shows the situation of a specific Pipeline processing data points, with one Pipeline script (*kodo.p*) being particularly busy.
@@ -60,7 +60,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
       - Network Upload
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/upload-bytes-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/upload-bytes-irate.png){ width="800" }
       </figure>
     
     The collected data points ultimately need to be sent to the center via the network. What is shown here is the upload of the GZip-compressed data point payload (HTTP Body) [^2]. Tracing has a particularly large payload because it contains a large amount of text information.
@@ -72,31 +72,31 @@ The following lists the load conditions of Datakit under high, medium, and low s
     - CPU Utilization
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mid-cpu-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-cpu-usage.png){ width="800" }
       </figure>
     
     - Memory Consumption
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mid-mem-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-mem-usage.png){ width="800" }
       </figure>
     
     - Data Collection Points
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mid-collect-pts-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-collect-pts-irate.png){ width="800" }
       </figure>
     
     - Pipeline Processing Points
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mid-pl-pts-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-pl-pts-irate.png){ width="800" }
       </figure>
     
     - Network Upload
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/mid-upload-bytes-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mid-upload-bytes-irate.png){ width="800" }
       </figure>
 
 === "Low Load"
@@ -106,25 +106,25 @@ The following lists the load conditions of Datakit under high, medium, and low s
     - CPU Utilization
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/low-cpu-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-cpu-usage.png){ width="800" }
       </figure>
     
     - Memory Consumption
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/low-mem-usage.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-mem-usage.png){ width="800" }
       </figure>
     
     - Data Collection Points
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/low-collect-pts-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-collect-pts-irate.png){ width="800" }
       </figure>
     
     - Network Upload
     
       <figure markdown>
-      ![](https://static.guance.com/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
       </figure>
 
 <!-- markdownlint-enable -->

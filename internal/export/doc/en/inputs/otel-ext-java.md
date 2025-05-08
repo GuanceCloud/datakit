@@ -1,6 +1,6 @@
 ---
 title      : 'OpenTelemetry Extensions'
-summary    : 'Guance Cloud added more OpenTelemetry plugins'
+summary    : '<<<custom_key.brand_name>>> added more OpenTelemetry plugins'
 __int_icon : 'icon/opentelemetry'
 tags       :
   - 'OTEL'
@@ -35,7 +35,7 @@ The result is that what you get in the link of this writing method is `db.statem
 Another way of writing less:
 
 ```java
-    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='guance' and password='123456'");
+    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='your-name' and password='123456'");
    // ps.setString(1,username); 
    // ps.setString(2,pw);
 ```
@@ -48,7 +48,7 @@ The reason is that the agent's probe is on the function `prepareStatement()` or 
 
 Solve the desensitization problem fundamentally. Need to add probes to `set`. The parameters are cached before `executue()`, and finally the parameters are put into Attributes.
 
-### Guance Cloud extension {#guacne-branch}
+### <<<custom_key.brand_name>>> extension {#guacne-branch}
 
 If you want to get the data before cleaning and the value added by the `set` function later, you need to make a new buried point and add an environment variable:
 
@@ -58,7 +58,7 @@ If you want to get the data before cleaning and the value added by the `set` fun
 OTEL_JDBC_SQL_OBFUSCATION=true
 ```
 
-In the end, the link details on GuanceCloud look like this:
+In the end, the link details on <<<custom_key.brand_name>>> look like this:
 
 <!-- markdownlint-disable MD046 MD033 -->
 <figure >
@@ -78,4 +78,4 @@ In the end, the link details on GuanceCloud look like this:
 
 ## More {#more}
 
-If you have other questions, please ask in [GitHub-Guance](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues){:target="_blank"}
+If you have other questions, please ask in [GitHub](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues){:target="_blank"}

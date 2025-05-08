@@ -3,6 +3,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "datakit.fullname" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}  # Helm 管理标识
+    {{- include "datakit.labels" . | nindent 4 }}  # 保留原有标签
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name | quote }}  # Helm 发布名称
+    meta.helm.sh/release-namespace: {{ .Release.Namespace | quote }}  # 发布命名空间
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

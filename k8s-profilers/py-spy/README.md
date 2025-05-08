@@ -65,7 +65,7 @@ spec:
           imagePullPolicy: IfNotPresent
           
         - name: datakit-profiler
-          image: pubrepo.guance.com/dataflux/py-spy:0.1.0
+          image: pubrepo.<<<custom_key.brand_main_domain>>>/dataflux/py-spy:0.1.0
           imagePullPolicy: IfNotPresent
           workingDir: /app/datakit-profiler
           env:
@@ -109,4 +109,4 @@ DK_PROFILE_VERSION=v0.1.0 DK_PROFILE_ENV=testing ./profiling.sh
 
 Type `./profiling.sh -h` for more detail.
 
-3. Go to the page [https://console.guance.com/tracing/profile](https://console.guance.com/tracing/profile) to see profiling detail, it may take a minute or so to load.
+3. Go to the page [https://console.<<<custom_key.brand_main_domain>>>/tracing/profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile) to see profiling detail, it may take a minute or so to load.

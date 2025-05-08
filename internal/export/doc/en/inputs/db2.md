@@ -29,7 +29,7 @@ Already tested version:
 - Download **DB2 ODBC/CLI driver** from [IBM Website](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"}, or from our website:
 
 ```sh
-https://static.guance.com/otn_software/db2/linuxx64_odbc_cli.tar.gz
+https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
 ```
 
 MD5: `A03356C83E20E74E06A3CC679424A47D`

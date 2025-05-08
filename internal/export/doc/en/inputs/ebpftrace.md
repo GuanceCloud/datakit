@@ -43,7 +43,7 @@ There are host deployment and Kubernetes deployment installation solutions:
 
 - Deploy DataKit ELinker on Kubernetes:
 
-Download [*datakit-elinker.yaml*](https://static.guance.com/datakit/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`, we can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
+Download [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`, we can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
 
 *In order to reduce the possibility of data pollution caused by misoperation, it is recommended to deploy DataKit ELinker instead of DataKit. The ELinker version of DataKit is about 50% and 75% smaller than the binary and image size of DataKit, respectively.*
 
@@ -100,7 +100,7 @@ Configuration method:
 
   ```yaml
   - name: ENV_DATAWAY
-    value: https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+    value: https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
   - name: ENV_INPUT_EBPFTRACE_WINDOW
     value: 20s # ebpf trace span link window
   - name: ENV_INPUT_EBPFTRACE_SAMPLING_RATE

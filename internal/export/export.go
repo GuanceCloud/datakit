@@ -40,11 +40,12 @@ type Exporter interface {
 }
 
 type exportOptions struct {
-	langs         []inputs.I18n
-	exclude       string
-	topDir        string
-	version       string
-	ignoreMissing bool
+	langs           []inputs.I18n
+	exclude         string
+	topDir          string
+	version         string
+	datakitImageURL string
+	ignoreMissing   bool
 }
 
 type option func(*exportOptions)
@@ -76,6 +77,15 @@ func WithTopDir(dir string) option {
 func WithVersion(v string) option {
 	return func(o *exportOptions) {
 		o.version = v
+	}
+}
+
+// WithDatakitImageURL set datakit docker image URL.
+//
+// We need this URL to export yaml for datakit daemonset.
+func WithDatakitImageURL(x string) option {
+	return func(o *exportOptions) {
+		o.datakitImageURL = x
 	}
 }
 
@@ -153,8 +163,8 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 		p.InputENVSampleZh = inputs.GetENVSample(inp.GetENVDoc(), true)
 	}
 
-	if buf, err := renderBuf(md, p); err != nil {
-		return nil, fmt.Errorf("template.New(%s): %w", inputName, err)
+	if buf, err := p.renderBuf(md); err != nil {
+		return nil, fmt.Errorf("renderBuf() on input %q: %w", inputName, err)
 	} else {
 		return buf, nil
 	}
@@ -167,7 +177,7 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 		ReleaseDate:         git.BuildAt,
 		NonInputENVSample:   make(map[string]string),
 		NonInputENVSampleZh: make(map[string]string),
-		DatakitConfSample:   datakit.DatakitConfSample,
+		DatakitConfSample:   datakit.MainConfSample(datakit.BrandDomainTemplate),
 		Year:                fmt.Sprintf("%d", time.Now().Year()),
 	}
 
@@ -178,8 +188,8 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 		}
 	}
 
-	if buf, err := renderBuf(md, p); err != nil {
-		return nil, err
+	if buf, err := p.renderBuf(md); err != nil {
+		return nil, fmt.Errorf("renderBuf() on %q: %w", fileName, err)
 	} else {
 		return buf, nil
 	}
@@ -209,21 +219,20 @@ func buildPipelineDocs(
 		Version:     opt.version,
 		ReleaseDate: git.BuildAt,
 
-		DatakitConfSample: datakit.DatakitConfSample,
+		DatakitConfSample: datakit.MainConfSample(datakit.BrandDomainTemplate),
 		PipelineFuncs:     sb.String(),
 		Year:              fmt.Sprintf("%d", time.Now().Year()),
 	}
 
-	if buf, err := renderBuf(md, p); err != nil {
+	if buf, err := p.renderBuf(md); err != nil {
 		return nil, err
 	} else {
 		return buf, nil
 	}
 }
 
-func renderBuf(md []byte, p *Params) ([]byte, error) {
-	// render raw markdown
-
+// renderBuf render parameters into raw markdown.
+func (p *Params) renderBuf(md []byte) ([]byte, error) {
 	var (
 		temp *template.Template
 		err  error
@@ -234,6 +243,7 @@ func renderBuf(md []byte, p *Params) ([]byte, error) {
 			Delims(p.templateDelims[0], p.templateDelims[1]). // use customer delimeter
 			Funcs(map[string]interface{}{
 				"CodeBlock": codeBlock,
+				"UISteps":   uiSteps,
 				"InstallCmd": func(indent int, opts ...InstallOpt) string {
 					p.ic = InstallCommand(opts...)
 					return codeBlock(p.ic.String(), indent)
@@ -269,4 +279,12 @@ func codeBlock(block string, indent int) string {
 		arr = append(arr, strings.Repeat(" ", indent)+line)
 	}
 	return strings.Join(arr, "\n")
+}
+
+func uiSteps(steps, sep string) string {
+	arr := []string{}
+	for _, x := range strings.Split(steps, sep) {
+		arr = append(arr, "**"+strings.TrimSpace(x)+"**") // each step are bold font
+	}
+	return strings.Join(arr, " ➔ ")
 }

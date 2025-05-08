@@ -1,16 +1,16 @@
 # DataKit 整体架构简介
 ---
 
-Datakit 是运行在用户本地机器上的一种基础数据采集工具，主要用于采集系统运行的各种指标、日志等数据，将它们汇总给 [观测云](https://guance.com){:target="_blank"}，在观测云中，用户可以查看并分析自己的各种指标、日志等数据。
+Datakit 是运行在用户本地机器上的一种基础数据采集工具，主要用于采集系统运行的各种指标、日志等数据，将它们汇总给 [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}，在<<<custom_key.brand_name>>>中，用户可以查看并分析自己的各种指标、日志等数据。
 
-DataKit 是观测云中至关重要的一个数据采集组件，几乎所有观测云中的数据都是来源于 DataKit。
+DataKit 是<<<custom_key.brand_name>>>中至关重要的一个数据采集组件，几乎所有<<<custom_key.brand_name>>>中的数据都是来源于 DataKit。
 
 ## DataKit 基础网络模型 {#network-arch}
 
-DataKit 网络模型主要分为三层，可以简单概括为用户环境、DataWay 以及观测云中心，如下图所示：
+DataKit 网络模型主要分为三层，可以简单概括为用户环境、DataWay 以及<<<custom_key.brand_name>>>中心，如下图所示：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-network-arch.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-network-arch.png){ width="800" }
   <figcaption> DataKit 基础网络模型 </figcaption>
 </figure>
 
@@ -18,13 +18,13 @@ DataKit 网络模型主要分为三层，可以简单概括为用户环境、Dat
 
 > 注意：如果用户内网环境没有开通外网请求，可以通过 [Nginx 做一层代理](../integrations/proxy.md#nginx-proxy)出来，也可以通过 DataKit 内置的 [Proxy 采集器](../integrations/proxy.md) 来实现流量代理
 
-1. DataWay 收到数据后，转发给观测云，在发给观测云的数据中，带有 API 签名
-1. 观测云收到合法的数据后，根据不同的数据类型，分别写入不同的存储中
+1. DataWay 收到数据后，转发给<<<custom_key.brand_name>>>，在发给<<<custom_key.brand_name>>>的数据中，带有 API 签名
+1. <<<custom_key.brand_name>>>收到合法的数据后，根据不同的数据类型，分别写入不同的存储中
 
 对于采集类的数据业务，一般情况下，允许部分数据丢失（因为本身数据就是间歇采集的，间歇期内的数据，可视为一种数据丢失），目前整个数据传输链路做了如下丢失保护：
 
 1. DataKit 因为某些网络原因，发送 DataWay 失败，此时 DataKit 会缓存最大一千个点的数据。当缓存的数据超过这个量，这个缓存会被清理掉
-1. DataWay 可能因为某些原因，发送观测云失败，或者因为流量较大，来不及发送给观测云，DataWay 会将这些数据持久化到磁盘。后续待流量降低或网络恢复时，再将这些数据发送给观测云。延迟发送的数据，不影响时效性，时间戳是附着在缓存的数据中的。
+1. DataWay 可能因为某些原因，发送<<<custom_key.brand_name>>>失败，或者因为流量较大，来不及发送给<<<custom_key.brand_name>>>，DataWay 会将这些数据持久化到磁盘。后续待流量降低或网络恢复时，再将这些数据发送给<<<custom_key.brand_name>>>。延迟发送的数据，不影响时效性，时间戳是附着在缓存的数据中的。
 
 在 DataWay 上，为保护磁盘，这个磁盘的最大用量也是可以配置的，以免将所在节点的存储撑爆。对于超过用量的数据，DataWay 也是选择丢弃数据。不过这个容量一般设置得比较大。
 
@@ -33,7 +33,7 @@ DataKit 网络模型主要分为三层，可以简单概括为用户环境、Dat
 DataKit 内部架构相对比较简单，如下图所示：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-internal-arch.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-internal-arch.png){ width="800" }
   <figcaption> DataKit 内部采集架构 </figcaption>
 </figure>
 
@@ -55,7 +55,7 @@ DataKit 内部架构相对比较简单，如下图所示：
 - 采集层：负责各种数据的采集。按照采集的类型，分成两类：
 
     - 主动采集型：这类采集器按照配置的固定频率来采集，比如 [CPU](../integrations/cpu.md)、[网卡流量](../integrations/net.md)、[云拨测](../integrations/dialtesting.md)等
-    - 被动采集型：这类采集器通常是以外部数据输入来实现采集，比如 [RUM](../integrations/rum.md)、[Tracing](../integrations/ddtrace.md)等。它们一般运行在 DataKit 之外，可通过 DataKit 开放的[数据上传 API](apis.md)，对数据经过一定的标准化处理，然后再上传到观测云
+    - 被动采集型：这类采集器通常是以外部数据输入来实现采集，比如 [RUM](../integrations/rum.md)、[Tracing](../integrations/ddtrace.md)等。它们一般运行在 DataKit 之外，可通过 DataKit 开放的[数据上传 API](apis.md)，对数据经过一定的标准化处理，然后再上传到<<<custom_key.brand_name>>>
 
     每个不同的采集器，都单独运行在独立的 goroutine 中，且做了外层保护，即使单个采集器因为某些原因奔溃（每个采集器运行期最大允许崩溃 6 次），也不会影响 DataKit 整体的运行。
 

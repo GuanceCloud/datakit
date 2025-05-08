@@ -5,7 +5,7 @@ title: 'Design and Implementation of Datakit Log Collection'
 
 ## Preface {#head}
 
-Log collection is an important item of Guance Cloud Datakit, which processes the actively collected or passively received log data and finally uploads it to the Guance Cloud center. Log collection can be divided into "network stream data" and "local disk file" according to data sources.
+Log collection is an important item of <<<custom_key.brand_name>>> Datakit, which processes the actively collected or passively received log data and finally uploads it to the <<<custom_key.brand_name>>> center. Log collection can be divided into "network stream data" and "local disk file" according to data sources.
 
 ### Network Flow Data {#network}
 
@@ -308,8 +308,8 @@ Log collection is a very complex system, which involves a lot of detail processi
 Supplementary links:
 
 - [Introduction to the glob schema](https://en.wikipedia.org/wiki/Glob_(programming)){:target="_blank"}
-- [Datakit automatic multiline configuration](https://docs.guance.com/integrations/logging/#auto-multiline){:target="_blank"}
-- [Datakit Pipeline processing](https://docs.guance.com/datakit/pipeline/){:target="_blank"}
+- [Datakit automatic multiline configuration](https://docs.<<<custom_key.brand_main_domain>>>/integrations/logging/#auto-multiline){:target="_blank"}
+- [Datakit Pipeline processing](https://docs.<<<custom_key.brand_main_domain>>>/datakit/pipeline/){:target="_blank"}
 - [Docker truncates discussions over 16KiB logs](https://github.com/moby/moby/issues/34855){:target="_blank"}
 - [Docker truncates more than 16KiB of source code](https://github.com/nalind/docker/blob/master/daemon/logger/copier.go#L13){:target="_blank"}
 - [Docker logging driver](https://docs.docker.com/config/containers/logging/local/){:target="_blank"}

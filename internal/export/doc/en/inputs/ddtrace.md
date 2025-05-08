@@ -37,7 +37,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 
     ---
 
-    [:octicons-code-16: SDK](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
+    [:octicons-code-16: SDK](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-java.md)
 
@@ -94,7 +94,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
 
     The DataKit installation directory, under the `data` directory, has a pre-prepared `dd-java-agent.jar`(recommended). You can also download it directly from [Maven download](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
 
-    Guance Cloud also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details, please see [Ddtrace Secondary Development Version Description](../developers/ddtrace-guance.md)
+    <<<custom_key.brand_name>>> also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details, please see [Ddtrace Secondary Development Version Description](../developers/ddtrace-guance.md)
 
 ## Configuration {#config}
 
@@ -216,7 +216,7 @@ If Trace data is sent across machines, you need to set [HTTP settings for DataKi
 If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](../datakit/datakit-monitor.md):
 
 <figure markdown>
-  ![input-ddtrace-monitor](https://static.guance.com/images/datakit/input-ddtrace-monitor.png){ width="800" }
+  ![input-ddtrace-monitor](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/input-ddtrace-monitor.png){ width="800" }
   <figcaption> DDtrace sends data to the /v0.4/traces interface</figcaption>
 </figure>
 
@@ -268,7 +268,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-This information can be viewed in the Guance Cloud central infrastructure, and the presented data is helpful for troubleshooting issues related to startup commands and referenced third-party library versions.
+This information can be viewed in the <<<custom_key.brand_name>>> central infrastructure, and the presented data is helpful for troubleshooting issues related to startup commands and referenced third-party library versions.
 It also includes host information, service information, and the number of spans created and ended.
 
 There may be significant differences in data due to different languages and versions.
@@ -320,7 +320,7 @@ Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do no
 | pod_name          | pod_name          | pod_name from dd.tags |
 | _dd.base_service  | _dd_base_service  | base service          |
 
-In the link interface of the Guance Cloud, tags that are not in the list can also be filtered.
+In the link interface of the <<<custom_key.brand_name>>>, tags that are not in the list can also be filtered.
 
 Restore whitelist functionality from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0). If there are labels that must be extracted from the first level label list, they can be found in the `customer_tags`.
 

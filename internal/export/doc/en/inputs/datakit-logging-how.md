@@ -115,11 +115,11 @@ If the corresponding log is configured with Pipeline cutting, then each log (inc
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 
-If the center configures a log blacklist, assuming that 10 of the 100 cut logs meet the conditions here (that is, the source is `datakit` and the value of the `bar` field appears in the following list), then these 10 logs will not be reported to Guance Cloud and will be silently discarded. You can see the discarded statistics in the [DataKit Monitor](../datakit/datakit-monitor.md).
+If the center configures a log blacklist, assuming that 10 of the 100 cut logs meet the conditions here (that is, the source is `datakit` and the value of the `bar` field appears in the following list), then these 10 logs will not be reported to <<<custom_key.brand_name>>> and will be silently discarded. You can see the discarded statistics in the [DataKit Monitor](../datakit/datakit-monitor.md).
 
-- Report Guance Cloud
+- Report <<<custom_key.brand_name>>>
 
-After these steps, the log data is finally reported to Guance Cloud, and the log data can be seen on the log viewing page.
+After these steps, the log data is finally reported to <<<custom_key.brand_name>>>, and the log data can be seen on the log viewing page.
 
 Under normal circumstances, there is a delay of about 30s from the time when the log is generated, if the collection is successful, to the time when the data can be seen on the page. During this period, the data of DataKit itself is reported once for a maximum of 10s, and the center has to go through a series of processes before finally warehousing.
 

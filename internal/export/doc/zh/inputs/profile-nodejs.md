@@ -13,13 +13,25 @@ __int_icon: 'icon/profiling'
 
 ## Pyroscope {#pyroscope}
 
-[Pyroscope](https://pyroscope.io/){:target="_blank"} 是一款开源的持续 profiling 平台，DataKit 已经支持将其上报的 profiling 数据展示在[观测云](https://www.guance.com/){:target="_blank"}。
+[Pyroscope](https://pyroscope.io/){:target="_blank"} 是一款开源的持续 profiling 平台，DataKit 已经支持将其上报的 profiling 数据展示在[<<<custom_key.brand_name>>>](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}。
 
 Pyroscope 采用 C/S 架构，运行模式分为 [Pyroscope Agent](https://pyroscope.io/docs/agent-overview/){:target="_blank"} 和 [Pyroscope Server](https://pyroscope.io/docs/server-overview/){:target="_blank"}，这两个模式均集成在一个二进制文件中，通过不同的命令行命令来展现。
 
 这里需要的是 Pyroscope Agent 模式。DataKit 已经集成了 Pyroscope Server 功能，通过对外暴露 HTTP 接口的方式，可以接收 Pyroscope Agent 上报的 profiling 数据。
 
-Profiling 数据流向：「Pyroscope Agent 采集 Profiling 数据 -> Datakit -> 观测云」。
+Profiling 数据流向：
+
+```mermaid
+flowchart LR
+subgraph App
+app(App Process)
+pyro(Pyroscope Agent)
+end
+dk(Datakit)
+brand_name("<<<custom_key.brand_name>>>")
+
+app --> pyro --> |profiling data|dk --> brand_name
+```
 
 在这里，你的 NodeJS 程序就相当于是一个 Pyroscope Agent。
 
@@ -58,7 +70,7 @@ Pyroscope.init({
 Pyroscope.start()
 ```
 
-- 已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
+- 已安装 [DataKit](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
 
 ```toml
 [[inputs.profile]]
@@ -89,7 +101,7 @@ Pyroscope.start()
 
 ## 查看 Profile {#pyroscope-view}
 
-执行上述操作后，你的 NodeJS 程序会开始采集 profiling 数据并将数据报给给 Datakit，Datakit 会将这些数据上报给观测云。稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 查看相应数据。
+执行上述操作后，你的 NodeJS 程序会开始采集 profiling 数据并将数据报给给 Datakit，Datakit 会将这些数据上报给<<<custom_key.brand_name>>>。稍等几分钟后就可以在<<<custom_key.brand_name>>>空间[应用性能监测 -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相应数据。
 
 ## Pull 模式 (可选) {#pyroscope-pull}
 

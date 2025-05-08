@@ -146,7 +146,7 @@ This release is an iterative update, with the following main changes:
 
 ### New Features {#cl-1.63.0-new}
 
-- Added support for Datakit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and Guance Cloud needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from Datakit via commands issued from the workspace web page (#2367).
+- Added support for Datakit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and <<<custom_key.brand_name>>> needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from Datakit via commands issued from the workspace web page (#2367).
 
     Under Kubernetes, we need to update the new *datakit.yaml* with new RBAC added.
 
@@ -423,7 +423,7 @@ This release is an iterative update with the following main changes:
 
     Then the Nginx logs would **not** be processed by *nginx.p* but by *default.p*. This setting was not reasonable. The adjusted priority is as follows (priority decreasing):
 
-    1. The Pipeline specified for `source` on the Guance Cloud page
+    1. The Pipeline specified for `source` on the <<<custom_key.brand_name>>> page
     1. The Pipeline specified for `source` in the collector
     1. The `source` value can find the corresponding Pipeline (for example, if the `source` is the log of `my-app`, a *my-app.p* can be found in the Pipeline's storage directory)
     1. Finally, use *default.p*
@@ -688,6 +688,8 @@ In this version, the data protocol has been extended. After upgrading from an ol
 - Upgrade the center base to 1.87.167 or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
 
+<<<% if custom_key.brand_key == 'guance' %>>>
+
 #### For InfluxDB {#cl-1.30.0-brk-influxdb}
 
 If your time series storage is InfluxDB, then **do not upgrade Datakit**. Please maintain the highest version at 1.29.1. We'll upgraded the central latter to make it compatible with InfluxDB.
@@ -695,6 +697,8 @@ If your time series storage is InfluxDB, then **do not upgrade Datakit**. Please
 Additionally, if the central has been upgraded to a newer version (1.87.167+), then lower versions of Datakit should also **use the `v1` upload protocol**. Please switch from `v2` to `v1` if you have set `v2` before.
 
 If you do indeed want to upgrade to a newer version of Datakit, please replace the time series engine with GuanceDB for metrics.
+
+<<<% endif %>>>
 
 ---
 
@@ -1140,7 +1144,7 @@ This release is an iterative release with the following updates:
 - Added more information collection in Bug Report(#1908)
 - Improved self-index exposure during Prom collection(#1951)
 - Update default IP library to support IPv6(#1957)
-- Update image name Download address is `pubrepo.guance.com`(#1949)
+- Update image name Download address is `pubrepo.<<<custom_key.brand_main_domain>>>`(#1949)
 - Optimized log capture file location function(#1961)
 - Kubernetes
     - Support Node-Local Pod collection(metric&object) to relieve pressure on election nodes(#1960)
@@ -1589,7 +1593,7 @@ This release is an iterative mid-term release, adding some functions for docking
 
 ### Compatibility Adjustments {#cl-1.9.2-brk}
 
-- Remove support for logging collection from Kubernetes CRD `guance.com/datakits v1bate1` (#1705)
+- Remove support for logging collection from Kubernetes CRD `<<<custom_key.brand_main_domain>>>/datakits v1bate1` (#1705)
 
 ---
 

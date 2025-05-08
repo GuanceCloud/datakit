@@ -233,8 +233,8 @@ Pyroscope 采集器目前支持 [Java](https://grafana.com/docs/pyroscope/latest
 
 ???+ note
 
-    为了便于区分同一服务的不同实例，我们可以在进程启动时随机生成一个 UUID，然后在进程的整个生命周期内把该 UUID 作为 `runtime_id` 标签设置到所有的链路和 profiling 数据上，这样观测云便能关联两者数据。 除了 `runtime_id` 标签，还建议所有应用添加
-    `host`（主机名），`service`（服务名），`version`（服务版本），`env`（部署环境）， `process_id`（服务启动进程号）等标签，方便观测云关联各类采集到的指标和数据。
+    为了便于区分同一服务的不同实例，我们可以在进程启动时随机生成一个 UUID，然后在进程的整个生命周期内把该 UUID 作为 `runtime_id` 标签设置到所有的链路和 profiling 数据上，这样便能关联两者数据。 除了 `runtime_id` 标签，还建议所有应用添加
+    `host`（主机名），`service`（服务名），`version`（服务版本），`env`（部署环境）， `process_id`（服务启动进程号）等标签，方便关联各类采集到的指标和数据。
 
 === "Java"
 

@@ -1,5 +1,5 @@
 ---
-title     : 'OpenTelemetry Exportor for Guance Cloud'
+title     : 'OpenTelemetry Exportor for <<<custom_key.brand_name>>>'
 summary   : 'Export OpenTelemetry data to GuanCe Cloud directly'
 __int_icon: 'icon/opentelemetry'
 tags      :
@@ -8,7 +8,7 @@ tags      :
 
 GuanCe Cloud has added a `guance-exporter` in the OTEL JAVA Agent, which can send traces and metrics directly to the GuanCe Cloud Center.
 
-[guance-exporter](https://github.com/GuanceCloud/guance-java-exporter){:target="_blank"} is open source on GitHub and is integrated into the Guance Cloud's secondarily developed [otel-java-agent](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}.
+[guance-exporter](https://github.com/GuanceCloud/guance-java-exporter){:target="_blank"} is open source on GitHub and is integrated into the <<<custom_key.brand_name>>>'s secondarily developed [otel-java-agent](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}.
 
 The `guance-exporter` can send data directly to GuanCe Cloud, that is, the endpoint, and the format of the sent data is InfluxDB point.
 
@@ -22,7 +22,7 @@ Download from [GitHub-Release](https://github.com/GuanceCloud/opentelemetry-java
 java  -javaagent:/usr/local/opentelemetry-javaagent-1.26.3-guance.jar \
 -Dotel.traces.exporter=guance \
 -Dotel.metrics.exporter=guance \ 
--Dotel.exporter.guance.endpoint=https://openway.guance.com \ 
+-Dotel.exporter.guance.endpoint=https://openway.<<<custom_key.brand_main_domain>>> \ 
 -Dotel.exporter.guance.token=<TOKEN> \
 -jar app.jar
 ```
@@ -32,14 +32,14 @@ for k8s:
 ```shell
 export OTEL_TRACES_EXPORTER=guance
 export OTEL_METRICS_EXPORTER=guance
-export OTEL_EXPORTER_GUANCE_ENDPOINT=https://openway.guance.com
+export OTEL_EXPORTER_GUANCE_ENDPOINT=https://openway.<<<custom_key.brand_main_domain>>>
 export OTEL_EXPORTER_GUANCE_TOKEN=<TOKEN>
 ```
 
 Parameter Description:
 
 - `guance` exporter name.
-- `endpoint` GuanCe Cloud Center address, usually `https://openway.guance.com`.
+- `endpoint` GuanCe Cloud Center address, usually `https://openway.<<<custom_key.brand_main_domain>>>`.
 - `token` GuanCe Cloud user space token.
 
 Note: If `otel.metrics.exporter` is not configured, metrics will not be uploaded, the same for `otel.traces.exporter`. However, `endpoint` and `token` are required.
@@ -117,7 +117,7 @@ import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 public class OpenTelemetryInitializer {
     public static OpenTelemetry initialize() {
         GuanceSpanExporter guanceExporter = new GuanceSpanExporter();
-        guanceExporter.setEndpoint("https://openway.guance.com"); // dataway
+        guanceExporter.setEndpoint("https://openway.<<<custom_key.brand_main_domain>>>"); // dataway
         guanceExporter.setToken("tkn_0d9ebb47xxxxxxxxx");    // your token
 
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()

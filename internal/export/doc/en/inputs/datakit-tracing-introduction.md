@@ -124,7 +124,7 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 : - Highly flexible and configurable, you can use Datakit's link data capability with zero configuration, and you can customize the various link computing capabilities provided by Datakit including sampling, rare link picking and resource closing through simple configuration.
 : - Efficient and distributed consistent sampling algorithm.
 : - A variety of data processing filters in the front section of data processing meet the daily data processing needs.
-: - Data processing back-end Pipeline support, which allows you to customize data before it is sent to the hub with the help of [the powerful Pipeline script provided by Guance Cloud](https://docs.guance.com/logs/pipelines/text-processing/){:target="_blank"}.
+: - Data processing back-end Pipeline support, which allows you to customize data before it is sent to the hub with the help of [the powerful Pipeline script provided by <<<custom_key.brand_name>>>](https://docs.<<<custom_key.brand_main_domain>>>/logs/pipelines/text-processing/){:target="_blank"}.
 
 ## Summary {#conclude}
 

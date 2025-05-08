@@ -1,8 +1,9 @@
 FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
 ARG TARGETARCH
+ARG DIST_DIR
 
 RUN mkdir -p /opt/logfwd
 
-COPY dist/datakit-linux-${TARGETARCH}/externals/logfwd /opt/logfwd
+COPY ${DIST_DIR}/datakit-linux-${TARGETARCH}/externals/logfwd /opt/logfwd
 
 CMD ["/opt/logfwd/logfwd", "-config", "/opt/logfwd/config"]

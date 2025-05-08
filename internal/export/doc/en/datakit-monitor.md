@@ -18,7 +18,7 @@ datakit monitor
 <!-- markdownlint-enable -->
 The Datakit Basic Monitor page information is shown in the following figure:
 
-![`onitor-basic-v1`](https://static.guance.com/images/datakit/monitor-basic-v1.png)
+![`onitor-basic-v1`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/monitor-basic-v1.png)
 
 The elements in this diagram can be manipulated by mouse or keyboard. Blocks selected by the mouse are highlighted in bilateral boxes (as shown in the `Basic Info` block in the upper left corner of the above figure), and can also be browsed through the mouse wheel or the up and down arrow keys of the keyboard (or J/K of vim).
 
@@ -70,7 +70,7 @@ The information of each UI block in the above figure is:
 
 If the verbose option (`-V`) is specified when Monitor is run, additional information is output, as shown in the following figure:
 
-![`monitor-verbose-v1`](https://static.guance.com/images/datakit/monitor-verbose-v1.png)
+![`monitor-verbose-v1`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/monitor-verbose-v1.png)
 
 - `Goroutine Groups` shows the existing Goroutine Groups in the Datakit (the number of Goroutines in the group < = the number of `Goroutines` in the panel above).
 - `HTTP APIs`: HTTP API request info

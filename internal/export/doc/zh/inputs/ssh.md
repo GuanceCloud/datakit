@@ -16,7 +16,7 @@ monitor   :
 
 ---
 
-监控 SSH/SFTP 服务，并把数据上报到观测云。
+监控 SSH/SFTP 服务，并把数据上报到<<<custom_key.brand_name>>>。
 
 ## 配置 {#config}
 

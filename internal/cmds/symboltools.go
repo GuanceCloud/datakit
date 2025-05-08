@@ -75,7 +75,7 @@ func setupLinks(baseURL string) map[string]map[string]string {
 	}
 }
 
-var downloadLink = setupLinks(OnlineBaseURL)
+var downloadLink = setupLinks("https://" + StaticCDN)
 
 func IsDir(name string) (bool, error) {
 	fileInfo, err := os.Stat(name)

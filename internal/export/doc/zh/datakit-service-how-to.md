@@ -77,14 +77,10 @@ Mac 下，可以用如下命令代替：
 
 ```shell
 # 启动 Datakit
-sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# 或者
-sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 
 # 停止 Datakit
-sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# 或者
-sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
+sudo launchctl unload -w /Library/LaunchDaemons/com.datakit.plist
 ```
 
 ### 服务卸载以及重装 {#uninstall-reinstall}
@@ -111,4 +107,4 @@ Start service failed: The event log file is full.
 
 该报错会导致 Datakit 无法启动。通过[设置一下 Windows Event](https://stackoverflow.com/a/13868216/342348){:target="_blank"} 即可（以 Windows Server 2016 为例）：
 
-![ 修改 Windows Event 设置](https://static.guance.com/images/datakit/set-windows-event-log.gif)
+![ 修改 Windows Event 设置](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/set-windows-event-log.gif)

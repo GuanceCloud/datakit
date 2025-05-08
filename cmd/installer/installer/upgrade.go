@@ -23,17 +23,19 @@ func SetLog() {
 	l = logger.SLogger("upgrade")
 }
 
-func Upgrade() error {
-	mc := config.Cfg
-
+func (args *InstallerArgs) Upgrade(mc *config.Config) (err error) {
 	// load exists datakit.conf
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		// load DK_XXX env config
-		mc = loadInstallerEnvs(mc)
+		mc, err = args.LoadInstallerArgs(mc)
+		if err != nil {
+			return err
+		}
 
-		mc = upgradeMainConfig(mc)
-
-		writeDefInputToMainCfg(mc, true)
+		mc = args.upgradeMainConfig(mc)
+		if err := args.WriteDefInputs(mc); err != nil {
+			return err
+		}
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
 		return err
@@ -53,7 +55,7 @@ func Upgrade() error {
 	return nil
 }
 
-func upgradeMainConfig(c *config.Config) *config.Config {
+func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 	if c.PointPool != nil {
 		l.Infof("default enable point pool")
 		c.PointPool.Enable = false // default disable point-pool
@@ -62,7 +64,7 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	// setup dataway
 	if c.Dataway != nil {
 		c.Dataway.DeprecatedURL = ""
-		c.Dataway.HTTPProxy = Proxy
+		c.Dataway.HTTPProxy = args.Proxy
 
 		if c.Dataway.ContentEncoding == "v1" {
 			l.Infof("switch default content-encoding from v1 to v2")
@@ -194,7 +196,7 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		}
 	}
 
-	c.InstallVer = DataKitVersion
+	c.InstallVer = args.DataKitVersion
 	if javaHome := getJavaHome(); javaHome != "" {
 		if c.RemoteJob == nil {
 			c.RemoteJob = &io.RemoteJob{}

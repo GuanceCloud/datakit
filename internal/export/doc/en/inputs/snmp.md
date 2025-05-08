@@ -273,13 +273,13 @@ In "specified device mode", Datakit communicates with the specified IP device us
 
 In "auto-discovery mode", Datakit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, Datakit assumes that there is a SNMP device on that IP.
 
-### :material-chat-question: I can't find metrics I'm looking for in [Guance](https://console.guance.com/){:target="_blank"}, what should I do?  {#faq-not-support}
+### :material-chat-question: I can't find metrics, what should I do?  {#faq-not-support}
 
 Datakit collects generic base-line metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
 
 To archiving this, you probably needs to download the device's OID manual from its official website.
 
-### :material-chat-question: Why I can't see any metrics in [Guance](https://console.guance.com/){:target="_blank"} after I completed configuration? {#faq-no-metrics}
+### :material-chat-question: Why I can't see any metrics after I completed configuration? {#faq-no-metrics}
 
 <!-- markdownlint-enable -->
 

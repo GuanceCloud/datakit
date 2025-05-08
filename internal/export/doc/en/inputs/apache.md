@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Apache collector can collect the number of requests, connections and others from Apache services, and collect indicators to Guance Cloud to help monitor and analyze various abnormal situations of Apache.
+Apache collector can collect the number of requests, connections and others from Apache services, and collect indicators to <<<custom_key.brand_name>>> to help monitor and analyze various abnormal situations of Apache.
 
 ## Configuration {#config}
 

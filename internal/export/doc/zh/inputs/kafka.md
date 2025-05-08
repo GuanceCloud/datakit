@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况。
+采集 Kafka 指标和日志上报到<<<custom_key.brand_name>>>，帮助你监控分析 Kafka 各种异常情况。
 
 ## 配置 {#config}
 

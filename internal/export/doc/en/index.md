@@ -20,7 +20,7 @@ DataKit is an open source and integrated data collection Agent, which provides f
     - [Statsd](../integrations/statsd.md)
     - [Fluentd](../integrations/logstreaming.md)
     - [Filebeat](../integrations/beats_output.md)
-    - [Function](https://func.guance.com/doc/practice-write-data-via-datakit/){:target="_blank"}
+    - [Function](https://func.<<<custom_key.brand_main_domain>>>/doc/practice-write-data-via-datakit/){:target="_blank"}
     - Tracing
         - [OpenTelemetry](../integrations/opentelemetry.md)
         - [DDTrace](../integrations/ddtrace.md)

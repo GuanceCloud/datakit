@@ -4,9 +4,9 @@
 
 This article describes the basic installation of DataKit.
 
-## Register/log in to Guance Cloud {#login-guance}
+## Register/log in to <<<custom_key.brand_name>>> {#login-guance}
 
-The browser visits the [Guance Cloud registration](https://auth.guance.com/redirectpage/register){:target="_blank"} portal, fills in the corresponding information, and then [logs in to Guance Cloud](https://console.guance.com/pageloading/login){:target="_blank"}.
+The browser visits the [<<<custom_key.brand_name>>> registration](https://auth.<<<custom_key.brand_main_domain>>>/redirectpage/register){:target="_blank"} portal, fills in the corresponding information, and then [logs in to <<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}.
 
 ## Get the Installation Command {#get-install}
 
@@ -173,8 +173,8 @@ The environment variables supported by the installation script are as follows (s
 
     ```shell
     DK_DEF_INPUTS="-" \
-    DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
-    bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+    DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
+    bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
     Beside, if Datakit has been installed before, we must delete all default inputs *.conf* files manually. During installing, Datakit able to add new inputs configure, not cant delete them.
@@ -329,16 +329,16 @@ By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you 
 
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=host \
-  DK_DATAWAY=https://openway.guance.com?token=<TOKEN>  \
-  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+  DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN>  \
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
 - Enable host inject:
 
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=docker \
-  DK_DATAWAY=https://openway.guance.com?token=<TOKEN> \
-  bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+  DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
 For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python application.
@@ -404,7 +404,7 @@ In Kubernetes, you can inject APM through the [Datakit Operator](datakit-operato
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
 | `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
 | `DK_UPGRADE_MANAGER`             | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading Datakit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
-| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.guance.com/datakit`                                                                           |
+| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
 | `DK_NGINX_IP`                    | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |
 | `DK_INSTALL_LOG`                 | -                           | Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.                                                         |
@@ -436,9 +436,7 @@ In `datakit.conf`, modify the following configuration and the DataKit will read 
 If it appears during the installation/upgrade process when installing on macOS:
 
 ```shell
-"launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
-# or
-"launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
+"launchctl" failed with stderr: /Library/LaunchDaemons/com.datakit.plist: Service is disabled
 ```
 
 Execute:
@@ -450,9 +448,7 @@ sudo launchctl enable system/datakit
 Then execute the following command:
 
 ```shell
-sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
-# or
-sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 ```
 
 <!-- markdownlint-disable MD013 -->

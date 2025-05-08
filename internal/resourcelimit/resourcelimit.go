@@ -46,6 +46,30 @@ type ResourceLimitOptions struct {
 	Enable     bool `toml:"enable"`
 }
 
+// Setup set internal values of resource limits.
+func (c *ResourceLimitOptions) Setup() {
+	if c.CPUMax > 0 {
+		// PASS: use old configure
+		if c.CPUMax > 100.0 {
+			c.CPUMax = 100.0
+			c.CPUCores = float64(runtime.NumCPU()) // use all CPU cores
+		} else {
+			c.CPUCores = float64(runtime.NumCPU()) * c.CPUMax / 100.0
+		}
+	} else {
+		if c.CPUCores <= 0 { // CPU-cores not set, default to 2C.
+			c.CPUCores = 2
+		}
+
+		if c.CPUCores > float64(runtime.NumCPU()) { // should not > 100%
+			c.CPUCores = float64(runtime.NumCPU())
+			c.CPUMax = 100.0
+		} else {
+			c.CPUMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
+		}
+	}
+}
+
 //nolint:gochecknoinits,lll
 func init() {
 	var err error
@@ -58,24 +82,12 @@ func init() {
 func Run(c *ResourceLimitOptions, username string) {
 	l = logger.SLogger("resourcelimit")
 
+	c.Setup()
+
 	resourceLimitOpt = c
 	userName = username
 	if c == nil || !c.Enable {
 		return
-	}
-
-	if c.CPUMax > 0 {
-		// PASS: use old configure
-	} else {
-		if c.CPUCores > 0 {
-			if c.CPUCores > float64(runtime.NumCPU()) {
-				c.CPUMax = 100.0
-			} else {
-				c.CPUMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
-			}
-		} else {
-			c.CPUCores = 2.0
-		}
 	}
 
 	if c.CPUMax <= 0 || c.CPUMax > 100 {

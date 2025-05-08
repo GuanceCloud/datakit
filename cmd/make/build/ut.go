@@ -106,14 +106,14 @@ func UnitTestDataKit() error {
 
 	if len(UTExclude) > 0 && UTExclude != "-" {
 		for _, ex := range strings.Split(UTExclude, ",") {
-			cp.Printf("package %q excluded\n", ex)
+			l.Debugf("package %q excluded", ex)
 			ut.exclude[ex] = true
 		}
 	}
 
 	if len(UTOnly) > 0 && UTOnly != "-" {
 		for _, item := range strings.Split(UTOnly, ",") {
-			cp.Printf("package %q selected\n", item)
+			l.Debugf("package %q selected", item)
 			ut.only[item] = true
 		}
 	}
@@ -141,7 +141,7 @@ func UnitTestDataKit() error {
 	for i, p := range pkgs {
 		i++
 		if hugePackages[p] {
-			cp.Printf("%s is HUGE package, testing it later, skip...\n", p)
+			l.Debugf("%s is HUGE package, testing it later, skip...", p)
 			ut.nhuge.Add(1)
 			continue
 		}
@@ -159,7 +159,7 @@ func UnitTestDataKit() error {
 	wg.Wait()
 
 	costNormal := time.Now()
-	cp.Printf("Normal tests completed, costs = %v\n", costNormal.Sub(start))
+	l.Debugf("Normal tests completed, costs = %v", costNormal.Sub(start))
 
 	skipHuge := false
 	if val := os.Getenv(envExcludeHugeIntegrationTesting); len(val) > 0 {
@@ -174,12 +174,12 @@ func UnitTestDataKit() error {
 		lenHugePkgs := len(hugePackages)
 		for pkg := range hugePackages {
 			if ut.exclude[pkg] {
-				cp.Printf("Skip huge test %q\n", pkg)
+				l.Debugf("Skip huge test %q", pkg)
 				continue
 			}
 
 			nIdx++
-			cp.Printf("[%s] run huge test %q\n", time.Now(), pkg)
+			l.Debugf("[%s] run huge test %q", time.Now(), pkg)
 			ut.doWork(&job{
 				UTID:    utID,
 				index:   nIdx,
@@ -188,10 +188,10 @@ func UnitTestDataKit() error {
 			})
 		}
 
-		cp.Printf("Huge tests completed, elapsed: %v\n", time.Since(costNormal))
+		l.Debugf("Huge tests completed, elapsed: %v", time.Since(costNormal))
 	}
 
-	cp.Printf("All tests done, elapsed: %v\n", time.Since(start))
+	l.Debugf("All tests done, elapsed: %v", time.Since(start))
 
 	mr := &testutils.ModuleResult{
 		Name:      "datakit-ut",
@@ -205,7 +205,7 @@ func UnitTestDataKit() error {
 	}
 
 	if err := testutils.Flush(mr); err != nil {
-		cp.Printf("[E] flush metric failed: %s\n", err)
+		l.Debugf("[E] flush metric failed: %s", err)
 	}
 
 	ut.show()
@@ -246,14 +246,14 @@ func (ut *unitTest) doWork(j *job) {
 	start := time.Now()
 
 	if ut.exclude[j.pkg] {
-		cp.Printf("[%s] package(%03d/%03d) %s excluded...\n",
+		l.Debugf("[%s] package(%03d/%03d) %s excluded...",
 			j.UTID, j.index, j.lenPkgs, j.pkg)
 		ut.nskipped.Add(1)
 		return
 	}
 
 	if len(ut.only) > 0 && !ut.only[j.pkg] {
-		cp.Printf("[%s] package(%03d/%03d) %s not selected, selected: %+#v\n",
+		l.Debugf("[%s] package(%03d/%03d) %s not selected, selected: %+#v",
 			j.UTID, j.index, j.lenPkgs, j.pkg, ut.only)
 		ut.nskipped.Add(1)
 		return
@@ -288,7 +288,7 @@ func (ut *unitTest) doWork(j *job) {
 			mr.Status = testutils.TestFailed
 			mr.FailedMessage = err.Error()
 			if err := testutils.Flush(mr); err != nil {
-				cp.Printf("[E] flush metric failed: %s\n", err)
+				l.Errorf("flush metric failed: %s", err)
 			}
 
 			l.Errorf("package %s failed: %s", j.pkg, string(res))
@@ -324,7 +324,7 @@ func (ut *unitTest) doWork(j *job) {
 		if len(coverage) != 0 {
 			f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
 			if err != nil {
-				cp.Printf("[E] invalid coverage %q: %s: %s\n", j.pkg, coverage, err)
+				l.Errorf("invalid coverage %q: %s: %s", j.pkg, coverage, err)
 				return
 			}
 
@@ -332,17 +332,17 @@ func (ut *unitTest) doWork(j *job) {
 			ut.coverTotal.Add(f)
 			mr.Coverage = f
 		} else {
-			cp.Printf("[W] test ok, but no coverage: %q\n", j.pkg)
+			l.Warnf("test ok, but no coverage: %q", j.pkg)
 			return
 		}
 
 	default: // pass
-		cp.Printf("[W] unknown coverage line in package %q: %s\n", j.pkg, coverageLine)
+		l.Warnf("unknown coverage line in package %q: %s", j.pkg, coverageLine)
 		return
 	}
 
 	if err := testutils.Flush(mr); err != nil {
-		cp.Printf("[E] flush metric failed: %s\n", err)
+		l.Errorf("flush metric failed: %s", err)
 		return
 	}
 
