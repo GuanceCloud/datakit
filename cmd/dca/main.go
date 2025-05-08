@@ -6,15 +6,33 @@
 package main
 
 import (
+	"flag"
 	"os"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/server"
+	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
 
-var l = logger.DefaultSLogger("main")
+var (
+	l           = logger.DefaultSLogger("main")
+	flagVersion = flag.Bool("version", false, "show version info of DCA backend")
+)
 
 func main() {
+	flag.Parse()
+
+	if *flagVersion {
+		cp.Infof("  BuildAt: %s\n", git.BuildAt)
+		cp.Infof("  Version: %s\n", git.DCAVersion)
+		cp.Infof("  Commit: %s\n", git.Commit)
+		cp.Infof("  Branch: %s\n", git.Branch)
+		cp.Infof("  Go version: %s\n", git.Golang)
+		os.Exit(0)
+	}
+
 	opt := &server.ServerOptions{}
 	initEnv(opt)
 
@@ -50,6 +68,11 @@ func initEnv(opt *server.ServerOptions) {
 	if port := os.Getenv("DCA_HTTP_PORT"); port != "" {
 		opt.HTTPPort = port
 	}
+
+	if v := os.Getenv("DCA_PROM_LISTEN"); v != "" {
+		opt.PromListen = v
+	}
+
 	if v := os.Getenv("DCA_CONSOLE_API_URL"); v != "" {
 		opt.ConsoleAPIURL = v
 	}

@@ -80,7 +80,7 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
 | `-Ddd.profiling.ddprof.memleak.enabled`   | DD_PROFILING_DDPROF_MEMLEAK_ENABLED   | 是否启用 `Datadog Profiler` 引擎内存泄漏分析                                                                                            |
 
 
-程序运行后，约 1 分钟后即可在观测云平台查看相关数据。
+程序运行后，约 1 分钟后即可在<<<custom_key.brand_name>>>平台查看相关数据。
 
 ### 生成性能指标 {#metrics}
 
@@ -248,7 +248,7 @@ Done
 
 - Java 应用注入服务名称 (`service`)（可选）
 
-默认会自动获取程序名称作为 `service` 上报观测云，如果需要自定义，可以程序启动时注入 service 名称：
+默认会自动获取程序名称作为 `service` 上报<<<custom_key.brand_name>>>，如果需要自定义，可以程序启动时注入 service 名称：
 
 ```shell
 java -Ddk.service=<service-name> ... -jar <your-jar>
@@ -459,7 +459,7 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
 bash collect.sh
 ```
 
-脚本执行完毕后，采集的 profiling 数据会通过 DataKit 上报给观测云平台，稍后可在"应用性能监测"-"Profile" 查看。
+脚本执行完毕后，采集的 profiling 数据会通过 DataKit 上报给<<<custom_key.brand_name>>>平台，稍后可在"应用性能监测"-"Profile" 查看。
 
 脚本支持如下环境变量：
 

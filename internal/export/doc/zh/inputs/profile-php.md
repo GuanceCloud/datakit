@@ -139,5 +139,5 @@ Allocation Profiling Enabled => true
     重启 `php-fpm` 并访问你的项目。
 <!-- markdownlint-enable -->
 
-稍等几分钟后便可以在 [观测云控制台](https://console.guance.com/tracing/profile){:target="_blank"} 查看相关数据。
+稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。
 

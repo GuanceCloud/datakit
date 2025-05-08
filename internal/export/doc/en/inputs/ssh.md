@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Monitor SSH/SFTP services and report data to Guance Cloud.
+Monitor SSH/SFTP services and report data to <<<custom_key.brand_name>>>.
 
 ## Configuration {#config}
 

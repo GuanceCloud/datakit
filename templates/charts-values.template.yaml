@@ -6,9 +6,9 @@
 #
 datakit:
   ## Datakit will send the indicator data to dataway. Please be sure to change the parameters
-  ## @param dataway_url - string - optional - default: 'https://guance.com'
+  ## @param dataway_url - string - optional
   ## The host of the DataKit intake server to send Agent data to, only set this option
-  dataway_url: https://openway.guance.com?token=<YOUR-Token>
+  dataway_url: https://openway.{{.BrandDomain}}?token=<YOUR-Token>
   ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
   ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
@@ -31,7 +31,7 @@ image:
   ## @param repository - string - required
   ## Define the repository to use:
   #
-  repository: {{repository}}
+  repository: {{.DockerImageRepo}}/datakit
 
   ## @param tag - string - required
   ## Define the Cluster-Agent version to use.
@@ -47,15 +47,12 @@ image:
   imagePullSecrets: []
   # - name: secretName
 
-# https://docs.guance.com/datakit/datakit-daemonset-deploy/
-
 git_repos:
   # use git management DataKit input
   enable: false
 
   ## @param git_url - string - required
   ## You Can Set git@github.com:path/to/repository.git or http://username:password@github.com/path/to/repository.git.
-  ## see https://docs.guance.com/best-practices/insight/datakit-daemonset/#git
   git_url: "-"
   ## @param git_key_path - string - optional
   ## The Git Ssh Key Content,
@@ -76,14 +73,13 @@ git_repos:
   is_use_key: false
 
 ## If true, Datakit install ipdb.
-## ref: https://docs.guance.com/datakit/datakit-tools-how-to/#install-ipdb
 iploc:
   enable: false
   image:
     ## @param repository - string - required
     ## Define the repository to use:
     #
-    repository: "pubrepo.jiagouyun.com/datakit/iploc"
+    repository: "{{.DockerImageRepo}}/iploc"
 
     ## @param tag - string - required
     ## Define the Cluster-Agent version to use.
@@ -93,7 +89,6 @@ iploc:
 
 ## @param extraEnvs - array - optional
 ## extra env Add env for customization
-## more, see: https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env
 ## You can add more than one parameter
 extraEnvs:
 #  - name: ENV_NAMESPACE # electoral

@@ -22,7 +22,7 @@ monitor   :
 
 ---
 
-本采集器采集 vSphere 集群的资源使用指标，包括 CPU、内存和网络等资源，并把这些数据上报到观测云。
+本采集器采集 vSphere 集群的资源使用指标，包括 CPU、内存和网络等资源，并把这些数据上报到<<<custom_key.brand_name>>>。
 
 ## 配置 {#config}
 

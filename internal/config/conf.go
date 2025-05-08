@@ -279,7 +279,7 @@ func (c *Config) InitCfgWithComments(path string, meta gctoml.MetaData) error {
 }
 
 func initCfgSample(p string) error {
-	if err := os.WriteFile(p, []byte(datakit.DatakitConfSample), datakit.ConfPerm); err != nil {
+	if err := os.WriteFile(p, []byte(datakit.MainConfSample(datakit.BrandDomain)), datakit.ConfPerm); err != nil {
 		l.Errorf("error creating %s: %s", p, err)
 		return err
 	}

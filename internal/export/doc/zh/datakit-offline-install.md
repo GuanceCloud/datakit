@@ -11,7 +11,7 @@
 当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本网络结构如下：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-nginx-proxy.png){ width="700"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-nginx-proxy.png){ width="700"}
 </figure>
 
 ### 前置条件 {#requrements}
@@ -82,7 +82,7 @@
 全离线安装有两张策略可以选择：
 
 - 简单模式：直接将 U 盘内的文件拷贝到每一台主机上，安装 DataKit。但简单模式目前**不支持**安装阶段通过[环境变量来做一些设置](datakit-install.md#extra-envs)。
-- 高级模式：在内网部署一个 Nginx，通过 Nginx 构建一个文件服务器，以替代 static.guance.com
+- 高级模式：在内网部署一个 Nginx，通过 Nginx 构建一个文件服务器，以替代 static.<<<custom_key.brand_main_domain>>>
 
 ### 简单模式 {#offline-simple}
 
@@ -94,54 +94,54 @@
     Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
 <!-- markdownlint-enable -->
 
-- 先下载数据包 [data.tar.gz](https://static.guance.com/datakit/data.tar.gz)，每个平台都一样。
+- 先下载数据包 [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz)，每个平台都一样。
 
 - 然后再下载其他所需安装程序：
 
 <!-- markdownlint-disable MD046 -->
 === "Windows 32 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386.exe){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
 === "Windows 64 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64.exe){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
 === "Linux X86 32 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
 === "Linux X86 64 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 位"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Datakit-Lite`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Datakit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 
 下载完后，应该有以下文件（此处 `<OS-ARCH>` 指特定平台的安装包）：
@@ -171,7 +171,7 @@
 
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,dk_upgrader-linux-amd64.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{.Version}}.tar.gz,dk_upgrader-linux-amd64.tar.gz,data.tar.gz
     ```
 
 === "Windows"
@@ -179,7 +179,7 @@
     需以 administrator 权限运行 Powershell 执行：
 
     ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\dk_upgrader-windows-amd64.tar.gz,.\data.tar.gz
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\dk_upgrader-windows-amd64.tar.gz,.\data.tar.gz
     ```
 <!-- markdownlint-enable -->
 
@@ -220,12 +220,12 @@
 
 ### 高级模式 {#offline-advanced}
 
-DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 static.guance.com 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.guance.com 站点。
+DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 static.<<<custom_key.brand_main_domain>>> 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.<<<custom_key.brand_main_domain>>> 站点。
 
 高级模式的网络流量拓扑如下：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/nginx-file-server.png){ width="700"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/nginx-file-server.png){ width="700"}
 </figure>
 
 先准备一台内网均可访问的机器，在该机器上安装 Nginx， 将 DataKit 安装所需的文件下载（或通过 U 盘拷贝）到 Nginx 服务器上，这样其它机器可以从 Nginx 文件服务器上下载安装文件来完成安装。
@@ -263,15 +263,15 @@ nginx -s reload # reload 配置
 
 mkdir -p /datakit
 mkdir -p /datakit/apm_lib
-wget -P /datakit https://static.guance.com/datakit/install.sh
-wget -P /datakit https://static.guance.com/datakit/version
-wget -P /datakit https://static.guance.com/datakit/data.tar.gz
-wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{.Version}}
-wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
-wget -P /datakit https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit/apm_lib https://static.guance.com/dd-image/dd-java-agent.jar
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{.Version}}
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
+wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
 
 # 下载其它工具包：sources 是开启 RUM sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载
 sources=(
@@ -297,15 +297,15 @@ mkdir -p /datakit/sourcemap/jdk \
   /datakit/sourcemap/atosl
 
 for((i=0;i<${#sources[@]};i++)); do
-  wget https://static.guance.com${sources[$i]} -O ${sources[$i]}
+  wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
 done
 ```
 
 <!-- markdownlint-disable MD046 -->
 ???+ Attention
 
-    Windows 下的 `Installer` 程序的下载链接需添加 **.exe** 后缀，如 [*https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe) 和
-    [*https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe)。
+    Windows 下的 `Installer` 程序的下载链接需添加 **.exe** 后缀，如 [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe) 和
+    [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe)。
 <!-- markdownlint-enable -->
 
 #### 安装 {#advance-install}
@@ -484,24 +484,24 @@ chmod +x datakit_tools.sh
 1、下载 *datakit.yaml* 文件
 
 ```shell
-wget https://static.guance.com/datakit/datakit.yaml -P /home/guance/
+wget https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml -P /home/guance/
 ```
 
 2、下载 Datakit 镜像并打包
 
 ```shell
 # 拉取 amd 镜像并打包
-docker pull --platform amd64 pubrepo.guance.com/datakit/datakit:{{.Version}}
-docker save -o datakit-amd64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker pull --platform amd64 pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
+docker save -o datakit-amd64-{{.Version}}.tar pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 mv datakit-amd64-{{.Version}}.tar /home/guance
 
 # 拉取 arm 镜像并打包
-docker pull --platform arm64 pubrepo.guance.com/datakit/datakit:{{.Version}}
-docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker pull --platform arm64 pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
+docker save -o datakit-arm64-{{.Version}}.tar pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 mv datakit-arm64-{{.Version}}.tar /home/guance
 
 # 查看镜像架构是否正确
-docker image inspect pubrepo.guance.com/datakit/datakit:{{.Version}} |grep Architecture
+docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}} |grep Architecture
 
 ```
 
@@ -673,5 +673,5 @@ kubectl apply -f datakit.yaml
 
 ```shell
 # 需先解压镜像
-kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.guance.com/datakit/datakit:<version>","name": "datakit"}]}}}}'
+kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>","name": "datakit"}]}}}}'
 ```

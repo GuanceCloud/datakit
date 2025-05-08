@@ -18,7 +18,7 @@ func TestRenderBuf(t *T.T) {
 			`)
 
 		p := &Params{}
-		x, err := renderBuf(md, p)
+		x, err := p.renderBuf(md)
 		assert.NoError(t, err)
 		t.Logf("\n%s", x)
 	})
@@ -32,7 +32,7 @@ func TestRenderBuf(t *T.T) {
 			`)
 
 		p := &Params{}
-		x, err := renderBuf(md, p)
+		x, err := p.renderBuf(md)
 		assert.NoError(t, err)
 		t.Logf("\n%s", x)
 	})
@@ -46,8 +46,25 @@ func TestRenderBuf(t *T.T) {
 			`)
 
 		p := &Params{}
-		x, err := renderBuf(md, p)
+		x, err := p.renderBuf(md)
 		assert.NoError(t, err)
 		t.Logf("\n%s", x)
+	})
+
+	t.Run(`render-ui-steps`, func(t *T.T) {
+		md := []byte(`{{ UISteps "1,2,3" ","}}`)
+
+		p := &Params{}
+		x, err := p.renderBuf(md)
+		assert.NoError(t, err)
+		assert.Equal(t, "**1** ➔ **2** ➔ **3**", string(x))
+		t.Logf("%s", x)
+
+		md = []byte(`{{ UISteps "   1,2   ,3   " "," }}`)
+
+		x, err = p.renderBuf(md)
+		assert.NoError(t, err)
+		assert.Equal(t, "**1** ➔ **2** ➔ **3**", string(x))
+		t.Logf("%s", x)
 	})
 }

@@ -2,7 +2,7 @@
 
 ---
 
-在部署完 Datakit 之后，一般会直接从观测云页面查看采集到的数据，如果一切正常，数据会很快在页面上展示（最直接是「基础设施」中的主机/进程等数据），但很多时候，因为各种原因，数据采集、处理或传输过程会出现一些问题，进而导致无数据问题。
+在部署完 Datakit 之后，一般会直接从<<<custom_key.brand_name>>>页面查看采集到的数据，如果一切正常，数据会很快在页面上展示（最直接是「基础设施」中的主机/进程等数据），但很多时候，因为各种原因，数据采集、处理或传输过程会出现一些问题，进而导致无数据问题。
 
 下文从如下几个方面分析可能造成无数据的原因：
 
@@ -46,18 +46,18 @@ access-control-allow-origin: *
 
 如果显示状态码为 404，则表示与 Dataway 链接正常。
 
-对 SAAS 而言，Dataway 地址为 `https://openway.guance.com`。
+对 SAAS 而言，Dataway 地址为 `https://openway.<<<custom_key.brand_main_domain>>>`。
 
 如果得到如下结果，则表示网络是有问题的：
 
 ```shell
-curl: (6) Could not resolve host: openway.guance.com
+curl: (6) Could not resolve host: openway.<<<custom_key.brand_main_domain>>>
 ```
 
 如果在 Datakit 日志（*/var/log/datakit/log*）中发现类似如下这样的错误日志，则说明当前环境和 Dataway 的连接出现了一些问题，可能是防火墙做了限制：
 
 ```shell
-request url https://openway.guance.com/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
+request url https://openway.<<<custom_key.brand_main_domain>>>/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
 ```
 
 ## 主机相关 {#iss-host}
@@ -82,9 +82,9 @@ Wed Jul 21 08:22:32 UTC 2021
 
 这是因为，前者是中国东八区时间，后者是格林威治时间，两者相差 8 小时，但实际上，这两个时间的时间戳是一样的。
 
-如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么观测云上是看不到这些「将来」的数据的。
+如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么<<<custom_key.brand_name>>>上是看不到这些「将来」的数据的。
 
-另外，如果时间滞后，观测云默认的查看器是看不到这些数据的（一般查看器默认显示最近 15min 的数据），可以在查看器上调一下查看的时间范围。
+另外，如果时间滞后，<<<custom_key.brand_name>>>默认的查看器是看不到这些数据的（一般查看器默认显示最近 15min 的数据），可以在查看器上调一下查看的时间范围。
 
 ### 主机软硬件不支持 {#iss-os-arch}
 
@@ -121,7 +121,7 @@ $ /usr/local/datakit
 ```yaml
   containers:
   - name: datakit
-    image: pubrepo.guance.com/datakit:datakit:<VERSION>
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit:datakit:<VERSION>
     resources:
       requests:
         memory: "128Mi"
@@ -231,7 +231,7 @@ Datakit 中采集器配置有俩大类：
 
 ### 黑名单/Pipeline 影响 {#iss-pipeline-filter}
 
-用户可能在观测云页面上配置了黑名单，其作用是丢弃符合某些特征的数据不予上传。
+用户可能在<<<custom_key.brand_name>>>页面上配置了黑名单，其作用是丢弃符合某些特征的数据不予上传。
 
 而 Pipeline 本身也有丢弃数据的操作（`drop()`）。
 
@@ -249,15 +249,15 @@ Datakit 对一些复杂数据的处理设置了磁盘缓存机制，这些数据
 
 ### IO Busy {#iss-io-busy}
 
-由于 Datakit 跟 Dataway 之间网络带宽限制，导致上报数据比较慢，进而影响了数据采集（来不及消费），在这种情况下，Datakit 会丢弃来不及处理的指标数据，而非指标数据，会阻塞采集，从而导致观测云页面看不到数据。
+由于 Datakit 跟 Dataway 之间网络带宽限制，导致上报数据比较慢，进而影响了数据采集（来不及消费），在这种情况下，Datakit 会丢弃来不及处理的指标数据，而非指标数据，会阻塞采集，从而导致<<<custom_key.brand_name>>>页面看不到数据。
 
 ### Dataway 缓存 {#iss-dataway-cache}
 
-Dataway 和观测云中心如果发生网络故障，Dataway 会缓存 Datakit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）。
+Dataway 和<<<custom_key.brand_name>>>中心如果发生网络故障，Dataway 会缓存 Datakit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）。
 
 ### 账号问题 {#iss-workspace}
 
-如果用户观测云账号欠费/数据使用超量，会导致 Datakit 数据上报出现 4xx 问题。这种问题在 `datakit monitor` 能直接看到。
+如果用户<<<custom_key.brand_name>>>账号欠费/数据使用超量，会导致 Datakit 数据上报出现 4xx 问题。这种问题在 `datakit monitor` 能直接看到。
 
 ## 其它  {#iss-others}
 
@@ -419,7 +419,7 @@ $ datakit debug --bug-report
 
 配置文件内容进行正则替换处理，如：
 
-- `https://openway.guance.com?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` 被替换成 `https://openway.guance.com?token=******`
+- `https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` 被替换成 `https://openway.<<<custom_key.brand_main_domain>>>?token=******`
 - `pass = "1111111"` 被替换成 `pass = "******"`
 - `postgres://postgres:123456@localhost/test` 被替换成 `postgres://postgres:******@localhost/test`
 
@@ -576,8 +576,8 @@ graph TD
   %% node definitions
   no_data[无数据];
   debug_fail{无果};
-  monitor[查看 <a href='https://docs.guance.com/datakit/datakit-monitor/'>monitor</a> 情况];
-  debug_input[<a href='https://docs.guance.com/datakit/why-no-data/#check-input-conf'>调试采集器配置</a>];
+  monitor[查看 <a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-monitor/'>monitor</a> 情况];
+  debug_input[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/why-no-data/#check-input-conf'>调试采集器配置</a>];
   read_faq[查看文档中的 FAQ];
   dql[DQL 查询];
   beyond_usage[数据是否超量];
@@ -587,8 +587,8 @@ graph TD
   check_time[检查机器时间];
   check_token[检查工作空间空间 token];
   check_version[检查 Datakit 版本];
-  dk_service_ok[<a href='https://docs.guance.com/datakit/datakit-service-how-to/'>Datakit 服务是否正常</a>];
-  check_changelog[<a href='https://docs.guance.com/datakit/changelog'>检查 changelog 是否已修复</a>];
+  dk_service_ok[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-service-how-to/'>Datakit 服务是否正常</a>];
+  check_changelog[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/changelog'>检查 changelog 是否已修复</a>];
   is_input_ok[采集器是否运行正常];
   is_input_enabled[是否开启采集器];
   enable_input[开启采集器];
@@ -616,7 +616,7 @@ graph TD
   is_input_ok -->|Yes| dataway_upload_ok -->|Yes| dql;
   is_input_ok --> filtered --> sinked;
 
-  trouble_shooting[<a href='https://docs.guance.com/datakit/why-no-data/#bug-report'>收集信息</a>];
+  trouble_shooting[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/why-no-data/#bug-report'>收集信息</a>];
 
   debug_fail --> trouble_shooting;
   trouble_shooting --> ligai;

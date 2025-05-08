@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: v1-write
+spec:
+  selector:
+    matchLabels:
+      app: v1-write
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: v1-write
+        service: mocked-v1-write-service
+    spec:
+      containers:
+        - name: v1-write
+          image: registry.jiagouyun.com/datakit-tools/v1-write:v0.0.1
+          ports:
+            - name: http-svc
+              containerPort: 54321
+              protocol: TCP
+          env:
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['service']
+
+            - name: DD_TAGS
+              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
+
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName

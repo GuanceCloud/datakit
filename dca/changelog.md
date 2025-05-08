@@ -4,7 +4,7 @@
 
 ### 新加功能
 
-- 支持 HTTP 代理访问观测云 API
+- 支持 HTTP 代理访问<<<custom_key.brand_name>>> API
 
 ## 0.0.5(2023/03/23)
 

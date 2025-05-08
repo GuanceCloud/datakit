@@ -30,7 +30,7 @@ __int_icon: 'icon/ddtrace'
     mkdir .build && cd .build && cmake .. && make && make install
     ```
 
-    如果编译 SDK 过程中有问题，可临时用观测云已经准备好的[头文件][5]以及 [动态库][6] 来测试。
+    如果编译 SDK 过程中有问题，可临时用<<<custom_key.brand_name>>>已经准备好的[头文件][5]以及 [动态库][6] 来测试。
 
 === "Windows"
 
@@ -38,11 +38,11 @@ __int_icon: 'icon/ddtrace'
 
 ???+ attention "cmake 安装"
 
-    cmake 可能无法通过 yum 或 apt-get 安装到较高的版本，建议直接去其[官网][3]{:target="_blank"}下载最新版本。也可以直接使用观测云托管的[源码][1]或[Windows 二进制][2]。
+    cmake 可能无法通过 yum 或 apt-get 安装到较高的版本，建议直接去其[官网][3]{:target="_blank"}下载最新版本。也可以直接使用<<<custom_key.brand_name>>>托管的[源码][1]或[Windows 二进制][2]。
     
     ```shell
     # 从源码安装 cmake
-    wget https://static.guance.com/gfw/cmake-3.24.2.tar.gz
+    wget https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2.tar.gz
     tar -zxvf cmake-3.24.2.tar.gz
     ./bootstrap --prefix=/usr/local
     make
@@ -135,10 +135,10 @@ LD_LIBRARY_PATH=/usr/local/lib64 DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=952
 
 此处可以将 *libdd_opentracing.so* 以及对应的头文件放到任意目录，然后调整 `LD_LIBRARY_PATH` 以及 `-I` 参数即可。
 
-程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
+程序运行一段时间后，即可在<<<custom_key.brand_name>>>看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/cpp-ddtrace-example.png){ width="800"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/cpp-ddtrace-example.png){ width="800"}
   <figcaption>C++ trace 数据展示</figcaption>
 </figure>
 
@@ -189,11 +189,11 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./demo
     这里可注入一组全局 tag，这些 tag 会出现在每个 span 和 profile 数据中。多个 tag 之间可以用空格和英文逗号分割，例如 `layer:api,team:intake`、`layer:api team:intake`
 
 <!-- markdownlint-disable MD053 -->
-[1]: https://static.guance.com/gfw/cmake-3.24.2.tar.gz
-[2]: https://static.guance.com/gfw/cmake-3.24.2-windows-x86_64.msi
+[1]: https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2.tar.gz
+[2]: https://static.<<<custom_key.brand_main_domain>>>/gfw/cmake-3.24.2-windows-x86_64.msi
 [3]: https://cmake.org/download/
 [4]: ../datakit/datakit-conf.md#config-http-server
-[5]: https://static.guance.com/gfw/dd-cpp-include.tar.gz
-[6]: https://static.guance.com/gfw/libdd_opentracing.so
+[5]: https://static.<<<custom_key.brand_main_domain>>>/gfw/dd-cpp-include.tar.gz
+[6]: https://static.<<<custom_key.brand_main_domain>>>/gfw/libdd_opentracing.so
 [7]: https://docs.datadoghq.com/tracing/trace_collection/library_config/cpp/
 <!-- markdownlint-enable -->

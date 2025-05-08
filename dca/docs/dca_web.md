@@ -9,7 +9,7 @@ DCA web 是 DCA 客户端的 web 版本，目前服务仅支持 docker 镜像安
 运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
 
 ```shell
-$ docker pull pubrepo.guance.com/tools/dca
+$ docker pull pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
 ```
 
 #### 运行容器
@@ -17,7 +17,7 @@ $ docker pull pubrepo.guance.com/tools/dca
 通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
 
 ```shell
-$ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
+$ docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
 ```
 
 >-d # 表示后台运行
@@ -34,11 +34,11 @@ $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
 
 - **`DCA_INNER_HOST`**
 
-  观测云的 auth API 地址，默认值为 `https://auth-api.guance.com`
+  <<<custom_key.brand_name>>>的 auth API 地址，默认值为 `https://auth-api.<<<custom_key.brand_main_domain>>>`
 
 - **`DCA_FRONT_HOST`**
 
-  观测云 console API 地址，默认值为 `https://console-api.guance.com`
+  <<<custom_key.brand_name>>> console API 地址，默认值为 `https://console-api.<<<custom_key.brand_main_domain>>>`
 
 - **`DCA_LOG_LEVEL`**
 
@@ -51,6 +51,6 @@ $ docker run -d --name dca -p 8000:80 pubrepo.guance.com/tools/dca
 示例：
 
 ```shell
-$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.guance.com/tools/dca
+$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
 ```
 

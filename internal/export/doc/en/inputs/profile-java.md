@@ -64,6 +64,8 @@ java -javaagent:/<your-path>/dd-java-agent.jar \
     -jar your-app.jar 
 ```
 
+After a minute or two, you can visualize your profiles on the [profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"}.
+
 Explanation of some parameters:
 
 | Parameter Name                            | Corresponding Environment Variable    | Explanation                                                                                                                                                                                                                                                                           |
@@ -78,8 +80,6 @@ Explanation of some parameters:
 | `-Ddd.profiling.ddprof.alloc.enabled`     | DD_PROFILING_DDPROF_ALLOC_ENABLED     | Whether to enable the memory Allocation analysis of the `Datadog Profiler` engine. It has been verified that it cannot be enabled on JDK 8 currently. For JDK 8, please use `-Ddd.profiling.allocation.enabled` as appropriate and pay attention to the impact on system performance. |
 | `-Ddd.profiling.ddprof.liveheap.enabled`  | DD_PROFILING_DDPROF_LIVEHEAP_ENABLED  | Whether to enable the analysis of the currently live Heap by the `Datadog Profiler` engine.                                                                                                                                                                                           |
 | `-Ddd.profiling.ddprof.memleak.enabled`   | DD_PROFILING_DDPROF_MEMLEAK_ENABLED   | Whether to enable the memory leak analysis of the `Datadog Profiler` engine.                                                                                                                                                                                                          |
-
-After a minute or two, you can visualize your profiles on the [profile](https://console.guance.com/tracing/profile){:target="_blank"}.
 
 ## Async Profiler {#async-profiler}
 
@@ -186,7 +186,7 @@ Requirements:
 
 - Set your service name（optional）
 
-By default, the program name will be automatically obtained as a 'service' to report the Guance Cloud. If customization is needed, the service name can be injected when the program starts:
+By default, the program name will be automatically obtained as a 'service' to report the <<<custom_key.brand_name>>>. If customization is needed, the service name can be injected when the program starts:
 
 ```shell
 java -Ddk.service=<service-name> ... -jar <your-jar>

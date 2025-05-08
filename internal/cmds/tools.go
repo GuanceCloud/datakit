@@ -50,8 +50,8 @@ func runToolFlags() error {
 
 	case *flagToolDefaultMainConfig:
 
-		defconf := config.DefaultConfig()
-		cp.Println(defconf.String())
+		defconf := datakit.MainConfSample(datakit.BrandDomain)
+		cp.Println(defconf)
 		os.Exit(0)
 
 	case *flagToolCloudInfo:

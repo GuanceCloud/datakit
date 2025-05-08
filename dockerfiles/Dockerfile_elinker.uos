@@ -1,0 +1,17 @@
+FROM registry.jiagouyun.com/middlewares/uniontechos-server-zy-root:v2.0 AS base
+ARG TARGETARCH
+ARG DIST_DIR
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN mkdir -p /usr/local/datakit
+
+RUN yum install -y ca-certificates unzip wget curl
+
+# download data files required by datakit
+RUN wget --no-check-certificate -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
+  && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
+
+COPY ${DIST_DIR}/datakit_elinker-linux-${TARGETARCH}/ /usr/local/datakit/
+
+CMD ["/usr/local/datakit/datakit", "run", "-C"]

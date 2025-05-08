@@ -79,11 +79,11 @@ Based on the improvements of v2 in various aspects, we have conducted some basic
 
 On Datakit with medium to low load, the performance difference between v2 and v1 is very obvious:
 
-![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
+![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
 
 At 10:30, when switching from v2 to v1, it can be seen that CPU and memory have a noticeable increase. On Datakit with high load, the performance difference is also obvious:
 
-![not-set](https://static.guance.com/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
+![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
 
 At 23:45, when switching to v2, the sys/heap memory is much lower compared to 10:30 the next day when switching to v1. In terms of CPU, after switching to v1 at 10:30, there is an increase in CPU, but it is not very obvious, mainly because the main CPU of the high-load Datakit is not in data encoding.
 

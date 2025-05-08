@@ -1,6 +1,6 @@
 ---
 title: 'Kubernetes'
-summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。'
+summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到<<<custom_key.brand_name>>>。'
 __int_icon:    'icon/kubernetes/'  
 tags:
   - 'KUBERNETES'
@@ -36,7 +36,7 @@ monitor:
 
 ---
 
-采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到观测云。
+采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到<<<custom_key.brand_name>>>。
 
 ## 采集器配置 {#config}
 

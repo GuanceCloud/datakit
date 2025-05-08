@@ -81,10 +81,10 @@ DQL used to query data. If no option specified, query interactively. Other avail
 
 ### 数据回放 {#do-replay}
 
-Datakit 录制完数据后，我们可以将该目录中的数据用 Git 或其它方式保存（**一定要确保好已有的目录结构**），然后，通过如下命令可以将这些数据导入到观测云：
+Datakit 录制完数据后，我们可以将该目录中的数据用 Git 或其它方式保存（**一定要确保好已有的目录结构**），然后，通过如下命令可以将这些数据导入到<<<custom_key.brand_name>>>：
 
 ```shell
-$ datakit import -P /usr/local/datakit/recorder -D https://openway.guance.com?token=tkn_xxxxxxxxx
+$ datakit import -P /usr/local/datakit/recorder -D https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxx
 
 > Uploading "/usr/local/datakit/recorder/metric/cpu.1698217783322857000.pbjson"(1 points) on metric...
 +1h53m6.137855s ~ 2023-10-25 15:09:43.321559 +0800 CST
@@ -105,7 +105,7 @@ $ datakit help import
 
 usage: datakit import [options]
 
-Import used to play recorded history data to Guance Cloud. Available options:
+Import used to play recorded history data to <<<custom_key.brand_name>>>. Available options:
 
   -D, --dataway strings   dataway list
       --log string        log path (default "/dev/null")
@@ -320,7 +320,7 @@ create_time 1639657028706
     
     ```shell
     helm install datakit datakit/datakit -n datakit \
-        --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
         --set iploc.enable true \
         --create-namespace 
     ```

@@ -89,7 +89,7 @@ func CheckNewVersion(curverStr string) (*newVersionInfo, error) {
 		proxy = config.Cfg.Dataway.HTTPProxy
 	}
 
-	ver, err := GetOnlineVersions(OnlineBaseURL, proxy, 5*time.Second)
+	ver, err := GetOnlineVersions("https://"+StaticCDN, proxy, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("GetOnlineVersions: %w", err)
 	}

@@ -6,8 +6,6 @@
 package mysql
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -52,7 +50,6 @@ func (ipt *Input) FeedUpMetric() {
 	if len(pts) > 0 {
 		l.Debug("feed up metric")
 		if err := ipt.feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(ipt.start)),
 			dkio.WithElection(ipt.Election),
 			dkio.WithInputName(inputName),
 		); err != nil {

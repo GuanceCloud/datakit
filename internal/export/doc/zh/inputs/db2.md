@@ -29,7 +29,7 @@ monitor   :
 - 在 [IBM 网站](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"} 上下载 **DB2 ODBC/CLI driver**，也可以使用我们下载好的：
 
 ```sh
-https://static.guance.com/otn_software/db2/linuxx64_odbc_cli.tar.gz
+https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
 ```
 
 MD5: `A03356C83E20E74E06A3CC679424A47D`

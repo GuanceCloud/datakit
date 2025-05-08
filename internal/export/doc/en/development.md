@@ -271,12 +271,12 @@ Sometimes we need to configure more for integration testing:
 
 - If we need to exclude some testing on package, we can add `UT_EXCLUDE` in the alias: `UT_EXCLUDE="gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp"`
 
-- We can post the testing result to Guance Cloud, add a Dataway and the token: `DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"`
+- We can post the testing result to <<<custom_key.brand_name>>>, add a Dataway and the token: `DATAWAY_URL="https://openway.<<<custom_key.brand_main_domain>>>/v1/write/logging?token=<YOUR-TOKEN>"`
 
 The complete example:
 
 ```shell
-alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.guance.com/v1/write/logging?token=<YOUR-TOKEN>"'
+alias ut='REMOTE_HOST=<YOUR-DOCKER-REMOTE-HOST> make ut UT_EXCLUDE="<package-name>" DATAWAY_URL="https://openway.<<<custom_key.brand_main_domain>>>/v1/write/logging?token=<YOUR-TOKEN>"'
 ```
 
 ## Release {#release}
@@ -489,7 +489,7 @@ Generating report in profile001.pdf
 In the same way, you can view the total allocated memory pprof file `allocs`. The effect of PDF is roughly as follows:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/datakit-pprof-pdf.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-pprof-pdf.png){ width="800" }
 </figure>
 
 For more ways to use pprof, see [here](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/){:target="_blank"}.

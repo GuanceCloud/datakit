@@ -2,7 +2,7 @@
 
 ---
 
-DQL is the unified query language of GuanceCloud. In order to make it easier for everyone to learn this language, below we select several different query languages to compare with them, so that everyone can understand and use DQL more quickly.
+DQL is the unified query language of <<<custom_key.brand_name>>>. In order to make it easier for everyone to learn this language, below we select several different query languages to compare with them, so that everyone can understand and use DQL more quickly.
 
 Here we temporarily choose two languages: [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} and [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"}. The well-known SQL statement is very different from DQL in its form and function, so it will not be mentioned here.
 

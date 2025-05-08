@@ -67,7 +67,7 @@ The tracer generation in the configuration file refers to the currently configur
     timeout = 1000
 ```
 
-- `customer_tags`: By default, Datakit only picks up the Tags it is interested in (that is, the fields other than message that can be seen in the Guance Cloud link details),
+- `customer_tags`: By default, Datakit only picks up the Tags it is interested in (that is, the fields other than message that can be seen in the <<<custom_key.brand_name>>> link details),
   If users are interested in other tags reported on the link, they can add a notification Datakit to this configuration to pick them up. This configuration takes precedence over  `[inputs.tracer.tags]`。
 - `keep_rare_resource`: If a link from a Resource has not been present within the last hour, the system considers it a rare link and reports it directly to the Data Center.
 - `omit_err_status`: By default, data is reported directly to the Data Center if there is a Span with Error status in the link, and Datakit can be told to ignore links with some HTTP Error Status (for example, 429 too many requests) if the user needs to ignore it.

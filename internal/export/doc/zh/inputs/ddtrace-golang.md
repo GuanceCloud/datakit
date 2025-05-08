@@ -283,10 +283,10 @@ func runAppWithError() {
     ```
 <!-- markdownlint-enable -->
 
-程序运行一段时间后，即可在观测云看到类似如下 trace 数据：
+程序运行一段时间后，即可在<<<custom_key.brand_name>>>看到类似如下 trace 数据：
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/golang-ddtrace-example.png){ width="800"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/golang-ddtrace-example.png){ width="800"}
   <figcaption>Golang 程序 trace 数据展示</figcaption>
 </figure>
 

@@ -11,19 +11,31 @@ __int_icon: 'icon/profiling'
 
 ## Pyroscope {#pyroscope}
 
-[Pyroscope](https://pyroscope.io/){:target="_blank"} 是一款开源的持续 profiling 平台，DataKit 已经支持将其上报的 profiling 数据展示在[观测云](https://www.guance.com/){:target="_blank"}。
+[Pyroscope](https://pyroscope.io/){:target="_blank"} 是一款开源的持续 profiling 平台，DataKit 已经支持将其上报的 profiling 数据展示在[<<<custom_key.brand_name>>>](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}。
 
 Pyroscope 采用 C/S 架构，运行模式分为 [Pyroscope Agent](https://pyroscope.io/docs/agent-overview/){:target="_blank"} 和 [Pyroscope Server](https://pyroscope.io/docs/server-overview/){:target="_blank"}，这两个模式均集成在一个二进制文件中，通过不同的命令行命令来展现。
 
 这里需要的是 Pyroscope Agent 模式。DataKit 已经集成了 Pyroscope Server 功能，通过对外暴露 HTTP 接口的方式，可以接收 Pyroscope Agent 上报的 profiling 数据。
 
-Profiling 数据流向：「Pyroscope Agent 采集 Profiling 数据 -> Datakit -> 观测云」。
+Profiling 数据流向：
+
+```mermaid
+flowchart LR
+subgraph App
+app(App Process)
+pyro(Pyroscope Agent)
+end
+dk(Datakit)
+brand_name("<<<custom_key.brand_name>>>")
+
+app --> pyro --> |profiling data|dk --> brand_name
+```
 
 ### 前置条件 {#pyroscope-requirement}
 
 - 根据 Pyroscope 官方文档 [eBPF Profiling](https://pyroscope.io/docs/ebpf/#prerequisites-for-profiling-with-ebpf){:target="_blank"}，需要 Linux 内核版本 >= 4.9 (因为事件 [BPF_PROG_TYPE_PERF_EVENT](https://lkml.org/lkml/2016/9/1/831){:target="_blank"})。
 
-- 已安装 [DataKit](https://www.guance.com/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
+- 已安装 [DataKit](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"} 并且已开启 [profile](profile.md#config) 采集器，配置参考如下：
 
 ```toml
 [[inputs.profile]]
@@ -86,4 +98,4 @@ export PYROSCOPE_SPY_NAME='ebpfspy'
 
 ### 查看 Profile {#pyroscope-view}
 
-运行上述 profiling 命令后，Pyroscope Agent 会开始采集指定的 profiling 数据，并将数据上报给观测云。稍等几分钟后就可以在观测云空间[应用性能监测 -> Profile](https://console.guance.com/tracing/profile){:target="_blank"} 查看相应数据。
+运行上述 profiling 命令后，Pyroscope Agent 会开始采集指定的 profiling 数据，并将数据上报给<<<custom_key.brand_name>>>。稍等几分钟后就可以在空间 {{UISteps "应用性能监测 Profiling" " "}} 查看相应数据。

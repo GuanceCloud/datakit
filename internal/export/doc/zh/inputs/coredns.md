@@ -40,7 +40,7 @@ CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。
 
 === "Kubernetes"
 
-    通过 DataKit 来开启[ `kubernetesprometheus` 采集器(https://docs.guance.com/integrations/kubernetesprometheus/)。
+    通过 DataKit 来开启[ `kubernetesprometheus` 采集器(https://docs.<<<custom_key.brand_main_domain>>>/integrations/kubernetesprometheus/)。
 
     ```yaml
     [inputs.kubernetesprometheus]

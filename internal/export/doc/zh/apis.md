@@ -32,7 +32,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 类型：bool
 - 是否必选：N
 - 默认值：false
-- 说明：测试模式，只是将 Point POST 给 Datakit，实际上并不上传到观测云
+- 说明：测试模式，只是将 Point POST 给 Datakit，实际上并不上传到<<<custom_key.brand_name>>>
 
 **`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 

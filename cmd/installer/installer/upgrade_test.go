@@ -18,18 +18,19 @@ import (
 
 func Test_setupDefaultInputs(t *T.T) {
 	t.Run("install", func(t *T.T) {
+		opt := DefaultInstallArgs()
 		c := config.DefaultConfig()
-		setupDefaultInputs(c,
-			"", // no list specified: use all default
-			[]string{"1", "2", "3"}, false)
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 		assert.Equal(t, []string{"1", "2", "3"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("install-with-white-list", func(t *T.T) {
 		c := config.DefaultConfig()
-		setupDefaultInputs(c,
-			"2,mem", // white list, with extra input 'mem'
-			[]string{"1", "2", "3"}, false)
+
+		opt := DefaultInstallArgs()
+		opt.EnableInputs = "2,mem"
+
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		assert.Equal(t, []string{
 			"-1",
@@ -39,39 +40,41 @@ func Test_setupDefaultInputs(t *T.T) {
 		}, c.DefaultEnabledInputs)
 	})
 
-	t.Run("upgrade-with-white-list", func(t *T.T) {
+	t.Run("upgrade-with-merged-white-list", func(t *T.T) {
 		c := config.DefaultConfig()
-
 		c.DefaultEnabledInputs = []string{"disk"}
+		opt := DefaultInstallArgs()
+		opt.EnableInputs = "2,mem" // white list, with extra input 'mem'
+		opt.FlagDKUpgrade = true
 
-		setupDefaultInputs(c,
-			"2,mem", // white list, with extra input 'mem'
-			[]string{"1", "2", "3"}, true)
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		assert.Equal(t, []string{"-1", "-3", "2", "mem"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("install-with-blacklist", func(t *T.T) {
 		c := config.DefaultConfig()
-		setupDefaultInputs(c,
-			"-2", // black list
-			[]string{"1", "2", "3"}, false)
+		opt := DefaultInstallArgs()
+		opt.EnableInputs = "-2"
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		assert.Equal(t, []string{"-2", "1", "3"}, c.DefaultEnabledInputs)
 	})
 
-	t.Run("install-with-black-white-list", func(t *T.T) {
+	t.Run("install-with-mixed-black-white-list", func(t *T.T) {
 		c := config.DefaultConfig()
-		setupDefaultInputs(c,
-			"-2,1", // mixed w/b list: only black list applied
-			[]string{"1", "2", "3"}, false)
+		opt := DefaultInstallArgs()
+		opt.EnableInputs = "-2,1" // mixed w/b list: only black list applied
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		assert.Equal(t, []string{"-2", "1", "3"}, c.DefaultEnabledInputs)
 	})
 
 	t.Run("upgrade-with-empty-list", func(t *T.T) {
 		c := config.DefaultConfig()
-		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
+		opt := DefaultInstallArgs()
+		opt.FlagDKUpgrade = true
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		assert.Equal(t, []string{"-1", "-2", "-3"}, c.DefaultEnabledInputs)
 	})
@@ -80,7 +83,9 @@ func Test_setupDefaultInputs(t *T.T) {
 		c := config.DefaultConfig()
 		c.DefaultEnabledInputs = []string{"-1"}
 
-		setupDefaultInputs(c, "", []string{"1", "2", "3"}, true)
+		opt := DefaultInstallArgs()
+		opt.FlagDKUpgrade = true
+		opt.setupDefaultInputs(c, []string{"1", "2", "3"})
 
 		// NOTE: under blacklist, new added inputs are accepted
 		assert.Equal(t, []string{"-1", "2", "3"}, c.DefaultEnabledInputs)
@@ -346,7 +351,8 @@ func TestUpgradeMainConfig(t *T.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
-			got := upgradeMainConfig(tc.old)
+			opt := DefaultInstallArgs()
+			got := opt.upgradeMainConfig(tc.old)
 			assert.Equal(t, tc.expect.String(), got.String())
 
 			t.Logf("%s", got.String())

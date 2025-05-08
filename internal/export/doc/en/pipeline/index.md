@@ -4,7 +4,7 @@
 
 Starting from DataKit v1.4.0, the data collected or received by DataKit can be modified, extracted, filtered, and aggregated through the built-in Pipeline data processor function, supporting all current data categories (such as Logging, Metric, Tracing, Network and Object, ETC.).
 
-The DataKit Pipeline programmable data processor enables Guance Cloud to develop a custom domain-specific language runtime provided by Platypus. More programming languages and runtimes will be added to Pipeline in the future.
+The DataKit Pipeline programmable data processor enables <<<custom_key.brand_name>>> to develop a custom domain-specific language runtime provided by Platypus. More programming languages and runtimes will be added to Pipeline in the future.
 
 ## Table of Contents {#toc}
 

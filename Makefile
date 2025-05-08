@@ -2,29 +2,15 @@
 
 default: local
 
-# For production release, download address point to CDN, upload address point to aliyun OSS
-PRODUCTION_UPLOAD_ADDR  ?= zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
-PRODUCTION_DOWNLOAD_CDN ?= static.guance.com/datakit
-TESTING_UPLOAD_ADDR     ?= zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit # For testing: same download/upload address
-TESTING_DOWNLOAD_CDN    ?= zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
-LOCAL_OSS_ADDR          ?= "not-set" # you should export these env in your make environment.
-LOCAL_UPLOAD_ADDR       ?= ${LOCAL_OSS_ADDR}
-LOCAL_DOWNLOAD_CDN      ?= ${LOCAL_OSS_ADDR} # CDN set as the same OSS bucket
 
 # ligai version notify settings
-LIGAI_CUSTOMFIELD       ?=not_set
-LIGAI_AUTO_DEVOPS_TOKEN ?=not_set
-LIGAI_API               ?=not_set
+LIGAI_CUSTOMFIELD       ?=NOT_SET
+LIGAI_AUTO_DEVOPS_TOKEN ?=NOT_SET
+LIGAI_API               ?=NOT_SET
 
-# Local envs to publish local testing binaries.
-# export LOCAL_OSS_ACCESS_KEY = '<your-oss-AK>'
-# export LOCAL_OSS_SECRET_KEY = '<your-oss-SK>'
-# export LOCAL_OSS_BUCKET     = '<your-oss-bucket>'
-# export LOCAL_OSS_HOST       = 'oss-cn-hangzhou.aliyuncs.com'
-# export LOCAL_OSS_ADDR       = '<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
-
-PUB_DIR                = dist
-BUILD_DIR              = dist
+DOCKER_IMAGE_REPO      ?= NOT_SET
+BRAND                  ?= NOT_SET
+DIST_DIR               = dist
 BIN                    = datakit
 NAME                   = datakit
 NAME_EBPF              = datakit-ebpf
@@ -34,6 +20,7 @@ DEFAULT_ARCHS          = all
 MAC_ARCHS              = darwin/amd64
 DOCKER_IMAGE_ARCHS     = linux/arm64,linux/amd64
 UOS_DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
+DCA_BUILD_ARCH         = linux/arm64,linux/amd64
 GOLINT_BINARY         ?= golangci-lint
 CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
 HL                     = \033[0;32m # high light
@@ -63,27 +50,24 @@ GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut 
 GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
 # These can be override at runtime by make variables
-VERSION                     ?= $(shell git describe --always --tags)
-DATAWAY_URL                 ?= "not-set"
-GIT_BRANCH                  ?= $(shell git rev-parse --abbrev-ref HEAD)
-DATAKIT_EBPF_ARCHS          ?= linux/arm64,linux/amd64
-RACE_DETECTION              ?= "off"
-PKGEBPF                     ?= false
-DLEBPF                      ?= false
-AUTO_FIX                    ?= on
-UT_EXCLUDE                  ?= "-"
-UT_ONLY                     ?= "-"
-UT_PARALLEL                 ?= "0"
-DOCKER_REMOTE_HOST          ?= "0.0.0.0" # default use localhost as docker server
-MERGE_REQUEST_TARGET_BRANCH ?= ""
-
-ifneq ($(PKGEBPF), false)
-	PKGEBPF_FLAG = -pkg-ebpf
-endif
-
-ifneq ($(DLEBPF), false)
-	DLEBPF_FLAG = -dl-ebpf
-endif
+VERSION                      ?= $(shell git describe --always --tags)
+DCA_VERSION                  ?= NOT_SET
+DATAWAY_URL                  ?= NOT_SET
+GIT_BRANCH                   ?= $(shell git rev-parse --abbrev-ref HEAD)
+DATAKIT_EBPF_ARCHS           ?= linux/arm64,linux/amd64
+RACE_DETECTION               ?= off
+PKGEBPF                      ?= 0
+DLEBPF                       ?= 0
+AUTO_FIX                     ?= on
+UT_EXCLUDE                   ?= "-"
+UT_ONLY                      ?= "-"
+UT_PARALLEL                  ?= "0"
+DOCKER_REMOTE_HOST           ?= "0.0.0.0" # default use localhost as docker server
+DOCKER_IMAGE_PROJECT_PATH    ?= NOT_SET
+DOCKERFILE_SUFFIX            ?= NOT_SET
+HELM_CHART_DIR               ?= "charts/datakit"
+MERGE_REQUEST_TARGET_BRANCH  ?= ""
+ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
 
 # Generate 'internal/git' package
 define GIT_INFO
@@ -92,12 +76,13 @@ package git
 
 //nolint
 const (
-	BuildAt  string = "$(DATE)"
-	Version  string = "$(VERSION)"
-	Golang   string = "$(GOVERSION)"
-	Commit   string = "$(COMMIT)"
-	Branch   string = "$(GIT_BRANCH)"
-	Uploader string = "$(UPLOADER)"
+	BuildAt    string = "$(DATE)"
+	Version    string = "$(VERSION)"
+	Golang     string = "$(GOVERSION)"
+	Commit     string = "$(COMMIT)"
+	Branch     string = "$(GIT_BRANCH)"
+	Uploader   string = "$(UPLOADER)"
+	DCAVersion string = "$(DCA_VERSION)"
 );
 endef
 export GIT_INFO
@@ -118,8 +103,8 @@ define notify_build
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
 	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
-		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -upload-addr $(3) -download-cdn $(4) \
+		-main $(ENTRY) -binary $(BIN) -name $(NAME) \
+		-release $(1) -dist-dir $(DIST_DIR) -archs $(2) \
 		-notify-only
 endef
 
@@ -135,98 +120,99 @@ define build_bin
 		exit 1; \
 	fi
 
-	@rm -rf $(PUB_DIR)/$(1)/*
-	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
+	@rm -rf $(DIST_DIR)/$(1)/*
+	@mkdir -p $(DIST_DIR)/$(1)
 	@echo "===== building $(BIN) $(1) ====="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
-		-release $(1)             \
-		-archs $(2)               \
-		-upload-addr $(3)         \
-		-download-cdn $(4)        \
-		-main $(ENTRY)            \
-		-binary $(BIN)            \
-		-name $(NAME)             \
-		-build-dir $(BUILD_DIR)   \
-		-pub-dir $(PUB_DIR)       \
-		-race $(RACE_DETECTION)   \
-		$(PKGEBPF_FLAG)
-	@tree -Csh -L 3 $(BUILD_DIR)
+	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
+		-tags with_inputs cmd/make/make.go      \
+		-release $(1)                           \
+		-archs $(2)                             \
+		-main $(ENTRY)                          \
+		-binary $(BIN)                          \
+		-name $(NAME)                           \
+		-dist-dir $(DIST_DIR)                   \
+		-race $(RACE_DETECTION)                 \
+		-brand $(BRAND)                         \
+		-docker-image-repo $(DOCKER_IMAGE_REPO) \
+		-helm-chart-dir $(HELM_CHART_DIR)       \
+		-pkg-ebpf $(PKGEBPF)                    \
+	  -only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
+	@tree -Csh -L 3 $(DIST_DIR)
 endef
 
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
-		-release $(1)            \
-		-upload-addr $(2)        \
-		-download-cdn $(3)       \
-		-pub                     \
-		-enable-upload-aws       \
-		-pub-dir $(PUB_DIR)      \
-		-name $(NAME)            \
-		-build-dir $(BUILD_DIR)  \
-		-archs $(4)              \
-		$(DLEBPF_FLAG)
+	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
+		-tags with_inputs cmd/make/make.go      \
+		-release $(1)                           \
+		-archs $(2)                             \
+		-pub                                    \
+		-enable-upload-aws                      \
+		-dist-dir $(DIST_DIR)                   \
+		-name $(NAME)                           \
+		-brand $(BRAND)                         \
+		-helm-chart-dir $(HELM_CHART_DIR)       \
+		-docker-image-repo $(DOCKER_IMAGE_REPO) \
+		-download-ebpf $(DLEBPF)
 endef
 
 define pub_ebpf
 	@echo "===== publishing $(1) $(NAME_EBPF) ====="
-	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
-		-release $(1)             \
-		-upload-addr $(2)         \
-		-download-cdn $(3)        \
-		-archs $(4)               \
-		-pub-ebpf                 \
-		-pub-dir $(PUB_DIR)       \
-		-name $(NAME_EBPF)        \
-		-build-dir $(BUILD_DIR)
+	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
+		-tags with_inputs cmd/make/make.go \
+		-release $(1)           \
+		-archs $(2)             \
+		-pub-ebpf               \
+		-dist-dir $(DIST_DIR)   \
+		-name $(NAME_EBPF)
 endef
 
 define build_docker_image
 	echo 'publishing to $(2)...';
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit:$(VERSION) . --push; \
+		  --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/datakit:$(VERSION) \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push; \
+		 --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/datakit-elinker:$(VERSION) \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
+		 --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/logfwd:$(VERSION) \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
 	else \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit:$(VERSION) \
-			-t $(2)/dataflux/datakit:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+		  --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/datakit:$(VERSION) \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/datakit-elinker:$(VERSION) \
-			-t $(2)/dataflux/datakit-elinker:$(VERSION) \
-			-t $(2)/dataflux-prev/datakit-elinker:$(VERSION) -f Dockerfile_elinker . --push; \
+		  --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/datakit-elinker:$(VERSION) \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-			-t $(2)/datakit/logfwd:$(VERSION) \
-			-t $(2)/dataflux/logfwd:$(VERSION) \
-			-t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
+		  --build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/logfwd:$(VERSION) \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
 	fi
 endef
 
 define build_uos_image
 	echo 'publishing to $(2)...';
 	sudo docker buildx build --platform $(1) \
-	-t $(2)/uos-dataflux/datakit:$(VERSION) \
-	-f Dockerfile.uos . --push; \
+	--build-arg DIST_DIR=$(DIST_DIR) \
+	-t $(2)/datakit:$(VERSION) \
+	-f dockerfiles/Dockerfile.uos . --push; \
 	sudo docker buildx build --platform $(1) \
-	-t $(2)/uos-dataflux/datakit-elinker:$(VERSION) \
-	-f Dockerfile_elinker.uos . --push; \
+	--build-arg DIST_DIR=$(DIST_DIR) \
+	-t $(2)/datakit-elinker:$(VERSION) \
+	-f dockerfiles/Dockerfile_elinker.uos . --push; \
 	sudo docker buildx build --platform $(1) \
-	-t $(2)/uos-dataflux/logfwd:$(VERSION) \
-	-f Dockerfile_logfwd.uos . --push;
-endef
-
-define build_k8s_charts
-	@helm repo ls
-	@echo `echo $(VERSION) | cut -d'-' -f1`
-	@sed -e "s,{{repository}},$(2)/datakit/datakit,g" charts/values.yaml > charts/datakit/values.yaml
-	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION)`
-	@helm cm-push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
-	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
+	--build-arg DIST_DIR=$(DIST_DIR) \
+	-t $(2)/logfwd:$(VERSION) \
+	-f dockerfiles/Dockerfile_logfwd.uos . --push;
 endef
 
 define show_poor_logs
@@ -264,129 +250,88 @@ endef
 ##############################################################################
 
 local: deps
-	$(call build_bin, local, $(LOCAL_ARCHS), $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN))
+	$(call build_bin,local,$(LOCAL_ARCHS))
 
 pub_local: deps
-	$(call publish, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
+	$(call publish,local,$(LOCAL_ARCHS))
 
 pub_ebpf_local: deps
-	$(call build_bin, local, $(LOCAL_ARCHS), $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN))
-	$(call pub_ebpf, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
+	$(call build_bin,local,$(LOCAL_ARCHS))
+	$(call pub_ebpf,local,$(LOCAL_ARCHS))
 
 pub_ebpf_local_nobuild: deps
-	$(call pub_ebpf, local, $(LOCAL_UPLOAD_ADDR), $(LOCAL_DOWNLOAD_CDN), $(LOCAL_ARCHS))
+	$(call pub_ebpf,local,$(LOCAL_ARCHS))
 
-pub_epbf_testing: deps
-	$(call build_bin, testing, $(DATAKIT_EBPF_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
-	$(call pub_ebpf, testing, $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
+pub_ebpf_testing: deps
+	$(call build_bin,testing,$(DATAKIT_EBPF_ARCHS))
+	$(call pub_ebpf,testing,$(DATAKIT_EBPF_ARCHS))
 
 pub_ebpf_production: deps
-	$(call build_bin, production, $(DATAKIT_EBPF_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
-	$(call pub_ebpf, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(DATAKIT_EBPF_ARCHS))
+	$(call build_bin,production,$(DATAKIT_EBPF_ARCHS))
+	$(call pub_ebpf,production,$(DATAKIT_EBPF_ARCHS))
 
 testing_notify: deps
-	$(call notify_build, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
+	$(call notify_build,testing,$(DEFAULT_ARCHS))
 
 testing: deps
-	$(call build_bin, testing, $(DEFAULT_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
-	$(call publish, testing, $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN), $(DEFAULT_ARCHS))
+	$(call build_bin,testing,$(DEFAULT_ARCHS))
+	$(call publish,testing,$(DEFAULT_ARCHS))
 
 testing_image:
-	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
+	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/datakit')
 	# we also publishing testing image to public image repo
-	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
-	$(call build_k8s_charts, 'datakit-testing', registry.jiagouyun.com)
+	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 production_notify: deps
-	$(call notify_build,production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_CDN), $(TESTING_DOWNLOAD_CDN))
+	$(call notify_build,production,$(DEFAULT_ARCHS))
 
 production: deps # stable release
-	$(call build_bin, production, $(DEFAULT_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
-	$(call publish, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(DEFAULT_ARCHS))
+	$(call build_bin,production,$(DEFAULT_ARCHS))
+	$(call publish,production,$(DEFAULT_ARCHS))
 
 production_image:
-	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
-	$(call build_k8s_charts, 'datakit', pubrepo.guance.com)
+	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 uos_image_testing: deps
-	$(call build_bin, testing, $(DOCKER_IMAGE_ARCHS), $(TESTING_UPLOAD_ADDR), $(TESTING_DOWNLOAD_CDN))
-	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
-	# we also publishing testing image to public image repo
-	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
+	$(call build_bin,testing,$(DOCKER_IMAGE_ARCHS))
+	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/uos-dataflux') # testing image always push to registry.jiagouyun.com
+	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO)) # we also publishing testing image to public image repo
 
 uos_image_production: deps
-	$(call build_bin, production, $(DOCKER_IMAGE_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
-	$(call build_uos_image, $(UOS_DOCKER_IMAGE_ARCHS), 'pubrepo.guance.com')
+	$(call build_bin,production,$(DOCKER_IMAGE_ARCHS))
+	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 production_mac: deps
-	$(call build_bin, production, $(MAC_ARCHS), $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN))
-	$(call publish, production, $(PRODUCTION_UPLOAD_ADDR), $(PRODUCTION_DOWNLOAD_CDN), $(MAC_ARCHS))
-
-# not used
-pub_testing_win_img:
-	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(TESTING_UPLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
-
-# not used
-pub_testing_charts:
-	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm cm-push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
-
-# not used
-pub_release_win_img:
-	# release to pub hub
-	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(PRODUCTION_UPLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.guance.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
-	@sudo docker push pubrepo.guance.com/datakit/datakit-win:$(VERSION)
-
-# 没有传参的日志，我们认为其日志信息是不够完整的，日志的意义也相对不大
-shame_logging:
-	@grep --color=always \
-		--exclude-dir=vendor \
-		--exclude="*_test.go" \
-		--exclude-dir=.git \
-		--exclude=*.html \
-		-nr '\.Debugf(\|\.Debug(\|\.Infof(\|\.Info(\|\.Warnf(\|\.Warn(\|\.Errorf(\|\.Error(' . | grep -vE "\"|uhttp|\`" && \
-		{ echo "[E] some bad loggings in code"; exit -1; } || { echo "all loggings ok"; exit 0; }
+	$(call build_bin,production,$(MAC_ARCHS))
+	$(call publish,production,$(MAC_ARCHS))
 
 ip2isp:
 	$(call build_ip2isp)
 
-build_dca: deps
-	@rm -rf $(BUILD_DIR)
-	@mkdir -p $(BUILD_DIR)/dca
-	@echo "===== building dca ====="
+build_dca_web:
+	mkdir -p $(DIST_DIR)
+	cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && \
+	cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && \
+	npm run build \
+  cd ../..
 
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
+build_dca: deps build_dca_web
+	@echo "===== building $(BRAND).dca ====="
+	@mv dca/web/build $(DIST_DIR)/dca-web # move DCA web(build during build_dca_web) to $(DIST_DIR)
+	@CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
 		go run cmd/make/make.go -dca \
-		-archs $(DOCKER_IMAGE_ARCHS) \
-		-build-dir $(BUILD_DIR)
-	@echo "===== building dca done ====="
+		-archs $(DCA_BUILD_ARCH) \
+		-dist-dir $(DIST_DIR) \
+		-dca-version $(DCA_VERSION) \
+		-brand $(BRAND)
+	@echo "===== building $(BRAND).dca done ====="
 
-pub_dca_testing: prepare_dca
-	@cd dca \
-	&& node build.js build_image \
-	--image-tag=$(IMAGE_TAG) \
-	--upload-addr=$(TESTING_UPLOAD_ADDR) \
-	--download-cdn=$(TESTING_DOWNLOAD_CDN) \
-	--release=testing
-
-pub_dca_production: prepare_dca
-	@cd dca \
-	&& node build.js build_image --image-tag=latest \
-	--image-url=pubrepo.guance.com/tools/dca \
-	--upload-addr=$(PRODUCTION_UPLOAD_ADDR) \
-	--download-cdn=$(PRODUCTION_DOWNLOAD_CDN) \
-	--release=production
-
-prepare_dca:
-	@cd dca \
-	&& rm -rf ./dist \
-	&& mkdir -p ./dist \
-	&& cp -r ../dist/dca-* ./dist
+build_dca_image:
+	sudo docker buildx build \
+		--platform $(DOCKER_IMAGE_ARCHS) \
+		--build-arg DIST_DIR=$(DIST_DIR) \
+		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
+		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
 deps: prepare gofmt 
 
@@ -450,32 +395,40 @@ define check_docs
 	@echo 'version of cspell: $(shell cspell --version)'
 	@echo 'check markdown files under $(1)...'
 
+	# custom keys checking
+	if ./scripts/check-custom-key.sh $(1); then \
+		echo "custom key check passing..."; \
+	else \
+		exit 1; \
+	fi
+
+	# spell checking
 	cspell lint --show-suggestions \
 		-c scripts/cspell.json \
-		--no-progress $(1)/**/*.md | tee dist/cspell.lint
+		--no-progress $(1)/**/*.md | tee $(DIST_DIR)/cspell.lint
 
-	@if [ -s dist/cspell.lint ]; then \
-		printf "$(RED) [FAIL] dist/cspell.lint not empty \n$(NC)"; \
-		cat dist/cspell.lint; \
+	@if [ -s $(DIST_DIR)/cspell.lint ]; then \
+		printf "$(RED) [FAIL] $(DIST_DIR)/cspell.lint not empty \n$(NC)"; \
+		cat $(DIST_DIR)/cspell.lint; \
 		exit -1; \
 	fi
 
   # check markdown style
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
 	@echo 'version of markdownlint: $(shell markdownlint --version)'
-	@truncate -s 0 dist/md-lint.json
+	@truncate -s 0 $(DIST_DIR)/md-lint.json
 	markdownlint -c scripts/markdownlint.yml \
 		-j \
-		-o dist/md-lint.json $(1)
+		-o $(DIST_DIR)/md-lint.json $(1)
 
-	@if [ -s dist/md-lint.json ]; then \
-		printf "$(RED) [FAIL] dist/md-lint.json not empty \n$(NC)"; \
-		cat dist/md-lint.json; \
+	@if [ -s $(DIST_DIR)/md-lint.json ]; then \
+		printf "$(RED) [FAIL] $(DIST_DIR)/md-lint.json not empty \n$(NC)"; \
+		cat $(DIST_DIR)/md-lint.json; \
 		exit -1; \
 	fi
 endef
 
-exportdir=dist/export
+exportdir=$(DIST_DIR)/export
 # only check ZH docs, EN docs too many errors
 # template generated real markdown files
 docs_dir=$(exportdir)/guance-doc/docs
@@ -529,7 +482,7 @@ clean:
 	@rm -rf internal/pipeline/parser/gram.y.go
 	@rm -rf internal/pipeline/parser/gram_y.go
 	@rm -rf check.err
-	@rm -rf $(PUB_DIR)/*
+	@rm -rf $(DIST_DIR)/*
 
 define check_mr_target_branch
 	@if [ $1 = main -o $1 = master ]; then \

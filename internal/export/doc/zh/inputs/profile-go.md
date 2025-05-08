@@ -225,4 +225,4 @@ runtime.SetBlockProfileRate(rate)
 - `version`: 应用的版本
 - `enabled_types`: 性能类型，如 `cpu, goroutine, heap, mutex, block`
 
-配置好 Profile 采集器，启动或重启 DataKit，一段时间后即可在观测云中心查看 Go 的性能数据。
+配置好 Profile 采集器，启动或重启 DataKit，一段时间后即可在<<<custom_key.brand_name>>>中心查看 Go 的性能数据。

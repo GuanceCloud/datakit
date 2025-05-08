@@ -34,7 +34,7 @@ monitor:
 
 ---
 
-Collect indicators, objects and log data of container and Kubernetes and report them to Guance Cloud.
+Collect indicators, objects and log data of container and Kubernetes and report them to <<<custom_key.brand_name>>>.
 
 ## Configuration {#config}
 

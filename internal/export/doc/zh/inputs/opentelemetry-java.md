@@ -167,7 +167,7 @@ public class otlpdemo {
 
 ## 查看效果 {#view}
 
-登录 [观测云](https://console.guance.com/tracing/service/table?time=15m){:target="_blank"} 后查看 「应用性能监测 -> 链路 -> 点击单条链路」
+登录 [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} 后查看 「应用性能监测 -> 链路 -> 点击单条链路」
 
 ![avatar](imgs/otel-java-example.png)
 

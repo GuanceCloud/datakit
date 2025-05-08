@@ -66,7 +66,7 @@ func runServiceFlags() error {
 	if *flagServiceReinstall {
 		tryLoadMainCfg()
 
-		if err := reinstallDatakit(config.Cfg.DatakitUser); err != nil {
+		if err := reinstallDatakit(config.Cfg); err != nil {
 			cp.Errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
@@ -203,19 +203,25 @@ func uninstallDatakit() error {
 	return service.Control(svc, "uninstall")
 }
 
-func reinstallDatakit(userName string) error {
-	l.Infof("reinstallDatakit with user: %s", userName)
-	limitCPUMax := fmt.Sprintf("%d%%", int(config.Cfg.ResourceLimitOptions.CPUMax))
-	limitMemMax := fmt.Sprintf("%dM", config.Cfg.ResourceLimitOptions.MemMax)
-	if !config.Cfg.ResourceLimitOptions.Enable || userName != "datakit" {
+func reinstallDatakit(mc *config.Config) error {
+	limitCPUMax := fmt.Sprintf("%d%%", int(mc.ResourceLimitOptions.CPUMax))
+	limitMemMax := fmt.Sprintf("%dM", mc.ResourceLimitOptions.MemMax)
+	if !mc.ResourceLimitOptions.Enable || mc.DatakitUser != "datakit" {
 		limitCPUMax = ""
 		limitMemMax = ""
 	}
 
-	svc, err := dkservice.NewService(dkservice.WithUser(userName),
+	opts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(limitMemMax),
 		dkservice.WithCPULimit(limitCPUMax),
-	)
+	}
+
+	if runtime.GOOS == datakit.OSLinux { // only linux add user to daemon service
+		l.Infof("reinstallDatakit with user: %s", mc.DatakitUser)
+		opts = append(opts, dkservice.WithUser(mc.DatakitUser))
+	}
+
+	svc, err := dkservice.NewService(opts...)
 	if err != nil {
 		return err
 	}

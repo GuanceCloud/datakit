@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Windows Remote 采集器通过 WMI 或 SNMP 远程采集 Windows 各项基础指标和对象，并将数据上传到观测云，帮助监控分析 Windows 各种异常情况。
+Windows Remote 采集器通过 WMI 或 SNMP 远程采集 Windows 各项基础指标和对象，并将数据上传，帮助监控分析 Windows 各种异常情况。
 
 ## 配置 {#config}
 

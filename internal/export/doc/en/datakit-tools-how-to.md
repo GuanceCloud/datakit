@@ -65,10 +65,10 @@ After restart Datakit, the recording directory structure seems like(here list th
 
 [:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0)
 
-After Datakit has recorded the data, we can save the data in the directory in Git or some other way (**Do not to change the directory naming and structure under *recorder/***), and then import the data into Guance Cloud with the following command:
+After Datakit has recorded the data, we can save the data in the directory in Git or some other way (**Do not to change the directory naming and structure under *recorder/***), and then import the data into <<<custom_key.brand_name>>> with the following command:
 
 ```shell
-$ datakit import -P /usr/local/datakit/recorder -D https://openway.guance.com?token=tkn_xxxxxxxxx
+$ datakit import -P /usr/local/datakit/recorder -D https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxx
 
 > Uploading "/usr/local/datakit/recorder/metric/cpu.1698217783322857000.pbjson"(1 points) on metric...
 +1h53m6.137855s ~ 2023-10-25 15:09:43.321559 +0800 CST
@@ -89,7 +89,7 @@ $ datakit help import
 
 usage: datakit import [options]
 
-Import used to play recorded history data to Guance Cloud. Available options:
+Import used to play recorded history data to <<<custom_key.brand_name>>>. Available options:
 
 -D, --dataway strings   dataway list
 --log string        log path (default "/dev/null")
@@ -351,7 +351,7 @@ create_time 1639657028706
     
     ```shell
     $ helm install datakit datakit/datakit -n datakit \
-    --set datakit.dataway_url="https://openway.guance.com?token=<YOUR-TOKEN>" \
+    --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
     --set iploc.enable true \
     --create-namespace 
     ```

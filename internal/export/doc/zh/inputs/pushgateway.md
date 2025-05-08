@@ -92,7 +92,7 @@ spec:
     spec:
       containers:
       - name: client
-        image: pubrepo.guance.com/base/curl
+        image: pubrepo.<<<custom_key.brand_main_domain>>>/base/curl
         imagePullPolicy: IfNotPresent
         env:
         - name: MY_NODE_NAME
@@ -124,7 +124,7 @@ spec:
           done
 ```
 
-- 在观测云页面能看到指标集是 `pushgateway`，字段是 `count` 的指标数据。
+- 在<<<custom_key.brand_name>>>页面能看到指标集是 `pushgateway`，字段是 `count` 的指标数据。
 
 ## 指标集和 tags {#measurement-and-tags}
 

@@ -16,9 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
-const OnlineBaseURL = "https://static.guance.com"
-
 var (
+	StaticCDN   = "static.guance.com"
 	suggestions = []prompt.Suggest{
 		{Text: "exit", Description: "exit cmd"},
 		{Text: "Q", Description: "exit cmd"},

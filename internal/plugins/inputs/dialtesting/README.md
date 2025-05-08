@@ -1,6 +1,6 @@
 # dialtesting 模块设计
 
-dialtesting 模块主要负责从拨测中心或则本地文件中拉取拨测任务，执行拨测数据收集，并将拨测结果上报观测云。
+dialtesting 模块主要负责从拨测中心或则本地文件中拉取拨测任务，执行拨测数据收集，并将拨测结果上报<<<custom_key.brand_name>>>。
 
 ## Prometheus Metrics
 
@@ -40,7 +40,7 @@ http 模块暴露如下 metrics：
 	* "method": "POST",
 	* "external_id": "外部系统中给该任务定义的 ID"
 
-	# 拨测数据的存放地址，对 SAAS 而言，是 openway.guance.com
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.<<<custom_key.brand_main_domain>>>
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway。这里的 token
   # 对 SAAS/PASSS 而言，实际上隐含了工作空间信息
 	* "post_url": "https://dataway.cn?token=tkn_xxx",
@@ -189,7 +189,7 @@ http 模块暴露如下 metrics：
 	"port": "443",
 	"name": "give your test a name",
 
-	# 拨测数据的存放地址，对 SAAS 而言，是 openway.guance.com
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.<<<custom_key.brand_main_domain>>>
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
 	"post_url": "https://dataway.cn?token=tkn_xxx",
 
@@ -271,7 +271,7 @@ http 模块暴露如下 metrics：
 	"dns_server": "",
 	"name": "give your test a name",
 
-	# 拨测数据的存放地址，对 SAAS 而言，是 openway.guance.com
+	# 拨测数据的存放地址，对 SAAS 而言，是 openway.<<<custom_key.brand_main_domain>>>
 	# 对 PAAS 而言，需要一个单独的公网可访问的 Dataway
 	"post_url": "https://dataway.cn?token=tkn_xxx",
 

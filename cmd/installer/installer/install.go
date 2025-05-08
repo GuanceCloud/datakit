@@ -17,9 +17,8 @@ import (
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
-var InstallExternals = ""
-
-func Install(svc service.Service, userName string) {
+// Install will stop/uninstall/install svc.
+func (args *InstallerArgs) Install(mc *config.Config, svc service.Service) (err error) {
 	svcStatus, err := svc.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
@@ -43,12 +42,9 @@ func Install(svc service.Service, userName string) {
 		}
 	}
 
-	mc := config.Cfg
-	mc.DatakitUser = userName
-	// load DK_XXX env config
-	mc = loadInstallerEnvs(mc)
-
-	writeDefInputToMainCfg(mc, false)
+	if err := args.WriteDefInputs(mc); err != nil {
+		l.Warnf("WriteDefInputs: %s, ignored", err)
+	}
 
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
@@ -60,52 +56,55 @@ func Install(svc service.Service, userName string) {
 		l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
 	}
 
-	if InstallRUMSymbolTools != 0 {
+	if args.InstallRUMSymbolTools != 0 {
 		if err := cmds.InstallSymbolTools(); err != nil {
-			l.Fatalf("unable to install RUM symbol tools: %s", err)
+			l.Errorf("unable to install RUM symbol tools: %s", err)
+			return err
 		}
 	}
+
+	return nil
 }
 
-func addConfdConfig(mcPrt *config.Config) {
-	if ConfdBackend != "" {
+func (args *InstallerArgs) addConfdConfig(mcPrt *config.Config) {
+	if args.ConfdBackend != "" {
 		// 个别数据类型需要转换
 
 		// 解析后台源，应该填写成 "[地址A:端口号A,地址B:端口号B]"字样
-		if i := strings.Index(ConfdBackendNodes, "["); i > -1 {
-			ConfdBackendNodes = ConfdBackendNodes[i+1:]
+		if i := strings.Index(args.ConfdBackendNodes, "["); i > -1 {
+			args.ConfdBackendNodes = args.ConfdBackendNodes[i+1:]
 		}
-		if i := strings.Index(ConfdBackendNodes, "]"); i > -1 {
-			ConfdBackendNodes = ConfdBackendNodes[:i]
+		if i := strings.Index(args.ConfdBackendNodes, "]"); i > -1 {
+			args.ConfdBackendNodes = args.ConfdBackendNodes[:i]
 		}
-		backendNodes := strings.Split(ConfdBackendNodes, ",")
+		backendNodes := strings.Split(args.ConfdBackendNodes, ",")
 		for i := 0; i < len(backendNodes); i++ {
 			backendNodes[i] = strings.TrimSpace(backendNodes[i])
 		}
 
 		basicAuth := false
-		if ConfdBasicAuth == "true" {
+		if args.ConfdBasicAuth == "true" {
 			basicAuth = true
 		}
 
 		mcPrt.Confds = []*config.ConfdCfg{{
 			Enable:            true,
-			Backend:           ConfdBackend,
+			Backend:           args.ConfdBackend,
 			BasicAuth:         basicAuth,
-			ClientCaKeys:      ConfdClientCaKeys,
-			ClientCert:        ConfdClientCert,
-			ClientKey:         ConfdClientKey,
+			ClientCaKeys:      args.ConfdClientCaKeys,
+			ClientCert:        args.ConfdClientCert,
+			ClientKey:         args.ConfdClientKey,
 			BackendNodes:      append(backendNodes[0:0], backendNodes...),
-			Password:          ConfdPassword,
-			Scheme:            ConfdScheme,
-			Separator:         ConfdSeparator,
-			Username:          ConfdUsername,
-			AccessKey:         ConfdAccessKey,
-			SecretKey:         ConfdSecretKey,
-			ConfdNamespace:    ConfdConfdNamespace,
-			PipelineNamespace: ConfdPipelineNamespace,
-			Region:            ConfdRegion,
-			CircleInterval:    ConfdCircleInterval,
+			Password:          args.ConfdPassword,
+			Scheme:            args.ConfdScheme,
+			Separator:         args.ConfdSeparator,
+			Username:          args.ConfdUsername,
+			AccessKey:         args.ConfdAccessKey,
+			SecretKey:         args.ConfdSecretKey,
+			ConfdNamespace:    args.ConfdConfdNamespace,
+			PipelineNamespace: args.ConfdPipelineNamespace,
+			Region:            args.ConfdRegion,
+			CircleInterval:    args.ConfdCircleInterval,
 		}}
 	}
 }

@@ -65,7 +65,7 @@ dk_C --> dk_X_proxy;
 end
 
 subgraph "Public network"
-dk_X_proxy ==> |https://openway.guance.com|dw;
+dk_X_proxy ==> |https://openway.<<<custom_key.brand_main_domain>>>|dw;
 end
 ```
 

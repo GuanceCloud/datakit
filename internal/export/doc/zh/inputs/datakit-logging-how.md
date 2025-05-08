@@ -115,11 +115,11 @@ spec:
 { source = 'datakit' AND bar IN [ 1, 2, 3] }
 ```
 
-如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到观测云，被默默丢弃。在 [DataKit Monitor](../datakit/datakit-monitor.md) 中能看到丢弃的统计情况。
+如果中心配置了日志黑名单，假定切割出来的 100 条日志中，有 10 条满足这里的条件（即 source 为 `datakit`，且字段 `bar` 字段的值出现在后面的列表中），那么这 10 条日志将不会上报到<<<custom_key.brand_name>>>，被默默丢弃。在 [DataKit Monitor](../datakit/datakit-monitor.md) 中能看到丢弃的统计情况。
 
-- 上报观测云
+- 上报<<<custom_key.brand_name>>>
 
-经过上述这些步骤后，日志数据最终上报给观测云，在日志查看页面，即可看到日志数据。
+经过上述这些步骤后，日志数据最终上报给<<<custom_key.brand_name>>>，在日志查看页面，即可看到日志数据。
 
 一般情况下，从日志产生，如果采集成功，到页面能看到数据，期间有 30s 左右的延迟，这期间，DataKit 本身数据也是最大 10s 才上报一次，中心也要经过一系列处理才最终入库。
 

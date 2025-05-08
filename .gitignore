@@ -25,7 +25,6 @@ scripts/v1.data
 *.rpm
 *.tar.gz
 !k8s-profilers/async-profiler/*
-*.yaml
 !datakit-elinker.template.yaml
 *.zip
 test.*/
@@ -56,7 +55,8 @@ data/jolokia-jvm-agent.jar
 datakit.conf
 datakit.yaml
 deps/*
-dist/
+dist/*
+dist.*/*
 dk-installer
 docker/agent
 docker/datakit
@@ -117,3 +117,9 @@ dca/web/build
 !dca/dca.yaml
 internal/apminject/dkrunc/dkrunc
 dk.metrics
+
+# these 2 files are exported during build helm.tgz
+charts/datakit/Chart.yaml
+charts/datakit/values.yaml
+charts/datakit/questions.yml
+charts/datakit/README.md

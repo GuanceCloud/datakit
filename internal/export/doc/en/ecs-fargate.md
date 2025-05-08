@@ -33,7 +33,7 @@ In most cases, you just need to integrate Datakit into the task definition as a 
 1. In the task definition, add a Datakit container with the following sample configuration:
 
     - Name: `datakit`
-    - Image: `pubrepo.guance.com/datakit/datakit:<specified version>`
+    - Image: `pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<specified version>`
     - Essential container: `No`
     - Port mapping, container port: `9529` (configure as needed, defaults to `9529`)
     - Resource allocation limit: CPU 2vCPU, Memory limit 4GB
@@ -41,7 +41,7 @@ In most cases, you just need to integrate Datakit into the task definition as a 
 1. Configure Datakit using environment variables. The necessary environment variables are as follows:
 
     - `ENV_ECS_FARGATE`: `on`
-    - `ENV_DATAWAY`: `https://openway.guance.com?token=<your-token>`
+    - `ENV_DATAWAY`: `https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>`
     - `ENV_HTTP_LISTEN`: `0.0.0.0:9529`
     - `ENV_DEFAULT_ENABLED_INPUTS`: `dk,container,ddtrace`
 
@@ -53,7 +53,7 @@ This is an example of a running Datakit and trace task definition:
     "containerDefinitions": [
         {
             "name": "trace",
-            "image": "pubrepo.guance.com/datakit-dev/ddtrace-golang-demo:v1",
+            "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-dev/ddtrace-golang-demo:v1",
             "cpu": 0,
             "portMappings": [
                 {
@@ -77,7 +77,7 @@ This is an example of a running Datakit and trace task definition:
         },
         {
             "name": "dk",
-            "image": "pubrepo.guance.com/datakit/datakit:1.21.0",
+            "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.21.0",
             "cpu": 2048,
             "memory": 4096,
             "portMappings": [
@@ -96,7 +96,7 @@ This is an example of a running Datakit and trace task definition:
                 },
                 {
                     "name": "ENV_DATAWAY",
-                    "value": "https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
+                    "value": "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
                 },
                 {
                     "name": "ENV_HTTP_LISTEN",

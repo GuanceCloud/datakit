@@ -124,7 +124,7 @@ graph LR
 : - 高度灵活的可配置，你可以在零配置的情况下就使用 Datakit 的链路数据能力也可以通过简单的配置定制化的开启 Datakit 提供的包括采样，稀有链路拾取，资源关闭在内的多种链路计算能力。
 : - 高效且分布式一致的采样算法。
 : - 数据处理前段多种数据处理 Filter 满足日常数据处理需求。
-: - 数据处理后段 Pipeline 支持，你可以借助[观测云提供的强大的 Pipeline 脚本](https://docs.guance.com/logs/pipelines/text-processing/){:target="_blank"}在数据发送到中心之前就对数据进行定制化。
+: - 数据处理后段 Pipeline 支持，你可以借助[<<<custom_key.brand_name>>>提供的强大的 Pipeline 脚本](https://docs.<<<custom_key.brand_main_domain>>>/logs/pipelines/text-processing/){:target="_blank"}在数据发送到中心之前就对数据进行定制化。
 
 ## 总结 {#conclude}
 

@@ -28,8 +28,8 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 - [Create a Layer via Zip](https://docs.aws.amazon.com/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 
     - Zip download links:
-        - [Linux amd64](https://static.guance.com/datakit/datakit_aws_extension-linux-amd64.zip)
-        - [Linux arm64](https://static.guance.com/datakit/datakit_aws_extension-linux-arm64.zip)
+        - [Linux amd64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-amd64.zip)
+        - [Linux arm64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-arm64.zip)
 
     - Open the Lambda console [Layers page](https://console.aws.amazon.com/lambda/home#/layers){:target="_blank"}.
     - Select **Create layer**.
@@ -47,7 +47,7 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 
 ### Configure the Required Environment Variables {#env}
 
-- ENV_DATAWAY=`https://openway.guance.com?token=<your-token>`
+- ENV_DATAWAY=`https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>`
 
 ## Metrics {#metric}
 

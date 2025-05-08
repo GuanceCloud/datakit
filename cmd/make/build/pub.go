@@ -19,11 +19,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 
-	"github.com/GuanceCloud/cliutils"
 	humanize "github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -43,14 +41,11 @@ const (
 	TarRlsVerMask tarFileOpt = 0b1
 	TarNoRlsVer   tarFileOpt = 0b0
 	TarWithRlsVer tarFileOpt = 0b1
-)
 
-const (
 	ARM64 = "arm64"
 	AMD64 = "amd64"
+	Linux = "linux"
 )
-
-const Linux = "linux"
 
 func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
 	l.Debugf("tarFiles entry, pubPath = %s, buildPath = %s, appName = %s", pubPath, buildPath, appName)
@@ -87,182 +82,50 @@ func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) 
 	return gzFileName, gzFilePath
 }
 
-func addOSSFiles(ossPath string, files map[string]string) map[string]string {
-	res := map[string]string{}
-	for k, v := range files {
-		res[path.Join(ossPath, k)] = v
+func addOSSFiles(ossPath string, files []ossFile) []ossFile {
+	var res []ossFile
+	for _, x := range files {
+		res = append(res, ossFile{path.Join(ossPath, x.remote), x.local})
 	}
 	return res
 }
 
-//nolint:funlen,gocyclo
-func PubDatakit() error {
+type ossFile struct {
+	remote, local string
+}
+
+func pubDCA() error {
 	start := time.Now()
-	var ak, sk, bucket, ossHost string
-
-	// 在你本地设置好这些 oss-key 环境变量
-	switch ReleaseType {
-	case ReleaseTesting, ReleaseProduction, ReleaseLocal:
-		tag := strings.ToUpper(ReleaseType)
-		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
-		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
-		bucket = os.Getenv(tag + "_OSS_BUCKET")
-		ossHost = os.Getenv(tag + "_OSS_HOST")
-	default:
-		return fmt.Errorf("unknown release type: %s", ReleaseType)
+	basics := []ossFile{
+		{"version", filepath.Join(DistDir, "version.dca")},
+		{"dca.yaml", filepath.Join(DistDir, "dca.yaml")},
+		{fmt.Sprintf("dca-%s.yaml", DCAVersion), filepath.Join(DistDir, "dca.yaml")},
 	}
 
-	if ak == "" || sk == "" {
-		return fmt.Errorf("OSS %s/%s not set",
-			strings.ToUpper(ReleaseType)+"_OSS_ACCESS_KEY",
-			strings.ToUpper(ReleaseType)+"_OSS_SECRET_KEY")
+	if ossCli == nil {
+		l.Warnf("ossCli not set")
+		return nil
 	}
 
-	ossSlice := strings.SplitN(UploadAddr, "/", 2) // at least 2 parts
-	if len(ossSlice) != 2 {
-		return fmt.Errorf("invalid download addr: %s", UploadAddr)
-	}
-	OSSPath = ossSlice[1]
-
-	oc := &cliutils.OssCli{
-		Host:       ossHost,
-		PartSize:   512 * 1024 * 1024,
-		AccessKey:  ak,
-		SecretKey:  sk,
-		BucketName: bucket,
-		WorkDir:    OSSPath,
-	}
-
-	if err := oc.Init(); err != nil {
-		return err
-	}
-
-	// upload all build archs
-	curArchs = ParseArchs(Archs)
-
-	if err := generateInstallScript(); err != nil {
-		return err
-	}
-
-	exporter := export.NewIntegration(export.WithTopDir(PubDir))
-	if err := exporter.Export(); err != nil {
-		return err
-	}
-
-	basics := map[string]string{
-		"version": path.Join(PubDir, ReleaseType, "version"),
-
-		// NOTE: these will overwrite online files, you should instead use xxx-<version>.
-		"datakit.yaml":         "datakit.yaml",
-		"datakit-elinker.yaml": "datakit-elinker.yaml",
-		"install.sh":           "install.sh",
-		"install.ps1":          "install.ps1",
-		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion):         "datakit.yaml",
-		fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion): "datakit-elinker.yaml",
-		fmt.Sprintf("install-%s.sh", ReleaseVersion):           "install.sh",
-		fmt.Sprintf("install-%s.ps1", ReleaseVersion):          "install.ps1",
-
-		"measurements-meta.json": filepath.Join(PubDir,
-			"datakit",
-			inputs.I18nZh.String(), // on Zh version
-			"measurements-meta.json"),
-
-		"pipeline-docs.json": filepath.Join(PubDir,
-			"datakit",
-			inputs.I18nZh.String(),
-			"pipeline-docs.json"),
-
-		"en/pipeline-docs.json": filepath.Join(PubDir,
-			"datakit",
-			inputs.I18nEn.String(),
-			"pipeline-docs.json"),
-
-		// only Zh version
-		"internal-pipelines.json": filepath.Join(PubDir,
-			"datakit",
-			inputs.I18nZh.String(),
-			"internal-pipelines.json"),
-	}
-
-	// tar files and collect OSS upload/backup info
-	for _, arch := range curArchs {
-		parts := strings.Split(arch, "/")
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid arch: %s", arch)
-		}
-		goos, goarch := parts[0], parts[1]
-		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1], TarWithRlsVer)
-		// gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
-
-		if isExtraLite() {
-			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_lite", parts[0], parts[1], TarWithRlsVer)
-			basics[gzName] = gzPath
-		}
-		if isExtraELinker() {
-			gzName, gzPath := tarFiles(PubDir, BuildDir, AppName+"_elinker", parts[0], parts[1], TarWithRlsVer)
-			basics[gzName] = gzPath
-		}
-		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
-			zipName := fmt.Sprintf("%s-%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch, ReleaseVersion)
-			err := uploadAWSLambdaZip(zipName, goos, goarch, basics, true)
-			if err != nil {
-				l.Fatal(err)
-			}
-			zipNameLatest := fmt.Sprintf("%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch)
-			err = uploadAWSLambdaZip(zipNameLatest, goos, goarch, basics, false)
-			if err != nil {
-				l.Fatal(err)
-			}
-		}
-
-		// apm-auto-inject-launcher
-		if goos == Linux && (goarch == AMD64 || goarch == ARM64) && runtime.GOOS == "linux" {
-			gzName, gzPath := tarFiles(
-				PubDir, BuildDir, "datakit-apm-inject", goos, goarch, TarWithRlsVer)
-			basics[gzName] = gzPath
-		}
-
-		upgraderGZFile, upgraderGZPath := tarFiles(PubDir, BuildDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
-
-		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
-		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
-		if parts[0] == datakit.OSWindows {
-			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
-		}
-
-		basics[gzName] = gzPath
-		basics[upgraderGZFile] = upgraderGZPath
-		basics[installerExe] = path.Join(PubDir, ReleaseType, installerExe)
-		basics[installerExeWithVer] = path.Join(PubDir, ReleaseType, installerExe)
-	}
-
-	// Darwin release not under CI, so disable upload `version' file under darwin,
-	// only upload darwin related files.
-	if Archs == datakit.OSArchDarwinAmd64 && runtime.GOOS == datakit.OSDarwin {
-		delete(basics, "version")
-	}
-
-	ossfiles := addOSSFiles(OSSPath, basics)
+	ossfiles := addOSSFiles(ossCli.WorkDir, basics)
 
 	// test if all file ok before uploading
 	for _, k := range ossfiles {
-		if _, err := os.Stat(k); err != nil {
+		if _, err := os.Stat(k.local); err != nil {
 			return err
 		}
 	}
 
-	l.Infof("upload to %q...", UploadAddr)
-	for k, v := range ossfiles {
-		fi, err := os.Stat(v)
+	for _, x := range ossfiles {
+		fi, err := os.Stat(x.local)
 		if err != nil {
-			l.Errorf("os.Stat(%s): %s", v, err)
+			l.Errorf("os.Stat(%s): %s", x.local, err)
 			return err
 		}
 
-		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
+		l.Debugf("%s => %s(%s)...", x.local, x.remote, humanize.Bytes(uint64(fi.Size())))
 
-		if err := oc.Upload(v, k); err != nil {
+		if err := ossCli.Upload(x.local, x.remote); err != nil {
 			return err
 		}
 	}
@@ -271,23 +134,183 @@ func PubDatakit() error {
 	return nil
 }
 
-func uploadAWSLambdaZip(zipName string, goos string, goarch string, basics map[string]string, isUploadAWS bool) error {
-	// oss
-	targetZipPath := filepath.Join(PubDir, ReleaseType, zipName)
-	sourceZipPath := filepath.Join(BuildDir, fmt.Sprintf("%s-%s-%s", AppName+"_aws_lambda", goos, goarch), AppName+"_aws_extension.zip")
+//nolint:funlen,gocyclo
+func PubDatakit() error {
+	start := time.Now()
+
+	// upload all build archs
+	curArchs = ParseArchs(Archs)
+
+	basics := []ossFile{
+		// NOTE: these will overwrite online files, you should instead use xxx-<version>.
+		{"datakit.yaml", filepath.Join(DistDir, "datakit.yaml")},
+		{"datakit-elinker.yaml", filepath.Join(DistDir, "datakit-elinker.yaml")},
+		{"install.sh", filepath.Join(DistDir, "install.sh")},
+		{"install.ps1", filepath.Join(DistDir, "install.ps1")},
+		{fmt.Sprintf("datakit-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit.yaml")},
+		{fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit-elinker.yaml")},
+		{fmt.Sprintf("install-%s.sh", ReleaseVersion), filepath.Join(DistDir, "install.sh")},
+		{fmt.Sprintf("install-%s.ps1", ReleaseVersion), filepath.Join(DistDir, "install.ps1")},
+
+		// on Zh version for measurements meta and internla-pipelines
+		{"measurements-meta.json", filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "measurements-meta.json")},
+		{"internal-pipelines.json", filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "internal-pipelines.json")},
+
+		// pipeline docs both export en & zh
+		{"pipeline-docs.json", filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "pipeline-docs.json")},
+		{"en/pipeline-docs.json", filepath.Join(DistDir, "datakit", inputs.I18nEn.String(), "pipeline-docs.json")},
+	}
+
+	// Darwin release not under CI, so disable upload `version' file under darwin,
+	// only upload darwin related files.
+	if Archs != datakit.OSArchDarwinAmd64 || runtime.GOOS != datakit.OSDarwin {
+		basics = append(basics, ossFile{"version", path.Join(DistDir, ReleaseType, "version")})
+	}
+
+	// tar files and collect OSS upload/backup info
+	for _, arch := range curArchs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid arch: %s", arch)
+		}
+
+		goos, goarch := parts[0], parts[1]
+		gzName, gzPath := tarFiles(DistDir, DistDir, AppName, parts[0], parts[1], TarWithRlsVer)
+
+		if isExtraLite() {
+			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_lite", parts[0], parts[1], TarWithRlsVer)
+			basics = append(basics, ossFile{gzName, gzPath})
+		}
+
+		if isExtraELinker() {
+			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_elinker", parts[0], parts[1], TarWithRlsVer)
+			basics = append(basics, ossFile{gzName, gzPath})
+		}
+
+		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
+			var (
+				zipName       = fmt.Sprintf("%s-%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch, ReleaseVersion)
+				zipNameLatest = fmt.Sprintf("%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch)
+			)
+
+			if of, err := uploadAWSLambdaZip(zipName, goos, goarch, true); err != nil {
+				return err
+			} else {
+				basics = append(basics, *of)
+			}
+
+			if of, err := uploadAWSLambdaZip(zipNameLatest, goos, goarch, false); err != nil {
+				return err
+			} else {
+				basics = append(basics, *of)
+			}
+		}
+
+		// apm-auto-inject-launcher
+		if goos == Linux && (goarch == AMD64 || goarch == ARM64) && runtime.GOOS == "linux" {
+			gzName, gzPath := tarFiles(
+				DistDir, DistDir, "datakit-apm-inject", goos, goarch, TarWithRlsVer)
+			basics = append(basics, ossFile{gzName, gzPath})
+		}
+
+		upgraderGZFile, upgraderGZPath := tarFiles(DistDir, DistDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
+
+		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
+		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
+		if parts[0] == datakit.OSWindows {
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
+		}
+
+		basics = append(basics, ossFile{gzName, gzPath})
+		basics = append(basics, ossFile{upgraderGZFile, upgraderGZPath})
+		basics = append(basics, ossFile{installerExe, path.Join(DistDir, ReleaseType, installerExe)})
+		basics = append(basics, ossFile{installerExeWithVer, path.Join(DistDir, ReleaseType, installerExe)})
+	}
+
+	ossfiles := addOSSFiles(ossCli.WorkDir, basics)
+
+	// test if all file ok before uploading
+	for _, k := range ossfiles {
+		if _, err := os.Stat(k.local); err != nil {
+			return err
+		}
+	}
+
+	for _, x := range ossfiles {
+		fi, err := os.Stat(x.local)
+		if err != nil {
+			l.Errorf("os.Stat(%s): %s", x.local, err)
+			return err
+		}
+
+		l.Debugf("%s => %s(%s)...", x.local, x.remote, humanize.Bytes(uint64(fi.Size())))
+
+		if err := ossRetryUpload(x.local, x.remote, 3); err != nil {
+			return err
+		}
+	}
+
+	if err := pubDatakitHelm(); err != nil {
+		return err
+	}
+
+	l.Infof("Done!(elapsed: %v)", time.Since(start))
+	return nil
+}
+
+func ossRetryUpload(local, remote string, retry int) error {
+	var err error
+	for i := 0; i < retry; i++ {
+		if err = ossCli.Upload(local, remote); err == nil {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+
+	return err
+}
+
+func pubDatakitHelm() error {
+	// run helm push command
+	cmdArgs := []string{
+		// TODO: we should switch to the new style: "helm push filepath.Join(DistDir, "datakit-"+ReleaseVersion+".tgz") HelmChartRepo "
+		// old-style helm push
+		"helm", "cm-push",
+		filepath.Join(DistDir, "datakit-"+strings.Split(ReleaseVersion, "-")[0]+".tgz"),
+		brand(Brand).chartRepoName(ReleaseType != ReleaseProduction),
+	}
+
+	msg, err := runEnv(cmdArgs, nil)
+	if err != nil {
+		return fmt.Errorf("failed to run %v: %w, msg: %s", cmdArgs, err, string(msg))
+	}
+	return nil
+}
+
+func uploadAWSLambdaZip(zipName string, goos string, goarch string, isUploadAWS bool) (*ossFile, error) {
+	var (
+		targetZipPath = filepath.Join(DistDir, ReleaseType, zipName)
+		sourceZipPath = filepath.Join(DistDir,
+			fmt.Sprintf("%s-%s-%s", AppName+"_aws_lambda", goos, goarch),
+			AppName+"_aws_extension.zip")
+	)
+
 	cmd := exec.Command("cp", sourceZipPath, targetZipPath) //nolint:gosec
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to run: %w, msg: %s", err, string(output))
+		return nil, fmt.Errorf("failed to run: %w, msg: %s", err, string(output))
 	}
-	basics[zipName] = targetZipPath
+
+	of := &ossFile{zipName, targetZipPath}
+
 	// aws
 	if isUploadAWS && EnableUploadAWS {
 		rs := strings.Split(AWSRegions, ",")
 		for _, region := range rs {
 			err = os.Setenv("AWS_REGION", region)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			var arn string
 			switch goarch {
@@ -303,7 +326,8 @@ func uploadAWSLambdaZip(zipName string, goos string, goarch string, basics map[s
 			l.Infof("aws layer arn: %s", arn)
 		}
 	}
-	return nil
+
+	return of, nil
 }
 
 // uploadAWSLayer load env:

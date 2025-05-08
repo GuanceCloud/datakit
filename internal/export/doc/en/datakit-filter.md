@@ -10,8 +10,8 @@ DataKit Filter is used to filter the collected points and filter out some unwant
 
 | Data Processing Component | Support Local Configuration | Distributed by Support Center | Support Data Discarding | Support data rewriting | Instruction                                                                         |
 | ----                      | ----                        | ----                          | ----                    | ----                   | ----                                                                                |
-| Pipeline                  | :material-check:            | :material-check:              | :material-check:        | :material-check:       | By configuring Pipeline in the collector or writing Pipeline in Guance Cloud Studio |
-| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in Guance Cloud Studio or configure filter in DataKit.conf           |
+| Pipeline                  | :material-check:            | :material-check:              | :material-check:        | :material-check:       | By configuring Pipeline in the collector or writing Pipeline in <<<custom_key.brand_name>>> Studio |
+| Filter                    | :material-check:            | :material-check:              | :material-check:        | :octicons-x-16:  | Write Pipeline in <<<custom_key.brand_name>>> Studio or configure filter in DataKit.conf           |
 
 It can be seen from the table that Filter is a more convenient data filtering tool than Pipeline if only some data is simply filtered out.
 
@@ -190,7 +190,7 @@ Here, `nil/null` is not case sensitive and can be written in various forms such 
 You can view the filtering using the `datakit monitor -V` command:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/filter-monitor.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/filter-monitor.png){ width="800" }
   <figcaption>View filter filtering</figcaption>
 </figure>
 
@@ -299,7 +299,7 @@ Web file source `index.html`:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
-<script src="https://static.guance.com/browser-sdk/v2/dataflux-rum.js" type="text/javascript"></script>
+<script src="https://static.<<<custom_key.brand_main_domain>>>/browser-sdk/v2/dataflux-rum.js" type="text/javascript"></script>
 <script>
   window.DATAFLUX_RUM &&
     window.DATAFLUX_RUM.init({

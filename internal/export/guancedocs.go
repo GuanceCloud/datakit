@@ -8,6 +8,7 @@ package export
 // GuanceDocs export all markdown docs to docs.guance.com.
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,7 +127,7 @@ func (gd *GuanceDocs) exportPipelineDocs(lang inputs.I18n) error {
 
 			doc, err = buildPipelineDocs(md, fndocs, gd.opt)
 			if err != nil {
-				return err
+				return fmt.Errorf("buildPipelineDocs() on %s: %w", f, err)
 			}
 		}
 
@@ -171,6 +172,7 @@ func (gd *GuanceDocs) exportDatakitDocs(lang inputs.I18n) error {
 			continue
 		}
 
+		l.Debugf("build doc %q to datakit", f.Name())
 		doc, err := buildNonInputDocs("doc/"+f.Name(), md, gd.opt)
 		if err != nil {
 			l.Errorf("buildNonInputDocs(%q): %s", f.Name(), err)
@@ -224,11 +226,13 @@ func (gd *GuanceDocs) exportInputDocs(lang inputs.I18n) error {
 
 		var doc []byte
 		if _, ok := inputs.Inputs[name]; ok {
+			l.Debugf("build input doc %q to integrations", name)
 			doc, err = buildInputDoc(name, md, gd.opt)
 			if err != nil {
 				return err
 			}
 		} else { // non-input docs, but they related to input, we put them to integrations subdir
+			l.Debugf("build non-input doc %q to integrations", f.Name())
 			doc, err = buildNonInputDocs("doc/inputs/"+f.Name(), md, gd.opt)
 			if err != nil {
 				return err

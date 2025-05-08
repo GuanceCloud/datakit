@@ -27,11 +27,11 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 <!-- markdownlint-disable MD046 -->
 === "Deployment"
 
-    下载 [*datakit-operator.yaml*](https://static.guance.com/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
+    下载 [*datakit-operator.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml){:target="_blank"}，步骤如下：
     
     ``` shell
     $ kubectl create namespace datakit
-    $ wget https://static.guance.com/datakit-operator/datakit-operator.yaml
+    $ wget https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml
     $ kubectl apply -f datakit-operator.yaml
     $ kubectl get pod -n datakit
     
@@ -48,7 +48,7 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 
     ```shell
     $ helm install datakit-operator datakit-operator \
-         --repo  https://pubrepo.guance.com/chartrepo/datakit-operator \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
          -n datakit --create-namespace
     ```
 
@@ -63,7 +63,7 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
     ```shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
-        --repo https://pubrepo.guance.com/chartrepo/datakit-operator \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
         -n datakit \
         -f values.yaml
     ```
@@ -99,7 +99,7 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
             "enabled_namespaces":     [],
             "enabled_labelselectors": [],
             "images": {
-                "java_agent_image":   "pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance"
+                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance"
             },
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
@@ -115,14 +115,14 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.guance.com/datakit/logfwd:1.28.1"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
             }
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.guance.com/datakit-operator/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.guance.com/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.guance.com/datakit-operator/go-pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.1.0",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",
@@ -152,9 +152,9 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 Datakit Operator 主要作用就是注入镜像和环境变量，使用 `images` 配置镜像地址。`images` 是多个 Key/Value，Key 是固定的，修改 Value 值指定镜像地址。
 
-正常情况下，镜像统一存放在 `pubrepo.guance.com/datakit-operator`，对于一些特殊环境不方便访问此镜像库，可以使用以下方法（以 `dd-lib-java-init` 镜像为例）：
+正常情况下，镜像统一存放在 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`，对于一些特殊环境不方便访问此镜像库，可以使用以下方法（以 `dd-lib-java-init` 镜像为例）：
 
-1. 在可以访问 `pubrepo.guance.com` 的环境中，pull 镜像 `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.30.1-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`
+1. 在可以访问 `pubrepo.<<<custom_key.brand_main_domain>>>` 的环境中，pull 镜像 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`
 1. 修改 JSON 配置，将 `admission_inject`->`ddtrace`->`images`->`java_agent_image` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`，应用此 yaml
 1. 此后 Datakit Operator 会使用的新的 Java Agent 镜像路径
 
@@ -303,7 +303,7 @@ Datakit-Operator 支持两种资源输入方式，分别是“全局配置 names
         admission.datakit/java-lib.version: "v1.36.2-guance"
 ```
 
-表示这个 Pod 需要注入的镜像版本是 v1.36.2-guance，镜像地址取自配置 `admission_inject`->`ddtrace`->`images`->`java_agent_image`，替换镜像版本为"v1.36.2-guance"，即 `pubrepo.guance.com/datakit-operator/dd-lib-java-init:v1.36.2-guance`。
+表示这个 Pod 需要注入的镜像版本是 v1.36.2-guance，镜像地址取自配置 `admission_inject`->`ddtrace`->`images`->`java_agent_image`，替换镜像版本为"v1.36.2-guance"，即 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-guance`。
 
 ## Datakit Operator 注入 {#datakit-operator-inject-sidecar}
 
@@ -488,14 +488,14 @@ $ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.contain
 log-container datakit-logfwd
 ```
 
-最终可以在观测云日志平台查看日志是否采集。
+最终可以在<<<custom_key.brand_name>>>日志平台查看日志是否采集。
 
 ### async-profiler {#inject-async-profiler}
 
 #### 前置条件 {#async-profiler-prerequisites}
 
-- 集群已安装 [Datakit](https://docs.guance.com/datakit/datakit-daemonset-deploy/){:target="_blank"}。
-- [开启 profile](https://docs.guance.com/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} 采集器。
+- 集群已安装 [Datakit](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/){:target="_blank"}。
+- [开启 profile](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} 采集器。
 - Linux 内核参数 [kernel.perf_event_paranoid](https://www.kernel.org/doc/Documentation/sysctl/kernel.txt){:target="_blank"} 值设置为 2 及以下。
 
 <!-- markdownlint-disable MD046 -->
@@ -567,7 +567,7 @@ $ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
   Normal  Started    12m   kubelet            Started container datakit-profiler
 ```
 
-稍等几分钟后即可在观测云控制台 [应用性能检监测-Profiling](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看应用性能数据。
+稍等几分钟后即可在<<<custom_key.brand_name>>>控制台 [应用性能检监测-Profiling](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 页面查看应用性能数据。
 
 <!-- markdownlint-disable MD046 -->
 ???+ note
@@ -655,7 +655,7 @@ $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
   Normal  Started    97s   kubelet            Started container datakit-profiler
 ```
 
-稍等几分钟后即可在观测云控制台 [应用性能检监测-Profiling](https://console.guance.com/tracing/profile){:target="_blank"} 页面查看应用性能数据。
+稍等几分钟后即可在<<<custom_key.brand_name>>>控制台 [应用性能检监测-Profiling](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 页面查看应用性能数据。
 
 <!-- markdownlint-disable MD046 -->
 ???+ note
@@ -747,7 +747,7 @@ spec:
     - /bin/bash
     - -c
     - --
-    image: pubrepo.guance.com/base/ubuntu:18.04
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04
     imagePullPolicy: IfNotPresent
     name: demo
     volumeMounts:

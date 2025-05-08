@@ -1,6 +1,6 @@
 ---
 title      : 'OpenTelemetry 扩展'
-summary    : '观测云对 OpenTelemetry 插件做了额外的扩展'
+summary    : '<<<custom_key.brand_name>>>对 OpenTelemetry 插件做了额外的扩展'
 __int_icon : 'icon/opentelemetry'
 tags       :
   - 'OTEL'
@@ -68,7 +68,7 @@ ps.setString(2,pw);        //  替换第二个?
 
 从根本上解决脱敏问题。需要加探针加在 `set` 上。先将参数缓存之后才是 `exectue()` , 最终将参数放到 Attributes 中。
 
-### 观测云扩展 {#guacne-branch}
+### <<<custom_key.brand_name>>>扩展 {#guacne-branch}
 
 想要获取脱敏前的数据以及后续通过 `set` 函数添加的值，就需要进行新的埋点， 并添加环境变量：
 
@@ -78,7 +78,7 @@ ps.setString(2,pw);        //  替换第二个?
 OTEL_JDBC_SQL_OBFUSCATION=true
 ```
 
-最终，在观测云上的链路详情里是这样的：
+最终，在<<<custom_key.brand_name>>>上的链路详情里是这样的：
 
 <!-- markdownlint-disable MD046 MD033 -->
 <figure >

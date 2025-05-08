@@ -97,7 +97,7 @@ DataKit 支持手动更新和自动更新两种方式。
     ```shell hl_lines="2"
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 === "离线更新"
@@ -110,7 +110,7 @@ DataKit 支持手动更新和自动更新两种方式。
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_INSTALLER_BASE_URL="http://my.static.com/datakit" \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 ???+ attention
@@ -121,7 +121,7 @@ DataKit 支持手动更新和自动更新两种方式。
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_UPGRADE_LISTEN=0.0.0.0:19542 \
-      bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
 ---

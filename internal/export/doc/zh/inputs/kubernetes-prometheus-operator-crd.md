@@ -25,7 +25,7 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
     Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator){:target="_blank"} 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
 <!-- markdownlint-enable -->
 
-在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到观测云。
+在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到<<<custom_key.brand_name>>>。
 
 目前 Datakit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置，包括以下部分：
 
@@ -171,4 +171,4 @@ $ kubectl apply -f pod-monitor.yaml
 
 ### 验证 {#check}
 
-启动 Datakit，使用 `datakit monitor -V` 或在观测云页面上查看，能找到以 `nacos_` 开头的指标集说明采集成功。
+启动 Datakit，使用 `datakit monitor -V` 或在<<<custom_key.brand_name>>>页面上查看，能找到以 `nacos_` 开头的指标集说明采集成功。

@@ -85,226 +85,213 @@ var externals = []*dkexternal{
 			"CGO_ENABLED=0",
 		},
 	},
-	// &dkexternal{
-	// 	// requirement: apt-get install gcc-multilib
-	// 	name: "skywalkingGrpcV3",
-	// 	lang: "go",
-
-	// 	entry: "main.go",
-	// 	osarchs: map[string]bool{
-	// 		`linux/386`:     true,
-	// 		`linux/amd64`:   true,
-	// 		`linux/arm`:     true,
-	// 		`linux/arm64`:   true,
-	// 		`darwin/amd64`:  true,
-	// 		`windows/amd64`: true,
-	// 		`windows/386`:   true,
-	// 	},
-
-	// 	buildArgs: nil,
-	// 	envs: []string{
-	// 		"CGO_ENABLED=0",
-	// 	},
-	// },
-
-	// others...
 }
 
-func buildExternals(dir, goos, goarch string, standalone bool) error {
-	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
-	for _, ex := range externals {
-		// NEVER using ex.envs for appending,
-		//       it would be modified and poisoned in the future use.
-		envs := make([]string, len(ex.envs))
-		buildArgs := make([]string, len(ex.buildArgs))
-		copy(envs, ex.envs)
-		copy(buildArgs, ex.buildArgs)
+func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) error {
+	var (
+		// NOTE: never using ex.envs for appending, it would be modified and poisoned in the future use.
+		envs      = make([]string, len(ex.envs))
+		buildArgs = make([]string, len(ex.buildArgs))
+		curOSArch = runtime.GOOS + "/" + runtime.GOARCH
+		osarch    = goos + "/" + goarch
+	)
 
-		var tags string
+	copy(envs, ex.envs)
+	copy(buildArgs, ex.buildArgs)
 
-		if ex.standalone != standalone {
-			continue
+	var tags string
+
+	if ex.standalone != standalone {
+		return nil
+	}
+
+	l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
+
+	if _, ok := ex.osarchs[curOSArch]; !ok {
+		l.Warnf("skip build %s under %s", ex.name, curOSArch)
+		return nil
+	}
+
+	if _, ok := ex.osarchs[osarch]; !ok {
+		l.Warnf("skip build %s under %s", ex.name, osarch)
+		return nil
+	}
+
+	switch ex.name {
+	case "db2", "oracle":
+		if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
+			l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
+			return nil
 		}
-		l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
 
-		if _, ok := ex.osarchs[curOSArch]; !ok {
-			l.Warnf("skip build %s under %s", ex.name, curOSArch)
-			continue
+		str, err := exec.LookPath("docker")
+		if err != nil {
+			l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
+			return nil
 		}
 
-		osarch := goos + "/" + goarch
-		if _, ok := ex.osarchs[osarch]; !ok {
-			l.Warnf("skip build %s under %s", ex.name, osarch)
-			continue
+		l.Infof("Found docker in %s", str)
+	}
+
+	if goarch != runtime.GOARCH {
+		switch ex.name { //nolint:gocritic
+		case "ebpf":
+			l.Warnf("skip, " + ex.name + " does not support cross compilation")
+			return nil
 		}
+	}
+
+	out := ex.name
+	if ex.out != "" {
+		out = ex.out
+	}
+
+	var outdir string
+	if ex.standalone {
+		outdir = filepath.Join(dir, "standalone", fmt.Sprintf("%s-%s-%s", out, goos, goarch))
+	} else {
+		outdir = filepath.Join(dir, "externals")
+	}
+
+	l.Info("lang = ", ex.lang)
+	switch strings.ToLower(ex.lang) {
+	case "go", "golang":
+		switch osarch {
+		case "windows/amd64", "windows/386":
+			out += ".exe"
+		default: // pass
+		}
+
+		args := []string{"go", "build"}
+		if len(tags) > 0 {
+			args = append(args, "-tags")
+			args = append(args, tags)
+		}
+
+		entryPath := filepath.Join("internal", "plugins", "externals", ex.name, ex.entry)
+		l.Infof("entryPath = %s", entryPath)
+
+		outPath := filepath.Join(outdir, out)
+		l.Infof("outPath = %s", outPath)
+
+		moreBuild := []string{
+			"-o", outPath,
+			"-ldflags",
+			"-w -s",
+			entryPath,
+		}
+		args = append(args, moreBuild...)
+
+		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
 		switch ex.name {
 		case "db2", "oracle":
-			if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
-				l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
-				continue
-			}
+			// x86
+			// docker run --rm \
+			//   --name $DOCKER_IMAGE_NAME \
+			//   -e BUILD_PROJECT=oceanbase \
+			//   -e BUILD_ARCH=amd64 \
+			//   -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
+			//   -e BUILD_DEST=dist/datakit-linux-amd64/externals/oceanbase \
+			//   -v /root/gopath/src:/tmp/gopath/src \
+			//   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
 
-			str, err := exec.LookPath("docker")
+			// arm
+			//  docker run --rm \
+			//    --name $DOCKER_IMAGE_NAME \
+			//    -e BUILD_PROJECT=oceanbase \
+			//    -e BUILD_ARCH=arm64 \
+			//    -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
+			//    -e BUILD_DEST=dist/datakit-linux-arm64/externals/oceanbase \
+			//    -v /root/gopath/src:/tmp/gopath/src \
+			//    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
+
+			wd, err := os.Getwd()
 			if err != nil {
-				l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
-				continue
+				l.Errorf("os.Getwd() failed: %v", err)
+				return err
+			}
+			l.Infof("current directory: %s", wd)
+
+			projectPrefix := getProjectPrefix(wd)
+			if len(projectPrefix) == 0 {
+				l.Errorf("projectPrefix emptry")
+				return fmt.Errorf("path error")
 			}
 
-			l.Infof("Found docker in %s", str)
-		}
-
-		if goarch != runtime.GOARCH {
-			switch ex.name { //nolint:gocritic
-			case "ebpf":
-				l.Warnf("skip, " + ex.name + " does not support cross compilation")
-				continue
-			}
-		}
-
-		out := ex.name
-		if ex.out != "" {
-			out = ex.out
-		}
-
-		var outdir string
-		if ex.standalone {
-			outdir = filepath.Join(dir, "standalone", fmt.Sprintf("%s-%s-%s", out, goos, goarch))
-		} else {
-			outdir = filepath.Join(dir, "externals")
-		}
-
-		l.Info("lang = ", ex.lang)
-		switch strings.ToLower(ex.lang) {
-		case "go", "golang":
-
-			switch osarch {
-			case "windows/amd64", "windows/386":
-				out += ".exe"
-			default: // pass
+			distOut := getProjectSuffix(outPath)
+			if len(distOut) == 0 {
+				l.Errorf("distOut emptry")
+				return fmt.Errorf("path error")
 			}
 
-			args := []string{"go", "build"}
-			if len(tags) > 0 {
-				args = append(args, "-tags")
-				args = append(args, tags)
+			if err := cleanDocker(); err != nil {
+				return err
 			}
 
-			entryPath := filepath.Join("internal", "plugins", "externals", ex.name, ex.entry)
-			l.Infof("entryPath = %s", entryPath)
-
-			outPath := filepath.Join(outdir, out)
-			l.Infof("outPath = %s", outPath)
-
-			moreBuild := []string{
-				"-o", outPath,
-				"-ldflags",
-				"-w -s",
-				entryPath,
-			}
-			args = append(args, moreBuild...)
-
-			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
-
-			switch ex.name {
-			case "db2", "oracle":
-				// x86
-				// docker run --rm \
-				//   --name $DOCKER_IMAGE_NAME \
-				//   -e BUILD_PROJECT=oceanbase \
-				//   -e BUILD_ARCH=amd64 \
-				//   -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-				//   -e BUILD_DEST=dist/datakit-linux-amd64/externals/oceanbase \
-				//   -v /root/gopath/src:/tmp/gopath/src \
-				//   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-				// arm
-				//  docker run --rm \
-				//    --name $DOCKER_IMAGE_NAME \
-				//    -e BUILD_PROJECT=oceanbase \
-				//    -e BUILD_ARCH=arm64 \
-				//    -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-				//    -e BUILD_DEST=dist/datakit-linux-arm64/externals/oceanbase \
-				//    -v /root/gopath/src:/tmp/gopath/src \
-				//    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-				wd, err := os.Getwd()
-				if err != nil {
-					l.Errorf("os.Getwd() failed: %v", err)
-					return err
-				}
-				l.Infof("current directory: %s", wd)
-
-				projectPrefix := getProjectPrefix(wd)
-				if len(projectPrefix) == 0 {
-					l.Errorf("projectPrefix emptry")
-					return fmt.Errorf("path error")
-				}
-
-				distOut := getProjectSuffix(outPath)
-				if len(distOut) == 0 {
-					l.Errorf("distOut emptry")
-					return fmt.Errorf("path error")
-				}
-
-				if err := cleanDocker(); err != nil {
-					return err
-				}
-
-				args := []string{
-					"docker", "run", "--rm",
-					"--name", "builder-plus",
-					"-e", "BUILD_PROJECT=" + ex.name,
-					"-e", "BUILD_ARCH=" + goarch,
-					"-e", "BUILD_SOURCE=" + entryPath,
-					"-e", "BUILD_DEST=" + distOut,
-					"-v", projectPrefix + ":" + "/tmp/gopath/src",
-					"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.1",
-				}
-				envs := []string{}
-				msg, err := runEnv(args, envs)
-				if err != nil {
-					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-						args, envs, err, string(msg))
-				}
-
-			default:
-				msg, err := runEnv(args, envs)
-				if err != nil {
-					return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-						args, envs, err, string(msg))
-				}
-			}
-
-		case "makefile", "Makefile":
 			args := []string{
-				"make",
-				"-j8",
-				"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
-				"SRCPATH=" + "internal/plugins/externals/" + ex.name,
-				"OUTPATH=" + filepath.Join(outdir, out),
-				"ARCH=" + runtime.GOARCH,
+				"docker", "run", "--rm",
+				"--name", "builder-plus",
+				"-e", "BUILD_PROJECT=" + ex.name,
+				"-e", "BUILD_ARCH=" + goarch,
+				"-e", "BUILD_SOURCE=" + entryPath,
+				"-e", "BUILD_DEST=" + distOut,
+				"-v", projectPrefix + ":" + "/tmp/gopath/src",
+				"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.1",
 			}
-
-			envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
+			envs := []string{}
 			msg, err := runEnv(args, envs)
 			if err != nil {
 				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, envs, err, string(msg))
 			}
 
-		default: // for python, just copy source code into build dir
-			buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
-			cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
-			if len(envs) > 0 {
-				cmd.Env = append(os.Environ(), envs...)
-			}
-
-			res, err := cmd.CombinedOutput()
+		default:
+			msg, err := runEnv(args, envs)
 			if err != nil {
-				return fmt.Errorf("failed to build python(%s %s): %s, err: %w",
-					ex.buildCmd, strings.Join(buildArgs, " "), res, err)
+				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
+					args, envs, err, string(msg))
 			}
+		}
+
+	case "makefile", "Makefile":
+		args := []string{
+			"make",
+			"-j8",
+			"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
+			"SRCPATH=" + "internal/plugins/externals/" + ex.name,
+			"OUTPATH=" + filepath.Join(outdir, out),
+			"ARCH=" + runtime.GOARCH,
+		}
+
+		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
+		msg, err := runEnv(args, envs)
+		if err != nil {
+			return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
+				args, envs, err, string(msg))
+		}
+
+	default: // for python, just copy source code into build dir
+		buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
+		cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
+		if len(envs) > 0 {
+			cmd.Env = append(os.Environ(), envs...)
+		}
+
+		res, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to build python(%s %s): %s, err: %w",
+				ex.buildCmd, strings.Join(buildArgs, " "), res, err)
+		}
+	}
+
+	return nil
+}
+
+func BuidlExternals(dir, goos, goarch string, standalone bool) error {
+	for _, ex := range externals {
+		if err := doBuildExternal(ex, dir, goos, goarch, standalone); err != nil {
+			return err
 		}
 	}
 

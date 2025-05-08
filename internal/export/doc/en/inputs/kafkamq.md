@@ -170,7 +170,7 @@ Suppose you get a JSON-formatted plain text string of metric:
 {"time": 1666492218, "dimensions": {"bk_biz_id": 225,"ip": "10.200.64.45" },  "metrics": { "cpu_usage_pct": 0.01}, "exemplar": null}
 ```
 
-With the data format, you can write Pipeline scripts by hand. Log in to Guance Cloud-> Management-> Text Processing (Pipeline) to write scripts. Such as:
+With the data format, you can write Pipeline scripts by hand. Log in to <<<custom_key.brand_name>>>-> Management-> Text Processing (Pipeline) to write scripts. Such as:
 
 ```python
 data=load_json(message)
@@ -254,7 +254,7 @@ If the parsing fails, it is recommended to set `debug=true` in the KafkaMQ confi
 External plugins have some constraints:
 
 - KafkaMQ receives data but is not responsible for serialization after parsing, because this is a custom development and cannot be used by all users.
-- The data parsed by the external plug-in can be sent to [dk apis](../datakit/apis.md#api-v1-write) , or returned to KafkaMQ and then sent to GuanceCloud.
+- The data parsed by the external plug-in can be sent to [dk apis](../datakit/apis.md#api-v1-write) , or returned to KafkaMQ and then sent to <<<custom_key.brand_name>>>.
 - The response returned to KafkaMQ must be in the ***line protocol format***, if it is `JSON` format, the header information needs to be included: `Content-Type:application/json` In addition, the returned header information should also include Type: `X-category:tracing` indicates this link information.
 - External plug-ins should return 200 regardless of parsing failure or not when data is received.
 - If KafkaMQ sends data to the external plug-in, if there is a timeout, the port does not exist and other problems. Will try to reconnect. Messages from Kafka are no longer consumed.

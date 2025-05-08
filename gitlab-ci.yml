@@ -3,9 +3,10 @@ before_script:
   - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - source ~/.ossenv
+  #- source ~/.ossenv
   - uname -a
   - echo $DK_BPF_KERNEL_SRC_PATH
+  - env | grep ^OSS_
   - export PATH=/usr/local/go1.19.12/bin:$PATH
   - export GOROOT=/usr/local/go1.19.12
   - go version
@@ -14,17 +15,21 @@ variables:
   PROJECT: "datakit"
   CI_VERSION: "1.72.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
+  DCA_CI_VERSION: "0.1.1"
+  DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
 
 stages:
-  - test
-  - deploy_ebpf
-  - deploy
+  - _test_guance
+  - _deploy_ebpf_guance
+  - _deploy_guance
+  - _deploy_ebpf_truewatch
+  - _deploy_truewatch
 
 # run lint and unit test for most of the branches
 ci_lint_and_ut:
-  stage: deploy
+  stage: _deploy_guance
   resource_group: production
   rules:
     # No pipeline when there is a MR whose title starts with Draft
@@ -46,10 +51,9 @@ ci_lint_and_ut:
     - cloudcare-ft
 
 ut-datakit-production:
-  stage: test
+  stage: _test_guance
   resource_group: production
   only:
-    - unstable
     - master
   script:
     - nvm use v16.14.0
@@ -61,7 +65,7 @@ ut-datakit-production:
     - cloudcare-ft
 
 ut-datakit-testing:
-  stage: test
+  stage: _test_guance
   resource_group: production
   only:
     - testing
@@ -75,8 +79,8 @@ ut-datakit-testing:
   tags:
     - cloudcare-ft
 
-release-ebpf-amd64-testing:
-  stage: deploy_ebpf
+release-ebpf-amd64-testing-guance:
+  stage: _deploy_ebpf_guance
   resource_group: production
   needs: [ut-datakit-testing]
   image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
@@ -85,12 +89,21 @@ release-ebpf-amd64-testing:
     - /^testing-.*$/
   script:
     - make clean
-    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit"
+    - export GOROOT=/usr/local/go1.19.12
+    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
+      GIT_BRANCH="$CI_COMMIT_BRANCH" \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft-docker
 
-release-ebpf-aarch64-testing:
-  stage: deploy_ebpf
+release-ebpf-aarch64-testing-guance:
+  stage: _deploy_ebpf_guance
   resource_group: production
   needs: [ut-datakit-testing]
   image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
@@ -99,46 +112,155 @@ release-ebpf-aarch64-testing:
     - /^testing-.*$/
   script:
     - make clean
-    - make pub_epbf_testing DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit"
+    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/arm64" \
+      GIT_BRANCH="$CI_COMMIT_BRANCH" \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_TESTING_VERSION"
   tags:
     - dk-arm-docker-runner
 
-release-ebpf-amd64-production:
-  stage: deploy_ebpf
+release-ebpf-amd64-testing-tw:
+  stage: _deploy_ebpf_truewatch
   resource_group: production
-  needs: [ut-datakit-production]
+  needs: [ut-datakit-testing]
   image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
-    - master
-    - unstable
+    - testing
+    - /^testing-.*$/
   script:
     - make clean
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+    - export OSS_HOST="$OSS_HOST_TESTING" # NOTE: we upload truewatch datakit dist to same OSS bucket as guance, but with different subdir(datakit-tw)
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit-tw"
+    - export GOROOT=/usr/local/go1.19.12
+    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
+      GIT_BRANCH="$CI_COMMIT_BRANCH" \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_TESTING_VERSION"
   tags:
     - cloudcare-ft-docker
 
-release-ebpf-aarch64-production:
-  stage: deploy_ebpf
+release-ebpf-aarch64-testing-tw:
+  stage: _deploy_ebpf_truewatch
+  resource_group: production
+  needs: [ut-datakit-testing]
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
+  only:
+    - testing
+    - /^testing-.*$/
+  script:
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit-tw"
+    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/arm64" \
+      GIT_BRANCH=$CI_COMMIT_BRANCH \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_TESTING_VERSION"
+  tags:
+    - dk-arm-docker-runner
+
+release-ebpf-amd64-production-guance:
+  stage: _deploy_ebpf_guance
   resource_group: production
   needs: [ut-datakit-production]
   image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
   only:
     - master
-    - unstable
   script:
     - make clean
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
+    - export OSS_HOST="$OSS_HOST_PROD"
+    - export OSS_BUCKET="$OSS_BUCKET_PROD"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
+    - export OSS_PATH="datakit"
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" \
+      GIT_BRANCH=$CI_COMMIT_BRANCH \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_VERSION"
+  tags:
+    - cloudcare-ft-docker
+
+release-ebpf-aarch64-production-guance:
+  stage: _deploy_ebpf_guance
+  resource_group: production
+  needs: [ut-datakit-production]
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
+  only:
+    - master
+  script:
+    - make clean
+    - export OSS_HOST="$OSS_HOST_PROD"
+    - export OSS_BUCKET="$OSS_BUCKET_PROD"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
+    - export OSS_PATH="datakit"
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" \
+      GIT_BRANCH=$CI_COMMIT_BRANCH \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_VERSION"
   tags:
     - dk-arm-docker-runner
 
-release-testing:
-  stage: deploy
+release-ebpf-amd64-production-tw:
+  stage: _deploy_ebpf_truewatch
+  resource_group: production
+  needs: [ut-datakit-production]
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
+  only:
+    - master
+  script:
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TW"
+    - export OSS_BUCKET="$OSS_BUCKET_TW"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
+    - export OSS_PATH="datakit"
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" \
+      GIT_BRANCH=$CI_COMMIT_BRANCH \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_VERSION"
+  tags:
+    - cloudcare-ft-docker
+
+release-ebpf-aarch64-production-tw:
+  stage: _deploy_ebpf_truewatch
+  resource_group: production
+  needs: [ut-datakit-production]
+  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
+  only:
+    - master
+  script:
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TW"
+    - export OSS_BUCKET="$OSS_BUCKET_TW"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
+    - export OSS_PATH="datakit"
+    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" \
+      GIT_BRANCH=$CI_COMMIT_BRANCH \
+      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
+      VERSION="$CI_VERSION"
+  tags:
+    - dk-arm-docker-runner
+
+release-testing-guance: # release testing packages to guance
+  stage: _deploy_guance
   resource_group: production
   needs:
     [
       ut-datakit-testing,
-      release-ebpf-amd64-testing,
-      release-ebpf-aarch64-testing,
+      release-ebpf-amd64-testing-guance,
+      release-ebpf-aarch64-testing-guance,
     ]
   only:
     - testing
@@ -148,99 +270,256 @@ release-testing:
     - export AWS_SECRET_ACCESS_KEY="$TESTING_AWS_SECRET_ACCESS_KEY"
     # building && publish testing
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION" PKGEBPF=true # do not set VERSION here, use git version
-    - make testing_image VERSION="$CI_TESTING_VERSION"
-    - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH PKGEBPF=true VERSION="$CI_TESTING_VERSION"
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit"
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
+        VERSION="$CI_TESTING_VERSION" \
+        PKGEBPF=1 \
+        BRAND="guance"
+    - make testing_image VERSION="$CI_TESTING_VERSION" \
+        BRAND="guance" \
+        DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
+        DOCKERFILE_SUFFIX="guance"
+    - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH \
+        PKGEBPF=1 \
+        VERSION="$CI_TESTING_VERSION" \
+        DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
   tags:
     - cloudcare-ft
 
-release-stable:
-  stage: deploy
+release-testing-tw: # release testing packages to truewatch
+  stage: _deploy_truewatch
+  resource_group: production
+  needs:
+    [
+      ut-datakit-testing,
+      release-ebpf-amd64-testing-tw,
+      release-ebpf-aarch64-testing-tw,
+    ]
+  only:
+    - testing
+    - /^testing-.*$/
+  script:
+    - export AWS_ACCESS_KEY_ID="$TESTING_AWS_ACCESS_KEY_ID"
+    - export AWS_SECRET_ACCESS_KEY="$TESTING_AWS_SECRET_ACCESS_KEY"
+    # building && publish testing
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="datakit-tw"
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_TESTING_VERSION" \
+      PKGEBPF=1 \
+      BRAND="truewatch"
+    - make testing_image VERSION="$CI_TESTING_VERSION" \
+      BRAND="truewatch" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
+      DOCKERFILE_SUFFIX="tw"
+  tags:
+    - cloudcare-ft
+
+release-prod-guance: # CI for guance packages
+  stage: _deploy_truewatch
   resource_group: production
   needs:
     [
       ut-datakit-production,
-      release-ebpf-amd64-production,
-      release-ebpf-aarch64-production,
+      release-ebpf-amd64-production-guance,
+      release-ebpf-aarch64-production-guance,
     ]
   only:
     - master
   except: # disable CI on tag push
     - tags
   script:
+    # For guance building
     - make clean
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true # update the version on each release
-    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make uos_image_production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION" PKGEBPF=true
-    - make push_ligai_version VERSION="$CI_VERSION" LIGAI_CUSTOMFIELD=$LIGAI_CUSTOMFIELD LIGAI_AUTO_DEVOPS_TOKEN=$LIGAI_AUTO_DEVOPS_TOKEN LIGAI_API=$LIGAI_API
+    - export OSS_HOST="$OSS_HOST_PROD"
+    - export OSS_BUCKET="$OSS_BUCKET_PROD"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
+    - export OSS_PATH="datakit"
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_VERSION" \
+      PKGEBPF=1 \
+      BRAND="guance" \
+      HELM_CHART_REPO="datakit-chart-cn" \
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_VERSION" \
+      BRAND="guance" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
+      DOCKERFILE_SUFFIX="guance"
+    - make uos_image_production GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_VERSION" \
+      PKGEBPF=1 \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
+    - make push_ligai_version VERSION="$CI_VERSION" \
+      LIGAI_CUSTOMFIELD=$LIGAI_CUSTOMFIELD \
+      LIGAI_AUTO_DEVOPS_TOKEN=$LIGAI_AUTO_DEVOPS_TOKEN \
+      LIGAI_API=$LIGAI_API
   tags:
     - cloudcare-ft
 
-# for testing current issue, should delete after merge into master
-current-testing:
-  stage: deploy
+release-prod-tw: # CI for truewatch packages
+  stage: _deploy_truewatch
   resource_group: production
+  needs:
+    [
+      ut-datakit-production,
+      release-ebpf-amd64-production-tw,
+      release-ebpf-aarch64-production-tw,
+    ]
   only:
-    - /^xxx-.*$/
+    - master
+  except: # disable CI on tag push
+    - tags
   script:
-    - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
-    - make testing_image VERSION="$CI_TESTING_VERSION"
+    - export OSS_HOST="$OSS_HOST_TW"
+    - export OSS_BUCKET="$OSS_BUCKET_TW"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
+    - export OSS_PATH="datakit"
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_VERSION" \
+      PKGEBPF=1 \
+      BRAND="truewatch" \
+      HELM_CHART_REPO="datakit-chart-intl" \
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \
+      VERSION="$CI_VERSION" \
+      BRAND="truewatch" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
+      DOCKERFILE_SUFFIX="tw"
   tags:
     - cloudcare-ft
 
-build-profiling-image:
-  stage: deploy
+build-profiling-image-guance:
+  stage: _deploy_guance
   resource_group: production
   only:
     - /^k8s_profilers[-_].*$/
   script:
     - pwd
-    - cd k8s-profilers && make build
+    - cd k8s-profilers && make build DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit-operator"
     - pwd
   tags:
     - cloudcare-ft
 
-build-dca-testing-image:
-  stage: deploy
+build-profiling-image-tw:
+  stage: _deploy_truewatch
   resource_group: production
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^testing-.*$/"
-      changes:
-        - dca/package.json
-        - dca/Dockerfile
-        - dca/Dockerfile.uos
-    - if: "$CI_COMMIT_BRANCH =~ /^dca-testing-.*$/"
+  only:
+    - /^k8s_profilers[-_].*$/
   script:
-    - nvm use v16.14.0
-    - tag=`git describe --tags --always`
-    - make clean
-    - make build_dca
-    - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
-    - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
-    - cd ../..
-    - make pub_dca_testing IMAGE_TAG=${CI_COMMIT_REF_NAME}-${tag}
+    - pwd
+    - cd k8s-profilers && make build DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/datakit-operator"
+    - pwd
   tags:
     - cloudcare-ft
 
-build-dca-production-image:
-  stage: deploy
+build-dca-testing-image-guance:
+  stage: _deploy_guance
+  resource_group: production
+  only:
+    - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+  script:
+    - nvm use v16.14.0
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TESTING"
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="dca"
+    - make build_dca DCA_VERSION="$DCA_CI_TESTING_VERSION" BRAND="guance"
+    - make build_dca_image \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca" \
+      DOCKERFILE_SUFFIX="guance" \
+      DCA_VERSION="$DCA_CI_TESTING_VERSION"
+    - make build_dca_image \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca-uos" \
+      DOCKERFILE_SUFFIX="uos" \
+      DCA_VERSION="$DCA_CI_TESTING_VERSION"
+  tags:
+    - cloudcare-ft
+
+build-dca-testing-image-tw:
+  stage: _deploy_truewatch
+  resource_group: production
+  only:
+    - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+  script:
+    - nvm use v16.14.0
+    - make clean
+    - export OSS_HOST="$OSS_HOST_TESTING" # we also upload truewatch DCA testing dist to the same OSS as guance, but with different subdir(dca-tw).
+    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
+    - export OSS_PATH="dca-tw"
+    - make build_dca DCA_VERSION="$DCA_CI_TESTING_VERSION" BRAND="truewatch"
+    - make build_dca_image \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/dca" \
+      DOCKERFILE_SUFFIX="tw" \
+      DCA_VERSION="$DCA_CI_TESTING_VERSION"
+      # NOTE: no UOS image for truewatch
+  tags:
+    - cloudcare-ft
+
+build-dca-production-image-guance:
+  stage: _deploy_guance
+  resource_group: production
+  rules: # We do not replease DCA related image on each release of datakit.
+    - if: "$CI_COMMIT_BRANCH == 'master'"
+      changes: # And if one of these files changed, we are going to release new version of DCA images.
+        - dca/package.json
+        - dca/Dockerfile.guance
+        - dca/Dockerfile.tw
+        - dca/Dockerfile.uos
+    - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
+  script:
+    - nvm use v16.14.0
+    - make clean
+    - export OSS_HOST="$OSS_HOST"
+    - export OSS_BUCKET="$OSS_BUCKET"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY"
+    - export OSS_PATH="dca"
+    - make build_dca DCA_VERSION="$DCA_CI_VERSION" BRAND="guance"
+    - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca" \
+      DOCKERFILE_SUFFIX="guance" \
+      DCA_VERSION="$DCA_CI_VERSION"
+    - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca-uos" \
+      DOCKERFILE_SUFFIX="uos" \
+      DCA_VERSION="$DCA_CI_VERSION"
+  tags:
+    - cloudcare-ft
+
+build-dca-production-image-tw:
+  stage: _deploy_truewatch
   resource_group: production
   rules:
     - if: "$CI_COMMIT_BRANCH == 'master'"
       changes:
         - dca/package.json
-        - dca/Dockerfile
+        - dca/Dockerfile.guance
+        - dca/Dockerfile.tw
         - dca/Dockerfile.uos
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
     - nvm use v16.14.0
-    - tag=`git describe --tags --always`
     - make clean
-    - make build_dca
-    - cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm
-    - cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && npm run build
-    - cd ../..
-    - make pub_dca_production
+    - export OSS_HOST="$OSS_HOST_TW"
+    - export OSS_BUCKET="$OSS_BUCKET_TW"
+    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
+    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
+    - export OSS_PATH="dca"
+    - make build_dca DCA_VERSION="$DCA_CI_VERSION" BRAND="truewatch"
+    - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.truewatch.com/truewatch/dca" \
+      DOCKERFILE_SUFFIX="tw" \
+      DCA_VERSION="$DCA_CI_VERSION"
+      # NOTE: no UOS image for truewatch
   tags:
     - cloudcare-ft

@@ -16,7 +16,7 @@ sudo docker run \
     -v "<YOUR-HOST-DIR-FOR-CONF>":"/usr/local/datakit/conf.d/host-inputs-conf" \
     -v "/":"/rootfs" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -e ENV_DATAWAY="https://openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>" \
+    -e ENV_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>" \
     -e ENV_DEFAULT_ENABLED_INPUTS='cpu,disk,diskio,mem,swap,system,net,host_processes,hostobject,container,dk' \
     -e ENV_GLOBAL_HOST_TAGS="<TAG1=A1,TAG2=A2>" \
     -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
@@ -32,7 +32,7 @@ sudo docker run \
     --privileged \
     --publish 19529:9529 \
     -d \
-    pubrepo.guance.com/datakit/datakit:{{.Version}}
+    pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 ```
 
 启动参数说明：

@@ -13,7 +13,7 @@
 
 ```toml
 [dataway]
-  urls = ["https://openway.guance.com?token=<YOUR-TOKEN>"]
+  urls = ["https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"]
   http_proxy = "http://<PROXY-IP:PROXY-PORT>"
 ```
 
@@ -26,7 +26,7 @@
 - 通过发送 metrics 到工作空间测试
 
 ```shell
-curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
+curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.<<<custom_key.brand_main_domain>>>/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
 如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
@@ -100,9 +100,9 @@ $ nginx -s reload # reload 配置
 ```shell
 $ sudo vi /etc/hosts
 
-192.168.1.66 static.guance.com
-192.168.1.66 openway.guance.com
-192.168.1.66 dflux-dial.guance.com
+192.168.1.66 static.<<<custom_key.brand_main_domain>>>
+192.168.1.66 openway.<<<custom_key.brand_main_domain>>>
+192.168.1.66 dflux-dial.<<<custom_key.brand_main_domain>>>
 
 192.168.1.66 static.dataflux.cn
 192.168.1.66 openway.dataflux.cn
@@ -119,13 +119,13 @@ $ sudo vi /etc/hosts
     ```shell
     curl -H "application/x-www-form-urlencoded; param=value" \
       -d 'proxy_test_nginx,name=test c=123i' \
-      "https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>"
+      "https://openway.<<<custom_key.brand_main_domain>>>/v1/write/metrics?token=<YOUR-TOKEN>"
     ```
 
 === "Windows PowerShell"
 
     ```PowerShell
-    curl -uri 'https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>' -Headers @{"param"="value"} -ContentType 'application/x-www-form-urlencoded' -body 'proxy_test_nginx,name=test c=123i' -method 'POST'
+    curl -uri 'https://openway.<<<custom_key.brand_main_domain>>>/v1/write/metrics?token=<YOUR-TOKEN>' -Headers @{"param"="value"} -ContentType 'application/x-www-form-urlencoded' -body 'proxy_test_nginx,name=test c=123i' -method 'POST'
     ```
     
     注意：PowerShell 有的机器上会报 `curl: 请求被中止：未能创建 SSL/TLS 安全通道。` 的错误，这是因为服务端证书加密版本号在本地默认不被支持造成的，可以通过命令 `[Net.ServicePointManager]::SecurityProtocol` 查看支持的协议。如果想要本地支持可以做以下操作：

@@ -1,0 +1,15 @@
+# templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "datakit.fullname" . }}
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+rules:
+  # 原有的权限规则
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]

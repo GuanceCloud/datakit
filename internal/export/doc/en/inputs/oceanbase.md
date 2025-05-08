@@ -68,7 +68,7 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 
 ## Long Running Queries {#slow}
 
-Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to Guance Cloud, displays in the `Logs` side bar, the source name is `oceanbase_log`.
+Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oceanbase_log`.
 
 This function is disabled by default, user could enabling it by modify Datakit's OceanBase configuration like followings:
 

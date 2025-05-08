@@ -20,12 +20,12 @@ Require JDK version 1.8 or above.
 ## Install Dependencies {#dependence}
 
 <!-- markdownlint-disable MD046 -->
-=== "GuanceCloud Version"
+=== "Forked Version"
 
-    To add support for more middleware, GuanceCloud has enhanced the [DDTrace-Java implementation](ddtrace-ext-java.md).
+    To add support for more middleware, we have enhanced the [DDTrace-Java implementation](ddtrace-ext-java.md).
 
     ```shell
-    wget -O dd-java-agent.jar 'https://static.guance.com/dd-image/dd-java-agent.jar'
+    wget -O dd-java-agent.jar 'https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar'
     ```
 
 === "Datadog Version"

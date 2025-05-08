@@ -25,7 +25,7 @@ __int_icon: 'icon/kubernetes'
 
 ```yaml
 - apiGroups:
-  - guance.com
+  - <<<custom_key.brand_main_domain>>>
   resources:
   - datakits
   verbs:
@@ -68,9 +68,9 @@ __int_icon: 'icon/kubernetes'
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: datakits.guance.com
+  name: datakits.<<<custom_key.brand_main_domain>>>
 spec:
-  group: guance.com
+  group: <<<custom_key.brand_main_domain>>>
   versions:
   - name: v1beta1
     served: true
@@ -110,7 +110,7 @@ kind: Namespace
 metadata:
   name: datakit-crd
 ---
-apiVersion: "guance.com/v1beta1"
+apiVersion: "<<<custom_key.brand_main_domain>>>/v1beta1"
 kind: Datakit
 metadata:
   name: my-test-crd-object
@@ -158,9 +158,9 @@ cat <<EOF | kubectl apply -f -
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: datakits.guance.com
+  name: datakits.<<<custom_key.brand_main_domain>>>
 spec:
-  group: guance.com
+  group: <<<custom_key.brand_main_domain>>>
   versions:
     - name: v1beta1
       served: true
@@ -198,9 +198,9 @@ EOF
 查看部署情况：
 
 ```bash
-kubectl get crds | grep guance.com
+kubectl get crds | grep <<<custom_key.brand_main_domain>>>
 
-datakits.guance.com   2022-08-18T10:44:09Z
+datakits.<<<custom_key.brand_main_domain>>>   2022-08-18T10:44:09Z
 ```
 
 - 创建 Datakit 资源
@@ -210,7 +210,7 @@ Prometheus 详细配置可参考[链接](kubernetes-prom.md)
 执行如下 `yaml` ：
 
 ```yaml
-apiVersion: guance.com/v1beta1
+apiVersion: <<<custom_key.brand_main_domain>>>/v1beta1
 kind: DataKit
 metadata:
   name: prom-ingress
@@ -254,8 +254,8 @@ datakit monitor
 ```
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/datakit-crd-ingress.png){ width="800" }
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-crd-ingress.png){ width="800" }
   <figcaption> Ingress 数据采集 </figcaption>
 </figure>
 
-也可以登录 [观测云平台](https://www.guance.com/){:target="_blank"} ,【指标】-【查看器】查看指标数据
+也可以登录 [<<<custom_key.brand_name>>>平台](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"} ,【指标】-【查看器】查看指标数据

@@ -11,7 +11,7 @@
 <h2>
   <a href="https://datakit.tools">官网</a>
   <span> • </span>
-  <a href="https://docs.guance.com/datakit">文档</a>
+  <a href="https://docs.<<<custom_key.brand_main_domain>>>/datakit">文档</a>
 </h2>
 
 DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
@@ -20,19 +20,19 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 - 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
 - 完整支持 Kubernetes 云原生生态
-- [Pipeline](https://docs.guance.com/pipeline/use-pipeline)：简便的结构化数据提取
+- [Pipeline](https://docs.<<<custom_key.brand_main_domain>>>/pipeline/use-pipeline)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-    - [Telegraf](https://docs.guance.com/integrations/telegraf)
-    - [Prometheus](https://docs.guance.com/integrations/prom)
-    - [Statsd](https://docs.guance.com/integrations/statsd)
-    - [Fluentd](https://docs.guance.com/integrations/logstreaming-fluentd)
-    - [Filebeats](https://docs.guance.com/integrations/beats_output)
+    - [Telegraf](https://docs.<<<custom_key.brand_main_domain>>>/integrations/telegraf)
+    - [Prometheus](https://docs.<<<custom_key.brand_main_domain>>>/integrations/prom)
+    - [Statsd](https://docs.<<<custom_key.brand_main_domain>>>/integrations/statsd)
+    - [Fluentd](https://docs.<<<custom_key.brand_main_domain>>>/integrations/logstreaming-fluentd)
+    - [Filebeats](https://docs.<<<custom_key.brand_main_domain>>>/integrations/beats_output)
     - Tracing 相关
-        - [OpenTelemetry](https://docs.guance.com/integrations/opentelemetry)
-        - [DDTrace](https://docs.guance.com/integrations/ddtrace)
-        - [Zipkin](https://docs.guance.com/integrations/zipkin)
-        - [Jaeger](https://docs.guance.com/integrations/jaeger)
-        - [Skywalking](https://docs.guance.com/integrations/skywalking)
+        - [OpenTelemetry](https://docs.<<<custom_key.brand_main_domain>>>/integrations/opentelemetry)
+        - [DDTrace](https://docs.<<<custom_key.brand_main_domain>>>/integrations/ddtrace)
+        - [Zipkin](https://docs.<<<custom_key.brand_main_domain>>>/integrations/zipkin)
+        - [Jaeger](https://docs.<<<custom_key.brand_main_domain>>>/integrations/jaeger)
+        - [Skywalking](https://docs.<<<custom_key.brand_main_domain>>>/integrations/skywalking)
 
 ## 发布历史
 
@@ -48,21 +48,21 @@ DataKit 发布历史参见[这里](https://www.yuque.com/dataflux/datakit/change
 
 ## DataKit 安装
 
-我们可以直接在观测云平台获取 DataKit 安装命令，主流平台的安装命令大概如下：
+我们可以直接在<<<custom_key.brand_name>>>平台获取 DataKit 安装命令，主流平台的安装命令大概如下：
 
 - Linux & Mac
 ```shell
-DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+DK_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
 - Windows
 
 ```powershell
 Remove-Item -ErrorAction SilentlyContinue Env:DK_*;
-$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";
+$env:DK_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>";
 Set-ExecutionPolicy Bypass -scope Process -Force;
 Import-Module bitstransfer;
-start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1;
+start-bitstransfer -source https://static.<<<custom_key.brand_main_domain>>>/datakit/install.ps1 -destination .install.ps1;
 powershell .install.ps1;
 Remove-Item .install.ps1;
 ```
@@ -170,7 +170,7 @@ datakit help
 
 ## 文档
 
-- [DataKit 文档库](https://docs.guance.com/datakit/)
+- [DataKit 文档库](https://docs.<<<custom_key.brand_main_domain>>>/datakit/)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FGuanceCloud%2Fdatakit?ref=badge_large)

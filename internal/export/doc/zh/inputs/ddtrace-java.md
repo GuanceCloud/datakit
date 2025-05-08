@@ -20,12 +20,12 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 ## 安装依赖 {#dependence}
 
 <!-- markdownlint-disable MD046 -->
-=== "观测云版本"
+=== "<<<custom_key.brand_name>>>版本"
 
-    为了增加更多中间件支持，观测云增强了 [DDTrace-Java 实现](ddtrace-ext-java.md)。
+    为了增加更多中间件支持，<<<custom_key.brand_name>>>增强了 [DDTrace-Java 实现](ddtrace-ext-java.md)。
 
     ```shell
-    wget -O dd-java-agent.jar 'https://static.guance.com/dd-image/dd-java-agent.jar'
+    wget -O dd-java-agent.jar 'https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar'
     ```
 
 === "Datadog 版本"
@@ -298,7 +298,7 @@ public AjaxResult billing(String tag) {
 
 请求该接口触发除零异常：`http://localhost:8080/billing?tag=error`
 
-这时候可以从观测云上看到 span 的信息：`error_message` `error_stack`:
+这时候可以从<<<custom_key.brand_name>>>上看到 span 的信息：`error_message` `error_stack`:
 
 ```txt
   error_message Request processing failed; nested exception is java.lang.ArithmeticException: / by zero

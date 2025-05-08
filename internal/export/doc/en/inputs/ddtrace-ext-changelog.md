@@ -15,7 +15,7 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
     ---
 
-    [SDK :material-download:](https://static.guance.com/dd-image/dd-java-agent.jar){:target="_blank"} ·
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"} ·
     [:material-github:](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"} ·
     [Issue](https://github.com/GuanceCloud/dd-trace-java/issues/new){:target="_blank"} ·
     [:octicons-history-16:](https://github.com/GuanceCloud/dd-trace-java/releases){:target="_blank"}
@@ -301,7 +301,7 @@ Merge DataDog 107 version, compile.
 
 ## guance-0.105.0(2022-08-23) {#cl-0.105.0}
 
-[GitHub download](https://static.guance.com/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar){:target="_blank"}
+[GitHub download](https://static.<<<custom_key.brand_main_domain>>>/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar){:target="_blank"}
 
 ### new {#cl-0.105.0}
 

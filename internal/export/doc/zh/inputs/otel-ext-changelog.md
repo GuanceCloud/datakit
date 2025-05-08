@@ -21,7 +21,7 @@ skip: 'not-searchable-on-index-page'
 
     ---
 
-    [SDK :material-download:](https://static.guance.com/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
     [:material-github:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"} ·
     [Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/new){:target="_blank"} ·
     [:octicons-history-16:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases){:target="_blank"}
@@ -62,7 +62,7 @@ skip: 'not-searchable-on-index-page'
 ---
 
 ## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
-下载当前版本 jar 包： [v1.26.2-guance](https://static.guance.com/dd-image/opentelemetry-javaagent-1.26.2-guance.jar){:target="_blank"}
+下载当前版本 jar 包： [v1.26.2-guance](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-guance.jar){:target="_blank"}
 
 ### 新加功能 {#cl-1.26.2-guance-new}
 

@@ -57,7 +57,7 @@ var (
 {
   "msgtype": "text",
   "text": {
-  	"content": "%s 正在执行发布 %s..."
+		"content": "%s 正在执行发布 Datakit:%s..."
   }
 }`, git.Uploader, ReleaseVersion)
 

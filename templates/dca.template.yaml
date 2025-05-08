@@ -20,24 +20,34 @@ spec:
     metadata:
       labels:
         app: utils-dca
+      annotations:
+        datakit/prom.instances: |
+          [[inputs.prom]]
+            url = "http://$IP:9090/metrics"
+            source = "dca"
+            measurement_name = "dca"
+            interval = "10s"
+            disable_instance_tag = true
+          [inputs.prom.tags]
+            service = "dca"
+            instance = "$PODNAME" # 此处可填写成 "guangzhou-$PODNAME" 这种形式，以区分不同节点的 DCA 实例
+
     spec:
       affinity: {}
       containers:
         - env:
             - name: DCA_CONSOLE_API_URL
-              # 杭州 https://console-api.guance.com
-              # 宁夏 https://aws-console-api.guance.com
-              # 广州 https://cn4-console-api.guance.com
-              # 俄勒冈 https://us1-console-api.guance.com
-              value: https://console-api.guance.com
+              value: https://console-api.{{.BrandDomain}}
             - name: DCA_CONSOLE_WEB_URL
-              value: https://console.guance.com
+              value: https://console.{{.BrandDomain}}
             - name: DCA_LOG_PATH
               value: "stdout"
             - name: DCA_LOG_LEVEL
               value: "info"
-          image: pubrepo.guance.com/tools/dca:${version}
-          imagePullPolicy: Always
+            - name: DCA_PROM_LISTEN
+              value: "0.0.0.0:9090"
+          image: {{.DockerImageRepo}}/dca:{{.Version}}
+          imagePullPolicy: IfNotPresent
           name: dca
           ports:
             - containerPort: 80

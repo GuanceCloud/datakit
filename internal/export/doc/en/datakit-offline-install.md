@@ -11,7 +11,7 @@ If there is a machine in the intranet that can access the external, a proxy can 
 At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic network structure is as follows:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/dk-nginx-proxy.png){ width="700"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-nginx-proxy.png){ width="700"}
 </figure>
 
 ### Preconditions {#requrements}
@@ -85,7 +85,7 @@ When there is no external network in the environment, the installation package c
 There are two strategies to choose from for full offline installation:
 
 - Simple mode: Directly copy the files in the U disk to each host and install DataKit. However, Simple Mode currently does **not support** [setting through environment variables](datakit-install.md#extra-envs) during installation.
-- Advanced mode: Deploy a Nginx on the intranet and build a file server with Nginx instead of static.guance.com.
+- Advanced mode: Deploy a Nginx on the intranet and build a file server with Nginx instead of static.<<<custom_key.brand_main_domain>>>.
 
 ### Simple Mode {#offline-simple}
 
@@ -95,53 +95,53 @@ The address of the following files can be downloaded through wget and other down
 
     When downloading from Safari browser, the suffix name may be different (for example, downloading the `. tar.gz ` file to `. tar `), which will cause the installation to fail. It is recommended to download with Chrome browser. 
 <!-- markdownlint-enable -->
-- Download the packet [data.tar.gz](https://static.guance.com/datakit/data.tar.gz) first, which is the same for every platform.
+- Download the packet [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz) first, which is the same for every platform.
 
 - Then download more installers as below:
 <!-- markdownlint-disable MD046 -->
 === "Windows 32 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-windows-386.exe){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386.exe){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
 === "Windows 64 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64.exe){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
 === "Linux X86 32 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-386){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
 === "Linux X86 64 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-amd64){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
 === "Linux Arm 32 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
 === "Linux Arm 64 bit"
 
-    - [`Installer`](https://static.guance.com/datakit/installer-linux-arm64){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.guance.com/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.guance.com/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.guance.com/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
+    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
 After downloading, you should have a few files as below (`<OS-ARCH>` here refers to the platform-specific installation package):
 
@@ -171,7 +171,7 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     
     ```shell
     chmod +x installer-linux-amd64
-    ./installer-linux-amd64 --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,dk_upgrader-linux-amd64.tar.gz,data.tar.gz
+    ./installer-linux-amd64 --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs datakit-linux-amd64-{{ .Version }}.tar.gz,dk_upgrader-linux-amd64.tar.gz,data.tar.gz
     ```
 
 === "Windows"
@@ -179,7 +179,7 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     You need to run the Powershell with administrator privileges to execute:
     
     ```powershell
-    .\installer-windows-amd64.exe --offline --dataway "https://openway.guance.com?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\dk_upgrader-windows-amd64.tar.gz,.\data.tar.gz
+    .\installer-windows-amd64.exe --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs .\datakit-windows-amd64-{{ .Version }}.tar.gz,.\dk_upgrader-windows-amd64.tar.gz,.\data.tar.gz
     ```
 <!-- markdownlint-enable -->
 #### Upgrade {#simple-upgrade}
@@ -220,12 +220,12 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
 
 ### Advanced Mode {#offline-advanced}
 
-DataKit is currently installed on the public web, and all binary data and installation scripts are downloaded from the static.guance.com site. For machines that cannot access the site, you can replace the static.guance.com site by deploying a file server on the intranet.
+DataKit is currently installed on the public web, and all binary data and installation scripts are downloaded from the static.<<<custom_key.brand_main_domain>>> site. For machines that cannot access the site, you can replace the static.<<<custom_key.brand_main_domain>>> site by deploying a file server on the intranet.
 
 The network traffic topology of advanced mode is as follows:
 
 <figure markdown>
-  ![](https://static.guance.com/images/datakit/nginx-file-server.png){ width="700"}
+  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/nginx-file-server.png){ width="700"}
 </figure>
 
 Prepare a machine that can be accessed on the intranet, install Nginx on the machine, and download (or copy) the files required for DataKit installation to the Nginx server, so that other machines can download the installation files from the Nginx file server to complete the installation.
@@ -263,15 +263,15 @@ nginx -s reload # reload configuration
 
 mkdir -p /datakit
 mkdir -p /datakit/apm_lib
-wget -P /datakit https://static.guance.com/datakit/install.sh
-wget -P /datakit https://static.guance.com/datakit/version
-wget -P /datakit https://static.guance.com/datakit/data.tar.gz
-wget -P /datakit https://static.guance.com/datakit/installer-linux-amd64-{{ .Version }}
-wget -P /datakit https://static.guance.com/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.guance.com/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.guance.com/datakit/dk_upgrader-linux-amd64.tar.gz
-wget -P /datakit https://static.guance.com/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit/apm_lib https://static.guance.com/dd-image/dd-java-agent.jar
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{ .Version }}
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz
+wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz
+wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
 
 # Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
 sources=(
@@ -297,15 +297,15 @@ mkdir -p /datakit/sourcemap/jdk \
   /datakit/sourcemap/atosl
 
 for((i=0;i<${#sources[@]};i++)); do
-  wget https://static.guance.com${sources[$i]} -O ${sources[$i]}
+  wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
 done
 ```
 
 <!-- markdownlint-disable MD046 -->
 ???+ Attention
 
-    You must append suffix **.exe** to the download link of `Installer` on Windows, for example: [*https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-386-{{.Version}}.exe) for Windows 32bit and
-    [*https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.guance.com/datakit/installer-windows-amd64-{{.Version}}.exe) for Windows 64bit.
+    You must append suffix **.exe** to the download link of `Installer` on Windows, for example: [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe) for Windows 32bit and
+    [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe) for Windows 64bit.
 <!-- markdownlint-enable -->
 
 #### Install {#advance-install}
@@ -470,24 +470,24 @@ chmod +x datakit_tools.sh
 - Download `datakit.yaml` and DataKit image files
 
 ```shell
-wget https://static.guance.com/datakit/datakit.yaml -P /home/guance/
+wget https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml -P /home/guance/
 ```
 
 - Download the DataKit image and make it into a package
 
 ```shell
 # Pull the image of the amd64 architecture and make it into an image package
-docker pull --platform amd64 pubrepo.guance.com/datakit/datakit:{{.Version}}
-docker save -o datakit-amd64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker pull --platform amd64 pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
+docker save -o datakit-amd64-{{.Version}}.tar pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 mv datakit-amd64-{{.Version}}.tar /home/guance
 
 # Pull the image of the arm64 architecture and make it into an image package
-docker pull --platform arm64 pubrepo.guance.com/datakit/datakit:{{.Version}}
-docker save -o datakit-arm64-{{.Version}}.tar pubrepo.guance.com/datakit/datakit:{{.Version}}
+docker pull --platform arm64 pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
+docker save -o datakit-arm64-{{.Version}}.tar pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 mv datakit-arm64-{{.Version}}.tar /home/guance
 
 # Check whether the image architecture is correct
-docker image inspect pubrepo.guance.com/datakit/datakit:{{.Version}} |grep Architecture
+docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}} |grep Architecture
 
 ```
 
@@ -656,5 +656,5 @@ kubectl apply -f datakit.yaml
 
 ```shell
 # You need to decompress the image first
-kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.guance.com/datakit/datakit:<version>","name": "datakit"}]}}}}'
+kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>","name": "datakit"}]}}}}'
 ```

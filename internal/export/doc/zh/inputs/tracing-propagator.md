@@ -67,9 +67,9 @@ Baggage 真正的意义是传播 `key:value` 性质的键值对，常用于传�
 
 产品的开源地址：
 
-- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} 是 CNCF 下的一个产品。同时观测云也对其[做了扩展](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} 是 CNCF 下的一个产品。同时<<<custom_key.brand_name>>>也对其[做了扩展](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
 - [Jaeger](https://github.com/jaegertracing/jaeger){:target="_blank"} 同属于 CNCF
-- [Datadog](https://github.com/DataDog){:target="_blank"} 多语言的链路工具，其中观测云对其[做了扩展](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"}
+- [Datadog](https://github.com/DataDog){:target="_blank"} 多语言的链路工具，其中<<<custom_key.brand_name>>>对其[做了扩展](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"}
 - [SkyWalking](https://github.com/apache?q=skywalking&type=all&language=&sort=){:target="_blank"} 属于 Apache 基金会下的开源产品
 - [Zipkin](https://github.com/OpenZipkin){:target="_blank"} 其中有多个语言的链路工具。
 

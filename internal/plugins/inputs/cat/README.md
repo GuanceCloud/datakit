@@ -13,7 +13,7 @@ dianping-cat通过采集系统的各种指标数据，如CPU、内存、网络�
 
 数据分类：
 
-| 数据类型简写 | 类型                | 说明        | 当前版本的 datakit 是否接入 | 对应到观测云中的数据类型     |
+| 数据类型简写 | 类型                | 说明        | 当前版本的 datakit 是否接入 | 对应到<<<custom_key.brand_name>>>中的数据类型     |
 |--------|-------------------|:----------|:------------------:|:-----------------|
 | t      | transaction start | 事务开始      |        true        | trace            |
 | T      | transaction end   | 事务结束      |        true        | trace            |
@@ -29,7 +29,7 @@ dianping-cat通过采集系统的各种指标数据，如CPU、内存、网络�
 - 启动 cat server模式：
   * 数据全在dk中，cat的web页面已经没有数据，所以启动的意义不大，并且页面报错：`出问题CAT的服务端[xxx.xxx]`。
   * 配置客户端行为可以在 client 的启动中做。
-  * cat server 也会将 transaction 数据发送到 dk，造成观测云页面大量的垃圾数据。
+  * cat server 也会将 transaction 数据发送到 dk，造成<<<custom_key.brand_name>>>页面大量的垃圾数据。
 
 - 不启动 cat server： 在 Datakit 中配置
   * `startTransactionTypes`：用于定义自定义事务类型，指定的事务类型会被 Cat 自动创建。多个事务类型之间使用分号进行分隔。
@@ -288,7 +288,7 @@ Cat.initializeByProperties(properties);
 
 如果接下来的接着做，那么 应该是这些需求：
 
-- event： 除 jstack 之外的事件，也就是用户代码中添加的事件，应该关联该链路的 messageID 之后发送到观测云上的时候是***日志***。
+- event： 除 jstack 之外的事件，也就是用户代码中添加的事件，应该关联该链路的 messageID 之后发送到<<<custom_key.brand_name>>>上的时候是***日志***。
 - metric： 也应该剔除掉 jvm 之外的数据，然后添加到该链路中。
 - trace： 待调研。
 - plainText: 解析 UDP 协议中的 plainText 数据。

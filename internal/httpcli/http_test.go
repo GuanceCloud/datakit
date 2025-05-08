@@ -298,11 +298,11 @@ func TestClientConnections(t *testing.T) {
 
 		if tc.defaultOptions || tc.closeIdleManually {
 			assert.Truef(t, cw.Max >= int64(tc.nclients),
-				"by using default transport, %d should > %d",
+				"by using default transport, %d should >= %d",
 				cw.Max, tc.nclients)
 		} else {
 			assert.Truef(t, cw.Max <= int64(tc.nclients),
-				"by using specified transport, %d should == %d",
+				"by using specified transport, %d should <= %d",
 				cw.Max, tc.nclients)
 		}
 	}

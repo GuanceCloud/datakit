@@ -8,7 +8,7 @@
 ## Architecture overview {#architecture-overview}
 <!-- markdownlint-enable -->
 
-![overview](https://static.guance.com/images/datakit/datakit-eks-architecture-overview.png){:target="_blank"}
+![overview](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-architecture-overview.png){:target="_blank"}
 
 
 ## Using Amazon EKS add-on {#add-on-install}
@@ -17,26 +17,26 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
 
 ### Prerequisites {#prerequisites-addon-install}
 
-- Subscribe on the AWS Marketplace [Guance Container Agent](https://aws.amazon.com/marketplace/pp/prodview-tdwkw3qcsimso?sr=0-2&ref_=beagle&applicationId=AWSMPContessa){:target="_blank"} 。
+- Subscribe on the AWS Marketplace [<<<custom_key.brand_name>>> Container Agent](https://aws.amazon.com/marketplace/pp/prodview-tdwkw3qcsimso?sr=0-2&ref_=beagle&applicationId=AWSMPContessa){:target="_blank"} 。
 - You have access to an [Amazon EKS Cluster](https://aws.amazon.com/eks/){:target="_blank"} .
 - You need to get it in advance `DK_DATAWAY`. You can also obtain it by following the instructions below:
-    - You can go to [Guance official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.guance.com/en/businessRegister){:target="_blank"} as a Guance user.
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
     - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
-     ![`datakit-eks-en-get-datawayur`](https://static.guance.com/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
+     ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
 
 <!-- markdownlint-disable MD046 -->  
 === "Enable Datakit add-on from AWS console"
 
     - Search Add-ons
-      First, in the Amazon EKS Console, go to your EKS cluster and select "Get more Add-ons" on the "add-ons" TAB to find the new third-party EKS add-ons in the cluster Settings of the existing EKS cluster. And search for 'datakit', select 'Guance Container Agent', next step.
+      First, in the Amazon EKS Console, go to your EKS cluster and select "Get more Add-ons" on the "add-ons" TAB to find the new third-party EKS add-ons in the cluster Settings of the existing EKS cluster. And search for 'datakit', select '<<<custom_key.brand_name>>> Container Agent', next step.
     
     <figure markdown>
-      ![](https://static.guance.com/images/datakit/eks-install/get-more-addon.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/eks-install/get-more-addon.png){ width="800" }
       <figcaption></figcaption>
     </figure>
     
     <figure markdown>
-      ![](https://static.guance.com/images/datakit/eks-install/search-datakit-addon.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/eks-install/search-datakit-addon.png){ width="800" }
       <figcaption></figcaption>
     </figure>
 
@@ -44,12 +44,12 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
       Select the latest version to install.
     
     <figure markdown>
-      ![](https://static.guance.com/images/datakit/eks-install/select-install-addon.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/eks-install/select-install-addon.png){ width="800" }
       <figcaption></figcaption>
     </figure>    
         
     <figure markdown>
-      ![](https://static.guance.com/images/datakit/eks-install/install-datakit-addon.png){ width="800" }
+      ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/eks-install/install-datakit-addon.png){ width="800" }
       <figcaption></figcaption>
     </figure>    
 
@@ -78,7 +78,7 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
+token="https://us1-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:
@@ -110,9 +110,9 @@ NAME  NAMESPACE REVISION  UPDATED STATUS  CHART APP VERSION
 datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0  1.20.0
 ```
 
-- Guance Cloud verify
+- <<<custom_key.brand_name>>> verify
 
-![`datakit-eks-en-verify`](https://static.guance.com/images/datakit/datakit-eks-en-verify.png){:target="_blank"}
+![`datakit-eks-en-verify`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-verify.png){:target="_blank"}
 
 
 <!-- markdownlint-disable MD013 -->
@@ -124,9 +124,9 @@ datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0
 - Install the following tools: [Helm 3.7.1](https://github.com/helm/helm/releases/tag/v3.7.1){:target="_blank"}, [kubectl](https://kubernetes.io/docs/tasks/tools/){:target="_blank"}, and [AWS CLI](https://aws.amazon.com/cli/){:target="_blank"} .
 - You have access to an [Amazon EKS Cluster](https://aws.amazon.com/eks/){:target="_blank"} .
 - You need to get it in advance `DK_DATAWAY`. You can also obtain it by following the instructions below:
-    - You can go to [Guance official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.guance.com/en/businessRegister){:target="_blank"} as a Guance user.
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
     - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
-     ![`datakit-eks-en-get-datawayur`](https://static.guance.com/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
+     ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
 
 ### Login to the ECR Registry {#login-ecr}
 
@@ -179,7 +179,7 @@ NOTES:
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.guance.com?token=<YOUR-WORKSPACE-TOKEN>"
+token="https://us1-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:
@@ -210,9 +210,9 @@ NAME  NAMESPACE REVISION  UPDATED STATUS  CHART APP VERSION
 datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0  1.20.0
 ```
 
-- Guance Cloud verify
+- <<<custom_key.brand_name>>> verify
 
-![`datakit-eks-en-verify`](https://static.guance.com/images/datakit/datakit-eks-en-verify.png){:target="_blank"}
+![`datakit-eks-en-verify`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-verify.png){:target="_blank"}
 
 
 ## More Readings {#more-reading}

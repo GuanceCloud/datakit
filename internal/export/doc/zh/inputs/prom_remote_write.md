@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-监听 Prometheus Remote Write 数据，上报到观测云。
+监听 Prometheus Remote Write 数据，上报到<<<custom_key.brand_name>>>。
 
 ## 配置 {#config}
 

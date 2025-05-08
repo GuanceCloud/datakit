@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Start an HTTP Server, receive the log text data and report it to Guance Cloud.
+Start an HTTP Server, receive the log text data and report it to <<<custom_key.brand_name>>>.
 
 HTTP URL is fixed as: `/v1/write/logstreaming`, that is, `http://Datakit_IP:PORT/v1/write/logstreaming`
 

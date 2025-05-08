@@ -6,7 +6,6 @@
 package build
 
 import (
-	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -26,7 +25,7 @@ func BuildExport() error {
 func doExport() error {
 	var exporters []export.Exporter
 	if ExportDocDir != "" {
-		cp.Printf("export guance docs to %q...\n", ExportDocDir)
+		l.Debugf("export guance docs to %q...", ExportDocDir)
 		exporters = append(exporters,
 			export.NewGuanceDodcs(
 				export.WithTopDir(ExportDocDir),
@@ -37,7 +36,7 @@ func doExport() error {
 	}
 
 	if ExportIntegrationDir != "" {
-		cp.Printf("export integrations to %q...\n", ExportIntegrationDir)
+		l.Debugf("export integrations to %q...", ExportIntegrationDir)
 		exporters = append(exporters,
 			export.NewIntegration(
 				export.WithTopDir(ExportIntegrationDir),
@@ -47,8 +46,10 @@ func doExport() error {
 			))
 	}
 
-	cp.Printf("run %d exporters...\n", len(exporters))
+	l.Debugf("run %d exporters...", len(exporters))
 	for _, exporter := range exporters {
+		l.Debugf("run exporter %+#v...", exporter)
+
 		if err := exporter.Export(); err != nil {
 			return err
 		}

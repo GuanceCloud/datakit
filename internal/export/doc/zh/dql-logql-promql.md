@@ -2,7 +2,7 @@
 # DQL 与其它几种查询语言的对比
 ---
 
-DQL 是观测云统一的查询语言，为便于大家学习这种语言，下面我们选取几种不同的查询语言来与之对比，以便大家能较为快速的理解和运用 DQL。
+DQL 是<<<custom_key.brand_name>>>统一的查询语言，为便于大家学习这种语言，下面我们选取几种不同的查询语言来与之对比，以便大家能较为快速的理解和运用 DQL。
 
 这里我们暂时选择 [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/){:target="_blank"} 和 [LogQL](https://grafana.com/docs/loki/latest/logql/){:target="_blank"} 俩种语言。大家较为熟知的 SQL 语句因为其形式、功能等与 DQL 大相庭径，此处暂略。
 

@@ -205,7 +205,7 @@ If you want to add custom labels, you can use environment variables:
 -Dotel.resource.attributes=username=myName,env=1.1.0
 ```
 
-And modify the whitelist in the configuration file so that a custom label can appear in the first level label of the Guance Cloud link details.
+And modify the whitelist in the configuration file so that a custom label can appear in the first level label of the <<<custom_key.brand_name>>> link details.
 
 ```toml
 customer_tags = ["sink_project", "username","env"]

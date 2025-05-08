@@ -66,6 +66,7 @@ func withForce(on bool) upgradeOpt {
 
 func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 	uo := &upgradeOptions{}
+
 	for _, opt := range opts {
 		opt(uo)
 	}
@@ -81,7 +82,7 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 	var (
 		dkv         *pingInfo
 		err         error
-		baseURL     = cmds.OnlineBaseURL
+		baseURL     = "https://" + cmds.StaticCDN
 		upToDate    = false
 		downloadURL = ""
 	)

@@ -49,7 +49,7 @@ func envCommon() []*inputs.ENVInfo {
 		{
 			ENVName:  "ENV_DATAWAY",
 			Type:     doc.URL,
-			Example:  "`https://openway.guance.com?token=xxx`",
+			Example:  "`https://openway.<<<custom_key.brand_main_domain>>>.com?token=xxx`",
 			Required: doc.Yes,
 			Desc:     "Configure the DataWay address",
 			DescZh:   "配置 DataWay 地址",
@@ -134,7 +134,7 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName:  "ENV_DATAWAY",
 			Type:     doc.URL,
-			Example:  "`https://openway.guance.com?token=xxx`",
+			Example:  "`https://openway.<<<custom_key.brand_main_domain>>>?token=xxx`",
 			Required: doc.Yes,
 			Desc:     "Set DataWay address",
 			DescZh:   "配置 DataWay 地址",
@@ -181,7 +181,7 @@ func envDataway() []*inputs.ENVInfo {
 			Type:    doc.Int,
 			Default: `4`,
 			Desc:    "Specify at most how many times the data sending operation will be performed when encounter failures [:octicons-tag-24: Version-1.18.0](changelog.md#cl-1.18.0)",
-			DescZh:  "指定当把数据发送到观测云中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10 [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)",
+			DescZh:  "指定当把数据发送到中心时，最多可以发送的次数，最小值为 1（失败后不重试），最大值为 10 [:octicons-tag-24: Version-1.17.0](changelog.md#cl-1.17.0)",
 		},
 		{
 			ENVName: "ENV_DATAWAY_RETRY_DELAY",

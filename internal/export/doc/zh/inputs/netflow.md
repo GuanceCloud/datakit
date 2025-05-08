@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-NetFlow 采集器可以用来可视化和监控已开启 NetFlow 的设备，并将日志采集到观测云，帮助监控分析 NetFlow 各种异常情况。
+NetFlow 采集器可以用来可视化和监控已开启 NetFlow 的设备，并将日志采集到<<<custom_key.brand_name>>>，帮助监控分析 NetFlow 各种异常情况。
 
 ## 什么是 NetFlow {#what}
 

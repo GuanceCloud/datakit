@@ -179,8 +179,8 @@ datakit_input_zabbix_exporter_request_api_total{status="success"} 1
 
 ## 问题汇总
 
-- 观测云中心不允许指标数据的值为string，也就是说 如果有些指标的value的type类型为string，直接pass不做处理。
-- 以一个`system_cpu_util`为例，items 表中的 id 就有 125 个之多。这个指标在观测云中心如果按照 tag 来分，能分出125条线（理论上可能更多）
+- <<<custom_key.brand_name>>>中心不允许指标数据的值为string，也就是说 如果有些指标的value的type类型为string，直接pass不做处理。
+- 以一个`system_cpu_util`为例，items 表中的 id 就有 125 个之多。这个指标在<<<custom_key.brand_name>>>中心如果按照 tag 来分，能分出125条线（理论上可能更多）
 - item 中 key_ 名字有很多重复，但包含的 tag 又不同，比如 `zabbix[xx,xx] zabbix[xx]`  就一个 zabbix 指标就有很多种。
 - misskey 的时候，会查询一次api，如果misskey的比例很高，且查不到，就会浪费api资源。应该做速率限制。
 
