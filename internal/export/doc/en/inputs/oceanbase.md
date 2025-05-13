@@ -42,10 +42,13 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
-    - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1` <br/>
-    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+    - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1`:
+
+        ```text
+        Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+        ```
 
     - All the above creation and authorization operations limit that the user `datakit` can only access OceanBase on local host (`localhost`). If OceanBase is collected remotely, it is recommended to replace `localhost` with `%` (indicating that DataKit can access OceanBase on any machine), or use a specific DataKit installation machine address.
 
@@ -68,27 +71,23 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 
 ## Long Running Queries {#slow}
 
-Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oceanbase_log`.
+DataKit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oceanbase_log`.
 
-This function is disabled by default, user could enabling it by modify Datakit's OceanBase configuration like followings:
+This function is disabled by default, user could enabling it by modify DataKit's OceanBase configuration like followings:
 
 Change the string value after `slow_query_time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
 
 ```conf
-
 slow_query_time = "0s"
-
 ```
 
-???+ info "Fields description"
-    - `failed_obfuscate`：SQL obfuscated failed reason. Only exist when SQL obfuscated failed. Original SQL will be reported when SQL obfuscated failed.
-    [More fields](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}.
+???+ info
 
-???+ attention "Attention"
+    - `failed_obfuscate`：SQL obfuscated failed reason. Only exist when SQL obfuscated failed. Original SQL will be reported when SQL obfuscated failed. For more fields, see [here](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}.
     - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millisecond, this function is disabled, which is also the default state.
-    - The SQL would not display here when NOT executed completed.
-
+    - The SQL would not display here when execute *not* complete.
 <!-- markdownlint-enable -->
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:

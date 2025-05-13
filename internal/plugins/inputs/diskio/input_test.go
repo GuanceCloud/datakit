@@ -117,7 +117,7 @@ func TestInput_collect(t *testing.T) {
 				collectCache:     tt.fields.collectCache,
 				lastStat:         tt.fields.lastStat,
 				lastTime:         tt.fields.lastTime,
-				diskIO:           tt.fields.diskIO,
+				ioCounters:       tt.fields.diskIO,
 				feeder:           tt.fields.feeder,
 				mergedTags:       tt.fields.mergedTags,
 				tagger:           tt.fields.tagger,
@@ -206,7 +206,7 @@ func TestInput_rw_rate(t *testing.T) {
 				collectCache:     tt.fields.collectCache,
 				lastStat:         tt.fields.lastStat,
 				lastTime:         tt.fields.lastTime,
-				diskIO:           tt.fields.diskIO,
+				ioCounters:       tt.fields.diskIO,
 				feeder:           tt.fields.feeder,
 				mergedTags:       tt.fields.mergedTags,
 				tagger:           tt.fields.tagger,
@@ -216,7 +216,7 @@ func TestInput_rw_rate(t *testing.T) {
 			}
 
 			ipt.setup()
-			ipt.diskIO = DiskIO4Test
+			ipt.ioCounters = DiskIO4Test
 			ipt.start = time.Now()
 			err := ipt.collect()
 			if (err != nil) != tt.wantErr {
@@ -239,7 +239,7 @@ func TestInput_rw_rate(t *testing.T) {
 			temp02.WriteBytes += 5678
 			testData["sdb2"] = temp02
 
-			ipt.diskIO = DiskIO4Test
+			ipt.ioCounters = DiskIO4Test
 			err = ipt.collect()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)

@@ -54,7 +54,7 @@ Already tested Filebeat version:
 
 ---
 
-???+ attention
+???+ warning
 
     If the `inputs.beats_output.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
 <!-- markdownlint-enable -->
@@ -88,12 +88,12 @@ filebeat.inputs:
 ```yml
 output.logstash:
   # The Logstash hosts
-  hosts: ["<Datakit-IP>:5044"]
+  hosts: ["<DataKit-IP>:5044"]
 ```
 
-Port `5044` here should be consistent with the `listen` port configured in *<Datakit Installation Directory\>/conf.d/beats_output/beats_output.conf*.
+Port `5044` here should be consistent with the `listen` port configured in *<DataKit Installation Directory\>/conf.d/beats_output/beats_output.conf*.
 
-In this way, the Filebeat collection log `/Users/mac/Downloads/tmp/1.log` is reported to Datakit.
+In this way, the Filebeat collection log `/Users/mac/Downloads/tmp/1.log` is reported to DataKit.
 
 It should be noted that **the configuration port 9200 of elasticsearch needs to be commented out**, and the complete *filebeat.yml* file is as follows:
 

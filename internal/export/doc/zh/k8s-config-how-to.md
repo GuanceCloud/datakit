@@ -28,7 +28,7 @@
 
 ### 通过 ConfigMap 配置 {#via-configmap-conf}
 
-DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大差异，它仍然会去读取 _.conf_ 目录下的采集器配置。所以，通过 ConfigMap 等方式注入采集器配置是完全可行的，有的时候，甚至是唯一的方式，比如，在当前的 DataKit 版本中，MySQL 采集器的开启，只能通过注入 ConfigMap 方式。
+DataKit 运行在 K8s 环境中时，实际上跟运行在主机上并无太大差异，它仍然会去读取 *.conf* 目录下的采集器配置。所以，通过 ConfigMap 等方式注入采集器配置是完全可行的，有的时候，甚至是唯一的方式，比如，在当前的 DataKit 版本中，MySQL 采集器的开启，只能通过注入 ConfigMap 方式。
 
 ### 通过 ENV 配置 {#via-env-config}
 
@@ -84,9 +84,9 @@ CRD 是 Kubernetes 一种广泛使用的配置方式，相比 Annotation，CRD �
 
 ### Git 配置方式 {#git}
 
-Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf 配置，只是它的 conf 文件不是在默认的 _conf.d_ 目录下，而是在 DataKit 安装目录的 _gitrepo_ 目录下。如果开启了 Git 模式，那么默认的 _conf.d_ 目录下的**采集器配置将不再生效**（除了 _datakit.conf_ 这个主配置之外），但原来的 _pipeline_ 目录以及 _pythond_ 目录依然有效。从这一点可以看出，Git 主要用来管理 DataKit 上的各种文本配置，包括各种采集器配置、Pipeline 脚本以及 Python 脚本。
+Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf 配置，只是它的 conf 文件不是在默认的 *conf.d* 目录下，而是在 DataKit 安装目录的 *gitrepo* 目录下。如果开启了 Git 模式，那么默认的 *conf.d* 目录下的**采集器配置将不再生效**（除了 *datakit.conf* 这个主配置之外），但原来的 *pipeline* 目录以及 *pythond* 目录依然有效。从这一点可以看出，Git 主要用来管理 DataKit 上的各种文本配置，包括各种采集器配置、Pipeline 脚本以及 Python 脚本。
 
-> 注意：DataKit 主配置（_datakit.conf_）不能通过 Git 来管理。
+> 注意：DataKit 主配置（*datakit.conf*）不能通过 Git 来管理。
 
 #### Git 模式下默认采集器的配置 {#def-inputs-under-git}
 
@@ -94,7 +94,7 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 在 Git 模式下，如果要调整默认采集器的配置（不想开启或要对其做对应的配置），有几种方式：
 
-- 可将它们从 _datakit.conf_ 或者 _datakit.yaml_ 中移除掉。**此时它们就不是默认开启的采集器了**。
+- 可将它们从 *datakit.conf* 或者 *datakit.yaml* 中移除掉。**此时它们就不是默认开启的采集器了**。
 - 如果要修改特定采集器的配置，有如下几种方式：
     - 将它们的 conf 通过 Git 管理起来
     - 通过上文提及的 ENV 注入（具体要看该采集器是否支持 ENV 注入）
@@ -112,4 +112,4 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 
 - [DataKit 配置](datakit-conf.md)
 - [DataKit 采集器配置](datakit-input-conf.md)
-- [DaemonSet 安装 Datakit](datakit-daemonset-deploy.md)
+- [DaemonSet 安装 DataKit](datakit-daemonset-deploy.md)

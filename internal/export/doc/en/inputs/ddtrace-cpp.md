@@ -38,7 +38,7 @@ To apply DDTrace in C++ code, you need to modify the business code, and there is
 
     coming soon...
 
-???+ attention "cmake installation"
+???+ note "cmake installation"
 
     cmake may not be able to install a higher version through yum or apt-get, it is recommended to directly download the latest version from its [official website][3]{:target="_blank"}. You can also directly use the [source code][1] or [Windows binary][2] hosted by <<<custom_key.brand_name>>>.
 

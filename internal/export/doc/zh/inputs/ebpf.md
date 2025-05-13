@@ -49,7 +49,7 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
 可参考 *datakit.yaml*；
 
-如果为低于 v1.5.6 版本的 Datakit ，则需手动安装 `datakit-ebpf` 外部采集器。
+如果为低于 v1.5.6 版本的 DataKit ，则需手动安装 `datakit-ebpf` 外部采集器。
 
 ### Linux 内核版本要求 {#kernel}
 
@@ -151,7 +151,7 @@ setenforce 0
     - 示例：`60s` -->
 
 - `trace_server`
-    - 描述：开启 `ebpftrace` 采集器的 DataKit ELinker/ Datakit 的地址
+    - 描述：开启 `ebpftrace` 采集器的 DataKit ELinker/ DataKit 的地址
     - 环境变量：`ENV_INPUT_EBPF_TRACE_SERVER`
     - 示例：`<ip>:<port>`
 

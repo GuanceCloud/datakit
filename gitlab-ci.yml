@@ -45,7 +45,7 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make local # build binary
-    - make lint AUTO_FIX=off
+    - make lint AUTO_FIX=false
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
@@ -59,7 +59,7 @@ ut-datakit-production:
     - nvm use v16.14.0
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint AUTO_FIX=off
+    - make lint AUTO_FIX=false
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
@@ -74,7 +74,7 @@ ut-datakit-testing:
     - nvm use v16.14.0
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
-    #- make lint AUTO_FIX=off
+    #- make lint AUTO_FIX=false
     #- make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft

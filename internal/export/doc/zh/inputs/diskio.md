@@ -25,7 +25,7 @@ monitor   :
 
 ### 前置条件 {#requirement}
 
-对于部分旧版本 Windows 操作系统，如若遇到 Datakit 报错： **"The system cannot find the file specified."**
+对于部分旧版本 Windows 操作系统，如若遇到 DataKit 报错： **"The system cannot find the file specified."**
 
 请以管理员身份运行 PowerShell，并执行：
 
@@ -34,7 +34,7 @@ $ diskperf -Y
 ...
 ```
 
-在执行成功后需要重启 Datakit 服务。
+在执行成功后需要重启 DataKit 服务。
 
 ### 采集器配置 {#input-config}
 

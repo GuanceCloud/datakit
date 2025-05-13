@@ -1,6 +1,6 @@
 ---
 title     : 'Kubernetes CRD'
-summary   : 'Create Datakit CRD to collect'
+summary   : 'Create DataKit CRD to collect'
 tags      :
   - 'PROMETHEUS'
   - 'KUBERNETES'
@@ -15,9 +15,9 @@ __int_icon: 'icon/kubernetes'
 
 ## 介绍 {#intro}
 
-**此功能在 Datakit 1.63.0 弃用。**
+**此功能在 DataKit 1.63.0 弃用。**
 
-本文档介绍如何在 Kubernetes 集群中创建 Datakit resource 并配置扩展采集器。
+本文档介绍如何在 Kubernetes 集群中创建 DataKit resource 并配置扩展采集器。
 
 ### 添加鉴权 {#authorization}
 
@@ -49,19 +49,19 @@ __int_icon: 'icon/kubernetes'
 执行 `kubectl apply -f datakit-crd.yaml` 命令。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     - DaemonSet 和 Deployment 是两种不同的 Kubernetes resource，但在此处，`k8sDaemonSet` 和 `k8sDeployment` 是可以同时存在的。即在同一个 Namespace 下，DaemonSet 创建的 Pod 和 Deployment 创建的 Pod 共用同一份 CRD 配置。但是不推荐这样做，因为在具体配置中会有类似 `source` 这种字段用来标识数据源，混用会导致数据界线不够清晰。建议在同一份 CRD 配置中 `k8sDaemonSet` 和 `k8sDeployment` 只存在一个。
 
-    - Datakit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。
+    - DataKit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。
 <!-- markdownlint-enable -->
 
 ## 示例 {#example}
 
 完整示例如下，包括：
 
-- 创建 CRD Datakit
-- 测试所用的 namespace 和 Datakit 实例对象
+- 创建 CRD DataKit
+- 测试所用的 namespace 和 DataKit 实例对象
 - 配置 Prom 采集器（`inputConf`）
 
 ```yaml
@@ -111,7 +111,7 @@ metadata:
   name: datakit-crd
 ---
 apiVersion: "<<<custom_key.brand_main_domain>>>/v1beta1"
-kind: Datakit
+kind: DataKit
 metadata:
   name: my-test-crd-object
   namespace: datakit-crd
@@ -149,7 +149,7 @@ spec:
 
 #### 配置步骤 {#nginx-steps}
 
-- 先创建 Datakit CustomResourceDefinition
+- 先创建 DataKit CustomResourceDefinition
 
 执行如下创建命令：
 
@@ -203,7 +203,7 @@ kubectl get crds | grep <<<custom_key.brand_main_domain>>>
 datakits.<<<custom_key.brand_main_domain>>>   2022-08-18T10:44:09Z
 ```
 
-- 创建 Datakit 资源
+- 创建 DataKit 资源
 
 Prometheus 详细配置可参考[链接](kubernetes-prom.md)
 
@@ -247,7 +247,7 @@ prom-ingress   18m
 
 - 查看指标采集情况
 
-登录 `Datakit pod` ，执行以下命令：
+登录 DataKit pod，执行以下命令：
 
 ```bash
 datakit monitor

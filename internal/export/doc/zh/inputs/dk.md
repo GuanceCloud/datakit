@@ -1,13 +1,13 @@
 ---
 title: 'DataKit 自身指标采集'
-summary: '采集 Datakit 自身运行指标'
+summary: '采集 DataKit 自身运行指标'
 tags:
   - '主机'
 __int_icon: 'icon/dk'
 dashboard:
-  - desc: 'Datakit 内置视图'
+  - desc: 'DataKit 内置视图'
     path: 'dashboard/zh/dk'
-  - desc: 'Datakit 拨测内置视图'
+  - desc: 'DataKit 拨测内置视图'
     path: 'dashboard/zh/dialtesting'
 
 monitor:
@@ -20,11 +20,11 @@ monitor:
 
 ---
 
-Datakit 采集器用于自身基本信息的采集，包括运行环境信息、CPU、内存占用、各个核心模块指标等。
+DataKit 采集器用于自身基本信息的采集，包括运行环境信息、CPU、内存占用、各个核心模块指标等。
 
 ## 配置 {#config}
 
-Datakit 启动后。默认会暴露一些 [Prometheus 指标](../datakit/datakit-metrics.md)，没有额外的操作需要执行，本采集器也是默认启动的，替代了之前的 `self` 采集器。
+DataKit 启动后。默认会暴露一些 [Prometheus 指标](../datakit/datakit-metrics.md)，没有额外的操作需要执行，本采集器也是默认启动的，替代了之前的 `self` 采集器。
 
 <!-- markdownlint-disable MD046 -->
 === "主机部署"
@@ -49,4 +49,4 @@ Datakit 启动后。默认会暴露一些 [Prometheus 指标](../datakit/datakit
 
 ## 指标 {#metric}
 
-Datakit 自身指标主要是一些 Prometheus 指标，其文档参见[这里](../datakit/datakit-metrics.md)
+DataKit 自身指标主要是一些 Prometheus 指标，其文档参见[这里](../datakit/datakit-metrics.md)

@@ -1,4 +1,3 @@
-
 # DataKit API
 
 ---
@@ -9,37 +8,64 @@
 
 DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
-### 通过 API 获取远端 DataKit 版本号 {#api-get-dk-version}
+## 外部数据写入 API {#write-apis}
 
-有两种方式可获取版本号：
+### `/v1/write/:category` {#api-v1-write}
 
-- 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
-- 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
+本 API 用于给 DataKit 上报各类数据（`category`），有几种不同的使用方式：
 
-## `/v1/write/:category` | `POST` {#api-v1-write}
+- **发送行协议数据**
 
-本 API 用于给 DataKit 上报各类数据（`category`），URL 参数说明如下：
+```shell
+curl -X POST -d '<YOUR-LINEPROTOCOL-DATA>' http://localhost:9529/v1/write/metric
+```
+
+- **发送普通 JSON 数据**
+
+```shell
+curl -X POST -H "Content-Type: application/json" -d '<YOUR-JSON-DATA>' http://localhost:9529/v1/write/metric
+```
+
+- **发送 PBJSON 数据**
+
+```shell
+curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<YOUR-PBJSON-DATA>' http://localhost:9529/v1/write/metric
+```
+
+完整的 URL 参数说明如下：
+
+> 以下 `curl` 示例中， `category` 均以 `metric` 为例，并且省略 `Content-Type` header。
 
 **`category`**
 
 - 类型：string
 - 是否必选：N
 - 默认值：-
-- 说明：目前只支持 `metric,logging,rum,object,custom_object,keyevent`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`
+- 说明：目前只支持 `metric,logging,object,network,custom_object,security,rum`，以 `metric` 为例， 其 URL 应该写成 `/v1/write/metric`
+- 示例：
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/logging"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/object"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/network"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/custom_object"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/security"`
+    - `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/rum"`
 
 **`dry`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - 类型：bool
 - 是否必选：N
 - 默认值：false
-- 说明：测试模式，只是将 Point POST 给 Datakit，实际上并不上传到<<<custom_key.brand_name>>>
+- 说明：测试模式，只是将 Point POST 给 DataKit，实际上并不上传到<<<custom_key.brand_name>>>
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&dry=true"`
 
 **`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - 类型：enum
 - 是否必选：N
 - 默认值：-
-- 说明：可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)
+- 说明：可选值 `lp/json/pbjson`，`lp` 表示在返回的 Body 中以行协议形式来表示上传的 Point，后面分别是[普通 JSON](apis.md#api-v1-write-body-json-protocol) 和[PBJSON](apis.md#api-v1-write-body-pbjson-protocol)
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&echo=pbjson"`
 
 **`encoding`** [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)
 
@@ -47,6 +73,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：-
 - 说明：支持 `gzip`、`deflate`、`br` 和 `zstd` 四种压缩方式，如果传入该参数，DataKit 会自动解压缩请求体。
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&encoding=gzip"`
 
 **`global_election_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
@@ -54,6 +81,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：false
 - 说明：是否追加[全局选举 tag](datakit-conf.md#set-global-tag)
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&global_election_tags=true"`
 
 **`ignore_global_host_tags`** [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
@@ -61,20 +89,15 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：false
 - 说明：是否忽略 DataKit 上的[全局主机 tag](datakit-conf.md#set-global-tag)，默认情况下，本接口写入的数据都会带上全局主机 tag
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&ignore_global_host_tags=true"`
 
 **`input`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - 类型：string
 - 是否必选：N
 - 默认值：`datakit-http`
-- 说明：数据源名称，该名称会在 Datakit monitor 上展示，便于调试
-
-**`loose`** [:octicons-tag-24: Version-1.4.11](changelog.md#cl-1.4.11)
-
-- 类型：bool
-- 是否必选：N
-- 默认值：true
-- 说明：是否宽松模式，对于一些不合规的 Point，DataKit 会尝试修复它们
+- 说明：数据源名称，该名称会在 DataKit monitor 上展示，便于调试
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&input=my-data-source"`
 
 **`precision`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
@@ -82,6 +105,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：-
 - 说明：数据精度（支持 `n/u/ms/s/m/h`）。如果参数不传入，则自动识别时间戳精度
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&precision=ms"`
 
 **`source`**
 
@@ -89,6 +113,7 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：-
 - 说明：如果不指定 `source`（或者对应的 *source.p* 不存在或无效），上传的 Point 数据不会执行 Pipeline
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&source=my-data-source-name"`
 
 **`strict`** [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
 
@@ -96,9 +121,10 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 - 是否必选：N
 - 默认值：false
 - 说明：严格模式，对于一些不合规的行协议，API 直接报错，并告知具体的原因
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&strict=true"`
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     - 以下参数已弃用 [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
@@ -107,15 +133,15 @@ DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
 
     - 虽然多个参数都是 bool 类型，如果不需要开启对应的 option，不要传入 `false` 值，API 只会判断对应参数上是否有值，而不管其值内容。
     - 时间精度（`precision`）自动识别（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）指根据传入的时间戳数值，猜测其可能的时间精度，数学意义上它不能保证正确，但是日常使用是足够的。比如对于时间戳 1716544492，其时间戳判断为秒，对 1716544492000 会判断为毫秒，等等。
-    - 如果数据点中不带时间，则以 Datakit 所在机器的时间戳为准。
+    - 如果数据点中不带时间，则以 DataKit 所在机器的时间戳为准。
     - 虽然目前协议上支持二进制格式以及 any 格式两种类型，但目前中心尚未支持这两种数据的写入。**特此注明**。
 <!-- markdownlint-enable -->
 
-### Body 说明 {#api-v1-write-body}
+#### Body 说明 {#api-v1-write-body}
 
 HTTP body 支持行协议以及两种 JSON 俩种形式。
 
-#### 行协议 Body {#api-v1-write-body-line-protocol}
+##### 行协议 Body {#api-v1-write-body-line-protocol}
 
 单条行协议形式如下：
 
@@ -142,7 +168,7 @@ measurement_2,<tag-list> <field-list> timestamp
     - bool 示例：`some_true=T,some_false=F`，此处 `T/F` 还可以用 `t/f/true/false` 分别表示
     - 二进制示例：`some_binary="base-64-encode-string"b`，二进制数据（文本字节流 `[]byte` 等）需要 base64 编码才能在行协议中表示，它跟 string 的表示类似，只是在后面追加了一个 `b` 用来标识
     - 数组示例：`some_array=[1i,2i,3i]`，注意，数组内的类型只能是基础类型（`int/uint/float/boolean/string/[]byte`，**不含数组**），且其类型必须一致，形如 `invalid_array=[1i,3.14,"string"]` 这种数组目前是不支持的
-- `timestamp` 为整数时间戳，默认情况下，Datakit  以纳秒单位来处理这个时间戳，如果原数据不是纳秒，需要通过请求参数 `precision` 来指定真实的时间戳精度。在行协议中，`timestamp` 是可选的，如果数据中不带时间戳，Datakit 以接受到的时间作为当前行协议时间。
+- `timestamp` 为整数时间戳，默认情况下，DataKit  以纳秒单位来处理这个时间戳，如果原数据不是纳秒，需要通过请求参数 `precision` 来指定真实的时间戳精度。在行协议中，`timestamp` 是可选的，如果数据中不带时间戳，DataKit 以接受到的时间作为当前行协议时间。
 
 这几个部分之间：
 
@@ -175,7 +201,7 @@ some_measurement,host=my_host,region=my_region float=0.01,uint=1048576u,int=42i,
 - tag value 中不允许出现换行（`\n`），field value 中的换行不需要转义
 - field value 如果是 string，其中如果有 `"` 字符，也需要转义
 
-#### JSON Body {#api-v1-write-body-json-protocol}
+##### JSON Body {#api-v1-write-body-json-protocol}
 
 JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单 JSON 格式如下：
 
@@ -243,13 +269,13 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 ???+ warning
 
     这种 JSON 结构虽然简单，但其有几个缺点：
-    
+
     - 不能区分 int/uint/float 这几种数值类型，比如，对于所有的数值，JSON 默认都以 float 来处理，而对于数值 42，JSON 无法区分它是有符号还是无符号
     - 不支持表示二进制（`[]byte`）数据：虽然某些情况下，JSON 编码自动会将 `[]byte` 表示为 base64 字符串，但 JSON 自身并无二进制的类型表示
     - 它无法表示具体 field 的其它信息，比如单位、指标类型（gauge/count/...）等
 <!-- markdownlint-enable -->
 
-#### PB-JSON Body {#api-v1-write-body-pbjson-protocol}
+##### PBJSON Body {#api-v1-write-body-pbjson-protocol}
 
 [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
@@ -356,17 +382,20 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 ---
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     - 所有 Body，不管是行协议还是其它两种 JSON 格式，都是数组结构，即每次上传至少一个 Point
-    - 对于 JSON 形式的 Body，必须在 Header 中标注 `Content-Type: application/json`，否则 Datakit 以行协议来解析
+    - 对于 JSON 形式的 Body，必须在 Header 中做如下标注，否则 DataKit 以行协议来解析：
+        - JSON: `Content-Type: application/json`
+        - PBJSON: `Content-Type: application/pbjson; proto=com.guance.Point`
+
     - field 中数组支持要求 [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) 以上（含）版本才支持
     - 相比行协议的 Body，JSON 形式的 body 性能较差，大概有 7~8 倍的差距
 <!-- markdownlint-enable -->
 
 ---
 
-### 数据类型分类 {#category}
+#### 数据类型分类 {#category}
 
 DataKit 中主要有如下数据类型（以简称字母序排列）：
 
@@ -385,13 +414,13 @@ DataKit 中主要有如下数据类型（以简称字母序排列）：
 
 ---
 
-### DataKit 数据结构约束 {#point-limitation}
+#### DataKit 数据结构约束 {#point-limitation}
 
 1. 所有种类的 Point，如果缺少 measurement（或者 measurement 为空字符串），自动补全 `measurement` 值为 `__default`
-1. 时序类 Point（M），field 中不允许有字符串值，Datakit 会自动丢弃它们
-1. 非时序类 Point，tag key 和 field key 中不允许出现 `.` 字符，Datakit 会自动将其替换成 `_`
-1. 日志类 Point（L），如果缺少 `status` 字段（即 tag 和 field 中都不存在），Datakit 会自动将其置为 `unknown`
-1. 对象类 Point （O/CO），如果缺少 `name` 字段（即 tag 和 field 中都不存在），Datakit 会自动将其置为 `default`
+1. 时序类 Point（M），field 中不允许有字符串值，DataKit 会自动丢弃它们
+1. 非时序类 Point，tag key 和 field key 中不允许出现 `.` 字符，DataKit 会自动将其替换成 `_`
+1. 日志类 Point（L），如果缺少 `status` 字段（即 tag 和 field 中都不存在），DataKit 会自动将其置为 `unknown`
+1. 对象类 Point （O/CO），如果缺少 `name` 字段（即 tag 和 field 中都不存在），DataKit 会自动将其置为 `default`
 1. Tag 和 Field 之间的 key 不允许重名，即同一个 key 不能在 Tag 和 Field 中同时出现，否则，具体哪个 key 的值被写入是未定义的
 1. Tag 或 Field 内部不允许出现同名 key，即同一个 key 不能在 Tag/Field 中出现多次，对于同名 key，将仅保留其中一个，具体哪一个也是未定义的
 1. Tag 个数不超过 256 个，超过个数后将截掉尾部多余的 Tag
@@ -403,13 +432,13 @@ DataKit 中主要有如下数据类型（以简称字母序排列）：
 
 ---
 
-### 行协议报错分析 {#line-proto-parse-error}
+#### 行协议报错分析 {#line-proto-parse-error}
 
 [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
-如果上报的行协议有误，Datakit API 将返回对应的错误码以及出错详情。
+如果上报的行协议有误，DataKit API 将返回对应的错误码以及出错详情。
 
-假定我们将如下行协议内容通过 HTTP POST 发送给 Datakit。此处行协议有俩处错误，第二条和第四条的 `t2` 缺少 tag 值。
+假定我们将如下行协议内容通过 HTTP POST 发送给 DataKit。此处行协议有俩处错误，第二条和第四条的 `t2` 缺少 tag 值。
 
 ```not-set
 # path/to/some/file.data
@@ -429,7 +458,7 @@ $ curl -s http://datakit-ip:9529/v1/write/logging --data-binary "@path/to/some/f
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ tips
+???+ tip
 
     为了更好展示请求结果 中的 JSON，可以用工具 [jq](https://jqlang.github.io/jq/download/){:target="_blank"}，比如上面的复杂 `message` 字段，可以直接通过 jq 提取出纯文本：
 
@@ -455,18 +484,18 @@ with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=
 - 在返回的错误信息中会展示解析成功和失败的点数
 - `Origin data...` 附上了原始的 HTTP Body（如果其中带二进制，则会以类似 `\x00\x32\x54...` 等 16 进制形式展示）
 
-在 Datakit 日志中，如果行协议有误，也会记录这里 `message` 中的相关内容。
+在 DataKit 日志中，如果行协议有误，也会记录这里 `message` 中的相关内容。
 
-### 验证上传的数据 {#review-post-point}
+#### 验证上传的数据 {#review-post-point}
 
-不管通过哪种方式（`lp`/`pbjson`/`json`）写入数据，Datakit 都会 *尝试对数据做一些矫正*，这些矫正可能不是预期之内的，不过我们可以通过 `echo` 参数来回看最终的数据：
+不管通过哪种方式（`lp`/`pbjson`/`json`）写入数据，DataKit 都会 *尝试对数据做一些矫正*，这些矫正可能不是预期之内的，不过我们可以通过 `echo` 参数来回看最终的数据：
 
 <!-- markdownlint-disable MD046 -->
-=== "PB-JSON 形式（`echo=pbjson`）"
+=== "PBJSON 形式（`echo=pbjson`）"
 
-    相比其它两种，通过[PB-JSON](apis.md#api-v1-write-body-pbjson-protocol)方式，可以得知矫正的细节以及原因。如果 Point 结构被自动纠正，该 Point 上会带一个 `warns` 字段，以表示这个 Point 被纠正的原因。
-    
-    比如，日志数据中，不允许字段的 Key 带 `.` 字段，Datakit 会自动将其转换成 `_`，此时回看的 JSON 中会额外带上 `warns` 信息：
+    相比其它两种，通过[PBJSON](apis.md#api-v1-write-body-pbjson-protocol)方式，可以得知矫正的细节以及原因。如果 Point 结构被自动纠正，该 Point 上会带一个 `warns` 字段，以表示这个 Point 被纠正的原因。
+
+    比如，日志数据中，不允许字段的 Key 带 `.` 字段，DataKit 会自动将其转换成 `_`，此时回看的 JSON 中会额外带上 `warns` 信息：
 
 
     ```json
@@ -496,115 +525,7 @@ with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=
 
 ---
 
-## `/v1/ping` {#api-ping}
-
-检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。示例：
-
-``` http
-GET /v1/ping HTTP/1.1
-
-HTTP/1.1 200 OK
-
-{
-  "content":{
-    "version":"1.1.6-rc0",
-    "uptime":"1.022205003s"
-  }
-}
-```
-
-## `/v1/lasterror` {#api-lasterror}
-
-用于上报外部采集器的错误，示例：
-
-``` http
-POST /v1/lasterror HTTP/1.1
-Content-Type: application/json
-
-{
-  "input":"redis",
-  "source":"us-east-9xwha",
-  "err_content":"Cache avalanche"
-}
-```
-
-## `/v1/query/raw` {#api-raw-query}
-
-使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据），示例：
-
-``` http
-POST /v1/query/raw HTTP/1.1
-Content-Type: application/json
-
-{
-    "queries":[
-        {
-            "query": "cpu:(usage_idle) LIMIT 1",  # DQL 查询语句（必填）
-            "conditions": "",                     # 追加 DQL 查询条件
-            "max_duration": "1d",                 # 最大时间范围
-            "max_point": 0,                       # 最大点数
-            "time_range": [],                     #
-            "orderby": [],                        #
-            "disable_slimit": true,               # 禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20
-            "disable_multiple_field": true        # 禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段）
-        }
-    ],
-    "echo_explain":true
-}
-```
-
-参数说明
-
-| 名称                     | 说明                                                                                                                                                                                                                         |
-| :---                     | ---                                                                                                                                                                                                                          |
-| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如 `hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                          |
-| `disable_multiple_field` | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                     |
-| `disable_slimit`         | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                          |
-| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                  |
-| `highlight`              | 高亮搜索结果                                                                                                                                                                                                                 |
-| `limit`                  | 限制单个时间线返回的点数，将覆盖 DQL 中存在的 limit                                                                                                                                                                          |
-| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                           |
-| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                          |
-| `offset`                 | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                          |
-| `orderby`                | 指定 `order by` 参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
-| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                     |
-| `query`                  | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                                 |
-| `search_after`           | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                     |
-| `slimit`                 | 限制时间线个数，将覆盖 DQL 中存在的 `slimit`                                                                                                                                                                                 |
-| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                            |
-
-返回数据示例：
-
-``` http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-    "content": [
-        {
-            "series": [
-                {
-                    "name": "cpu",
-                    "columns": [
-                        "time",
-                        "usage_idle"
-                    ],
-                    "values": [
-                        [
-                            1608612960000,
-                            99.59595959596913
-                        ]
-                    ]
-                }
-            ],
-            "cost": "25.093363ms",
-            "raw_query": "SELECT \"usage_idle\" FROM \"cpu\" LIMIT 1",
-        }
-    ]
-}
-```
-
-## `/v1/object/labels` | `POST` {#api-object-labels}
+#### `/v1/object/labels` | `POST` {#api-object-labels}
 
 创建或者更新对象的 `labels`
 
@@ -621,7 +542,7 @@ Content-Type: application/json
 请求示例：
 
 ``` shell
-curl -XPOST "127.0.0.1:9529/v1/object/labels" \
+curl -XPOST "http://localhost:9529/v1/object/labels" \
     -H 'Content-Type: application/json'  \
     -d'{
             "object_class": "host_processes",
@@ -652,7 +573,7 @@ status_code: 500
 }
 ```
 
-## `/v1/object/labels` | `DELETE` {#api-delete-object-labels}
+### `/v1/object/labels` {#api-delete-object-labels}
 
 删除对象的 `labels`
 
@@ -668,7 +589,7 @@ status_code: 500
 请求示例：
 
 ``` shell
-curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
+curl -XDELETE "http://localhost:9529/v1/object/labels"  \
     -H 'Content-Type: application/json'  \
     -d'{
             "object_class": "host_processes",
@@ -698,7 +619,357 @@ status_code: 500
 }
 ```
 
-## `/v1/pipeline/debug` | `POST` {#api-debug-pl}
+## 工具类接口 {#tools-apis}
+
+### `PUT /v1/sourcemap` {#api-sourcemap-upload}
+
+[:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
+
+上传 sourcemap 文件，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
+
+请求参数说明。
+
+| 参数       | 描述                                                    | 类型     |
+| ---:       | ---                                                     | ---      |
+| `token`    | `datakit.conf` 配置中的 `dataway` 地址中包含的 token    | `string` |
+| `app_id`   | 用户访问应用唯一 ID 标识，如 `test-sourcemap`           | `string` |
+| `env`      | 应用的部署环境，如 `prod`                               | `string` |
+| `version`  | 应用的版本，如 `1.0.0`                                  | `string` |
+| `platform` | 应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web` | `string` |
+
+请求示例：
+
+``` shell
+curl -X PUT "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web" \
+-F "file=@./sourcemap.zip" \
+-H "Content-Type: multipart/form-data"
+```
+
+成功返回示例：
+
+``` json
+{
+  "content": "uploaded to [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
+  "errorMsg": "",
+  "success": true
+}
+```
+
+失败返回示例：
+
+``` json
+{
+  "content": null,
+  "errorMsg": "app_id not found",
+  "success": false
+}
+```
+
+### `DELETE /v1/sourcemap` {#api-sourcemap-delete}
+
+[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
+
+删除 sourcemap 文件，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
+
+请求参数说明。
+
+| 参数       | 描述                                                    | 类型     |
+| ---:       | ---                                                     | ---      |
+| `token`    | `datakit.conf` 配置中的 `dataway` 地址中包含的 token    | `string` |
+| `app_id`   | 用户访问应用唯一 ID 标识，如 `test-sourcemap`           | `string` |
+| `env`      | 应用的部署环境，如 `prod`                               | `string` |
+| `version`  | 应用的版本，如 `1.0.0`                                  | `string` |
+| `platform` | 应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web` | `string` |
+
+请求示例：
+
+``` shell
+curl -X DELETE "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web"
+```
+
+成功返回示例：
+
+``` json
+{
+  "content":"deleted [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
+  "errorMsg":"",
+  "success":true
+}
+```
+
+失败返回示例：
+
+``` json
+{
+  "content": null,
+  "errorMsg": "delete sourcemap file [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip] failed: remove /path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip: no such file or directory",
+  "success": false
+}
+```
+
+### `/v1/sourcemap/check` {#api-sourcemap-check}
+
+[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
+
+验证 sourcemap 文件是否正确配置，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
+
+请求参数说明。
+
+| 参数          | 描述                                                    | 类型     |
+| ---:          | ---                                                     | ---      |
+| `error_stack` | error 的堆栈信息                                        | `string` |
+| `app_id`      | 用户访问应用唯一 ID 标识，如 `test-sourcemap`           | `string` |
+| `env`         | 应用的部署环境，如 `prod`                               | `string` |
+| `version`     | 应用的版本，如 `1.0.0`                                  | `string` |
+| `platform`    | 应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web` | `string` |
+
+请求示例：
+
+``` shell
+curl "http://localhost:9529/v1/sourcemap/check?app_id=test_sourcemap&env=production&version=1.0.0&error_stack=at%20test%20%40%20http%3A%2F%2Flocalhost%3A8080%2Fmain.min.js%3A1%3A48"
+```
+
+成功返回示例：
+
+``` json
+{
+  "content": {
+    "error_stack": "at test @ main.js:6:6",
+    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:48"
+  },
+  "errorMsg": "",
+  "success": true
+}
+
+```
+
+失败返回示例：
+
+``` json
+{
+  "content": {
+    "error_stack": "at test @ http://localhost:8080/main.min.js:1:483",
+    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:483"
+  },
+  "errorMsg": "fetch original source information failed, make sure sourcemap file [main.min.js.map] is valid",
+  "success": false
+}
+```
+
+### `/v1/global/host/tags` {#api-global-host-tags-get}
+
+获取 global-host-tags。
+
+请求示例：
+
+``` shell
+curl http://localhost:9529/v1/global/host/tags
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+### `/v1/global/host/tags` {#api-global-host-tags-post}
+
+创建或者更新 global-host-tags。
+
+请求示例：
+
+``` shell
+curl -X POST "http://localhost:9529/v1/global/host/tags?tag1=v1&tag2=v2"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+### `/v1/global/host/tags` {#api-global-host-tags-delete}
+
+删除部分 global-host-tags。
+
+请求示例：
+
+``` shell
+curl -X DELETE "http://localhost:9529/v1/global/host/tags?tags=tag1,tag3"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+### `/v1/global/election/tags` {#api-global-election-tags-get}
+
+获取 global-election-tags。
+
+请求示例：
+
+``` shell
+curl http://localhost:9529/v1/global/election/tags
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "election-tags": {
+        "e": "e"
+    }
+}
+```
+
+### `/v1/global/election/tags` {#api-global-election-tags-post}
+
+创建或者更新 global-election-tags。
+
+请求示例：
+
+``` shell
+curl -X POST "http://localhost:9529/v1/global/election/tags?tag1=v1&tag2=v2"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "tag1": "v1",
+        "tag2": "v2",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "tag1": "v1",
+        "tag2": "v2",
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
+### `/v1/global/election/tags` {#api-global-election-tags-delete}
+
+删除部分 global-election-tags。
+
+请求示例：
+
+``` shell
+curl -X DELETE "http://localhost:9529/v1/global/election/tags?tags=tag1,tag3"
+```
+
+成功返回示例：
+
+``` json
+status_code: 200
+Response: {
+    "dataway-tags": {
+        "e": "e",
+        "h": "h",
+        "host": "host-name"
+    },
+    "election-tags": {
+        "e": "e"
+    },
+    "host-tags": {
+        "h": "h",
+        "host": "host-name"
+    }
+}
+```
+
+修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
+
+当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
+
+``` json
+status_code: 500
+Response: {
+    "message": "Can't use this command when global-election is false."
+}
+```
+
+### `/v1/ping` {##api-get-dk-version}
+
+```shell
+$ curl "http://localhost:9529/v1/ping"
+{
+  "content": {
+    "version": "1.72.0",
+    "uptime": "41m44.632183515s",
+    "host": "centos",
+    "commit": "db3ce3b914"
+  }
+}
+```
+
+另外，在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本号。
+
+### `/v1/pipeline/debug` {#api-debug-pl}
 
 提供远程调试 PL 的功能。
 
@@ -744,10 +1015,7 @@ type PlError struct {
 请求示例：
 
 ``` http
-POST /v1/pipeline/debug
-Content-Type: application/json
-
-{
+curl -XPOST -H "Content-Type: application/json" http://localhost:9529/v1/pipeline/debug -d'{
     "pipeline": {
       "<caregory>": {
         "<script_name>": <base64("pipeline-source-code")>
@@ -802,17 +1070,14 @@ HTTP Code: 400
 }
 ```
 
-## `/v1/dialtesting/debug` | `POST` {#api-debug-dt}
+### `/v1/dialtesting/debug` {#api-debug-dt}
 
 提供远程调试拨测的功能，可通过[环境变量](../integrations/dialtesting.md#env)来控制禁拨网络。
 
 请求示例：
 
 ``` http
-POST /v1/dialtesting/debug
-Content-Type: application/json
-
-{
+curl -XPOST -H "Content-Type: application/json" http://localhost:9529/v1/dialtesting/debug -d'{
     "task_type" : "http",//"http","tcp","icmp","websocket","multi"
     "task" : {
         "name"               : "",
@@ -831,10 +1096,10 @@ Content-Type: application/json
     "variables": {
       "variable_uuid": {
        "name": "token",
-       "value": "token" 
+       "value": "token"
       }
     }
-}
+}'
 ```
 
 正常返回示例：
@@ -885,7 +1150,9 @@ HTTP Code: 400
 }
 ```
 
-## `/v1/env_variable` | `GET` {#api-env-variable}
+## 信息查询类接口 {#query-apis}
+
+### `/v1/env_variable` {#api-env-variable}
 
 [:octicons-tag-24: Version-1.72.0](changelog.md#cl-1.72.0)
 
@@ -893,12 +1160,12 @@ HTTP Code: 400
 
 请求参数说明。
 
-|           参数 | 描述                                                            | 类型     |
-| ---: | --- | --- |
-| `app_id` |  用户访问应用唯一 ID 标识                    | `string` |
+| 参数     | 描述                     | 类型     |
+| ---:     | ---                      | ---      |
+| `app_id` | 用户访问应用唯一 ID 标识 | `string` |
 
 ``` shell
-curl "127.0.0.1:9529/v1/env_variable?app_id=app_id"
+curl "http://localhost:9529/v1/env_variable?app_id=app_id"
 ```
 
 成功返回示例：
@@ -912,345 +1179,103 @@ Response: {
 }
 ```
 
-## `/v1/sourcemap` | `PUT` {#api-sourcemap-upload}
+### `/metrics` {#api-metrics}
 
-[:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
+获取 DataKit 暴露的 Prometheus 指标。请求示例：
 
-上传 sourcemap 文件，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
-
-请求参数说明。
-
-|           参数 | 描述                                                            | 类型     |
-| ---: | --- | --- |
-| `token` |`datakit.conf` 配置中的 `dataway` 地址中包含的 token                      | `string` |
-| `app_id` | 用户访问应用唯一 ID 标识，如 `test-sourcemap`                            | `string` |
-| `env` | 应用的部署环境，如 `prod`                                                  | `string` |
-| `version` |应用的版本，如 `1.0.0`                                                 | `string` |
-| `platform` |应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web`                | `string` |
-
-请求示例：
-
-``` shell
-curl -X PUT "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web" \
--F "file=@./sourcemap.zip" \
--H "Content-Type: multipart/form-data"
+```shell
+curl http://localhost:9529/metrics
 ```
 
-成功返回示例：
+### `/v1/lasterror` {#api-lasterror}
 
-``` json
+用于上报外部采集器的错误，示例：
+
+``` http
+POST /v1/lasterror HTTP/1.1
+Content-Type: application/json
+
 {
-  "content": "uploaded to [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
-  "errorMsg": "",
-  "success": true
+  "input":"redis",
+  "source":"us-east-9xwha",
+  "err_content":"Cache avalanche"
 }
 ```
 
-失败返回示例：
+### `/v1/query/raw` {#api-raw-query}
 
-``` json
-{
-  "content": null,
-  "errorMsg": "app_id not found",
-  "success": false
-}
-```
-
-## `/v1/sourcemap` | `DELETE` {#api-sourcemap-delete}
-
-[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
-
-删除 sourcemap 文件，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
-
-请求参数说明。
-
-| 参数       | 描述                                                    | 类型     |
-| ---:       | ---                                                     | ---      |
-| `token`    | `datakit.conf` 配置中的 `dataway` 地址中包含的 token    | `string` |
-| `app_id`   | 用户访问应用唯一 ID 标识，如 `test-sourcemap`           | `string` |
-| `env`      | 应用的部署环境，如 `prod`                               | `string` |
-| `version`  | 应用的版本，如 `1.0.0`                                  | `string` |
-| `platform` | 应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web` | `string` |
-
-请求示例：
+使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据），示例：
 
 ``` shell
-curl -X DELETE "http://localhost:9529/v1/sourcemap?app_id=test_sourcemap&env=production&version=1.0.0&token=tkn_xxxxx&platform=web"
+curl -XPOST "http://localhost:9529/v1/query/raw" \
+    -H 'Content-Type: application/json'  \
+    -d'{
+    "queries":[
+        {
+            "query": "cpu:(usage_idle) LIMIT 1",
+            "conditions": "",
+            "max_duration": "1d",
+            "max_point": 0,
+            "time_range": [],
+            "orderby": [],
+            "disable_slimit": true,
+            "disable_multiple_field": true
+        }
+    ],
+    "echo_explain":true
+}'
 ```
 
-成功返回示例：
-
-``` json
-{
-  "content":"deleted [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip]!",
-  "errorMsg":"",
-  "success":true
-}
+<!--
+```shell
+curl --data-binary @/path/to/dql.json -H "Content-Type:application/json" http://localhost:9529/v1/query/raw
 ```
+-->
 
-失败返回示例：
+参数说明：
 
-``` json
-{
-  "content": null,
-  "errorMsg": "delete sourcemap file [/path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip] failed: remove /path/to/datakit/data/rum/web/test_sourcemap-production-1.0.0.zip: no such file or directory",
-  "success": false
-}
-```
-
-## `/v1/sourcemap/check` | `GET` {#api-sourcemap-check}
-
-[:octicons-tag-24: Version-1.16.0](changelog.md#cl-1.16.0)
-
-验证 sourcemap 文件是否正确配置，该接口需要开启 [RUM 采集器](../integrations/rum.md)。
-
-请求参数说明。
-
-| 参数          | 描述                                                    | 类型     |
-| ---:          | ---                                                     | ---      |
-| `error_stack` | error 的堆栈信息                                        | `string` |
-| `app_id`      | 用户访问应用唯一 ID 标识，如 `test-sourcemap`           | `string` |
-| `env`         | 应用的部署环境，如 `prod`                               | `string` |
-| `version`     | 应用的版本，如 `1.0.0`                                  | `string` |
-| `platform`    | 应用类型， 可选值 `web/miniapp/android/ios`, 默认 `web` | `string` |
-
-请求示例：
-
-``` shell
-curl "http://localhost:9529/v1/sourcemap/check?app_id=test_sourcemap&env=production&version=1.0.0&error_stack=at%20test%20%40%20http%3A%2F%2Flocalhost%3A8080%2Fmain.min.js%3A1%3A48"
-```
-
-成功返回示例：
-
-``` json
-{
-  "content": {
-    "error_stack": "at test @ main.js:6:6",
-    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:48"
-  },
-  "errorMsg": "",
-  "success": true
-}
-
-```
-
-失败返回示例：
-
-``` json
-{
-  "content": {
-    "error_stack": "at test @ http://localhost:8080/main.min.js:1:483",
-    "original_error_stack": "at test @ http://localhost:8080/main.min.js:1:483"
-  },
-  "errorMsg": "fetch original source information failed, make sure sourcemap file [main.min.js.map] is valid",
-  "success": false
-}
-
-```
-
-## `/metrics` | `GET` {#api-metrics}
-
-获取 Datakit 暴露的 Prometheus 指标。
-
-## `/v1/global/host/tags` | `GET` {#api-global-host-tags-get}
-
-获取 global-host-tags。
-
-请求示例：
-
-``` shell
-curl 127.0.0.1:9529/v1/global/host/tags
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "host-tags": {
-        "h": "h",
-        "host": "host-name"
-    }
-}
-```
-
-## `/v1/global/host/tags` | `POST` {#api-global-host-tags-post}
-
-创建或者更新 global-host-tags。
-
-请求示例：
-
-``` shell
-curl -X POST "127.0.0.1:9529/v1/global/host/tags?tag1=v1&tag2=v2"
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "dataway-tags": {
-        "e": "e",
-        "h": "h",
-        "tag1": "v1",
-        "tag2": "v2",
-        "host": "host-name"
-    },
-    "election-tags": {
-        "e": "e"
-    },
-    "host-tags": {
-        "h": "h",
-        "tag1": "v1",
-        "tag2": "v2",
-        "host": "host-name"
-    }
-}
-```
-
-修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
-
-## `/v1/global/host/tags` | `DELETE` {#api-global-host-tags-delete}
-
-删除部分 global-host-tags。
-
-请求示例：
-
-``` shell
-curl -X DELETE "127.0.0.1:9529/v1/global/host/tags?tags=tag1,tag3"
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "dataway-tags": {
-        "e": "e",
-        "h": "h",
-        "host": "host-name"
-    },
-    "election-tags": {
-        "e": "e"
-    },
-    "host-tags": {
-        "h": "h",
-        "host": "host-name"
-    }
-}
-```
-
-修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
-
-## `/v1/global/election/tags` | `GET` {#api-global-election-tags-get}
-
-获取 global-election-tags。
-
-请求示例：
-
-``` shell
-curl 127.0.0.1:9529/v1/global/election/tags
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "election-tags": {
-        "e": "e"
-    }
-}
-```
-
-## `/v1/global/election/tags` | `POST` {#api-global-election-tags-post}
-
-创建或者更新 global-election-tags。
-
-请求示例：
-
-``` shell
-curl -X POST "127.0.0.1:9529/v1/global/election/tags?tag1=v1&tag2=v2"
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "dataway-tags": {
-        "e": "e",
-        "h": "h",
-        "tag1": "v1",
-        "tag2": "v2",
-        "host": "host-name"
-    },
-    "election-tags": {
-        "tag1": "v1",
-        "tag2": "v2",
-        "e": "e"
-    },
-    "host-tags": {
-        "h": "h",
-        "host": "host-name"
-    }
-}
-```
-
-修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
-
-当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
-
-``` json
-status_code: 500
-Response: {
-    "message": "Can't use this command when global-election is false."
-}
-```
-
-## `/v1/global/election/tags` | `DELETE` {#api-global-election-tags-delete}
-
-删除部分 global-election-tags。
-
-请求示例：
-
-``` shell
-curl -X DELETE "127.0.0.1:9529/v1/global/election/tags?tags=tag1,tag3"
-```
-
-成功返回示例：
-
-``` json
-status_code: 200
-Response: {
-    "dataway-tags": {
-        "e": "e",
-        "h": "h",
-        "host": "host-name"
-    },
-    "election-tags": {
-        "e": "e"
-    },
-    "host-tags": {
-        "h": "h",
-        "host": "host-name"
-    }
-}
-```
-
-修改成功后，如果是主机模式下，修改内容会持久化到配置文件 `datakit.conf` 中。
-
-当全局 `global-election-enable = false` 禁止执行本指令，失败返回示例：
-
-``` json
-status_code: 500
-Response: {
-    "message": "Can't use this command when global-election is false."
-}
-```
+| 名称                     | 必填参数 | 说明                                                                                                                                                                                                                         |
+| :---                     | ---      | ---                                                                                                                                                                                                                          |
+| `queries`                |    Y     | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                     |
+| `query`                  |    Y     | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                                 |
+| `conditions`             |    N     | 额外添加条件表达式，使用 DQL 语法，例如 `hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                          |
+| `disable_multiple_field` |    N     | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                     |
+| `disable_slimit`         |    N     | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                          |
+| `echo_explain`           |    N     | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                  |
+| `highlight`              |    N     | 高亮搜索结果                                                                                                                                                                                                                 |
+| `limit`                  |    N     | 限制单个时间线返回的点数，将覆盖 DQL 中存在的 limit                                                                                                                                                                          |
+| `max_duration`           |    N     | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是 3 天，`2w` 是 2 周，`1y` 是 1 年。默认是 1 年，此参数同样会限制 `time_range` 参数                                                                           |
+| `max_point`              |    N     | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                          |
+| `offset`                 |    N     | 一般跟 limit 配置使用，用于结果分页                                                                                                                                                                                          |
+| `orderby`                |    N     | 指定 `order by` 参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `search_after`           |    N     | 深度分页，第一次调用分页的时候，传入空列表：`"search_after": []`，成功后服务端会返回一个列表，客户端直接复用这个列表的值再次通过 `search_after` 参数回传给后续的查询即可                                                     |
+| `slimit`                 |    N     | 限制时间线个数，将覆盖 DQL 中存在的 `slimit`                                                                                                                                                                                 |
+| `time_range`             |    N     | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为 2 的 int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                            |
 
 ## 延伸阅读 {#more-reading}
 
-- [API 访问设置](datakit-conf.md#config-http-server)
-- [API 限流配置](datakit-conf.md#set-http-api-limit)
-- [API 安全控制](../integrations/rum.md#security-setting)
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>API 访问设置</u>: 修改 DataKit HTTP API 设置</font>](datakit-conf.md#config-http-server)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>API 限流</u>: 限制 DataKit HTTP API 流量</font>](datakit-conf.md#set-http-api-limit)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>API Security</u>: 配置 DataKit 过程中涉及的一些安全问题说明</font>](datakit-conf.md#public-apis)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>黑名单规则</u>: DataKit 端黑名单运行机制</font>](datakit-filter.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Tags</u>: DataKit 采集中常用的数据标签</font>](common-tags.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>扩展 DataKit</u>: 从源码修改 DataKit</font>](development.md)
+</div>
+</font>

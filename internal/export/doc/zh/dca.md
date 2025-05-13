@@ -20,9 +20,9 @@ dca_server(DCA Server);
 dca_web(DCA Web);
 dk_upgrader1(Upgrader);
 
-dk1(Datakit);
+dk1(DataKit);
 
-k8s_dk1(Datakit);
+k8s_dk1(DataKit);
 
 brand_name("<<<custom_key.brand_name>>>");
 
@@ -132,7 +132,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 ## DataKit 客户端配置 {#config}
 
 <!-- markdownlint-disable MD046 -->
-???+ Attention
+???+ note
 
     不同版本的 DataKit 接口可能存在差异，为了更好地使用 DCA，建议升级 DataKit 为最新版本。
 

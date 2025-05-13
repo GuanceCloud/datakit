@@ -60,7 +60,7 @@ type Input struct {
 	lastStat     map[string]disk.IOCountersStat
 	start        time.Time
 	lastTime     time.Time
-	diskIO       DiskIO
+	ioCounters   DiskIO
 	feeder       dkio.Feeder
 	mergedTags   map[string]string
 	tagger       datakit.GlobalTagger
@@ -129,11 +129,11 @@ func (ipt *Input) collect() error {
 	ipt.deviceFilter = &DevicesFilter{}
 	err := ipt.deviceFilter.Compile(ipt.Devices)
 	if err != nil {
-		return err
+		return fmt.Errorf("deviceFilter.Compile(%s): %w", ipt.Devices, err)
 	}
 
 	// disk io stat
-	diskio, err := ipt.diskIO([]string{}...)
+	diskio, err := ipt.ioCounters([]string{}...)
 	if err != nil {
 		return fmt.Errorf("error getting disk io info: %w", err)
 	}
@@ -371,9 +371,9 @@ func (ipt *Input) diskName(devName string) (string, []string) {
 
 func newDefaultInput() *Input {
 	ipt := &Input{
-		diskIO:   disk.IOCounters,
-		Interval: time.Second * 10,
-		Tags:     make(map[string]string),
+		ioCounters: disk.IOCounters,
+		Interval:   time.Second * 10,
+		Tags:       make(map[string]string),
 
 		feeder: dkio.DefaultFeeder(),
 

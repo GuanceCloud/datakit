@@ -35,7 +35,7 @@ After successfully installing and starting DataKit, the CPU collector will be en
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, [restart Datakit](../datakit/datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 

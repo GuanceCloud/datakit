@@ -295,34 +295,37 @@ apt-get install -y libaio-dev libaio1
 
 ## 慢查询支持 {#slow}
 
-Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oracle_log`。
+DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oracle_log`。
 
 该功能默认情况下是关闭的，用户可以在 Oracle 的配置文件中将其打开，方法如下：
 
 将 `slow_query_time` 的值从 `0s` 改成用户心中的阈值，最小值 1 毫秒。一般推荐 10 秒。
 
+<!-- markdownlint-disable MD046 -->
 ???+ info "字段说明"
-    - `avg_elapsed`: 该 SQL 语句执行的平均耗时。
-    - `username`：执行该语句的用户名。
-    - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报。
-    更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
+    - `avg_elapsed`: 该 SQL 语句执行的平均耗时
+    - `username`：执行该语句的用户名
+    - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报
+    - 如果 `slow_query_time` 为空或小于 1 毫秒，则不会开启 Oracle 采集器的慢查询功能，即默认状态
+    - 没有执行完成的 SQL 语句不会被查询到
 
-???+ attention "重要信息"
-    - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 Oracle 采集器的慢查询功能，即默认状态。
-    - 没有执行完成的 SQL 语句不会被查询到。
+    更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
+<!-- markdownlint-enable -->
 
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 通过外部采集器采集时，如何查看 Oracle 采集器的运行日志？ {#faq-logging}
+### 如何查看 Oracle 采集器的运行日志？ {#faq-logging}
 
-由于 Oracle 采集器是外部采集器，其日志是默认单独存放在 *[Datakit 安装目录]/externals/oracle.log* 中。
+由于 Oracle 采集器是外部采集器，其日志是默认单独存放在 *[DataKit 安装目录]/externals/oracle.log* 中。
 
 另外，可以在配置文件中通过 `--log` 参数来指定日志文件位置。
 
-### :material-chat-question: 配置好外部采集器采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
+自 DataKit 1.32.0 开始，Oracle 采集器不再是外部采集器，它的日志跟 DataKit 自身日志（Linux 下为 */var/log/datakit/log*）在一起。
 
-大概原因有如下几种可能：
+### 为何 monitor 中无数据显示？ {#faq-no-data}
+
+该问题只有当 Oracle 是外部采集器（需要依赖当前环境的动态库）时才会发生，大概原因有如下几种可能：
 
 - Oracle 动态库依赖有问题
 
@@ -351,7 +354,7 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 
 这意味着 Oracle 这个采集器只能在 x86_64/ARM64 的 Linux 上运行，其它平台一律无法运行当前的 Oracle 采集器。
 
-### :material-chat-question: 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
+### 为什么看不到 `oracle_system` 指标集? {#faq-no-system}
 
 需要数据库运行起来之后，过 1 分钟才能看到。
 

@@ -105,9 +105,9 @@ server {
 
     [Inject collector configuration through ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting) to enable the collector
 
-???+ attention
+???+ note
 
-    The `url` address is subject to the specific configuration of nginx. The common usage is to use the `/basic_status` route.
+    The `url` address is subject to the specific configuration of NGINX. The common usage is to use the `/basic_status` route.
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}

@@ -58,7 +58,7 @@ DATAKIT_EBPF_ARCHS           ?= linux/arm64,linux/amd64
 RACE_DETECTION               ?= off
 PKGEBPF                      ?= 0
 DLEBPF                       ?= 0
-AUTO_FIX                     ?= on
+AUTO_FIX                     ?= true
 UT_EXCLUDE                   ?= "-"
 UT_ONLY                      ?= "-"
 UT_PARALLEL                  ?= "0"
@@ -355,7 +355,7 @@ ut: deps
 
 code_lint: deps copyright_check
 	@$(GOLINT_BINARY) --version
-ifeq ($(AUTO_FIX),on)
+ifeq ($(AUTO_FIX),true)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
 			$(GOLINT_BINARY) run --fix --allow-parallel-runners;
 else
@@ -417,11 +417,9 @@ define check_docs
 	# markdownlint install: https://github.com/igorshubovych/markdownlint-cli
 	@echo 'version of markdownlint: $(shell markdownlint --version)'
 	@truncate -s 0 $(DIST_DIR)/md-lint.json
-	markdownlint -c scripts/markdownlint.yml \
-		-j \
-		-o $(DIST_DIR)/md-lint.json $(1)
-
-	@if [ -s $(DIST_DIR)/md-lint.json ]; then \
+	@if markdownlint -c scripts/markdownlint.yml -j -o $(DIST_DIR)/md-lint.json $(1); then \
+		printf "markdownlint check ok\n"; \
+	else \
 		printf "$(RED) [FAIL] $(DIST_DIR)/md-lint.json not empty \n$(NC)"; \
 		cat $(DIST_DIR)/md-lint.json; \
 		exit -1; \
@@ -441,21 +439,14 @@ md_lint: md_export
 	# Also disable section check on generated docs(there are sections that rended in measurement name)
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go --mdcheck $(docs_dir) \
-		--mdcheck-no-section-check --mdcheck-no-autofix
+		--mdcheck-no-section-check --mdcheck-no-autofix $(AUTO_FIX)
 	$(call check_docs,$(docs_dir))
 
 md_export:
-ifeq ($(AUTO_FIX),on)
-	# check markdown templates
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go \
-		--mdcheck $(docs_template_dir);
-else
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--mdcheck $(docs_template_dir) \
-		--mdcheck-no-autofix;
-endif
+		--mdcheck-no-autofix $(AUTO_FIX);
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
 	@bash export.sh -D $(exportdir) -E -V 0.0.0
 

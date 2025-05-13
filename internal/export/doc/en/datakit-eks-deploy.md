@@ -13,7 +13,7 @@
 
 ## Using Amazon EKS add-on {#add-on-install}
 
-Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
+Deploying DataKit on an Amazon EKS cluster using Amazon EKS add-on.
 
 ### Prerequisites {#prerequisites-addon-install}
 
@@ -25,7 +25,7 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
      ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
 
 <!-- markdownlint-disable MD046 -->  
-=== "Enable Datakit add-on from AWS console"
+=== "Enable DataKit add-on from AWS console"
 
     - Search Add-ons
       First, in the Amazon EKS Console, go to your EKS cluster and select "Get more Add-ons" on the "add-ons" TAB to find the new third-party EKS add-ons in the cluster Settings of the existing EKS cluster. And search for 'datakit', select '<<<custom_key.brand_name>>> Container Agent', next step.
@@ -53,7 +53,7 @@ Deploying Datakit on an Amazon EKS cluster using Amazon EKS add-on.
       <figcaption></figcaption>
     </figure>    
 
-=== "Enable Datakit add-on using AWS CLI"
+=== "Enable DataKit add-on using AWS CLI"
 
     ???+ tip
          You need to replace `$YOUR_CLUSTER_NAME` and `$AWS_REGION` accordingly with your actual Amazon EKS cluster name and AWS region.
@@ -142,7 +142,7 @@ aws ecr get-login-password \
 ### Helm installation (Upgrade) DataKit {#helm-install}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "Attention"
+???+ note
 
     - Helm Version must be 3.7.1.
     - `datakit.datawayUrl` Must be modified.
@@ -189,7 +189,7 @@ envDataway=$(echo -n "$token" | base64)
 kubectl patch secret env-dataway -p "{\"data\": {\"datawayUrl\": \"$envDataway\"}}" -n datakit
 ```
 
-restart Datakit:
+restart DataKit:
 
 ```shell
 kubectl rollout restart ds datakit -n datakit

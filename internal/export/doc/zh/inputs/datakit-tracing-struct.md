@@ -1,11 +1,11 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Datakit Tracing 数据结构'
+title: 'DataKit Tracing 数据结构'
 ---
 
 ## 简述 {#intro}
 
-此文用于解释主流 Telemetry 平台数据结构以及与 Datakit 平台数据结构的映射关系
+此文用于解释主流 Telemetry 平台数据结构以及与 DataKit 平台数据结构的映射关系
 目前支持数据结构：DataDog/Jaeger/OpenTelemetry/SkyWalking/Zipkin/PinPoint
 
 数据转换步骤：
@@ -16,7 +16,7 @@ title: 'Datakit Tracing 数据结构'
 
 ---
 
-## Datakit Point Protocol 数据结构 {#point-proto}
+## DataKit Point Protocol 数据结构 {#point-proto}
 
 - Tags
 
@@ -50,10 +50,10 @@ title: 'Datakit Tracing 数据结构'
 | `resource`    | Resource of service           | string |      |
 | `span_id`     | Span ID                       | string |      |
 | `start`       | Span start timestamp          | int    | us   |
-| `time`        | Datakit received timestamp    | int    | ns   |
+| `time`        | DataKit received timestamp    | int    | ns   |
 | `trace_id`    | Trace ID                      | string |      |
 
-[^1]: 该字段在 Datakit 采集时不存在，只有落库到存储之后才会追加。
+[^1]: 该字段在 DataKit 采集时不存在，只有落库到存储之后才会追加。
 
 `span_type` 为当前 Span 在 Trace 中的相对位置，其取值说明如下：
 
@@ -72,7 +72,7 @@ title: 'Datakit Tracing 数据结构'
 
 ## OpenTelemetry Tracing 数据结构 {#otel-trace-struct}
 
-Datakit 采集从 OpenTelemetry Exporter(OTLP) 中发送上来的数据时，简略的原始数据通过 JSON 序列化之后，如下所示：
+DataKit 采集从 OpenTelemetry Exporter(OTLP) 中发送上来的数据时，简略的原始数据通过 JSON 序列化之后，如下所示：
 
 ```text
 resource_spans:{

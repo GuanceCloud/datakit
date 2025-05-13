@@ -19,11 +19,11 @@ monitor:
 
 ---
 
-This Input used to collect Datakit exported metrics, such as runtime/CPU/memory and various other metrics of each modules.
+This Input used to collect DataKit exported metrics, such as runtime/CPU/memory and various other metrics of each modules.
 
 ## Configuration {#config}
 
-After Datakit startup, it will expose a lot of [Prometheus metrics](../datakit/datakit-metrics.md), and the input `dk` can scrap
+After DataKit startup, it will expose a lot of [Prometheus metrics](../datakit/datakit-metrics.md), and the input `dk` can scrap
 these metrics.
 
 ### Collector Configuration {#input-config}
@@ -51,4 +51,4 @@ these metrics.
 
 ## Metric {#metric}
 
-Datakit exported Prometheus metrics, see [here](../datakit/datakit-metrics.md) for full metric list.
+DataKit exported Prometheus metrics, see [here](../datakit/datakit-metrics.md) for full metric list.

@@ -7,7 +7,7 @@
 
 - 新增 Windows Remote 采集器，支持通过 SNMP/WMI 远程采集 Windows 主机的基础信息（#2591）
 - 新增主要 Kubernetes 对象变更采集（#2514）
-- Datakit HTTP API 新增 RUM 环境变量 API（#2622）
+- DataKit HTTP API 新增 RUM 环境变量 API（#2622）
 
 ### 问题修复 {#cl-1.72.0-fix}
 
@@ -38,7 +38,7 @@
 
 ### 功能优化 {#cl-1.71.0-opt}
 
-- Datakit 上传的数据包请求 HTTP 头中增加 X-Pkg-ID，用于数据包追踪（#2587）
+- DataKit 上传的数据包请求 HTTP 头中增加 X-Pkg-ID，用于数据包追踪（#2587）
 - Kubernetes event 采集的数据中新增 `source_host/source_component` 字段（#2606）
 - DDTrace 资源目录采集中将用户自定义注入的 tag 提到一级字段，便于做数据分流（#2609）
 - 优化 DDTrace 采样策略（#2614）
@@ -107,7 +107,7 @@
 - DDTrace 优化 trace-id 字段的处理（#2569）
 - OpenTelemetry 采集中增加 `base_service` 字段（#2575）
 - 调整 WAL 默认设置，worker 数默认改成 CPU 限额核心数 * 8，同时安装/升级阶段支持指定 worker 数以及磁盘缓存大小（#2582）
-- Datakit 容器环境下运行时，移除 pid 检测（#2586）
+- DataKit 容器环境下运行时，移除 pid 检测（#2586）
 
 ### 兼容调整 {#cl-1.69.0-brk}
 
@@ -115,7 +115,7 @@
 
     调整磁盘指标采集，同时更新了主机对象中的磁盘列表采集，主要有如下差异：
 
-    1. 新增了挂载点忽略选项：该调整主要是为了优化 Kubernetes 中 Datakit 获取磁盘列表时，过滤掉一些不必要的挂载点，比如 ConfigMap 配置挂载（`/usr/local/datakit/.*`）和 Pod 日志采集导致的挂载（`/run/containerd/.*`）；同时避免了新增的无效时间线（这些新增的时间线主要是挂载点不同导致的）。
+    1. 新增了挂载点忽略选项：该调整主要是为了优化 Kubernetes 中 DataKit 获取磁盘列表时，过滤掉一些不必要的挂载点，比如 ConfigMap 配置挂载（`/usr/local/datakit/.*`）和 Pod 日志采集导致的挂载（`/run/containerd/.*`）；同时避免了新增的无效时间线（这些新增的时间线主要是挂载点不同导致的）。
     1. 新增文件系统忽略选项：对一些不太需要采集的文件系统（比如 `tmpfs/autofs/devpts/overlay/proc/squashfs` 等）默认做了忽略
     1. 主机对象采集中，也和 disk 指标采集做了同等的默认忽略策略。
 
@@ -152,7 +152,7 @@
 - Zabbix Exporter 采集器增加低版本（v4.2+）兼容（#2555）
 - Pipeline 处理日志时提供了 `setopt()` 函数来定制化日志等级的处理（#2545）
 - OpenTelemetry 采集器在采集直方图（Histogram）类型的指标时，默认将其转换成 Prometheus 风格的直方图（#2556）
-- 调整主机安装 Datakit 时的 CPU 限额方式，新装的 Datakit 默认使用基于 CPU 核心数的 limit 机制（#2557）
+- 调整主机安装 DataKit 时的 CPU 限额方式，新装的 DataKit 默认使用基于 CPU 核心数的 limit 机制（#2557）
 - Proxy 采集器增加来源 IP 白名单机制（#2558）
 - Kubernetes 容器和 Pod 指标采集允许针对 namespace/image 等方式来进行定向采集（#2562）
 - Kubernetes 容器和 Pod 的内存/CPU 补全基于 Limit 和 Request 的百分比采集（#2563）

@@ -10,13 +10,27 @@ If there is a machine in the intranet that can access the external, a proxy can 
 
 At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic network structure is as follows:
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dk-nginx-proxy.png){ width="700"}
-</figure>
+```mermaid
+flowchart LR
+dk1(Datakit)
+dk2(Datakit)
+dk3(Datakit)
+proxy(Nginx or Datakit.Proxy)
+cdn(<<<custom_key.brand_name>>> CDN)
+studio(openway.<<<custom_key.brand_name>>>.com)
+%%%
+
+dk1--> proxy
+dk2--> proxy
+dk3--> proxy
+
+proxy --> cdn
+proxy --> studio
+```
 
 ### Preconditions {#requrements}
 
-- Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](../integrations/proxy.md) collector is located in Datakit IP 1.2. 3.4, with the following configuration:
+- Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](../integrations/proxy.md) collector is located in DataKit IP 1.2. 3.4, with the following configuration:
 
 ```toml
 [[inputs.proxy]]
@@ -91,7 +105,7 @@ There are two strategies to choose from for full offline installation:
 
 The address of the following files can be downloaded through wget and other download tools, or directly enter the corresponding URL to download in the browser.
 <!-- markdownlint-disable MD046 -->
-???+ Attention
+???+ note
 
     When downloading from Safari browser, the suffix name may be different (for example, downloading the `. tar.gz ` file to `. tar `), which will cause the installation to fail. It is recommended to download with Chrome browser. 
 <!-- markdownlint-enable -->
@@ -99,69 +113,72 @@ The address of the following files can be downloaded through wget and other down
 
 - Then download more installers as below:
 <!-- markdownlint-disable MD046 -->
-=== "Windows 32 bit"
 
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386.exe){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
+=== "Linux"
 
-=== "Windows 64 bit"
+    - **X86 32 bit**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
 
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64.exe){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
+    - **"X86 64 bit"**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
+        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
-=== "Linux X86 32 bit"
+    - **"Arm 32 bit"**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
 
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386.tar.gz){:target="_blank"}
+    - **"Arm 64 bit"**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
+        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 
-=== "Linux X86 64 bit"
+=== "Windows"
 
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+    For Windows, only X86 is available.
 
-=== "Linux Arm 32 bit"
+    - **32 bit**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386.exe){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386.tar.gz){:target="_blank"}
 
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm.tar.gz){:target="_blank"}
+    - **"64 bit"**
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64.exe){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64.tar.gz){:target="_blank"}
 
-=== "Linux Arm 64 bit"
-
-    - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Datakit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
-    - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64.tar.gz){:target="_blank"}
-    - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 <!-- markdownlint-enable -->
-After downloading, you should have a few files as below (`<OS-ARCH>` here refers to the platform-specific installation package):
 
-- `datakit-<OS-ARCH>.tar.gz`
-- `dk_upgrader-<OS-ARCH>.tar.gz`
-- `installer-<OS-ARCH>` or `installer-<OS-ARCH>.exe`
-- `data.tar.gz`
-- `datakit-apm-inject-linux-<ARCH>.tar.gz`
+After downloading, you should have a few files as below (*[OS-ARCH]* here refers to the platform-specific installation package):
+
+- *datakit-[OS-ARCH].tar.gz*
+- *dk_upgrader-[OS-ARCH].tar.gz*
+- *installer-[OS-ARCH]` or `installer-[OS-ARCH].exe*
+- *data.tar.gz*
+- *datakit-apm-inject-[OS-ARCH].tar.gz*
 
 Copy these files to the corresponding machine (via USB flash drive or `scp` and other commands).
 
 <!-- markdownlint-disable MD046 -->
-???+ Attention
+???+ note
 
-    It is crucial to download each of these files completely. They may not be reusable between different versions. For example, the installer program behaves differently across various Datakit versions because it may adjust the default configurations of Datakit, which can have varying degrees of additions and deletions. It is best to use the installer program corresponding to version 1.2.3 of Datakit for the installation or upgrade of Datakit 1.2.3.
+    It is crucial to download each of these files completely. They may not be reusable between different versions. For example, the installer program behaves differently across various DataKit versions because it may adjust the default configurations of DataKit, which can have varying degrees of additions and deletions. It is best to use the installer program corresponding to version 1.2.3 of DataKit for the installation or upgrade of DataKit 1.2.3.
 <!-- markdownlint-enable -->
 
 #### Installation {#simple-install}
 
-> If you are performing an offline install of the lite version of Datakit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
+> If you are performing an offline install of the lite version of DataKit, you need to specify the installation package with a `_lite` suffix, such as *datakit_lite-linux-amd64-{{.Version}}.tar.gz*.
 
 
 <!-- markdownlint-disable MD046 -->
@@ -184,7 +201,7 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
 <!-- markdownlint-enable -->
 #### Upgrade {#simple-upgrade}
 
-> If you are performing an offline upgrade of the lite version of Datakit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
+> If you are performing an offline upgrade of the lite version of DataKit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
 
 <!-- markdownlint-disable MD046 -->
 === "Linux"

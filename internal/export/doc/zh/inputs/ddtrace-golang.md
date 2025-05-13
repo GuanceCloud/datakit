@@ -8,21 +8,19 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
-目前有两种插桩方式：**编译时插桩**和**代码侵入式手动插桩**。
+目前有两种插桩方式：编译时插桩和代码侵入式手动插桩。侵入性插桩需要修改已有代码，但一般不需要做太多变更，只需要替换相关的 import 包即可。
 
-侵入性插桩，**需要修改已有代码**，但总体而言，常见的业务代码不需要做太多变更，只需要替换相关的 `import` 包即可。
+DDTrace 推出编译时接入 APM 需要安装 [Orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}。
 
-DDTrace 推出编译时接入 APM 需要安装 [orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}
-
-以下是这两种方式的使用方式。
+以下是这两种方式的使用方式介绍。
 
 ## 编译时插桩 {#compilation-automatically}
 
 要求：
 
-- Go 版本必须 **1.18+**
-- 必须使用 **Go Module** 管理项目。
-- 安装 DataKit 并开启 [DDTrace 采集器](ddtrace.md){:target="_blank"}
+- Go 版本必须 1.18+
+- 必须使用 Go Module 管理项目。
+- 安装 DataKit 并开启 [DDTrace 采集器](ddtrace.md)
 
 安装 Orchestrion
 
@@ -47,7 +45,7 @@ orchestrion pin
 
 使用以下三种方式的一种进行编译你的项目：
 
-1 **在 `go build` 命令之前**：
+- **在 `go build` 命令之前**：
 
 ```shell
 orchestrion go build .
@@ -55,7 +53,7 @@ orchestrion go run .
 orchestrion go test ./...
 ```
 
-2 **使用 `-toolexec` 方式**:
+- **使用 `-toolexec` 方式**:
 
 ```shell
 go build -toolexec="orchestrion toolexec" .
@@ -63,7 +61,7 @@ go run -toolexec="orchestrion toolexec" .
 go test -toolexec="orchestrion toolexec" ./...
 ```
 
-3 **修改环境变量 `$GOFLAGS`**：
+- **修改环境变量 `$GOFLAGS`**：
 
 ```shell
 # Make sure to include the quotes as shown below, as these are required for
@@ -85,7 +83,7 @@ go test ./...
 
 ---
 
-## 手动方式插装 {#Manual-dependence}
+## 手动方式插装 {#manual-dependence}
 
 安装 DDTrace Golang SDK：
 
@@ -107,7 +105,7 @@ go get gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
 go get gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
 ```
 
-我们可以从 [Github 插件库](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"}或 [Datadog 相关支持文档](https://docs.datadoghq.com/tracing/trace_collection/compatibility/go/#integrations){:target="_blank"}了解更多可用的 tracing SDK。
+我们可以从 [GitHub 插件库](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"}或 [Datadog 相关支持文档](https://docs.datadoghq.com/tracing/trace_collection/compatibility/go/#integrations){:target="_blank"}了解更多可用的 tracing SDK。
 
 ## 代码示例 {#examples}
 
@@ -301,7 +299,7 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 更多环境变量支持，参见 [DDTrace-Go 文档](https://docs.datadoghq.com/tracing/trace_collection/library_config/go/){:target="_blank"}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     这些环境变量将会被代码中用 `WithXXX()` 注入的对应字段覆盖，故代码注入的配置，优先级更高，这些 ENV 只有在代码未指定对应字段时才生效。
 <!-- markdownlint-enable -->
@@ -322,7 +320,7 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 
     **默认值**：`localhost`
 
-    设置 DataKit 的 IP 地址，应用产生的 trace 数据将发送给 Datakit
+    设置 DataKit 的 IP 地址，应用产生的 trace 数据将发送给 DataKit
 
 - **`DD_TRACE_AGENT_PORT`**
 
@@ -331,7 +329,7 @@ DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 - **`DD_DOGSTATSD_PORT`**
 
     默认值：`8125`
-    如果要接收 DDTrace 产生的 StatsD 数据，需在 Datakit 上手动开启 [StatsD 采集器][5]
+    如果要接收 DDTrace 产生的 StatsD 数据，需在 DataKit 上手动开启 [StatsD 采集器][5]
 
 - **`DD_TRACE_SAMPLING_RULES`**
 

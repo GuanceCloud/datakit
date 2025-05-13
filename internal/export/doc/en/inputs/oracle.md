@@ -109,7 +109,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
 
 - Deploy dependency package
 
-If you are using Datakit direct collection, you may skip this step.
+If you are using DataKit direct collection, you may skip this step.
 
 Select the appropriate installation package based on the operating system and Oracle version, refer to [here](https://oracle.github.io/odpi/doc/installation.html){:target="_blank"}. For example：
 
@@ -291,33 +291,37 @@ For all of the following data collections, the global election tags will added a
 
 ## Long running queries {#slow}
 
-Datakit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oracle_log`.
+DataKit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oracle_log`.
 
-This function is disabled by default, user could enabling it by modify Datakit's Oracle configuration like followings:
+This function is disabled by default, user could enabling it by modify DataKit's Oracle configuration like followings:
 
 Change the value of the field `slow_query_time` from `0s` to the threshold time, minimal value is 1 millsecond. Generally, recommand it to `10s`.
 
+<!-- markdownlint-disable MD046 -->
 ???+ info "Fields description"
+
     - `avg_elapsed`: The SQL executed average time cost.
     - `username`: The user who executed the SQL.
     - `failed_obfuscate`：SQL obfuscated failed reason. Only exist when SQL obfuscated failed. Original SQL will be reported when SQL obfuscated failed.
-    [More fields](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7).
-
-???+ attention "Attention"
-    - If the string value after `--slow-query-time` is `0s` or empty or less than 1 millisecond, this function is disabled, which is also the default state.
+    - If `slow-query-time` is empty or less than 1 millisecond, this function is disabled, which is also the default state.
     - The SQL would not display here when NOT executed completed.
+
+    For more fields, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7).
+
+<!-- markdownlint-enable -->
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: How to view the running log of Oracle Collector by external collector? {#faq-logging}
-<!-- markdownlint-enable -->
+### How to view the log of Oracle Collector? {#faq-logging}
 
-Because the Oracle collector is an external collector, its logs by default are stored separately in *[Datakit-install-path]/externals/oracle.log*.
+Because the Oracle collector is an external collector, its logs by default are stored separately in *[DataKit-install-path]/externals/oracle.log*.
 
 In addition, the log path could modified by using `--log` parameter in configuration file.
-<!-- markdownlint-disable MD013 -->
-### :material-chat-question: After Oracle external collection is configured, why is there no data displayed in monitor? {#faq-no-data}
-<!-- markdownlint-enable -->
+
+Since DataKit version 1.32.0, the Oracle collector is no longer an external collector, and its logs are located together with the DataKit's own logs (under Linux, at */var/log/datakit/log*).
+
+### Why is there no data displayed in monitor? {#faq-no-data}
+
 There are several possible reasons:
 
 - Oracle dynamic library dependencies are problematic
@@ -329,7 +333,7 @@ Even though you may already have a corresponding Oracle package on your machine,
 As the Oracle collector is compiled independently and CGO is turned on, its runtime requires glibc dependencies. On Linux, you can check whether there is any problem with the glibc dependencies of the current machine by the following command:
 
 ```shell
-$ ldd <Datakit-install-path>/externals/oracle
+$ ldd <DataKit-install-path>/externals/oracle
   linux-vdso.so.1 (0x00007ffed33f9000)
   libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
   libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)
@@ -346,7 +350,9 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 - Oracle Collector is only available on Linux x86_64/ARM64 architecture DataKit and is not supported on other platforms.
 
 This means that the Oracle collector can only run on x86_64/ARM64 Linux, and no other platform can run the current Oracle collector.
-<!-- markdownlint-disable MD013 -->
-### :material-chat-question: Why can't see `oracle_system` measurements? {#faq-no-system}
-<!-- markdownlint-enable -->
+
+### `oracle_system` measurements not found? {#faq-no-system}
+
 It needs to taking 1 minute to see them after the database system starting up.
+
+<!-- markdownlint-enable -->

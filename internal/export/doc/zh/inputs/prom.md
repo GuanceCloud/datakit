@@ -24,7 +24,7 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -36,7 +36,7 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-???+ attention "interval 的配置"
+???+ info "`interval` 的配置"
 
     Prometheus 的指标采集会对目标服务造成一定的开销（HTTP 请求），为防止意外的配置，采集间隔目前默认为 30s，且配置项没有在 conf 中明显放出来。如果一定要配置采集间隔，可在 conf 中增加该配置：
 
@@ -151,7 +151,7 @@ node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.2
 - 只采集符合一定名称规则的 Prometheus 指标
 - 只采集部分计量数据（`metric_types`），如 `gauge` 类指标和 `counter` 类指标
 
-Datakit 支持命令行直接调试 prom 采集器的配置文件，从 conf.d/{{.Catalog}} 拷贝出一份 prom.conf 模板，填写对应 Exporter 地址，即可通过 DataKit 调试这个 `prom.conf`：
+DataKit 支持命令行直接调试 prom 采集器的配置文件，从 *conf.d/{{.Catalog}}* 拷贝出一份 prom.conf 模板，填写对应 Exporter 地址，即可通过 DataKit 调试这个 *prom.conf*：
 
 执行如下命令，即可调试 `prom.conf`
 
@@ -161,7 +161,7 @@ datakit debug --prom-conf prom.conf
 
 参数说明：
 
-- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom.conf` 文件，如果未找到，会去 *<datakit-install-dir\>/conf.d/{{.Catalog}}* 目录下查找相应文件。
+- `prom-conf`: 指定配置文件，默认在当前目录下寻找 `prom.conf` 文件，如果未找到，会去 *conf.d/{{.Catalog}}* 目录下查找相应文件。
 
 输出示例：
 

@@ -9,9 +9,9 @@ tags      :
 __int_icon: 'icon/opentelemetry'
 ---
 
-Before using OTEL to send Trace to Datakit, make sure you have [configured the collector](opentelemetry.md).
+Before using OTEL to send Trace to DataKit, make sure you have [configured the collector](opentelemetry.md).
 
-Configuration: [Datakit Configuration OTEL](opentelemetry.md)
+Configuration: [DataKit Configuration OTEL](opentelemetry.md)
 
 ## Add Dependencies {#dependencies}
 
@@ -81,7 +81,7 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 # restart Tomcat
 ```
 <!-- markdownlint-enable -->
-When configuring the field `exporter.otlp.endpoint`, you can dispense with the configuration and use the default value (localhost: 4317), because Datakit is on the same host as the Java program, and the default port is also 4317.
+When configuring the field `exporter.otlp.endpoint`, you can dispense with the configuration and use the default value (localhost: 4317), because DataKit is on the same host as the Java program, and the default port is also 4317.
 
 ## Java 2: Code Injection Form {#with-code}
 

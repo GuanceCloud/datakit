@@ -12,7 +12,7 @@ monitor   :
     path  : '-'
 ---
 
-This article focuses on how the Java Go Python logging framework configures socket output to the Datakit socket log collector.
+This article focuses on how the Java Go Python logging framework configures socket output to the DataKit socket log collector.
 
 > File collection and socket are mutually exclusive. Please close file collection before opening socket. Please configure `logging.conf` [specific configuration instructions](logging.md).  
 

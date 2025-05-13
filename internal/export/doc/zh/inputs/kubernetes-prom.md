@@ -92,7 +92,7 @@ spec:
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     `annotations` 一定添加在 `template` 字段下，这样 *deployment.yaml* 创建的 Pod 才会携带 `datakit/prom.instances`。
 <!-- markdownlint-enable -->
@@ -111,7 +111,7 @@ kubectl apply -f deployment.yaml
 
 根据 Pod 或 Service 的指定 Annotations，拼接一个 HTTP URL 并以此创建 Prometheus 指标采集。
 
-此功能默认关闭，要先在 Datakit 开启此功能，按需添加以下两个环境变量，详见 [container 文档](container.md)：
+此功能默认关闭，要先在 DataKit 开启此功能，按需添加以下两个环境变量，详见 [container 文档](container.md)：
 
 - `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`: `"true"`
 - `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS`: `"true"`
@@ -157,7 +157,7 @@ spec:
     targetPort: http-web-svc
 ```
 
-Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并通过 `selector` 找到匹配的 Pod，构建 prom 采集：
+DataKit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并通过 `selector` 找到匹配的 Pod，构建 prom 采集：
 
 - `prometheus.io/scrape`：只采集为 "true "的 Service，必选项。
 - `prometheus.io/port`：指定 metrics 端口，必选项。注意这个端口必须在 Pod 存在否则会采集失败。
@@ -168,10 +168,9 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 采集目标的 IP 地址是 `PodIP`。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-
-    Datakit 并不是去采集 Service 本身，而且采集 Service 配对的 Pod。
+    DataKit 并不是去采集 Service 本身，而且采集 Service 配对的 Pod。
 <!-- markdownlint-enable -->
 
 默认采集间隔为 1 分钟。
@@ -227,7 +226,7 @@ Datakit 会自动发现带有 `prometheus.io/scrape: "true"` 的 Service，并�
 
       以上面的 `promhttp_metric_handler_errors_total` 数据为例，开启此功能后，指标集是 `promhttp`，但是字段名不再切割，会使用原始值 `promhttp_metric_handler_errors_total`。
 
-Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
+DataKit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
 
 - 对于 `Service` 会添加 `namespace` 和 `service_name` `pod_name` 三个 tag
 - 对于 `Pod` 会添加 `namespace` 和 `pod_name` 两个 tag
@@ -236,7 +235,7 @@ Datakit 会添加额外 tag 用来在 Kubernetes 集群中定位这个资源：
 
 此功能属于试验性质，后续可能会修改。
 
-Datakit 支持以简单的配置方式，使用环境变量 `ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM="true"` 开启采集 Kubernetes 集群的 Prometheus 数据。
+DataKit 支持以简单的配置方式，使用环境变量 `ENV_INPUT_CONTAINER_ENABLE_K8S_SELF_METRIC_BY_PROM="true"` 开启采集 Kubernetes 集群的 Prometheus 数据。
 
 数据源包括 APIServer、Controller 等，采集方式参考以下：
 
@@ -255,7 +254,7 @@ Datakit 支持以简单的配置方式，使用环境变量 `ENV_INPUT_CONTAINER
 
 - Kubernetes 相关的服务（APIServer、Controller、Scheduler）使用 BearerToken 进行验证。
 
-- 对于 Static Pods，Datakit 会先确认当前 Node 上是否存在此类 Pod，例如 `kubectl get pod -n kube-system -l tier=control-plane,component=kube-scheduler --field-selector spec.nodeName=Node-01` 查看当前 Node-01 是否存在 Scheduler 服务。如果存在，根据默认 url 去采集。
+- 对于 Static Pods，DataKit 会先确认当前 Node 上是否存在此类 Pod，例如 `kubectl get pod -n kube-system -l tier=control-plane,component=kube-scheduler --field-selector spec.nodeName=Node-01` 查看当前 Node-01 是否存在 Scheduler 服务。如果存在，根据默认 url 去采集。
 
 采集 Etcd 需要配置证书，操作步骤如下：
 
@@ -273,7 +272,7 @@ $ kubectl create secret generic datakit-etcd-ssl --from-file=/etc/kubernetes/pki
 secret/datakit-etcd-ssl created
 ```
 
-1. 在 Datakit 的 yaml 添加以下配置：
+1. 在 DataKit 的 yaml 添加以下配置：
 
 ```yaml
     spec:
@@ -308,7 +307,7 @@ secret/datakit-etcd-ssl created
 }
 ```
 
-**注意，如果 Datakit 部署在云平台，不再支持采集 Kubernetes 系统服务和 Etcd 组件，因为云平台通常会隐藏这部分资源，无法再查询到。**
+**注意，如果 DataKit 部署在云平台，不再支持采集 Kubernetes 系统服务和 Etcd 组件，因为云平台通常会隐藏这部分资源，无法再查询到。**
 
 ## 延伸阅读 {#more-readings}
 

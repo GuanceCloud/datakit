@@ -18,7 +18,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "input_oracle",
 			Name:      "sql_query_cost_seconds",
-			Help:      "Time cost to query sql",
+			Help:      "Time cost to query SQL",
 
 			Objectives: map[float64]float64{
 				0.5:  0.05,

@@ -33,14 +33,14 @@ At the same time, it also provides some commonly used monitoring functions, such
 
 Data transmission protocol:
 
-- Plaintext: Plain text mode, currently not supported by Datakit.
+- Plaintext: Plain text mode, currently not supported by DataKit.
 
-- Native: Text form separated by specific symbols, currently supported by Datakit.
+- Native: Text form separated by specific symbols, currently supported by DataKit.
 
 
 Data Classification：
 
-| type | long type         | doc               | Datakit support | Corresponding data type |
+| type | long type         | doc               | DataKit support | Corresponding data type |
 |------|-------------------|:------------------|:---------------:|:------------------------|
 | t    | transaction start | transaction start |      true       | trace                   |
 | T    | transaction end   | transaction end   |      true       | trace                   |
@@ -54,7 +54,7 @@ Data Classification：
 
 ## CAT start mode {#cat-start}
 
-The data is all in the Datakit, and the web page of cat no longer has data, so the significance of starting is not significant.
+The data is all in the DataKit, and the web page of cat no longer has data, so the significance of starting is not significant.
 
 Moreover, the cat server will also send transaction data to the dk, causing a large amount of garbage data on the <<<custom_key.brand_name>>> page. It is not recommended to start a cat_ Home (cat server) service.
 
@@ -76,7 +76,7 @@ client config：
 </config>
 ```
 
-> Note: The 9529 port in the configuration is the HTTP port of the Datakit. 2280 is the 2280 port opened by the cat input.
+> Note: The 9529 port in the configuration is the HTTP port of the DataKit. 2280 is the 2280 port opened by the cat input.
 
 <!-- markdownlint-disable MD046 -->
 
@@ -98,7 +98,7 @@ client config：
 Notes on configuration files:
 
 1. `startTransactionTypes` `MatchTransactionTypes` `block` `routers` `sample`  is the data returned to the client end
-1. `routers` is Datakit IP or Domain
+1. `routers` is DataKit IP or Domain
 1. `tcp_port`  client config `servers ip` address
 
 ---

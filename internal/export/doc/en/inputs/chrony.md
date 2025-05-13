@@ -15,8 +15,7 @@ monitor   :
 
 ---
 
-The Chrony collector is used to collect metrics related to the Chrony server.
-The Chrony collector supports remote collection, and the collector Datakit can run on multiple operating systems.
+The Chrony collector is used to collect metrics related to the Chrony server. The Chrony collector supports remote collection, and the collector DataKit can run on multiple operating systems.
 
 ## Configuration {#config}
 

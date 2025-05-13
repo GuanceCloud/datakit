@@ -45,7 +45,7 @@ monitor   :
 
 ---
 
-???+ attention
+???+ note
 
     目前只有 Linux 的拨测节点才支持「路由跟踪」，跟踪数据会保存在相关指标的 [`traceroute`](dialtesting.md#fields) 字段中。
 <!-- markdownlint-enable -->
@@ -64,8 +64,8 @@ graph TD
   %% node definitions
   dt_web(拨测 Web UI);
   dt_db(拨测任务公网存储);
-  dt_pub(Datakit 公网拨测节点);
-  dt_pri(Datakit 私有拨测节点);
+  dt_pub(DataKit 公网拨测节点);
+  dt_pri(DataKit 私有拨测节点);
   site_inner(内网站点);
   site_pub(公网站点);
   dw_inner(内网 Dataway);

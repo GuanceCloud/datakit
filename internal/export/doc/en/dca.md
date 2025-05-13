@@ -20,9 +20,9 @@ dca_server(DCA Server);
 dca_web(DCA Web);
 dk_upgrader1(Upgrader);
 
-dk1(Datakit);
+dk1(DataKit);
 
-k8s_dk1(Datakit);
+k8s_dk1(DataKit);
 
 brand_name("<<<custom_key.brand_name>>>");
 
@@ -132,7 +132,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 ## DataKit config {#config}
 
 <!-- markdownlint-disable MD046 -->
-???+ Attention
+???+ note
 
     Different versions of DataKit interfaces may differ, and it is recommended to upgrade DataKit to the latest version in order to better use DCA.
 
@@ -184,7 +184,7 @@ After the DCA is enabled and installed, you can access it by entering the addres
   ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-login-redirect.png){ width="800" }
 </figure>
 
-### View Datakit list {#datakit-list}
+### View DataKit list {#datakit-list}
 
 After logging in to DCA, you can select the workspace in the upper left corner to manage its corresponding DataKit and collector, which supports quick filtering of host names to be viewed and managed by searching keywords.
 

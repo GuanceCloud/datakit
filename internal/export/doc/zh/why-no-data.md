@@ -2,7 +2,7 @@
 
 ---
 
-在部署完 Datakit 之后，一般会直接从<<<custom_key.brand_name>>>页面查看采集到的数据，如果一切正常，数据会很快在页面上展示（最直接是「基础设施」中的主机/进程等数据），但很多时候，因为各种原因，数据采集、处理或传输过程会出现一些问题，进而导致无数据问题。
+在部署完 DataKit 之后，一般会直接从<<<custom_key.brand_name>>>页面查看采集到的数据，如果一切正常，数据会很快在页面上展示（最直接是「基础设施」中的主机/进程等数据），但很多时候，因为各种原因，数据采集、处理或传输过程会出现一些问题，进而导致无数据问题。
 
 下文从如下几个方面分析可能造成无数据的原因：
 
@@ -12,53 +12,6 @@
 - [采集器配置相关](why-no-data.md#iss-input-config)
 - [全局配置相关](why-no-data.md#iss-global-settings)
 - [其它](why-no-data.md#iss-others)
-
-## 网络相关 {#iss-network}
-
-网络相关的问题比较直接，也比较常见，通过其它方式（`ping/nc/curl` 等命令）也能排查。
-
-### 被采集对象无法连接 {#iss-input-connect}
-
-由于 Datakit 安装在特定的机器/Node 上，当它采集某些数据时，可能网络原因，导致无法访问被采集的对象（比如 MySQL/Redis 等），此时通过采集器调试即可发现问题：
-
-```shell
-$ datakit debug --input-conf conf.d/db/redis.conf
-loading /usr/local/datakit/conf.d/db/redis.conf.sample with 1 inputs...
-running input "redis"(0th)...
-[E] get error from input = redis, source = redis: dial tcp 192.168.3.100:6379: connect: connection refused | Ctrl+c to exit.
-```
-
-### 无法连接 Dataway {#iss-dw-connect}
-
-如果 Datakit 所在的主机，无法连接 Dataway，可以测试一下 Dataway 的 404 页面：
-
-```shell
-$ curl -I http[s]://your-dataway-addr:port
-HTTP/2 404
-date: Mon, 27 Nov 2023 06:03:47 GMT
-content-type: text/html
-content-length: 792
-access-control-allow-credentials: true
-access-control-allow-headers: Content-Type, Content-Length
-access-control-allow-methods: POST, OPTIONS, GET, PUT
-access-control-allow-origin: *
-```
-
-如果显示状态码为 404，则表示与 Dataway 链接正常。
-
-对 SAAS 而言，Dataway 地址为 `https://openway.<<<custom_key.brand_main_domain>>>`。
-
-如果得到如下结果，则表示网络是有问题的：
-
-```shell
-curl: (6) Could not resolve host: openway.<<<custom_key.brand_main_domain>>>
-```
-
-如果在 Datakit 日志（*/var/log/datakit/log*）中发现类似如下这样的错误日志，则说明当前环境和 Dataway 的连接出现了一些问题，可能是防火墙做了限制：
-
-```shell
-request url https://openway.<<<custom_key.brand_main_domain>>>/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
-```
 
 ## 主机相关 {#iss-host}
 
@@ -93,15 +46,62 @@ Wed Jul 21 08:22:32 UTC 2021
 - macOS 上没有 CPU 采集器
 - Oracle/DB2/OceanBase/eBPF 等采集器都只能在 Linux 上运行
 - 一些 Windows 特定的采集器，在非 Windows 平台也无法运行
-- Datakit-Lite 发行版只编译了小部分采集器，大部分采集器都没有包含在其二进制中
+- DataKit-Lite 发行版只编译了小部分采集器，大部分采集器都没有包含在其二进制中
 
-## 启动问题 {#iss-start-fail}
+### 网络相关 {#iss-network}
 
-由于 Datakit 适配了主流 OS/Arch 种类，不排除在某些 OS 的发行版上出现部署问题，服务安装完成后，可能服务处于异常状态，导致 Datakit 无法启动
+网络相关的问题比较直接，也比较常见，通过其它方式（`ping/nc/curl` 等命令）也能排查。
+
+#### 被采集对象无法连接 {#iss-input-connect}
+
+由于 DataKit 安装在特定的机器/Node 上，当它采集某些数据时，可能网络原因，导致无法访问被采集的对象（比如 MySQL/Redis 等），此时通过采集器调试即可发现问题：
+
+```shell
+$ datakit debug --input-conf conf.d/db/redis.conf
+loading /usr/local/datakit/conf.d/db/redis.conf.sample with 1 inputs...
+running input "redis"(0th)...
+[E] get error from input = redis, source = redis: dial tcp 192.168.3.100:6379: connect: connection refused | Ctrl+c to exit.
+```
+
+#### 无法连接 Dataway {#iss-dw-connect}
+
+如果 DataKit 所在的主机，无法连接 Dataway，可以测试一下 Dataway 的 404 页面：
+
+```shell
+$ curl -I http[s]://your-dataway-addr:port
+HTTP/2 404
+date: Mon, 27 Nov 2023 06:03:47 GMT
+content-type: text/html
+content-length: 792
+access-control-allow-credentials: true
+access-control-allow-headers: Content-Type, Content-Length
+access-control-allow-methods: POST, OPTIONS, GET, PUT
+access-control-allow-origin: *
+```
+
+如果显示状态码为 404，则表示与 Dataway 链接正常。
+
+对 SAAS 而言，Dataway 地址为 `https://openway.<<<custom_key.brand_main_domain>>>`。
+
+如果得到如下结果，则表示网络是有问题的：
+
+```shell
+curl: (6) Could not resolve host: openway.<<<custom_key.brand_main_domain>>>
+```
+
+如果在 DataKit 日志（*/var/log/datakit/log*）中发现类似如下这样的错误日志，则说明当前环境和 Dataway 的连接出现了一些问题，可能是防火墙做了限制：
+
+```shell
+request url https://openway.<<<custom_key.brand_main_domain>>>/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
+```
+
+### 启动问题 {#iss-start-fail}
+
+由于 DataKit 适配了主流 OS/Arch 种类，不排除在某些 OS 的发行版上出现部署问题，服务安装完成后，可能服务处于异常状态，导致 DataKit 无法启动
 
 ### *datakit.conf* 有误 {#iss-timestamp}
 
-*datakit.conf* 是 Datakit 主配置入口，如果它配置有误（toml 语法错误），会导致 Datakit 无法启动，且 Datakit 日志中有类似如下日志（不同语法错误信息不同）：
+*datakit.conf* 是 DataKit 主配置入口，如果它配置有误（toml 语法错误），会导致 DataKit 无法启动，且 DataKit 日志中有类似如下日志（不同语法错误信息不同）：
 
 ```shell
 # 手动启动 datakit 程序
@@ -112,11 +112,11 @@ $ /usr/local/datakit
 
 ### 服务异常 {#iss-service-fail}
 
-由于某些原因（如 Datakit 服务启动超时）会导致 `datakit` 服务处于无效状态，此时需要[一些操作来重置 Datakit 系统服务](datakit-service-how-to.md#when-service-failed)。
+由于某些原因（如 DataKit 服务启动超时）会导致 `datakit` 服务处于无效状态，此时需要[一些操作来重置 DataKit 系统服务](datakit-service-how-to.md#when-service-failed)。
 
 ### 一直重启或不启动 {#iss-restart-notstart}
 
-在 Kubernetes 中，可能资源不够（内存）会导致 Datakit OOM，无暇执行具体的数据采集。可以检查 *datakit.yaml* 中所分配的内存资源是否合适：
+在 Kubernetes 中，可能资源不够（内存）会导致 DataKit OOM，无暇执行具体的数据采集。可以检查 *datakit.yaml* 中所分配的内存资源是否合适：
 
 ```yaml
   containers:
@@ -131,15 +131,15 @@ $ /usr/local/datakit
     args: ["--vm", "1", "--vm-bytes", "150M", "--vm-hang", "1"]
 ```
 
-此处，要求系统上最低（`requests`）有 128MB 的内存才能启动 Datakit。如果 Datakit 自身采集任务繁重，可能默认的 4GB 是不够用的，需要调整 `limits` 参数。
+此处，要求系统上最低（`requests`）有 128MB 的内存才能启动 DataKit。如果 DataKit 自身采集任务繁重，可能默认的 4GB 是不够用的，需要调整 `limits` 参数。
 
 ### 端口被占用 {#iss-port-in-use}
 
-部分 Datakit 采集器需要在本地开启特定的端口，以接收外部的数据，如果这些端口被占用，对应的采集器会无法启动，在 Datakit 日志中会出现类似端口被占用的信息。
+部分 DataKit 采集器需要在本地开启特定的端口，以接收外部的数据，如果这些端口被占用，对应的采集器会无法启动，在 DataKit 日志中会出现类似端口被占用的信息。
 
 受端口影响的主流采集器有：
 
-- HTTP 的 9529 端口：部分采集器（如 eBPF/Oracle/LogStream 等采集器）是通过往 Datakit 的 HTTP 接口推送数据
+- HTTP 的 9529 端口：部分采集器（如 eBPF/Oracle/LogStream 等采集器）是通过往 DataKit 的 HTTP 接口推送数据
 - StatsD 8125 端口：用于接收 StatsD 的指标数据（如 JVM 相关指标）
 - OpenTelemetry 4317 端口：用于接收 OpenTelemetry 指标和 Trace 数据
 
@@ -147,11 +147,11 @@ $ /usr/local/datakit
 
 ### 磁盘空间不够 {#iss-disk-space}
 
-磁盘空间不够会导致未定义行为(Datakit 自身日志无法写入/diskcache 无法写入等)。
+磁盘空间不够会导致未定义行为(DataKit 自身日志无法写入/diskcache 无法写入等)。
 
 ### 占用资源超出默认设定 {#iss-ulimit}
 
-Datakit 安装完后，其打开的文件数默认是 64K（Linux），如果某个采集（比如文件日志采集器）打开了太多文件，会导致后续文件无法打开，影响采集。
+DataKit 安装完后，其打开的文件数默认是 64K（Linux），如果某个采集（比如文件日志采集器）打开了太多文件，会导致后续文件无法打开，影响采集。
 
 另外，打开的文件过多，证明当前采集出现了比较严重的拥堵，可能会消耗太多的内存资源，进而导致 OOM。
 
@@ -163,25 +163,25 @@ Datakit 安装完后，其打开的文件数默认是 64K（Linux），如果某
 
 以 MySQL 为例，一些慢查询或锁有关的采集，要确实出现对应问题，才会有数据，不然在对应的视图中是看不到数据的。
 
-另外，一些暴露 Prometheus 指标的被采集对象，其 Prometheus 指标采集可能默认是关闭的（或者只能 localhost 才能访问），这些都需要在被采集对象上做对应的配置，Datakit 才能采集到这些数据。这种没有数据产生的问题，通过上面的采集器调试功能（`datakit debug --input-conf ...`）即可验证。
+另外，一些暴露 Prometheus 指标的被采集对象，其 Prometheus 指标采集可能默认是关闭的（或者只能 localhost 才能访问），这些都需要在被采集对象上做对应的配置，DataKit 才能采集到这些数据。这种没有数据产生的问题，通过上面的采集器调试功能（`datakit debug --input-conf ...`）即可验证。
 
-对日志采集而言，如果对应的日志文件没有新（相对 Datakit 启动以后）的日志产生，即使当前该日志文件中已经有日志数据，也不会有数据采集上来。
+对日志采集而言，如果对应的日志文件没有新（相对 DataKit 启动以后）的日志产生，即使当前该日志文件中已经有日志数据，也不会有数据采集上来。
 
-对 Profiling 类数据采集，也需要被采集的服务/应用开启对应的功能，才会有 Profiling 数据推送到 Datakit。
+对 Profiling 类数据采集，也需要被采集的服务/应用开启对应的功能，才会有 Profiling 数据推送到 DataKit。
 
 ### 访问权限 {#iss-permission-deny}
 
-很多中间件的采集，需要提供用户认证配置，这些配置有些需要在被采集对象上做设置。如果对应的用户名/密码配置有误，Datakit 采集会报错。
+很多中间件的采集，需要提供用户认证配置，这些配置有些需要在被采集对象上做设置。如果对应的用户名/密码配置有误，DataKit 采集会报错。
 
-另外，由于 Datakit 采用 toml 配置，一些密码字符串需要一些额外的转义（一般是 URL-Encode），比如，如果密码中含有 `@` 字符，需要将它转成 `%40`。
+另外，由于 DataKit 采用 toml 配置，一些密码字符串需要一些额外的转义（一般是 URL-Encode），比如，如果密码中含有 `@` 字符，需要将它转成 `%40`。
 
-> Datakit 在逐步优化现有的密码字符串（连接字符串）配置方式，以减少这类转义。
+> DataKit 在逐步优化现有的密码字符串（连接字符串）配置方式，以减少这类转义。
 
 ### 版本问题 {#iss-version-na}
 
-某些用户环境的软件版本可能太老或太新，不在 Datakit 的支持列表中，可能会出现采集问题。
+某些用户环境的软件版本可能太老或太新，不在 DataKit 的支持列表中，可能会出现采集问题。
 
-不在 Datakit 的支持列表重，可能也能采集，我们不可能测试所有的版本号。当有不兼容/不支持的版本，需要反馈。
+不在 DataKit 的支持列表重，可能也能采集，我们不可能测试所有的版本号。当有不兼容/不支持的版本，需要反馈。
 
 ### 采集器 Bug {#iss-datakit-bug}
 
@@ -189,11 +189,11 @@ Datakit 安装完后，其打开的文件数默认是 64K（Linux），如果某
 
 ### 未开启采集器配置 {#iss-no-input}
 
-由于 Datakit 只识别 *conf.d* 目录下 `.conf` 配置文件，一些采集器配置可能放错了位置，或者扩展名错误，导致 Datakit 略过了其配置。修正对应的文件位置或文件名即可。
+由于 DataKit 只识别 *conf.d* 目录下 `.conf` 配置文件，一些采集器配置可能放错了位置，或者扩展名错误，导致 DataKit 略过了其配置。修正对应的文件位置或文件名即可。
 
 ### 采集器被禁用 {#iss-input-disabled}
 
-在 Datakit 的主配置中，可以禁用某些采集器，即使在 *conf.d* 中正确配置了采集器，Datakit 也会忽略这类采集器：
+在 DataKit 的主配置中，可以禁用某些采集器，即使在 *conf.d* 中正确配置了采集器，DataKit 也会忽略这类采集器：
 
 ```toml
 default_enabled_inputs = [
@@ -206,13 +206,13 @@ default_enabled_inputs = [
 
 ### 采集器配置有误 {#iss-invalid-conf}
 
-Datakit 采集器使用 TOML 格式的配置文件，当配置文件不符合 TOML 规范，或者不符合程序字段定义的类型时（比如将整数配置成字符串等），会出现配置文件加载失败的问题，进而导致采集器不会开启。
+DataKit 采集器使用 TOML 格式的配置文件，当配置文件不符合 TOML 规范，或者不符合程序字段定义的类型时（比如将整数配置成字符串等），会出现配置文件加载失败的问题，进而导致采集器不会开启。
 
-Datakit 内置了配置检测功能，参见[这里](datakit-tools-how-to.md#check-conf)。
+DataKit 内置了配置检测功能，参见[这里](datakit-tools-how-to.md#check-conf)。
 
 ### 配置方式有误 {#iss-config-mistaken}
 
-Datakit 中采集器配置有俩大类：
+DataKit 中采集器配置有俩大类：
 
 - 主机安装：直接在 *conf.d* 目录下增加对应的采集器配置即可
 - Kubernetes 安装：
@@ -223,11 +223,11 @@ Datakit 中采集器配置有俩大类：
 
 ### 单例采集器 {#iss-singleton}
 
-[单例采集器](datakit-input-conf.md#input-singleton)在一个 Datakit 中，只能开启一个，如果开启了多个采集器，Datakit 以文件名顺序加载第一个（如果在同一个 `.conf` 文件中，只加载第一个），其它的不再加载。这种可能导致排名靠后的采集器不会开启。
+[单例采集器](datakit-input-conf.md#input-singleton)在一个 DataKit 中，只能开启一个，如果开启了多个采集器，DataKit 以文件名顺序加载第一个（如果在同一个 `.conf` 文件中，只加载第一个），其它的不再加载。这种可能导致排名靠后的采集器不会开启。
 
 ## 全局配置相关 {#iss-global-settings}
 
-某些 Datakit 段的全局配置，也会影响被采集的数据，除了上面禁用的采集器之外，还有如下一些方面。
+某些 DataKit 段的全局配置，也会影响被采集的数据，除了上面禁用的采集器之外，还有如下一些方面。
 
 ### 黑名单/Pipeline 影响 {#iss-pipeline-filter}
 
@@ -241,7 +241,7 @@ Datakit 中采集器配置有俩大类：
 
 ### 磁盘缓存 {#iss-diskcache}
 
-Datakit 对一些复杂数据的处理设置了磁盘缓存机制，这些数据由于处理消耗大，暂时将它们缓存到磁盘做削峰处理，它们会延后上报。通过查看[磁盘缓存相关的指标](datakit-metrics.md#metrics)，可获知对应的数据缓存情况。
+DataKit 对一些复杂数据的处理设置了磁盘缓存机制，这些数据由于处理消耗大，暂时将它们缓存到磁盘做削峰处理，它们会延后上报。通过查看[磁盘缓存相关的指标](datakit-metrics.md#metrics)，可获知对应的数据缓存情况。
 
 ### Sinker Dataway {#iss-sinker-dataway}
 
@@ -249,15 +249,15 @@ Datakit 对一些复杂数据的处理设置了磁盘缓存机制，这些数据
 
 ### IO Busy {#iss-io-busy}
 
-由于 Datakit 跟 Dataway 之间网络带宽限制，导致上报数据比较慢，进而影响了数据采集（来不及消费），在这种情况下，Datakit 会丢弃来不及处理的指标数据，而非指标数据，会阻塞采集，从而导致<<<custom_key.brand_name>>>页面看不到数据。
+由于 DataKit 跟 Dataway 之间网络带宽限制，导致上报数据比较慢，进而影响了数据采集（来不及消费），在这种情况下，DataKit 会丢弃来不及处理的指标数据，而非指标数据，会阻塞采集，从而导致<<<custom_key.brand_name>>>页面看不到数据。
 
 ### Dataway 缓存 {#iss-dataway-cache}
 
-Dataway 和<<<custom_key.brand_name>>>中心如果发生网络故障，Dataway 会缓存 Datakit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）。
+Dataway 和<<<custom_key.brand_name>>>中心如果发生网络故障，Dataway 会缓存 DataKit 推送过来的数据，这部分数据可能延迟到达，或者最终丢弃（数据超过了磁盘缓存限额）。
 
 ### 账号问题 {#iss-workspace}
 
-如果用户<<<custom_key.brand_name>>>账号欠费/数据使用超量，会导致 Datakit 数据上报出现 4xx 问题。这种问题在 `datakit monitor` 能直接看到。
+如果用户<<<custom_key.brand_name>>>账号欠费/数据使用超量，会导致 DataKit 数据上报出现 4xx 问题。这种问题在 `datakit monitor` 能直接看到。
 
 ## 其它  {#iss-others}
 
@@ -276,13 +276,13 @@ $ datakit monitor -M I
 $ datakit monitor -M B,R
 ```
 
-以上是无数据问题的一些基本的排查思路，下面介绍这些排查过程中用到的一些 Datakit 自身的功能以及方法。
+以上是无数据问题的一些基本的排查思路，下面介绍这些排查过程中用到的一些 DataKit 自身的功能以及方法。
 
-## 收集 DataKit 运行信息 {#bug-report}
+### 收集 DataKit 运行信息 {#bug-report}
 
 [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
 
-经过各种排查后，可能还是无法找到问题，这时候我们需要收集 Datakit 的各种信息（如日志、配置文件、profile 和自身指标数据等），为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
+经过各种排查后，可能还是无法找到问题，这时候我们需要收集 DataKit 的各种信息（如日志、配置文件、profile 和自身指标数据等），为了简化这个过程，DataKit 提供了一个命令，可以一次性获取所有相关信息并将其打包到一个文件中。使用方式如下：
 
 ```shell
 $ datakit debug --bug-report
@@ -294,17 +294,15 @@ $ datakit debug --bug-report
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    - 请确保在 Datakit 运行期间来收集 bug report 信息，最好是问题出现的时候（比如较高的内存/CPU 使用）。在 Datakit 自身指标和 profile 数据的帮助下，我们能更快的定位一些疑难问题。
+    - 请确保在 DataKit 运行期间来收集 bug report 信息，最好是问题出现的时候（比如较高的内存/CPU 使用）。在 DataKit 自身指标和 profile 数据的帮助下，我们能更快的定位一些疑难问题。
 
-
-    - 默认情况下，该命令会收集 profile 数据，这可能会对 Datakit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
+    - 默认情况下，该命令会收集 profile 数据，这可能会对 DataKit 产生一定的性能影响，可以通过下面命令来禁用采集 profile ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0))：
     
     ```shell
     $ datakit debug --bug-report --disable-profile
     ```
     
     - 如果有公网访问，可以直接将文件上传到 OSS，避免麻烦的文件拷贝（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
-    
     
     ```shell hl_lines="7"
     # 此处*必须填上*正确的 OSS 地址/Bucket 名称以及对应的 AS/SK
@@ -318,8 +316,7 @@ $ datakit debug --bug-report
     
     将底部的链接地址贴给我们即可（请确保 OSS 中的文件是公网可访问的，否则该链接无法直接下载）。
     
-    
-    - 默认情况下，bug report 会收集 3 次 Datakit 自身指标，可以通过 `--nmetrics` 调整这里的次数（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
+    - 默认情况下，bug report 会收集 3 次 DataKit 自身指标，可以通过 `--nmetrics` 调整这里的次数（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
     
     ```shell
     $ datakit debug --bug-report --nmetrics 10
@@ -425,7 +422,7 @@ $ datakit debug --bug-report
 
 经过上述处理，能够去除绝大部分敏感信息。尽管如此，导出的文件中还是可能存在敏感信息，可以手动将敏感信息移除，请务必确认。
 
-## 调试采集器配置 {#check-input-conf}
+### 调试采集器配置 {#check-input-conf}
 
 [:octicons-tag-24: Version-1.9.0](changelog.md#cl-1.9.0)
 
@@ -460,20 +457,20 @@ disk,device=/dev/disk3s1,fstype=apfs free=167050518528i,inodes_free=1631352720i,
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    - 部分被动接收数据的采集器（比如 DDTrace/RUM）需要指定 HTTP 服务（`--hppt-listen=[IP:Port]`），然后通过一些 HTTP 客户端工具（比如 `curl`）将数据发送给 Datakit 对应地址。详见 `datakit help debug` 帮助
+    - 部分被动接收数据的采集器（比如 DDTrace/RUM）需要指定 HTTP 服务（`--http-listen=[IP:Port]`），然后通过一些 HTTP 客户端工具（比如 `curl`）将数据发送给 DataKit 对应地址。详见 `datakit help debug` 帮助
 
-    - 调试用的采集器配置可以是任何形式的扩展名，不一定要[以 `.conf` 作为后缀](datakit-input-conf.md#intro)，我们可以用诸如 *my-input.conf.test* 这样的文件名专用于调试，同时又不影响 Datakit 的正常运行
+    - 调试用的采集器配置可以是任何形式的扩展名，不一定要[以 `.conf` 作为后缀](datakit-input-conf.md#intro)，我们可以用诸如 *my-input.conf.test* 这样的文件名专用于调试，同时又不影响 DataKit 的正常运行
 <!-- markdownlint-enable -->
 
-## 查看 Monitor 页面 {#monitor}
+### 查看 Monitor 页面 {#monitor}
 
 参见[这里](datakit-monitor.md)
 
-## 通过 DQL 查看是否有数据产生 {#dql}
+### DQL 查看数据 {#dql}
 
 在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
 
-> Datakit [1.1.7-rc7](changelog.md#cl-1.1.7-rc7) 才支持这一功能
+> DataKit [1.1.7-rc7](changelog.md#cl-1.1.7-rc7) 才支持这一功能
 
 ```shell
 $ datakit dql
@@ -509,9 +506,9 @@ O::HOST {host='tan-air.local'}
 show_tracing_service()
 ```
 
-以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 Datakit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
+以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 DataKit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
 
-## 查看 Datakit 程序日志是否有异常 {#check-log}
+### 查看 DataKit 日志 {#check-log}
 
 通过 Shell/Powershell 给出最近 10 个 ERROR, WARN 级别的日志
 
@@ -534,7 +531,7 @@ show_tracing_service()
 - 如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度
 - 如果出现一些 `ERROR/WARN` 等字样，一般情况下，都表明 DataKit 遇到了一些问题
 
-### 查看单个采集器的运行日志 {#check-input-log}
+#### 查看采集器日志 {#check-input-log}
 
 如果没有发现什么异常，可直接查看单个采集器的运行日志：
 
@@ -559,7 +556,7 @@ Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集�
 log_level = "debug"
 ```
 
-### 查看 gin.log {#check-gin-log}
+#### 查看 gin.log {#check-gin-log}
 
 对于远程给 DataKit 打数据的采集，可查看 gin.log 来查看是否有远程数据发送过来：
 
@@ -567,7 +564,7 @@ log_level = "debug"
 tail -f /var/log/datakit/gin.log
 ```
 
-## 问题排查导图 {#how-to-trouble-shoot}
+### 排查导图 {#how-to-trouble-shoot}
 
 为便于大家排查问题，下图列举了一下基本的排查思路，大家可按照其指引来排查可能存在的问题：
 
@@ -586,8 +583,8 @@ graph TD
   sinked[数据是否被 Sink];
   check_time[检查机器时间];
   check_token[检查工作空间空间 token];
-  check_version[检查 Datakit 版本];
-  dk_service_ok[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-service-how-to/'>Datakit 服务是否正常</a>];
+  check_version[检查 DataKit 版本];
+  dk_service_ok[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-service-how-to/'>DataKit 服务是否正常</a>];
   check_changelog[<a href='https://docs.<<<custom_key.brand_main_domain>>>/datakit/changelog'>检查 changelog 是否已修复</a>];
   is_input_ok[采集器是否运行正常];
   is_input_enabled[是否开启采集器];

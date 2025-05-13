@@ -39,17 +39,10 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 <!-- markdownlint-disable MD046 -->
 
-???+ attention
+???+ note
 
-    Jolokia 不允许运行过程中修改端口号。如果发现通过 `--port` 命令无法修改端口号，就是这个原因。
-
-    若想修改 Jolokia 端口号必须先退出 Jolokia 再启动才能成功。
-
-???+ tip
-
-    退出 Jolokia 命令是： `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`
-
-    更多 Jolokia 命令信息可参考[这里](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}。
+    - Jolokia 不允许运行过程中修改端口号。如果发现通过 `--port` 命令无法修改端口号，就是这个原因。若想修改 Jolokia 端口号必须先退出 Jolokia 再启动才能成功。
+    - 退出 Jolokia 命令是： `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`。更多 Jolokia 命令信息可参考[这里](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}。
 
 <!-- markdownlint-enable -->
 
@@ -131,7 +124,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 为什么看不到 `kafka_producer` / `kafka_consumer` / `kafka_connect` 指标集？ {#faq-no-data}
+### 为什么看不到 `kafka_producer/kafka_consumer/kafka_connect` 指标集？ {#faq-no-data}
 
 在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
 
@@ -163,6 +156,6 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
     tag_keys   = ["client-id", "type"]
 ```
 
-重启 Datakit，这时 Datakit 便可采集到 Producer 实例的指标。
+重启 DataKit，这时 DataKit 便可采集到 Producer 实例的指标。
 
 <!-- markdownlint-enable -->

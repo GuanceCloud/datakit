@@ -26,15 +26,14 @@ Already tested version:
 
 ### Precondition {#reqirement}
 
-- Download **DB2 ODBC/CLI driver** from [IBM Website](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"}, or from our website:
+- Download [DB2 ODBC/CLI driver](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"}, or from our website:
 
-```sh
-https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
-```
+    ```sh
+    # MD5: `A03356C83E20E74E06A3CC679424A47D`
+    wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
+    ```
 
-MD5: `A03356C83E20E74E06A3CC679424A47D`
-
-- Extract the downloaded **DB2 ODBC/CLI driver** files, recommend path: `/opt/ibm/clidriver`
+- Extract the downloaded **DB2 ODBC/CLI driver** files, recommend path: */opt/ibm/clidriver*
 
 ```sh
 [root@Linux /opt/ibm/clidriver]# ls
@@ -53,7 +52,7 @@ MD5: `A03356C83E20E74E06A3CC679424A47D`
 └── security64
 ```
 
-Then put the path /opt/ibm/clidriver/**lib** to the `LD_LIBRARY_PATH` line in *Datakit's IBM Db2 configuration file* .
+Then put the path `/opt/ibm/clidriver/lib` to the `LD_LIBRARY_PATH` line in DataKit's IBM Db2 configuration file.
 
 - Additional dependency libraries may need to be installed for some operation system:
 
@@ -75,9 +74,7 @@ update dbm cfg using DFT_MON_TABLE on
 update dbm cfg using DFT_MON_BUFPOOL on
 ```
 
-These commands will enable the database system monitor switches for each of the objects you want to monitor: Statement, Lock, Tables, Buffer pool.
-
-Next, run `get dbm cfg` and you should see the following:
+These commands will enable the database system monitor switches for each of the objects you want to monitor: Statement, Lock, Tables, Buffer pool. Next, run `get dbm cfg` and you should see the following:
 
 ```sh
  Default database monitor switches
@@ -137,11 +134,11 @@ For all of the following data collections, the global election tags will added a
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: How to view the running log of IBM Db2 Collector? {#faq-logging}
+### How to view the running log of IBM Db2 Collector? {#faq-logging}
 
-Because the IBM Db2 collector is an external collector, its name is `db2`, its logs are stored separately in *[Datakit-install-path]/externals/db2.log*.
+Because the IBM Db2 collector is an external collector, its name is `db2`, its logs are stored separately in *[DataKit-install-path]/externals/db2.log*.
 
-### :material-chat-question: After IBM Db2 collection is configured, why is there no data displayed in monitor? {#faq-no-data}
+### After IBM Db2 collection is configured, why is there no data displayed in monitor? {#faq-no-data}
 
 There are several possible reasons:
 
@@ -154,7 +151,7 @@ Even though you may already have a corresponding IBM Db2 package on your machine
 As the IBM Db2 collector is compiled independently and CGO is turned on, its runtime requires glibc dependencies. On Linux, you can check whether there is any problem with the glibc dependencies of the current machine by the following command:
 
 ```shell
-$ ldd <Datakit-install-path>/externals/db2
+$ ldd <DataKit-install-path>/externals/db2
   linux-vdso.so.1 (0x00007ffed33f9000)
   libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f70144e1000)
   libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f70144be000)

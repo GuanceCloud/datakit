@@ -55,14 +55,14 @@ Neo4j 采集器用于采集 Neo4j 相关的指标数据，目前只支持 Promet
   ```
 
   参见[官方配置文档](https://neo4j.com/docs/operations-manual/current/monitoring/metrics/expose/#_prometheus){:target="_blank"}
-  
+
 - 重启 Neo4j 服务
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ info
 
-    - 采集数据需要用到 `2004` 端口，远程采集的时候，被采集服务器这些端口需要打开。
-    - 0.0.0.0:2004 如果是本地采集，可以改为 localhost:2004。
+    - 采集数据需要用到 `2004` 端口，远程采集的时候，被采集服务器这些端口需要打开
+    - `0.0.0.0:2004` 如果是本地采集，可以改为 `localhost:2004`
 <!-- markdownlint-enable -->
 
 ## 配置 {#input-config}

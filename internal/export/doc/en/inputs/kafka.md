@@ -40,15 +40,10 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 <!-- markdownlint-disable MD046 -->
 
-???+ attention
+???+ info
 
-    Jolokia not allows change port number in the running state. If found command with `--port` can't change the port, this indicates Jolokia is still in running.
-
-    If want to change Jolokia port, you must exit Jolokia first and restart it.
-
-???+ tip
-
-    Exit Jolokia command: `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`
+    - Jolokia not allows change port number in the running state. If found command with `--port` can't change the port, this indicates Jolokia is still in running. If want to change Jolokia port, you must exit Jolokia first and restart it.
+    - Exit Jolokia command: `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`.
 
     For more Jolokia command information can refer to [here](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}.
 
@@ -132,7 +127,7 @@ The list of cut fields is as follows:
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Why can't see `kafka_producer` / `kafka_producer` / `kafka_connect` measurements? {#faq-no-data}
+### Why can't see `kafka_producer/kafka_producer/kafka_connect` measurements? {#faq-no-data}
 
 After Kafka service is started, if you need to collect Producer/Consumer/Connector indicators, you need to configure Jolokia for them respectively.
 
@@ -164,6 +159,6 @@ And remove comments from the fields in the collect producer metrics section:
     tag_keys   = ["client-id", "type"]
 ```
 
-Restart Datakit, which then collects metrics for the Producer instance.
+Restart DataKit, which then collects metrics for the Producer instance.
 
 <!-- markdownlint-enable -->

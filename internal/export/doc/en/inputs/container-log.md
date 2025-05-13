@@ -8,7 +8,7 @@ tags:
 __int_icon:    'icon/kubernetes/'  
 ---
 
-Datakit supports collecting Kubernetes and host container logs, which can be classified into the following two types based on the data source:
+DataKit supports collecting Kubernetes and host container logs, which can be classified into the following two types based on the data source:
 
 - Console output: This refers to the stdout/stderr output of the container application, which is the most common way. It can be viewed using commands like `docker logs` or `kubectl logs`.
 
@@ -18,7 +18,7 @@ This article will provide a detailed introduction to these two collection method
 
 ## Logging Collection for Console stdout/stderr {#logging-stdout}
 
-Console output (stdout/stderr) is written to files by the container runtime, and Datakit automatically fetches the LogPath of the container for collection.
+Console output (stdout/stderr) is written to files by the container runtime, and DataKit automatically fetches the LogPath of the container for collection.
 
 If you want to customize the collection configuration, it can be done through adding container environment variables or Kubernetes Pod Annotations.
 
@@ -145,17 +145,16 @@ Below is a complete example:
     ...
     ```
 
-???+ attention
+???+ warning
 
-    - If not necessary, avoid configuring the Pipeline in environment variables and Pod Annotations. In general, it can be automatically inferred through the `source` field.
-    - When adding Env/Annotations in configuration files or terminal commands, both sides should be enclosed in double quotes with escape characters.
-    
-    The value of `multiline_match` requires double escaping, with 4 backslashes representing a single one. For example, `\"multiline_match\":\"^\\\\d{4}\"` is equivalent to `"multiline_match":"^\d{4}"`. Here's an example:
+    - If not necessary, avoid configuring the Pipeline in environment variables and Pod Annotations. In general, it can be automatically inferred through the `source` field
+    - When adding Env/Annotations in configuration files or terminal commands, both sides should be enclosed in double quotes with escape characters
+    - The value of `multiline_match` requires double escaping, with 4 backslashes representing a single one. For example, `\"multiline_match\":\"^\\\\d{4}\"` is equivalent to `"multiline_match":"^\d{4}"`. Here's an example:
 
-    ```shell
-    kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"log-source\",\"service\":\"log-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
-    ```
-    If a Pod/Container log is already being collected, adding configuration via the `kubectl annotate` command does not take effect.
+        ```shell
+        kubectl annotate pods my-pod datakit/logs="[{\"disable\":false,\"source\":\"log-source\",\"service\":\"log-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\\\d{4}-\\\\d{2}\"}]"
+        ```
+    If a Pod/Container log is already being collected, adding configuration via the `kubectl annotate` command does not take effect
 
 <!-- markdownlint-enable -->
 
@@ -350,7 +349,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     The priority of the global configuration `container_exclude_log` is lower than the custom configuration `disable` within the container. For example, if `container_exclude_log = ["image:*"]` is configured to exclude all logs, but there is a Pod Annotation as follows:
     
@@ -374,19 +373,19 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
     
     This configuration is closer to the container and has a higher priority. The `disable=false` in the configuration indicates that log files should be collected, overriding the global configuration.
 
-    Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of disable=true.
+    Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.
 
 <!-- markdownlint-enable -->
 
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Issue with Soft Links in Log Directories {#log-path-link}
+### Issue with Soft Links in Log Directories {#log-path-link}
 <!-- markdownlint-enable -->
 
-Normally, Datakit retrieves the path of log files from the container/Kubernetes API and collects the file accordingly.
+Normally, DataKit retrieves the path of log files from the container/Kubernetes API and collects the file accordingly.
 
-However, in some special environments, a soft link may be created for the directory containing the log file, and Datakit is unable to know the target of the soft link in advance, which prevents it from mounting the directory and collecting the log file.
+However, in some special environments, a soft link may be created for the directory containing the log file, and DataKit is unable to know the target of the soft link in advance, which prevents it from mounting the directory and collecting the log file.
 
 For example, suppose a container log file is located at `/var/log/pods/default_log-demo_f2617302-9d3a-48b5-b4e0-b0d59f1f0cd9/log-output/0.log`. In the current environment, `/var/log/pods` is a soft link pointing to `/mnt/container_logs`, as shown below:
 
@@ -396,7 +395,7 @@ total 284K
 lrwxrwxrwx 1 root root   20 Oct  8 10:06 pods -> /mnt/container_logs/
 ```
 
-To enable Datakit to collect the log file, `/mnt/container_logs` hostPath needs to be mounted. For example, the following can be added to `datakit.yaml`:
+To enable DataKit to collect the log file, */mnt/container_logs* `hostPath` needs to be mounted. For example, the following can be added to *datakit.yaml*:
 
 ``` yaml
 # .. omitted..
@@ -414,9 +413,9 @@ spec:
     name: container-logs
 ```
 
-This situation is not very common and is usually only executed when it is known in advance that there is a soft link in the path or when Datakit logs indicate collection errors.
+This situation is not very common and is usually only executed when it is known in advance that there is a soft link in the path or when DataKit logs indicate collection errors.
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Source Setting for Container Log Collection {#config-logging-source}
+### Source Setting for Container Log Collection {#config-logging-source}
 <!-- markdownlint-enable -->
 In the container environment, the log `source` setting is a very important configuration item, which directly affects the display effect on the page. However, it would be cruel to configure a source for each container's logs one by one. Without manually configuring the container log source, DataKit has the following rule (descending priority) for automatically inferring the source of the container log:
 
@@ -458,12 +457,12 @@ The field whitelist configuration such as `ENV_INPUT_CONTAINER_LOGGING_FIELD_WHI
 
 For tags from other sources, the following situations apply:
 
-- The whitelist does not work on Datakit's `global tags`.
+- The whitelist does not work on DataKit's `global tags`.
 - Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
 
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Wildcard Collection of Log Files in Containers {#config-logging-source}
+### Wildcard Collection of Log Files in Containers {#config-logging-source}
 <!-- markdownlint-enable -->
 
 To collect log files within a container, you need to add a configuration in Annotations/Labels and specify the `path` as follows:
@@ -506,4 +505,3 @@ Note that the mounting directory for the emptyDir volume must be higher than the
 
 - [Pipeline: Text Data Processing](../pipeline/index.md)
 - [Overview of DataKit Log Collection](datakit-logging.md)
-Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.

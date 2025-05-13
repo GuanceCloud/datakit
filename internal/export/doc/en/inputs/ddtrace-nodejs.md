@@ -95,11 +95,11 @@ The following lists common ENV support. For a complete list of ENV support, see 
 
 - **DD_TRACE_AGENT_HOSTNAME**
 
-    The hostname where Datakit is listening, default is localhost.
+    The hostname where DataKit is listening, default is localhost.
 
 - **DD_TRACE_AGENT_PORT**
 
-    The port number where Datakit is listening, default is 9529.
+    The port number where DataKit is listening, default is 9529.
 
 - **DD_TRACE_SAMPLE_RATE**
 

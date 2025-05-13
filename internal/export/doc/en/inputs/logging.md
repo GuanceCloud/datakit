@@ -102,6 +102,10 @@ This document focuses on local disk log collection and Socket log collection:
       # ...
     ```
 
+    ???+ info "About `ignore_dead_log`"
+
+       If a file is already being collected and there is no new log written within 1 hour, DataKit will stop collecting that file. During this period (1 hour), the file cannot be physically deleted. (For example, after using the `rm` command, the file is only marked for deletion and will be truly deleted after DataKit stops collecting it.)
+
 === "Kubernetes/Docker/Containerd"
 
     In Kubernetes, once the container collector (container.md) is started, the stdout/stderr logs of each container (including the container under Pod) will be crawled by default. The container logs are mainly configured in the following ways:
@@ -110,27 +114,31 @@ This document focuses on local disk log collection and Socket log collection:
     - [Configure log collection based on container image](container.md#logging-with-image-config)
     - [Collect Pod internal logs in Sidecar form](logfwd.md)
 
-???+ Note "Notes on `ignore_dead_log`"
+=== "Windows Event"
 
-    If the file is already being collected, but no new log is written within 1 hour, DataKit will close the collection of the file. During this period (1h), the file **cannot** be physically deleted (for example, after `rm`, the file is only marked for deletion, and the file will not be actually deleted until DataKit closes it).
+    See [Windows Event collector](windows_event.md).
+
+=== "TCP/UDP"
+
+    Comment out `logfiles` in conf and configure `sockets`. Take log4j2 as an example:
+    
+    ``` xml
+     <!-- The socket configuration log is transmitted to the local port 9540, the protocol defaults to tcp -->
+     <Socket name="name1" host="localHost" port="9540" charset="utf8">
+         <!-- Output format Sequence layout-->
+         <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
+    
+         <!--Note: Do not enable serialization for transmission to the socket collector. Currently, DataKit cannot deserialize. Please use plain text for transmission-->
+         <!-- <SerializedLayout/>-->
+     </Socket>
+    ```
+    
+    More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
 <!-- markdownlint-enable -->
 
-### socket Collection Log {#socket}
+## Advanced Topics {#deepin-topics}
 
-Comment out `logfiles` in conf and configure `sockets`. Take log4j2 as an example:
-
-``` xml
- <!-- The socket configuration log is transmitted to the local port 9540, the protocol defaults to tcp -->
- <Socket name="name1" host="localHost" port="9540" charset="utf8">
-     <!-- Output format Sequence layout-->
-     <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
-
-     <!--Note: Do not enable serialization for transmission to the socket collector. Currently, DataKit cannot deserialize. Please use plain text for transmission-->
-     <!-- <SerializedLayout/>-->
- </Socket>
-```
-
-More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
+The following is a more in-depth introduction to log collection. If you are interested, you can take a look.
 
 ### Multiline Log Collection {#multiline}
 
@@ -146,7 +154,7 @@ In `logging.conf`, modify the following configuration:
 multiline_match = '''Fill in the specific regular expression here''' # Note that it is recommended to add three "English single quotation marks" to the regular sides here
 ```
 
-Regular expression style used in log collector [reference](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
+Regular expression style used in log collector, see [here](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}.
 
 Assume that the original data is:
 
@@ -279,7 +287,7 @@ Traceback (most recent call last):
 
 #### Maximum Log Single Line Length {#max-log}
 
-The maximum length of a single line (including after `multiline_match`) is 32MB, whether read from a file or from a socket, and the excess is truncated and discarded.
+The maximum length of a single line (including after `multiline_match`) is about 800KB, whether read from a file or from TCP/UDP, and the excess is truncated and discarded.
 
 ### Pipeline Configuring and Using {#pipeline}
 
@@ -288,7 +296,7 @@ The maximum length of a single line (including after `multiline_match`) is 32MB,
 For log data, there are two main fields to extract:
 
 - `time`: When the log is generated, if the `time` field is not extracted or parsing this field fails, the current system time is used by default
-- `status`: The level of the log, with `stauts` set to `unknown` by default if the `status` field is not extracted
+- `status`: The level of the log, with `stauts` set to `info` by default if the `status` field is not extracted
 
 #### Available Log Levels {#status}
 
@@ -362,24 +370,25 @@ Also, in addition to the glob standard rules described above, the collector also
 The log may contain some unreadable bytecode (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to true.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
-    For such color characters, it is usually recommended that they be turned off in the log output frame rather than filtered by Datakit. Filtering and filtering of special characters is handled by regular expressions, which may not provide comprehensive coverage and have some performance overhead.
+    For such color characters, it is usually recommended that they be turned off in the log output frame rather than filtered by DataKit. Filtering and filtering of special characters is handled by regular expressions, which may not provide comprehensive coverage and have some performance overhead.
+
+    The benchmark results are for reference only:
+    
+    ```text
+    goos: linux
+    goarch: arm64
+    pkg: ansi
+    BenchmarkStrip
+    BenchmarkStrip-2          653751              1775 ns/op             272 B/op          3 allocs/op
+    BenchmarkStrip-4          673238              1801 ns/op             272 B/op          3 allocs/op
+    PASS
+    ```
+
+    The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
 <!-- markdownlint-enable -->
 
-The benchmark results are for reference only:
-
-```text
-goos: linux
-goarch: arm64
-pkg: ansi
-BenchmarkStrip
-BenchmarkStrip-2          653751              1775 ns/op             272 B/op          3 allocs/op
-BenchmarkStrip-4          673238              1801 ns/op             272 B/op          3 allocs/op
-PASS
-```
-
-The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
 
 ### Retain Specific Fields Based on Whitelist {#field-whitelist}
 
@@ -402,7 +411,7 @@ The field whitelist configuration such as `'["service", "filepath"]'`. The detai
 
 For tags from other sources, the following situations apply:
 
-- The whitelist does not work on Datakit's `global tags`.
+- The whitelist does not work on DataKit's `global tags`.
 - Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
 
 

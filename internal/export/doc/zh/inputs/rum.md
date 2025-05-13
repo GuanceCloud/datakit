@@ -72,7 +72,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ### 安全限制 {#security-setting}
 
-参见 [Datakit API 访问控制](../datakit/datakit-conf.md#public-apis)。
+参见 [DataKit API 访问控制](../datakit/datakit-conf.md#public-apis)。
 
 ### 禁用 DataKit 404 页面 {#disable-404}
 
@@ -101,14 +101,14 @@ DataKit 支持这种源代码文件信息的映射，方法是将对应符号表
 
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "Sourcemap 文件限制"
+???+ warning "Sourcemap 文件限制"
 
     所有 Sourcemap 文件必须以 (*.map*) 作为扩展名，且单个 *.map* 文件（解压后）不超过 4GiB。
 <!-- markdownlint-enable -->
 
 ### 安装 sourcemap 工具集 {#install-tools}
 
-首先需要安装相应的符号还原工具，Datakit 提供了一键安装命令来简化工具的安装：
+首先需要安装相应的符号还原工具，DataKit 提供了一键安装命令来简化工具的安装：
 
 ```shell
 sudo datakit install --symbol-tools
@@ -284,7 +284,7 @@ sudo datakit install --symbol-tools
 ---
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "RUM Headless 说明"
+???+ info "RUM Headless 说明"
 
     对于 [RUM Headless](../dataflux-func/headless.md) 用户，可以直接在页面上上传压缩包即可，无需执行下面的文件上传和删除操作。
 <!-- markdownlint-enable -->
@@ -293,7 +293,7 @@ sudo datakit install --symbol-tools
 
 打包完成后，除了手动拷贝至 DataKit 相关目录，还可通过 http 接口上传和删除该文件。
 
-> 从 Datakit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0) 起，原先通过 DCA 服务来提供的 sourcemap 相关接口已经弃用，转至 DataKit 服务中。
+> 从 DataKit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0) 起，原先通过 DCA 服务来提供的 sourcemap 相关接口已经弃用，转至 DataKit 服务中。
 
 [上传](../datakit/apis.md#api-sourcemap-upload)：
 
@@ -325,7 +325,7 @@ curl -X GET '<datakit_address>/v1/sourcemap/check?app_id=<app_id>&env=<env>&vers
 - `<error_stack>`: 需要验证的 `error_stack`
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
     - 上传和删除接口需要进行 `token` 认证
     - 该转换过程，只针对 `error` 指标集
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
@@ -356,7 +356,7 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 
 ## RUM 会话重放 {#rum-session-replay}
 
-从 Datakit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 Datakit。
+从 DataKit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) 版本开始支持采集 RUM 会话重放数据，该功能需要修改 RUM 采集器配置，增加配置项 `session_replay_endpoints` 并重启 DataKit。
 
 ```toml
 [[inputs.rum]]
@@ -374,12 +374,12 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 Datakit 安装位置确定。
+    RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 DataKit 安装位置确定。
 <!-- markdownlint-enable -->
 
 ### RUM 会话重放数据的过滤 {#rum-session-replay-filter}
 
-从 Datakit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) 版本开始支持利用配置过滤掉不需要的会话重放数据，新增的配置项名称为 `filter_rules`， 格式类似如下（可以参考 `rum.conf.sample` RUM 示例配置文件）：
+从 DataKit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) 版本开始支持利用配置过滤掉不需要的会话重放数据，新增的配置项名称为 `filter_rules`， 格式类似如下（可以参考 `rum.conf.sample` RUM 示例配置文件）：
 
 ```toml
 [inputs.rum.session_replay]

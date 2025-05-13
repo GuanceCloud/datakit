@@ -202,9 +202,9 @@ PUT _plugins/_security/api/roles/monitor
 ## 日志 {#logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
-    日志采集仅支持采集已安装 DataKit 主机上的日志
+    需将 DataKit 安装到 ElasticSearch 主机上才能采集到对应日志。
 <!-- markdownlint-enable -->
 
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：

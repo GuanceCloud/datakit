@@ -104,7 +104,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"listen_ports",
 				),
 			},
-			m: &ProcessObject{},
+			m: &processObject{},
 		},
 		{
 			name: "process_metric",
@@ -115,7 +115,7 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"open_files",
 				),
 			},
-			m: &ProcessMetric{},
+			m: &processMetric{},
 		},
 	}
 

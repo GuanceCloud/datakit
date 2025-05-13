@@ -27,7 +27,7 @@ PHP APM 插件安装，参见 [Datadog PHP 接入文档](https://docs.datadoghq.
 
     **默认值**：`localhost`
 
-    Datakit 监听的主机地址
+    DataKit 监听的主机地址
 
 - **`DD_TRACE_AGENT_PORT`**
 
@@ -35,7 +35,7 @@ PHP APM 插件安装，参见 [Datadog PHP 接入文档](https://docs.datadoghq.
 
     **默认值**：`8126`
 
-    Datakit 监听端口号，此处需手动指定为 9529
+    DataKit 监听端口号，此处需手动指定为 9529
 
 - **`DD_ENV`**
 
@@ -67,7 +67,7 @@ PHP APM 插件安装，参见 [Datadog PHP 接入文档](https://docs.datadoghq.
 
     **默认值**：`100`
 
-    Agent 连接 Datakit 超时配置 (单位 ms)，默认 100
+    Agent 连接 DataKit 超时配置 (单位 ms)，默认 100
 
 - **`DD_TAGS`**
 

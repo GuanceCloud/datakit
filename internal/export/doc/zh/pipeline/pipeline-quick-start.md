@@ -5,7 +5,7 @@
 
 ## 第一个脚本 {#fist-script}
 
-- 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[Datakit 安装目录]/pipeline* 目录下。
+- 在 DataKit 中配置 Pipeline，编写如下 Pipeline 文件，假定名为 *nginx.p*。将其存放在 *[DataKit 安装目录]/pipeline* 目录下。
 
 ```python
 # 假定输入是一个 Nginx 日志
@@ -51,11 +51,11 @@ drop_origin_data()
 
 ## 调试 Grok 和 Pipeline {#debug}
 
-Pipeline 编写较为麻烦，为此，Datakit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
+Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具，用以辅助大家来编写 Pipeline 脚本。
 
 指定 Pipeline 脚本名称，输入一段文本即可判断提取是否成功
 
-> Pipeline 脚本必须放在 *[Datakit 安装目录]/pipeline* 目录下。
+> Pipeline 脚本必须放在 *[DataKit 安装目录]/pipeline* 目录下。
 
 ```shell
 $ datakit pipeline -P your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
@@ -89,7 +89,7 @@ datakit pipeline -P your_pipeline.p -F sample.log
 
 ### Grok 通配搜索 {#grokq}
 
-由于 Grok pattern 数量繁多，人工匹配较为麻烦。Datakit 提供了交互式的命令行工具 `grokq`（grok query）：
+由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
 datakit tool --grokq
@@ -110,7 +110,7 @@ Bye!
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     Windows 下，请在 Powershell 中执行调试。
 <!-- markdownlint-enable -->
@@ -167,7 +167,7 @@ datakit pipeline -P test.p -T "$(<multi-line.log)"
 
 在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](../../datakit/apis.md#point-limitation)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
-- Datakit 中的[全局 Tag](../../datakit/datakit-conf.md#set-global-tag)
+- DataKit 中的[全局 Tag](../../datakit/datakit-conf.md#set-global-tag)
 - 日志采集器中[自定义的 Tag](../../integrations/logging.md#measurements)
 
 另外，所有采集上来的日志，均存在如下多个保留字段。**我们不应该去覆盖这些字段**，否则可能导致数据在查看器页面显示不正常。
@@ -188,7 +188,7 @@ datakit pipeline -P test.p -T "$(<multi-line.log)"
 
 ### 完整 Pipeline 示例 {#example}
 
-这里以 Datakit 自身的日志切割为例。Datakit 自身的日志形式如下：
+这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
 
 ``` log
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
@@ -207,12 +207,12 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 *<Datakit 安装目录>/pipeline/pattern* 下。
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 *<DataKit 安装目录>/pipeline/pattern* 下。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[Datakit 安装目录]/pipeline/pattern/>* 目录下：
+    用户自定义 pattern 如果需要全局生效（即在其它 Pipeline 脚本中应用），必须放置在 *[DataKit 安装目录]/pipeline/pattern/* 目录下：
 
     ```Shell
     $ cat pipeline/pattern/datakit
@@ -230,7 +230,7 @@ drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
     ```
 <!-- markdownlint-enable -->
 
-现在 Pipeline 以及其引用的 pattern 都有了，就能通过 Datakit 内置的 Pipeline 调试工具，对这一行日志进行切割：
+现在 Pipeline 以及其引用的 pattern 都有了，就能通过 DataKit 内置的 Pipeline 调试工具，对这一行日志进行切割：
 
 ```Shell
 # 提取成功示例
@@ -249,7 +249,7 @@ Extracted data(cost: 421.705µs):
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
+### Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
 <!-- markdownlint-enable -->
 
 现有如下 Pipeline：
@@ -276,7 +276,7 @@ json(_, `@timestamp`, "time")
 参见 [Pipeline 的基本语法规则](pipeline-platypus-grammar.md)
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
+### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
 <!-- markdownlint-enable -->
 
 命令如下：
@@ -286,10 +286,10 @@ $ datakit pipeline -P test.p -T "..."
 [E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
 ```
 
-这是因为被调试的 Pipeline 存放的位置不对。调试用的 Pipeline 脚本，需将其放置到 *[Datakit 安装目录]/pipeline/* 目录下。
+这是因为被调试的 Pipeline 存放的位置不对。调试用的 Pipeline 脚本，需将其放置到 *[DataKit 安装目录]/pipeline/* 目录下。
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
+### 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
 <!-- markdownlint-enable -->
 
 在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，**可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok**，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
@@ -317,7 +317,7 @@ $ datakit pipeline -P test.p -T "..."
     ```
 <!-- markdownlint-enable -->
 
-### :material-chat-question: 如何丢弃字段切割 {#drop-keys}
+### 如何丢弃字段切割 {#drop-keys}
 
 在某些情况下，我们需要的只是日志中间的几个字段，但不好跳过前面的部分，比如
 
@@ -331,7 +331,7 @@ $ datakit pipeline -P test.p -T "..."
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
 
-### :material-chat-question: `add_pattern()` 转义问题 {#escape}
+### `add_pattern()` 转义问题 {#escape}
 
 大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
 

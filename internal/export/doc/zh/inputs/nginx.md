@@ -106,9 +106,9 @@ server {
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-???+ attention
+???+ note
 
-    `url` 地址以 nginx 具体配置为准，一般常见的用法就是用 `/basic_status` 这个路由。
+    `url` 地址以 NGINX 具体配置为准，一般常见的用法就是用 `/basic_status` 这个路由。
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}

@@ -14,7 +14,7 @@ skip: 'not-searchable-on-index-page'
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
--   :material-language-java: __Java__
+-   :material-language-java: **Java**
 
     ---
 
@@ -30,7 +30,7 @@ skip: 'not-searchable-on-index-page'
 
 <!--
 
-更新历史可以参考 Datakit 的基本范式：
+更新历史可以参考 DataKit 的基本范式：
 
 ## 1.2.3(2022/12/12) {#cl-1.2.3}
 本次发布主要有如下更新：
@@ -308,7 +308,7 @@ skip: 'not-searchable-on-index-page'
 
 ### 功能调整说明 {#cl-0.108.1-new}
 
-- 增加 xxl_job 探针( xxl_job 版本 >= 2.3.0)
+- 增加 `xxl_job` 探针(`xxl_job` 版本 >= 2.3.0)
 
 ---
 

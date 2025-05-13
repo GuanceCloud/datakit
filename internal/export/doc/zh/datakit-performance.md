@@ -1,5 +1,5 @@
 
-# Datakit 基础运行情况以及性能说明
+# DataKit 基础运行情况以及性能说明
 
 ---
 
@@ -7,22 +7,22 @@
 
 ---
 
-本文档主要展示 Datakit 在真实生产环境下的运行表现，大家可依据这里展示的数据作为参考，对标各自的环境。
+本文档主要展示 DataKit 在真实生产环境下的运行表现，大家可依据这里展示的数据作为参考，对标各自的环境。
 
 ## 基础环境信息 {#specs}
 
 - 运行环境     ： Kubernetes
-- Datakit 版本 ： 1.28.1
+- DataKit 版本 ： 1.28.1
 - 资源限制     ： 2C4G
 - 运行时长     ： 1.73d
-- 数据源       ： 集群中有大量的应用在运行，Datakit 会主动采集各种应用的指标、日志以及 Tracing 数据
+- 数据源       ： 集群中有大量的应用在运行，DataKit 会主动采集各种应用的指标、日志以及 Tracing 数据
 
-以下列举了高、中、低三种情况下的 Datakit 负载情况 [^1]。
+以下列举了高、中、低三种情况下的 DataKit 负载情况 [^1]。
 
 <!-- markdownlint-disable MD046 -->
 === "高负载"
 
-    高负载情况下，Datakit 采集的数据量以及数据本身都比较复杂，会消耗更多的计算资源。
+    高负载情况下，DataKit 采集的数据量以及数据本身都比较复杂，会消耗更多的计算资源。
     
     - CPU 占比
     
@@ -38,7 +38,7 @@
     ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mem-usage.png){ width="800" }
     </figure>
     
-    内存限制了 4GB，这里已经比较接近限制。当超过内存限制，Datakit POD 将被 OOM 重启。
+    内存限制了 4GB，这里已经比较接近限制。当超过内存限制，DataKit POD 将被 OOM 重启。
     
     <!-- 以下是数据采集、Pipeline 处理以及数据上传的情况（此处 irate 间隔为 30S）。 -->
     
@@ -68,7 +68,7 @@
 
 === "中负载"
 
-    中度负载情况下，Datakit 的资源消耗大大降低。
+    中度负载情况下，DataKit 的资源消耗大大降低。
     
     - CPU 占比
     
@@ -102,7 +102,7 @@
 
 === "低负载"
 
-    低负载情况下，Datakit 只开启了基本的[默认采集器](datakit-input-conf.md#default-enabled-inputs)，其数据量比较小，所以占用较小的内存 [^3]。
+    低负载情况下，DataKit 只开启了基本的[默认采集器](datakit-input-conf.md#default-enabled-inputs)，其数据量比较小，所以占用较小的内存 [^3]。
 
     - CPU 占比
     
@@ -131,7 +131,7 @@
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD053 -->
-[^1]: Datakit 都开启了 [Point Pool](datakit-conf.md#point-pool)，且使用 [V2 的编码](datakit-conf.md#dataway-settings)上传
+[^1]: DataKit 都开启了 [Point Pool](datakit-conf.md#point-pool)，且使用 [V2 的编码](datakit-conf.md#dataway-settings)上传
 [^2]: 该数值跟 Pod 流量会有一定的出入，Pod 统计的是 Kubernetes 层面网络流量信息，它的值会比此处的流量要大
-[^3]: 该低负载的 Datakit 是在额外的一台 Linux 服务器上测试的，它只开启了基础的采集器。由于没有 Pipeline 参与，所以没有对应的数据
+[^3]: 该低负载的 DataKit 是在额外的一台 Linux 服务器上测试的，它只开启了基础的采集器。由于没有 Pipeline 参与，所以没有对应的数据
 <!-- markdownlint-enable -->

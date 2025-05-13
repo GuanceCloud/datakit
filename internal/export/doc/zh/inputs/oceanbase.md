@@ -42,10 +42,14 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
-    - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1` <br/>
-    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+    - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1`：
+
+
+        ```txt
+        Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+        ```
 
     - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 OceanBase 主机上（`localhost`）访问。如果需要远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问），也可用特定的 DataKit 安装机器地址。
 <!-- markdownlint-enable -->
@@ -71,25 +75,23 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 
 ## 慢查询支持 {#slow}
 
-Datakit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oceanbase_log`。
+DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oceanbase_log`。
 
 该功能默认情况下是关闭的，用户可以在 OceanBase 的配置文件中将其打开，方法如下：
 
 将 `slow_query_time` 后面的值从 `0s` 改成用户心中的阈值，最小值 1 毫秒，一般推荐 10 秒。
 
 ```conf
-
 slow_query_time = "10s"
-
 ```
 
-???+ info "字段说明"
-    - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报。
-    更多字段解释可以查看[这里](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}。
+<!-- markdownlint-disable MD046 -->
+???+ info
 
-???+ attention "重要信息"
-    - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 OceanBase 采集器的慢查询功能，即默认状态。
-    - 没有执行完成的 SQL 语句不会被查询到。
+    - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报。更多字段解释可以查看[这里](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}
+    - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 OceanBase 采集器的慢查询功能，即默认状态
+    - 没有执行完成的 SQL 语句不会被查询到
+<!-- markdownlint-enable -->
 
 ## 指标 {#metric}
 

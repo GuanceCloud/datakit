@@ -50,7 +50,7 @@ title: 'DataKit 日志处理综述'
 
 - 通过在请求中告知 DataKit 如何配置日志处理
 
-通过 HTTP 请求 DataKit 的 [Log Streaming](logstreaming.md) 服务，在请求中带上各种请求参数，以告知 Datakit 如何处理收到的日志数据。
+通过 HTTP 请求 DataKit 的 [Log Streaming](logstreaming.md) 服务，在请求中带上各种请求参数，以告知 DataKit 如何处理收到的日志数据。
 
 - 在被采集对象（比如容器/Pod）上做特定的标注，告知 DataKit 如何处理它们产生的日志
 

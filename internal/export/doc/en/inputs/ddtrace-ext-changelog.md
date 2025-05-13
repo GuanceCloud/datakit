@@ -11,7 +11,7 @@ Currently, DDTrace has added the following extensions to the technology stack：
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
--   :material-language-java: __Java__
+-   :material-language-java: **Java**
 
     ---
 
@@ -122,7 +122,7 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ### add {#cl-1.20.3-guance-fix}
 
-- Add xxl-job 2.2 version.
+- Add `xxl-job` 2.2 version.
 
 ## v1.20.2-guance (2023/9/25) {#cl-1.20.2-guance}
 
@@ -287,7 +287,7 @@ Merge DataDog v0.108.1 and compile it.
 
 ### 0.108.1 {#cl-0.108.1-new}
 
-- add xxl_job agent ( xxl_job version >= 2.3.0)
+- add `xxl_job` agent ( `xxl_job` version >= 2.3.0)
 
 ---
 

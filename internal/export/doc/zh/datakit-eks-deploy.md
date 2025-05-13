@@ -13,9 +13,9 @@ DataKit 为 Amazon EKS 集群提供按命名空间、集群、Pod 不同维度�
   <figcaption>架构图</figcaption>
 </figure>
 
-## 部署 Datakit  {#add-on-install}
+## 部署 DataKit  {#add-on-install}
 
-使用 Amazon EKS addon 在 Amazon EKS 集群上部署 Datakit.
+使用 Amazon EKS addon 在 Amazon EKS 集群上部署 DataKit.
 
 ### 前置条件 {#prerequisites-addon-install}
 
@@ -31,7 +31,7 @@ DataKit 为 Amazon EKS 集群提供按命名空间、集群、Pod 不同维度�
 </figure>  
 
 <!-- markdownlint-disable MD046 -->  
-=== "从 AWS 控制台启用 Datakit 附加组件"
+=== "从 AWS 控制台启用 DataKit 附加组件"
 
     - 搜索插件
     
@@ -61,9 +61,10 @@ DataKit 为 Amazon EKS 集群提供按命名空间、集群、Pod 不同维度�
       <figcaption></figcaption>
     </figure>    
 
-=== "使用 AWS CLI 启用 Datakit 附加组件"
+=== "使用 AWS CLI 启用 DataKit 附加组件"
 
-    ???+ tip
+    ???+ note
+
         您需要将 `$YOUR_CLUSTER_NAME` 和 `$AWS_REGION` 替换为您实际的 Amazon EKS 集群名称和 AWS 区域。
         
     安装：
@@ -96,7 +97,7 @@ envDataway=$(echo -n "$token" | base64)
 kubectl patch secret env-dataway -p "{\"data\": {\"datawayUrl\": \"$envDataway\"}}" -n datakit
 ```
 
-重启 Datakit：
+重启 DataKit：
 
 ```shell
 kubectl rollout restart ds datakit -n datakit
@@ -123,7 +124,7 @@ datakit  datakit  1  2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.2
   <figcaption>验证</figcaption>
 </figure>
 
-## 使用 Helm 在 Amazon EKS 集群上部署 Datakit {#helm-install}
+## 使用 Helm 在 Amazon EKS 集群上部署 DataKit {#helm-install}
 
 ### 前置条件 {#prerequisites-helm-install}
 
@@ -154,10 +155,10 @@ aws ecr get-login-password \
 ### Helm 安装（升级） DataKit {#helm-install}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "注意事项"
+???+ note "注意事项"
 
-    Helm 版本必须是 3.7.1
-    `datakit.datawayUrl` 必须要修改。
+    - Helm 版本必须是 3.7.1
+    - `datakit.datawayUrl` 必须要修改。
 
 <!-- markdownlint-enable -->
 

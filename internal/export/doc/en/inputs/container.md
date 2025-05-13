@@ -79,10 +79,10 @@ Collect indicators, objects and log data of container and Kubernetes and report 
     - ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON: Used to specify the mapping of source to multi-row configuration. If a log is not configured with `multiline_match`, the corresponding `multiline_match` is found and used here based on its source. Because the `multiline_match` value is a regular expression, it is more complex, so the value format is a JSON string that can be coded and compressed into a single line using [json.cn](https://www.json.cn/){:target="_blank"}.
 
 
-???+ attention
+???+ note
 
     - Object data collection interval is 5 minutes and metric data collection interval is 20 seconds. Configuration is not supported for the time being.
-    - Acquired log has a maximum length of 32MB per line (including after `multiline_match` processing), the excess will be truncated and discarded.
+    - Acquired log has a maximum length of ~800KB per line (including after `multiline_match` processing), the excess will split into new logging lines.
 
 ### Docker and Containerd Sock File Configuration {#sock-config}
 
@@ -237,7 +237,7 @@ Containers will add Customer Labels of the Pods they belong to.
 
 ### Filtering Metrics Collection by Pod Namespace {#config-metric-on-pod-namespace}
 
-When Kubernetes Pod metrics collection is enabled (`enable_pod_metric = true`), Datakit will collect metrics data for all Pods in the cluster. Since this can result in a large volume of data, you can filter the metrics collection by the Pod's `namespace` field to only collect metrics from Pods in specific namespaces.
+When Kubernetes Pod metrics collection is enabled (`enable_pod_metric = true`), DataKit will collect metrics data for all Pods in the cluster. Since this can result in a large volume of data, you can filter the metrics collection by the Pod's `namespace` field to only collect metrics from Pods in specific namespaces.
 
 You can control which Pods are included or excluded from metrics collection by configuring `pod_include_metric` and `pod_exclude_metric`.
 
@@ -283,10 +283,10 @@ You can control which Pods are included or excluded from metrics collection by c
             value: namespace:kube-system  # Specify the namespace to collect metrics from
     ```
     
-    By using this method, you can flexibly control the range of Pods from which Datakit collects metrics, reducing the collection of unnecessary data and optimizing system performance and resource usage.
+    By using this method, you can flexibly control the range of Pods from which DataKit collects metrics, reducing the collection of unnecessary data and optimizing system performance and resource usage.
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
+### NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
 <!-- markdownlint-enable -->
 
 The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
@@ -302,13 +302,13 @@ rules:
   verbs: ["get", "list", "watch"]
 ```
 
-In addition, the Datakit Pod needs to have the `hostNetwork: true` configuration item enabled.
+In addition, the DataKit Pod needs to have the `hostNetwork: true` configuration item enabled.
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Collect PersistentVolumes and PersistentVolumeClaims Requires New Permissions {#rbac-pv-pvc}
+### Collect PersistentVolumes and PersistentVolumeClaims Requires New Permissions {#rbac-pv-pvc}
 <!-- markdownlint-enable -->
 
-Datakit version 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) supported the collection of object data for Kubernetes PersistentVolume and PersistentVolumeClaim, which require new RBAC permissions, as described below:
+DataKit version 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) supported the collection of object data for Kubernetes PersistentVolume and PersistentVolumeClaim, which require new RBAC permissions, as described below:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -325,7 +325,7 @@ rules:
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}
 <!-- markdownlint-enable -->
 
-Datakit collects yaml configurations for resources such as Kubernetes Pod or Service and stores them in the `yaml` field of the object data. If the yaml contains sensitive data (such as passwords), Datakit does not support manually configuring and shielding sensitive fields for the time being. It is recommended to use Kubernetes' official practice, that is, to use ConfigMap or Secret to hide sensitive fields.
+DataKit collects yaml configurations for resources such as Kubernetes Pod or Service and stores them in the `yaml` field of the object data. If the yaml contains sensitive data (such as passwords), DataKit does not support manually configuring and shielding sensitive fields for the time being. It is recommended to use Kubernetes' official practice, that is, to use ConfigMap or Secret to hide sensitive fields.
 
 For example, you now need to add a password to the env, which would normally be like this:
 

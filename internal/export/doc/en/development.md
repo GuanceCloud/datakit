@@ -255,7 +255,7 @@ ddk debug --ipinfo 1.2.3.4
 
 ## Testing {#testing}
 
-There are 2 types of testing in Datakit，one is integration testing, another is unit testing. There is no essential difference between them, but for integration testing, we have to set more environments.
+There are 2 types of testing in DataKit，one is integration testing, another is unit testing. There is no essential difference between them, but for integration testing, we have to set more environments.
 
 Most of the time, we just run `make ut` for all testing, and we have to setup a Docker(remote or local) to help these integration testings. Here we show a example to do these:
 

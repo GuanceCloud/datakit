@@ -4,9 +4,6 @@ nav:
     - changelog-2025.md
     - '2021~2024': changelog.md
 
-  - 'DataKit Intro':
-    - 'Intro to Overall Architecture': datakit-arch.md
-
   - 'DataKit Installation':
     - 'Host Installation': datakit-install.md
     - 'Containers':
@@ -43,11 +40,7 @@ nav:
       - 'Git': git-config-how-to.md
       - 'Configuration Support': confd.md
 
-  - 'DataKit Dev Manual':
-    - development.md
-    - datakit-filter.md
-    - datakit-port.md
-    - apis.md
-    - common-tags.md
+  - 'DataKit Development':
+    - 'HTTP API': apis.md
     - 'Documentation':
       - mkdocs-howto.md

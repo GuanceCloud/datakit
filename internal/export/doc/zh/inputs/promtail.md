@@ -74,7 +74,7 @@ Promtail 采集器支持在 HTTP URL 中添加参数。参数列表如下：
 
 ### 示例 {#example}
 
-Promtail 的数据原本发送给 Loki，即 `/loki/api/v1/push`。将 Promtail 配置中的 `url` 修改为指向 Datakit，开启 Datakit 的 Promtail 采集器后，Promtail 会将其数据发送给 Datakit 的 Promtail 采集器。
+Promtail 的数据原本发送给 Loki，即 `/loki/api/v1/push`。将 Promtail 配置中的 `url` 修改为指向 DataKit，开启 DataKit 的 Promtail 采集器后，Promtail 会将其数据发送给 DataKit 的 Promtail 采集器。
 
 Promtail 的配置示例如下：
 

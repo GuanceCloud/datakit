@@ -20,9 +20,9 @@ __int_icon: 'icon/profiling'
 - 安装 dd-trace-py 库
 
 <!-- markdownlint-disable MD046 -->
-???+ note "版本要求"
+???+ info "版本要求"
 
-    Datakit 目前支持 `dd-trace-py 1.14.x` 及以下版本，更高版本未经系统性测试，兼容性未知。
+    DataKit 目前支持 `dd-trace-py 1.14.x` 及以下版本，更高版本未经系统性测试，兼容性未知。
 <!-- markdownlint-enable -->
 
 ```shell
@@ -69,11 +69,11 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 ### 查看 Profile {#view}
 
-程序启动后，DDTrace 会定期（默认 1 分钟上报一次）收集数据并上报给 Datakit，稍等几分钟后就可以在<<<custom_key.brand_name>>>空间[应用性能监测 -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相应数据。
+程序启动后，DDTrace 会定期（默认 1 分钟上报一次）收集数据并上报给 DataKit，稍等几分钟后就可以在<<<custom_key.brand_name>>>空间[应用性能监测 -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相应数据。
 
 ### 生成性能指标 {#metrics}
 
-Datakit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，该组指标被置于 `profiling_metrics` 指标集下，下面列举其中部分指标加以说明：
+DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，该组指标被置于 `profiling_metrics` 指标集下，下面列举其中部分指标加以说明：
 
 | 指标名称                                  | 说明                                                     | 单位         |
 |---------------------------------------|--------------------------------------------------------|------------|
@@ -91,9 +91,9 @@ Datakit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
 
 
 <!-- markdownlint-disable MD046 -->
-???+ tips
+???+ info
 
-    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_INSTALL_DIR>/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 Datakit.
+    该功能默认开启，如果不需要可以通过修改采集器的配置文件 `<DATAKIT_INSTALL_DIR>/conf.d/profile/profile.conf` 把其中的配置项 `generate_metrics` 置为 false 并重启 DataKit.
 
     ```toml
     [[inputs.profile]]
@@ -147,20 +147,20 @@ cargo install py-spy-for-datakit
 
 | 参数                 | 说明                                             | 默认值                  |
 |--------------------|------------------------------------------------|----------------------|
-| -H, --host         | 要发往数据的 Datakit 监听的地址                           | 127.0.0.1            |
-| -P, --port         | 要发往数据的 Datakit 监听端口                            | 9529                 |
+| -H, --host         | 要发往数据的 DataKit 监听的地址                           | 127.0.0.1            |
+| -P, --port         | 要发往数据的 DataKit 监听端口                            | 9529                 |
 | -S, --service      | 项目名称，可用于后台区分不同的项目，且可以用于筛选和查询，建议设置              | unnamed-service      |
 | -E, --env          | 项目所部署的环境，可以用于区分开发、测试和生产环境，也可以用于筛选，建议设置         | unnamed-env          |
 | -V, --version      | 项目版本，可以用于后台查询和筛选，建议设置                          | unnamed-version      |
 | -p, --pid          | 需要分析的 Python 程序的进程 PID                         | 进程 PID 和项目启动命令必须指定其一 |
-| -d, --duration     | 采样的持续时长，每间隔该时间段向 Datakit 发送一次数据，单位秒，最小可以设置为 10 | 60                   |
+| -d, --duration     | 采样的持续时长，每间隔该时间段向 DataKit 发送一次数据，单位秒，最小可以设置为 10 | 60                   |
 | -r, --rate         | 采样频率，每秒采样次数                                    | 100                  |
 | -s, --subprocesses | 是否分析子进程                                        | false                |
 | -i, --idle         | 是否采样非运行状态的线程                                   | false                |
 
 `py-spy-for-datakit` 可以分析当前正在运行的程序，使用 `--pid <PID>` 或 `-p <PID>` 参数把正在运行的 Python 程序的进程 PID 传递给 `py-spy-for-datakit` 即可。
 
-假设你的 Python 应用当前运行的进程 PID 为 12345， Datakit 监听在 127.0.0.1:9529，则使用命令类似如下：
+假设你的 Python 应用当前运行的进程 PID 为 12345， DataKit 监听在 127.0.0.1:9529，则使用命令类似如下：
 
 ```shell
 py-spy-for-datakit datakit \

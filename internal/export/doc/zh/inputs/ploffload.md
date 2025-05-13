@@ -1,6 +1,6 @@
 ---
 title     : 'Pipeline Offload'
-summary   : '接收来自 Datakit Pipeline 卸载的待处理数据'
+summary   : '接收来自 DataKit Pipeline 卸载的待处理数据'
 __int_icon: 'icon/ploffload'
 tags      :
   - 'PIPELINE'

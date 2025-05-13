@@ -40,9 +40,9 @@ Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directo
 <!-- markdownlint-enable -->
 ### API Version {#API version}
 
-For Promtail versions `v0.3.0` and before, Datakit's configuration should set `legacy = true`, by using legacy API [`POST /api/prom/push`](https://grafana.com/docs/loki/latest/api/#post-apiprompush){:target="_blank"} to receiving logging data from Promtail.
+For Promtail versions `v0.3.0` and before, DataKit's configuration should set `legacy = true`, by using legacy API [`POST /api/prom/push`](https://grafana.com/docs/loki/latest/api/#post-apiprompush){:target="_blank"} to receiving logging data from Promtail.
 
-Using the default Datakit's configuration, namely `legacy = false` for the rest of Promtail versions, by using new API [`POST /loki/api/v1/push`](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push){:target="_blank"}.
+Using the default DataKit's configuration, namely `legacy = false` for the rest of Promtail versions, by using new API [`POST /loki/api/v1/push`](https://grafana.com/docs/loki/latest/api/#post-lokiapiv1push){:target="_blank"}.
 
 ### Custom Tags {#custom tags}
 
@@ -66,7 +66,7 @@ The Promtail collector supports adding parameters to the HTTP URL. The list of p
 
 ## Best Practice {#best practice}
 
-Promtail's data was originally sent to Loki, which is, `/loki/api/v1/push`. Change the `url` in Promtail's configuration to Datakit, after enabled Datakit's Promtail collector, Promtail would send its data to Datakit's Promtail collector.
+Promtail's data was originally sent to Loki, which is, `/loki/api/v1/push`. Change the `url` in Promtail's configuration to DataKit, after enabled DataKit's Promtail collector, Promtail would send its data to DataKit's Promtail collector.
 
 Promtail's configuration is like below:
 

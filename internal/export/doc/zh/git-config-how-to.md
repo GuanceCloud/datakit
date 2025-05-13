@@ -86,7 +86,7 @@ git push origin --all
 
 ### 重启 DataKit {#restart}
 
-配置完成后，[重启 Datakit](datakit-service-how-to.md#manage-service) 即可。稍等片刻后，通过 [Datakit Monitor](datakit-monitor.md) 即可查看采集器的开启和运行情况。
+配置完成后，[重启 DataKit](datakit-service-how-to.md#manage-service) 即可。稍等片刻后，通过 [DataKit Monitor](datakit-monitor.md) 即可查看采集器的开启和运行情况。
 
 ## Kubernetes 中的 Git 使用 {#k8s}
 
@@ -95,7 +95,7 @@ git push origin --all
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 报错：authentication required {#auth-required}
+### 报错：authentication required {#auth-required}
 <!-- markdownlint-enable -->
 
 出现这个报错可能是以下几种情况。
@@ -119,7 +119,7 @@ http://username:password@github.com/path/to/repository.git
 
 即把 `https` 改成了 `http`, 则也会报出这个错误。此处将 `http` 改成 `https` 即可。
 
-### :material-chat-question: 仓库目录约束 {#repo-dirs}
+### 仓库目录约束 {#repo-dirs}
 
 Git 仓库中必须以如下目录结构来存放各种配置：
 
@@ -151,7 +151,7 @@ datakit 根目录
         ├── ...
 ```
 
-### :material-chat-question: Git 配置的加载机制 {#repo-apply-rules}
+### Git 配置的加载机制 {#repo-apply-rules}
 
 Git 同步开启后，配置（*.conf*/Pipeline）优先级定义如下：
 
@@ -160,7 +160,7 @@ Git 同步开启后，配置（*.conf*/Pipeline）优先级定义如下：
 1. 对 Pipeline 而言，以第一个找到的 Pipeline 文件为准。以上例所示，查找 *nginx.p* 时，如果在 `repo-1` 中找到了，则 **不会** 再去 `repo-2` 中查找。当这两个仓库都没找到 *nginx.p* 时，才去顶层目录的 Pipeline 目录查找。Pythond 的查找机制也一样。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     开启远程 Pipeline 功能后，最先加载的是从中心同步下来的 Pipeline。
 

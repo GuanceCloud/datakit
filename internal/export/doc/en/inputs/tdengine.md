@@ -42,7 +42,7 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ info
 
     Please make sure the port is open before connecting to the taoAdapter. And the connecting user needs to have read permission.
     If the connection still fails, [please refer to](https://docs.taosdata.com/2.6/train-faq/faq/){:target="_blank"}
@@ -66,4 +66,4 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
 
 {{ end }}
 
-> - Some tables in the database do not have the `ts` field, and Datakit uses the current collection time.
+> - Some tables in the database do not have the `ts` field, and DataKit uses the current collection time.

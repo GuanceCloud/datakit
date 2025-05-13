@@ -94,11 +94,11 @@ DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
 
 - **DD_TRACE_AGENT_HOSTNAME**
 
-    Datakit 监听的地址名，默认 localhost
+    DataKit 监听的地址名，默认 localhost
 
 - **DD_TRACE_AGENT_PORT**
 
-    Datakit 监听的端口号，默认 9529
+    DataKit 监听的端口号，默认 9529
 
 - **DD_TRACE_SAMPLE_RATE**
 

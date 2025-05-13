@@ -10,7 +10,7 @@ __int_icon: 'icon/scheck'
 
 ---
 
-Datakit 可以直接接入 Security Checker 的数据。Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)。
+DataKit 可以直接接入 Security Checker 的数据。Security Checker 具体使用，参见[这里](../scheck/scheck-install.md)。
 
 ## 通过 DataKit 安装 Security Checker 安装 {#install}
 

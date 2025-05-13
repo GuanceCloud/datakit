@@ -28,7 +28,7 @@ skip: 'not-searchable-on-index-page'
 | 使用优化过的单一匹配 Pipeline，替换性能消耗多的 pattern（见附录三）                                         | 4 秒 40  |
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     Pipeline 耗时期间，CPU 单核心满负载运行，使用率持续在 100% 左右，当 10w 条日志处理结束时 CPU 回落。测试期间内存消耗稳定，没有明显的使用率增加，耗时为 DataKit 程序计算，不同环境下可能会有偏差。
 <!-- markdownlint-enable -->
@@ -43,7 +43,7 @@ Fluentd 的 Pipeline 匹配模式单一，没有进行同数据源多格式的 P
 
 ## 结论 {#conclusion}
 
-Datakit 日志采集，在 Pipeline 单一匹配模式下，处理耗时和 Fluentd 相差 30% 左右。
+DataKit 日志采集，在 Pipeline 单一匹配模式下，处理耗时和 Fluentd 相差 30% 左右。
 
 但是如果使用完整版全量匹配 Pipeline，耗时剧增。
 

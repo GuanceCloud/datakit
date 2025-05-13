@@ -70,7 +70,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
 <!-- markdownlint-enable -->
 ### Security Restrictions {#security-setting}
 
-See [Datakit API access control](../datakit/datakit-conf.md#public-apis).
+See [DataKit API access control](../datakit/datakit-conf.md#public-apis).
 
 ### Disable DataKit 404 Page {#disable-404}
 
@@ -99,7 +99,7 @@ DataKit supports this mapping of source code file information by zipping the cor
 
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "Limits on Sourcemap files"
+???+ warning "Limits on Sourcemap files"
 
     All Sourcemap files must with extension *.map*, and single *.map* file(after unzip) should not exceed 4GiB.
 <!-- markdownlint-enable -->
@@ -107,7 +107,7 @@ DataKit supports this mapping of source code file information by zipping the cor
 <!-- markdownlint-disable MD025 -->
 ### Install the sourcemap tools {#install-tools}
 <!-- markdownlint-enable -->
-First, you need to install the corresponding symbol restoration tool. Datakit provides a one-click installation command to simplify the installation of the tool:
+First, you need to install the corresponding symbol restoration tool. DataKit provides a one-click installation command to simplify the installation of the tool:
 
 ```shell
 sudo datakit install --symbol-tools
@@ -280,16 +280,16 @@ If a software installation fails during the installation process, you may need t
 
 ---
 
-???+ attention "For RUM Headless"
+???+ info "For RUM Headless"
 
     For [RUM headless](../dataflux-func/headless.md), you can upload these package files on web pages, and following upload/delete operations are not required.
 <!-- markdownlint-enable -->
 
 ### File Upload and Delete {#upload-delete}
 
-After packaging, in addition to manually copying to Datakit related directories, the file can also be uploaded and deleted through http interface.
+After packaging, in addition to manually copying to DataKit related directories, the file can also be uploaded and deleted through http interface.
 
-> From Datakit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0), sourcemap related apis were moved from DCA service to DataKit service.
+> From DataKit [:octicons-tag-24: Version-1.16.0](../datakit/changelog.md#cl-1.16.0), sourcemap related apis were moved from DCA service to DataKit service.
 
 [Upload](../datakit/apis.md#api-sourcemap-upload):
 
@@ -321,7 +321,7 @@ Variable description:
 - `<error_stack>`: The error stack string
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - This conversion process is only for the `error` measurement.
     - Currently only Javascript/Android/iOS sourcemap conversion is supported.
@@ -352,7 +352,7 @@ We can easily copy and modify the [built-in CDN Dict](built-in_cdn_dict_config.m
 
 ## RUM Session Replay {#rum-session-replay}
 
-As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), Datakit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart Datakit.
+As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5), DataKit support to collect the data of RUM Session Replay. It needs you to add item `session_replay_endpoints` to RUM configuration as bellow and then restart DataKit.
 
 ```toml
 [[inputs.rum]]
@@ -370,12 +370,12 @@ As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of Datakit.
+    RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of DataKit.
 <!-- markdownlint-enable -->
 
 ### RUM Session Replay Filter {#rum-session-replay-filter}
 
-Starting from the Datakit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) version, it is supported to use configuration to filter out unnecessary session replay data. New The configuration item name is `filter_rules`, and the format is similar to the following (please refer to `rum.conf.sample` RUM sample configuration file):
+Starting from the DataKit [:octicons-tag-24: Version-1.20.0](../datakit/changelog.md#cl-1.20.0) version, it is supported to use configuration to filter out unnecessary session replay data. New The configuration item name is `filter_rules`, and the format is similar to the following (please refer to `rum.conf.sample` RUM sample configuration file):
 
 ```toml
 [inputs.rum.session_replay]

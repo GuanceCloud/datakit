@@ -19,7 +19,7 @@ monitor   :
 
 可以使用 [DDTrace](ddtrace.md) 可以采集 Tomcat 指标。采集数据流向如下：Tomcat -> DDTrace -> DataKit(StatsD)。
 
-可以看到 DataKit 已经集成了 [StatsD](https://github.com/statsd/statsd){:target="_blank"} 的服务端，DDTrace 采集 Tomcat 的数据后使用 StatsD 的协议报告给了 Datakit。
+可以看到 DataKit 已经集成了 [StatsD](https://github.com/statsd/statsd){:target="_blank"} 的服务端，DDTrace 采集 Tomcat 的数据后使用 StatsD 的协议报告给了 DataKit。
 
 ## 配置 {#config}
 
@@ -36,7 +36,7 @@ monitor   :
 
 - 下载 `dd-java-agent.jar` 包，参见 [这里](ddtrace.md){:target="_blank"};
 
-- Datakit 侧：参见 [StatsD](statsd.md){:target="_blank"} 的配置。
+- DataKit 侧：参见 [StatsD](statsd.md){:target="_blank"} 的配置。
 
 - Tomcat 侧：
 
@@ -54,8 +54,8 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 
 - `javaagent`: 这个填写 `dd-java-agent.jar` 的完整路径；
 - `Ddd.jmxfetch.enabled`: 填 `true`, 表示开启 DDTrace 的采集功能；
-- `Ddd.jmxfetch.statsd.host`: 填写 Datakit 监听的网络地址。不含端口号；
-- `Ddd.jmxfetch.statsd.port`: 填写 Datakit 监听的端口号。一般为 `8125`，由 Datakit 侧的配置决定；
+- `Ddd.jmxfetch.statsd.host`: 填写 DataKit 监听的网络地址。不含端口号；
+- `Ddd.jmxfetch.statsd.port`: 填写 DataKit 监听的端口号。一般为 `8125`，由 DataKit 侧的配置决定；
 - `Ddd.jmxfetch.tomcat.enabled`: 填 `true`, 表示开启 DDTrace 的 Tomcat 采集功能。开启后会多出名为 `tomcat` 的指标集；
 
 重启 Tomcat 使配置生效。
@@ -95,7 +95,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 ## 日志 {#logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     日志采集仅支持采集已安装 DataKit 主机上的日志
 <!-- markdownlint-enable -->
@@ -111,7 +111,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
   source = "tomcat"
 ```
 
-修改完成后，重启 Datakit 使配置生效。
+修改完成后，重启 DataKit 使配置生效。
 
 ### 字段说明 {#logging-fields}
 
@@ -167,7 +167,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
     - [x] 9
     - [x] 8
 
-- 下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}，重命名为 `jolokia.war`，并放置于 Tomcat 的 *webapps* 目录下。也可从 Datakit 的安装目录下的 *data* 目录下获取 *jolokia.war* 包
+- 下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}，重命名为 `jolokia.war`，并放置于 Tomcat 的 *webapps* 目录下。也可从 DataKit 的安装目录下的 *data* 目录下获取 *jolokia.war* 包
 - 编辑 Tomcat 的 *conf* 目录下的 *tomcat-users.xml*，增加 `role` 为 `jolokia` 的用户。
 
 以 `apache-tomcat-9.0.45` 为例：
@@ -318,7 +318,7 @@ Tomcat started.
 ### 日志 {#jolokia-logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     日志采集仅支持采集已安装 DataKit 主机上的日志
 <!-- markdownlint-enable -->

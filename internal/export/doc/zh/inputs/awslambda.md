@@ -22,7 +22,7 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 
 ## 安装 {#installation}
 
-### 添加 Datakit 层 {#layer}
+### 添加 DataKit 层 {#layer}
 
 - [通过 Zip 创建层](https://docs.aws.amazon.com/zh_cn/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 

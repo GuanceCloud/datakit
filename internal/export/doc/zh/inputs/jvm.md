@@ -26,7 +26,7 @@ monitor   :
 
 ### 通过 DDTrace 采集 JVM 指标 {#jvm-ddtrace}
 
-DataKit 内置了 [StatsD 采集器](statsd.md)，用于接收网络上发送过来的 StatsD 协议的数据。此处我们利用 DDTrace 来采集 JVM 的指标数据，并通过 StatsD 协议发送给 Datakit。
+DataKit 内置了 [StatsD 采集器](statsd.md)，用于接收网络上发送过来的 StatsD 协议的数据。此处我们利用 DDTrace 来采集 JVM 的指标数据，并通过 StatsD 协议发送给 DataKit。
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
@@ -130,7 +130,7 @@ java -javaagent:dd-java-agent.jar \
 
 - 此处几个选项的意义：
     - `-Ddd.jmxfetch.check-period` 表示采集频率，单位为毫秒
-    - `-Ddd.jmxfetch.statsd.host=127.0.0.1` 表示 Datakit 上 StatsD 采集器的连接地址
+    - `-Ddd.jmxfetch.statsd.host=127.0.0.1` 表示 DataKit 上 StatsD 采集器的连接地址
     - `-Ddd.jmxfetch.statsd.port=8125` 表示 DataKit 上 StatsD 采集器的 UDP 连接端口，默认为 8125
     - `-Ddd.trace.health.xxx` DDTrace 自身指标数据采集和发送设置
     - 如果要开启链路追踪（APM）可追加如下两个参数（DataKit HTTP 地址）
@@ -140,7 +140,7 @@ java -javaagent:dd-java-agent.jar \
 开启后，就能采集到 DDTrace 暴露出来的 jvm  指标。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     实际采集到的指标，以 [DataDog 的文档](https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected){:target="_blank"} 为准。
 <!-- markdownlint-enable -->

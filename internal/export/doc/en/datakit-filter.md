@@ -144,7 +144,7 @@ In addition, the following list operations are supported:
 | `MATCH`, `NOTMATCH` | Regular expression list | Whether the specified field matches the regular in the list, which only supports string types | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - **Only ordinary data types** such as string, integer, floating point can appear in the list. Other expressions are not supported.
     
@@ -377,12 +377,12 @@ You can see in the DataKit monitor that `regionid` for `cn-qingdao` is filtered 
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: View Synchronized Filters {#debug-filter}
+### View Synchronized Filters {#debug-filter}
 <!-- markdownlint-enable -->
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-For filters synchronized from the center, DataKit records a copy to *<DataKit Installation Directory\>/data/.pull*, which can be viewed directly.
+For filters synchronized from the center, DataKit records a copy to *data/.pull*, which can be viewed directly.
 
 ```shell
 $ cat .filters  | jq

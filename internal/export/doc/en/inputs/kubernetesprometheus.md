@@ -62,7 +62,7 @@ A brief description of how this collector operates helps in better understanding
       pod_namespace    = "__kubernetes_pod_namespace"
 ```
 
-- If the Prometheus service of the target Pod uses HTTPS, additional authentication certificate configuration is required. These certificates have already been mounted into the Datakit container in advance:
+- If the Prometheus service of the target Pod uses HTTPS, additional authentication certificate configuration is required. These certificates have already been mounted into the DataKit container in advance:
 
 ```yaml
 [[inputs.kubernetesprometheus.instances]]
@@ -144,7 +144,7 @@ Additionally, there is a type of global configuration, which is the highest-leve
 
 ```markdown
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
   There is no need to manually configure the IP address; the collector will use default IPs as follows:
 
@@ -176,8 +176,8 @@ Using the configuration example provided:
 | `role`             | Yes      | None          | Specifies the type of resource to collect, which can only be `node`, `pod`, `service`, or `endpoints`.                                                                                                                                | No                    |
 | `namespace`        | No       | None          | Limits the namespace of the resource. It's an array and supports multiple entries, e.g., `["kube-system", "testing"]`.                                                                                                                | No                    |
 | `selector`         | No       | None          | Labels for querying and filtering, allowing for precise selection. Format: `'=', '==', '!='`, e.g., `key1=value1,key2=value2`. It also supports the Glob patterns. See [below](kubernetesprometheus.md#selector-example) for details. | No                    |
-| `scrape`           | No       | "true"        | Determines whether to perform scraping. Set to empty string or `true` for scraping, otherwise no scraping.                                                                                                                            | Yes                   |
-| `scheme`           | No       | "http"        | Default is `http`. Use `https` if scraping requires certificates.                                                                                                                                                                     | Yes                   |
+| `scrape`           | No       | `"true"`      | Determines whether to perform scraping. Set to empty string or `"true"` for scraping, otherwise no scraping.                                                                                                                          | Yes                   |
+| `scheme`           | No       | `"http"`      | Default is `http`. Use `https` if scraping requires certificates.                                                                                                                                                                     | Yes                   |
 | `port`             | Yes      | None          | Port of the target address, requires manual configuration.                                                                                                                                                                            | Yes                   |
 | `path`             | No       | "/metrics"    | HTTP access path, default is `/metrics`.                                                                                                                                                                                              | Yes                   |
 | `params`           | No       | None          | HTTP access parameters as a string, e.g., `name=nginx&package=middleware`.                                                                                                                                                            | No                    |
@@ -208,9 +208,9 @@ Allow configuring multiple Key/Value pairs and adding them in the HTTP request. 
 | `tags`                 | No       | None                                               | Adds tags; note that keys do not support placeholders, values support placeholders as described later. |
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
-    The KubernetesPrometheus collector will add Datakit's `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1).
+    The KubernetesPrometheus collector will add DataKit's `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1).
 <!-- markdownlint-enable -->
 
 ### Permissions and Authentication {#input-config-auth}
@@ -247,22 +247,22 @@ Global placeholders are common across all Roles and are often used to specify ce
 <!-- markdownlint-disable MD049 -->
 | Name                       | Description                                                                                                                | Usage Scope                                                                                  |
 | -----------                | -----------                                                                                                                | -----                                                                                        |
-| __kubernetes_mate_instance | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `global_tags/custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
-| __kubernetes_mate_host     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `global_tags/custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
+| `__kubernetes_mate_instance` | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `global_tags/custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
+| `__kubernetes_mate_host`     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `global_tags/custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
 <!-- markdownlint-enable -->
 
 ### Node Role {#placeholders-node}
 
-The collection address for these resources is the InternalIP, corresponding to JSONPath `.status.addresses[*].address ("type" is "InternalIP")`.
+The collection address for these resources is the InternalIP, corresponding to [JSONPath](https://kubernetes.io/zh-cn/docs/reference/kubectl/jsonpath/){:target="_blank"} `.status.addresses[*].address ("type" is "InternalIP")`.
 
 <!-- markdownlint-disable MD049 -->
-| Name                                    | Description                        | Corresponding JSONPath                              |
-| -----------                             | -----------                        | -----                                               |
-| __kubernetes_node_name                  | Node name                          | .metadata.name                                      |
-| __kubernetes_node_label_%s              | Node label                         | .metadata.labels['%s']                              |
-| __kubernetes_node_annotation_%s         | Node annotation                    | .metadata.annotations['%s']                         |
-| __kubernetes_node_address_Hostname      | Node hostname                      | .status.addresses[*].address ("type" is "Hostname") |
-| __kubernetes_node_kubelet_endpoint_port | Node's kubelet port, usually 10250 | .status.daemonEndpoints.kubeletEndpoint.Port        |
+| Name                                      | Description                        | Corresponding JSONPath                                |
+| -----------                               | -----------                        | -----                                                 |
+| `__kubernetes_node_name`                  | Node name                          | `.metadata.name`                                      |
+| `__kubernetes_node_label_%s`              | Node label                         | `.metadata.labels['%s']`                              |
+| `__kubernetes_node_annotation_%s`         | Node annotation                    | `.metadata.annotations['%s']`                         |
+| `__kubernetes_node_address_Hostname`      | Node hostname                      | `.status.addresses[*].address` ("type" is "Hostname") |
+| `__kubernetes_node_kubelet_endpoint_port` | Node's kubelet port, usually 10250 | `.status.daemonEndpoints.kubeletEndpoint.Port`        |
 <!-- markdownlint-enable -->
 
 ### Pod Role {#placeholders-pod}
@@ -270,14 +270,14 @@ The collection address for these resources is the InternalIP, corresponding to J
 The collection address for these resources is the PodIP, corresponding to JSONPath `.status.podIP`.
 
 <!-- markdownlint-disable MD049 -->
-| Name                                         | Description                                                                                                                                                      | Corresponding JSONPath                                         |
-| -----------                                  | -----------                                                                                                                                                      | -----                                                          |
-| __kubernetes_pod_name                        | Pod name                                                                                                                                                         | .metadata.name                                                 |
-| __kubernetes_pod_namespace                   | Pod namespace                                                                                                                                                    | .metadata.namespace                                            |
-| __kubernetes_pod_label_%s                    | Pod label, for example, `_kubernetes_pod_label_app`                                                                                                              | .metadata.labels['%s']                                         |
-| __kubernetes_pod_annotation_%s               | Pod annotation, for example, `_kubernetes_pod_annotation_prometheus.io/port`                                                                                     | .metadata.annotations['%s']                                    |
-| __kubernetes_pod_node_name                   | Node where the Pod is located                                                                                                                                    | .spec.nodeName                                                 |
-| __kubernetes_pod_container_%s_port_%s_number | Specific port of a specific container, for example, `__kubernetes_pod_container_nginx_port_metrics_number` refers to the `metrics` port of the `nginx` container | .spec.containers[*].ports[*].containerPort ("name" equal "%s") |
+| Name                                           | Description                                                                                                                                                      | Corresponding JSONPath                                               |
+| -----------                                    | -----------                                                                                                                                                      | -----                                                                |
+| `__kubernetes_pod_name`                        | Pod name                                                                                                                                                         | `.metadata.name`                                                     |
+| `__kubernetes_pod_namespace`                   | Pod namespace                                                                                                                                                    | `.metadata.namespace`                                                |
+| `__kubernetes_pod_label_%s`                    | Pod label, for example, `_kubernetes_pod_label_app`                                                                                                              | `.metadata.labels['%s']`                                             |
+| `__kubernetes_pod_annotation_%s`               | Pod annotation, for example, `_kubernetes_pod_annotation_prometheus.io/port`                                                                                     | `.metadata.annotations['%s']`                                        |
+| `__kubernetes_pod_node_name`                   | Node where the Pod is located                                                                                                                                    | `.spec.nodeName`                                                     |
+| `__kubernetes_pod_container_%s_port_%s_number` | Specific port of a specific container, for example, `__kubernetes_pod_container_nginx_port_metrics_number` refers to the `metrics` port of the `nginx` container | `.spec.containers[*].ports[*].containerPort` (`"name"` equal `"%s"`) |
 <!-- markdownlint-enable -->
 
 For example, for `__kubernetes_pod_container_%s_port_%s_number`:
@@ -291,19 +291,19 @@ Suppose there is a Pod named nginx with 2 containers, nginx and logfwd. If you w
 Since Service resources do not have an IP property, the corresponding Endpoints Address IP property is used (which can have multiple values), with the JSONPath being `.subsets[*].addresses[*].ip`.
 
 <!-- markdownlint-disable MD049 -->
-| Name                                      | Description                                                                                                                             | Corresponding JSONPath                                  |
-| -----------                               | -----------                                                                                                                             | -----                                                   |
-| __kubernetes_service_name                 | Service name                                                                                                                            | .metadata.name                                          |
-| __kubernetes_service_namespace            | Service namespace                                                                                                                       | .metadata.namespace                                     |
-| __kubernetes_service_label_%s             | Service label                                                                                                                           | .metadata.labels['%s']                                  |
-| __kubernetes_service_annotation_%s        | Service annotation                                                                                                                      | .metadata.annotations['%s']                             |
-| __kubernetes_service_port_%s_port         | Specific port (rarely used, as targetPort is mostly used in most scenarios)                                                             | .spec.ports[*].port ("name" equal "%s")                 |
-| __kubernetes_service_port_%s_targetport   | Specific targetPort                                                                                                                     | .spec.ports[*].targetPort ("name" equal "%s")           |
-| __kubernetes_service_target_kind          | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `kind` field      | Endpoints: .subsets[*].addresses[*].targetRef.kind      |
-| __kubernetes_service_target_name          | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `name` field      | Endpoints: .subsets[*].addresses[*].targetRef.name      |
-| __kubernetes_service_target_namespace     | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `namespace` field | Endpoints: .subsets[*].addresses[*].targetRef.namespace |
-| __kubernetes_service_target_pod_name      | Deprecated, please use `__kubernetes_service_target_name`                                                                               | Endpoints: .subsets[*].addresses[*].targetRef.name      |
-| __kubernetes_service_target_pod_namespace | Deprecated, please use `__kubernetes_service_target_namespace`                                                                          | Endpoints: .subsets[*].addresses[*].targetRef.namespace |
+| Name                                        | Description                                                                                                                             | Corresponding JSONPath                                    |
+| -----------                                 | -----------                                                                                                                             | -----                                                     |
+| `__kubernetes_service_name`                 | Service name                                                                                                                            | `.metadata.name`                                          |
+| `__kubernetes_service_namespace`            | Service namespace                                                                                                                       | `.metadata.namespace`                                     |
+| `__kubernetes_service_label_%s`             | Service label                                                                                                                           | `.metadata.labels['%s']`                                  |
+| `__kubernetes_service_annotation_%s`        | Service annotation                                                                                                                      | `.metadata.annotations['%s']`                             |
+| `__kubernetes_service_port_%s_port`         | Specific port (rarely used, as targetPort is mostly used in most scenarios)                                                             | `.spec.ports[*].port` (`"name"` equal `"%s"`)             |
+| `__kubernetes_service_port_%s_targetport`   | Specific targetPort                                                                                                                     | `.spec.ports[*].targetPort (`"name"` equal `"%s"`)        |
+| `__kubernetes_service_target_kind`          | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `kind` field      | `Endpoints: .subsets[*].addresses[*].targetRef.kind`      |
+| `__kubernetes_service_target_name`          | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `name` field      | `Endpoints: .subsets[*].addresses[*].targetRef.name`      |
+| `__kubernetes_service_target_namespace`     | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `namespace` field | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
+| `__kubernetes_service_target_pod_name`      | Deprecated, please use `__kubernetes_service_target_name`                                                                               | `Endpoints: .subsets[*].addresses[*].targetRef.name`      |
+| `__kubernetes_service_target_pod_namespace` | Deprecated, please use `__kubernetes_service_target_namespace`                                                                          | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
 <!-- markdownlint-enable -->
 
 ### Endpoints Role {#placeholders-endpoints}
@@ -311,19 +311,19 @@ Since Service resources do not have an IP property, the corresponding Endpoints 
 The collection address for these types of resources is the Address IP (which can have multiple values), with the corresponding JSONPath being `.subsets[*].addresses[*].ip`.
 
 <!-- markdownlint-disable MD049 -->
-| Name                                                | Description                                                                 | Corresponding JSONPath                        |
-| -----------                                         | -----------                                                                 | -----                                         |
-| __kubernetes_endpoints_name                         | Endpoints name                                                              | .metadata.name                                |
-| __kubernetes_endpoints_namespace                    | Endpoints namespace                                                         | .metadata.namespace                           |
-| __kubernetes_endpoints_label_%s                     | Endpoints label                                                             | .metadata.labels['%s']                        |
-| __kubernetes_endpoints_annotation_%s                | Endpoints annotation                                                        | .metadata.annotations['%s']                   |
-| __kubernetes_endpoints_address_node_name            | Node name of Endpoints Address                                              | .subsets[*].addresses[*].nodeName             |
-| __kubernetes_endpoints_address_target_kind          | `kind` field of targetRef                                                   | .subsets[*].addresses[*].targetRef.kind       |
-| __kubernetes_endpoints_address_target_name          | `name` field of targetRef                                                   | .subsets[*].addresses[*].targetRef.name       |
-| __kubernetes_endpoints_address_target_namespace     | `namespace` field of targetRef                                              | .subsets[*].addresses[*].targetRef.namespace  |
-| __kubernetes_endpoints_address_target_pod_name      | Deprecated, please use `__kubernetes_endpoints_address_target_name`         | .subsets[*].addresses[*].targetRef.name       |
-| __kubernetes_endpoints_address_target_pod_namespace | Deprecated, please use `__kubernetes_endpoints_address_target_namespace`    | .subsets[*].addresses[*].targetRef.namespace  |
-| __kubernetes_endpoints_port_%s_number               | Specifies the port name, e.g., `__kubernetes_endpoints_port_metrics_number` | .subsets[*].ports[*].port ("name" equal "%s") |
+ | Name                                                  | Description                                                                 | Corresponding JSONPath                              |
+ | -----------                                           | -----------                                                                 | -----                                               |
+ | `__kubernetes_endpoints_name`                         | Endpoints name                                                              | `.metadata.name`                                    |
+ | `__kubernetes_endpoints_namespace`                    | Endpoints namespace                                                         | `.metadata.namespace`                               |
+ | `__kubernetes_endpoints_label_%s`                     | Endpoints label                                                             | `.metadata.labels['%s']`                            |
+ | `__kubernetes_endpoints_annotation_%s`                | Endpoints annotation                                                        | `.metadata.annotations['%s']`                       |
+ | `__kubernetes_endpoints_address_node_name`            | Node name of Endpoints Address                                              | `.subsets[*].addresses[*].nodeName`                 |
+ | `__kubernetes_endpoints_address_target_kind`          | `kind` field of targetRef                                                   | `.subsets[*].addresses[*].targetRef.kind`           |
+ | `__kubernetes_endpoints_address_target_name`          | `name` field of targetRef                                                   | `.subsets[*].addresses[*].targetRef.name`           |
+ | `__kubernetes_endpoints_address_target_namespace`     | `namespace` field of targetRef                                              | `.subsets[*].addresses[*].targetRef.namespace`      |
+ | `__kubernetes_endpoints_address_target_pod_name`      | Deprecated, please use `__kubernetes_endpoints_address_target_name`         | `.subsets[*].addresses[*].targetRef.name`           |
+ | `__kubernetes_endpoints_address_target_pod_namespace` | Deprecated, please use `__kubernetes_endpoints_address_target_namespace`    | `.subsets[*].addresses[*].targetRef.namespace`      |
+ | `__kubernetes_endpoints_port_%s_number`               | Specifies the port name, e.g., `__kubernetes_endpoints_port_metrics_number` | `.subsets[*].ports[*].port` (`"name"` equal `"%s"`) |
 <!-- markdownlint-enable -->
 
 ## Example {#example}
@@ -420,7 +420,7 @@ data:
           readOnly: true
 ```
 
-1. Finally, start `Datakit`. In the logs, you should see the message `create prom url xxxxx for testing/prom-svc`, and you should be able to observe the `prom-svc` metrics set on the <<<custom_key.brand_name>>> page.
+1. Finally, start `DataKit`. In the logs, you should see the message `create prom url xxxxx for testing/prom-svc`, and you should be able to observe the `prom-svc` metrics set on the <<<custom_key.brand_name>>> page.
 
 
 ---
@@ -442,7 +442,7 @@ The `up` metric belongs to the `collector` metric set and contains three label f
     - When the value is `1`, it means the target is running and accessible (i.e., the target is "up").
     - When the value is `0`, it means the target is unavailable, usually indicating that the target is unreachable or has failed (i.e., the target is "down").
 
-Additionally, the `up` metric set automatically adds Datakit's global `election_tags`.
+Additionally, the `up` metric set automatically adds DataKit's global `election_tags`.
 
 ### Selector Description and Examples {#selector-example}
 
@@ -456,7 +456,7 @@ kube-system   kube-controller-manager   1/1     Running   0          15d
 
 The `--selector` parameter serves the same purpose as the `selector` configuration option. For more usage details, please refer to the [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/){:target="_blank"}.
 
-In addition, Datakit extends the `selector` functionality to support **Glob matching patterns**. For details on writing Glob patterns, see the [Glob Pattern Documentation](https://developers.tetrascience.com/docs/common-glob-pattern#glob-pattern-syntax). Here are some examples:
+In addition, DataKit extends the `selector` functionality to support **Glob matching patterns**. For details on writing Glob patterns, see the [Glob Pattern Documentation](https://developers.tetrascience.com/docs/common-glob-pattern#glob-pattern-syntax). Here are some examples:
 
 [:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1)
 
@@ -465,7 +465,7 @@ In addition, Datakit extends the `selector` functionality to support **Glob matc
 - **`selector="app=middleware-[123]"`**: Matches any of `middleware-1`, `middleware-2`, or `middleware-3`.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
     The Glob pattern syntax does not support the `!` exclusion operator. For example, `app=middleware-[!0123]` will result in an error during the parsing stage. This is because the `!` character is a reserved keyword in Selector syntax (e.g., for `app!=nginx`) and cannot be used in Glob patterns.
 <!-- markdownlint-enable -->
 

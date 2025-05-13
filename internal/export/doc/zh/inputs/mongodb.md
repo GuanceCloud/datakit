@@ -43,7 +43,7 @@ $ mongo
 > use admin
 > db.auth("<admin OR root>", "<YOUR_MONGODB_ADMIN_PASSWORD>")
 
-# Create the user for the Datakit.
+# Create the user for the DataKit.
 > db.createUser({
   "user": "datakit",
   "pwd": "<YOUR_COLLECT_PASSWORD>",
@@ -58,7 +58,7 @@ $ mongo
 
 >更多权限说明可参见官方文档 [Built-In Roles](https://www.mongodb.com/docs/manual/reference/built-in-roles/){:target="_blank"}。
 
-执行完上述命令后将创建的「用户名」和「密码」填入 Datakit 的配置文件 `conf.d/db/mongodb.conf` 中。
+执行完上述命令后将创建的「用户名」和「密码」填入 DataKit 的配置文件 `conf.d/db/mongodb.conf` 中。
 
 ### 采集器配置 {#input-config}
 
@@ -236,7 +236,7 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 
 ## 日志采集 {#logging}
 
-去注释配置文件中 `# enable_mongod_log = false` 然后将 `false` 改为 `true`，其他关于 mongod log 配置选项在 `[inputs.mongodb.log]` 中，注释掉的配置极为默认配置，如果路径对应正确将无需任何配置启动 Datakit 后将会看到指标名为 `mongod_log` 的采集指标集。
+去注释配置文件中 `# enable_mongod_log = false` 然后将 `false` 改为 `true`，其他关于 mongod log 配置选项在 `[inputs.mongodb.log]` 中，注释掉的配置极为默认配置，如果路径对应正确将无需任何配置启动 DataKit 后将会看到指标名为 `mongod_log` 的采集指标集。
 
 日志原始数据 sample
 

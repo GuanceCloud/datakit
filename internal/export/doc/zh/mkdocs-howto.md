@@ -4,7 +4,7 @@
 
 本文主要阐述以下几个问题：
 
-- Datakit 相关的文档编写步骤
+- DataKit 相关的文档编写步骤
 - 如何用 MkDocs 写出更好的文档
 
 ## DataKit 相关编写步骤 {#steps}
@@ -26,9 +26,9 @@
 
 *export.sh* 依赖的基础环境：
 
-1. 先将[文档库](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} clone 到本地目录 *~/git/dataflux-doc*，此处默认即使用这个本地目录。*export.sh* 会将 Datakit 文档生成并拷贝到该 repo 对应的目录下。
+1. 先将[文档库](https://gitlab.jiagouyun.com/zy-docs/dataflux-doc){:target="_blank"} clone 到本地目录 *~/git/dataflux-doc*，此处默认即使用这个本地目录。*export.sh* 会将 DataKit 文档生成并拷贝到该 repo 对应的目录下。
 1. 在 *dataflux-doc* 项目下，有一个 *requirements.txt*，执行 `pip install -r requirements.txt` 安装对应依赖
-1. 回到 Datakit 代码目录，执行根目录下的 `./export.sh` 即可
+1. 回到 DataKit 代码目录，执行根目录下的 `./export.sh` 即可
 
 ## MkDocs 技巧分享 {#mkdocs-tips}
 
@@ -114,7 +114,7 @@
 部分文档的编写，需提供一些警告信息，比如某功能的使用，需额外满足某些条件，或者给出一些技巧性的说明。这种情况下，我们可以使用 MKDocs 的 markdown 扩展，比如：
 
 ```markdown
-??? attention
+??? warning
 
     这里是一段前置条件的说明 ...
 ```
@@ -151,7 +151,7 @@
 
 ### Markdown 格式检查以及拼写检查 {#mdlint-cspell}
 
-为了规范 Markdown 的基本写法，同时保持技术文档的拼写一致（相对正确且一致），Datakit 的文档增加了排版检查以及拼写检查，它们分别通过如下两个工具来检测：
+为了规范 Markdown 的基本写法，同时保持技术文档的拼写一致（相对正确且一致），DataKit 的文档增加了排版检查以及拼写检查，它们分别通过如下两个工具来检测：
 
 - [markdownlint](https://github.com/igorshubovych/markdownlint-cli){:target="_blank"}：检查基本的 Markdown 排版是否符合已有的公认标准
 - [cspell](https://cspell.org/){:target="_blank"}：检查单词拼写是否正确，并对一些专有的拼写做强制性统一
@@ -193,13 +193,13 @@
 
 #### 拼写检查 {#cspell}
 
-cspell 在检测单词（这里主要指英文单词，目前还不能检测中文拼写问题）拼写错误时非常有效，有时候我们难以避免将一些单词拼错，或者，我们有时对一些标准术语的拼写出现前后不一致的情况（比如 `Datakit/DataKit/datakit` 等多种写法）。
+cspell 在检测单词（这里主要指英文单词，目前还不能检测中文拼写问题）拼写错误时非常有效，有时候我们难以避免将一些单词拼错，或者，我们有时对一些标准术语的拼写出现前后不一致的情况（比如 `DataKit/DataKit/datakit` 等多种写法）。
 
 在项目根目录的 *scripts* 目录下存放者 cspell 的检测设置，我们需重点关注其中的词汇表文件 *glossary.txt*，其中我们定义了专有名词、缩写等几个部分。
 
 在如下几种情况下，我们需要修改 *glossary.txt* 文件：
 
-- 如果有新的专有名词，比如 `Datakit`，我们将其添加到专有名词列表中
+- 如果有新的专有名词，比如 `DataKit`，我们将其添加到专有名词列表中
 - 如果有新的缩写，比如 `JDBC`，我们将其添加到缩写列表中
 - 如果有合成词，这种比较少见，将其添加到合成词中即可
 - 需重点关注极限词，我们在正文中（相对行内代码以及代码块而言）会严禁使用的一些词语，比如，我们要求 `Java` 不能写成 `java/JAVA`，`JSON` 不能写成 `Json/json` 等
@@ -230,6 +230,14 @@ cspell 在检测单词（这里主要指英文单词，目前还不能检测中�
 
     所有的中英文混排，都需要遵循这个设定，不管是不是代码排版。
 <!-- markdownlint-enable MD046 -->
+
+### 字体设置 {#font}
+
+行文过程中主要涉及如下几种字体：
+
+- 代码字体：行内代码统一用 `` `this is code` ``
+- 斜体：斜体统一用 `*this is italic font*`。虽然 Markdown 也支持 `_this is italic font_`，但此处统一一下，后者不予采用
+- 粗体：粗体统一用 `**this is bold font**`。虽然 Markdown 也支持 `__this is bold font__`，但此处统一一下，后者不予采用
 
 ### 404 链接检查 {#404-check}
 

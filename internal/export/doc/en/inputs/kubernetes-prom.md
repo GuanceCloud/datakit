@@ -92,7 +92,7 @@ spec:
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     The `annotations` must be added under the `template` field so that the Pod created by *deployment.yaml* carries `datakit/prom.instances`.
 <!-- markdownlint-enable -->
@@ -114,7 +114,7 @@ At this point, Annotations has been added. DataKit later reads the Pod's Annotat
 
 Based on the specified Annotations of Pod or Service, a HTTP URL is constructed and Prometheus metric collection is created.
 
-This feature is disabled by default. To enable it in Datakit, the following two environment variables need to be added as needed, see [container documentation](container.md):
+This feature is disabled by default. To enable it in DataKit, the following two environment variables need to be added as needed, see [container documentation](container.md):
 
 - `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS`: `"true"`
 - `ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_SERVICE_ANNOTATIONS`: `"true"`
@@ -160,7 +160,7 @@ spec:
     targetPort: http-web-svc
 ```
 
-Datakit automatically discovers a Service with `prometheus.io/scrape: "true"` and builds a prom collection with `selector` to find a matching Pod:
+DataKit automatically discovers a Service with `prometheus.io/scrape: "true"` and builds a prom collection with `selector` to find a matching Pod:
 
 - `prometheus.io/scrape`: Only services as "true" are collected, required.
 - `prometheus.io/port`: Specify the metrics port, required. That this port must be present in the Pod or the collect will fail.
@@ -173,7 +173,7 @@ The IP address of the collect target is `PodIP`.
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    Datakit doesn't collects the Service itself, it collects the Pod that the Service is paired with.
+    DataKit doesn't collects the Service itself, it collects the Pod that the Service is paired with.
 <!-- markdownlint-enable -->
 
 
@@ -230,7 +230,7 @@ Automatic discovery of Pod/Service Prometheus involves three scenarios for namin
 
       Using the `promhttp_metric_handler_errors_total` data as an example, when this feature is enabled, the metric set will be `promhttp`, but the field name will no longer be segmented, and instead will use the raw value `promhttp_metric_handler_errors_total`.
 
-Datakit will add additional tags to locate this resource in the Kubernetes cluster:
+DataKit will add additional tags to locate this resource in the Kubernetes cluster:
 
 - For `Service`, it will add three tags: `namespace`, `service_name`, and `pod_name`.
 - For `Pod`, it will add two tags: `namespace` and `pod_name`.

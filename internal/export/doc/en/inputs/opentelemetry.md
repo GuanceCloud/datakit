@@ -26,9 +26,9 @@ OpenTelemetry (hereinafter referred to as OTEL) is an observability project of C
 
 OTEL is a collection of standards and tools for managing observational data, such as trace, metrics, logs, etc. (new observational data types may appear in the future).
 
-OTEL provides vendor-independent implementations that export observation class data to different backends, such as open source Prometheus, Jaeger, Datakit, or cloud vendor services, depending on the user's needs.
+OTEL provides vendor-independent implementations that export observation class data to different backends, such as open source Prometheus, Jaeger, DataKit, or cloud vendor services, depending on the user's needs.
 
-The purpose of this article is to introduce how to configure and enable OTEL data access on Datakit, and the best practices of Java and Go.
+The purpose of this article is to introduce how to configure and enable OTEL data access on DataKit, and the best practices of Java and Go.
 
 <!-- markdownlint-disable MD046 -->
 ## Configuration {#config}
@@ -64,15 +64,15 @@ The purpose of this article is to introduce how to configure and enable OTEL dat
 5. The http protocol request format supports both JSON and Protobuf serialization formats. But grpc only supports Protobuf.
 
 <!-- markdownlint-disable MD046 -->
-???+ tips
+???+ warning
 
-    The service name in the DDTrace is named based on the service name or the referenced third-party library, while the service name of the OTEL collector is defined according to `otel.service.name`.
-    To display service names separately, a field configuration has been added: spilt_service_name = true.
-    The service name is extracted from the label of the link data. For example, if the label of the DB type is `db.system=mysql`, then the service name is Mysql. If it is the MQ type: `messaging.system=kafka`, then the service name is Kafka.
-    By default, the following three tags are extracted: "db.system", "rpc.system", and "messaging.system".
+    - The service name in the DDTrace is named based on the service name or the referenced third-party library, while the service name of the OTEL collector is defined according to `otel.service.name`.
+    - To display service names separately, a field configuration has been added: `spilt_service_name = true`.
+    - The service name is extracted from the label of the link data. For example, if the label of the DB type is `db.system=mysql`, then the service name is `mysql`. If it is the MQ type: `messaging.system=kafka`, then the service name is `kafka`.
+    - By default, the following three tags are extracted: "db.system/rpc.system/messaging.system`.
 <!-- markdownlint-enable -->
 
-Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of Datakit is `/otel/v1/traces` and `/otel/v1/metrics`,
+Pay attention to the configuration of environment variables when using OTEL HTTP exporter. Since the default configuration of DataKit is `/otel/v1/traces` and `/otel/v1/metrics`,
 if you want to use the HTTP protocol, you need to configure `trace` and `trace` separately `metric`,
 
 The default request routes of OTLP are `/otel/v1/logs` `v1/traces` and `v1/metrics`, which need to be configured separately for these two. If you modify the routing in the configuration file, just replace the routing address below.
@@ -129,7 +129,7 @@ For more major changes in the V2 version, please check the official documentatio
 
 ## Tracing {#tracing}
 
-Datakit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobuf` and `http/json`. For specific configuration, please refer to:
+DataKit only accepts OTLP data. OTLP has clear data types: `gRPC`, `http/protobuf` and `http/json`. For specific configuration, please refer to:
 
 ```shell
 # OpenTelemetry Agent default is gRPC
@@ -225,7 +225,7 @@ All `Span` has `span_kind` tag,
 
 ### Best Practices {#bp}
 
-Datakit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
+DataKit currently provides [Go language](opentelemetry-go.md)、[Java](opentelemetry-java.md) languages, with other languages available later.
 
 ## Metric {#metric}
 
@@ -324,8 +324,8 @@ for example: `-Dotel.resource.attributes="log.source=sourcename"`.
 
 You can [View logging documents](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"}
 
-> Note: If the app is running in a container environment (such as k8s), [Datakit will automatically collect logs](container-log.md#logging-stdout){:target="_blank"}. If `otel` collects logs again, there will be a problem of duplicate collection.
-> It is recommended to manually [turn off Datakit's autonomous log](container-log.md#logging-with-image-config){:target="_blank"} collection behavior before enabling `otel` to collect logs.
+> Note: If the app is running in a container environment (such as k8s), [DataKit will automatically collect logs](container-log.md#logging-stdout){:target="_blank"}. If `otel` collects logs again, there will be a problem of duplicate collection.
+> It is recommended to manually [turn off DataKit's autonomous log](container-log.md#logging-with-image-config){:target="_blank"} collection behavior before enabling `otel` to collect logs.
 
 ## More Docs {#more-readings}
 

@@ -1,6 +1,6 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Datakit 指标性能测试报告'
+title: 'DataKit 指标性能测试报告'
 ---
 
 ## 测试环境参数 {#env}
@@ -74,5 +74,5 @@ title: 'Datakit 指标性能测试报告'
 
 ## 其它测试结果 {#others}
 
-- [Datakit Trace Agent 性能报告](./datakit-trace-performance.md){:target="_blank"}
+- [DataKit Trace Agent 性能报告](./datakit-trace-performance.md){:target="_blank"}
 - [DataKit 日志采集器性能测试](./logging-pipeline-bench.md){:target="_blank"}

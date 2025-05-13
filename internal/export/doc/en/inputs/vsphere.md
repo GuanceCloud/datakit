@@ -62,7 +62,7 @@ For all of the following data collections, a global tag named `host` is appended
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - Not all of the metrics listed below are collected; for specifics, refer to the explanations in the [Data Collection Levels](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.monitoring.doc/GUID-25800DE4-68E5-41CC-82D9-8811E27924BC.html){:target="_blank"}
 

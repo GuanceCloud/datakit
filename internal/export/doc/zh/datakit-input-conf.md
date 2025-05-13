@@ -45,7 +45,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
 | [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自身运行指标收集                                                |
+| [DataKit（`dk`）](../integrations/dk.md)                          | 采集 DataKit 自身运行指标收集                                                |
 
 ### 移除默认采集器 {#disable-default-inputs}
 
@@ -141,13 +141,13 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - 内容完全相同的两个采集器配置文件（文件名可以不同）为了防止误配置，只会应用其中一个。
     - 不建议将多个不同采集器（比如 MySQL 和 Nginx）配置到一个 `conf` 中，可能导致一些奇怪的问题，也不便于管理。
     - 部分采集器被限制为单实例运行，具体请查看 [只允许单实例运行的采集器](#input-singleton)。
 
-???+ tip "两种方式对比"
+???+ info "两种方式对比"
 
     - 方式一，可能导致配置目录混乱。
     - 方式二，管理起来较为简单。它将所有的同名采集器，都用同一个 `conf` 管理起来。
@@ -171,7 +171,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 | [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
 | [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
 | [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自己的运行情况，包括 CPU、Memory 等等                               |
+| [DataKit（`dk`）](../integrations/dk.md)                          | 采集 DataKit 自己的运行情况，包括 CPU、Memory 等等                               |
 
 ### 关闭具体采集器 {#disable-inputs}
 
@@ -242,7 +242,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方式更便捷地编辑配置文件。例如，敏感信息，诸如密码和用户名，可以通过键值对的形式安全地存储，并在相关的配置文件中进行引用。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
     - 仅支持主机配置，不支持 [Git](./git-config-how-to.md) 和[配置中心](./confd.md)方式的配置。
     - 仅支持采集器的配置文件中使用。
 <!-- markdownlint-enable -->
@@ -254,7 +254,7 @@ KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方
 需要注意的是，这里的比较是以配置文件为单位进行的。这意味着如果一个配置文件中包含了多个采集器，只要该文件发生任何修改，所有由此配置文件生成的采集器都会被重新加载。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
     - 如果重新加载的采集中，包含 HTTP 服务的，如 `ddtrace` 采集器，则整个 HTTP 服务将被重启。
 <!-- markdownlint-enable -->
 
@@ -381,7 +381,7 @@ http://username:pa55w%23rd@github.com/path/to/repository.git
 
 ### TOML 中复杂字符串配置 {#toml-raw-string}
 
-在 Datakit 的 TOML 配置中，涉及很多字符串的配置，但字符串中涉及复杂的转义时，可以用 TOML 的特殊方式来避免转义。比如，如果字符串值中有英文双引号：
+在 DataKit 的 TOML 配置中，涉及很多字符串的配置，但字符串中涉及复杂的转义时，可以用 TOML 的特殊方式来避免转义。比如，如果字符串值中有英文双引号：
 
 ```toml
 some_config = "this-string-contains-\"-and-others"

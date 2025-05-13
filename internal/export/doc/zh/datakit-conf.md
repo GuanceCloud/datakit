@@ -17,9 +17,9 @@ DataKit 主配置用来配置 DataKit 自己的运行行为。
     DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 *datakit.yaml* 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernetes 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
 <!-- markdownlint-enable -->
 
-## Datakit 主配置示例 {#maincfg-example}
+## DataKit 主配置示例 {#maincfg-example}
 
-Datakit 主配置示例如下，我们可以根据该示例来开启各种功能（当前版本 {{ .Version }}）：
+DataKit 主配置示例如下，我们可以根据该示例来开启各种功能（当前版本 {{ .Version }}）：
 
 <!-- markdownlint-disable MD046 -->
 ??? info "*datakit.conf*"
@@ -47,11 +47,11 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
        # listen = "[::]:<other-port>"
     ```
 
-    注意，IPv6 支持需 [Datakit 升级到 1.5.7](changelog.md#cl-1.5.7-new)。
+    注意，IPv6 支持需 [DataKit 升级到 1.5.7](changelog.md#cl-1.5.7-new)。
 
     #### 使用 Unix domain socket {#uds}
 
-    Datakit 支持 UNIX domain sockets 访问。开启方式如下：`listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
+    DataKit 支持 UNIX domain sockets 访问。开启方式如下：`listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
     ```toml
     [http_api]
        listen = "/tmp/datakit.sock"
@@ -62,7 +62,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能。
     
-    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，Datakit 默认给 API 设置了 20/s 的 QPS 限制：
+    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 20/s 的 QPS 限制：
     
     ```toml
     [http_api]
@@ -89,12 +89,12 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
 [:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
 
-出于安全考虑，Datakit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过其它机器或公网来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
+出于安全考虑，DataKit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过其它机器或公网来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
 
 ```toml
 [http_api]
   public_apis = [
-    # 放行 Datakit 自身指标暴露接口 /metrics
+    # 放行 DataKit 自身指标暴露接口 /metrics
     "/metrics",
     # ... # 其它接口
   ]
@@ -105,7 +105,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 Kubernetes 中增加 API 白名单参见[这里](datakit-daemonset-deploy.md#env-http-api)。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     一旦 `public_apis` 不为空，则默认开启的那些 API 接口需要**再次手动添加**：
 
@@ -123,7 +123,7 @@ Kubernetes 中增加 API 白名单参见[这里](datakit-daemonset-deploy.md#env
 
 [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6)
 
-Datakit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
+DataKit 允许给其采集的所有数据配置全局标签，全局标签分为两类：
 
 - 主机类全局标签（GHT）：采集的数据跟当前主机绑定，比如 CPU/内存等指标数据
 - 选举类全局标签（GET）：采集的数据来自某个公共（远程）实体，比如 MySQL/Redis 等，这些采集一般都参与选举，故这些数据上不会带上当前主机相关的标签
@@ -141,7 +141,7 @@ Datakit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 加全局标签时，有几个地方要注意：
 
-1. 这些全局标签的值可以用 Datakit 目前已经支持的几个通配（双下划线（`__`）前缀和 `$` 都是可以的）：
+1. 这些全局标签的值可以用 DataKit 目前已经支持的几个通配（双下划线（`__`）前缀和 `$` 都是可以的）：
 
     1. `__datakit_ip/$datakit_ip`：标签值会设置成 DataKit 获取到的第一个主网卡 IP
     1. `__datakit_hostname/$datakit_hostname`：标签值会设置成 DataKit 的主机名
@@ -181,7 +181,7 @@ Datakit 允许给其采集的所有数据配置全局标签，全局标签分为
 - 以 [HTTP API 方式往 DataKit 推送数据](apis.md#api-v1-write)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ info
 
     自 [1.4.20](changelog.md#cl-1.4.20) 之后，DataKit 默认会以被采集服务连接地址中的的 IP/Host 作为 `host` 的标签值。
 <!-- markdownlint-enable -->
@@ -204,30 +204,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 ## 高级配置 {#advance-config}
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
-
-### Point 缓存 {#point-pool}
-
-[:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0)
-
-> Point 缓存目前有额外的性能问题，不建议使用。
-
-为了优化 Datakit 高负载情况下的内存占用，可以开启 Point Pool 来缓解：
-
-```toml
-# datakit.conf
-[point_pool]
-    enable = true
-    reserved_capacity = 4096
-```
-
-同时，[Datakit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码（[:octicons-tag-24: Version-1.32.0](changelog.md#cl-1.32.0) 已默认启用 v2），相比 v1，它的内存和 CPU 开销都更低。
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    - 在低负载（Datakit 内存占用 100MB 左右）的情况下，开启 point pool 会增加 Datakit 自身的内存占用。所谓的高负载，一般指占用内存在 2GB+ 的场景。同时开启后也能改善 Datakit 自身的 CPU 消耗
-
-<!-- markdownlint-enable -->
 
 ### IO 模块调参 {#io-tuning}
 
@@ -265,9 +241,11 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
   # 允许 CPU 核心数
   cpu_cores = 2.0
 
+  cpu_max = 20.0 # 已弃用
+
   # 默认允许 4GB 内存(memory + swap)占用
   # 如果置为 0 或负数，则不启用内存限制
-  mem_max_mb = 4096 
+  mem_max_mb = 4096
 ```
 
 如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to.md#when-service-failed)：
@@ -282,15 +260,39 @@ $ systemctl status datakit
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - 资源限制只在[宿主机安装](datakit-install.md)的时候会默认开启
     - 只支持 CPU 使用率和内存使用量（mem+swap）控制，且只支持 Linux 和 windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
     - CPU 使用率控制目前不支持这些 windows 操作系统： Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 和 Windows XP。
     - 非 root 用户改资源限制配置时，必须重装 service。
-    - CPU 核心数限制会影响 Datakit 部分子模块的 worker 数配置（一般是 CPU 核心数的整数倍）。比如数据上传 worker 就是 CPU 核心数 * 2。而单个上传 worker 会占用默认 10MB 的内存用于数据发送，故 CPU 核心数如果开放较多，会影响 Datakit 整体内存的占用
+    - CPU 核心数限制会影响 DataKit 部分子模块的 worker 数配置（一般是 CPU 核心数的整数倍）。比如数据上传 worker 就是 CPU 核心数 * 2。而单个上传 worker 会占用默认 10MB 的内存用于数据发送，故 CPU 核心数如果开放较多，会影响 DataKit 整体内存的占用
     - [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
-    - [:octicons-tag-24: Version-1.68.0](changelog-2025.md#cl-1.68.0) 支持在 *daktait.conf* 中配置 CPU 核心数限制，且弃用原来的百分比配置方式。百分比配置方式会因为不同主机的 CPU 核心数不同而出现 CPU 配额不同，在采集压力相同的情况下，可能会导致一些异常行为。老版本 Datakit 升级上来的时候，在升级命令中指定 `DK_LIMIT_CPUCORES` 环境变量即可。升级命令如果不指定，仍然沿用之前的百分比配置方式。如果重新安装 Datakit，则直接采用 CPU 核心数限额方式。
+    - [:octicons-tag-24: Version-1.68.0](changelog-2025.md#cl-1.68.0) 支持在 *daktait.conf* 中配置 CPU 核心数限制，且弃用原来的百分比配置方式。百分比配置方式会因为不同主机的 CPU 核心数不同而出现 CPU 配额不同，在采集压力相同的情况下，可能会导致一些异常行为。老版本 DataKit 升级上来的时候，在升级命令中指定 `DK_LIMIT_CPUCORES` 环境变量即可。升级命令如果不指定，仍然沿用之前的百分比配置方式。如果重新安装 DataKit，则直接采用 CPU 核心数限额方式。
+    - `cpu_max`: CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
+
+???+ failure "cgroup 设置失败"
+
+    某些主机上，由于 DataKit 自动检测到 cgroup v1，在生成对应的 cgroup 规则时会报错：
+
+    ``` txt
+    cgroup setup err=...: open /sys/fs/cgroup/memory/datakit/memory.memsw.limit_in_bytes: permission denied
+    ```
+
+    该错误不是因为当前用户权限不够，而是因为内核中并未启用 Swap Accounting 所致。确认是否启用 Swap Accounting：
+
+    ```shell
+    # 看看是否有 swapaccount=1 或 cgroup.memory=swapaccount=1
+    cat /proc/cmdline
+    ```
+    
+    如果缺失，需要修改 */etc/default/grub* 中的 `GRUB_CMDLINE_LINUX` 或 `GRUB_CMDLINE_LINUX_DEFAULT`，在尾部添加 `swapaccount=1`，然后运行如下命令，并重启机器：
+    
+    ```shell
+    sudo update-grub # Debian/Ubuntu
+    # 或
+    sudo grub2-mkconfig -o /boot/grub2/grub.cfg # CentOS/RHEL/Fedora。
+    ```
 <!-- markdownlint-enable -->
 
 ### 选举配置 {#election}
@@ -315,7 +317,7 @@ Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-d
 
 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)
 
-WAL 用于缓存 Datakit 来不及上传的数据，当突发有较大的数据采集时，如果来不及发送，Datakit 会将其写入磁盘队列，避免阻塞数据采集，影响数据的实时性。
+WAL 用于缓存 DataKit 来不及上传的数据，当突发有较大的数据采集时，如果来不及发送，DataKit 会将其写入磁盘队列，避免阻塞数据采集，影响数据的实时性。
 
 WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限制，新采集的数据就写不进去导致丢弃。如果不希望丢弃这些数据，可以将该数据类型（一般是日志 `L`）配置到 `no_drop_categories` 列表中。此时数据不会主动丢弃，但会阻塞数据采集。
 
@@ -330,7 +332,7 @@ WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限�
      #no_drop_categories = ["L"]       # category list that do not drop data if WAL disk full
 ```
 
-磁盘文件位于 Datakit 安装目录的 *cache/dw-wal* 目录下：
+磁盘文件位于 DataKit 安装目录的 *cache/dw-wal* 目录下：
 
 ```shell
 /usr/local/datakit/cache/dw-wal/
@@ -365,7 +367,7 @@ WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限�
 13 directories, 14 files
 ```
 
-此处，除了 *fc* 是失败重传队列，其它目录分别对应一种数据类型。当数据上传失败，这些数据会缓存到 *fc* 目录下，后续 Datakit 会间歇性将它们上传上去。
+此处，除了 *fc* 是失败重传队列，其它目录分别对应一种数据类型。当数据上传失败，这些数据会缓存到 *fc* 目录下，后续 DataKit 会间歇性将它们上传上去。
 
 如果当前主机磁盘性能不足，可以尝试 [tmpfs 下使用 WAL](wal-tmpfs.md)。
 
@@ -399,17 +401,13 @@ WAL 磁盘队列有默认的磁盘大小限制，当缓存数据量超过该限�
 
 ### 设置打开的文件描述符的最大值 {#enable-max-fd}
 
-Linux 环境下，可以在 Datakit 主配置文件中配置 `ulimit` 项，以设置 Datakit 的最大可打开文件数，如下：
+Linux 环境下，可以在 DataKit 主配置文件中配置 `ulimit` 项，以设置 DataKit 的最大可打开文件数，如下：
 
 ```toml
 ulimit = 64000
 ```
 
 ulimit 默认配置为 64000。在 Kubernetes 中，通过[设置 `ENV_ULIMIT`](datakit-daemonset-deploy.md#env-others) 即可。
-
-### :material-chat-question: 资源限制 CPU 使用率说明 {#cgroup-how}
-
-CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
 
 ### 采集器密码保护 {#secrets_management}
 
@@ -751,8 +749,38 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 
 > 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-guance`
 
+### Point 缓存 {#point-pool}
+
+[:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0)
+
+> Point 缓存目前有额外的性能问题，不建议使用。
+
+为了优化 DataKit 高负载情况下的内存占用，可以开启 Point Pool 来缓解：
+
+```toml
+# datakit.conf
+[point_pool]
+    enable = true
+    reserved_capacity = 4096
+```
+
+同时，[DataKit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码（[:octicons-tag-24: Version-1.32.0](changelog.md#cl-1.32.0) 已默认启用 v2），相比 v1，它的内存和 CPU 开销都更低。
+
+<!-- markdownlint-disable MD046 -->
+???+ warning
+
+    - 在低负载（DataKit 内存占用 100MB 左右）的情况下，开启 point pool 会增加 DataKit 自身的内存占用。所谓的高负载，一般指占用内存在 2GB+ 的场景。同时开启后也能改善 DataKit 自身的 CPU 消耗
+
+<!-- markdownlint-enable -->
+
 ## 延伸阅读 {#more-reading}
 
-- [DataKit 宿主机安装](datakit-install.md)
-- [DataKit DaemonSet 安装](datakit-daemonset-deploy.md)
-- [DataKit 行协议过滤器](datakit-filter.md)
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>宿主机安装</u>: 在服务器上安装 DataKit </font>](datakit-install.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Kubernetes 安装</u>: DaemonSet 安装 DataKit</font>](datakit-daemonset-deploy.md)
+</div>
+</font>

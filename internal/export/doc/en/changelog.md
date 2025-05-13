@@ -1,5 +1,7 @@
 # Changelog
 
+For latest changelog, see [here](changelog-{{.Year}}.md).
+
 ## 1.65.2(2024/12/31) {#cl-1.65.2}
 
 This release is a hotfix update, which includes several minor feature enhancements. The details are as follows:
@@ -73,7 +75,7 @@ This release is a hotfix update, with the following enhancements and fixes:
 - Update some built-in(Pod/Host/Process/Container) dashboards (#2489).
 - Add max-OID (now default set to 1000, old version default only 64) configure on SNMP collector to preventing excessive OIDs (#2488).
 - Fix negative network latency in the eBPF collector (#2467).
-- Add [disclaimer](index.md#disclaimer) about Datakit.
+- Add [disclaimer](index.md#disclaimer) about DataKit.
 - Other fix and documents improvements (#2507/!3347/!3345/#2501).
 
 ---
@@ -107,7 +109,7 @@ This release is an iterative update, with the following main changes:
 - Added disk information collection based on lsblk (#2408).
 - The host object collection has increased the configuration file information collection, supporting the collection of text file contents not exceeding 4KiB in size (#2453).
 - Log collection has added a field whitelist mechanism, allowing us to choose to retain only fields of interest, reducing network and storage overhead (#2469).
-- Refactored the existing DCA implementation, changing from HTTP (Datakit as the server) to WebSocket (Datakit as the client) (#2333).
+- Refactored the existing DCA implementation, changing from HTTP (DataKit as the server) to WebSocket (DataKit as the client) (#2333).
 - Added support for Volcano Cloud meta in the host object (#2472).
 
 ### Bug Fixes {#cl-1.64.0-fix}
@@ -133,7 +135,7 @@ Due to the update of API whitelist controls, some APIs that were enabled by defa
 This release includes critical fixes addressing the following issues:
 
 - **Socket Logging Bug Fix:** Resolved an issue where multi-line logs were not being logged correctly (#2461).
-- **Datakit Restart Issue:** Fixed a problem preventing Datakit from restarting on Windows when encountering Out-Of-Memory (OOM) conditions (#2465).
+- **DataKit Restart Issue:** Fixed a problem preventing DataKit from restarting on Windows when encountering Out-Of-Memory (OOM) conditions (#2465).
 - **Oracle Metric Issue:** Resolved a missing metric issue for Oracle (#2464).
 - **APM Automatic Instrumentation:** add offline install support (#2466)
 - **Prometheus Metric Scraping Restoration:** Restored the feature for scraping Prometheus metrics from Kubernetes Pod annotations, which was inadvertently removed in version 1.63.0. This restoration is essential for legacy services deployed under Kubernetes (#2471).
@@ -146,7 +148,7 @@ This release is an iterative update, with the following main changes:
 
 ### New Features {#cl-1.63.0-new}
 
-- Added support for Datakit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and <<<custom_key.brand_name>>> needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from Datakit via commands issued from the workspace web page (#2367).
+- Added support for DataKit [remote job running](datakit-conf.md#remote-job) (currently this feature needs to be manually enabled, and <<<custom_key.brand_name>>> needs to be upgraded to version 1.98.181 or higher). Currently supports obtaining JVM Dump from DataKit via commands issued from the workspace web page (#2367).
 
     Under Kubernetes, we need to update the new *datakit.yaml* with new RBAC added.
 
@@ -154,7 +156,7 @@ This release is an iterative update, with the following main changes:
 
 ### Bug Fixes {#cl-1.63.0-fix}
 
-- Fixed an issue where Datakit might fail to start due to the default enabling of WAL as the data cache queue, which did not properly handle process mutual exclusion during WAL initialization (#2457).
+- Fixed an issue where DataKit might fail to start due to the default enabling of WAL as the data cache queue, which did not properly handle process mutual exclusion during WAL initialization (#2457).
 - Fixed the installer overwriting some configurations already set in *datakit.conf* (#2454).
 
 ### Performance Improvements {#cl-1.63.0-opt}
@@ -167,7 +169,7 @@ This release is an iterative update, with the following main changes:
 ### Compatibility Adjustments {#cl-1.63.0-brk}
 
 - Removed the experimental feature of Kubernetes Self metrics, which can be achieved through KubernetesPrometheus (#2405).
-- Removed the Discovery support for Datakit CRD from the container collector.
+- Removed the Discovery support for DataKit CRD from the container collector.
 - Moved the Discovery Prometheus feature of the container collector to the KubernetesPrometheus collector to maintain relative compatibility.
 - No longer supports the PodTargetLabel configuration field of Prometheus ServiceMonitor.
 
@@ -199,11 +201,11 @@ This release is an iterative update, with the following main changes:
 - Increased the maximum log collection limit, with a default maximum of 500 files collected. In Kubernetes, this limit can be adjusted via the `ENV_LOGGING_MAX_OPEN_FILES` environment variable (#2442).
 - Support for configuring default Pipeline scripts in *datakit.conf* (#2355).
 - The dial testing collector now supports HTTP Proxy when pulling dial testing tasks from the center (#2438).
-- During the Datakit upgrade process, similar to the installation process, it now supports modifying its main configuration through command-line environment variables (#2418).
+- During the DataKit upgrade process, similar to the installation process, it now supports modifying its main configuration through command-line environment variables (#2418).
 - Added a new prom v2 collector, which significantly optimizes parsing performance compared to the v1 version (#2427).
-- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the Datakit installation process, by setting specific switches, you can automatically inject APM into the corresponding applications (Java/Python) by restarting them (#2139).
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the DataKit installation process, by setting specific switches, you can automatically inject APM into the corresponding applications (Java/Python) by restarting them (#2139).
 - RUM Session Replay data now supports with the center's configured blacklist rules (#2424).
-- The Datakit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats (HTTP `Content-Encoding`) (#2368).
+- The DataKit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats (HTTP `Content-Encoding`) (#2368).
 
 ### Bug Fixes {#cl-1.62.0-fix}
 
@@ -218,7 +220,7 @@ This release is an iterative update, with the following main changes:
 - KubernetesPrometheus collected data will adjust the timestamps of each data point according to the collection interval (#2441).
 - Container log collection supports setting the from-beginning property in Annotation/Label (#2443).
 - Optimized data point upload strategy to support ignoring data points that are too large, preventing them from causing the entire data package to fail to send (#2440).
-- Datakit API `/v1/write/:category` improves zlib format encoding support (#2439).
+- DataKit API `/v1/write/:category` improves zlib format encoding support (#2439).
 - Optimized DDTrace data point processing strategy to reduce memory usage (#2434).
 - Optimized resource usage during eBPF collection (#2430).
 - Improved GZip efficiency during upload (#2428).
@@ -226,7 +228,7 @@ This release is an iterative update, with the following main changes:
     - Improved Prometheus exporter data collection performance and reduced memory consumption.
     - Enabled [HTTP API rate limiting](datakit-conf.md#set-http-api-limit) by default to prevent sudden traffic from consuming too much memory.
     - Added [WAL disk queue](datakit-conf.md#dataway-wal) to handle memory occupation that may be caused by upload blocking. The new disk queue *will cache data that fails to upload by default*.
-    - Refined Datakit's own memory usage metrics, adding memory occupation across multiple dimensions.
+    - Refined DataKit's own memory usage metrics, adding memory occupation across multiple dimensions.
     - Added WAL panel display in the `datakit monitor -V` command.
     - Improved KubernetesPrometheus collection performance (#2426).
     - Improved container log collection performance by replace Golang JSON with `gjson` (#2425).
@@ -256,7 +258,7 @@ This release is an iterative update, with the following main changes:
 - Added a maximum log collection limit, defaulting to 500 files, with the limit adjustable in Kubernetes via the `ENV_LOGGING_MAX_OPEN_FILES` environment variable (#2442).
 - Support for configuring default Pipeline scripts in *datakit.conf* (#2355).
 - The dial testing collector now supports HTTP Proxy when pulling tasks from the server (#2438).
-- During the Datakit upgrade process, similar to the installation process, its main configuration can also be modified by passing command-line environment variables (#2418).
+- During the DataKit upgrade process, similar to the installation process, its main configuration can also be modified by passing command-line environment variables (#2418).
 
 ### Bug Fixes {#cl-1.61.0-fix}
 
@@ -283,7 +285,7 @@ This release is an iterative update, with the following main changes:
 - KubernetesPrometheus collected data will adjust the timestamps of each data point according to the collection interval (#2441).
 - Container log collection supports setting the from-beginning property in Annotation/Label (#2443).
 - Optimized data point upload strategy to support ignoring data points that are too large, preventing them from causing the entire data package to fail to send (#2440).
-- Datakit API `/v1/write/:category` improves zlib format encoding support (#2439).
+- DataKit API `/v1/write/:category` improves zlib format encoding support (#2439).
 - Optimized DDTrace data point processing strategy to reduce memory usage (#2434).
 - During log collection, added a cache of about 10MiB(dynamically allocated on each tailing log) to buffer sudden log volumes and prevent data loss (#2432).
 - Optimized resource usage during eBPF collection (#2430).
@@ -307,9 +309,9 @@ This release is an iterative update, with the following main changes:
 ### New Features {#cl-1.60.0-new}
 
 - Added a new Prometheus v2 collector, which significantly optimizes parsing performance compared to the v1 version (#2427).
-- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the Datakit installation, by setting specific flags, we can automatically inject APM into the corresponding applications (Java/Python) by restarting the applications(#2139).
+- [APM Automatic Instrumentation](datakit-install.md#apm-instrumentation): During the DataKit installation, by setting specific flags, we can automatically inject APM into the corresponding applications (Java/Python) by restarting the applications(#2139).
 - RUM Session Replay add supports for blacklist rules configured in GuanCe console (#2424).
-- The Datakit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats(HTTP `Content-Encoding`) (#2368).
+- The DataKit [`/v1/write/:category` interface](apis.md#api-v1-write) now supports multiple compression formats(HTTP `Content-Encoding`) (#2368).
 
 ### Bug Fixes {#cl-1.60.0-fix}
 
@@ -325,7 +327,7 @@ This release is an iterative update, with the following main changes:
     - Improved Prometheus exporter data collection performance and reduced memory consumption.
     - Enabled [HTTP API rate limiting](datakit-conf.md#set-http-api-limit) by default to prevent sudden traffic from consuming too much memory.
     - Added a [WAL disk queue](datakit-conf.md#dataway-wal) to handle memory occupation that may be caused by upload blocking. The new disk queue *will cache data that fails to upload by default*.
-    - Refined Datakit's own memory usage metrics, adding memory occupation across multiple dimensions.
+    - Refined DataKit's own memory usage metrics, adding memory occupation across multiple dimensions.
     - Added a WAL panel display in the `datakit monitor -V` command.
     - Improved KubernetesPrometheus collection performance (#2426).
     - Improved container log collection performance (#2425).
@@ -335,7 +337,7 @@ This release is an iterative update, with the following main changes:
 
 - Due to some performance adjustments, there are compatibility differences in the following areas:
 
-    - The maximum size of a single HTTP body upload has been adjusted to 1MB. At the same time, the maximum size of a single log has also been reduced to 1MB. This adjustment is to reduce the amount of pooled memory used by Datakit under low load conditions.
+    - The maximum size of a single HTTP body upload has been adjusted to 1MB. At the same time, the maximum size of a single log has also been reduced to 1MB. This adjustment is to reduce the amount of pooled memory used by DataKit under low load conditions.
     - The original failed retry disk queue has been deprecated (this feature was not enabled by default). The new version will enable a new failed retry disk queue by default.
 
 ---
@@ -371,9 +373,9 @@ This release is a Hotfix release addressing the following issues:
 
 - Fixed an issue where the global-tag was incorrectly added during Nginx collection (#2406).
 - Resolved a CPU core collection error in the host object collector on Windows (#2398).
-- The Chrony collector now integrates with the Dataway time synchronization mechanism to prevent data collection from being affected by Datakit's local time discrepancies (#2351).
+- The Chrony collector now integrates with the Dataway time synchronization mechanism to prevent data collection from being affected by DataKit's local time discrepancies (#2351).
     - This feature requires Dataway version 1.6.0 or higher.
-- Fixed a crash issue in Datakit's HTTP API that could occur under timeout conditions (#2091).
+- Fixed a crash issue in DataKit's HTTP API that could occur under timeout conditions (#2091).
 
 ---
 
@@ -385,7 +387,7 @@ This release is a hotfix release, fixed the following issues:
 - Resolved an issue where the Kubernetes-Prometheus collector would malfunction under specific circumstances (#2396).
 - Various `dk_upgrader` issues were fixed (#2372):
     - Fixed incorrect offline installation directory.
-    - During installation/upgrade, `dk_upgrader`'s own configuration now automatically aligns with Datakit's configuration (manual reconfiguration is no longer necessary), and DCA does not need to differentiate between offline and online upgrades.
+    - During installation/upgrade, `dk_upgrader`'s own configuration now automatically aligns with DataKit's configuration (manual reconfiguration is no longer necessary), and DCA does not need to differentiate between offline and online upgrades.
     - The installation phase can now inject ENV variables related to `dk_upgrader` without the need for additional manual configuration.
     - The `dk_upgrader` HTTP API has been enhanced with new parameters to specify version numbers and enforce upgrades (this feature is not yet supported on the DCA side).
 
@@ -485,7 +487,7 @@ This release is an iterative update with the following main changes:
 
 ### New Features {#cl-1.35.0-new}
 
-- Added [Election Whitelist](election.md#election-whitelist) support, facilitating the specification of particular hosts on which Datakit participates in elections (#2261)
+- Added [Election Whitelist](election.md#election-whitelist) support, facilitating the specification of particular hosts on which DataKit participates in elections (#2261)
 
 ### Bug Fixes {#cl-1.35.0-fix}
 
@@ -575,13 +577,13 @@ This release is an iterative update with the following main changes:
 - Added eBPF-related information and Pipeline information to the [bug report](why-no-data.md#bug-report) (#2289)
 - k8s Auto-discovery ServiceMonitor now supports configuring TLS certificate paths (#1866)
 - In the [host process](../integrations/host_processes.md) collector, added corresponding container ID fields (`container_id`) for object and metrics data collection (#2283)
-- In Trace data collection, added a Datakit fingerprint field (`datakit_fingerprint`, which is the hostname where Datakit installed) to facilitate problem investigation, and exposed some additional collection process metrics (#2295)
+- In Trace data collection, added a DataKit fingerprint field (`datakit_fingerprint`, which is the hostname where DataKit installed) to facilitate problem investigation, and exposed some additional collection process metrics (#2295)
     - Added statistics on the number of collected traces
     - Added statistics on sampled and discarded traces
 
 - Documentation improvements:
     - Added [documentation on bug reporting](bug-report-how-to.md)
-    - Explained the differences between [Datakit installation and upgrade](datakit-update.md#upgrade-vs-install)
+    - Explained the differences between [DataKit installation and upgrade](datakit-update.md#upgrade-vs-install)
     - Add documentation on add extra parameters during [offline installation](datakit-offline-install.md#simple-install)
     - Optimized the MongoDB collector field documentation (#2278)
 
@@ -597,7 +599,7 @@ This release is an iterative update with the following main changes:
 
 ### Bug Fixes {#cl-1.32.0-fix}
 
-- Fixed an issue with the identification of `localhost` in Datakit usage reporting (#2281).
+- Fixed an issue with the identification of `localhost` in DataKit usage reporting (#2281).
 - Resolved a problem with the assignment of the `service` field in log collection (#2286).
 - Other bug fixes (#2284/#2282).
 
@@ -663,7 +665,7 @@ This release is an iterative update with the following main changes:
 
 ### Feature Enhancements {#cl-1.30.0-opt}
 
-- Optimized Datakit [`/v1/write/:category` API](apis.md#api-v1-write) with the following adjustments and features (#2130)
+- Optimized DataKit [`/v1/write/:category` API](apis.md#api-v1-write) with the following adjustments and features (#2130)
     - Added more API parameters (`echo`/`dry`) for easier debugging
     - Support for more types of data formats
     - Support for fuzzy recognition of timestamp precision in data points (#2120)
@@ -683,7 +685,7 @@ This release is an iterative update with the following main changes:
 
 ### Compatibility Adjustments {#cl-1.30.0-brk}
 
-In this version, the data protocol has been extended. After upgrading from an older version of Datakit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
+In this version, the data protocol has been extended. After upgrading from an older version of DataKit, if the center base is privately deployed, the following measures can be taken to maintain data compatibility:
 
 - Upgrade the center base to 1.87.167 or
 - Modify the [upload protocol configuration `content_encoding`](datakit-conf.md#dataway-settings) in *datakit.conf* to `v2`
@@ -692,11 +694,11 @@ In this version, the data protocol has been extended. After upgrading from an ol
 
 #### For InfluxDB {#cl-1.30.0-brk-influxdb}
 
-If your time series storage is InfluxDB, then **do not upgrade Datakit**. Please maintain the highest version at 1.29.1. We'll upgraded the central latter to make it compatible with InfluxDB.
+If your time series storage is InfluxDB, then **do not upgrade DataKit**. Please maintain the highest version at 1.29.1. We'll upgraded the central latter to make it compatible with InfluxDB.
 
-Additionally, if the central has been upgraded to a newer version (1.87.167+), then lower versions of Datakit should also **use the `v1` upload protocol**. Please switch from `v2` to `v1` if you have set `v2` before.
+Additionally, if the central has been upgraded to a newer version (1.87.167+), then lower versions of DataKit should also **use the `v1` upload protocol**. Please switch from `v2` to `v1` if you have set `v2` before.
 
-If you do indeed want to upgrade to a newer version of Datakit, please replace the time series engine with GuanceDB for metrics.
+If you do indeed want to upgrade to a newer version of DataKit, please replace the time series engine with GuanceDB for metrics.
 
 <<<% endif %>>>
 
@@ -774,8 +776,8 @@ This release is an iterative update with the following main changes:
 - Further optimized Windows Event collection performance (#2172).
 - Optimized field information extraction in Jaeger APM data collection (#2174).
 - Added the `log_file_inode` field to log collection.
-- New point-pool configuration to optimize Datakit's memory usage under high load scenarios (#2034).
-    - Refactored some Datakit modules to optimize garbage collection (GC) overhead, which may slightly increase memory usage under low-load conditions (the additional memory is mainly used for the memory pool).
+- New point-pool configuration to optimize DataKit's memory usage under high load scenarios (#2034).
+    - Refactored some DataKit modules to optimize garbage collection (GC) overhead, which may slightly increase memory usage under low-load conditions (the additional memory is mainly used for the memory pool).
 - Other documentation adjustments and minor optimizations (#2191/#2189/#2185/#2181/#2180).
 
 ---
@@ -796,7 +798,7 @@ This release is an iterative update with the following main changes:
 ### Feature Enhancements {#cl-1.27.0-opt}
 
 - Prometheus Remote Write collection now supports attributing measurement name through metric prefix (#2165).
-- Improved Datakit's own metrics by adding statistics for Goroutine crashes in each module (#2173).
+- Improved DataKit's own metrics by adding statistics for Goroutine crashes in each module (#2173).
 - Enhanced the bug report feature to support direct upload of info files to OSS (#2170).
 - Optimized the performance of Windows Event collection (#2155).
 - Improved the historical position recording feature in log collection (#2156).
@@ -836,7 +838,7 @@ This release is a hotfix release that addresses the following issues:
 - Improved bug report feature, attaching self-error information in the appendix (#2132)
 - Optimized TLS settings for MySQL collector and default collector configuration file (#2134)
 - Enhanced logic for host-cloud synchronization global tag configuration, allowing tags synced from the cloud to not be added to global-host-tags (#2136)
-- Added `redis-cli` command in Datakit image for easier collection of big-key/hot-key in Redis (#2138)
+- Added `redis-cli` command in DataKit image for easier collection of big-key/hot-key in Redis (#2138)
 - Added `offset/partition` field in data collected from Kafka-MQ (#2140)
 - Miscellaneous updates and documentation enhancements (#2133/#2143)
 
@@ -889,7 +891,7 @@ This release is an iteration release, with the following updates:
 - Fixed issues with data recording functionality and improved [related documentation](datakit-daemonset-deploy.md#env-recorder) (#2092)
 - Fixed an issue with DDTrace multi-trace propagation (#2093)
 - Fixed truncation issue in Socket log collection (#2095)
-- Fixed residual main configuration file during Datakit upgrade (#2096)
+- Fixed residual main configuration file during DataKit upgrade (#2096)
 - Fixed script overwrite issue during update (#2085)
 
 ### Feature Enhancements {#cl-1.24.0-opt}
@@ -909,7 +911,7 @@ This release is an iteration release, with the following updates:
 
 This release is a Hotfix release, which fixes the following issues:
 
-- Fix Datakit service error under Windows
+- Fix DataKit service error under Windows
 
 ---
 
@@ -982,7 +984,7 @@ This release is an iteration release, with the following updates:
 
 This release is a Hotfix release, which fixes the following issues:
 
-- Fixed issue of Prometheus Remote Write not adding Datakit host tags to keep compatibility with older configurations(#2055)
+- Fixed issue of Prometheus Remote Write not adding DataKit host tags to keep compatibility with older configurations(#2055)
 - Fixed issue of default log collection in a batch of middleware not including host tags
 - Fixed issue on remove color characters within Chinese characters while collecting logging
 
@@ -1008,7 +1010,7 @@ This release is an iteration release, with the following updates:
 - DDTrace collector [removed duplicate tags in `message.Mate`](../integrations/ddtrace.md#tags) (#2010)
 - Optimized path search strategy for logs inside containers (#2027)
 - Added `datakit_version` field and set collection time to the start time of the task for [dial testing](../integrations/dialtesting.md) collector (#2029)
-- Removed `datakit export` command to decrease Datakit binary package size (#2024)
+- Removed `datakit export` command to decrease DataKit binary package size (#2024)
 - Added [time series count](why-no-data.md#check-input-conf) for debugging collector configuration (#2016)
 - [Profile collection](../integrations/profile.md) now uses disk caching to implement asynchronous reporting (#2041)
 - Update install script under Windows (#2026)
@@ -1101,7 +1103,7 @@ This release is an iterative release with the following updates:
 ### Function optimization {#cl-1.19.0-opt}
 
 - Optimized statsd collection(#1995)
-- Optimized Datakit installation script(#1979)
+- Optimized DataKit installation script(#1979)
 - Optimize MySQL dashboard(#1974)
 - Add more Prometheus metrics, such as Golang runtime(#1971/#1969)
 - Update documents and unit test optimization(#1952/#1993)
@@ -1118,7 +1120,7 @@ This release is an iterative release with the following updates:
 
 ### Compatible adjustment {#cl-1.19.0-brk}
 
-- Remove feature that write point data to Datakit local files(#1738)
+- Remove feature that write point data to DataKit local files(#1738)
 
 ---
 
@@ -1269,7 +1271,7 @@ This release is an iterative release, mainly including the following updates:
 - The Kubernetes Node object collector has added two new fields: `unschedulable` and `node_ready` (#1886)
 - The [Oracle](../integrations/oracle.md) collector now supports Linux ARM64 architecture (#1859)
 - The `logstreaming` collector has added integration tests (#1570)
-- The [Datakit development documentation](development.md) added content about IBM Db2 collector (#1870)
+- The [DataKit development documentation](development.md) added content about IBM Db2 collector (#1870)
 - Improve the documentation of the [Kafka](../integrations/kafka.md) and [MongoDB](../integrations/mongodb.md) collectors (#1883)
 - When creating a monitoring account for [MySQL](../integrations/mysql.md), MySQL 8.0+ now defaults to use the `caching_sha2_password` encryption method (#1882)
 - Optimized the syslog file size issue in the [`bug report`](why-no-data.md#bug-report) command (#1872)
@@ -1305,11 +1307,11 @@ This release is an iterative release, mainly including the following updates:
 ### Function optimization {#cl-1.15.0-opt}
 
 - [DataKit Lite](datakit-install.md#lite-install) add [logging collector](../integrations/logging.md)(#1861)
-- [`Bug Report`](why-no-data.md#bug-report) supports disabling profile data collection(to avoid pressure on the current Datakit) (#1868)
-- Optimize Datakit image size (#1869)
+- [`Bug Report`](why-no-data.md#bug-report) supports disabling profile data collection(to avoid pressure on the current DataKit) (#1868)
+- Optimize DataKit image size (#1869)
 - Docs:
     - Add [documentation](../integrations/tracing-propagator.md) for different Trace delivery instructions (#1824)
-    - Add Datakit Metric Performance Test Report (#1867)
+    - Add DataKit Metric Performance Test Report (#1867)
     - Add [documentation of external collector](../integrations/external.md) (#1851)
 - Pipeline
     - Added functions `parse_int()` and `format_int()` (#1824)
@@ -1358,7 +1360,7 @@ This release is an iterative release, mainly including the following updates:
 - Added the [process_count](../integrations/system.md#metric) metric in the System collector to indicate the number of processes on the current machine (#1838)
 - Remove [open_files_list](../integrations/host_processes.md#object) field in Process collector (#1838)
 - Added the handling case of index loss in the collector document of [host object](../integrations/hostobject.md#faq) (#1838)
-- Optimize the Datakit view and improve the Datakit Prometheus indicator documentation
+- Optimize the DataKit view and improve the DataKit Prometheus indicator documentation
 - Optimize the mount method of [Pod/container log collection](../integrations/container-log.md#logging-with-inside-config) (#1844)
 - Add Process and System collector integration tests (#1841/#1842)
 - Optimize etcd integration tests (#1847)
@@ -1368,7 +1370,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### Compatibility adjustments {#cl-1.14.0-brk}
 
-- Remove the Sinker function on the Datakit side and transfer its function to [Dataway side implementation](../deployment/dataway-sink.md) (#1801)
+- Remove the Sinker function on the DataKit side and transfer its function to [Dataway side implementation](../deployment/dataway-sink.md) (#1801)
 - Remove `pasued` and `condition` fields from Kubernetes Deployment metrics data, and add object data `paused` field
 
 ## 1.13.2 (2023/08/15) {#cl-1.13.2}
@@ -1466,7 +1468,7 @@ This release is an iterative release, mainly including the following updates:
 - Fixed the missing `host` problem of the DDTrace collector, and changed the tag collection of various Traces to a blacklist mechanism [^trace-black-list] (#1776)
 - Fix RUM API cross domain issue (#1785)
 
-[^trace-black-list]: Various types of Trace will carry various business fields (called Tag, Annotation or Attribute, etc.) on its data. In order to collect more data, Datakit accepts these fields by default.
+[^trace-black-list]: Various types of Trace will carry various business fields (called Tag, Annotation or Attribute, etc.) on its data. In order to collect more data, DataKit accepts these fields by default.
 
 ### Function optimization {#cl-1.12.0-opt}
 
@@ -1475,7 +1477,7 @@ This release is an iterative release, mainly including the following updates:
 - Add InfluxDB, Solr, NSQ, Net collector integration tests (#1758/#1736/#1759/#1760)
 - Add Flink metrics (#1777)
 - Extend Memcached, MySQL metrics collection (#1773/#1742)
-- Update Datakit's own indicator exposure (#1492)
+- Update DataKit's own indicator exposure (#1492)
 - Pipeline adds more operator support (#1749)
 - Dial test collector
     - Added built-in dashboard for dial test collector (#1765)
@@ -1546,7 +1548,7 @@ This release is an iterative release, including the following updates:
 ### Function optimization {#cl-1.10.0-opt}
 
 - KafkaMQ supports multi-line cutting configuration at topic level (#1661)
-- When Kubernetes DaemonSet is installed, it supports modifying the number of Datakit log shards and shard size through ENV (#1711)
+- When Kubernetes DaemonSet is installed, it supports modifying the number of DataKit log shards and shard size through ENV (#1711)
 - Added `memory_capacity` and `memory_used_percent` two fields for Kubernetes Pod metrics and object collection (#1721)
 - OpenTelemetry HTTP routing supports customization (#1718)
 - Oracle collector optimizes the missing problem of the `oracle_system` index set, optimizes the collection logic and adds some indexes (#1693)
@@ -1586,10 +1588,10 @@ This release is an iterative mid-term release, adding some functions for docking
 
 ### Function optimization {#cl-1.9.2-opt}
 
-- Add more information in Datakit HTTP API return for easier troubleshooting (#1697/#1701)
+- Add more information in DataKit HTTP API return for easier troubleshooting (#1697/#1701)
 - Miscellaneous refactoring (#1681/#1677)
 - RUM collector adds more Prometheus metrics exposure (#1545)
-- Enable Datakit's pprof function by default, which is convenient for troubleshooting (#1698)
+- Enable DataKit's pprof function by default, which is convenient for troubleshooting (#1698)
 
 ### Compatibility Adjustments {#cl-1.9.2-brk}
 
@@ -1648,7 +1650,7 @@ This release is an iterative release, mainly including the following updates:
 
 ### New features {#cl-1.8.0-new}
 
-- Datakit adds two debugging commands, which are convenient for users to write glob and regular expressions during configuration (#1635)
+- DataKit adds two debugging commands, which are convenient for users to write glob and regular expressions during configuration (#1635)
 - Added two-way transparent transmission of Trace ID between DDTrace and OpenTelemetry (#1633)
 
 ### Bug fixes {#cl-1.8.0-fix}
@@ -1667,7 +1669,7 @@ This release is an iterative release, mainly including the following updates:
     - Add custom SQL metrics collection (#1626)
     - Add DB level tag (#1628)
 - Optimize the `host` field problem of localhost collection (#1637)
-- Optimize Datakit's own metrics, add [Datakit's own metrics document](datakit-metrics.md) (#1639/#1492)
+- Optimize DataKit's own metrics, add [DataKit's own metrics document](datakit-metrics.md) (#1639/#1492)
 - Optimize Prometheus metrics collection on Pod, automatically support all Prometheus metrics types (#1636)
 - Added [Performance Test Document](../integrations/datakit-trace-performance.md) collected by Trace class (#1616)
 - Added Kubernetes DaemonSet object collection (#1643)
@@ -1691,14 +1693,14 @@ This release is an iterative release, mainly including the following updates:
 
 ### Bug fixes {#cl-1.7.0-fix}
 
-- When Datakit uploads, if the center returns a 5XX status code, the number of Layer 4 connections will increase. This version fixes the problem. At the same time, [*datakit.conf*](datakit-conf.md#maincfg-example) (K8s can be configured through [environment variable configuration](datakit-daemonset-deploy.md#env-dataway) ) to expose more connection-related configuration parameters (DK001-15)
+- When DataKit uploads, if the center returns a 5XX status code, the number of Layer 4 connections will increase. This version fixes the problem. At the same time, [*datakit.conf*](datakit-conf.md#maincfg-example) (K8s can be configured through [environment variable configuration](datakit-daemonset-deploy.md#env-dataway) ) to expose more connection-related configuration parameters (DK001-15)
 
 ### Function optimization {#cl-1.7.0-opt}
 
 - Optimize the collection of process objects. Some fields that may cause high consumption (such as the number of open files/ports) are closed by default. These fields can be manually enabled through the collector configuration or environment variables. These fields may be important, but we still believe that by default, this should not cause unexpected performance overhead on the host (#1543)
-- Datakit's own indicator optimization:
+- DataKit's own indicator optimization:
     - Added Prometheus index exposure for the dial test collector, which is convenient for troubleshooting some potential problems of the dial test collector itself (#1591)
-    - Increase the HTTP level indicator exposure when Datakit reports (#1597)
+    - Increase the HTTP level indicator exposure when DataKit reports (#1597)
     - Increased indicator exposure during KafkaMQ collection
 - Optimize the collection of PostgreSQL indicators, and add more related indicators (#1596)
 - Optimize JVM-related metrics collection, mainly document updates (#1600)
@@ -1732,12 +1734,12 @@ This release is an iterative release, mainly including the following updates:
 ### Function optimization {#cl-1.6.0-opt}
 
 - Optimize the output method of Windows installation script and upgrade script, so that it is easy to paste and copy directly in the terminal (#1557)
-- Optimize Datakit's own document construction process (#1578)
+- Optimize DataKit's own document construction process (#1578)
 - Optimize OpenTelemetry field handling (#1514)
 - [Prom](prom.md) Collector supports collecting labels of type `info` and appending them to all associated indicators (enabled by default) (#1544)
 - In [system collector](system.md), add CPU and memory usage percentage indicators (#1565)
-- Datakit adds data point markers (`X-Points`) in the sent data to facilitate the construction of central related indicators (#1410)
-    - In addition, the `User-Agent` tag of Datakit HTTP has been optimized and changed to `datakit-<os>-<arch>/<version>`.
+- DataKit adds data point markers (`X-Points`) in the sent data to facilitate the construction of central related indicators (#1410)
+    - In addition, the `User-Agent` tag of DataKit HTTP has been optimized and changed to `datakit-<os>-<arch>/<version>`.
 - [KafkaMQ](kafkamq.md):
     - Support for processing Jaeger data (#1526)
     - Optimize the processing of SkyWalking data (#1530)
@@ -1789,12 +1791,12 @@ This release is an iteration release and includes the following updates:
 
 ### New Features {#cl-1.5.9-new}
 
-- Added a [remote service](datakit-update.md#remote) to manage Datakit upgrades (#1441)
+- Added a [remote service](datakit-update.md#remote) to manage DataKit upgrades (#1441)
 - Added a troubleshooting feature (#1377)
 
 ### Bug Fixes {#cl-1.5.9-fix}
 
-- Fixed CPU metrics collection for Datakit to match the CPU usage reported by the monitor and `top` commands (#1547)
+- Fixed CPU metrics collection for DataKit to match the CPU usage reported by the monitor and `top` commands (#1547)
 - Fixed a panic error in the RUM input(#1548)
 
 ### Feature Optimization {#cl-1.5.9-opt}
@@ -1806,7 +1808,7 @@ This release is an iteration release and includes the following updates:
 - Added the ability to add an *instance tag* to the [Prom input](prom.md) to maintain compatibility with the native Prometheus system (#1517)
 - Added Kubernetes deployment method to [DCA](dca.md) (#1522)
 - Improved the disk cache performance of logging input(#1487)
-- Improved the Datakit metrics system to expose more [Prometheus metrics](apis.md#api-metrics) (#1492)
+- Improved the DataKit metrics system to expose more [Prometheus metrics](apis.md#api-metrics) (#1492)
 - Optimized the [/v1/write API](apis.md#api-v1-write) (#1523)
 - Optimized error prompt related to tokens during installation (#1541)
 - The monitor can now automatically retrieve connection addresses from *datakit.conf* (#1547)
@@ -1820,8 +1822,8 @@ This release is an iteration release and includes the following updates:
 ### Breaking Changes {#cl-1.5.9-brk}
 
 - Most of the Sinker features have been removed from this release except the [Sinker Dataway](datakit-sink-dataway.md) (#1444). The host installation and Kubernetes installation configurations for Sinker have also been adjusted, and the configuration method is different from before. Please note that when upgrading.
-- Due to performance issues, the previous version of the [failed-upload-disk-cache](datakit-conf.md#io-disk-cache) has been replaced with a new implementation. The binary format of the cache is no longer compatible, and if you upgrade, the old data will not be recognized. **It is recommended that you manually delete the old cache data** (old data may affect the new version of disk cache) before upgrading to the new version of Datakit. Nevertheless, the new version of disk cache is still an experimental feature, so use it with caution.
-- The Datakit metrics system has been updated, which may cause some metrics obtained by DCA to be missing, but this does not affect the core-features of DCA itself.
+- Due to performance issues, the previous version of the [failed-upload-disk-cache](datakit-conf.md#io-disk-cache) has been replaced with a new implementation. The binary format of the cache is no longer compatible, and if you upgrade, the old data will not be recognized. **It is recommended that you manually delete the old cache data** (old data may affect the new version of disk cache) before upgrading to the new version of DataKit. Nevertheless, the new version of disk cache is still an experimental feature, so use it with caution.
+- The DataKit metrics system has been updated, which may cause some metrics obtained by DCA to be missing, but this does not affect the core-features of DCA itself.
 
 ---
 
@@ -1832,10 +1834,10 @@ This release is an iterative release, mainly for bug fixes and feature improveme
 ### Bug Fixes {#cl-1.5.8-fix}
 
 - Fix the issue of possible loss of container log collection (#1520)
-- Automatically create the Pythond directory after Datakit startup (#1484)
+- Automatically create the Pythond directory after DataKit startup (#1484)
 - Remove the singleton restriction of the [`hostdir`](hostdir.md) input(#1498)
 - Fix a problem with the eBPF numeric construction (#1509)
-- Fix the issue of parameter recognition in the Datakit monitor (#1506)
+- Fix the issue of parameter recognition in the DataKit monitor (#1506)
 
 ### Feature Optimization {#cl-1.5.8-opt}
 
@@ -1870,12 +1872,12 @@ This release is an iterative release with the following updates:
 - Add [IPv6 support](datakit-conf.md#config-http-server)(#1454)
 - Disk io add extended metrics on [io wait](diskio.md#extend)(#1472)
 - Container support [Docker Containerd co-exist](container.md#requrements)(#1401)
-<!-- - Update document on [Datakit Operator Configure](datakit-operator.md)(#1482) -->
+<!-- - Update document on [DataKit Operator Configure](datakit-operator.md)(#1482) -->
 
 ### Bug Fixes {#cl-1.5.7-fix}
 
 - Fix Pipeline related bugs(#1476/#1469/#1471/#1466)
-- Fix *datakit.yaml* missing `request` field, this may cause Datakit pod always pending(#1470)
+- Fix *datakit.yaml* missing `request` field, this may cause DataKit pod always pending(#1470)
 - Disable always-retrying on cloud synchronous, this produce a lot of warning logging(#1433)
 - Fix encoding error in logging history cache file(#1474)
 
@@ -1883,12 +1885,12 @@ This release is an iterative release with the following updates:
 
 - Optimize Point Checker(#1478)
 - Optimize Pipeline function [`replace()`](../pipeline/pipeline/pipeline-built-in-function.md#fn-replace) performance (#1477)
-- Optimize Datakit installation under Windows(#1406)
+- Optimize DataKit installation under Windows(#1406)
 - Optimize [Confd](confd.md) configuration($1402)
 - Add more testing on [Filebeat](beats_output.md)(#1459)
 - Add more testing on [Nginx](nginx.md)(#1399)
 - Refactor [OTEL agent](opentelemetry.md)(#1409)
-- Update [Datakit Monitor](datakit-monitor.md#specify-module)(#1261)
+- Update [DataKit Monitor](datakit-monitor.md#specify-module)(#1261)
 
 ## 1.5.6(2023/02/23) {#cl-1.5.6}
 
@@ -1909,7 +1911,7 @@ This release is an iterative release with the following updates:
 - Fixed K8s Pod's field(`restarts`) issue (#1446)
 - Fixed DataKit crash in filter module (#1422)
 - Fixed tag-key-naming during Point building(#1413#1408)
-- Fixed Datakit Monitor charset issue (#1405)
+- Fixed DataKit Monitor charset issue (#1405)
 - Fixed OTEL tag override issue (#1396)
 - Fixed public API white list issue (#1467)
 

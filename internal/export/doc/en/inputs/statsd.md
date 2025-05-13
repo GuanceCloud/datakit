@@ -78,7 +78,7 @@ If you want to tag the hosts captured by DDTrace, you can do so by injecting tag
 - You can use environment variables, i.e. `DD_TAGS`, for example: `DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
 - You can use the command line, i.e. `dd.tags`, for example：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
 
-In the above example, you need to specify that the key for source is `source_key` and the key for host is `host_key` in the Datakit configuration. You can change it to something else, but you have to make sure that the field names in Datakit are the same as the field names in DDTrace.
+In the above example, you need to specify that the key for source is `source_key` and the key for host is `host_key` in the DataKit configuration. You can change it to something else, but you have to make sure that the field names in DataKit are the same as the field names in DDTrace.
 
 The end result is that you can see `statsd/tomcat/cn-shanghai-sq5ei` in the `datakit monitor`, which distinguishes it from other data sources reported to the statsd collector. If the above configuration is not done, then the default display is seen on the `datakit monitor`: `statsd/-/-`.
 

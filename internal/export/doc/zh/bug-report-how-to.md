@@ -1,20 +1,20 @@
-# 如何分析 Datakit Bug Report
+# 如何分析 DataKit Bug Report
 
 ---
 
 ## Bug Report 介绍 {#intro}
 
-由于 Datakit 一般部署在用户环境，为了排查问题，需要获取各种现场数据，Bug Report（后面简称 BR） 就是用来收集这些信息，同时避免现场支持工程师或用户执行太多操作，降低沟通成本。
+由于 DataKit 一般部署在用户环境，为了排查问题，需要获取各种现场数据，Bug Report（后面简称 BR） 就是用来收集这些信息，同时避免现场支持工程师或用户执行太多操作，降低沟通成本。
 
-通过 BR，我们能获取各种 Datakit 在运行阶段的现场数据，按照 BR 下面的数据目录：
+通过 BR，我们能获取各种 DataKit 在运行阶段的现场数据，按照 BR 下面的数据目录：
 
 - *basic*：机器基本环境信息
 - *config*：各种采集相关的配置
 - *data*：中心的配置拉取情况
 - *external*：主要是 eBPF 采集器有关的日志和 Profile 数据[:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
-- *log*：Datakit 自身的程序日志
-- *metrics*：Datakit 自身暴露的 Prometheus 指标
-- *profile*：Datakit 自身 Profile 数据
+- *log*：DataKit 自身的程序日志
+- *metrics*：DataKit 自身暴露的 Prometheus 指标
+- *profile*：DataKit 自身 Profile 数据
 - *pipeline*：Pipeline 脚本 [:octicons-tag-24: Version-1.33.0](changelog.md#cl-1.33.0)
 
 下面就以上各个方面，分别说明如何通过这些已有的信息，来排查遇到的具体问题。
@@ -25,11 +25,11 @@ BR 文件名形式一般为 `info-<timestamp-ms>.zip`，通过这个时间戳（
 
 在 *info* 文件中，会收集当前机器的操作系统信息，包括内核版本、发行版本、硬件架构等等。这些可以辅助我们排查问题。
 
-除此之外，如果 Datakit 是容器安装的，还会收集一堆用户侧的环境变量配置情况，所有以 `ENV_` 开头的环境变量都是针对 Datakit 主配置或采集器配置。
+除此之外，如果 DataKit 是容器安装的，还会收集一堆用户侧的环境变量配置情况，所有以 `ENV_` 开头的环境变量都是针对 DataKit 主配置或采集器配置。
 
 ## 查看采集配置 {#config}
 
-在 *config* 目录下，收集了所有采集器的配置以及 Datakit 主配置，所有文件都以 `.conf.copy` 作为后缀。在排查数据问题时，这里的配置情况非常有帮助。
+在 *config* 目录下，收集了所有采集器的配置以及 DataKit 主配置，所有文件都以 `.conf.copy` 作为后缀。在排查数据问题时，这里的配置情况非常有帮助。
 
 ## 查看中心同步数据 {#pull}
 
@@ -66,11 +66,11 @@ cat data/.pull | jq
 
 在 *log* 目录下，有两个文件：
 
-- *log*：这是 Datakit 的程序运行日志。里面的信息可能不完整，因为 Datakit 会定期（默认 32MB）丢弃老的日志
+- *log*：这是 DataKit 的程序运行日志。里面的信息可能不完整，因为 DataKit 会定期（默认 32MB）丢弃老的日志
 
 在 *log* 文件中，我们可以搜索一下 `run ID`，自此以后，才是一个重新启动的运行日志。当然，可能搜索不到，这时候可以判断日志被 Rotate 掉了。
 
-- *gin.log*：这是 Datakit 作为 HTTP 服务所记录的 access log
+- *gin.log*：这是 DataKit 作为 HTTP 服务所记录的 access log
 
 在接入了 DDTrace 等这类采集器的时候，分析 *gin.log* 有利于排查 DDTrace 数据采集的情况。
 
@@ -78,7 +78,7 @@ cat data/.pull | jq
 
 ## 指标分析 {#metrics}
 
-指标分析是 BR 分析的重点，Datakit 自己暴露了非常多的[自身指标](datakit-metrics.md#metrics)，通过分析指标，我们能推断出 Datakit 各种行为。
+指标分析是 BR 分析的重点，DataKit 自己暴露了非常多的[自身指标](datakit-metrics.md#metrics)，通过分析指标，我们能推断出 DataKit 各种行为。
 
 以下各种指标都有各自不同的标签（label/tag），综合这些标签，能更好的定位问题。
 
@@ -109,30 +109,30 @@ cat data/.pull | jq
 - `pipeline_cost_seconds`：Pipeline 处理 point 的耗时，如果耗时较长（ms 级别），则可能导致采集阻塞
 - `datakit_filter_point_dropped_total`：黑名单丢弃的 point 数
 
-[^metric-naming]: 不同版本 Datakit，Pipeline 有关的指标命名可能不同。此处只列举它们共同的后缀名
+[^metric-naming]: 不同版本 DataKit，Pipeline 有关的指标命名可能不同。此处只列举它们共同的后缀名
 
 ### 数据上传指标 {#dataway-metrics}
 
 数据上传指标主要指 Dataway 上报模块的一些 HTTP 有关的指标。
 
 - `datakit_io_dataway_point_total`：上传总点数（不一定全部上传成功）
-- `datakit_io_dataway_http_drop_point_total`：上传过程中，重传后仍失败，Datakit 会丢弃这些数据点
+- `datakit_io_dataway_http_drop_point_total`：上传过程中，重传后仍失败，DataKit 会丢弃这些数据点
 - `datakit_io_dataway_api_latency_seconds`：调用 Dataway API 的耗时。如果耗时较大，会阻塞采集器的运行
 - `datakit_io_http_retry_total`：retry 数如果较多，表明网络质量不太好，也可能中心的压力很大
 
 ### 基础指标 {#basic-metrics}
 
-基础指标主要指 Datakit 运行期间一些业务指标，它们包括：
+基础指标主要指 DataKit 运行期间一些业务指标，它们包括：
 
 - `datakit_cpu_usage`：CPU 消耗
 - `datakit_heap_alloc_bytes/datakit_sys_alloc_bytes`：Golang 运行时 heap/sys 两种内存指标。如果出现 OOM，一般是后者的内存超过了内存限制
-- `datakit_uptime_seconds`：Datakit 启动时长。启动时长是一个重要辅助指标
-- `datakit_data_overuse`：如果工作空间欠费，Datakit 上报数据会失败，这个指标的值就是 1，否则为 0
-- `datakit_goroutine_crashed_total`：崩溃的 Goroutine 计数。如果一些关键 Goroutine 崩溃，会影响 Datakit 的正常运行
+- `datakit_uptime_seconds`：DataKit 启动时长。启动时长是一个重要辅助指标
+- `datakit_data_overuse`：如果工作空间欠费，DataKit 上报数据会失败，这个指标的值就是 1，否则为 0
+- `datakit_goroutine_crashed_total`：崩溃的 Goroutine 计数。如果一些关键 Goroutine 崩溃，会影响 DataKit 的正常运行
 
 ### Monitor 查看 {#monitor-play}
 
-Datakit 内置的 monitor 命令能播放 BR 中的一些关键指标，相当于一种可视化方式，相比查看苍白的数字，它显得更加友好一点：
+DataKit 内置的 monitor 命令能播放 BR 中的一些关键指标，相当于一种可视化方式，相比查看苍白的数字，它显得更加友好一点：
 
 ```shell
 $ datakit monitor -P info-1717645398232/metrics
@@ -143,14 +143,14 @@ $ datakit monitor -P info-1717645398232/metrics
 
 ### 指标无效问题 {#invalid-metrics}
 
-BR 在分析问题时能提供非常多的帮助，但是很多时候，用户发现问题的时候，会重启 Datakit 进而丢失现场，导致 BR 收集到的数据无效。
+BR 在分析问题时能提供非常多的帮助，但是很多时候，用户发现问题的时候，会重启 DataKit 进而丢失现场，导致 BR 收集到的数据无效。
 
-此时我们可以通过 Datakit 内置的 [`dk` 采集器](../integrations/dk.md) 来采集其自身数据（建议将其添加到默认启动的采集器中，较新的 Datakit 版本[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0)已经这么做了），上报给用户的空间，这相当于将 Datakit 自身的指标存档了。而在 `dk` 采集器中，可以更进一步开启所有自身指标采集（这会消耗更多时间线）
+此时我们可以通过 DataKit 内置的 [`dk` 采集器](../integrations/dk.md) 来采集其自身数据（建议将其添加到默认启动的采集器中，较新的 DataKit 版本[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0)已经这么做了），上报给用户的空间，这相当于将 DataKit 自身的指标存档了。而在 `dk` 采集器中，可以更进一步开启所有自身指标采集（这会消耗更多时间线）
 
-- Kubernetes 中安装时，通过 `ENV_INPUT_DK_ENABLE_ALL_METRICS` 来开启所有 Datakit 自身指标上报
+- Kubernetes 中安装时，通过 `ENV_INPUT_DK_ENABLE_ALL_METRICS` 来开启所有 DataKit 自身指标上报
 - 主机安装，修改 `dk.conf`，在 `metric_name_filter` 中，打开第一个指标注释（`# ".*"`），相当于放行所有指标采集
 
-这样会将 Datakit 暴露的所有指标都采集一份到用户的工作空间。在工作空间中，通过「内置视图」中搜索 `datakit`（选择「Datakit(New)」），即可看到这些指标的可视化效果。
+这样会将 DataKit 暴露的所有指标都采集一份到用户的工作空间。在工作空间中，通过「内置视图」中搜索 `datakit`（选择「DataKit(New)」），即可看到这些指标的可视化效果。
 
 ## Pipeline 查看 {#pipeline}
 
@@ -166,13 +166,13 @@ BR 在分析问题时能提供非常多的帮助，但是很多时候，用户�
 
 ## Profile 分析 {#profile}
 
-Profile 分析主要面向开发者，通过 BR 中的 profile，我们能分析出在 BR 收集那一刻 Datakit 的内存/CPU 开销热点，透过这些 profile 分析，能指导我们更好的优化现有的代码，或者发现一些潜在的 bug。
+Profile 分析主要面向开发者，通过 BR 中的 profile，我们能分析出在 BR 收集那一刻 DataKit 的内存/CPU 开销热点，透过这些 profile 分析，能指导我们更好的优化现有的代码，或者发现一些潜在的 bug。
 
 在 *profile* 目录下，有如下一些文件：
 
-- *allocs*：自 Datakit 启动一来的内存分配总量。通过这个文件我们能得知内存分配的重头在何处。有些地方可能没必要分配那么多内存
+- *allocs*：自 DataKit 启动一来的内存分配总量。通过这个文件我们能得知内存分配的重头在何处。有些地方可能没必要分配那么多内存
 - *heap*：当前（收集 BR 那一刻）内存占用的分布。如果存在内存泄漏，这里大概率能看出来（内存泄漏一般发生在不需要那么多内存的模块，基本很容易看出来）
-- *profile*：查看当前 Datakit 进程的 CPU 消耗。一些不必要的模块可能消耗了太多了 CPU（比如高频的 JSON 解析操作）
+- *profile*：查看当前 DataKit 进程的 CPU 消耗。一些不必要的模块可能消耗了太多了 CPU（比如高频的 JSON 解析操作）
 
 其它几个文件（*block/goroutine/mutex*）目前尚未用于问题排查。
 

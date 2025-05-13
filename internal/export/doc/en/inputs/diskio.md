@@ -25,7 +25,7 @@ After successfully installing and starting DataKit, the DiskIO collector will be
 
 ### Precondition {#requirement}
 
-For some older versions of Windows operating systems, if you encounter an error with Datakit: **"The system cannot find the file specified."**
+For some older versions of Windows operating systems, if you encounter an error with DataKit: **"The system cannot find the file specified."**
 
 Run PowerShell as an administrator and execute:
 
@@ -33,7 +33,7 @@ Run PowerShell as an administrator and execute:
 diskperf -Y
 ```
 
-The Datakit service needs to be restarted after successful execution.
+The DataKit service needs to be restarted after successful execution.
 
 ### Collector Configuration {#input-config}
 

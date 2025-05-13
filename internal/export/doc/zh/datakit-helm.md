@@ -4,7 +4,7 @@
 
 本文介绍如何使用 helm 来管理 DataKit 的环境变量和采集配置。我们可以通过维护 helm 管理 DataKit 的配置变更。
 
-## 安装和修改配置 {#instal-config}
+## 安装和配置 {#instal-config}
 
 ### helm 下载 DataKit Charts 包 {#dowbload-config}
 
@@ -15,7 +15,7 @@ helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/char
 ### 修改 values.yaml {#values-configuration}
 
 <!-- markdownlint-disable MD046 -->
-???+ warning "Attention"
+???+ info
 
      `values.yaml` 在 `datakit` 目录下。
 <!-- markdownlint-enable -->
@@ -25,7 +25,7 @@ helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/char
 ```yaml
 ...
 datakit:
-  # Datakit will send the indicator data to dataway. Please be sure to change the parameters
+  # DataKit will send the indicator data to dataway. Please be sure to change the parameters
   # @param dataway_url - string - optional - default: 'https://<<<custom_key.brand_main_domain>>>'
   # The host of the DataKit intake server to send Agent data to, only set this option
   dataway_url: https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxx
@@ -163,7 +163,7 @@ helm install datakit datakit \
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    如果 values.yaml 丢失，可执行 `helm -n datakit get  values datakit -o yaml > values.yaml` 获取。
+    如果 *values.yaml* 丢失，可执行 `helm -n datakit get values datakit -o yaml > values.yaml` 获取。
 <!-- markdownlint-enable -->
 
 ```shell
@@ -182,7 +182,7 @@ helm uninstall datakit -n datakit
 ## 配置文件参考 {#config-reference}
 
 <!-- markdownlint-disable MD046 -->
-???- note "values.yaml"
+???- info "values.yaml"
 
     ```yaml
     # Default values for datakit.
@@ -190,7 +190,7 @@ helm uninstall datakit -n datakit
     # Declare variables to be passed into your templates.
 
     datakit:
-      # Datakit will send the indicator data to dataway. Please be sure to change the parameters
+      # DataKit will send the indicator data to dataway. Please be sure to change the parameters
       # @param dataway_url - string - optional - default: 'https://<<<custom_key.brand_main_domain>>>'
       # The host of the DataKit intake server to send Agent data to, only set this option
       dataway_url: https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxxxxxxxxx
@@ -213,7 +213,7 @@ helm uninstall datakit -n datakit
       log_level: info
 
       # @param http_listen - string
-      # It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
+      # It supports specifying the network card bound to the DataKit HTTP service in the installation phase (default localhost)
       http_listen: 0.0.0.0:9529
 
     image:
@@ -264,7 +264,7 @@ helm uninstall datakit -n datakit
       git_interval: "1m"
       is_use_key: false
 
-    # If true, Datakit install ipdb.
+    # If true, DataKit install ipdb.
     # ref: https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-tools-how-to/#install-ipdb
     iploc:
       enable: true
@@ -327,7 +327,7 @@ helm uninstall datakit -n datakit
       port: 9529
 
     # @param dkconfig - array - optional
-    # Configure Datakit custom input
+    # Configure DataKit custom input
     #
     dkconfig: 
      - path: "/usr/local/datakit/conf.d/logging.conf"
@@ -397,7 +397,7 @@ helm get values -n datakit datakit -o yaml > values.yaml
 
 #### 清空 Helm 信息 {#delete-values}
 
-删除 Datakit namespace 的 secrets Helm 信息。
+删除 DataKit namespace 的 secrets Helm 信息。
 
 - 获取 secrets
 

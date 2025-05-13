@@ -1,6 +1,6 @@
 ---
 title     : 'Proxy'
-summary   : 'Proxy HTTP requests to Datakit'
+summary   : 'Proxy HTTP requests to DataKit'
 __int_icon      : 'icon/proxy'
 dashboard :
   - desc  : 'N/A'
@@ -30,7 +30,7 @@ Proxy collector used to proxy HTTP request.
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, [restart Datakit](../datakit/datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 
@@ -39,7 +39,7 @@ Proxy collector used to proxy HTTP request.
 
 ## Network Topology {#network-topo}
 
-If all local Datakit Proxied there HTTP(s) requests to some proxy input:
+If all local DataKit Proxied there HTTP(s) requests to some proxy input:
 
 ```toml
 # /usr/local/datakit/conf.d/datakit.conf
@@ -52,10 +52,10 @@ The topology seems like this(here proxy server bind on some IP's 9530 port):
 
 ``` mermaid
 flowchart LR;
-dk_A(Datakit A);
-dk_B(Datakit B);
-dk_C(Datakit C);
-dk_X_proxy("Datakit X's Proxy(some-ip:9530)");
+dk_A(DataKit A);
+dk_B(DataKit B);
+dk_C(DataKit C);
+dk_X_proxy("DataKit X's Proxy(some-ip:9530)");
 dw(Dataway/Openway);
 
 subgraph "Local network"
@@ -75,7 +75,7 @@ end
 
 We can enable MITM mode to observe more details about the proxy input:
 
-- All local Datakit connect to the proxy, it must enable option `tls_insecure`:
+- All local DataKit connect to the proxy, it must enable option `tls_insecure`:
 
 ```toml
 # /usr/local/datakit/conf.d/datakit.conf
@@ -84,13 +84,13 @@ We can enable MITM mode to observe more details about the proxy input:
   # some other configures...
 ```
 
-Here the *insecure* means all local Datakit must trust the TLS certificate within the proxy server(the Proxy input), the certificate source is [here](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}.
+Here the *insecure* means all local DataKit must trust the TLS certificate within the proxy server(the Proxy input), the certificate source is [here](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}.
 
-- Once Datakit trust the certificate, the proxy will see all details the the HTTP(s) request, and export more Prometheus metrics about them
+- Once DataKit trust the certificate, the proxy will see all details the the HTTP(s) request, and export more Prometheus metrics about them
 - The proxy will re-send the request to Dataway(and with **valid** TLS certificate)
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     While MITM enabled, the performance of Proxy input will decrease dramatically, because the Proxy need to read&copy incoming request. See more details about the benchmark below.
 <!-- markdownlint-enable -->
@@ -105,7 +105,7 @@ Proxy input export some Prometheus metrics:
 | *internal/plugins/inputs/proxy* | COUNTER | `datakit_input_proxy_api_total`           | `api,method`        | Proxied API total               |
 | *internal/plugins/inputs/proxy* | SUMMARY | `datakit_input_proxy_api_latency_seconds` | `api,method,status` | Proxied API latency             |
 
-If some Datakit enabled Proxy input, there will be some metrics in dashboard of Datakit.
+If some DataKit enabled Proxy input, there will be some metrics in dashboard of DataKit.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
@@ -121,7 +121,7 @@ We got a simple HTTP(s) server & client to benchmark the proxy input. Basic sett
 - OS: macOS Ventura 13
 - HTTP(s) server: A simple HTTP(s) server that route on `POST /v1/write/:category`, and response 200 immediately.
 - Client: POST a text file about 170KB(*metric.data*) to the server.
-- Proxy: Started a Proxy input(on `http://localhost:19530`) within a local Datakit
+- Proxy: Started a Proxy input(on `http://localhost:19530`) within a local DataKit
 - Jobs: 16 clients, each POST 100 requests
 
 The command seems like this:

@@ -33,7 +33,7 @@ The SNMP protocol is divided into three versions: v1/v2c/v3, of which:
 - V1 and v2c are compatible. Many SNMP devices only offer v2c and v3 versions. v2c version, the best compatibility, many older devices only support this version.
 - If the safety requirements are high, choose v3. Security is also the main difference between v3 version and previous versions.
 
-Datakit supports all of the above versions.
+DataKit supports all of the above versions.
 
 ### Choosing v1/v2c version {#config-v2}
 
@@ -77,11 +77,11 @@ If you choose v3 version, you need to provide `username`, `authentication algori
 
     If correct the line protocol information would print out in output, otherwise no line protocol information is seen.
 
-???+ attention
+???+ note
 
     1. If the `inputs.snmp.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
-    2. The IP address (required in specified device mode)/segment (required in auto-discovery mode) of the device, the version number of the SNMP protocol and the corresponding authentication fields are required.
-    3. "Specified device mode" and "auto-discovery mode", the two modes can coexist, but the SNMP protocol version number and the corresponding authentication fields must be the same among devices.
+    1. The IP address (required in specified device mode)/segment (required in auto-discovery mode) of the device, the version number of the SNMP protocol and the corresponding authentication fields are required.
+    1. "Specified device mode" and "auto-discovery mode", the two modes can coexist, but the SNMP protocol version number and the corresponding authentication fields must be the same among devices.
 
 <!-- markdownlint-enable -->
 
@@ -187,7 +187,7 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    Some devices require additional configuration to release SNMP for security, which varies from device to device. For example, Huawei is a firewall, so it is necessary to check SNMP in "Enable Access Management" to release it. You can use the `snmpwalk` command to test whether the acquisition side and the device side are configured to connect successfully(These commands runs on the host which Datakit running on):
+    Some devices require additional configuration to release SNMP for security, which varies from device to device. For example, Huawei is a firewall, so it is necessary to check SNMP in "Enable Access Management" to release it. You can use the `snmpwalk` command to test whether the acquisition side and the device side are configured to connect successfully(These commands runs on the host which DataKit running on):
     
     ```shell
     # Applicable v2c version
@@ -217,7 +217,7 @@ For all of the following data collections, the global election tags will added a
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     All the following measurements and their metrics contain only some common fields, some device-specific fields, and some additional fields will be added according to different configurations and device models.
 <!-- markdownlint-enable -->
@@ -265,25 +265,25 @@ For all of the following data collections, the global election tags will added a
 <!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
 
-### :material-chat-question: How dows Datakit find devices? {#faq-discover}
+### How dows DataKit find devices? {#faq-discover}
 
-Datakit supports "Specified device mode" and "auto-discovery mode" two modes. The two modes can enabled at the same time.
+DataKit supports "Specified device mode" and "auto-discovery mode" two modes. The two modes can enabled at the same time.
 
-In "specified device mode", Datakit communicates with the specified IP device using the SNMP protocol to know its current online status.
+In "specified device mode", DataKit communicates with the specified IP device using the SNMP protocol to know its current online status.
 
-In "auto-discovery mode", Datakit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, Datakit assumes that there is a SNMP device on that IP.
+In "auto-discovery mode", DataKit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, DataKit assumes that there is a SNMP device on that IP.
 
-### :material-chat-question: I can't find metrics, what should I do?  {#faq-not-support}
+### I can't find metrics, what should I do?  {#faq-not-support}
 
-Datakit collects generic base-line metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
+DataKit collects generic base-line metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
 
 To archiving this, you probably needs to download the device's OID manual from its official website.
 
-### :material-chat-question: Why I can't see any metrics after I completed configuration? {#faq-no-metrics}
+### Why I can't see any metrics after I completed configuration? {#faq-no-metrics}
 
 <!-- markdownlint-enable -->
 
 Try loosening ACLs/firewall rules for your devices.
 
-Run `snmpwalk -O bentU -v 2c -c <COMMUNITY_STRING> <IP_ADDRESS>:<PORT> 1.3.6` from the host Datakit is running on. If you get a timeout without any response, there is likely something blocking Datakit from collecting metrics from your device.
+Run `snmpwalk -O bentU -v 2c -c <COMMUNITY_STRING> <IP_ADDRESS>:<PORT> 1.3.6` from the host DataKit is running on. If you get a timeout without any response, there is likely something blocking DataKit from collecting metrics from your device.
 

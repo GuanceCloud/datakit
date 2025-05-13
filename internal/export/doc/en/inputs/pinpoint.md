@@ -21,7 +21,7 @@ monitor   :
 
 ---
 
-The built-in Pinpoint Agent in Datakit is used to receive, calculate, and analyze Pinpoint Tracing protocol data.
+The built-in Pinpoint Agent in DataKit is used to receive, calculate, and analyze Pinpoint Tracing protocol data.
 
 ## Configuration {#config}
 
@@ -36,7 +36,7 @@ The built-in Pinpoint Agent in Datakit is used to receive, calculate, and analyz
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    Datakit Pinpoint Agent listening address configuration items are:
+    DataKit Pinpoint Agent listening address configuration items are:
 
     ```toml
     # Pinpoint GRPC service endpoint for
@@ -57,11 +57,11 @@ The built-in Pinpoint Agent in Datakit is used to receive, calculate, and analyz
     
 {{ CodeBlock .InputENVSample 4 }}
 
-???+ warning "The Pinpoint Agent in Datakit has the following limitations"
+???+ warning "The Pinpoint Agent in DataKit has the following limitations"
 
     - Currently only supports gRPC protocol
     - Multiple services (Agent/Metadata/Stat/Span) combined into one service use the same port
-    - There are differences between Pinpoint links and Datakit links, see [below](pinpoint.md#opentracing-vs-pinpoint) for details
+    - There are differences between Pinpoint links and DataKit links, see [below](pinpoint.md#opentracing-vs-pinpoint) for details
 
 <!-- markdownlint-enable -->
 
@@ -74,10 +74,10 @@ Pinpoint supports the multi-language APM Collector. This document uses JAVA Agen
 - Configure Pinpoint APM Collector, open */path_to_pinpoint_agent/pinpoint-root.config* and configure the corresponding multi-service ports
 
     - Configure `profiler.transport.module = GRPC`
-    - Configure `profiler.transport.grpc.agent.collector.port = 9991`   (i.e. the port configured in Datakit Pinpoint Agent)
-    - Configure `profiler.transport.grpc.metadata.collector.port = 9991`(i.e. the port configured in Datakit Pinpoint Agent)
-    - Configure `profiler.transport.grpc.stat.collector.port = 9991`    (i.e. the port configured in Datakit Pinpoint Agent)
-    - Configure `profiler.transport.grpc.span.collector.port = 9991`    (i.e. the port configured in Datakit Pinpoint Agent)
+    - Configure `profiler.transport.grpc.agent.collector.port = 9991`   (i.e. the port configured in DataKit Pinpoint Agent)
+    - Configure `profiler.transport.grpc.metadata.collector.port = 9991`(i.e. the port configured in DataKit Pinpoint Agent)
+    - Configure `profiler.transport.grpc.stat.collector.port = 9991`    (i.e. the port configured in DataKit Pinpoint Agent)
+    - Configure `profiler.transport.grpc.span.collector.port = 9991`    (i.e. the port configured in DataKit Pinpoint Agent)
 
 - Start Pinpoint APM Agent startup command
 
@@ -89,7 +89,7 @@ $ java -javaagent:/path_to_pinpoint/pinpoint-bootstrap.jar \
     -jar /path_to_your_app.jar
 ```
 
-Datakit link data follows the OpenTracing protocol. A link in Datakit is concatenated through a simple parent-child (the child span stores the id of the parent span) structure and each span corresponds to a function call.
+DataKit link data follows the OpenTracing protocol. A link in DataKit is concatenated through a simple parent-child (the child span stores the id of the parent span) structure and each span corresponds to a function call.
 
 <figure markdown>
   ![OpenTracing](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-opentracing.png){ width="600" }

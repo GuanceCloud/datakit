@@ -42,7 +42,7 @@ New Relic's .Net Agent is an open source project based on the .Net technology fr
     Currently, the collector can be enabled through [ConfigMap method to inject collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
 
-After completing the configuration, restart `Datakit` and `IIS`
+After completing the configuration, restart `DataKit` and `IIS`
 
 ```powershell
 PS> datakit service -R

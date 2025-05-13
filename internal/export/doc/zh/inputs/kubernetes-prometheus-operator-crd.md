@@ -9,7 +9,7 @@ __int_icon: 'icon/kubernetes'
 
 ## 介绍 {#intro}
 
-本文档介绍如何让 Datakit 支持 Prometheus-Operator CRD 并采集对应指标。
+本文档介绍如何让 DataKit 支持 Prometheus-Operator CRD 并采集对应指标。
 
 ## 描述 {#description}
 
@@ -20,14 +20,14 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
 3. Prometheus-Operator 会监听 CRD 实例，并根据其配置项开启指标采集
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator){:target="_blank"} 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
 <!-- markdownlint-enable -->
 
-在此处，Datakit 扮演了第 3 步的角色，由 Datakit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到<<<custom_key.brand_name>>>。
+在此处，DataKit 扮演了第 3 步的角色，由 DataKit 来监听和发现 Prometheus-Operator CRD，并根据配置开启指标采集，最终上传到<<<custom_key.brand_name>>>。
 
-目前 Datakit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置，包括以下部分：
+目前 DataKit 支持 Prometheus-Operator 两种 CRD 资源 —— `PodMonitor` 和 `ServiceMonitor`，以及其必要（require）配置，包括以下部分：
 
 ```markdown
 - PodMonitor [monitoring.coreos.com/v1]
@@ -163,7 +163,7 @@ $ kubectl apply -f pod-monitor.yaml
 - port: client
 - path: `/nacos/actuator/prometheus`
 
-配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}，目前 Datakit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerTokenSecret` 和 `tlsConfig` 等认证配置。
+配置参数[文档](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}，目前 DataKit 只支持 require 部分，暂不支持诸如 `baseAuth` `bearerTokenSecret` 和 `tlsConfig` 等认证配置。
 
 ### 指标集和 tags {#measurement-and-tags}
 
@@ -171,4 +171,4 @@ $ kubectl apply -f pod-monitor.yaml
 
 ### 验证 {#check}
 
-启动 Datakit，使用 `datakit monitor -V` 或在<<<custom_key.brand_name>>>页面上查看，能找到以 `nacos_` 开头的指标集说明采集成功。
+启动 DataKit，使用 `datakit monitor -V` 或在<<<custom_key.brand_name>>>页面上查看，能找到以 `nacos_` 开头的指标集说明采集成功。

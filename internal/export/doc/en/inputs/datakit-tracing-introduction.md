@@ -109,19 +109,19 @@ Program Performance Monitoring (APM): The ability to track programs in the marke
 
 : Zipkin is a distributed tracing system that collects sequential data for system monitoring and discovery of service-level system problems. Zipkin provides a solution that includes data collection and data query. You can jump directly from log to link based on a TraceID in Zipkin UI and provide retrieval capability based on diversified data.
 
-[Datakit](datakit-tracing.md)
+[DataKit](datakit-tracing.md)
 
-: Different from the above tracking systems, the solution provided by Datakit does not generate any program execution state data (Span) or change the data organization form. Datakit listens to receive link data sent by major tracking systems on network ports. Datakit's tracing module not only provides out-of-the-box capability, but also is almost zero configuration, and users can transition to Datakit without friction from any other tracing system.
+: Different from the above tracking systems, the solution provided by DataKit does not generate any program execution state data (Span) or change the data organization form. DataKit listens to receive link data sent by major tracking systems on network ports. DataKit's tracing module not only provides out-of-the-box capability, but also is almost zero configuration, and users can transition to DataKit without friction from any other tracing system.
 
-: Datakit is a link data processing & analysis network service. As a network application, Datakit has the following characteristics:
+: DataKit is a link data processing & analysis network service. As a network application, DataKit has the following characteristics:
 
-: - Datakit can continuously handle high-load traffic data, and the multi-channel local caching technology used in Datakit can maintain a low CPU load in the face of flooded link data in practice.
-: - Datakit can work continuously in a highly concurrent network request environment. Datakit uses access policies and thread pools to deal with highly concurrent network requests and can control CPU load in a low range.
-: - Datakit can dock with many mainstream tracking systems on the market without friction and is still expanding.
+: - DataKit can continuously handle high-load traffic data, and the multi-channel local caching technology used in DataKit can maintain a low CPU load in the face of flooded link data in practice.
+: - DataKit can work continuously in a highly concurrent network request environment. DataKit uses access policies and thread pools to deal with highly concurrent network requests and can control CPU load in a low range.
+: - DataKit can dock with many mainstream tracking systems on the market without friction and is still expanding.
 
-: Datakit as an analytic computing tool has the following features
+: DataKit as an analytic computing tool has the following features
 
-: - Highly flexible and configurable, you can use Datakit's link data capability with zero configuration, and you can customize the various link computing capabilities provided by Datakit including sampling, rare link picking and resource closing through simple configuration.
+: - Highly flexible and configurable, you can use DataKit's link data capability with zero configuration, and you can customize the various link computing capabilities provided by DataKit including sampling, rare link picking and resource closing through simple configuration.
 : - Efficient and distributed consistent sampling algorithm.
 : - A variety of data processing filters in the front section of data processing meet the daily data processing needs.
 : - Data processing back-end Pipeline support, which allows you to customize data before it is sent to the hub with the help of [the powerful Pipeline script provided by <<<custom_key.brand_name>>>](https://docs.<<<custom_key.brand_main_domain>>>/logs/pipelines/text-processing/){:target="_blank"}.

@@ -1,11 +1,11 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Datakit Profiling 相关数据结构'
+title: 'DataKit Profiling 相关数据结构'
 ---
 
-本文介绍 Datakit 中 profiling 相关数据结构定义。
+本文介绍 DataKit 中 profiling 相关数据结构定义。
 
-## Datakit 行协议介绍 {#line-protocol}
+## DataKit 行协议介绍 {#line-protocol}
 
 - Line Protocol 为数据流最后落盘数据
 - Line Protocol 数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
@@ -14,7 +14,7 @@ title: 'Datakit Profiling 相关数据结构'
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 
-## Datakit profiling 行协议中所使用的 tags 和 fields {#tags-fields}
+## DataKit profiling 行协议中所使用的 tags 和 fields {#tags-fields}
 
 | Section | Name               | Unit       | Description                                                   |
 |---------|--------------------|------------|---------------------------------------------------------------|
@@ -34,7 +34,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 | Field   | `library_ver`      |            | profiler library version                                      |
 | Field   | `profiler_version` |            | profiler library version                                      |
 | Field   | `profile_id`       |            | profiling unique ID                                           |
-| Field   | `datakit_ver`      |            | Datakit version                                               |
+| Field   | `datakit_ver`      |            | DataKit version                                               |
 | Field   | `start`            | nanosecond | profiling start timestamp                                     |
 | Field   | `end`              | nanosecond | profiling end timestamp                                       |
 | Field   | `duration`         | nanosecond | profiling duration                                            |

@@ -96,7 +96,7 @@ Require JDK version 1.8 or above.
 
 === "Kubernetes"
 
-    In Kubernetes, you can inject the trace agent through the [Datakit Operator](../datakit/datakit-operator.md#datakit-operator-inject-lib), or manually mount the trace agent into the application container.
+    In Kubernetes, you can inject the trace agent through the [DataKit Operator](../datakit/datakit-operator.md#datakit-operator-inject-lib), or manually mount the trace agent into the application container.
 
     ```yaml hl_lines="10-19" linenums="1"
     apiVersion: apps/v1
@@ -166,13 +166,13 @@ Below are the explanations for each command-line parameter and their correspondi
 
     **ENV**: `DD_AGENT_HOST`
 
-    The hostname where Datakit is listening, default is localhost.
+    The hostname where DataKit is listening, default is localhost.
 
 - **`dd.trace.agent.port`**
 
     **ENV**: `DD_TRACE_AGENT_PORT`
 
-    The port number where Datakit is listening, default is 9529.
+    The port number where DataKit is listening, default is 9529.
 
 - **`dd.trace.sample.rate`**
 
@@ -226,7 +226,7 @@ Below are the explanations for each command-line parameter and their correspondi
 
     **ENV**: `DD_PROFILING_ENABLED`
 
-    Enable Profiling control, after enabling, the Profiling information during the Java application runtime will also be collected and reported to Datakit.
+    Enable Profiling control, after enabling, the Profiling information during the Java application runtime will also be collected and reported to DataKit.
 
 
 ## More {#more-reading}

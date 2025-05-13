@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-The SkyWalking Agent embedded in Datakit is used to receive, compute and analyze SkyWalking Tracing protocol data.
+The SkyWalking Agent embedded in DataKit is used to receive, compute and analyze SkyWalking Tracing protocol data.
 
 ## SkyWalking Doc {#doc}
 
@@ -51,7 +51,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
       {{ CodeBlock .InputSample 4 }}
     ```
 
-    Datakit supports two kinds of Transport Protocol, HTTP & GRPC.
+    DataKit supports two kinds of Transport Protocol, HTTP & GRPC.
 
     /v3/profiling API for now used as compatible facility and do not send profiling data to data center.
 
@@ -93,7 +93,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
 
-## Send Log to Datakit {#logging}
+## Send Log to DataKit {#logging}
 
 - log4j2
 

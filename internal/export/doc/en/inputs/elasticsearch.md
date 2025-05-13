@@ -200,7 +200,7 @@ For all of the following data collections, the global election tags will added a
 ## Logging {#logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     Log collection only supports log collection on installed DataKit hosts
 

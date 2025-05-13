@@ -3,7 +3,7 @@
 
 This document focuses on how to incorporate existing integration documents into DataKit's documentation. The existing integration documentation is at [here](https://www.yuque.com/dataflux/integrations){:target="_blank"}.
 <!-- markdownlint-disable MD046 -->
-???+ Attention
+???+ note
 
     Documents related to DataKit integration are not recommended to be modified directly in *dataflux-doc/docs/integrations*, because DataKit's own document export is overwritten to this directory, which may cause documents manually added to *dataflux-doc/docs/integrations* to be overwritten.
 <!-- markdownlint-enable -->

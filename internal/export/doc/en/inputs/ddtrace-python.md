@@ -189,6 +189,6 @@ The common environment variables supported are as follows. For a complete list o
 - `DD_SERVICE`: Used to set the application's service name. When integrating with web frameworks such as Pylons, Flask, or Django, this value is passed. For Tracing without web integration, it is recommended to set the service name in the code.
 - `DD_SERVICE_MAPPING`: Defines service name mappings for renaming services in Tracing.
 - `DD_TAGS`: Adds default Tags to each Span in the format `key:val,key:val`.
-- `DD_AGENT_HOST`: The hostname where Datakit is listening, default is localhost.
-- `DD_AGENT_PORT`: The port number where Datakit is listening, default is 9529.
+- `DD_AGENT_HOST`: The hostname where DataKit is listening, default is localhost.
+- `DD_AGENT_PORT`: The port number where DataKit is listening, default is 9529.
 - `DD_TRACE_SAMPLE_RATE`: Sets the sampling rate from 0.0 (0%) to 1.0 (100%).

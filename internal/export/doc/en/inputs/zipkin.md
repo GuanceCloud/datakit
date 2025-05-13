@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-The Zipkin Agent embedded in Datakit is used to receive, calculate and analyze the data of Zipkin Tracing protocol.
+The Zipkin Agent embedded in DataKit is used to receive, calculate and analyze the data of Zipkin Tracing protocol.
 
 ## Configuration {#config}
 

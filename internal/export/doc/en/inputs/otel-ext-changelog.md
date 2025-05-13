@@ -12,7 +12,7 @@ Currently, OTEL has added the following technology stack extensions:
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
--   :material-language-java: __Java__
+-   :material-language-java: **Java**
 
     ---
 

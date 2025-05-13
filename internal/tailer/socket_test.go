@@ -7,7 +7,6 @@ package tailer
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync/atomic"
 	"testing"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 func TestMakeServer(t *testing.T) {
@@ -99,24 +97,29 @@ func TestForwardMessage(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		var srv server
-		var err error
+		var (
+			srv server
+			err error
 
-		// get port using tcp
-		port := testutils.RandPort("tcp")
-		opt := &option{
-			multilinePatterns: inMultilineMatch,
-		}
-		address := fmt.Sprintf("127.0.0.1:%d", port)
+			opt = &option{
+				multilinePatterns: inMultilineMatch,
+			}
+			address = "127.0.0.1:0" // make server port random
+		)
 
 		switch tc.inScheme {
 		case "tcp":
 			srv, err = newTCPServer(tc.inScheme, address, opt)
+			address = srv.(*tcpServer).listener.Addr().(*net.TCPAddr).String()
+			t.Logf("TCP server address: %s", address)
 		case "udp":
 			srv, err = newUDPServer(tc.inScheme, address)
+			address = srv.(*udpServer).conn.LocalAddr().String()
+			t.Logf("UDP server address: %s", address)
 		default:
 			t.Error("invalid scheme")
 		}
+
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
 

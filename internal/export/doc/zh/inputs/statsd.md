@@ -76,7 +76,7 @@ DD_JMXFETCH_STATSD_PORT=8125
 - 可以使用环境变量，即 [`DD_TAGS`](statsd.md#requrements)，例如：`DD_TAGS=source_key:tomcat,host_key:cn-shanghai-sq5ei`
 - 可以使用命令行方式，即 [`dd.tags`](statsd.md#requrements)，例如：`-Ddd.tags=source_key:tomcat,host_key:cn-shanghai-sq5ei`
 
-在上面的例子中，需要在 Datakit 配置中指定 source 的 key 是 `source_key`，host 的 key 是 `host_key`。改成其它的也可以，但必须保证 Datakit 中的配置字段名与 DDTrace 中的字段名一致。
+在上面的例子中，需要在 DataKit 配置中指定 source 的 key 是 `source_key`，host 的 key 是 `host_key`。改成其它的也可以，但必须保证 DataKit 中的配置字段名与 DDTrace 中的字段名一致。
 
 最终的效果是：在使用 `datakit monitor` 时可以看到 `statsd/tomcat/cn-shanghai-sq5ei`，这样可以与其它两样报告给 statsd 采集器的数据源区分开来。如果没有进行以上配置，那么在 datakit monitor 上看到的是默认展示：`statsd/-/-`。
 

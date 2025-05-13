@@ -57,7 +57,7 @@ The Pushgateway collector follows the [Prometheus Pushgateway](https://github.co
 
 Below is a simple example deployed in a Kubernetes cluster:
 
-- Enable the Pushgateway collector. Here, it's enabled as an environment variable in the Datakit YAML.
+- Enable the Pushgateway collector. Here, it's enabled as an environment variable in the DataKit YAML.
 
 ```yaml
     # ..other..
@@ -72,7 +72,7 @@ Below is a simple example deployed in a Kubernetes cluster:
     # ..other..
 ```
 
-- Create a Deployment that generates Prometheus data and sends it to the Datakit Pushgateway API.
+- Create a Deployment that generates Prometheus data and sends it to the DataKit Pushgateway API.
 
 ```yaml
 apiVersion: apps/v1
@@ -118,7 +118,7 @@ spec:
           i=100;
           while true;
           do
-            ## Periodically send data to the Datakit Pushgateway API using the cURL command
+            ## Periodically send data to the DataKit Pushgateway API using the cURL command
             echo -e "# TYPE pushgateway_count counter\npushgateway_count{name=\"client\"} $i" | curl --data-binary @- $PUSHGATEWAY_ENDPOINT;
             i=$((i+1));
             sleep 2;

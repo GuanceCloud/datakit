@@ -14,10 +14,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
-var (
-	MonofontOnTagFieldName = true
-	TODO                   = "-" // global todo string
-)
+var TODO = "-" // global todo string
 
 const (
 	Int    = "int"
@@ -119,15 +116,12 @@ type CommonMeasurement struct {
 
 func (m *MeasurementInfo) FieldsMarkdownTable() string {
 	const tableHeader = `
-| Metric | Description | Type | Unit |
-| ---- |---- | :---:    | :----: |`
-	const monoRowfmt = "|`%s`|%s|%s|%s|" // 指标/标签列等宽字体展示
-	const normalRowfmt = "|%s|%s|%s|%s|"
+| Metric | Description |
+| ----   |:----        |`
+
+	const monoRowfmt = "|**%s**|%s<br>*Type: %s*<br>*Unit: %s*|" // 指标/标签列等宽字体展示
 
 	rowfmt := monoRowfmt
-	if !MonofontOnTagFieldName {
-		rowfmt = normalRowfmt
-	}
 
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Fields)
@@ -154,7 +148,7 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 
 	tableHeader := `
 | Tag | Description |
-|  ----  | --------|`
+|  ----: | --------|`
 
 	rows := []string{tableHeader}
 	keys := sortMapKey(m.Tags)
@@ -168,11 +162,7 @@ func (m *MeasurementInfo) TagsMarkdownTable() string {
 		default:
 		}
 
-		if MonofontOnTagFieldName {
-			rows = append(rows, fmt.Sprintf("|`%s`|%s|", key, desc))
-		} else {
-			rows = append(rows, fmt.Sprintf("|%s|%s|", key, desc))
-		}
+		rows = append(rows, fmt.Sprintf("|**%s**|%s|", key, desc))
 	}
 	return strings.Join(rows, "\n")
 }

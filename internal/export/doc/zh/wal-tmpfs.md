@@ -42,7 +42,7 @@
     
         ```shell
         # 此处我们换了目录，默认情况下，datakit.yaml 中，已经将 Node 主机的 /root/datakit_cache
-        # 挂载到了 Datakit 容器的 /usr/local/datakit/cache 目录下
+        # 挂载到了 DataKit 容器的 /usr/local/datakit/cache 目录下
         mkdir -p /root/datakit_cache/ramdisk
         ```
     
@@ -52,7 +52,7 @@
         mount -t tmpfs -o size=1G tmpfs /root/datakit_cache/ramdisk
         ```
     
-    1. 在 *datakit.yaml* 中增加如下环境变量，然后重启 Datakit 容器：
+    1. 在 *datakit.yaml* 中增加如下环境变量，然后重启 DataKit 容器：
     
         ```yaml
         - name: ENV_DATAWAY_WAL_PATH
@@ -65,12 +65,12 @@
 <!-- markdownlint-disable MD046 -->
 ???+ danger "酌情调整 tmpfs 大小"
 
-    默认情况下，WAL 每个分类的磁盘空间设置为 2 GiB，一般情况下，这个量基本是足够的。在 tmpfs 场景下，如果每个分类都设置这么大的内存不太现实，此处只用 1 GiB（即所有数据分类共用 1 GiB tmpfs 空间）的内存来满足 WAL 对磁盘的需求，数据量不大且网络（Datakit 和 Dataway 之间的网络）条件正常的情况下，可能也够用了。
+    默认情况下，WAL 每个分类的磁盘空间设置为 2 GiB，一般情况下，这个量基本是足够的。在 tmpfs 场景下，如果每个分类都设置这么大的内存不太现实，此处只用 1 GiB（即所有数据分类共用 1 GiB tmpfs 空间）的内存来满足 WAL 对磁盘的需求，数据量不大且网络（DataKit 和 Dataway 之间的网络）条件正常的情况下，可能也够用了。
 
-    如果主机（或 Kubernetes Node）重启，这些 WAL 中的数据将丢失，但 Datakit 自身重启不会影响。
+    如果主机（或 Kubernetes Node）重启，这些 WAL 中的数据将丢失，但 DataKit 自身重启不会影响。
 <!-- markdownlint-enable -->
 
-设置完之后，我们在 cache 目录下即可看到有一个 *ramdisk* 目录，Datakit 启动后，如果有 WAL 产生，即可在 *ramdisk* 目录下看到各种数据分类对应的磁盘文件：
+设置完之后，我们在 cache 目录下即可看到有一个 *ramdisk* 目录，DataKit 启动后，如果有 WAL 产生，即可在 *ramdisk* 目录下看到各种数据分类对应的磁盘文件：
 
 ```shell
 # 进入 /usr/local/datakit/cache 或 /mnt/wal-ramdisk/

@@ -17,7 +17,7 @@ monitor:
 
 ---
 
-Starting from the [:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.67.0) release, Datakit has added a collector named Pyroscope. It supports the ingestion of data reported by the Grafana Pyroscope Agent, assisting users in identifying performance bottlenecks in aspects such as CPU, memory, and IO within applications.
+Starting from the [:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.67.0) release, DataKit has added a collector named Pyroscope. It supports the ingestion of data reported by the Grafana Pyroscope Agent, assisting users in identifying performance bottlenecks in aspects such as CPU, memory, and IO within applications.
 
 ## Configuration {#input-config}
 
@@ -216,7 +216,7 @@ The Pyroscope profiler currently supports the access of Pyroscope Agents in thre
     }
     ```
 
-    ???+ note
+    ???+ info
 
         The Pyroscope Rust SDK currently only works properly on the Linux platform.
 

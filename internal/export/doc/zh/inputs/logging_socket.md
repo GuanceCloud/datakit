@@ -1,6 +1,6 @@
 ---
 title     : 'Socket Logging'
-summary   : '主要用于 Java/Go/Python 日志框架如何配置 Socket，将日志发送给 Datakit 日志采集器中。'
+summary   : '主要用于 Java/Go/Python 日志框架如何配置 Socket，将日志发送给 DataKit 日志采集器中。'
 tags:
   - '日志'
 __int_icon      : 'icon/socket'
@@ -12,7 +12,7 @@ monitor   :
     path  : '-'
 ---
 
-本篇主要介绍 Java/Go/Python 日志框架如何配置 Socket，将日志发送给 Datakit 日志采集器中。
+本篇主要介绍 Java/Go/Python 日志框架如何配置 Socket，将日志发送给 DataKit 日志采集器中。
 
 > 文件采集和 Socket 采集是互斥的，开启 Socket 采集之前，请先关闭文件采集，参见[日志采集配置](logging.md)  
 

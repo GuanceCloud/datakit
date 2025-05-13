@@ -8,7 +8,7 @@
 
 ## 简述 {#intro}
 
-Datakit 可以集成到 AWS ECS Fargate 环境中，只需要简单的配置就能开启采集。
+DataKit 可以集成到 AWS ECS Fargate 环境中，只需要简单的配置就能开启采集。
 
 从 ECS Fargate 能采集到的数据有：
 
@@ -16,21 +16,21 @@ Datakit 可以集成到 AWS ECS Fargate 环境中，只需要简单的配置就�
 - 接收当前 Task 的其他容器发送的 APM 数据
 - 开启 logstreaming 接收容器日志数据
 
-ECS Fargate 的任务元数据端点（Task metadata Endpoint）只能在任务定义（Task definitions）内部使用，所以需要在每个任务定义中都部署一个 Datakit 容器。
+ECS Fargate 的任务元数据端点（Task metadata Endpoint）只能在任务定义（Task definitions）内部使用，所以需要在每个任务定义中都部署一个 DataKit 容器。
 
-启用的唯一配置是给 Datakit 添加一个环境变量 `ENV_ECS_FARGATE` 为 `"on"`，Datakit 会自动切换到此采集模式。
+启用的唯一配置是给 DataKit 添加一个环境变量 `ENV_ECS_FARGATE` 为 `"on"`，DataKit 会自动切换到此采集模式。
 
 ## 部署和配置 {#config}
 
-通常情况下，只需要将 Datakit 以容器方式集成到任务定义中，且在任务定义指定需要任务角色。可以分为 3 步，如下：
+通常情况下，只需要将 DataKit 以容器方式集成到任务定义中，且在任务定义指定需要任务角色。可以分为 3 步，如下：
 
-1. 创建或修改 [IAM 策略](https://docs.aws.amazon.com/zh_cn/IAM/latest/UserGuide/introduction.html){:target="_blank"}，Datakit 至少需要以下 3 种权限：
+1. 创建或修改 [IAM 策略](https://docs.aws.amazon.com/zh_cn/IAM/latest/UserGuide/introduction.html){:target="_blank"}，DataKit 至少需要以下 3 种权限：
 
     - `ecs:ListClusters` 列出可用的集群
     - `ecs:ListContainerInstances` 列出集群的实例
     - `ecs:DescribeContainerInstances` 描述实例以添加有关正在运行的资源和任务的指标
 
-1. 在任务定义中，添加 Datakit 容器，示例配置项如下：
+1. 在任务定义中，添加 DataKit 容器，示例配置项如下：
 
     - 名称：`datakit`
     - 镜像：`pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<指定版本>`
@@ -38,14 +38,14 @@ ECS Fargate 的任务元数据端点（Task metadata Endpoint）只能在任务�
     - 端口映射，容器端口：`9529`（按需配置，默认是 9529）
     - 资源分配限制：CPU 2vCPU，内存限制 4GB
 
-1. 使用环境变量配置 Datakit，必要的环境变量如下：
+1. 使用环境变量配置 DataKit，必要的环境变量如下：
 
     - `ENV_ECS_FARGATE`: `on`
     - `ENV_DATAWAY`: `https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>`
     - `ENV_HTTP_LISTEN`: `0.0.0.0:9529`
     - `ENV_DEFAULT_ENABLED_INPUTS`: `dk,container,ddtrace`
 
-这是一份运行的 Datakit 和 trace 的任务定义示例：
+这是一份运行的 DataKit 和 trace 的任务定义示例：
 
 ```json
 {

@@ -4,7 +4,7 @@
 
 ## 行协议 {#lp}
 
-由于历史原因，Datakit 内部使用 InfluxDB 的行协议作为基础数据结构，用来表示一个具体的数据点，它基本形式如下：
+由于历史原因，DataKit 内部使用 InfluxDB 的行协议作为基础数据结构，用来表示一个具体的数据点，它基本形式如下：
 
 ```txt
 <measurement>,<tag-list> <field-list> timestamp
@@ -77,21 +77,21 @@ BenchmarkDecode/decode-pb-10 393 3044680 ns/op 3052845 B/op 70025 allocs/op
 
 基于上面 v2 在各方面的改进，我们在自己的可观测性方面做了一下基本测试，内存和 CPU 使用都有明显的改善：
 
-在中低负载 Datakit 上，v2/v1 性能差异很明显：
+在中低负载 DataKit 上，v2/v1 性能差异很明显：
 
 <figure markdown>
   ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
 </figure>
 
-10:30 从 v2 切换到 v1，能看到 CPU/内存都有明显的上升。在在高负载 Datakit 上，性能差异也很明显：
+10:30 从 v2 切换到 v1，能看到 CPU/内存都有明显的上升。在在高负载 DataKit 上，性能差异也很明显：
 
 
 <figure markdown>
   ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
 </figure>
 
-23:45 切换了 v2，此时 sys/heap mem 相比第二天 10:30 切换到 v1 要低很多。CPU 方面，10:30 切换到 v1 后，CPU 也有上升，但不是很明显，主要是因为高负载的 Datakit 主力 CPU 不在数据编码。
+23:45 切换了 v2，此时 sys/heap mem 相比第二天 10:30 切换到 v1 要低很多。CPU 方面，10:30 切换到 v1 后，CPU 也有上升，但不是很明显，主要是因为高负载的 DataKit 主力 CPU 不在数据编码。
 
 ## 结论 {#conclude}
 
-v2 相比 v1 除了在性能方面提升显著，在拓展性方面也不在受限。同时 v2 也支持以 v1 的形式来编码，以兼容老的部署版本和开发习惯。在 Datakit 中，我们可以结合使用 [point-pool](datakit-conf.md#point-pool) 来实现更好的内存/CPU 表现。
+v2 相比 v1 除了在性能方面提升显著，在拓展性方面也不在受限。同时 v2 也支持以 v1 的形式来编码，以兼容老的部署版本和开发习惯。在 DataKit 中，我们可以结合使用 [point-pool](datakit-conf.md#point-pool) 来实现更好的内存/CPU 表现。

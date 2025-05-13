@@ -86,6 +86,8 @@ $ sudo apachectl restart
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}` {#{{$m.Name}}}
 
 {{$m.Desc}}
@@ -98,6 +100,7 @@ $ sudo apachectl restart
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
 {{ end }}
 
 ## 自定义对象 {#object}
@@ -118,8 +121,7 @@ $ sudo apachectl restart
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
-
-{{ end }}
+{{end}}
 
 ## 日志采集 {#logging}
 
@@ -138,7 +140,7 @@ $ sudo apachectl restart
 开启日志采集以后，默认会产生日志来源（`source`）为 `apache` 的日志。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     必须将 DataKit 安装在 Apache 所在主机才能采集 Apache 日志
 <!-- markdownlint-enable -->

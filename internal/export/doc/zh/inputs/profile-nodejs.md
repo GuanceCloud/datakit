@@ -27,7 +27,7 @@ subgraph App
 app(App Process)
 pyro(Pyroscope Agent)
 end
-dk(Datakit)
+dk(DataKit)
 brand_name("<<<custom_key.brand_name>>>")
 
 app --> pyro --> |profiling data|dk --> brand_name
@@ -101,7 +101,7 @@ Pyroscope.start()
 
 ## 查看 Profile {#pyroscope-view}
 
-执行上述操作后，你的 NodeJS 程序会开始采集 profiling 数据并将数据报给给 Datakit，Datakit 会将这些数据上报给<<<custom_key.brand_name>>>。稍等几分钟后就可以在<<<custom_key.brand_name>>>空间[应用性能监测 -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相应数据。
+执行上述操作后，你的 NodeJS 程序会开始采集 profiling 数据并将数据报给给 DataKit，DataKit 会将这些数据上报给<<<custom_key.brand_name>>>。稍等几分钟后就可以在<<<custom_key.brand_name>>>空间[应用性能监测 -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相应数据。
 
 ## Pull 模式 (可选) {#pyroscope-pull}
 

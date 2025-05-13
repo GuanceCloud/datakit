@@ -164,8 +164,8 @@ Description of the cut field:
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Missing metrics `postgresql_lock`, `postgresql_stat`, `postgresql_index`, `postgresql_size`, `postgresql_statio` {#faq-missing-relation-metrics}
+### Missing metrics {#faq-missing-relation-metrics}
 
-To report these metrics, the `relations` field in the configuration file needs to be enabled. If some of these metrics are partially missing, it may be because there is no data for the relevant metrics.
+For metrics `postgresql_lock/postgresql_stat/postgresql_index/postgresql_size/postgresql_statio`, the `relations` field in the configuration file needs to be enabled. If some of these metrics are partially missing, it may be because there is no data for the relevant metrics.
 
 <!-- markdownlint-enable -->

@@ -1,7 +1,7 @@
 # DataKit 整体架构简介
 ---
 
-Datakit 是运行在用户本地机器上的一种基础数据采集工具，主要用于采集系统运行的各种指标、日志等数据，将它们汇总给 [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}，在<<<custom_key.brand_name>>>中，用户可以查看并分析自己的各种指标、日志等数据。
+DataKit 是运行在用户本地机器上的一种基础数据采集工具，主要用于采集系统运行的各种指标、日志等数据，将它们汇总给 [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}，在<<<custom_key.brand_name>>>中，用户可以查看并分析自己的各种指标、日志等数据。
 
 DataKit 是<<<custom_key.brand_name>>>中至关重要的一个数据采集组件，几乎所有<<<custom_key.brand_name>>>中的数据都是来源于 DataKit。
 
@@ -44,7 +44,7 @@ DataKit 内部架构相对比较简单，如下图所示：
     - 服务管理模块：主要负责整个 DataKit 服务的管理
     - 工具链模块：DataKit 作为一个客户端程序，除了采集数据之外，还提供了很多其它的周边功能，这些都是在工具链模块实现的，如查看文档、重启服务、更新等
     - Pipeline 模块：在日志处理中，通过 [Pipeline 脚本](../pipeline/use-pipeline/index.md)，实现对日志的切割，将非结构的日志数据，转换成结构化数据。在其它非日志类数据中，也可以进行对应的数据处理
-    - 选举模块：当部署的 DataKit 特别多时，用户可以将所有 DataKit 的配置做成一样，然后通过[自动化批量部署](datakit-batch-deploy.md)将配置下发给各个 DataKit。选举模块的意义在于，在一个集群中，某些数据的采集（如 Kubernetes 集群指标），**只应有一个** Datakit 实施采集（不然数据重复，且给被采集方造成压力）。在集群中所有 DataKit 配置都一样的情况下，通过选举模块，即可实现任意时间，最多只会有一个 DataKit 实施采集
+    - 选举模块：当部署的 DataKit 特别多时，用户可以将所有 DataKit 的配置做成一样，然后通过[自动化批量部署](datakit-batch-deploy.md)将配置下发给各个 DataKit。选举模块的意义在于，在一个集群中，某些数据的采集（如 Kubernetes 集群指标），**只应有一个** DataKit 实施采集（不然数据重复，且给被采集方造成压力）。在集群中所有 DataKit 配置都一样的情况下，通过选举模块，即可实现任意时间，最多只会有一个 DataKit 实施采集
     - 文档模块：DataKit 的文档通过自身代码生成，便于文档的自动发布
 
 - 传输层：负责几乎所有数据的输入输出

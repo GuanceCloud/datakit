@@ -33,7 +33,7 @@ Add an environment variable `ENV_DATAKIT_OPERATOR` with the value of the DataKit
 The default service address of DataKit Operator is `datakit-operator.datakit.svc:443`.
 
 <!-- markdownlint-disable MD046 -->
-???+ info
+???+ note
 
     The priority of collector task election is higher than that of DataKit self-election. If a usable DataKit Operator address is configured, task election will be used first, otherwise DataKit self-election will be used.
 
@@ -76,7 +76,7 @@ The default service address of DataKit Operator is `datakit-operator.datakit.svc
 
 ### Viewing Election Status {#status}
 
-After the election is configured, you can check the current election status of Datakit by [viewing the monitor](datakit-monitor.md#view). In the `Basic Info` section, there will be a line like this:
+After the election is configured, you can check the current election status of DataKit by [viewing the monitor](datakit-monitor.md#view). In the `Basic Info` section, there will be a line like this:
 
 ```not-set
 Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
@@ -84,11 +84,11 @@ Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
 
 Here's what each part means:
 
-- `default` indicates the election-namespace in which the current Datakit participates in the election. A workspace can have multiple election-namespaces dedicated to elections.
-- `success` indicates that the current Datakit has election enabled and has been chosen as the leader.
-- `MacBook-Pro.local` shows the hostname of the Datakit that was elected in the current namespace. If this hostname is the same as the current Datakit, the duration for which it has been the leader will be displayed afterward (`elected: 4m40.554909s`) [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)
+- `default` indicates the election-namespace in which the current DataKit participates in the election. A workspace can have multiple election-namespaces dedicated to elections.
+- `success` indicates that the current DataKit has election enabled and has been chosen as the leader.
+- `MacBook-Pro.local` shows the hostname of the DataKit that was elected in the current namespace. If this hostname is the same as the current DataKit, the duration for which it has been the leader will be displayed afterward (`elected: 4m40.554909s`) [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)
 
-If it is displayed as follows, it means that the current Datakit was not elected, but it will show which one was elected:
+If it is displayed as follows, it means that the current DataKit was not elected, but it will show which one was elected:
 
 ```not-set
 Elected default::defeat|host-abc
@@ -96,14 +96,14 @@ Elected default::defeat|host-abc
 
 Here's the breakdown:
 
-- `default` indicates the namespace in which the current Datakit is participating in the election, as explained above.
-- `defeat` indicates that the current Datakit has election enabled but was not successful. In addition to this, there are several other possible statuses:
+- `default` indicates the namespace in which the current DataKit is participating in the election, as explained above.
+- `defeat` indicates that the current DataKit has election enabled but was not successful. In addition to this, there are several other possible statuses:
 
     - **disabled**: The election feature is not enabled.
     - **success**: The election was successfully completed.
     - **banned**: The election feature is enabled, but it is not on the whitelist allowed for election [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0)
 
-- `host-abc` shows the hostname of the Datakit that was elected in the current namespace.
+- `host-abc` shows the hostname of the DataKit that was elected in the current namespace.
 
 ### Election Principle {#how}
 
@@ -114,7 +114,7 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 - DataKit that does not open the election (it may not be in the current cluster). If MySQL collection is also configured, it will still collect MySQL data without election constraints.
 - The scope of the election is at the level of `workspace + election-namespace` . In a single `workspace + election-namespace`, only one DataKit can be selected as the leader at a time.
     - With regard to workspaces, in *datakit.conf*, it is represented by the `token` URL parameter in the DataWay address string, and each workspace has its corresponding token.
-    - The namespace for the election, in *datakit.conf*, is represented by the `namespace` configuration item. Multiple namespaces from different Datakits can be configured within one workspace.
+    - The namespace for the election, in *datakit.conf*, is represented by the `namespace` configuration item. Multiple namespaces from different DataKit can be configured within one workspace.
 
 <!-- markdownlint-disable MD013 -->
 ### Election Class Collector's Global Tag Settings {#global-tags}
@@ -193,7 +193,7 @@ The list of collectors currently supporting elections is as follows:
 
 ## FAQ {#faq}
 
-### :material-chat-question: `host` Field Problem {#host}
+### `host` Field Problem {#host}
 
 For objects collected by collectors participating in elections, such as MySQL, because the DataKit collecting their data may change (election rotation occurs), by default, the data collected by such collectors will not take the tag `host` to avoid timeline growth. We recommend adding an additional `tags` field to the MySQL collector configuration:
 

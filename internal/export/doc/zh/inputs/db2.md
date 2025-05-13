@@ -26,15 +26,14 @@ monitor   :
 
 ### 前置条件 {#reqirement}
 
-- 在 [IBM 网站](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"} 上下载 **DB2 ODBC/CLI driver**，也可以使用我们下载好的：
+- 下载[DB2 ODBC/CLI driver](https://www-01.ibm.com/support/docview.wss?uid=swg21418043){:target="_blank"}，也可以使用我们下载好的：
 
 ```sh
-https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
+# MD5: `A03356C83E20E74E06A3CC679424A47D`
+wget https://static.<<<custom_key.brand_main_domain>>>/otn_software/db2/linuxx64_odbc_cli.tar.gz
 ```
 
-MD5: `A03356C83E20E74E06A3CC679424A47D`
-
-- 将下载好的 **DB2 ODBC/CLI driver** 解压，推荐路径：`/opt/ibm/clidriver`
+- 将下载好的 DB2 ODBC/CLI driver 解压，推荐路径：*/opt/ibm/clidriver*
 
 ```sh
 [root@Linux /opt/ibm/clidriver]# ls
@@ -53,7 +52,7 @@ MD5: `A03356C83E20E74E06A3CC679424A47D`
 └── security64
 ```
 
-然后将路径 /opt/ibm/clidriver/**lib** 填入 *Datakit 的 IBM Db2 配置文件* 中的 `LD_LIBRARY_PATH` 环境变量中。
+然后将路径 `/opt/ibm/clidriver/lib` 填入 DataKit 的 IBM Db2 配置文件中的 `LD_LIBRARY_PATH` 环境变量中。
 
 - 对于部分系统可能还需要安装额外的依赖库：
 
@@ -75,9 +74,7 @@ update dbm cfg using DFT_MON_TABLE on
 update dbm cfg using DFT_MON_BUFPOOL on
 ```
 
-以上语句开启了以下监控： Statement, Lock, Tables, Buffer pool 。
-
-可以通过 `get dbm cfg` 命令查看开启的监控状态：
+以上语句开启了以下监控： Statement, Lock, Tables, Buffer pool。可以通过 `get dbm cfg` 命令查看开启的监控状态：
 
 ```sh
  Default database monitor switches
@@ -137,11 +134,11 @@ update dbm cfg using DFT_MON_BUFPOOL on
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 如何查看 IBM Db2 采集器的运行日志？ {#faq-logging}
+### 如何查看 IBM Db2 采集器的运行日志？ {#faq-logging}
 
-由于 IBM Db2 采集器是外部采集器，程序名称为 `db2`，其日志是单独存放在 *[Datakit 安装目录]/externals/db2.log* 中。
+由于 IBM Db2 采集器是外部采集器，程序名称为 `db2`，其日志是单独存放在 *[DataKit 安装目录]/externals/db2.log* 中。
 
-### :material-chat-question: 配置好 IBM Db2 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
+### 配置好 IBM DB2 采集之后，为何 monitor 中无数据显示？ {#faq-no-data}
 
 大概原因有如下几种可能：
 

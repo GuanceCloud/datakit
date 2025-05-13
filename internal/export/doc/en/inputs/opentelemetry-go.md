@@ -11,7 +11,7 @@ __int_icon: 'icon/opentelemetry'
 
 In this paper, the common Web-side three-tier architecture mode is used to realize the link tracing and observability of OTEL.
 
-Before using OTEL to send Trace to Datakit, make sure you have [configured the collector](opentelemetry.md).
+Before using OTEL to send Trace to DataKit, make sure you have [configured the collector](opentelemetry.md).
 
 ## Next, implement in pseudo code {#code}
 

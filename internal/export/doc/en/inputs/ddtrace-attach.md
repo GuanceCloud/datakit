@@ -134,7 +134,7 @@ cd /usr/local/ddtrace
 wget https://static.<<<custom_key.brand_main_domain>>>/ddtrace/dd-java-agent.jar
 ```
 
-???+ attention
+???+ note
 
 You must use [Extended DDTrace](ddtrace-ext-java.md), otherwise the automatic injection function is limited (various Trace parameters cannot be set).
 
@@ -153,7 +153,7 @@ java -jar agent-attach-java.jar \
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: NoClassDefFoundError VirtualMachine？ {#NoClassDefFound}
+### NoClassDefFoundError VirtualMachine？ {#NoClassDefFound}
 <!-- markdownlint-enable -->
 
 Error messages:
@@ -174,7 +174,7 @@ This is due to the lack of tools.jar package. Use the correct pom.xml configurat
 
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: UnsupportedClassVersionError？ {#UnsupportedClass}
+### UnsupportedClassVersionError？ {#UnsupportedClass}
 <!-- markdownlint-enable -->
 
 Error messages:

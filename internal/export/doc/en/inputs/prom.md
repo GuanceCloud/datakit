@@ -29,7 +29,7 @@ The Prom collector can obtain all kinds of metric data exposed by Prometheus Exp
 Only metric data in Prometheus form can be accessed.
 === "Host Installation"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the *conf.d/{{.Catalog}}* directory under the DataKit installation directory, copy *{{.InputName}}.conf.sample* and name it *{{.InputName}}.conf*. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -41,7 +41,7 @@ Only metric data in Prometheus form can be accessed.
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-???+ attention "Configuration of interval"
+???+ info "Configuration of interval"
 
     Prometheus' metrics collection will cause some overhead (HTTP request) to the target service. To prevent unexpected configuration, the collection interval is currently 30s by default, and the configuration items are not obviously released in conf. If you must configure the collection interval, you can add this configuration in conf:
 
@@ -152,7 +152,7 @@ Because Prometheus exposes a lot of metrics, you don't necessarily need all of t
 - Only Prometheus metrics that meet certain name rules are collected
 - Collect only partial measurement data (`metric_types`), such as `gauge` type indicators and `counter` type metrics
 
-DataKit supports debugging the configuration file of prom collector directly from the command line, copying a prom.conf template from conf.d/prom, filling in the corresponding Exporter address, and debugging this `prom.conf` through DataKit:
+DataKit supports debugging the configuration file of prom collector directly from the command line, copying a prom.conf template from *conf.d/prom*, filling in the corresponding Exporter address, and debugging this *prom.conf* through DataKit:
 
 Debug `prom.conf` by executing the following command
 
@@ -162,7 +162,7 @@ datakit debug --prom-conf prom.conf
 
 Parameter description:
 
-- `prom-conf`: Specifies the configuration file. By default, it looks for the `prom.conf` file in the current directory. If it is not found, it will look for the corresponding file in the *<datakit-install-dir\>/conf.d/prom* directory.
+- `prom-conf`: Specifies the configuration file. By default, it looks for the `prom.conf` file in the current directory. If it is not found, it will look for the corresponding file in the *conf.d/prom* directory.
 
 Output sample:
 

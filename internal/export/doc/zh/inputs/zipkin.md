@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Datakit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协议数据。
+DataKit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协议数据。
 
 ## 配置 {#config}
 

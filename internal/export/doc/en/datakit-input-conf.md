@@ -21,7 +21,7 @@ A typical configuration collector file has the following structure:
   ...
 ```
 <!-- markdownlint-disable MD046 -->
-??? attention
+???+ note
 
     Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations must be placed in the `conf.d` directory (or its lower subdirectory) and must be suffixed by `.conf`, otherwise DataKit will ignore the processing of the configuration file.
 <!-- markdownlint-enable -->
@@ -185,7 +185,8 @@ In addition, since Toml is used in the configuration of DataKit, it is recommend
 The primary purpose of the KV (Key-Value) pair design is to enable users to edit configuration files more conveniently via a template approach. For example, sensitive information, such as passwords and usernames, can be securely stored in the form of key-value pairs and referenced within relevant configuration files.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
+
     - Currently, it is only supported for use in the configuration files of collectors.
     - Only support for the Host configuration file, not for the [Git](./git-config-how-to.md) and [Confd](./confd.md).
 <!-- markdownlint-enable -->
@@ -197,7 +198,7 @@ The <<<custom_key.brand_name>>> allows users to create or update KV pair configu
 It's important to note that this comparison is done on a per-configuration-file basis. This means that if a configuration file contains multiple collectors, any modification to this file will result in the reloading of all collectors generated from that configuration file.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
     - If the reload includes collectors for HTTP services, such as the `ddtrace` collector, then the entire HTTP service will be restarted.
 <!-- markdownlint-enable -->
 
