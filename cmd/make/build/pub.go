@@ -251,8 +251,10 @@ func PubDatakit() error {
 		}
 	}
 
-	if err := pubDatakitHelm(); err != nil {
-		return err
+	if runtime.GOOS == datakit.OSLinux { // only publish helm under linux
+		if err := pubDatakitHelm(); err != nil {
+			return err
+		}
 	}
 
 	l.Infof("Done!(elapsed: %v)", time.Since(start))
