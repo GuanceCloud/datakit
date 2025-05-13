@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -795,7 +797,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 
 			switch k {
 			case dt.ClassHTTP:
-				ct = &dt.HTTPTask{Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)}}
+				ct = &dt.HTTPTask{}
 			case dt.ClassMulti:
 				ct = &dt.MultiTask{}
 			case dt.ClassDNS:
@@ -830,6 +832,9 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				l.Warnf("newTask failed: %s, task json(%d bytes): '%s'", err.Error(), len(j), j)
 				continue
 			}
+
+			t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
+				runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)})
 
 			l.Debugf("unmarshal task: %+#v", t)
 

@@ -63,6 +63,7 @@ type Variable struct {
 	CreatedAt       int64  `json:"-"`
 }
 type TaskChild interface {
+	ITask
 	beforeFirstRender()
 	run() error
 	init() error
@@ -118,6 +119,8 @@ type ITask interface {
 	GetWorkspaceLanguage() string
 	GetDFLabel() string
 
+	SetOption(map[string]string)
+	GetOption() map[string]string
 	SetRegionID(string)
 	SetAk(string)
 	SetStatus(string)
@@ -160,12 +163,14 @@ type Task struct {
 	rawTask    string
 	inited     bool
 	globalVars map[string]Variable
+	option     map[string]string
 }
 
 func NewTask(taskString string, task TaskChild) (ITask, error) {
 	if task == nil {
 		return nil, fmt.Errorf("invalid task")
 	}
+
 	if taskString != "" {
 		if err := json.Unmarshal([]byte(taskString), &task); err != nil {
 			return nil, fmt.Errorf("json.Unmarshal failed: %w, task json: %s", err, taskString)
@@ -188,6 +193,19 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 
 func (t *Task) SetChild(child TaskChild) {
 	t.child = child
+}
+
+func (t *Task) SetOption(opt map[string]string) {
+	if opt != nil {
+		t.option = opt
+	}
+}
+
+func (t *Task) GetOption() map[string]string {
+	if t.option == nil {
+		t.option = make(map[string]string)
+	}
+	return t.option
 }
 
 func (t *Task) UpdateTimeUs() int64 {
@@ -356,6 +374,10 @@ func (t *Task) init() error {
 
 	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
+	}
+
+	if t.option == nil {
+		t.option = map[string]string{}
 	}
 
 	return t.child.init()

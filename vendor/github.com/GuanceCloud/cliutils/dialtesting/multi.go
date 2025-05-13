@@ -160,6 +160,7 @@ func (t *MultiTask) runHTTPStep(step *MultiStep) (map[string]interface{}, error)
 		if err != nil {
 			return nil, fmt.Errorf("new task failed: %w", err)
 		}
+		task.SetOption(t.GetOption())
 		for _, v := range t.extractedVars {
 			task.AddExtractedVar(&ConfigVar{
 				Name:   v.Name,
