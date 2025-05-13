@@ -166,6 +166,7 @@ func (ipt *Input) collect(ptTS int64) error {
 		kvs = kvs.Add("total", f.Usage.Total, false, true)
 		kvs = kvs.Add("free", f.Usage.Free, false, true)
 		kvs = kvs.Add("used", f.Usage.Used, false, true)
+		kvs = kvs.AddTag("mount_point", f.Part.Mountpoint)
 
 		switch runtime.GOOS {
 		case datakit.OSLinux, datakit.OSDarwin:
@@ -177,8 +178,6 @@ func (ipt *Input) collect(ptTS int64) error {
 			kvs = kvs.Add("inodes_total", f.Usage.InodesTotal, false, true) // Deprecated
 			kvs = kvs.Add("inodes_free", f.Usage.InodesFree, false, true)   // Deprecated
 			kvs = kvs.Add("inodes_used", f.Usage.InodesUsed, false, true)   // Deprecated
-
-			kvs = kvs.AddTag("mount_point", f.Part.Mountpoint)
 		}
 
 		for k, v := range ipt.mergedTags {
