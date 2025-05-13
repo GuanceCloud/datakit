@@ -390,6 +390,9 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"container_id":              &inputs.TagInfo{Desc: "Container ID"},
 			"os_type":                   &inputs.TagInfo{Desc: "OS Type"},
 			"unit":                      &inputs.TagInfo{Desc: "metrics unit"},
+			"db_host":                   &inputs.TagInfo{Desc: "DB host name: ip or domain name"},
+			"db_system":                 &inputs.TagInfo{Desc: "Database system name:mysql,oracle..."},
+			"db_name":                   &inputs.TagInfo{Desc: "Database name"},
 			"le":                        &inputs.TagInfo{Desc: "*_bucket: histogram metric explicit bounds"},
 		},
 	}

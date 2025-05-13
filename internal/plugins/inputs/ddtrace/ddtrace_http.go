@@ -377,6 +377,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 				// 从 message 中删除 key.
 				delete(span.Meta, k)
 			}
+			if k == "db.type" { // db 类型。
+				spanKV = spanKV.AddTag("db_host", span.Meta["peer.hostname"])
+			}
 			ddTagsLock.RUnlock()
 		}
 

@@ -42,3 +42,22 @@ func attributesToKVS(spanKV point.KVs, otherAttrs, atts []*common.KeyValue) (poi
 	}
 	return spanKV, otherAttrs
 }
+
+func getDBHost(atts []*common.KeyValue) string {
+	var isDB bool
+	for _, v := range atts {
+		if v.Key == "db.system" {
+			isDB = true
+			break
+		}
+	}
+	if !isDB {
+		return ""
+	}
+	for _, attr := range atts {
+		if attr.Key == "net.peer.name" || attr.Key == "server.address" {
+			return attr.Value.GetStringValue()
+		}
+	}
+	return ""
+}

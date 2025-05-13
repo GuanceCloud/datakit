@@ -37,6 +37,10 @@ var ddTags = map[string]string{
 	"pod_name":          "pod_name",
 	"pod_namespace":     "pod_namespace",
 	"_dd.base_service":  "base_service",
+	// db 类型
+	"db.type":      "db_system",
+	"db.instance":  "db_name",
+	"db.operation": "db_operation",
 }
 
 var ddTagsLock sync.RWMutex

@@ -99,6 +99,9 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 						spanKV, attrs = attributesToKVS(spanKV, attrs, event.GetAttributes())
 					}
 				}
+				if dbHost := getDBHost(span.GetAttributes()); dbHost != "" {
+					spanKV = spanKV.AddTag("db_host", dbHost)
+				}
 				span.Attributes = attrs
 				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
 				if !delMessage {
