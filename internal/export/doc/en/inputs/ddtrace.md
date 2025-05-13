@@ -295,29 +295,32 @@ There may be significant differences in data due to different languages and vers
 
 Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:
 
-| Mete              | GuanCe tag        | doc                   |
-|:------------------|:------------------|:----------------------|
-| http.url          | http_url          | HTTP url              |
-| http.hostname     | http_hostname     | hostname              |
-| http.route        | http_route        | route                 |
-| http.status_code  | http_status_code  | status code           |
-| http.method       | http_method       | method                |
-| http.client_ip    | http_client_ip    | client IP             |
-| sampling.priority | sampling_priority | sample                |
-| span.kind         | span_kind         | span kind             |
-| error             | error             | is error              |
-| dd.version        | dd_version        | agent version         |
-| error.message     | error_message     | error message         |
-| error.stack       | error_stack       | error stack           |
-| error.type        | error_type        | error type            |
-| system.pid        | pid               | pid                   |
-| error.msg         | error_message     | error message         |
-| project           | project           | project               |
-| version           | version           | version               |
-| env               | env               | env                   |
-| host              | host              | host from dd.tags     |
-| pod_name          | pod_name          | pod_name from dd.tags |
-| _dd.base_service  | _dd_base_service  | base service          |
+| Mete              | GuanCe tag        | doc                       |
+|:------------------|:------------------|:--------------------------|
+| http.url          | http_url          | HTTP url                  |
+| http.hostname     | http_hostname     | hostname                  |
+| http.route        | http_route        | route                     |
+| http.status_code  | http_status_code  | status code               |
+| http.method       | http_method       | method                    |
+| http.client_ip    | http_client_ip    | client IP                 |
+| sampling.priority | sampling_priority | sample                    |
+| span.kind         | span_kind         | span kind                 |
+| error             | error             | is error                  |
+| dd.version        | dd_version        | agent version             |
+| error.message     | error_message     | error message             |
+| error.stack       | error_stack       | error stack               |
+| error.type        | error_type        | error type                |
+| system.pid        | pid               | pid                       |
+| error.msg         | error_message     | error message             |
+| project           | project           | project                   |
+| version           | version           | version                   |
+| env               | env               | env                       |
+| host              | host              | host from dd.tags         |
+| pod_name          | pod_name          | pod_name from dd.tags     |
+| _dd.base_service  | _dd_base_service  | base service              |
+| peer.hostname     | db_host           | JDBC config：ip or domain  |
+| db.type           | db_system         | DB type: mysql oracle ... |
+| db.instance       | db_name           | Database name             |
 
 In the link interface of the <<<custom_key.brand_name>>>, tags that are not in the list can also be filtered.
 
