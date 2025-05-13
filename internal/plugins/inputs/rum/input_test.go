@@ -134,8 +134,9 @@ func TestEnvVariableHandler(t *testing.T) {
 
 	ipt := defaultInput()
 	router := gin.New()
+	wrapper1 := &httpapi.HandlerWrapper{WrappedResponse: true}
 
-	router.GET("/v1/env_variable", httpapi.RawHTTPWrapper(nil, ipt.handleEnvVariable))
+	router.GET("/v1/env_variable", wrapper1.RawHTTPWrapper(nil, ipt.handleEnvVariable))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()

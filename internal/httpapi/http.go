@@ -73,7 +73,7 @@ type httpServerConf struct {
 func defaultHTTPServerConf() *httpServerConf {
 	return &httpServerConf{
 		apiConfig: &config.APIConfig{
-			PublicAPIs: []string{"/v1/ping"}, // Default enable ping API.
+			PublicAPIs: []string{"/v1/ping", "/v1/ntp"}, // Default enable APIs.
 		},
 	}
 }
@@ -213,18 +213,24 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	createDCARouter(router, hs)
 
-	router.GET("/v1/ping", RawHTTPWrapper(reqLimiter, apiPing))
-	router.POST("/v1/write/:category", RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
+	wraper1, wraper2 := &HandlerWrapper{WrappedResponse: true}, &HandlerWrapper{WrappedResponse: false}
 
-	router.POST("/v1/query/raw", RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))
+	// For ntp api, we should keep the same response struct like
+	// dataway API /v1/ntp, and there is no outter content wrapper.
+	router.GET("/v1/ntp", wraper2.RawHTTPWrapper(reqLimiter, apiNTP))
 
-	router.POST("/v1/object/labels", RawHTTPWrapper(reqLimiter, apiCreateOrUpdateObjectLabel, hs.dw))
-	router.DELETE("/v1/object/labels", RawHTTPWrapper(reqLimiter, apiDeleteObjectLabel, hs.dw))
+	router.GET("/v1/ping", wraper1.RawHTTPWrapper(reqLimiter, apiPing))
+	router.POST("/v1/write/:category", wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
-	router.POST("/v1/pipeline/debug", RawHTTPWrapper(reqLimiter, apiPipelineDebugHandler))
+	router.POST("/v1/query/raw", wraper1.RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))
 
-	router.POST("/v1/lasterror", RawHTTPWrapper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
-	router.GET("/restart", RawHTTPWrapper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
+	router.POST("/v1/object/labels", wraper1.RawHTTPWrapper(reqLimiter, apiCreateOrUpdateObjectLabel, hs.dw))
+	router.DELETE("/v1/object/labels", wraper1.RawHTTPWrapper(reqLimiter, apiDeleteObjectLabel, hs.dw))
+
+	router.POST("/v1/pipeline/debug", wraper1.RawHTTPWrapper(reqLimiter, apiPipelineDebugHandler))
+
+	router.POST("/v1/lasterror", wraper1.RawHTTPWrapper(reqLimiter, apiPutLastError, dkio.DefaultFeeder()))
+	router.GET("/restart", wraper1.RawHTTPWrapper(reqLimiter, apiRestart, apiRestartImpl{conf: hs}))
 
 	router.GET("/metrics", ginLimiter(reqLimiter), metrics.HTTPGinHandler(promhttp.HandlerOpts{}))
 

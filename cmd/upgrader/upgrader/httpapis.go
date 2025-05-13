@@ -111,11 +111,13 @@ func startHTTPServer() *http.Server {
 
 	ui.c = Cfg
 
+	wrapper1 := &httpapi.HandlerWrapper{WrappedResponse: true}
+
 	router.POST("/v1/datakit/upgrade",
-		httpapi.RawHTTPWrapper(nil, apiUpgrade, ui))
+		wrapper1.RawHTTPWrapper(nil, apiUpgrade, ui))
 
 	router.GET("/v1/datakit/version",
-		httpapi.RawHTTPWrapper(nil, apiDKVersion, ui))
+		wrapper1.RawHTTPWrapper(nil, apiDKVersion, ui))
 
 	serv := &http.Server{
 		Addr:    Cfg.Listen,

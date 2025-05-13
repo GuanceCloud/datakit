@@ -3,6 +3,14 @@
 
 This document mainly describes the HTTP API interfaces exposed by DataKit.
 
+In this document, among the interfaces involved, only the following interfaces are public by default (that is, they can be called from machines other than localhost). In addition to these, other interfaces require [whitelist configuration](datakit-conf.md#public-apis).
+
+| Method | API                                           |
+| ---    | ---                                           |
+| `GET`  | [`/v1/ping`](apis.md#api-ping)                |
+| `GET`  | [`/v1/ntp`](apis.md#api-ntp)                  |
+| `POST` | [`/v1/write/:category`](apis.md#api-v1-write) |
+
 ## API Overview {#intro}
 
 Currently, DataKit only supports HTTP interfaces, mainly involving data writing and data querying.
@@ -604,6 +612,20 @@ status_code: 500
 
 ## Tool related APIs {#tools-apis}
 
+### `GET /v1/ntp` {#api-ntp}
+
+[:octicons-tag-24: Version-1.73.0](changelog.md#cl-1.73.0)
+
+Get the Unix timestamp (in seconds) of the machine where DataKit is located.
+
+``` shell
+curl "http://localhost:9529/v1/ntp"
+
+{
+  "timestamp_sec": 1747100923
+}
+```
+
 ### `PUT /v1/sourcemap` {#api-sourcemap-upload}
 
 [:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
@@ -925,6 +947,8 @@ Response: {
 
 ### `/v1/ping` {##api-get-dk-version}
 
+Get running info of the DataKit.
+
 ```shell
 $ curl "http://localhost:9529/v1/ping"
 
@@ -937,8 +961,6 @@ $ curl "http://localhost:9529/v1/ping"
   }
 }
 ```
-
-In addition, in the returned Header of each of the following API requests, you can obtain the version number of the DataKit for the current request through `X-DataKit`.
 
 ### `/v1/pipeline/debug` {#api-debug-pl}
 

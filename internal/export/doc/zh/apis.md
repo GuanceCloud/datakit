@@ -4,9 +4,13 @@
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
-## API 综述 {#intro}
+本文档涉及的接口，只有如下接口是默认对外开放的（即可以从非 localhost 机器来调用），除此之外，其它接口都需要做[白名单配置](datakit-conf.md#public-apis)。
 
-DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
+| Method | API                                           |
+| ---    | ---                                           |
+| `GET`  | [`/v1/ping`](apis.md#api-ping)                |
+| `GET`  | [`/v1/ntp`](apis.md#api-ntp)                  |
+| `POST` | [`/v1/write/:category`](apis.md#api-v1-write) |
 
 ## 外部数据写入 API {#write-apis}
 
@@ -621,6 +625,20 @@ status_code: 500
 
 ## 工具类接口 {#tools-apis}
 
+### `GET /v1/ntp` {#api-ntp}
+
+[:octicons-tag-24: Version-1.73.0](changelog.md#cl-1.73.0)
+
+获取当前 DataKit 所在机器的 Unix 时间戳（单位秒）。
+
+``` shell
+curl "http://localhost:9529/v1/ntp"
+
+{
+  "timestamp_sec": 1747100923
+}
+```
+
 ### `PUT /v1/sourcemap` {#api-sourcemap-upload}
 
 [:octicons-tag-24: Version-1.12.0](changelog.md#cl-1.12.0)
@@ -953,10 +971,13 @@ Response: {
 }
 ```
 
-### `/v1/ping` {##api-get-dk-version}
+### `/v1/ping` {#api-ping}
+
+获取当前 DataKit 的运行信息。
 
 ```shell
 $ curl "http://localhost:9529/v1/ping"
+
 {
   "content": {
     "version": "1.72.0",
@@ -966,8 +987,6 @@ $ curl "http://localhost:9529/v1/ping"
   }
 }
 ```
-
-另外，在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本号。
 
 ### `/v1/pipeline/debug` {#api-debug-pl}
 

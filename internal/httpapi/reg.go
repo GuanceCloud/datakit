@@ -83,6 +83,8 @@ func addNewRegistedAPIs(hs *httpServerConf) {
 }
 
 func applyRegistedAPIs(router *gin.Engine) {
+	wrapper1 := &HandlerWrapper{WrappedResponse: true}
+
 	for _, routeInfo := range httpRouteList {
 		method := routeInfo.Method
 		path := routeInfo.Path
@@ -92,35 +94,35 @@ func applyRegistedAPIs(router *gin.Engine) {
 		switch method {
 		case http.MethodPost:
 			if routeInfo.handler != nil {
-				router.POST(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.POST(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.POST(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodGet:
 			if routeInfo.handler != nil {
-				router.GET(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.GET(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.GET(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodHead:
 			if routeInfo.handler != nil {
-				router.HEAD(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.HEAD(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.HEAD(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodPut:
 			if routeInfo.handler != nil {
-				router.PUT(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.PUT(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.PUT(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodPatch:
 			if routeInfo.handler != nil {
-				router.PATCH(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.PATCH(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.PATCH(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
@@ -128,14 +130,14 @@ func applyRegistedAPIs(router *gin.Engine) {
 		case http.MethodDelete:
 
 			if routeInfo.handler != nil {
-				router.DELETE(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.DELETE(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.DELETE(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}
 
 		case http.MethodOptions:
 			if routeInfo.handler != nil {
-				router.OPTIONS(path, RawHTTPWrapper(reqLimiter, routeInfo.handler))
+				router.OPTIONS(path, wrapper1.RawHTTPWrapper(reqLimiter, routeInfo.handler))
 			} else {
 				router.OPTIONS(path, ginLimiter(reqLimiter), routeInfo.handlerDeprecated)
 			}

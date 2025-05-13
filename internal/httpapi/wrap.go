@@ -77,12 +77,18 @@ type (
 	APIHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
 
 	Param string
+
+	HandlerWrapper struct {
+		// response wraped within a content field, such as `{"content":{origin-json ...}}`.
+		// Or, response not wraped, like `origin-json`
+		WrappedResponse bool
+	}
 )
 
 // RawHTTPWrapper warp HTTP APIs that:
 //   - with prometheus metric export
 //   - with rate limit
-func RawHTTPWrapper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
+func (hw *HandlerWrapper) RawHTTPWrapper(lmt *limiter.Limiter, next APIHandler, other ...interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		status := "unknown"
@@ -127,7 +133,11 @@ func RawHTTPWrapper(lmt *limiter.Limiter, next APIHandler, other ...interface{})
 			status = http.StatusText(getStatusCode(err))
 		} else {
 			status = http.StatusText(http.StatusOK)
-			OK.HttpBody(c, res)
+			if hw.WrappedResponse {
+				OK.HttpBody(c, res)
+			} else {
+				OK.WriteBody(c, res)
+			}
 		}
 	}
 }
