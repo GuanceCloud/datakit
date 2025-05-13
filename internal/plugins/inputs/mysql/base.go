@@ -43,70 +43,70 @@ var baseMeasurementInfo = &inputs.MeasurementInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.SizeByte,
-			Desc:     "",
+			Desc:     "The maximum amount of memory available to the parser.",
 		},
 
 		"myisam_mmap_size": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.SizeByte,
-			Desc:     "",
+			Desc:     "The maximum amount of memory to use for memory mapping compressed MyISAM files.",
 		},
 
 		"global_connection_memory_limit": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.SizeByte,
-			Desc:     "",
+			Desc:     "The total amount of memory that can be used by all user connections.",
 		},
 
 		"max_seeks_for_key": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.NCount,
-			Desc:     "",
+			Desc:     "Limit the assumed maximum number of seeks when looking up rows based on a key.",
 		},
 
 		"max_join_size": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.NCount,
-			Desc:     "",
+			Desc:     "This represents a limit on the maximum number of row accesses in base tables made by a join.",
 		},
 
 		"connection_memory_limit": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
 			Unit:     inputs.SizeByte,
-			Desc:     "",
+			Desc:     "Set the maximum amount of memory that can be used by a single user connection.",
 		},
 
 		"Ssl_ctx_verify_depth": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
-			Unit:     inputs.UnknownUnit,
-			Desc:     "",
+			Unit:     inputs.NCount,
+			Desc:     "The certificate verification depth limit currently set in ctx.",
 		},
 
 		"Mysqlx_ssl_ctx_verify_depth": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
-			Unit:     inputs.UnknownUnit,
-			Desc:     "",
+			Unit:     inputs.NCount,
+			Desc:     "The certificate verification depth limit currently set in ctx.",
 		},
 
 		"max_write_lock_count": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
-			Unit:     inputs.UnknownUnit,
-			Desc:     "",
+			Unit:     inputs.NCount,
+			Desc:     "After this many write locks, permit some pending read lock requests to be processed in between.",
 		},
 
 		"sql_select_limit": &inputs.FieldInfo{
 			DataType: inputs.Int,
 			Type:     inputs.Gauge,
-			Unit:     inputs.UnknownUnit,
-			Desc:     "",
+			Unit:     inputs.NCount,
+			Desc:     "The maximum number of rows to return from SELECT statements.",
 		},
 
 		// status
