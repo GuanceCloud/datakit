@@ -100,7 +100,7 @@ For security reasons, DataKit restricts the access to some of its own APIs by de
   ]
 ```
 
-By default, `public_apis` is empty. For the sake of convenience and compatibility, the Ping API (`/v1/ping`) and the basic data upload APIs ("/v1/write/:category") are open by default, and all other APIs are prohibited from external access. For the APIs corresponding to collectors, such as tracing collectors, once the collector is enabled, its APIs will be automatically opened and can be accessed externally by default.
+By default, `public_apis` is empty. For the sake of convenience and compatibility, only [specific APIs](`apis.md`) are public by default, and all other APIs disabled from external access. For the APIs corresponding to collectors, such as tracing collectors, once the collector is enabled, its APIs will be automatically opened and can be accessed externally by default.
 
 For adding an API whitelist in Kubernetes, please refer to [here](datakit-daemonset-deploy.md#env-http-api).
 

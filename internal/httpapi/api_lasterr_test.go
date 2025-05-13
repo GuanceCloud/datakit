@@ -32,8 +32,9 @@ func (m *mockAPIPutLastError) FeedLastError(err string, opts ...metrics.LastErro
 func TestAPIPutLastError(t *T.T) {
 	router := gin.New()
 	m := &mockAPIPutLastError{}
+	wraper1 := &HandlerWrapper{WrappedResponse: true}
 
-	router.POST("/", RawHTTPWrapper(nil, apiPutLastError, m))
+	router.POST("/", wraper1.RawHTTPWrapper(nil, apiPutLastError, m))
 
 	ts := httptest.NewServer(router)
 	time.Sleep(time.Second)
