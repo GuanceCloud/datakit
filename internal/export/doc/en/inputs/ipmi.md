@@ -69,7 +69,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     1. IP address refers to the IP address of the IPMI port of the server that you remotely manage
     1. Server `IPMI Settings -> Enable IPMI on LAN` needs to be checked
@@ -96,7 +96,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     
 {{ CodeBlock .InputENVSample 4 }}
 
-???+ tip "Configuration"
+???+ note "Configuration"
 
     - The keywords for each parameter classification are all in lowercase
     - Refer to `ipmitool -I ...` The data returned by the command, then the keywords are reasonably configured

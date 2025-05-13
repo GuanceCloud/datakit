@@ -13,9 +13,9 @@ Pinpoint Java Agent [Download address](https://github.com/pinpoint-apm/pinpoint/
 
 ---
 
-## Configure Datakit Agent {#config-datakit-agent}
+## Configure DataKit Agent {#config-datakit-agent}
 
-Refer to [Configuring Pinpoint Agent in Datakit](pinpoint.md#config)
+Refer to [Configuring Pinpoint Agent in DataKit](pinpoint.md#config)
 
 ## Configure Pinpoint Java Agent {#config-pinpoint-java-agent}
 
@@ -36,11 +36,11 @@ Basic parameter description:
 - pinpoint.agentId                                : Agent ID
 - pinpoint.agentName                              : Agent name
 - profiler.transport.module                       : Transport protocol (gRPC/Thrift)
-- profiler.transport.grpc.collector.ip            : Collector IP address (that is, the host address where Datakit is started)
-- profiler.transport.grpc.agent.collector.port    : Agent collector port（ (that is, the listening port of Pinpoint Agent in Datakit)
-- profiler.transport.grpc.metadata.collector.port : Metadata collector port (that is, the listening port of Pinpoint Agent in Datakit)
-- profiler.transport.grpc.stat.collector.port     : stat collector port (that is, the listening port of Pinpoint Agent in Datakit)
-- profiler.transport.grpc.span.collector.port     : span collector port (that is, the listening port of Pinpoint Agent in Datakit)
+- profiler.transport.grpc.collector.ip            : Collector IP address (that is, the host address where DataKit is started)
+- profiler.transport.grpc.agent.collector.port    : Agent collector port（ (that is, the listening port of Pinpoint Agent in DataKit)
+- profiler.transport.grpc.metadata.collector.port : Metadata collector port (that is, the listening port of Pinpoint Agent in DataKit)
+- profiler.transport.grpc.stat.collector.port     : stat collector port (that is, the listening port of Pinpoint Agent in DataKit)
+- profiler.transport.grpc.span.collector.port     : span collector port (that is, the listening port of Pinpoint Agent in DataKit)
 - profiler.sampling.enable                        : whether to start sampling
 - profiler.sampling.type                          : sampling algorithm
 - profiler.sampling.counting.sampling-rate        : sampling rate
@@ -64,7 +64,7 @@ Basic parameter description:
 
 ## Compatibility {#compatibility}
 
-The Pinpoint Agent currently used by Datakit is [pinpoint-go-agent](https://github.com/pinpoint-apm/pinpoint-go-agent){:target="_blank"}-v1.3.2
+The Pinpoint Agent currently used by DataKit is [pinpoint-go-agent](https://github.com/pinpoint-apm/pinpoint-go-agent){:target="_blank"}-v1.3.2
 
 Pinpoint Agent versions currently undergoing testing include:
 

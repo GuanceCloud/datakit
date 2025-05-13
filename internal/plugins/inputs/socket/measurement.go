@@ -39,7 +39,7 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "tcp",
 		Type: "metric",
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "TCP domain or host, such as `wwww.baidu.com`, `1.2.3.4`"},
+			"dest_host": &inputs.TagInfo{Desc: "TCP domain or host, such as `wwww.google.com`, `1.2.3.4`"},
 			"dest_port": &inputs.TagInfo{Desc: "TCP port, such as `80`"},
 			"proto":     &inputs.TagInfo{Desc: "Protocol, const to be `tcp`"},
 		},

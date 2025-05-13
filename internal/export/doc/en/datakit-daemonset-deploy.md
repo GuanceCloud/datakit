@@ -10,7 +10,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
     Download [`datakit.yaml`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
-    ???+ attention
+    ???+ note
     
         If you want to modify the default configuration of these collectors, you can configure them by [mounting a separate conf in `ConfigMap` mode](k8s-config-how-to.md#via-configmap-conf). Some collectors can be adjusted directly by means of environment variables. See the documents of specific collectors for details. All in all, configuring the collector through [`ConfigMap`](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} is always effective when deploying the DataKit in DaemonSet mode, whether it is a collector turned on by default or other collectors.
     
@@ -47,7 +47,7 @@ This document describes how to install DataKit in K8s via DaemonSet.
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    Helm installs Datakit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
+    Helm installs DataKit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ```shell
     $ helm install datakit datakit \
@@ -79,7 +79,47 @@ This document describes how to install DataKit in K8s via DaemonSet.
     ```
 <!-- markdownlint-enable -->
 
-## Kubernetes Tolerance Configuration {#toleration}
+### Resource Limits {#requests-limits}
+
+DataKit has set default Requests and Limits. If the DataKit container status changes to OOMKilled, you can customize and modify the configuration.
+
+<!-- markdownlint-disable MD046 -->
+=== "Yaml"
+
+    The approximate format in *datakit.yaml* is as follows:
+
+    ```yaml
+    ...
+                resources:
+                  requests:
+                    cpu: "200m"
+                    memory: "128Mi"
+                  limits:
+                    cpu: "2000m"
+                    memory: "4Gi"
+    ...
+    ```
+
+=== "Helm"
+
+    The approximate format in Helm values.yaml is as follows:
+
+    ```yaml
+    ...
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+    ...
+    ```
+<!-- markdownlint-enable -->
+
+For specific configurations, refer to the [official document](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}.
+
+### Kubernetes Tolerance Configuration {#toleration}
 
 DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify `datakit.yaml` to adjust the stain tolerance:
 
@@ -90,7 +130,14 @@ DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, 
 
 For specific bypass strategies, see [official doc](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
-## ConfigMap Settings {#configmap-setting}
+## Collector Configuration {#input-config}
+
+There are two ways to configure collectors in DataKit for Kubernetes:
+
+1. ConfigMap: Append collector configurations by injecting a ConfigMap.
+1. Environment Variables: Inject a complete TOML collection configuration through a specific environment variable.
+
+### ConfigMap Settings {#configmap-setting}
 
 The opening of some collectors needs to be injected through ConfigMap. The following is an injection example of MySQL and Redis collectors:
 
@@ -123,38 +170,9 @@ data:
                ...
 ```
 
-## Environment Variables {#using-k8-env}
+### ENV Set Collectors {#env-setting}
 
-> Note: If ENV_LOG is configured to `stdout`, do not set ENV_LOG_LEVEL to `debug`, otherwise looping logs may result in large amounts of log data.
-
-In DaemonSet mode, DataKit supports multiple environment variable configurations.
-
-- The approximate format in `datakit.yaml` is
-
-```yaml
-spec:
-  containers:
-    - env
-    - name: ENV_XXX
-      value: YYY
-    - name: ENV_OTHER_XXX
-      value: YYY
-```
-
-- The approximate format in Helm values.yaml is
-
-```yaml
-  extraEnvs: 
-    - name: "ENV_XXX"
-      value: "YYY"
-    - name: "ENV_OTHER_XXX"
-      value: "YYY"    
-```
-
-## ENV Set Collectors {#env-setting}
-
-The opening of some collectors can also be injected through ENV_DATAKIT_INPUTS.
-The following is an injection example of MySQL and Redis collectors:
+The opening of some collectors can also be injected through `ENV_DATAKIT_INPUTS`. The following is an injection example of MySQL and Redis collectors:
 
 - The approximate format in `datakit.yaml` is
 
@@ -202,6 +220,32 @@ spec:
 
 The injected content will be stored in the conf.d/env_datakit_inputs.conf file of the container.
 
+## Environments about DataKit main configure {#using-k8-env}
+
+In Kubernetes, DataKit no longer uses *datkait.conf* for configuration and can only use environment variables. In the DaemonSet mode, DataKit supports multiple environment variable configurations.
+
+- The approximate format in `datakit.yaml` is
+
+```yaml
+spec:
+  containers:
+    - env
+    - name: ENV_XXX
+      value: YYY
+    - name: ENV_OTHER_XXX
+      value: YYY
+```
+
+- The approximate format in Helm values.yaml is
+
+```yaml
+  extraEnvs: 
+    - name: "ENV_XXX"
+      value: "YYY"
+    - name: "ENV_OTHER_XXX"
+      value: "YYY"    
+```
+
 ### Description of Environment Variable Type {#env-types}
 
 The values of the following environment variables are divided into the following data types:
@@ -231,9 +275,9 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
     
     Whether it is a host class global tag or an environment class global tag, if there is already a corresponding tag in the original data, the existing tag will not be appended, and we think that the tag in the original data should be used.
 
-???+ attention "About Protect Mode(ENV_DISABLE_PROTECT_MODE)"
+???+ note "About Protect Mode(`ENV_DISABLE_PROTECT_MODE`)"
 
-    Once protected mode is disabled, some dangerous configuration parameters can be set, and Datakit will accept any configuration parameters. These parameters may cause some Datakit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.
+    Once protected mode is disabled, some dangerous configuration parameters can be set, and DataKit will accept any configuration parameters. These parameters may cause some DataKit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.
 <!-- markdownlint-enable -->
 
 <!--
@@ -244,45 +288,37 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 -->
 
 
-### Dataway Configuration Environments {#env-dataway}
+### Dataway {#env-dataway}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envDataway 0}}
 <!-- markdownlint-enable -->
 
-### Log Configuration Environments {#env-log}
+### Logging {#env-log}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envLog 0}}
 <!-- markdownlint-enable -->
 
-### Something about DataKit pprof {#env-pprof}
-
-<!-- markdownlint-disable MD046 -->
-{{ CodeBlock .NonInputENVSample.envPprof 0}}
-<!-- markdownlint-enable -->
-
-> `ENV_ENABLE_PPROF`: [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
-
-### Election-related Environmental Variables {#env-elect}
+### Election {#env-elect}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envElect 0}}
 <!-- markdownlint-enable -->
 
-### HTTP/API Environment Variables {#env-http-api}
+### HTTP/API {#env-http-api}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envHTTPAPI 0}}
 <!-- markdownlint-enable -->
 
-### Confd Environment Variables {#env-confd}
+### Confd {#env-confd}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envConfd 0}}
 <!-- markdownlint-enable -->
 
-### Git Environment Variable {#env-git}
+### Git {#env-git}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envGit 0}}
@@ -294,7 +330,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 {{ CodeBlock .NonInputENVSample.envSinker 0}}
 <!-- markdownlint-enable -->
 
-### IO Module Environment Variables {#env-io}
+### IO {#env-io}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envIO 0}}
@@ -327,13 +363,13 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 {{ CodeBlock .NonInputENVSample.envDca 0}}
 <!-- markdownlint-enable -->
 
-### Refer Table About Environment Variables {#env-reftab}
+### Refer Table {#env-reftab}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envRefta 0}}
 <!-- markdownlint-enable -->
 
-### Recorder Environment Variables {#env-recorder}
+### Recorder {#env-recorder}
 
 [:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
 
@@ -351,16 +387,15 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 {{ CodeBlock .NonInputENVSampleZh.remote_job 0}}
 <!-- markdownlint-enable -->
 
-
 ### Others {#env-others}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envOthers 0}}
 <!-- markdownlint-enable -->
 
-### Special Environment Variable {#env-special}
+### Special Environments {#env-special}
 
-#### ENV_K8S_NODE_NAME {#env_k8s_node_name}
+#### `ENV_K8S_NODE_NAME` {#env_k8s_node_name}
 
 When the k8s node name is different from its corresponding host name, the k8s node name can be replaced by the default collected host name, and the environment variable can be added in *datakit.yaml*:
 
@@ -389,12 +424,18 @@ When multiple clusters share a workspace and contain nodes with identical names,
 This configuration appends `cluster_a_` to the original hostname, effectively creating a unique identifier for nodes in this cluster. As a result, the `host` tag associated with metrics such as logs, processes, CPU usage, and memory will also be prefixed with `cluster_a_`, enabling better data organization and filtering.
 
 <!-- markdownlint-disable MD013 -->
-### Individual Collector-specific Environment Variable {#inputs-envs}
+### Collector-specific Environment Variable {#inputs-envs}
 <!-- markdownlint-enable -->
 
 Some collectors support external injection of environment variables to adjust the default configuration of the collector itself. See each specific collector document for details.
 
 ## Extended Readings {#more-readings}
 
-- [DataKit election](election.md)
-- [Several Configuration Methods of DataKit](k8s-config-how-to.md)
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit election</u></font>](election.md)
+</div>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Various configurations for DataKit</u></font>](k8s-config-how-to.md)
+</div>
+</font>

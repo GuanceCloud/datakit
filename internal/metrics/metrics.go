@@ -83,62 +83,62 @@ type runtimeInfoCollector struct{}
 var (
 	riGoroutineDesc = p8s.NewDesc(
 		"datakit_goroutines",
-		"Goroutine count within Datakit",
+		"Goroutine count within DataKit",
 		nil, nil,
 	)
 
 	riHeapAllocDesc = p8s.NewDesc(
 		"datakit_heap_alloc_bytes",
-		"Datakit memory heap bytes(Deprecated by `datakit_golang_mem_usage`)",
+		"DataKit memory heap bytes(Deprecated by `datakit_golang_mem_usage`)",
 		nil, nil,
 	)
 
 	riSysAllocDesc = p8s.NewDesc(
 		"datakit_sys_alloc_bytes",
-		"Datakit memory system bytes(Deprecated by `datakit_golang_mem_usage`)",
+		"DataKit memory system bytes(Deprecated by `datakit_golang_mem_usage`)",
 
 		nil, nil,
 	)
 
 	riGolangMemDesc = p8s.NewDesc(
 		"datakit_golang_mem_usage",
-		"Datakit golang memory usage stats",
+		"DataKit golang memory usage stats",
 		[]string{"type"}, nil,
 	)
 
 	riMemStatDesc = p8s.NewDesc(
 		"datakit_mem_stat",
-		"Datakit memory system bytes",
+		"DataKit memory system bytes",
 		[]string{"type"}, nil,
 	)
 
 	riCPUUsageDesc = p8s.NewDesc(
 		"datakit_cpu_usage",
-		"Datakit CPU usage(%)",
+		"DataKit CPU usage(%)",
 		nil, nil,
 	)
 
 	riGCPauseDesc = p8s.NewDesc(
 		"datakit_gc_summary_seconds",
-		"Datakit golang GC paused",
+		"DataKit golang GC paused",
 		nil, nil,
 	)
 
 	riOpenFilesDesc = p8s.NewDesc(
 		"datakit_open_files",
-		"Datakit open files(only available on Linux)",
+		"DataKit open files(only available on Linux)",
 		nil, nil,
 	)
 
 	riCPUCores = p8s.NewDesc(
 		"datakit_cpu_cores",
-		"Datakit CPU cores",
+		"DataKit CPU cores",
 		nil, nil,
 	)
 
 	riUptimeDesc = p8s.NewDesc(
 		"datakit_uptime_seconds",
-		"Datakit uptime",
+		"DataKit uptime",
 
 		// hostname and cgroup set after init(), so make it a non-const-label.
 		[]string{
@@ -161,7 +161,7 @@ var (
 
 	riCtxSwitch = p8s.NewDesc(
 		"datakit_process_ctx_switch_total",
-		"Datakit process context switch count(Linux only)",
+		"DataKit process context switch count(Linux only)",
 		[]string{
 			"type", // voluntary or involuntary, see https://courses.cs.duke.edu/spring01/cps110/slides/interleave/tsld008.htm
 		},
@@ -170,7 +170,7 @@ var (
 
 	riIOCount = p8s.NewDesc(
 		"datakit_process_io_count_total",
-		"Datakit process IO count",
+		"DataKit process IO count",
 		[]string{
 			"type", // r(read) or w(write)
 		},
@@ -179,7 +179,7 @@ var (
 
 	riIOBytes = p8s.NewDesc(
 		"datakit_process_io_bytes_total",
-		"Datakit process IO bytes count",
+		"DataKit process IO bytes count",
 		[]string{
 			"type", // r(read) or w(write)
 		},

@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Datakit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协议数据。
+DataKit 内嵌的 Jaeger Agent 用于接收，运算，分析 Jaeger Tracing 协议数据。
 
 ## 配置 {#config}
 
@@ -60,7 +60,7 @@ endpoint 代表 Jaeger HTTP Agent 路由
   endpoint = "/apis/traces"
 ```
 
-- 修改 Jaeger Client 的 Agent Host Port 为 Datakit Port（默认为 9529）
+- 修改 Jaeger Client 的 Agent Host Port 为 DataKit Port（默认为 9529）
 - 修改 Jaeger Client 的 Agent endpoint 为上面配置中指定的 endpoint
 
 ### 配置 Jaeger UDP Agent {#config-udp-agent}
@@ -73,7 +73,7 @@ endpoint 代表 Jaeger HTTP Agent 路由
   address = "127.0.0.1:6831"
 ```
 
-有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing.md)
+有关数据采样，数据过滤，关闭资源等配置请参考[DataKit Tracing](datakit-tracing.md)
 
 ## 示例 {#demo}
 

@@ -28,13 +28,13 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 数据传输协议：
 
-- plaintext : 纯文本模式， Datakit 目前暂时不支持。
-- native ： 以特定符号为分隔符的文本形式，目前 Datakit 已经支持。
+- plaintext : 纯文本模式， DataKit 目前暂时不支持。
+- native ： 以特定符号为分隔符的文本形式，目前 DataKit 已经支持。
 
 
 数据分类：
 
-| 数据类型简写 | 类型                | 说明        | 当前版本的 Datakit 是否接入 | 对应到<<<custom_key.brand_name>>>中的数据类型     |
+| 数据类型简写 | 类型                | 说明        | 当前版本的 DataKit 是否接入 | 对应到<<<custom_key.brand_name>>>中的数据类型     |
 |--------|-------------------|:----------|:------------------:|:-----------------|
 | t      | transaction start | 事务开始      |        true        | trace            |
 | T      | transaction end   | 事务结束      |        true        | trace            |
@@ -50,12 +50,12 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 - 启动 cat server 模式
 
-    - 数据全在 Datakit 中，cat 的 web 页面已经没有数据，所以启动的意义不大，并且页面报错： **出问题 CAT 的服务端[xxx.xxx]**
+    - 数据全在 DataKit 中，cat 的 web 页面已经没有数据，所以启动的意义不大，并且页面报错： **出问题 CAT 的服务端[xxx.xxx]**
     - 配置客户端行为可以在 client 的启动中做
     - cat server 也会将 transaction 数据发送到 dk，造成<<<custom_key.brand_name>>>页面大量的垃圾数据
 
 
-- 不启动 cat server： 在 Datakit 中配置
+- 不启动 cat server： 在 DataKit 中配置
 
     - `startTransactionTypes`：用于定义自定义事务类型，指定的事务类型会被 Cat 自动创建。多个事务类型之间使用分号进行分隔。
     - `block`：指定一个阈值用于阻塞监控，单位为毫秒。当某个事务的执行时间大于该阈值时，会触发 Cat 记录该事务的阻塞情况。
@@ -80,7 +80,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 </config>
 ```
 
-> 注意：配置中的 9529 端口是 Datakit 的 http 端口。2280 是 cat 采集器开通的 2280 端口。
+> 注意：配置中的 9529 端口是 DataKit 的 http 端口。2280 是 cat 采集器开通的 2280 端口。
 
 ### 采集器配置 {#input-config}
 
@@ -105,7 +105,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 配置文件注意的地方：
 
 1. `startTransactionTypes` `MatchTransactionTypes` `block` `routers` `sample` 是返回给 client 端的数据
-1. `routers` 是 Datakit 的 ip 或者域名
+1. `routers` 是 DataKit 的 ip 或者域名
 1. `tcp_port` 对应的是 client 端配置 servers ip 地址
 
 ---

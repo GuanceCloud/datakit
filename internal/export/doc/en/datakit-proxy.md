@@ -5,7 +5,7 @@
 
 ---
 
-When Datakit cannot access the external, a proxy can be deployed on the intranet to send traffic. This article provides two implementations:
+When DataKit cannot access the external, a proxy can be deployed on the intranet to send traffic. This article provides two implementations:
 
 - Through DataKit's built-in forward proxy service
 - Use Nginx as the proxy service
@@ -16,9 +16,9 @@ Select a DataKit in the network that can access the external network as a proxy,
 
 Detailed proxy input configure, please refer to [here](../integrations/proxy.md).
 
-- Set the proxy mode of _proxy Datakit_.
+- Set the proxy mode of proxy DataKit.
 
-Go to the `conf.d/` directory under the proxy DataKit installation directory and configure the proxy service in _datakit.conf_. As follows:
+Go to the `conf.d/` directory under the proxy DataKit installation directory and configure the proxy service in *datakit.conf*. As follows:
 
 ```toml
 [dataway]
@@ -102,7 +102,7 @@ $ nginx -s reload # reload configuration
 ```
 
 <!-- markdownlint-disable MD013 -->
-## Configure the Domain Name on the `Datakit` Agent Machine {#config-domain-name}
+## Configure the Domain Name on the `DataKit` Agent Machine {#config-domain-name}
 <!-- markdownlint-enable -->
 
 Let's assume that `192.168.1.66` is the IP address of the nginx transparent proxy server.

@@ -8,7 +8,7 @@ __int_icon: 'icon/profiling'
 ---
 
 
-从 Datakit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"} 开始支持使用 [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} 作为 `PHP` 项目的应用性能监测工具。
+从 DataKit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"} 开始支持使用 [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} 作为 `PHP` 项目的应用性能监测工具。
 
 ## 前置条件 {#prerequisites}
 
@@ -58,11 +58,10 @@ Allocation Profiling Enabled => true
 ...
 ```
 
-
 <!-- markdownlint-disable MD046 -->
-???+ Note
+???+ info
 
-    在编写此文档时 `Datakit` 最高支持到 [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"} 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可随时与我们联系。
+    在编写此文档时 `DataKit` 最高支持到 [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"} 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可随时与我们联系。
 <!-- markdownlint-enable -->
 
 
@@ -91,25 +90,6 @@ Allocation Profiling Enabled => true
 
     在 `PHP-FPM` 的进程池配置目录 *pool.d* 下的配置文件中（默认只有一个 *www.conf* 配置文件）使用 `env` 指令在 *www.conf* 添加如下环境变量：
 
-    ???+ Note
-        可以尝试使用 `php-fpm -i | grep Configuration` 来确认 `php-fpm` 当前加载配置文件的位置：
-        ```shell
-        php-fpm8.1 -i | grep Configuration
-        Configuration File (php.ini) Path => /etc/php/8.1/fpm
-        ...
-        ls -l /etc/php/8.1/fpm/pool.d
-        total 48
-        -rw-r--r-- 1 root root 20901 Aug  7 21:22 www.conf
-        ```
-        如果你的 `php-fpm` 程序被注册为 `systemd` 服务，也可以尝试使用命令 `systemctl status php-fpm.service | grep .conf` 来查看当前的配置文件路径：
-        ```shell
-        systemctl status php8.1-fpm.service | grep .conf
-        Process: 629814 ExecStart=/usr/sbin/php-fpm8.1 --nodaemonize --fpm-config /etc/php/8.1/fpm/php-fpm.conf (code=exited, status=0/SUCCESS)
-        Process: 629818 ExecStartPost=/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
-        Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
-        ...
-        ```
-
 
     ```shell
     ...
@@ -137,6 +117,27 @@ Allocation Profiling Enabled => true
     ```
 
     重启 `php-fpm` 并访问你的项目。
+
+    ---
+
+    ???+ note
+        可以尝试使用 `php-fpm -i | grep Configuration` 来确认 `php-fpm` 当前加载配置文件的位置：
+        ```shell
+        php-fpm8.1 -i | grep Configuration
+        Configuration File (php.ini) Path => /etc/php/8.1/fpm
+        ...
+        ls -l /etc/php/8.1/fpm/pool.d
+        total 48
+        -rw-r--r-- 1 root root 20901 Aug  7 21:22 www.conf
+        ```
+        如果你的 `php-fpm` 程序被注册为 `systemd` 服务，也可以尝试使用命令 `systemctl status php-fpm.service | grep .conf` 来查看当前的配置文件路径：
+        ```shell
+        systemctl status php8.1-fpm.service | grep .conf
+        Process: 629814 ExecStart=/usr/sbin/php-fpm8.1 --nodaemonize --fpm-config /etc/php/8.1/fpm/php-fpm.conf (code=exited, status=0/SUCCESS)
+        Process: 629818 ExecStartPost=/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
+        Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
+        ...
+        ```
 <!-- markdownlint-enable -->
 
 稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。

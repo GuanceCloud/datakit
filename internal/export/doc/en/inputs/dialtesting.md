@@ -44,7 +44,7 @@ The collector collects the data of network dialing test results, and all the dat
 
 ---
 
-???+ attention
+???+ note
 
     Currently, only Linux dial-up nodes support, and the tracing data is stored in the [traceroute](#traceroute) field of the relevant metrics.
 <!-- markdownlint-enable -->
@@ -63,8 +63,8 @@ graph TD
   %% node definitions
   dt_web(Probe Web UI)
   dt_db(Public Task Storage)
-  dt_pub(Public Datakit Node)
-  dt_pri(Private Datakit Node)
+  dt_pub(Public DataKit Node)
+  dt_pri(Private DataKit Node)
   site_inner(Private Site)
   site_pub(Public Site)
   dw_inner(Private Dataway)
@@ -173,7 +173,7 @@ All of the following data collections are appended with a global tag named `host
 
 ## Metric {#metric}
 
-Dialtesting collector could expose some [Prometheus metrics](../datakit/datakit-metrics.md). You can upload these metrics to <<<custom_key.brand_name>>> through [Datakit collector](dk.md). The relevant configuration is as follows:
+Dialtesting collector could expose some [Prometheus metrics](../datakit/datakit-metrics.md). You can upload these metrics to <<<custom_key.brand_name>>> through [DataKit collector](dk.md). The relevant configuration is as follows:
 
 ```toml
 [[inputs.dk]]

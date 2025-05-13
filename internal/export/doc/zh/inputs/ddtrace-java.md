@@ -96,7 +96,7 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 
 === "Kubernetes"
 
-    在 Kubernetes 中，可以通过 [Datakit Operator 来注入 trace agent](../datakit/datakit-operator.md#datakit-operator-inject-lib)，也可以手动挂载 trace agent 到应用容器中。
+    在 Kubernetes 中，可以通过 [DataKit Operator 来注入 trace agent](../datakit/datakit-operator.md#datakit-operator-inject-lib)，也可以手动挂载 trace agent 到应用容器中。
 
     ```yaml hl_lines="10-19" linenums="1"
     apiVersion: apps/v1
@@ -166,13 +166,13 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 
     **ENV**：`DD_AGENT_HOST`
 
-    Datakit 监听的地址名，默认 localhost
+    DataKit 监听的地址名，默认 localhost
 
 - **`dd.trace.agent.port`**
 
     **ENV**：`DD_TRACE_AGENT_PORT`
 
-    Datakit 监听的端口号，默认 9529
+    DataKit 监听的端口号，默认 9529
 
 - **`dd.trace.sample.rate`**
 
@@ -227,7 +227,7 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 
     **ENV**：`DD_PROFILING_ENABLED`
 
-    开启 Profiling 控制，开启之后，Java 应用运行期间的 Profiling 信息也会收集，并且上报给 Datakit
+    开启 Profiling 控制，开启之后，Java 应用运行期间的 Profiling 信息也会收集，并且上报给 DataKit
 
 ## 链路错误情况说明 {#error}
 

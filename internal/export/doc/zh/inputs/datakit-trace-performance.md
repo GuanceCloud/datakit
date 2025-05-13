@@ -1,17 +1,17 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Datakit Trace Agent 性能报告'
+title: 'DataKit Trace Agent 性能报告'
 ---
 
 以下测试在真实物理环境下进行，并使用测试工具发送饱和数据。
 
-> 运行 Datakit 物理机参数
+> 运行 DataKit 物理机参数
 
 | CPU  | 内存 | 带宽    |
 | ---- | ---- | ------- |
 | 1 核 | 2G   | 100Mbps |
 
-> Datakit 使用配置
+> DataKit 使用配置
 
 安装默认
 

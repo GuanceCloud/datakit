@@ -81,7 +81,7 @@ yum install -y  redis
 
 ---
 
-???+ attention
+???+ note
 
     如果是阿里云 Redis，且设置了对应的用户名密码，conf 中的 `<PASSWORD>` 应该设置成 `your-user:your-password`，如 `datakit:Pa55W0rd`
 <!-- markdownlint-enable -->
@@ -97,7 +97,7 @@ yum install -y  redis
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     在配置日志采集时，需要将 DataKit 安装在 Redis 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器。
 

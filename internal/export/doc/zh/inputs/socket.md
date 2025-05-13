@@ -25,7 +25,7 @@ monitor   :
 UDP 指标需要操作系统有 `nc` 程序
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     socket 采集器适合做内网的 TCP/UDP 端口检测，对于公网服务，建议使用[拨测功能](dialtesting.md)。如果服务地址指向本机，请关闭采集器的选举（`election: false`）功能，否则会导致无效采集。
 <!-- markdownlint-enable -->
@@ -47,7 +47,7 @@ UDP 指标需要操作系统有 `nc` 程序
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-    在 Kubernetes 环境下，Datakit 域名是 `datakit-service.datakit.svc`，日志发送端可以指定 Datakit 域名作为接收端。通常只推荐 UDP 协议使用域名，TCP 协议可能存在多行数据缺少上下文的情况。
+    在 Kubernetes 环境下，DataKit 域名是 `datakit-service.datakit.svc`，日志发送端可以指定 DataKit 域名作为接收端。通常只推荐 UDP 协议使用域名，TCP 协议可能存在多行数据缺少上下文的情况。
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}

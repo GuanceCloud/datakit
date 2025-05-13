@@ -76,7 +76,7 @@ func (*Input) SampleConfig() string { return sampleConfig }
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&ProcessMetric{}, &ProcessObject{}}
+	return []inputs.Measurement{&processMetric{}, &processObject{}}
 }
 
 func (ipt *Input) Run() {

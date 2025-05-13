@@ -260,8 +260,8 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_PATH",
 			Type:    doc.String,
-			Desc:    "Set WAL disk path, default path is *cache/dw-wal* under Datakit install path[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
-			DescZh:  "设置 WAL 磁盘目录，默认为 Datakit 安装目录下的 *cache/dw-wal* [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			Desc:    "Set WAL disk path, default path is *cache/dw-wal* under DataKit install path[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 WAL 磁盘目录，默认为 DataKit 安装目录下的 *cache/dw-wal* [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 
 		{
@@ -282,9 +282,9 @@ func envDataway() []*inputs.ENVInfo {
 func envLog() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_GIN_LOG", Type: doc.String, Default: `*/var/log/datakit/gin.log*`, Desc: "If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，Datakit 自身 gin 日志将不写文件，而是终端输出"},
-		{ENVName: "ENV_LOG", Type: doc.String, Default: `*/var/log/datakit/log*`, Desc: "If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，Datakit 自身日志将不写文件，而是终端输出"},
-		{ENVName: "ENV_LOG_LEVEL", Type: doc.String, Default: `info`, Desc: "Set DataKit's own log level, optional `info/debug`(case insensitive).", DescZh: "设置 Datakit 自身日志等级，可选 `info/debug`（不区分大小写）"},
+		{ENVName: "ENV_GIN_LOG", Type: doc.String, Default: `*/var/log/datakit/gin.log*`, Desc: "If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出"},
+		{ENVName: "ENV_LOG", Type: doc.String, Default: `*/var/log/datakit/log*`, Desc: "If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，DataKit 自身日志将不写文件，而是终端输出"},
+		{ENVName: "ENV_LOG_LEVEL", Type: doc.String, Default: `info`, Desc: "Set DataKit's own log level, optional `info/debug`(case insensitive).", DescZh: "设置 DataKit 自身日志等级，可选 `info/debug`（不区分大小写）"},
 		{ENVName: "ENV_DISABLE_LOG_COLOR", Type: doc.Boolean, Default: `-`, Desc: "Turn off log colors", DescZh: "关闭日志颜色"},
 		{ENVName: "ENV_LOG_ROTATE_BACKUP", Type: doc.Int, Default: `5`, Desc: "The upper limit count for log files to be reserve.", DescZh: "设置最多保留日志分片的个数"},
 		{ENVName: "ENV_LOG_ROTATE_SIZE_MB", Type: doc.Int, Default: `32`, Desc: "The threshold for automatic log rotating in MB, which automatically switches to a new file when the log file size reaches the threshold.", DescZh: "日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件"},
@@ -326,7 +326,7 @@ func envElect() []*inputs.ENVInfo {
 			Type:    doc.String,
 			Default: "default",
 			Desc:    "The namespace in which the DataKit resides, which defaults to null to indicate that it is namespace-insensitive and accepts any non-null string, such as `dk-namespace-example`. If the election is turned on, you can specify the workspace through this environment variable.",
-			DescZh:  "Datakit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。",
+			DescZh:  "DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。",
 		},
 		{
 			ENVName: "ENV_ENABLE_ELECTION_NAMESPACE_TAG",
@@ -348,8 +348,8 @@ func envElect() []*inputs.ENVInfo {
 			ENVName: "ENV_CLUSTER_NAME_K8S",
 			Type:    doc.String,
 			Default: "default",
-			Desc:    "The cluster name in which the Datakit residers, if the cluster is not empty, a specified tag will be added to [global election tags](election.md#global-tags), the key is `cluster_name_k8s` and the value is the environment variable [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
-			DescZh:  "Datakit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值 [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
+			Desc:    "The cluster name in which the DataKit residers, if the cluster is not empty, a specified tag will be added to [global election tags](election.md#global-tags), the key is `cluster_name_k8s` and the value is the environment variable [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
+			DescZh:  "DataKit 所在的 cluster，如果非空，会在 [Global Election Tags](election.md#global-tags) 中添加一个指定 tag，key 是 `cluster_name_k8s`，value 是环境变量的值 [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)",
 		},
 		{
 			ENVName: "ENV_ELECTION_NODE_WHITELIST",
@@ -375,28 +375,28 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Type:    doc.Boolean,
 			Default: "-",
 			Desc:    "Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network).",
-			DescZh:  "禁用 Datakit 404 页面（公网部署 Datakit RUM 时常用）。",
+			DescZh:  "禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）。",
 		},
 		{
 			ENVName: "ENV_HTTP_LISTEN",
 			Type:    doc.String,
 			Default: "localhost:9529",
 			Desc:    "The address can be modified so that the [DataKit interface](apis.md) can be called externally.",
-			DescZh:  "可修改地址，使得外部可以调用 [Datakit 接口](apis.md)。",
+			DescZh:  "可修改地址，使得外部可以调用 [DataKit 接口](apis.md)。",
 		},
 		{
 			ENVName: "ENV_HTTP_LISTEN_SOCKET",
 			Type:    doc.String,
 			Example: "`/var/run/datakit/datakit.sock`",
 			Desc:    "The address can be modified so that the [DataKit interface](apis.md) can be called externally.",
-			DescZh:  "可修改地址，使得外部可以通过 unix socket 调用 [Datakit 接口](apis.md)。",
+			DescZh:  "可修改地址，使得外部可以通过 unix socket 调用 [DataKit 接口](apis.md)。",
 		},
 
 		{
 			ENVName: "ENV_HTTP_PUBLIC_APIS",
 			Type:    doc.List,
 			Desc:    "[API list](apis.md) that allow external access, separated by English commas between multiple APIs. When DataKit is deployed on the public network, it is used to disable some APIs.",
-			DescZh:  "允许外部访问的 Datakit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 Datakit 部署在公网时，用来禁用部分 API。",
+			DescZh:  "允许外部访问的 DataKit [API 列表](apis.md)，多个 API 之间以英文逗号分割。当 DataKit 部署在公网时，用来禁用部分 API。",
 		},
 
 		{
@@ -419,24 +419,24 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			ENVName: "ENV_HTTP_ENABLE_TLS",
 			Type:    doc.Boolean,
 			Default: "-",
-			Desc:    "Enable Datakit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
-			DescZh:  "开启 Datakit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			Desc:    "Enable DataKit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "开启 DataKit 9529 HTTPS [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_TLS_CRT",
 			Type:    doc.String,
 			Default: "-",
-			Desc:    "Set Datakit HTTP Server's TLS cert path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
-			DescZh:  "配置 Datakit HTTP Server 上的 TLS cert 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			Desc:    "Set DataKit HTTP Server's TLS cert path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "配置 DataKit HTTP Server 上的 TLS cert 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
 			ENVName: "ENV_HTTP_TLS_KEY",
 			Type:    doc.String,
 			Default: "-",
-			Desc:    "Set Datakit HTTP Server's TLS key path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
-			DescZh:  "配置 Datakit HTTP Server 上的 TLS key 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			Desc:    "Set DataKit HTTP Server's TLS key path [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
+			DescZh:  "配置 DataKit HTTP Server 上的 TLS key 路径 [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",
 		},
 
 		{
@@ -452,7 +452,7 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Type:    doc.String,
 			Default: "`X-Forwarded-For`",
 			Desc:    "Set RUM HTTP request(`/v1/write/rum`) real IP forward header key.",
-			DescZh:  "设置 RUM 请求中真实 IP forward 对应的 HTTP header key。Datakit 将从该 Header 上获取端上用户的真实 IP，否则拿到可能是网关 IP。",
+			DescZh:  "设置 RUM 请求中真实 IP forward 对应的 HTTP header key。DataKit 将从该 Header 上获取端上用户的真实 IP，否则拿到可能是网关 IP。",
 		},
 
 		{
@@ -468,8 +468,8 @@ func envHTTPAPI() []*inputs.ENVInfo {
 			Type:    doc.List,
 			Default: "-",
 			Example: "Origin,Access-Control-Allow-Origin,Access-Control-Allow-Methods",
-			Desc:    "Setup CORS on Datakit HTTP APIs(split by `,`) [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
-			DescZh:  "设置 Datakit API CORS 属性（英文逗号分割）[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			Desc:    "Setup CORS on DataKit HTTP APIs(split by `,`) [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
+			DescZh:  "设置 DataKit API CORS 属性（英文逗号分割）[:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)",
 		},
 	}
 
@@ -654,9 +654,9 @@ func envRecorder() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{ENVName: "ENV_ENABLE_RECORDER", Type: doc.Boolean, Default: "false", Desc: "To enable or disable recorder", DescZh: "设置是否开启数据录制"},
-		{ENVName: "ENV_RECORDER_PATH", Type: doc.String, Default: "*Datakit 安装目录/recorder*", Desc: "Set recorder data path", DescZh: "设置数据录制的存放目录"},
+		{ENVName: "ENV_RECORDER_PATH", Type: doc.String, Default: "*DataKit 安装目录/recorder*", Desc: "Set recorder data path", DescZh: "设置数据录制的存放目录"},
 		{ENVName: "ENV_RECORDER_ENCODING", Type: doc.String, Default: "v2", Desc: "Set recorder format. v1 is lineprotocol, v2 is JSON", DescZh: "设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式"},
-		{ENVName: "ENV_RECORDER_DURATION", Type: doc.TimeDuration, Default: "30m", Desc: "Set recorder duration(since Datakit start). After the duration, the recorder will stop to write data to file", DescZh: "设置数据录制时长（自 Datakit 启动以后），一旦超过该时长，则不再录制"},
+		{ENVName: "ENV_RECORDER_DURATION", Type: doc.TimeDuration, Default: "30m", Desc: "Set recorder duration(since DataKit start). After the duration, the recorder will stop to write data to file", DescZh: "设置数据录制时长（自 DataKit 启动以后），一旦超过该时长，则不再录制"},
 		{ENVName: "ENV_RECORDER_INPUTS", Type: doc.List, Example: "cpu,mem,disk", Desc: "Set allowed input names for recording, split by comma", DescZh: "设置录制的采集器名称列表，以英文逗号分割"},
 		{ENVName: "ENV_RECORDER_CATEGORIES", Type: doc.List, Example: "metric,logging,object", Desc: "Set allowed categories for recording, split by comma, full list of categories see [here](apis.md#category)", DescZh: "设置录制的数据分类列表，以英文逗号分割，完整的 Category 列表参见[这里](apis.md#category)"},
 	}
@@ -674,7 +674,7 @@ func envOthers() []*inputs.ENVInfo {
 		{ENVName: "ENV_CLOUD_PROVIDER", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Support filling in cloud suppliers during installation", DescZh: "支持安装阶段填写云厂商"},
 		{ENVName: "ENV_HOSTNAME", Type: doc.String, Desc: "The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`", DescZh: "默认为本地主机名，可安装时指定，如， `dk-your-hostname`"},
 		{ENVName: "ENV_IPDB", Type: doc.String, Desc: "Specify the IP repository type, currently only supports `iploc/geolite2`", DescZh: "指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种"},
-		{ENVName: "ENV_ULIMIT", Type: doc.Int, Desc: "Specify the maximum number of open files for Datakit", DescZh: "指定 Datakit 最大的可打开文件数"},
+		{ENVName: "ENV_ULIMIT", Type: doc.Int, Desc: "Specify the maximum number of open files for DataKit", DescZh: "指定 DataKit 最大的可打开文件数"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_RECEIVER", Type: doc.String, Default: "`datakit-http`", Desc: "Set offload receiver", DescZh: "设置 Offload 目标接收器的类型"},
 		{ENVName: "ENV_PIPELINE_OFFLOAD_ADDRESSES", Type: doc.List, Example: "`http://aaa:123,http://1.2.3.4:1234`", Desc: "Set offload addresses", DescZh: "设置 Offload 目标地址"},
 		{ENVName: "ENV_PIPELINE_DISABLE_APPEND_RUN_INFO", Type: doc.Boolean, Default: "`false`", Desc: "Disable appending the Pipeline run info", DescZh: "禁用追加 Pipeline 运行信息"},
@@ -713,8 +713,8 @@ func envPointPool() []*inputs.ENVInfo {
 			ENVName: "ENV_POINT_POOL_RESERVED_CAPACITY",
 			Type:    doc.Int,
 			Default: "4096",
-			Desc:    "Specify the pool size that is immune to GC. if Datakit got too many data to collect, we can increase this reserved pool size(such as 40960) to decrease GC payload.",
-			DescZh:  "指定 point pool 常驻大小，即不会被 GC 回收的 point 保有数，如果所在 Datakit 的采集量非常大，可以酌情将该数值调大一点",
+			Desc:    "Specify the pool size that is immune to GC. if DataKit got too many data to collect, we can increase this reserved pool size(such as 40960) to decrease GC payload.",
+			DescZh:  "指定 point pool 常驻大小，即不会被 GC 回收的 point 保有数，如果所在 DataKit 的采集量非常大，可以酌情将该数值调大一点",
 		},
 	}
 

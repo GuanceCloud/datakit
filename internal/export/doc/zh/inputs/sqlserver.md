@@ -53,12 +53,14 @@ GO
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention "注意事项"
+???+ note "注意事项"
 
     注意，执行上述操作需要相应权限的帐号，否则可能会导致用户创建失败或者授权失败。
 
     - 自建的 SQL Server 需要具备 WITH GRANT OPTION、CREATE ANY LOGIN、CREATE ANY USER、ALTER ANY LOGIN 权限的用户，也可以直接使用具有 sysadmin 角色的用户或者 local 用户授权。
     - RDS for SQL Server 则需要使用高权限账号进行授权。
+
+---
 
 ### 采集器配置 {#input-config}
 
@@ -80,7 +82,7 @@ GO
 ### 日志采集配置 {#logging-config}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     必须将 DataKit 安装在 SQLServer 所在主机才能采集日志。
 <!-- markdownlint-enable -->

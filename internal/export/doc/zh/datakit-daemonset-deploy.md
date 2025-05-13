@@ -11,9 +11,9 @@
 
     先下载 [*datakit.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
     
-    ???+ attention
+    ???+ note
     
-        如果要修改这些采集器的默认配置，可通过 [ConfigMap 方式挂载单独的配置文件](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 Datakit 时，通过 [ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
+        如果要修改这些采集器的默认配置，可通过 [ConfigMap 方式挂载单独的配置文件](k8s-config-how-to.md#via-configmap-conf) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，通过 [ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/){:target="_blank"} 来配置采集器总是生效的。
     
     修改 `datakit.yaml` 中的 Dataway 配置
     
@@ -35,7 +35,7 @@
     $ kubectl apply -f datakit.yaml
     ```
     
-    安装完后，会创建一个 Datakit 的 DaemonSet 部署：
+    安装完后，会创建一个 DataKit 的 DaemonSet 部署：
     
     ```shell
     $ kubectl get pod -n datakit
@@ -48,7 +48,7 @@
     * Kubernetes >= 1.14
     * Helm >= 3.0+
     
-    Helm 安装 Datakit（注意修改 `datakit.dataway_url` 参数）, 其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。更多 Helm 相关可参考 [Helm 管理配置](datakit-helm.md)
+    Helm 安装 DataKit（注意修改 `datakit.dataway_url` 参数）, 其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。更多 Helm 相关可参考 [Helm 管理配置](datakit-helm.md)
     
     
     ```shell
@@ -81,9 +81,9 @@
     ```
 <!-- markdownlint-enable -->
 
-## 资源限制 {#requests-limits}
+### 资源限制 {#requests-limits}
 
-Datakit 默认设置了 Requests 和 Limits，如果 Datakit 容器状态变为 OOMKilled ，可自定义修改配置。
+DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 OOMKilled ，可自定义修改配置。
 
 <!-- markdownlint-disable MD046 -->
 === "Yaml"
@@ -121,9 +121,9 @@ Datakit 默认设置了 Requests 和 Limits，如果 Datakit 容器状态变为 
 
 具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
 
-## Kubernetes 污点容忍度配置 {#toleration}
+### Kubernetes 污点容忍度配置 {#toleration}
 
-Datakit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有污点），如果 Kubernetes 中某些 Node 节点添加了污点调度，且不希望在其上部署 Datakit，可修改 *datakit.yaml*，调整其中的污点容忍度：
+DataKit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有污点），如果 Kubernetes 中某些 Node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 *datakit.yaml*，调整其中的污点容忍度：
 
 ```yaml
       tolerations:
@@ -132,7 +132,14 @@ Datakit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有
 
 具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
-## ConfigMap 设置 {#configmap-setting}
+## 采集器配置 {#input-config}
+
+DataKit 在 Kubernetes 中采集器配置方式有两种：
+
+1. ConfigMap：通过注入 ConfigMap 来追加采集器配置
+1. 环境变量：通过一个特定的环境变量，注入完整的 toml 采集配置
+
+### ConfigMap 设置 {#configmap-setting}
 
 部分采集器的开启，需通过 ConfigMap 来注入。以下是 MySQL 和 Redis 采集器的注入示例：
 
@@ -165,7 +172,7 @@ data:
          ...
 ```
 
-## ENV 设置采集器 {#env-setting}
+### ENV 设置采集器 {#env-setting}
 
 采集器的开启，也可以通过 ENV_DATAKIT_INPUTS 这个环境变量来注入。以下是 MySQL 和 Redis 采集器的注入示例：
 
@@ -215,11 +222,9 @@ spec:
 
 注入的内容，将存入容器的 conf.d/env_datakit_inputs.conf 文件中。
 
-## Datakit 中其它环境变量设置 {#using-k8-env}
+## DataKit 主配置 {#using-k8-env}
 
-> 注意： ENV_LOG 如果配置成 `stdout`，则不要将 ENV_LOG_LEVEL 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
-
-在 DaemonSet 模式中，Datakit 支持多个环境变量配置
+DataKit 在 Kubernetes 中不再使用 *datkait.conf* 来配置，只能使用环境变量。在 DaemonSet 模式中，DataKit 支持多个环境变量配置
 
 - *datakit.yaml* 中其大概格式为
 
@@ -272,25 +277,25 @@ spec:
 
     不管是主机类全局 tag 还是环境类全局 tag，如果原始数据中已经有对应 tag，则不会追加已存在的 tag，我们认为应该沿用原始数据中的 tag。
 
-???+ attention "关于禁用保护模式（ENV_DISABLE_PROTECT_MODE）"
+???+ note "关于禁用保护模式（ENV_DISABLE_PROTECT_MODE）"
 
-    保护模式一旦被禁用，即可以设置一些危险的配置参数，Datakit 将接受任何配置参数。这些参数可能会导致 Datakit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。
+    保护模式一旦被禁用，即可以设置一些危险的配置参数，DataKit 将接受任何配置参数。这些参数可能会导致 DataKit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。
 <!-- markdownlint-enable -->
 
 <!--
-### Point Pool 配置相关环境变量 {#env-pointpool}
+### Point Pool {#env-pointpool}
 
 [:octicons-tag-24: Version-1.28.0](changelog.md#cl-1.28.0) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
 -->
 
-### Dataway 配置相关环境变量 {#env-dataway}
+### Dataway {#env-dataway}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envDataway 0}}
 <!-- markdownlint-enable -->
 
-### 日志配置相关环境变量 {#env-log}
+### 日志配置 {#env-log}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envLog 0}}
@@ -304,37 +309,37 @@ spec:
 
 > `ENV_ENABLE_PPROF`：[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof。
 
-### 选举相关环境变量 {#env-elect}
+### 选举 {#env-elect}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envElect 0}}
 <!-- markdownlint-enable -->
 
-### HTTP/API 相关环境变量 {#env-http-api}
+### HTTP/API {#env-http-api}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envHTTPAPI 0}}
 <!-- markdownlint-enable -->
 
-### Confd 配置相关环境变量 {#env-confd}
+### Confd {#env-confd}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envConfd 0}}
 <!-- markdownlint-enable -->
 
-### Git 配置相关环境变量 {#env-git}
+### Git {#env-git}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envGit 0}}
 <!-- markdownlint-enable -->
 
-### Sinker 配置相关环境变量 {#env-sinker}
+### Sinker {#env-sinker}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envSinker 0}}
 <!-- markdownlint-enable -->
 
-### IO 模块配置相关环境变量 {#env-io}
+### IO 模块 {#env-io}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envIO 0}}
@@ -361,19 +366,19 @@ spec:
 }
 ```
 
-### DCA 相关环境变量 {#env-dca}
+### DCA {#env-dca}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envDca 0}}
 <!-- markdownlint-enable -->
 
-### Refer Table 有关环境变量 {#env-reftab}
+### Refer Table {#env-reftab}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envRefta 0}}
 <!-- markdownlint-enable -->
 
-### 数据录制有关环境变量 {#env-recorder}
+### 数据录制 {#env-recorder}
 
 [:octicons-tag-24: Version-1.22.0](changelog.md#1.22.0)
 
@@ -427,11 +432,17 @@ spec:
 
 这样之后，该集群获取到的主机名（主机对象列表）会多一个 `cluster_a_` 的前缀，除此之外，主机日志/进程/CPU/Mem 等指标集上，`host` 这个 tag 的值也都多了这个前缀。
 
-### 各个采集器专用环境变量 {#inputs-envs}
+### 采集器专用环境变量 {#inputs-envs}
 
 部分采集器支持外部注入环境变量，以调整采集器自身的默认配置。具体参见各个具体的采集器文档。
 
 ## 延伸阅读 {#more-readings}
 
-- [Datakit 选举](election.md)
-- [Datakit 的几种配置方式](k8s-config-how-to.md)
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit 选举</u></font>](election.md)
+</div>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit 的几种配置方式</u></font>](k8s-config-how-to.md)
+</div>
+</font>

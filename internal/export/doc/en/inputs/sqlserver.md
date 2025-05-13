@@ -78,7 +78,7 @@ GO
 #### Log Collector Configuration {#logging-config}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
      DataKit must be installed on the host where SQLServer is running.
 <!-- markdownlint-enable -->

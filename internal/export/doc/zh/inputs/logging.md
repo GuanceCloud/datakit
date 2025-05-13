@@ -100,6 +100,10 @@ monitor   :
       # ...
     ```
 
+    ???+ info "关于 `ignore_dead_log` 的说明"
+    
+        如果文件已经在采集，但 1h 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（1h），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
+
 === "Kubernetes/Docker/Containerd"
 
     在 Kubernetes 中，一旦[容器采集器](container.md)启动，则会默认去抓取各个容器（含 Pod 下的容器）的 stdout/stderr 日志，容器日志主要有以下几个配置方式：
@@ -108,27 +112,32 @@ monitor   :
     - [根据容器 image 配置日志采集](container.md#logging-with-image-config)
     - [通过 Sidecar 形式采集 Pod 内部日志](logfwd.md)
 
-???+ Note "关于 `ignore_dead_log` 的说明"
+=== "Windows Event"
 
-    如果文件已经在采集，但 1h 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（1h），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
+    参见 [Windows Event 采集](windows_event.md)。
+
+=== "TCP/UDP"
+
+    将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例：
+    
+    ``` xml
+     <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
+     <Socket name="name1" host="localHost" port="9540" charset="utf8">
+         <!-- 输出格式  序列布局-->
+         <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
+    
+         <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
+         <!-- <SerializedLayout/>-->
+     </Socket>
+    ```
+
+    更多 Java/Go/Python 主流日志组件的配置及代码示例，请参阅 [Socket 日志采集](logging_socket.md)。
+
 <!-- markdownlint-enable -->
 
-### socket 采集日志 {#socket}
+## 高级主题 {#deepin-topics}
 
-将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例：
-
-``` xml
- <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
- <Socket name="name1" host="localHost" port="9540" charset="utf8">
-     <!-- 输出格式  序列布局-->
-     <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
-
-     <!--注意：不要开启序列化传输到 socket 采集器上，目前 DataKit 无法反序列化，请使用纯文本形式传输-->
-     <!-- <SerializedLayout/>-->
- </Socket>
-```
-
-更多 Java Go Python 主流日志组件的配置及代码示例，请参阅 [socket client 配置](logging_socket.md)。
+以下涉及日志采集更深入的一些介绍，如果您感兴趣，可以了解一下。
 
 ### 多行日志采集 {#multiline}
 
@@ -144,7 +153,7 @@ monitor   :
 multiline_match = ''' 这里填写具体的正则表达式 ''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
 ```
 
-日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}
+日志采集器中使用的正则表达式风格[参考这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax){:target="_blank"}。
 
 假定原数据为：
 
@@ -275,7 +284,7 @@ Traceback (most recent call last):
 
 #### 日志单行最大长度 {#max-log}
 
-无论从文件还是从 socket 中读取的日志，单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃。
+无论从文件还是从 TCP/UDP 中读取的日志，单行（包括经过 `multiline_match` 处理后）最大长度默认约 800KiB 左右，超出部分会被分割成多条上报。
 
 ### Pipeline 配置和使用 {#pipeline}
 
@@ -284,7 +293,7 @@ Traceback (most recent call last):
 对日志数据而言，主要提取两个字段：
 
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
-- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `unknown`
+- `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
 
 #### 可用日志等级 {#status}
 
@@ -335,12 +344,12 @@ Pipeline 的几个注意事项：
 
 - 如果 logging.conf 配置文件中 `pipeline` 为空，默认使用 `<source-name>.p`（假定 `source` 为 `nginx`，则默认使用 `nginx.p`）
 - 如果 `<source-name.p>` 不存在，将不启用 Pipeline 功能
-- 所有 Pipeline 脚本文件，统一存放在 Datakit 安装路径下的 Pipeline 目录下
+- 所有 Pipeline 脚本文件，统一存放在 DataKit 安装路径下的 Pipeline 目录下
 - 如果日志文件配置的是通配目录，logging 采集器会自动发现新的日志文件，以确保符合规则的新日志文件能够尽快采集到
 
-### glob 规则简述 {#glob-rules}
+### Glob 规则简述 {#glob-rules}
 
-使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
+使用 Glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
 | 通配符   | 描述                               | 正则示例       | 匹配示例                    | 不匹配                        |
 | :--      | ---                                | ---            | ---                         | ----                          |
@@ -355,18 +364,18 @@ Pipeline 的几个注意事项：
 
 ### 文件读取的偏移位置 {#read-position}
 
-*支持 Datakit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) 及以上版本。*
+*支持 DataKit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) 及以上版本。*
 
 文件读取的偏移是指打开文件后，从哪个位置开始读取。一般是 “首部（head）” 或 “尾部（tail）”。
 
-在 Datakit 中主要是 3 种情况，按照优先级划分如下：
+在 DataKit 中主要是 3 种情况，按照优先级划分如下：
 
 - 优先使用该文件的 position cache，如果能够得到 position 值，且该值小于等于文件大小（说明这是一个没有被 truncated 的文件），使用这个 position 作为读取的偏移位置
 - 其次是配置 `from_beginning` 为 `true`，会从文件首部读取
 - 最后是默认的 `tail` 模式，即从尾部读取
 
 <!-- markdownlint-disable MD046 -->
-???+ Note "关于 `position cache` 的说明"
+???+ info "关于 `position cache` 的说明"
 
     `position cache` 是日志采集的一项内置功能，它是多个 K/V 键值对，存放在 `cahce/logtail.history` 文件中：
 
@@ -381,25 +390,25 @@ Pipeline 的几个注意事项：
 日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 true 对其删除过滤。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+??? warning "颜色字符处理会带来额外的采集开销"
 
-    对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 Datakit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，可能覆盖不够全面，且有一定的性能开销。
+    对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 DataKit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，可能覆盖不够全面，且有一定的性能开销。
+
+    处理性能基准测试结果如下，仅供参考：
+    
+    ```text
+    goos: linux
+    goarch: arm64
+    pkg: ansi
+    BenchmarkStrip
+    BenchmarkStrip-2  653751  1775 ns/op  272 B/op  3 allocs/op
+    BenchmarkStrip-4  673238  1801 ns/op  272 B/op  3 allocs/op
+    PASS
+    ok      ansi      2.422s
+    ```
+    
+    每一条文本的处理耗时增加 1700 ns 不等。如果不开启此功能将无额外损耗。
 <!-- markdownlint-enable -->
-
-处理性能基准测试结果如下，仅供参考：
-
-```text
-goos: linux
-goarch: arm64
-pkg: ansi
-BenchmarkStrip
-BenchmarkStrip-2          653751              1775 ns/op             272 B/op          3 allocs/op
-BenchmarkStrip-4          673238              1801 ns/op             272 B/op          3 allocs/op
-PASS
-ok      ansi      2.422s
-```
-
-每一条文本的处理耗时增加 1700 ns 不等。如果不开启此功能将无额外损耗。
 
 ### 根据白名单保留指定字段 {#field-whitelist}
 
@@ -422,10 +431,10 @@ ok      ansi      2.422s
 
 对于其他来源的 tags 字段，有以下几种情况：
 
-- whitelist 对 Datakit 的全局标签（`global tags`）不生效
+- whitelist 对 DataKit 的全局标签（`global tags`）不生效
 - 通过 `ENV_ENABLE_DEBUG_FIELDS = "true"` 开启的 debug 字段不受影响，包括日志采集的 `log_read_offset` 和 `log_file_inode` 两个字段，以及 `pipeline` 的 debug 字段
 
-## 日志 {#logging}
+## 数据字段 {#logging}
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -459,7 +468,7 @@ ok      ansi      2.422s
 <!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
 
-### :material-chat-question: 为什么在页面上看不到日志数据？ {#why-no-data}
+### 为什么在页面上看不到日志数据？ {#why-no-data}
 
 DataKit 启动后，`logfiles` 中配置的日志文件**有新的日志产生才会采集上来，老的日志数据是不会采集的**。
 
@@ -471,19 +480,19 @@ First Message. filename: /some/path/to/new/log ...
 
 如果看到这样的信息，说明指定的文件「已经开始采集，只是当前尚无新的日志数据产生」。另外，日志数据的上传、处理、入库也有一定的时延，即使有新的数据产生，也需要等待一定时间（< 1min）。
 
-### :material-chat-question: 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
+### 磁盘日志采集和 Socket 日志采集的互斥性 {#exclusion}
 
 两种采集方式目前互斥，当以 Socket 方式采集日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
-### :material-chat-question: 远程文件采集方案 {#remote-ntfs}
+### 远程文件采集方案 {#remote-ntfs}
 
 在 Linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/){:target="_blank"}，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
 
-### :material-chat-question: MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
+### MacOS 日志采集器报错 `operation not permitted` {#mac-no-permission}
 
 在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}。
 
-### :material-chat-question: 如何估算日志的总量 {#log-size}
+### 如何估算日志的总量 {#log-size}
 
 由于日志的收费是按照条数来计费的，但一般情况下，大部分的日志都是程序写到磁盘的，只能看到磁盘占用大小（比如每天 100GB 日志）。
 

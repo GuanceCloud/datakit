@@ -23,7 +23,7 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 
 ## Installation {#installation}
 
-### Adding a Datakit Layer {#layer}
+### Adding a DataKit Layer {#layer}
 
 - [Create a Layer via Zip](https://docs.aws.amazon.com/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 

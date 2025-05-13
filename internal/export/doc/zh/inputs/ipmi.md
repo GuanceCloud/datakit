@@ -29,7 +29,7 @@ IPMI 可以让运维系统**无侵入**获得被监控服务器等设备的运�
 
 - 安装 `ipmitool` 工具包
 
-Datakit 是通过 [`ipmitool`][1] 这个工具来采集 IPMI 数据的，故需要机器上安装这个工具。可通过如下命令安装：
+DataKit 是通过 [`ipmitool`][1] 这个工具来采集 IPMI 数据的，故需要机器上安装这个工具。可通过如下命令安装：
 
 ```shell
 # CentOS
@@ -69,12 +69,12 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     1. IP 地址指的是被您远程管理服务器的 IPMI 口 IP 地址
     1. 服务器的「IPMI 设置 -> 启用 LAN 上的 IPMI」需要勾选
     1. 服务器「信道权限级别限制」操作员级别需要和「用户名」保持级别一致
-    1. `ipmitool` 工具包是安装到运行 Datakit 的机器里。
+    1. `ipmitool` 工具包是安装到运行 DataKit 的机器里。
 
 ### 采集器配置 {#input-config}
 
@@ -96,7 +96,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-???+ tip "配置提示"
+???+ note "配置提示"
 
     - 各个参数归类的关键词，一律用小写
     - 参考 `ipmitool -I ...` 指令返回的数据，合理配置关键词

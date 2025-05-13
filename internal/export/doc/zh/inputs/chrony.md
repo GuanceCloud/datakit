@@ -17,7 +17,7 @@ monitor   :
 
 Chrony 采集器用于采集 Chrony 服务器相关的指标数据。
 
-Chrony 采集器支持远程采集，采集器 Datakit 可以运行在多种操作系统中。
+Chrony 采集器支持远程采集，采集器 DataKit 可以运行在多种操作系统中。
 
 ## 配置 {#config}
 

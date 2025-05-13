@@ -1,6 +1,6 @@
-# Datakit Ports
+# DataKit Ports
 
-Datakit need to open several local ports to serve it's features, We may open these ports when you enabled related features:
+DataKit need to open several local ports to serve it's features, We may open these ports when you enabled related features:
 
 | Port(default) | Protocol(L4/L7) | Related Feature                | Default route                             |
 | ---           | ---             | ---                            |-------------------------------------------|
@@ -14,7 +14,7 @@ Datakit need to open several local ports to serve it's features, We may open the
 | 6343          | UDP             | NetFlow sflow5 default port    | N/A                                       |
 | 8125          | UDP             | StatsD                         | N/A                                       |
 | 9109          | UDP/TCP         | Graphite                       | N/A                                       |
-| 9529          | HTTP            | Datakit HTTP                   |                                           |
+| 9529          | HTTP            | DataKit HTTP                   |                                           |
 | 9530          | TCP             | Logging on socket(TCP)         | N/A                                       |
 | 9531          | TCP             | DCA Server                     | N/A                                       |
 | 9531          | UDP             | Logging on Socket(UDP)         | N/A                                       |

@@ -36,7 +36,7 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 
 ## 发布历史
 
-DataKit 发布历史参见[这里](https://www.yuque.com/dataflux/datakit/changelog).
+DataKit 发布历史参见[这里](https://docs.guance.com/datakit/changelog/).
 
 ## 操作系统最低要求
 
@@ -67,9 +67,9 @@ powershell .install.ps1;
 Remove-Item .install.ps1;
 ```
 
-- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+- [Kubernetes DaemonSet](https://docs.guance.com/datakit/datakit-daemonset-deploy/)
 
-更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
+更多关于安装的文档，参见[这里](https://docs.guance.com/datakit/datakit-install/)。
 
 ## 源码编译
 
@@ -165,8 +165,8 @@ datakit help
 
 在为我们贡献代码之前：
 
-- 可尝试阅读 DataKit [基本架构介绍](https://www.yuque.com/dataflux/datakit/datakit-arch)
-- 请先查看我们的[开发指南](https://www.yuque.com/dataflux/datakit/development)
+- 可尝试阅读 DataKit [基本架构介绍](https://docs.guance.com/datakit/datakit-arch/)
+- 请先查看我们的[开发指南](https://docs.guance.com/datakit/development/)
 
 ## 文档
 

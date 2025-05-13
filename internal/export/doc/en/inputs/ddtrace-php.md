@@ -28,7 +28,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `localhost`
 
-    The host address where Datakit is listening.
+    The host address where DataKit is listening.
 
 - **`DD_TRACE_AGENT_PORT`**
 
@@ -36,7 +36,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `8126`
 
-    The port number where Datakit is listening, which should be manually set to 9529.
+    The port number where DataKit is listening, which should be manually set to 9529.
 
 - **`DD_ENV`**
 
@@ -68,7 +68,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `100`
 
-    Agent connection timeout configuration to Datakit (unit ms), default is 100.
+    Agent connection timeout configuration to DataKit (unit ms), default is 100.
 
 - **`DD_TAGS`**
 

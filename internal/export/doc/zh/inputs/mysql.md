@@ -49,10 +49,13 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1` <br/>
-    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+    - 如用 `localhost` 时发现采集器有如下报错，需要将上述步骤的 `localhost` 换成 `::1`：
+
+        ```text
+        `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+        ```
 
     - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 MySQL 主机上（`localhost`）访问 MySQL。如果需要对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
 <!-- markdownlint-enable -->
@@ -415,7 +418,7 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 阿里云 RDS 采集时，指标 `mysql_user_status` 没有上报数据？ {#faq-user-no-data}
+### 阿里云 RDS 采集时，指标 `mysql_user_status` 没有上报数据？ {#faq-user-no-data}
 
 该指标需要开启 `performance_schema`，可以通过以下 SQL 查询：
 

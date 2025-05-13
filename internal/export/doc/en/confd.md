@@ -12,7 +12,7 @@ Adopting "separation of configuration and application" can solve the problem tha
 
 With the function of "real-time update", it is used to solve the problem of traditional "static configuration". When the online system needs to adjust the parameters, it only needs to be dynamically modified in the configuration center.
 
-Datakit supports multiple configuration centers, such as `etcd-v3` `consul` `redis` `zookeeper` `file`, and can work together with multiple configuration centers at the same time.
+DataKit supports multiple configuration centers, such as `etcd-v3` `consul` `redis` `zookeeper` `file`, and can work together with multiple configuration centers at the same time.
 When the configuration center data changes, DataKit can automatically change the configuration, add or delete collectors, and relevant collectors are restarted as necessary.
 
 ## Introducing Configuration Center {#Configuration-Center-Import}
@@ -107,6 +107,7 @@ When the configuration center data changes, DataKit can automatically change the
 <!-- markdownlint-enable -->
 
 ## Collector Turned on by Default {#default-enabled-inputs}
+
 After DataKit is installed, a batch of host-related collectors will be turned on by default without manual configuration, such as:
 
 `cpu`, `disk`, `diskio`, `mem` and so on. See [Collector Configuration](datakit-input-conf.md#default-enabled-inputs) for details.
@@ -125,7 +126,7 @@ In the collector configuration of single case operation, only the data ranked fi
 
 ## Data Format {#data-format}
 
-Datakit configuration information is stored in the data center as a Key-Value.
+DataKit configuration information is stored in the data center as a Key-Value.
 
 The prefix of Key must be `/datakit/`, such as  `/datakit/XXX` , `XXX` is not duplicated. It is recommended to use the corresponding collector name, such as `/datakit/netstat`.
 

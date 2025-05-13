@@ -19,13 +19,13 @@ monitor   :
 
 ---
 
-DDTrace Agent embedded in Datakit is used to receive, calculate and analyze DataDog Tracing protocol data.
+DDTrace Agent embedded in DataKit is used to receive, calculate and analyze DataDog Tracing protocol data.
 
 ## DDTrace Documentation and Examples {#doc-example}
 
 <!-- markdownlint-disable MD046 MD032 MD030 -->
 <div class="grid cards" markdown>
--   :fontawesome-brands-python: __Python__
+-   :fontawesome-brands-python: **Python**
 
     ---
 
@@ -33,7 +33,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-python.md)
 
--   :material-language-java: __Java__
+-   :material-language-java: **Java**
 
     ---
 
@@ -41,7 +41,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-java.md)
 
--   :material-language-ruby: __Ruby__
+-   :material-language-ruby: **Ruby**
 
     ---
 
@@ -49,7 +49,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-java.md)
 
--   :fontawesome-brands-golang: __Golang__
+-   :fontawesome-brands-golang: **Golang**
 
     ---
 
@@ -57,7 +57,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-golang.md)
 
--   :material-language-php: __PHP__
+-   :material-language-php: **PHP**
 
     ---
 
@@ -65,7 +65,7 @@ DDTrace Agent embedded in Datakit is used to receive, calculate and analyze Data
     [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: example](ddtrace-php.md)
 
--   :fontawesome-brands-node-js: __NodeJS__
+-   :fontawesome-brands-node-js: **NodeJS**
 
     ---
 
@@ -131,10 +131,9 @@ This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexad
 
 ???+ tip
 
-    compatible_otel function: Converts span_id and parent_id into hexadecimal strings.
-    trace_128_bit_id function: Combines the "_dd.p.tid" from meta with trace_id to form a 32-character hexadecimal encoded string.
-    trace_id_64_bit_hex function: Converts a 64-bit trace_id into a hexadecimal encoded string.
-
+    - `compatible_otel`: Converts `span_id` and `parent_id` into hexadecimal strings.
+    - `trace_128_bit_id`: Combines the `_dd.p.tid` from meta with `trace_id` to form a 32-character hexadecimal encoded string.
+    - `trace_id_64_bit_hex`: Converts a 64-bit `trace_id` into a hexadecimal encoded string.
 
 ### Add Pod and Node tags {#add-pod-node-info}
 
@@ -190,7 +189,7 @@ Once environment set, the Pod/Node name will attached to related Span tags.
 
 ---
 
-???+ attention
+???+ warning
 
     - Don't modify the `endpoints` list here.
 
@@ -255,7 +254,7 @@ In addition to setting the project name, environment name, and version number wh
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- Configure custom tags directly in ddtrace. conf. This approach affects __all__ data sends to the DataKit tracing service and should be considered carefully:
+- Configure custom tags directly in *ddtrace.conf*. This approach affects **all** data sends to the DataKit tracing service and should be considered carefully:
 
 ```toml
 # tags is ddtrace configed key value pairs

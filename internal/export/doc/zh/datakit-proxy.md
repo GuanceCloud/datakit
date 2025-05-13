@@ -1,11 +1,11 @@
 # DataKit 代理
 
-当 Datakit 无法访问外网时，可在内网部署一个代理将流量发送出来。本文提供俩种实现方式：
+当 DataKit 无法访问外网时，可在内网部署一个代理将流量发送出来。本文提供俩种实现方式：
 
 - 通过 DataKit 内置的代理服务
 - 通过 Nginx 代理服务
 
-## Datakit 內置代理 {#datakit}
+## DataKit 內置代理 {#datakit}
 
 內置 Proxy 采集器的配置，参见[这里](../integrations/proxy.md)。
 
@@ -36,7 +36,7 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.<<<custom_key.brand_mai
 代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要：
 
 - 一台可以访问外网的 nginx 的透明代理服务器
-- Datakit 所在的客户机使用 *hosts* 文件进行域名配置
+- DataKit 所在的客户机使用 *hosts* 文件进行域名配置
 
 ### 配置 `Nginx` 代理服务 {#config-nginx-proxy}
 
@@ -95,7 +95,7 @@ $ nginx -s reload # reload 配置
 ...
 ```
 
-配置 `Datakit` 被代理机器上的域名，下面假设 `192.168.1.66` 是 nginx 透明代理服务器的 IP 地址。
+配置 `DataKit` 被代理机器上的域名，下面假设 `192.168.1.66` 是 nginx 透明代理服务器的 IP 地址。
 
 ```shell
 $ sudo vi /etc/hosts

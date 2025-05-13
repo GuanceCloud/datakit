@@ -12,9 +12,9 @@ __int_icon: 'icon/telegraf'
 ---
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    Before using Telegraf, it is recommended to determine whether Datakit can meet the expected data collection. If DataKit is already supported, Telegraf is not recommended for collection, which may lead to data conflicts and cause problems in use.
+    Before using Telegraf, it is recommended to determine whether DataKit can meet the expected data collection. If DataKit is already supported, Telegraf is not recommended for collection, which may lead to data conflicts and cause problems in use.
 <!-- markdownlint-enable MD046 -->
 
 Telegraf is an open source data collection tool. DataKit can access the data set collected by Telegraf through simple configuration.

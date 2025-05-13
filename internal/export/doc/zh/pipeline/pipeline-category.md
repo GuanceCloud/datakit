@@ -8,7 +8,7 @@
 自 DataKit 1.4.0 起，可通过内置的 Pipeline 功能直接操作 DataKit 采集数据，支持目前[所有的数据类型](../../datakit/apis.md#category)
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - Pipeline 应用到所有数据，目前处于实验阶段，不保证后面会对机制或行为做不兼容的调整。
     - 即使是通过 [DataKit API](../../datakit/apis.md) 上报的数据也支持 Pipeline 处理。

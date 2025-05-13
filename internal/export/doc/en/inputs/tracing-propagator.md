@@ -49,7 +49,7 @@ Baggage is a concept introduced by the Jaeger tracking system, which is used to 
 The real meaning of Baggage is to propagate key-value pairs of the `key:value` nature, which is often used to propagate AppID, Host-Name, Host-IP, etc.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     It should be noted that the specific implementation and usage of these transparent transmission protocols may be slightly different, but they all aim to pass tracking information and context information between different services through HTTP header fields to achieve distributed tracking and continuous sex.
 <!-- markdownlint-enable -->
@@ -131,7 +131,7 @@ $ export DD_TRACE_PROPAGATION_STYLE="datadog,b3" ...
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     After version V1.7.0, the default support protocol is changed to `DD_TRACE_PROPAGATION_STYLE="tracecontext,datadog"`, B3 has been deprecated, please use B3multi.
 <!-- markdownlint-enable -->

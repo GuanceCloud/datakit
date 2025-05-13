@@ -9,7 +9,7 @@
 
 Through the Reference Table function, Pipeline supports importing external data for data processing.
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     This feature consumes high memory, with reference to 1.5 million rows of disk occupying about 200MB (JSON file) of non-repetitive data (string type two columns; int, float, bool), the memory footprint is maintained at 950MB ~ 1.2 GB, and the peak memory at update is 2.2 GB ~ 2.7 GB.
 <!-- markdownlint-enable -->

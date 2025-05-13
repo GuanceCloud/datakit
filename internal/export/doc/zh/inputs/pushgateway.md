@@ -47,7 +47,7 @@ Pushgateway 采集器会开启对应的 API 接口，用于接收 Prometheus 指
 
 ## 示例 {#example}
 
-Pushgateway 采集器遵循 [Prometheus Pushgateway](https://github.com/prometheus/pushgateway?tab=readme-ov-file#prometheus-pushgateway) 协议，同时针对 Datakit 的采集特性有一些调整。目前支持以下功能：
+Pushgateway 采集器遵循 [Prometheus Pushgateway](https://github.com/prometheus/pushgateway?tab=readme-ov-file#prometheus-pushgateway) 协议，同时针对 DataKit 的采集特性有一些调整。目前支持以下功能：
 
 - 接收 Prometheus 文本数据和 Protobuf 数据
 - 在 URL 指定字符串 labels 和 base64 labels
@@ -56,7 +56,7 @@ Pushgateway 采集器遵循 [Prometheus Pushgateway](https://github.com/promethe
 
 下面是一个部署在 Kubernetes 集群中的简单示例：
 
-- 开启 Pushgateway 采集器。此处选择在 Datakit YAML 以环境变量的方式开启。
+- 开启 Pushgateway 采集器。此处选择在 DataKit YAML 以环境变量的方式开启。
 
 ```yaml
     # ..other..
@@ -71,7 +71,7 @@ Pushgateway 采集器遵循 [Prometheus Pushgateway](https://github.com/promethe
     # ..other..
 ```
 
-- 创建一个 Deployment，产生 Prometheus 数据并发送到 Datakit Pushgateway 的 API。
+- 创建一个 Deployment，产生 Prometheus 数据并发送到 DataKit Pushgateway 的 API。
 
 ```yaml
 apiVersion: apps/v1
@@ -117,7 +117,7 @@ spec:
           i=100;
           while true;
           do
-            ## 定期使用 cURL 命令向 Datakit Pushgateway API 发送数据
+            ## 定期使用 cURL 命令向 DataKit Pushgateway API 发送数据
             echo -e "# TYPE pushgateway_count counter\npushgateway_count{name=\"client\"} $i" | curl --data-binary @- $PUSHGATEWAY_ENDPOINT;
             i=$((i+1));
             sleep 2;

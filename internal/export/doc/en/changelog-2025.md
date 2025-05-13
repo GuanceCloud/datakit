@@ -9,7 +9,7 @@ This release is an iterative update, with the following key changes:
 
 - Added the Windows Remote collector, which supports remote collection of basic information from Windows hosts via SNMP/WMI (#2591).
 - Added collection for major Kubernetes object changes (#2514).
-- Added a RUM environment variable API to the Datakit HTTP API (#2622).
+- Added a RUM environment variable API to the DataKit HTTP API (#2622).
 
 ### Bug Fixes {#cl-1.72.0-fix}
 
@@ -44,7 +44,7 @@ This release is an iterative release, with the following main updates:
 - Added X-Pkg-ID to the HTTP header for data packet tracking (#2587).
 - Added the `source_host/source_component` fields to the data collected from Kubernetes events (#2606).
 - In the DDTrace resource catalog collection, the user-defined tags were promoted to first-level fields to enable sinking (#2609).
-- Optimized the DDTrace sampling strategy. For traces with sampler-keep, Datakit will no longer sample but directly retain them (#2614).
+- Optimized the DDTrace sampling strategy. For traces with sampler-keep, DataKit will no longer sample but directly retain them (#2614).
 - The WAL disk cache allows some data categories not to discard data when the disk is full (#2620).
 - Added global tags to Profile and RUM session replay data to enable sinking (#2621).
 - The eBPF collection added more Kubernetes labels, such as `cronjob/daemonset/statefulset`, etc. (#2571).
@@ -111,7 +111,7 @@ This release is an iterative release, with the following updates:
 - Optimized the processing of the trace-id field in DDTrace (#2569).
 - Added the `base_service` field in OpenTelemetry collection (#2575).
 - Adjusted the default settings of WAL. The number of workers is defaulted to the CPU-limit cores * 8, and the number of workers and the disk cache size can be specified during the installation/upgrade stage (#2582).
-- Removed the pid detection when Datakit runs in the container environment (#2586).
+- Removed the pid detection when DataKit runs in the container environment (#2586).
 
 ### Compatibility Adjustments {#cl-1.69.0-brk}
 
@@ -119,7 +119,7 @@ This release is an iterative release, with the following updates:
 
     Adjusted the disk metric collection and updated the disk list collection in the host object. The main differences are as follows:
 
-    1. Added the mount point ignore option: This adjustment is mainly to optimize the process of Datakit obtaining the disk list in Kubernetes, filtering out some unnecessary mount points, such as the ConfigMap configuration mount (`/usr/local/datakit/.*`) and the mount caused by Pod log collection (`/run/containerd/.*`); meanwhile, it avoids the addition of invalid time series(these new time series are mainly caused by different mount points).
+    1. Added the mount point ignore option: This adjustment is mainly to optimize the process of DataKit obtaining the disk list in Kubernetes, filtering out some unnecessary mount points, such as the ConfigMap configuration mount (`/usr/local/datakit/.*`) and the mount caused by Pod log collection (`/run/containerd/.*`); meanwhile, it avoids the addition of invalid time series(these new time series are mainly caused by different mount points).
     1. Added the file system ignore option: Some file systems that are not necessary to collect, such as `tmpfs/autofs/devpts/overlay/proc/squashfs`, etc., are default ignored.
     1. In the host object collection, the same default ignore strategy as the disk metric collection is adopted.
 
@@ -156,7 +156,7 @@ This release is an iterative release, with the following updates:
 - The Zabbix Exporter collector added compatibility with lower versions (v4.2+) (#2555).
 - The `setopt()` function is provided to customize the processing of log levels when Pipeline processes logs (#2545).
 - When the OpenTelemetry collector collects histogram metrics, it is defaulted to convert them into Prometheus style histograms (#2556).
-- Adjusted the CPU-limit method when installing Datakit on the host. The newly installed Datakit defaults to using the limit mechanism based on the number of CPU cores (#2557).
+- Adjusted the CPU-limit method when installing DataKit on the host. The newly installed DataKit defaults to using the limit mechanism based on the number of CPU cores (#2557).
 - The Proxy collector added the source IP whitelist mechanism (#2558).
 - The collection of Kubernetes container and Pod metrics allows for targeted collection by namespace/image, etc. (#2562).
 - The memory/CPU completion of Kubernetes containers and Pods is collected based on the percentage of Limit and Request (#2563).

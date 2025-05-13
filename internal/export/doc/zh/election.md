@@ -8,20 +8,20 @@
 
 当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
 
-Datakit 有两种选举模式，即：
+DataKit 有两种选举模式，即：
 
-- Datakit 自选举：在同一个选举命名空间下，当选的 Datakit 负责全部采集，其他 Datakit 处于待定状态。优点是配置简单，不需要额外部署应用；缺点是对当选者的资源占用较大，所有的采集器都在这台 Datakit 上运行，系统资源占用增多。
-- 采集器任务选举[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)：只适用于 Kubernetes 环境，通过部署 [Datakit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 Datakit 各个采集器的任务分发。优点是各个 Datakit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
+- DataKit 自选举：在同一个选举命名空间下，当选的 DataKit 负责全部采集，其他 DataKit 处于待定状态。优点是配置简单，不需要额外部署应用；缺点是对当选者的资源占用较大，所有的采集器都在这台 DataKit 上运行，系统资源占用增多。
+- 采集器任务选举[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)：只适用于 Kubernetes 环境，通过部署 [DataKit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 DataKit 各个采集器的任务分发。优点是各个 DataKit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
 
 ## 采集器任务选举模式 {#plugins-election}
 
-### 部署 Datakit Operator {#install-operator}
+### 部署 DataKit Operator {#install-operator}
 
-采集器选举模式需要用到 Datakit Operator v1.0.5 及以上版本，部署文档参见[此处](datakit-operator.md#datakit-operator-install)。
+采集器选举模式需要用到 DataKit Operator v1.0.5 及以上版本，部署文档参见[此处](datakit-operator.md#datakit-operator-install)。
 
 ### 选举配置 {#plugins-election-config}
 
-在 Datakit 安装 yaml 中添加一项环境变量 `ENV_DATAKIT_OPERATOR`，值为 Datakit Operator 地址，例如：
+在 DataKit 安装 yaml 中添加一项环境变量 `ENV_DATAKIT_OPERATOR`，值为 DataKit Operator 地址，例如：
 
 ```yaml
       containers:
@@ -30,14 +30,14 @@ Datakit 有两种选举模式，即：
           value: https://datakit-operator.datakit.svc:443
 ```
 
-Datakit Operator 默认的 Service 地址是 `datakit-operator.datakit.svc:443`。
+DataKit Operator 默认的 Service 地址是 `datakit-operator.datakit.svc:443`。
 
 <!-- markdownlint-disable MD046 -->
-???+ info
+???+ note
 
-    采集器任务选举的优先级高于 Datakit 自选举。如果配置可用的 Datakit Operator 地址，会优先使用任务选举，否则会使用 Datakit 自选举。
+    采集器任务选举的优先级高于 DataKit 自选举。如果配置可用的 DataKit Operator 地址，会优先使用任务选举，否则会使用 DataKit 自选举。
 
-## Datakit 自选举模式 {#self-election}
+## DataKit 自选举模式 {#self-election}
 
 ### 选举配置 {#config}
 
@@ -78,7 +78,7 @@ Datakit Operator 默认的 Service 地址是 `datakit-operator.datakit.svc:443`�
 
 ### 选举状态查看 {#status}
 
-配置完选举后，通过[查看 monitor](datakit-monitor.md#view) 即可知道当前 Datakit 的选举状态，在 `Basic Info` 栏中，有如下行：
+配置完选举后，通过[查看 monitor](datakit-monitor.md#view) 即可知道当前 DataKit 的选举状态，在 `Basic Info` 栏中，有如下行：
 
 ```not-set
 Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
@@ -86,11 +86,11 @@ Elected default::success|MacBook-Pro.local(elected: 4m40.554909s)
 
 其中：
 
-- `default` 表示当前 Datakit 参与选举的命名空间。一个工作空间可以有多个选举专用的命名空间
-- `success` 表示当前 Datakit 开启了选举且选举成功
-- `MacBook-Pro.local` 表示当前命名空间被选上的 Datakit 所在主机名。如果该主机名就是当前这个 Datakit，则后面会显示其当选 leader 的时长（`elected: 4m40.554909s`）[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)
+- `default` 表示当前 DataKit 参与选举的命名空间。一个工作空间可以有多个选举专用的命名空间
+- `success` 表示当前 DataKit 开启了选举且选举成功
+- `MacBook-Pro.local` 表示当前命名空间被选上的 DataKit 所在主机名。如果该主机名就是当前这个 DataKit，则后面会显示其当选 leader 的时长（`elected: 4m40.554909s`）[:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8)
 
-如果是如下显示，则表示当前 Datakit 未被选上，但会显示当前是哪个主机被选上：
+如果是如下显示，则表示当前 DataKit 未被选上，但会显示当前是哪个主机被选上：
 
 ```not-set
 Elected default::defeat|host-abc
@@ -98,23 +98,23 @@ Elected default::defeat|host-abc
 
 其中：
 
-- `default` 表示当前 Datakit 参与选举的命名空间，同上
-- `defeat` 表示当前 Datakit 开启了，但选举失败。除此之外，还有如下几种可能的状态：
+- `default` 表示当前 DataKit 参与选举的命名空间，同上
+- `defeat` 表示当前 DataKit 开启了，但选举失败。除此之外，还有如下几种可能的状态：
 
     - **disabled**：未开启选举功能
     - **success**：选举成功完成
     - **banned**：选举功能已开启，但自己未列在选举允许的白名单中 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0)
 
-- `host-abc` 表示当前命名空间被选上的 Datakit 所在主机名
+- `host-abc` 表示当前命名空间被选上的 DataKit 所在主机名
 
 ### 选举原理 {#how}
 
-以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 Datakit、2 个 MySQL 实例，且 Datakit 都开启了选举（DaemonSet 模式下，每个 Datakit 的配置都是一样的）以及 MySQL 采集器：
+以 MySQL 为例，在同一个集群（如 K8s cluster）中，假定有 10 DataKit、2 个 MySQL 实例，且 DataKit 都开启了选举（DaemonSet 模式下，每个 DataKit 的配置都是一样的）以及 MySQL 采集器：
 
-- 一旦某个 Datakit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 Datakit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 Datakit 处于待命状态。
-- <<<custom_key.brand_name>>>中心会判断当前选上的 Datakit 是否正常，如果异常，则强行踢掉该 Datakit，其它待命状态的 Datakit 将替代它
-- 未开启选举的 Datakit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
-- 选举的范围是「工作空间+命名空间」级别的，单个「工作空间+命名空间」中，一次最多只能有一个 Datakit 被选上
+- 一旦某个 DataKit 被选举上，那么所有 MySQL （其它选举类的采集也一样）的数据采集，都将由该 DataKit 来采集，不管被采集对象是一个还是多个，赢者通吃。其它未选上的 DataKit 处于待命状态。
+- <<<custom_key.brand_name>>>中心会判断当前选上的 DataKit 是否正常，如果异常，则强行踢掉该 DataKit，其它待命状态的 DataKit 将替代它
+- 未开启选举的 DataKit（可能它不在当前集群中），如果也配置了 MySQL 采集，不受选举约束，它仍然会去采集 MySQL 的数据
+- 选举的范围是「工作空间+命名空间」级别的，单个「工作空间+命名空间」中，一次最多只能有一个 DataKit 被选上
     - 关于工作空间，在 *datakit.conf* 中，通过 Dataway 地址串中的 `token` URL 参数来表示，每个工作空间，都有其对应 token
     - 关于选举的命名空间，在 *datakit.conf* 中，通过 `namespace` 配置项来表示。一个工作空间可以配置多个命名空间
 
@@ -192,7 +192,7 @@ Elected default::defeat|host-abc
 
 ## FAQ {#faq}
 
-### :material-chat-question: `host` 字段问题 {#host}
+### `host` 字段问题 {#host}
 
 对于由参与选举的采集器采集的对象，比如 MySQL，由于采集其数据的 DataKit 可能会变迁（发生了选举轮换），故默认情况下，这类采集器采集的数据不会带上 `host` 这个 tag，以避免时间线增长。我们建议在 MySQL 采集器配置上，增加额外的 `tags` 字段：
 

@@ -146,7 +146,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "io",
 			Name:      "last_feed_timestamp_seconds",
-			Help:      "Input last feed time(according to Datakit local time)",
+			Help:      "Input last feed time(according to DataKit local time)",
 		},
 		[]string{
 			"name",

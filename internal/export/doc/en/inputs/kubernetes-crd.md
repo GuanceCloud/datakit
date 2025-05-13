@@ -1,6 +1,6 @@
 ---
 title     : 'Kubernetes CRD Extended Collection'
-summary   : 'Create Datakit CRD to collect'
+summary   : 'Create DataKit CRD to collect'
 tags      :
   - 'PROMETHEUS'
   - 'KUBERNETES'
@@ -15,7 +15,7 @@ __int_icon: 'icon/kubernetes'
 
 ## Introduction {#intro}
 
-**This feature is deprecated in Datakit 1.63.0.**
+**This feature is deprecated in DataKit 1.63.0.**
 
 This document describes how to create a DataKit resource in a Kubernetes cluster and configure an extension collector.
 
@@ -51,19 +51,19 @@ Write the following to the yaml configuration, such as `datakit-crd.yaml`, where
 Execute the `kubectl apply -f datakit-crd.yaml` command.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     - DaemonSet and Deployment are two different Kubernetes resources, but here `k8s DaemonSet` and `k8s Deployment` can exist at the same time. That is, under the same Namespace, the Pod created by DaemonSet and the Pod created by Deployment share the same CRD configuration. This is not recommended, however, because fields like `source` are used to identify data sources in specific configurations, and mixing them leads to unclear data boundaries. It is recommended that only one `k8s DaemonSet` and `k8s Deployment` exist in the same CRD configuration.
 
-    - Datakit only collects Pod in the same node as it, which belongs to nearby collection and will not be collected across nodes.
+    - DataKit only collects Pod in the same node as it, which belongs to nearby collection and will not be collected across nodes.
 <!-- markdownlint-enable -->
 
 ## Example {#example}
 
 A complete example is as follows, including:
 
-- Create CRD Datakit
-- Namespace and Datakit instance objects used for testing
+- Create CRD DataKit
+- Namespace and DataKit instance objects used for testing
 - Configure the Prom collector (`inputConf`)
 
 ```yaml
@@ -151,7 +151,7 @@ Here, we use DataKit CRD extension to collect Ingress metrics, that is, we colle
 
 #### Configuration Step {#nginx-steps}
 
-- Create Datakit CustomResourceDefinition
+- Create DataKit CustomResourceDefinition
 
 Execute the following create command:
 
@@ -204,7 +204,7 @@ $ kubectl get crds | grep <<<custom_key.brand_main_domain>>>
 datakits.<<<custom_key.brand_main_domain>>>   2022-08-18T10:44:09Z
 ```
 
-- Create a Datakit resource
+- Create a DataKit resource
 
 Prometheus configuration can be found in [link](kubernetes-prom.md)
 
@@ -212,7 +212,7 @@ Execute the following `yaml`:
 
 ```yaml
 apiVersion: <<<custom_key.brand_main_domain>>>/v1beta1
-kind: DataKit
+kind: Datakit
 metadata:
   name: prom-ingress
   namespace: datakit
@@ -248,7 +248,7 @@ prom-ingress   18m
 
 - View Metric Collection
 
-Log in to `Datakit pod` and execute the following command:
+Log in to DataKit pod and execute the following command:
 
 ```bash
 datakit monitor
@@ -256,7 +256,6 @@ datakit monitor
 
 <figure markdown>
   ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-crd-ingress.png){ width="800" }
-  <figcaption> Ingress 数据采集 </figcaption>
 </figure>
 
 You can also log in to [<<<custom_key.brand_name>>> Platform](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}, "Indicator"-"Viewer" to view metric data

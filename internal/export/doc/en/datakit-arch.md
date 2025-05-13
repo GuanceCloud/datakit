@@ -1,7 +1,7 @@
 # Introduction to the Overall Architecture of DataKit
 ---
 
-Datakit is a basic data collection tool running on the user's local machine, which is mainly used to collect various metrics, logs and other data of system operation, and summarize them to [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}. In <<<custom_key.brand_name>>>, users can view and analyze their own metrics, logs and other data.
+DataKit is a basic data collection tool running on the user's local machine, which is mainly used to collect various metrics, logs and other data of system operation, and summarize them to [<<<custom_key.brand_name>>>](https://<<<custom_key.brand_main_domain>>>){:target="_blank"}. In <<<custom_key.brand_name>>>, users can view and analyze their own metrics, logs and other data.
 
 DataKit is an important data collection component in <<<custom_key.brand_name>>>, and almost all the data in <<<custom_key.brand_name>>> come from DataKit.
 

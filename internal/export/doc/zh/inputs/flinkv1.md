@@ -69,7 +69,6 @@ metrics.reporter.prom.port: 9250-9260 # 各个节点的端口区间，根据节�
 ```
 
 - 启动 Flink: `./bin/start-cluster.sh`（此命令仅供参考，具体命令根据实际环境可能有所不同）
-- 可以访问外网的主机<[安装 Datakit](https://www.yuque.com/dataflux/datakit/datakit-install){:target="_blank"}>
 - 更改 Flink 配置添加如下内容，开启 Prometheus 采集
 
 ```bash

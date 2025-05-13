@@ -19,7 +19,7 @@ monitor   :
 
 ---
 
-The Jaeger Agent embedded in Datakit is used to receive, calculate and analyze Jaeger Tracing protocol data.
+The Jaeger Agent embedded in DataKit is used to receive, calculate and analyze Jaeger Tracing protocol data.
 
 ## Configuration {#config}
 
@@ -64,7 +64,7 @@ endpoint represents Jaeger HTTP Agent routing
   endpoint = "/apis/traces"
 ```
 
-- Modify the Agent Host Port of Jaeger Client to Datakit Port (default is 9529)
+- Modify the Agent Host Port of Jaeger Client to DataKit Port (default is 9529)
 - Modify the Agent endpoint of the Jaeger Client to the endpoint specified in the configuration above
 
 ### Configure Jaeger UDP Agent {#config-udp-agent}
@@ -77,7 +77,7 @@ Modify the Agent UDP Host: Port of the Jaeger Client to the address specified in
   address = "127.0.0.1:6831"
 ```
 
-Refer to [Datakit Tracing](datakit-tracing.md) for configuration of data sampling, data filtering, closing resources, and so on.
+Refer to [DataKit Tracing](datakit-tracing.md) for configuration of data sampling, data filtering, closing resources, and so on.
 
 ## Sample {#demo}
 

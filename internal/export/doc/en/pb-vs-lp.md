@@ -4,7 +4,7 @@
 
 ## Line Protocol {#lp}
 
-Due to historical reasons, Datakit internally uses InfluxDB's line protocol as the basic data structure to represent a specific data point. Its basic form is as follows:
+Due to historical reasons, DataKit internally uses InfluxDB's line protocol as the basic data structure to represent a specific data point. Its basic form is as follows:
 
 ```txt
 <measurement>,<tag-list> <field-list> timestamp
@@ -77,16 +77,16 @@ BenchmarkDecode/decode-pb-10 393 3044680 ns/op 3052845 B/op 70025 allocs/op
 
 Based on the improvements of v2 in various aspects, we have conducted some basic tests on our observability, and there are obvious improvements in memory and CPU usage:
 
-On Datakit with medium to low load, the performance difference between v2 and v1 is very obvious:
+On DataKit with medium to low load, the performance difference between v2 and v1 is very obvious:
 
 ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-mid-pressure.png)
 
-At 10:30, when switching from v2 to v1, it can be seen that CPU and memory have a noticeable increase. On Datakit with high load, the performance difference is also obvious:
+At 10:30, when switching from v2 to v1, it can be seen that CPU and memory have a noticeable increase. On DataKit with high load, the performance difference is also obvious:
 
 ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/lp-vs-pb/v1-v2-high-pressure.png)
 
-At 23:45, when switching to v2, the sys/heap memory is much lower compared to 10:30 the next day when switching to v1. In terms of CPU, after switching to v1 at 10:30, there is an increase in CPU, but it is not very obvious, mainly because the main CPU of the high-load Datakit is not in data encoding.
+At 23:45, when switching to v2, the sys/heap memory is much lower compared to 10:30 the next day when switching to v1. In terms of CPU, after switching to v1 at 10:30, there is an increase in CPU, but it is not very obvious, mainly because the main CPU of the high-load DataKit is not in data encoding.
 
 ## Conclusion {#conclude}
 
-Compared to v1, v2 not only has significant performance improvements but is also no longer limited in terms of extensibility. At the same time, v2 also supports encoding in the form of v1 to be compatible with old deployment versions and development habits. In Datakit, we can use [point-pool](datakit-conf.md#point-pool) to achieve better memory/CPU performance.
+Compared to v1, v2 not only has significant performance improvements but is also no longer limited in terms of extensibility. At the same time, v2 also supports encoding in the form of v1 to be compatible with old deployment versions and development habits. In DataKit, we can use [point-pool](datakit-conf.md#point-pool) to achieve better memory/CPU performance.

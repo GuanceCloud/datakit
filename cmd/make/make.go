@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -24,9 +25,10 @@ import (
 )
 
 var (
-	mdCheck, mdMetaDir string
+	mdNoAutofix,
+	mdCheck,
+	mdMetaDir string
 
-	mdNoAutofix      = false
 	mdNoSectionCheck = false
 	sampleConfCheck  = false
 	doPub            = false
@@ -77,7 +79,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.DockerImageRepo, "docker-image-repo", build.ValueNotSet, "set docker image repo URL")
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
 	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")
-	flag.BoolVar(&mdNoAutofix, "mdcheck-no-autofix", false, "check markdown docs with autofix")
+	flag.StringVar(&mdNoAutofix, "mdcheck-no-autofix", "", "check markdown docs with autofix")
 	flag.BoolVar(&mdNoSectionCheck, "mdcheck-no-section-check", false, "do not check markdown sections")
 	flag.StringVar(&mdSkip, "mdcheck-skip", "", "specify markdown files to skip")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
@@ -105,10 +107,15 @@ func applyFlags() {
 		skips := strings.Split(mdSkip, ",")
 		l.Infof("skip files %+#v", skips)
 
+		autofix := false
+		if x, err := strconv.ParseBool(mdNoAutofix); err == nil {
+			autofix = x
+		}
+
 		res, err := check.Check(
 			check.WithMarkdownDir(mdCheck),
 			check.WithMetaDir(mdMetaDir),
-			check.WithAutofix(!mdNoAutofix),
+			check.WithAutofix(autofix),
 			check.WithExcludeFiles(skips...),
 			check.WithCheckSection(!mdNoSectionCheck),
 		)

@@ -9,9 +9,9 @@ __int_icon: 'icon/opentelemetry'
 ---
 
 
-在使用 OTEL 发送 Trace 到 Datakit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
+在使用 OTEL 发送 Trace 到 DataKit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
 
-配置：[Datakit 配置 OTEL](opentelemetry.md)
+配置：[DataKit 配置 OTEL](opentelemetry.md)
 
 ## 添加依赖 {#dependencies}
 
@@ -82,7 +82,7 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 # 重启 Tomcat
 ```
 
-在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值（localhost:4317），因为 Datakit 与 Java 程序在一台主机上，默认的端口也是 4317。
+在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值（localhost:4317），因为 DataKit 与 Java 程序在一台主机上，默认的端口也是 4317。
 
 ## Java 2：代码注入形式 {#with-code}
 

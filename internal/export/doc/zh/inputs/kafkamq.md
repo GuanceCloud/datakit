@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Datakit 支持从 Kafka 中订阅消息采集链路、指标和日志信息。目前支持 `SkyWalking` 、`Jaeger` 以及自定义 Topic。
+DataKit 支持从 Kafka 中订阅消息采集链路、指标和日志信息。目前支持 `SkyWalking` 、`Jaeger` 以及自定义 Topic。
 
 ## 配置 {#config}
 
@@ -85,14 +85,14 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 
 将注释打开即可开启订阅，订阅的主题在 SkyWalking agent 配置文件 *config/agent.config* 中。
 
-> 注意：该采集器只是将订阅的数据转发到 Datakit SkyWalking 采集器中，请打开 [SkyWalking](skywalking.md) 采集器，并将 `dk_endpoint` 注释打开。
+> 注意：该采集器只是将订阅的数据转发到 DataKit SkyWalking 采集器中，请打开 [SkyWalking](skywalking.md) 采集器，并将 `dk_endpoint` 注释打开。
 
 ### Jaeger {#jaeger}
 
 配置文件：
 
 ```toml
-# Jaeger from kafka. !!!Note: Make sure Datakit Jaeger collector is open.
+# Jaeger from kafka. !!!Note: Make sure DataKit Jaeger collector is open.
 [inputs.kafkamq.jaeger]
     ## !!!Required: ipv6 is "[::1]:9529"
     dk_endpoint="http://localhost:9529"
@@ -101,7 +101,7 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
     topics=["jaeger-spans","jaeger-my-spans"]
 ```
 
-> 注意： 该采集器只是将订阅的数据转发到 Datakit Jaeger 采集器中，请打开 [jaeger](jaeger.md) 采集器，并将 `dk_endpoint` 注释打开。
+> 注意： 该采集器只是将订阅的数据转发到 DataKit Jaeger 采集器中，请打开 [jaeger](jaeger.md) 采集器，并将 `dk_endpoint` 注释打开。
 
 ### 自定义 Topic {#kafka-custom}
 
@@ -156,10 +156,10 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 
 以一个简单的 metric 为例，介绍如何使用自定义配置订阅消息。
 
-当不知道发送到 Kafka 上的数据结构时什么格式时。可以先将 Datakit 的日志级别改为 Debug。将订阅打开，在 Datakit 日志中会有输出。假设拿到的如下数据：
+当不知道发送到 Kafka 上的数据结构时什么格式时。可以先将 DataKit 的日志级别改为 Debug。将订阅打开，在 DataKit 日志中会有输出。假设拿到的如下数据：
 
 ```shell
-  # 打开 debug 日志级别之后，查看日志，Datakit 会将消息信息打印出来。
+  # 打开 debug 日志级别之后，查看日志，DataKit 会将消息信息打印出来。
   tailf /var/log/datakit/log | grep "kafka_message"
 ```
 
@@ -192,7 +192,7 @@ kafka 插件默认会将 `traces/JVM metrics/logging/Instance Properties/profile
 
 > 注意：指标数据的 Pipeline 脚本放到 *metric/* 下，logging 数据的 Pipeline 脚本放到 *pipeline/* 目录下。
 
-配置好 Pipeline 脚本，重启 Datakit 即可。
+配置好 Pipeline 脚本，重启 DataKit 即可。
 
 ## Handle {#handle}
 
@@ -260,7 +260,7 @@ X-category=tracing
 
 ## 基准测试 {#benchmark}
 
-消息的消费能力受限于网络和带宽的限制，所以基准测试只是测试 Datakit 的消费能力而不是 IO 能力。本次测试的机器配置是 4 核 8 线程、16G 内存。测试过程中 CPU 峰值 60%~70%，内存增加 10%。
+消息的消费能力受限于网络和带宽的限制，所以基准测试只是测试 DataKit 的消费能力而不是 IO 能力。本次测试的机器配置是 4 核 8 线程、16G 内存。测试过程中 CPU 峰值 60%~70%，内存增加 10%。
 
 | 消息数量 | 用时    | 每秒消费能力（条） |
 | -------  | ------- | -----------        |
@@ -269,9 +269,9 @@ X-category=tracing
 
 另外减少日志输出、关闭 cgroup 限制、增加内网和公网带宽等，可以增加消费能力。
 
-### 多台 Datakit 负载均衡 {#datakit-assignor}
+### 多台 DataKit 负载均衡 {#datakit-assignor}
 
-当消息量很大，一台 Datakit 消费能力不足时可以增加多台 Datakit 进行消费，这里有三点需要注意：
+当消息量很大，一台 DataKit 消费能力不足时可以增加多台 DataKit 进行消费，这里有三点需要注意：
 
 1. 确保 Topic 分区不是一个（至少 2 个），这个可以通过工具 [`kafka-map`](https://github.com/dushixiang/kafka-map/releases){:target="_blank"}查看
 1. 确保 KafkaMQ 采集器的配置是 `assignor = "roundrobin"`（负载均衡策略的一种），`group_id="datakit"`（组名称必须一致，否则会重复消费）
@@ -279,7 +279,7 @@ X-category=tracing
 
 ## FAQ {#faq}
 
-### :material-chat-question: Pipeline script {#test_Pipeline}
+### Pipeline script {#test_Pipeline}
 
 当写好 Pipeline 脚本之后不确定是否能切割正确，可以使用测试命令：
 
@@ -291,7 +291,7 @@ datakit pipeline -P metric.p -T '{"time": 1666492218,"dimensions":{"bk_biz_id": 
 
 连接失败可能是版本问题，请在配置文件中正确填写 kafka 版本。目前支持的版本列表：[0.8.2] - [3.3.1]
 
-### :material-chat-question: 消息堆积 {#message_backlog}
+### 消息堆积 {#message_backlog}
 
 1. 开启多线程模式增加消费能力。
 2. 如果性能到达瓶颈之后，则扩展物理内存和 CPU 。

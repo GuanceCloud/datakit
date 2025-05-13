@@ -32,7 +32,7 @@ monitor   :
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
 
-# If want add some tag, ( __source will not in tag, only show in Datakit expose metrics)
+# If want add some tag, ( __source will not in tag, only show in DataKit expose metrics)
 # remote_write:
 # - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar&__source=<your_source>" 
 ```
@@ -115,7 +115,7 @@ remote_write:
 
 ## 配置 Prometheus Remote Write 指标过滤 {#remote-write-relabel}
 
-当使用 Prometheus 以 remote write 方式往 Datakit 推送指标时，如果指标太多，可能导致
+当使用 Prometheus 以 remote write 方式往 DataKit 推送指标时，如果指标太多，可能导致
 存储中的数据暴增。此时我们可以通过 Prometheus 自身的 relabel 功能来选取特定的指标。
 
 在 Prometheus 中，要配置 `remote_write` 到另一个服务，并且只发送指定的指标列表，我们需要在
@@ -150,9 +150,9 @@ remote_write:
 
 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，可以实现只采集符合一定名称规则的 Prometheus 指标的目的。
 
-Datakit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后 `prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
+DataKit 支持命令行直接调试本采集器的配置文件。在配置 `conf.d/prom` 下 `prom_remote_write.conf` 的 `output` 项，将其配置为一个本地文件路径，之后 `prom_remote_write.conf` 会将采集到的数据写到文件中，数据就不会上传到中心。
 
-重启 Datakit，让配置文件生效：
+重启 DataKit，让配置文件生效：
 
 ```shell
 datakit service -R

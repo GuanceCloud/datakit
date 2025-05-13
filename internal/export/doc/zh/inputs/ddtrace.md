@@ -18,13 +18,13 @@ monitor   :
 
 ---
 
-DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
+DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
 
 ## DDTrace 文档和示例 {#doc-example}
 
 <!-- markdownlint-disable MD046 MD032 MD030 -->
 <div class="grid cards" markdown>
--   :fontawesome-brands-python: __Python__
+-   :fontawesome-brands-python: **Python**
 
     ---
 
@@ -32,7 +32,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-python.md)
 
--   :material-language-java: __Java__
+-   :material-language-java: **Java**
 
     ---
 
@@ -40,7 +40,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-java.md)
 
--   :material-language-ruby: __Ruby__
+-   :material-language-ruby: **Ruby**
 
     ---
 
@@ -48,7 +48,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-ruby.md)
 
--   :fontawesome-brands-golang: __Golang__
+-   :fontawesome-brands-golang: **Golang**
 
     ---
 
@@ -56,7 +56,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-golang.md)
 
--   :material-language-php: __PHP__
+-   :material-language-php: **PHP**
 
     ---
 
@@ -64,7 +64,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-php.md)
 
--   :fontawesome-brands-node-js: __NodeJS__
+-   :fontawesome-brands-node-js: **NodeJS**
 
     ---
 
@@ -89,7 +89,7 @@ DDTrace 是 DataDog 开源的 APM 产品，Datakit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: .Net Core 文档](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/dotnet-core?tab=windows){:target="_blank"}
 </div>
 
-???+ tip
+???+ info
 
     我们对 DDTrace 做了一些[功能扩展](ddtrace-ext-changelog.md)，便于支持更多的主流框架和更细粒度的数据追踪。
 
@@ -121,15 +121,14 @@ DDTrace 数据结构中 TraceID 是 uint64 类型，在使用透传协议 `trace
 DDTrace 目前支持的透传协议有：`datadog/b3multi/tracecontext` ，有两种情况需要注意：
 
 - 当使用 `tracecontext` 时，由于链路 ID 为 128 位需要将配置中的 `compatible_otel=true` 和 `trace_128_bit_id` 开关打开。
-- 当使用 `b3multi` 时，需要注意 `trace_id` 的长度，如果为 64 位的 hex 编码，需要将配置文件中的 `trace_id_64_bit_hex=true` 打开。
+- 当使用 `b3multi` 时，需要注意 `trace_id` 的长度，如果为 64 位的 16 进制编码，需要将配置文件中的 `trace_id_64_bit_hex=true` 打开。
 - 更多的透传协议及工具使用请查看： [多链路串联](tracing-propagator.md){:target="_blank"}
 
+???+ info
 
-???+ tip
-
-    compatible_otel 作用：将 span_id 和 parent_id 转成 16 进制的字符串。
-    trace_128_bit_id 作用：将 meta 中的 "_dd.p.tid" 加上 trace_id 组合成一个长度为 32 的 16 进制编码的字符串。
-    trace_id_64_bit_hex 作用：将 64 位的 trace_id 转成 16 进制编码的字符串。
+    - `compatible_otel` ：将 `span_id` 和 `parent_id` 转成 16 进制的字符串
+    - `trace_128_bit_id` ：将 `meta` 中的 `_dd.p.tid` 加上 `trace_id` 组合成一个长度为 32 的 16 进制编码的字符串
+    - `trace_id_64_bit_hex`：将 64 位的 `trace_id` 转成 16 进制编码的字符串
 
 ### 注入 Pod 和 Node 信息 {#add-pod-node-info}
 
@@ -185,7 +184,7 @@ $ env | grep DD_
 
 ---
 
-???+ attention
+???+ warning
 
     - 不要修改这里的 `endpoints` 列表（除非明确知道配置逻辑和效果）。
 
@@ -208,7 +207,7 @@ $ env | grep DD_
 
 如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](../datakit/datakit-conf.md#config-http-server)。
 
-如果有 DDTrace 数据发送给 Datakit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
+如果有 DDTrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
 
 <figure markdown>
   ![input-ddtrace-monitor](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/input-ddtrace-monitor.png){ width="800" }
@@ -250,7 +249,7 @@ $ env | grep DD_
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 _ddtrace.conf_ 中直接配置自定义标签。这种方式会影响所有发送给 Datakit tracing 服务的数据，需慎重考虑：
+- 在 *ddtrace.conf* 中直接配置自定义标签。这种方式会影响所有发送给 DataKit tracing 服务的数据，需慎重考虑：
 
 ```toml
 # tags is ddtrace configed key value pairs

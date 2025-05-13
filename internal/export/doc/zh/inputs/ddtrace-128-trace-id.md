@@ -3,12 +3,12 @@ skip: 'not-searchable-on-index-page'
 title: '128-bit Trace ID'
 ---
 
-[:octicons-tag-24: Datakit-1.8.0](../datakit/changelog.md#cl-1.8.0)
+[:octicons-tag-24: DataKit-1.8.0](../datakit/changelog.md#cl-1.8.0)
 [:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
 
-DDTrace agent 默认的 trace-id 是 64 位，Datakit 在接收到的链路数据中 trace-id 也是 64 位，从 v1.11.0 开始支持 W3C 协议并支持接收 128 位的 trace-id。但是发送到链路中的 trace-id 依旧是 64 位。
+DDTrace agent 默认的 trace-id 是 64 位，DataKit 在接收到的链路数据中 trace-id 也是 64 位，从 v1.11.0 开始支持 W3C 协议并支持接收 128 位的 trace-id。但是发送到链路中的 trace-id 依旧是 64 位。
 
-为此，<<<custom_key.brand_name>>>做了二次开发，将 trace_128_bit_id 放到链路数据中一并发往 Datakit ，这样就能实现 DDTrace 和 OTEL 的链路串联。
+为此，<<<custom_key.brand_name>>>做了二次开发，将 trace_128_bit_id 放到链路数据中一并发往 DataKit ，这样就能实现 DDTrace 和 OTEL 的链路串联。
 
 可以查看参考：[GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
 
@@ -43,7 +43,7 @@ DDTrace agent 默认的 trace-id 是 64 位，Datakit 在接收到的链路数�
 
 之后，所有的 span 都会在初始化的时候，将这个 key 放进去。
 
-这样还是不够的，还需要在 Datakit 中进行筛选，如果有 `trace_128_bit_id` 则替换掉旧的 `trace-id` 。
+这样还是不够的，还需要在 DataKit 中进行筛选，如果有 `trace_128_bit_id` 则替换掉旧的 `trace-id` 。
 
 在 <<<custom_key.brand_name>>> 链路中，所有的链路 id 都会成为 128 位的。
 

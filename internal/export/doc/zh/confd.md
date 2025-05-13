@@ -11,15 +11,15 @@
 
 具备“实时更新”的功能，就是用来解决传统的“静态化配置”的问题。线上系统需要调整参数的时候，只需要在配置中心动态修改即可。
 
-Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nacos` `file` 等多种配置中心，并且可以同时采用多种配置中心协同工作。
-当配置中心数据发生变化，Datakit 可以自动更改配置，增加或删除采集器，相关采集器进行必要的重启。
+DataKit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nacos` `file` 等多种配置中心，并且可以同时采用多种配置中心协同工作。
+当配置中心数据发生变化，DataKit 可以自动更改配置，增加或删除采集器，相关采集器进行必要的重启。
 
 ## 引入配置中心 {#Configuration-Center-Import}
 
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    Datakit 通过修改 `/datakit/conf.d/datakit.conf` 引入配置中心的资源。例如：
+    DataKit 通过修改 `/datakit/conf.d/datakit.conf` 引入配置中心的资源。例如：
 
     ```
     # 原有的其他配置信息
@@ -72,7 +72,7 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
       pipeline_namespace = "pipeline namespace ID"
     # 原有的其他配置信息
     ```
-    ???+ attention
+    ???+ note
 
         如果配置多个的数据中心后端，只有排列第一的配置内容会生效。
 
@@ -84,7 +84,7 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
 
 === "程序安装时引入"
 
-    如果需要在安装阶段定义一些 Datakit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如：
+    如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如：
 
     ```shell
     # Linux/Mac
@@ -119,7 +119,7 @@ Datakit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
 ## 默认开启的采集器 {#default-enabled-inputs}
 DataKit 安装完成后，会默认开启一批主机相关的采集器，无需手动配置，如 `cpu`、`disk`、`diskio`、`mem` 等。具体参见[采集器配置](datakit-input-conf.md#default-enabled-inputs)
 
-配置中心可以修改这些采集器的配置，但是无法删除、停止这些采集器。若要删除默认采集器，可以在 Datakit *conf.d* 目录下，打开 *datakit.conf* 文件，在 `default_enabled_inputs` 中删除该采集器。
+配置中心可以修改这些采集器的配置，但是无法删除、停止这些采集器。若要删除默认采集器，可以在 DataKit *conf.d* 目录下，打开 *datakit.conf* 文件，在 `default_enabled_inputs` 中删除该采集器。
 
 ## 采集器单例运行控制 {#input-singleton}
 
@@ -129,7 +129,7 @@ DataKit 安装完成后，会默认开启一批主机相关的采集器，无需
 
 ## 数据格式 {#data-format}
 
-Datakit 配置信息以 Key-Value 形式存储在配置中心。Key 的前缀必须是 `/datakit/`，例如 `/datakit/XXX` , `XXX` 不重复就可，推荐使用对应的采集器的名名字，例如 `/datakit/netstat` 。
+DataKit 配置信息以 Key-Value 形式存储在配置中心。Key 的前缀必须是 `/datakit/`，例如 `/datakit/XXX` , `XXX` 不重复就可，推荐使用对应的采集器的名名字，例如 `/datakit/netstat` 。
 
 Value 的内容就是 *conf.d* 子目录下各种配置文件的完整内容。例如：
 

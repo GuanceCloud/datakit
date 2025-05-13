@@ -20,7 +20,7 @@ monitor   :
 Tomcat metrics can be collected by using [DDTrace](ddtrace.md).
 The flow of the collected data is as follows: Tomcat -> DDTrace -> DataKit(StatsD).
 
-You can see that Datakit has already integrated the [StatsD](https://github.com/statsd/statsd){:target="_blank"} server, and DDTrace collects Tomcat metric data and reports it to Datakit using StatsD protocol.
+You can see that DataKit has already integrated the [StatsD](https://github.com/statsd/statsd){:target="_blank"} server, and DDTrace collects Tomcat metric data and reports it to DataKit using StatsD protocol.
 
 ## Configuration {#config}
 
@@ -36,11 +36,11 @@ You can see that Datakit has already integrated the [StatsD](https://github.com/
 
 - Download `dd-java-agent.jar`, see [here](ddtrace.md){:target="_blank"};
 
-- Datakit configuration:
+- DataKit configuration:
 
 See the configuration of [StatsD](statsd.md){:target="_blank"}.
 
-Restart Datakit to make configuration take effect.
+Restart DataKit to make configuration take effect.
 
 - Tomcat configuration:
 
@@ -58,11 +58,11 @@ The parameters are described below:
 
 - `javaagent`: Fill in the full path to `dd-java-agent.jar`;
 - `Ddd.jmxfetch.enabled`: Fill in `true`, which means the DDTrace collection function is enabled;
-- `Ddd.jmxfetch.statsd.host`: Fill in the network address that Datakit listens to. No port number is included;
-- `Ddd.jmxfetch.statsd.port`: Fill in the port number that Datakit listens to. Usually `8125`, as determined by the Datakit side configuration;
+- `Ddd.jmxfetch.statsd.host`: Fill in the network address that DataKit listens to. No port number is included;
+- `Ddd.jmxfetch.statsd.port`: Fill in the port number that DataKit listens to. Usually `8125`, as determined by the DataKit side configuration;
 - `Ddd.jmxfetch.tomcat.enabled`: Fill in `true`, which means the Tomcat collect function of DDTrace is enabled. When enabled, the metrics set named `tomcat` will showing up;
 
-Restart Datakit to make configuration take effect.
+Restart DataKit to make configuration take effect.
 
 ## Metric {#metric}
 
@@ -99,7 +99,7 @@ For all of the following data collections, the global election tags will be adde
 ## Log Collection {#logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     Log collection only supports log collection on installed DataKit hosts.
 <!-- markdownlint-enable -->
@@ -115,7 +115,7 @@ If you want to collect Tomcat logs, you need to enable the [file collection](log
   source = "tomcat"
 ```
 
-After the changes are made, restart Datakit to make the configuration take effect.
+After the changes are made, restart DataKit to make the configuration take effect.
 
 ### Field Description {#fields-ddtrace}
 
@@ -171,7 +171,7 @@ the list of cut fields is as follows:
     - [x] 9
     - [x] 8
 
-Download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, rename it to `jolokia.war`, and place it in tomcat's webapps directory. You can also get the jolokia war package from the data directory under the Datakit installation directory. Edit `tomcat-users.xml` in tomcat's conf directory and add the user whose `role` is `jolokia`.
+Download [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war){:target="_blank"}, rename it to `jolokia.war`, and place it in tomcat's webapps directory. You can also get the jolokia war package from the data directory under the DataKit installation directory. Edit `tomcat-users.xml` in tomcat's conf directory and add the user whose `role` is `jolokia`.
 
 Take `apache-tomcat-9.0.45` as an example (the username and password of the `jolokia` user in the example must be modified) :
 
@@ -315,7 +315,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 <!-- markdownlint-disable MD046 -->
 
-???+ attention
+???+ info
 
     Log collection only supports log collection on installed DataKit hosts.
 <!-- markdownlint-enable -->

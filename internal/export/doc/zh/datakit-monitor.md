@@ -1,12 +1,12 @@
 
-# 查看 Datakit 的 Monitor
+# 查看 DataKit 的 Monitor
 ---
 
-Datakit 提供了相对完善的基本可观测信息输出，通过查看 Datakit 的 monitor 输出，我们能清晰的知道当前 Datakit 的运行情况。
+DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
 ## 查看 Monitor {#view}
 
-执行如下命令即可获取本机 Datakit 的运行情况。
+执行如下命令即可获取本机 DataKit 的运行情况。
 
 ``` shell
 datakit monitor
@@ -18,7 +18,7 @@ datakit monitor
     可通过 `datakit help monitor` 查看更多 monitor 选项。
 <!-- markdownlint-enable -->
 
-Datakit 基本 Monitor 页面信息如下图所示：
+DataKit 基本 Monitor 页面信息如下图所示：
 
 ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/monitor-basic-v1.png)
 
@@ -26,25 +26,25 @@ Datakit 基本 Monitor 页面信息如下图所示：
 
 上图中的每个 UI 块的信息分别是：
 
-- `Basic Info` 用来展示 Datakit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 Datakit 当前的情况有个基本了解。现挑选几个字段出来单独说明：
-    - `Uptime`：Datakit 的启动时间
-    - `Version`：Datakit 当前的版本号
-    - `Build`：Datakit 的发布时间
-    - `Branch`：Datakit 当前的代码分支，一般情况下都是 master
-    - `Build Tag`：Datakit 的编译选项，[精简版](datakit-install.md#lite-install)此处是 `lite`
-    - `OS/Arch`：当前 Datakit 的软硬件平台
+- `Basic Info` 用来展示 DataKit 的基本信息，如版本号、主机名、运行时长等信息。从这里我们可以对 DataKit 当前的情况有个基本了解。现挑选几个字段出来单独说明：
+    - `Uptime`：DataKit 的启动时间
+    - `Version`：DataKit 当前的版本号
+    - `Build`：DataKit 的发布时间
+    - `Branch`：DataKit 当前的代码分支，一般情况下都是 master
+    - `Build Tag`：DataKit 的编译选项，[精简版](datakit-install.md#lite-install)此处是 `lite`
+    - `OS/Arch`：当前 DataKit 的软硬件平台
     - `Hostname`：当前主机名
-    - `Resource Limit`：展示当前 Datakit 的资源限制配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围 （如果展示为 `-` 表示当前 cgroup 未设置）
+    - `Resource Limit`：展示当前 DataKit 的资源限制配置，其中 `mem` 指最大内存限制，`cpu` 指使用率限制范围 （如果展示为 `-` 表示当前 cgroup 未设置）
     - `Elected`：展示选举情况，详见[这里](election.md#status)
-    - `From`：当前被 Monitor 的 Datakit 地址，如 `http://localhost:9529/metrics`
+    - `From`：当前被 Monitor 的 DataKit 地址，如 `http://localhost:9529/metrics`
     - `Proxy`：当前使用的代理服务器
 
-- `Runtime Info` 用来展示 Datakit 的基本运行消耗（主要是内存、CPU 以及 Golang runtime），其中：
+- `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存、CPU 以及 Golang runtime），其中：
 
     - `Goroutines`：当前正在运行的 Goroutine 个数
     - `Total/Heap`：Golang vm 占用内存以及正在使用中的内存（*不含外部运行的采集器*）[^go-mem]
     - `RSS/VMS`：RSS 内存占用以及 VMS（*不含外部运行的采集器*）
-    - `GC Paused`：自 Datakit 启动以来，GC（垃圾回收）所消耗的时间以及次数
+    - `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间以及次数
     - `OpenFiles`：当前打开的文件个数（部分平台可能显示为 `-1`，表示不支持该功能）
 
 [^go-mem]: 关于这里的 Runtime Info，参见 [Golang 官方文档](https://pkg.go.dev/runtime#ReadMemStats){:target="_blank"}
@@ -74,9 +74,9 @@ Datakit 基本 Monitor 页面信息如下图所示：
 
 ![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/monitor-verbose-v1.png)
 
-- `Goroutine Groups` 展示 Datakit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
-- `HTTP APIs` 展示 Datakit 中 API 调用情况
-- `Filter` 展示 Datakit 中黑名单过滤规则拉取情况
+- `Goroutine Groups` 展示 DataKit 中已有的 Goroutine 分组（该分组中的 Goroutine 个数 <= 上面面板中的 `Goroutines` 个数）
+- `HTTP APIs` 展示 DataKit 中 API 调用情况
+- `Filter` 展示 DataKit 中黑名单过滤规则拉取情况
 - `Filter Rules` 展示每类黑名单的过滤情况
 - `Pipeline Info` 展示 Pipeline 运行情况
 - `WAL Info` WAL 队列的使用情况 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0)
@@ -91,7 +91,7 @@ Datakit 基本 Monitor 页面信息如下图所示：
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 如何展示 Datakit 指定模块的运行情况？ {#specify-module}
+### 如何展示 DataKit 指定模块的运行情况？ {#specify-module}
 <!-- markdownlint-enable -->
 
 可指定一个模块名字列表（多个模块之间以英文逗号分割）：[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
@@ -105,7 +105,7 @@ datakit monitor --module inputs,filter
 datakit monitor -M in,f
 ```
 
-### :material-chat-question: 如何只展示指定采集器的运行情况？ {#specify-inputs}
+### 如何只展示指定采集器的运行情况？ {#specify-inputs}
 
 可通过指定一个采集器名字列表（多个采集器之间以英文逗号分割）：
 
@@ -115,7 +115,7 @@ datakit monitor -I cpu,mem
 datakit monitor --input cpu,mem
 ```
 
-### :material-chat-question: 如何展示太长的文本？ {#too-long}
+### 如何展示太长的文本？ {#too-long}
 
 当某些采集器产生报错时，其报错信息会很长，在表格展示不全。可通过设定展示的列宽来显示完整的信息：
 
@@ -125,7 +125,7 @@ datakit monitor -W 1024
 datakit monitor --max-table-width 1024
 ```
 
-### :material-chat-question: 如何更改 Monitor 刷新频率？ {#freq}
+### 如何更改 Monitor 刷新频率？ {#freq}
 
 可通过设定刷新频率来更改：
 
@@ -142,10 +142,10 @@ datakit monitor --refresh 1s
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 如何 Monitor 其它 Datakit？ {#remote-monitor}
+### 如何 Monitor 其它 DataKit？ {#remote-monitor}
 <!-- markdownlint-enable -->
 
-可通过指定 Datakit 地址来查看其 monitor 数据：
+可通过指定 DataKit 地址来查看其 monitor 数据：
 
 ```shell
 datakit monitor --to <remote-ip>:9529

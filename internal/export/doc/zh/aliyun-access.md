@@ -52,7 +52,7 @@
 1. 可用区与交换机，如果涉及多个可用区与交换机，可以添加多个。
 1. 选中“使用推荐的自定义域名”，使用默认的推荐域名，如 `cn-hanghou` 为 `openway.<<<custom_key.brand_main_domain>>>` 域名。
 
-使用默认的 `openway.<<<custom_key.brand_main_domain>>>` 域名，重要的一点是如果在同 VPC 内已经部署实施了 Datakit，可以无缝将数据网络网络切换为虚拟内网。
+使用默认的 `openway.<<<custom_key.brand_main_domain>>>` 域名，重要的一点是如果在同 VPC 内已经部署实施了 DataKit，可以无缝将数据网络网络切换为虚拟内网。
 
 ### 订阅完成 {#sub-com}
 
@@ -70,6 +70,6 @@
 
 ## 如何使用 {#how-to}
 
-订阅完成后，对您的 Datakit 接入<<<custom_key.brand_name>>>完全透明，无须修改 Datakit 配置，已自动建立私网连接。可以登录云主机执行以下 `ping openway.<<<custom_key.brand_main_domain>>>` 命令，查看 ping 出来的 IP，如果是内网 IP 地址，说明已经成功与<<<custom_key.brand_name>>>数据网关建立了私网连接：
+订阅完成后，对您的 DataKit 接入<<<custom_key.brand_name>>>完全透明，无须修改 DataKit 配置，已自动建立私网连接。可以登录云主机执行以下 `ping openway.<<<custom_key.brand_main_domain>>>` 命令，查看 ping 出来的 IP，如果是内网 IP 地址，说明已经成功与<<<custom_key.brand_name>>>数据网关建立了私网连接：
 
 ![not-set](imgs/aliyun_3.png)

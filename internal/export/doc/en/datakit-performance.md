@@ -1,4 +1,4 @@
-# Datakit Performance Explanation
+# DataKit Performance Explanation
 
 ---
 
@@ -6,22 +6,22 @@
 
 ---
 
-This document primarily showcases Datakit's performance in a real production environment. You can use the data presented here as a reference to benchmark your own environment.
+This document primarily showcases DataKit's performance in a real production environment. You can use the data presented here as a reference to benchmark your own environment.
 
 ## Basic Environment Information {#specs}
 
 - Operating Environment: Kubernetes
-- Datakit Version: 1.28.1
+- DataKit Version: 1.28.1
 - Resource Limitations: 2C4G (2 CPU cores and 4GB of RAM)
 - Runtime: 1.73 days
-- Data Sources: There are numerous applications running in the cluster, and Datakit actively collects various metrics, logs, and Tracing data from these applications.
+- Data Sources: There are numerous applications running in the cluster, and DataKit actively collects various metrics, logs, and Tracing data from these applications.
 
-The following lists the load conditions of Datakit under high, medium, and low scenarios [^1].
+The following lists the load conditions of DataKit under high, medium, and low scenarios [^1].
 
 <!-- markdownlint-disable MD046 -->
 === "High Load"
 
-    Under high load conditions, the amount of data collected by Datakit and the complexity of the data itself are relatively high, which consumes more computing resources.
+    Under high load conditions, the amount of data collected by DataKit and the complexity of the data itself are relatively high, which consumes more computing resources.
     
     - CPU Utilization
     
@@ -37,7 +37,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
       ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/mem-usage.png){ width="800" }
       </figure>
     
-      The memory is limited to 4GB, which is quite close to the limit. If the memory limit is exceeded, the Datakit Pod will be restarted due to Out Of Memory (OOM).
+      The memory is limited to 4GB, which is quite close to the limit. If the memory limit is exceeded, the DataKit Pod will be restarted due to Out Of Memory (OOM).
     
       <!-- The following are the conditions for data collection, Pipeline processing, and data uploading (the interval for irate is 30 seconds). -->
     
@@ -67,7 +67,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
 
 === "Medium Load"
 
-    Under medium load conditions, Datakit's resource consumption is significantly reduced.
+    Under medium load conditions, DataKit's resource consumption is significantly reduced.
     
     - CPU Utilization
     
@@ -101,7 +101,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
 
 === "Low Load"
 
-    Under low load conditions, Datakit only activates the basic [default collectors](datakit-input-conf.md#default-enabled-inputs), with a relatively small amount of data, thus occupying less memory [^3].
+    Under low load conditions, DataKit only activates the basic [default collectors](datakit-input-conf.md#default-enabled-inputs), with a relatively small amount of data, thus occupying less memory [^3].
     
     - CPU Utilization
     
@@ -130,7 +130,7 @@ The following lists the load conditions of Datakit under high, medium, and low s
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD053 -->
-[^1]: Datakit has enabled [Point Pool](datakit-conf.md#point-pool) and is using [V2 encoding](datakit-conf.md#dataway-settings) for uploads.
+[^1]: DataKit has enabled [Point Pool](datakit-conf.md#point-pool) and is using [V2 encoding](datakit-conf.md#dataway-settings) for uploads.
 [^2]: This value may differ slightly from the Pod traffic, as the Pod statistics represent the network traffic information at the Kubernetes level, which will be larger than the traffic shown here.
-[^3]: The low-load Datakit was tested on an additional Linux server, which only enabled basic collectors. Since there was no Pipeline involved, there is no corresponding data.
+[^3]: The low-load DataKit was tested on an additional Linux server, which only enabled basic collectors. Since there was no Pipeline involved, there is no corresponding data.
 <!-- markdownlint-enable -->

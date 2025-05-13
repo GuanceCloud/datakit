@@ -7,7 +7,7 @@ tags:
 __int_icon: 'icon/profiling'
 ---
 
-从 Datakit [:octicons-tag-24: Version-1.12.0](../datakit/changelog.md#cl-1.12.0){:target="_blank"} 开始支持使用 [`dd-trace-dotnet`](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} 作为 `.NET` 平台的应用性能监测工具。
+从 DataKit [:octicons-tag-24: Version-1.12.0](../datakit/changelog.md#cl-1.12.0){:target="_blank"} 开始支持使用 [`dd-trace-dotnet`](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} 作为 `.NET` 平台的应用性能监测工具。
 
 ## 前置条件 {#prerequisites}
 
@@ -31,7 +31,7 @@ __int_icon: 'icon/profiling'
     页面下载 `datadog-dotnet-apm-<VERSION>-x64.msi` 文件，如 `datadog-dotnet-apm-2.34.0-x64.msi`，然后使用管理员权限安装。
 
 
-???+ Note
+???+ info
 
     当前最高支持到 `dd-trace-dotnet v2.34.0` 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可与我们联系。
 <!-- markdownlint-enable -->
@@ -44,7 +44,7 @@ __int_icon: 'icon/profiling'
 进入项目编译或发布后的输出目录，会存在一个 `datadog` 目录，该目录就是存放 `dd-trace-dotnet` 编译后生成的目标文件，不同的子目录适用不同的平台。
 
 <!-- markdownlint-disable MD046 -->
-???+ Note "目录说明"
+???+ note "目录说明"
 
     .NET Core 编译（build）后的输出目录通常位于项目根目录下的 *./bin/<Configuration\>/<Framework\>*，可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0*。
     .NET Core 发布（publish）后的输出目录默认位于项目根目录下的 *./bin/<Configuration\>/<Framework\>/publish*，同样可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0/publish*。
@@ -101,9 +101,9 @@ dotnet bin/Release/net7.0/<your-project-name>.dll
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ Note
+???+ info
 
-    如果你当前的架构是 `Linux arm64`，则需要修改设置 `CORECLR_PROFILER_PATH="$DDTRACE_HOME/linux-arm64/Datadog.Trace.ClrProfiler.Native.so"` 和
+    如果你当前的架构是 `linux/arm64`，则需要修改设置 `CORECLR_PROFILER_PATH="$DDTRACE_HOME/linux-arm64/Datadog.Trace.ClrProfiler.Native.so"` 和
     `LD_PRELOAD="$DDTRACE_HOME/linux-arm64/Datadog.Linux.ApiWrapper.x64.so"`
 <!-- markdownlint-enable -->
 
@@ -127,7 +127,7 @@ dotnet bin/Release/net7.0/<your-project-name>.dll
                 
               <environmentVariables>
                   <!-- 此处添加以下环境变量，其中 DD_ENV DD_SERVICE DD_VERSION 值根据你的实际情况调整 -->
-                  <!-- DD_AGENT_HOST 和 DD_TRACE_AGENT_PORT 分别为 Datakit 监听的地址和端口 -->
+                  <!-- DD_AGENT_HOST 和 DD_TRACE_AGENT_PORT 分别为 DataKit 监听的地址和端口 -->
                 <environmentVariable name="CORECLR_ENABLE_PROFILING" value="1" />
                 <environmentVariable name="CORECLR_PROFILER" value="{846F5F1C-F9AE-4B07-969E-05C26BC060D8}" />
                 <environmentVariable name="DD_PROFILING_ENABLED" value="1" />

@@ -21,7 +21,7 @@ monitor   :
 
 <!-- markdownlint-disable MD046 -->
 
-???+ attention
+???+ warning
 
     进程采集器（不管是对象还是指标），在 macOS 上可能消耗比较大，导致 CPU 飙升，可以手动将其关闭。目前默认采集器仍然开启进程对象采集器（默认 5min 运行一次）。
 

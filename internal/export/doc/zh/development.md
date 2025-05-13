@@ -61,7 +61,7 @@ ElectionEnabled() bool
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     由于不断会新增一些采集器功能，新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface。
 <!-- markdownlint-enable -->
@@ -385,11 +385,11 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 Datakit 测试文件。具体脚本在源码 *scripts/build.sh* 中。将其拷贝到 Datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 *scripts/build.sh* 中。将其拷贝到 DataKit 源码根目录，稍作修改，即可用于本地编译、发布。
 
 ### 自定义目录运行 DataKit {#customize-workdir}
 
-默认情况下，Datakit 以服务的形式，运行在指定的目录（Linux 下为 */usr/local/datakit*），但通过额外的方式，可以自定义 Datakit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+默认情况下，DataKit 以服务的形式，运行在指定的目录（Linux 下为 */usr/local/datakit*），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
 
 - 更新最新的代码(dev 分支)
 - 编译
@@ -450,7 +450,7 @@ ddk debug --ipinfo 1.2.3.4
 
 ## 测试 {#testing}
 
-Datakit 中测试主要分成两类，一类是集成测试，一类是单元测试，它们本质上并无太大区别。只是集成测试需要更多的外部环境。
+DataKit 中测试主要分成两类，一类是集成测试，一类是单元测试，它们本质上并无太大区别。只是集成测试需要更多的外部环境。
 
 一般情况下，运行 `make ut` 即可运行所有的测试用例。但这些测试用例中，包括集成测试和单元测试。而集成测试需要有 Docker 参与，这里提供一个开发过程中跑测试的例子。
 
@@ -481,7 +481,7 @@ DataKit 版本发布包含俩部分：
 
 ### DataKit 版本发布 {#release-dk}
 
-Datakit 当前的版本发布，是在 GitLab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 *.gitlab-ci.yml*。
+DataKit 当前的版本发布，是在 GitLab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 *.gitlab-ci.yml*。
 
 在 1.2.6(含) 以前的版本中，DataKit 版本发布依赖于命令 `git describe --tags` 的输出。自 1.2.7 之后，DataKit 版本不再依赖这个机制，而是通过手动指定版本号，其步骤如下：
 
@@ -623,7 +623,7 @@ go func() {
 enable_pprof = true
 ```
 
-> 如果是 DaemonSet 安装 Datakit，可注入环境变量：
+> 如果是 DaemonSet 安装 DataKit，可注入环境变量：
 
 ```yaml
 - name: ENV_ENABLE_PPROF

@@ -52,8 +52,9 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 - Field（指标）：对所有的数据类型，均可以在其 Field 上执行过滤。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
-    在 RUM 数据中，可能会在 Tracing 数据上触发一个 root span，该 root span 是在**中心生成**的，其目的是避免由 RUM 触发的链路数据缺少 root span 而凭空创建的一个 span（保持链路的完整性）。由于该 span 不经过 Datakit，故其无法通过过滤器来丢弃。同理，该数据也无法进行 Pipeline 处理。
+???+ note
+
+    在 RUM 数据中，可能会在 Tracing 数据上触发一个 root span，该 root span 是在**中心生成**的，其目的是避免由 RUM 触发的链路数据缺少 root span 而凭空创建的一个 span（保持链路的完整性）。由于该 span 不经过 DataKit，故其无法通过过滤器来丢弃。同理，该数据也无法进行 Pipeline 处理。
 <!-- markdownlint-enable -->
 
 ### DataKit 中手动配置 filter {#manual}
@@ -152,7 +153,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 | `MATCH`, `NOTMATCH` | 正则表达式列表 | 指定的字段是否匹配列表中的正则，该列表只支持字符串类型 | `{ abc MATCH ["foo.*", "bar.*"]}` |
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - 列表中**只能出现普通的数据类型**，如字符串、整数、浮点，其它表达式均不支持。 
 
@@ -352,7 +353,7 @@ curl --location --request POST 'http://localhost:9529/v1/write/keyevent' \
 --data-raw 'user create_time=1656383652424,df_date_range="9",df_event_id="event-21946fc19eaf4c5cb1a698f659bf74ca",df_message="【xxx】(xxx@xx.com)进入了工作空间",df_status="info",df_title="【xxx】(xxx@xx.com)进入了工作空间",df_user_id="acnt_a5d6130c19524a6b9fe91d421eaf8603",user_email="xxx@xx.com",user_name="xxx" 1658040035652416000'
 ```
 
-可以在 Datakit monitor 里面看到 `df_date_range` 为 `10` 的被过滤掉了。
+可以在 DataKit monitor 里面看到 `df_date_range` 为 `10` 的被过滤掉了。
 
 ### Custom Object {#co}
 
@@ -379,15 +380,15 @@ curl --location --request POST 'http://localhost:9529/v1/write/custom_object' \
 --data-raw 'aliyun_ecs,name="ecs_name",host="ecs_host" instanceid="ecs_instanceid",os="ecs_os",status="ecs_status",creat_time="ecs_creat_time",publicip="1.1.1.1",regionid="cn-qinghai",privateip="192.168.1.12",cpu="ecs_cpu",memory=204800000000'
 ```
 
-可以在 Datakit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
+可以在 DataKit monitor 里面看到 `regionid` 为 `cn-qingdao` 的被过滤掉了。
 
 ## FAQ {#faq}
 
-### :material-chat-question: 查看同步下来的过滤器 {#debug-filter}
+### 查看同步下来的过滤器 {#debug-filter}
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-对于从中心同步下来的过滤器，DataKit 记录了一份到 *[Datakit 安装目录]/data/.pull* 中，可直接查看
+对于从中心同步下来的过滤器，DataKit 记录了一份到 *[DataKit 安装目录]/data/.pull* 中，可直接查看
 
 ```shell
 $ cat .filters  | jq

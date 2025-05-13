@@ -126,7 +126,7 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 ## 日志 {#logging}
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     必须将 DataKit 安装在 RabbitMQ 所在主机才能采集 RabbitMQ 日志
 <!-- markdownlint-enable -->

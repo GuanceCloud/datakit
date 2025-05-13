@@ -61,13 +61,13 @@ DDTrace supported version: [v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
 
 ## supported trace-128-id {#trace_128_bit_id}
 
-[:octicons-tag-24: Datakit-1.8.0](../datakit/changelog.md#cl-1.8.0)
+[:octicons-tag-24: DataKit-1.8.0](../datakit/changelog.md#cl-1.8.0)
 [:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
 
-The default trace-id of the DDTrace agent is 64 bit, and the Datakit also supports 64 bit trace-id in the received link data.
+The default trace-id of the DDTrace agent is 64 bit, and the DataKit also supports 64 bit trace-id in the received link data.
 Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
 
-To this end, secondary development was carried out on the <<<custom_key.brand_name>>>, which incorporated `trace_128_bit_id` is placed in the link data and sent to the Datakit, the DDTrace and OTEL links can be concatenated.
+To this end, secondary development was carried out on the <<<custom_key.brand_name>>>, which incorporated `trace_128_bit_id` is placed in the link data and sent to the DataKit, the DDTrace and OTEL links can be concatenated.
 
 how to config:
 

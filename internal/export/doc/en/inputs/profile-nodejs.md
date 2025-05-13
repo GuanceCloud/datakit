@@ -27,7 +27,7 @@ subgraph App
 app(App Process)
 pyro(Pyroscope Agent)
 end
-dk(Datakit)
+dk(DataKit)
 brand_name("<<<custom_key.brand_name>>>")
 
 app --> pyro --> |profiling data|dk --> brand_name
@@ -97,11 +97,11 @@ Pyroscope.start()
   tag1 = "val1"
 ```
 
-Restart Datakit and your NodeJS application.
+Restart DataKit and your NodeJS application.
 
 ## View Profile {#pyroscope-view}
 
-After running the above profiling command, your NodeJS application starts collecting the specified profiling data and reports the data to Datakit, the Datakit would turns these data to <<<custom_key.brand_name>>>. After a few minutes, you can view the corresponding data in [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} {{UISteps "APM,Profiling" ","}}.
+After running the above profiling command, your NodeJS application starts collecting the specified profiling data and reports the data to DataKit, the DataKit would turns these data to <<<custom_key.brand_name>>>. After a few minutes, you can view the corresponding data in [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} {{UISteps "APM,Profiling" ","}}.
 
 ## Pull Mode (Optional) {#pyroscope-pull}
 

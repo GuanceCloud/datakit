@@ -32,7 +32,7 @@ The collector will register the route on the http service enabled by DataKit: `/
     {{ CodeBlock .InputSample 4 }}
     ```
     
-    After configuration, [restart Datakit](../datakit/datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
 
 === "Kubernetes"
 

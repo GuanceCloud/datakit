@@ -1,4 +1,4 @@
-# Datakit Operator
+# DataKit Operator
 
 ---
 
@@ -8,13 +8,13 @@
 
 ## 概述和安装 {#datakit-operator-overview-and-install}
 
-Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助 Datakit 更方便的部署，以及其他诸如验证、注入的功能。
+DataKit Operator 是 DataKit 在 Kubernetes 编排的联动项目，旨在协助 DataKit 更方便的部署，以及其他诸如验证、注入的功能。
 
-目前 Datakit-Operator 提供以下功能：
+目前 DataKit-Operator 提供以下功能：
 
 - 注入 DDTrace SDK（Java/Python/Node.js）以及对应环境变量信息，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
 - 注入 Sidecar logfwd 服务以采集容器内日志，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
-- 支持 Datakit 采集器的任务选举，参见[文档](election.md#plugins-election)
+- 支持 DataKit 采集器的任务选举，参见[文档](election.md#plugins-election)
 
 先决条件：
 
@@ -76,9 +76,9 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    - Datakit-Operator 有严格的程序和 yaml 对应关系，如果使用一份过旧的 yaml 可能无法安装新版 Datakit-Operator，请重新下载最新版 yaml。
+    - DataKit-Operator 有严格的程序和 yaml 对应关系，如果使用一份过旧的 yaml 可能无法安装新版 DataKit-Operator，请重新下载最新版 yaml。
     - 如果出现 `InvalidImageName` 报错，可以手动 pull 镜像。
 <!-- markdownlint-enable -->
 
@@ -86,7 +86,7 @@ Datakit Operator 是 Datakit 在 Kubernetes 编排的联动项目，旨在协助
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 
-Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap 存放，以环境变量方式加载到容器中。
+DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap 存放，以环境变量方式加载到容器中。
 
 默认配置如下：
 
@@ -150,20 +150,20 @@ Datakit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
 
 ### 指定镜像地址 {#datakit-operator-config-images}
 
-Datakit Operator 主要作用就是注入镜像和环境变量，使用 `images` 配置镜像地址。`images` 是多个 Key/Value，Key 是固定的，修改 Value 值指定镜像地址。
+DataKit Operator 主要作用就是注入镜像和环境变量，使用 `images` 配置镜像地址。`images` 是多个 Key/Value，Key 是固定的，修改 Value 值指定镜像地址。
 
 正常情况下，镜像统一存放在 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`，对于一些特殊环境不方便访问此镜像库，可以使用以下方法（以 `dd-lib-java-init` 镜像为例）：
 
 1. 在可以访问 `pubrepo.<<<custom_key.brand_main_domain>>>` 的环境中，pull 镜像 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`
 1. 修改 JSON 配置，将 `admission_inject`->`ddtrace`->`images`->`java_agent_image` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`，应用此 yaml
-1. 此后 Datakit Operator 会使用的新的 Java Agent 镜像路径
+1. 此后 DataKit Operator 会使用的新的 Java Agent 镜像路径
 
-**Datakit Operator 不检查镜像，如果该镜像路径错误，Kubernetes 创建 Pod 会报错。**
+**DataKit Operator 不检查镜像，如果该镜像路径错误，Kubernetes 创建 Pod 会报错。**
 
 
 ### 添加环境变量 {#datakit-operator-config-envs}
 
-所有需要注入的环境变量，都必须在配置文件指定，Datakit Operator 不默认添加任何环境变量。
+所有需要注入的环境变量，都必须在配置文件指定，DataKit Operator 不默认添加任何环境变量。
 
 环境变量配置项是 `envs`，由多个 Key/Value 组成：Key 是固定值；Value 可以是固定值，也可以是占位符，根据实际情况取值。
 
@@ -185,7 +185,7 @@ Datakit Operator 主要作用就是注入镜像和环境变量，使用 `images`
 
 所有注入 `ddtrace` agent 的容器，都会添加 `envs` 的 3 个环境变量。
 
-在 Datakit Operator v1.4.2 及以后版本，`envs` 支持 Kubernetes Downward API 的 [环境变量取值字段](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef)。现支持以下几种：
+在 DataKit Operator v1.4.2 及以后版本，`envs` 支持 Kubernetes Downward API 的 [环境变量取值字段](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef)。现支持以下几种：
 
 - `metadata.name`：Pod 的名称
 - `metadata.namespace`： Pod 的命名空间
@@ -223,27 +223,27 @@ POD_NAMESPACE=middleware
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     如果该 Value 占位符无法识别，会以纯字符串添加到环境变量。例如 `"POD_NAME": "{fieldRef:metadata.PODNAME}"`，这是错误的写法，在环境变量是 `POD_NAME={fieldRef:metadata.PODNAME}`。
 <!-- markdownlint-enable -->
 
 ## 注入方式 {#datakit-operator-inject}
 
-Datakit-Operator 支持两种资源输入方式，分别是“全局配置 namespaces 和 selectors”，以及在目标 Pod 添加指定 Annotation。它们的区别如下：
+DataKit-Operator 支持两种资源输入方式，分别是“全局配置 namespaces 和 selectors”，以及在目标 Pod 添加指定 Annotation。它们的区别如下：
 
-- 全局配置 namespace 和 selector：通过修改 Datakit-Operator config，指定目标 Pod 的 Namespace 和 Selector，如果发现 Pod 符合条件，就执行注入资源。
+- 全局配置 namespace 和 selector：通过修改 DataKit-Operator config，指定目标 Pod 的 Namespace 和 Selector，如果发现 Pod 符合条件，就执行注入资源。
     - 优点：不需要在目标 Pod 添加 Annotation（但是需要重启目标 Pod）
     - 缺点：范围不够精确，可能存在无效注入
 
-- 在目标 Pod 添加 Annotation：在目标 Pod 添加 Annotation，Datakit-Operator 会检查 Pod Annotation，如果符合条件就执行注入。
+- 在目标 Pod 添加 Annotation：在目标 Pod 添加 Annotation，DataKit-Operator 会检查 Pod Annotation，如果符合条件就执行注入。
     - 优点：范围足够精确，不存在无效注入
     - 缺点：必须在目标 Pod 添加 Annotation，且需要重启目标 Pod
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    截止到 Datakit-Operator v1.5.8，全局配置 namespaces 和 selectors 方式只在注入 DDtrace 生效，对于 logfwd 和 profiler 无效，后者仍需添加 annotation 注入。
+    截止到 DataKit-Operator v1.5.8，全局配置 namespaces 和 selectors 方式只在注入 DDtrace 生效，对于 logfwd 和 profiler 无效，后者仍需添加 annotation 注入。
 <!-- markdownlint-enable -->
 
 
@@ -294,7 +294,7 @@ Datakit-Operator 支持两种资源输入方式，分别是“全局配置 names
 其格式为：
 
 - key 是 `admission.datakit/%s-lib.version`，`%s` 需要替换成指定的语言，目前支持 `java`
-- value 是指定版本号。默认是 Datakit-Operator 配置 `java_agent_image` 指定的版本
+- value 是指定版本号。默认是 DataKit-Operator 配置 `java_agent_image` 指定的版本
 
 例如添加 Annotation 如下：
 
@@ -305,9 +305,9 @@ Datakit-Operator 支持两种资源输入方式，分别是“全局配置 names
 
 表示这个 Pod 需要注入的镜像版本是 v1.36.2-guance，镜像地址取自配置 `admission_inject`->`ddtrace`->`images`->`java_agent_image`，替换镜像版本为"v1.36.2-guance"，即 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-guance`。
 
-## Datakit Operator 注入 {#datakit-operator-inject-sidecar}
+## DataKit Operator 注入 {#datakit-operator-inject-sidecar}
 
-在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。Datakit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
+在大型 Kubernetes 集群中，批量修改配置是比较麻烦的事情。DataKit-Operator 会根据 Annotation 配置，决定是否对其修改或注入。
 
 目前支持的功能有：
 
@@ -319,14 +319,14 @@ Datakit-Operator 支持两种资源输入方式，分别是“全局配置 names
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 Datakit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
+    只支持 v1 版本的 `deployments/daemonsets/cronjobs/jobs/statefulsets` 这五类 Kind，且因为 DataKit-Operator 实际对 PodTemplate 操作，所以不支持 Pod。 在本文中，以 `Deployment` 代替描述这五类 Kind。
 <!-- markdownlint-enable -->
 
 ### DDtrace Agent {#datakit-operator-inject-lib}
 
 #### 使用说明 {#datakit-operator-inject-lib-usage}
 
-1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
+1. 在目标 Kubernetes 集群，[下载和安装 DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
 1. 在 deployment 添加指定 Annotation `admission.datakit/java-lib.version: ""`，表示需要注入默认版本的 DDtrace Java Agent。
 
 #### 用例 {#datakit-operator-inject-lib-example}
@@ -383,14 +383,14 @@ datakit-lib-init
 
 #### 前置条件 {#datakit-operator-inject-logfwd-prerequisites}
 
-[logfwd](../integrations/logfwd.md#using) 是 Datakit 的专属日志采集应用，需要先在同一个 Kubernetes 集群中部署 Datakit，且达成以下两点：
+[logfwd](../integrations/logfwd.md#using) 是 DataKit 的专属日志采集应用，需要先在同一个 Kubernetes 集群中部署 DataKit，且达成以下两点：
 
-1. Datakit 开启 `logfwdserver` 采集器，例如监听端口是 `9533`
-2. Datakit service 需要开放 `9533` 端口，使得其他 Pod 能访问 `datakit-service.datakit.svc:9533`
+1. DataKit 开启 `logfwdserver` 采集器，例如监听端口是 `9533`
+2. DataKit service 需要开放 `9533` 端口，使得其他 Pod 能访问 `datakit-service.datakit.svc:9533`
 
 #### 使用说明 {#datakit-operator-inject-logfwd-instructions}
 
-1. 在目标 Kubernetes 集群，[下载和安装 Datakit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
+1. 在目标 Kubernetes 集群，[下载和安装 DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
 2. 在 deployment 添加指定 Annotation，表示需要挂载 logfwd sidecar。注意 Annotation 要添加在 template 中
     - key 统一是 `admission.datakit/logfwd.instances`
     - value 是一个 JSON 字符串，是具体的 logfwd 配置，示例如下：
@@ -421,21 +421,21 @@ datakit-lib-init
 
 参数说明，可参考 [logfwd 配置](../integrations/logfwd.md#config)：
 
-- `datakit_addr` 是 Datakit logfwdserver 地址
-- `loggings` 为主要配置，是一个数组，可参考 [Datakit logging 采集器](../integrations/logging.md)
+- `datakit_addr` 是 DataKit logfwdserver 地址
+- `loggings` 为主要配置，是一个数组，可参考 [DataKit logging 采集器](../integrations/logging.md)
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 $source
     - `pipeline` Pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）
     - `character_encoding` 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持 `utf-8/utf-16le/utf-16le/gbk/gb18030`
-    - `multiline_match` 多行匹配，详见 [Datakit 日志多行配置](../integrations/logging.md#multiline)，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
+    - `multiline_match` 多行匹配，详见 [DataKit 日志多行配置](../integrations/logging.md#multiline)，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
-    注入 logfwd 时，Datakit Operator 默认复用相同路径的 volume，避免因为存在同样路径的 volume 而注入报错。
+    注入 logfwd 时，DataKit Operator 默认复用相同路径的 volume，避免因为存在同样路径的 volume 而注入报错。
 
     路径末尾有斜线和无斜线的意义不同，例如 `/var/log` 和 `/var/log/` 是不同路径，不能复用。
 <!-- markdownlint-enable -->
@@ -494,7 +494,7 @@ log-container datakit-logfwd
 
 #### 前置条件 {#async-profiler-prerequisites}
 
-- 集群已安装 [Datakit](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/){:target="_blank"}。
+- 集群已安装 [DataKit](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/){:target="_blank"}。
 - [开启 profile](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} 采集器。
 - Linux 内核参数 [kernel.perf_event_paranoid](https://www.kernel.org/doc/Documentation/sysctl/kernel.txt){:target="_blank"} 值设置为 2 及以下。
 
@@ -513,7 +513,7 @@ log-container datakit-logfwd
 
 在你的 [Pod 控制器](https://kubernetes.io/docs/concepts/workloads/controllers/){:target="_blank"} 资源配置文件中的
 `.spec.template.metadata.annotations` 节点下添加 annotation：`admission.datakit/java-profiler.version: "latest"`，然后应用该资源配置文件，
-Datakit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
+DataKit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
 
 接下来以一个名为 `movies-java` 的 `Deployment` 资源配置文件为例进行说明。
 
@@ -601,7 +601,7 @@ $ kubectl describe pod movies-java-784f4bb8c7-59g6s | grep datakit-profiler
 
 在你的 [Pod 控制器](https://kubernetes.io/docs/concepts/workloads/controllers/){:target="_blank"} 资源配置文件中的
 `.spec.template.metadata.annotations` 节点下添加 annotation：`admission.datakit/python-profiler.version: "latest"`，然后应用该资源配置文件，
-Datakit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
+DataKit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
 
 接下来将以一个名为 "movies-python" 的 `Deployment` 资源配置文件为例进行说明。
 
@@ -681,13 +681,13 @@ $ kubectl describe pod movies-python-78b6cf55f-ptzxf | grep datakit-profiler
     ```
 <!-- markdownlint-enable -->
 
-## Datakit Operator 资源变动 {#datakit-operator-mutate-resource}
+## DataKit Operator 资源变动 {#datakit-operator-mutate-resource}
 
-### 添加 Datakit Logging 采集所需的配置 {#add-logging-configs}
+### 添加 DataKit Logging 采集所需的配置 {#add-logging-configs}
 
-Datakit Operator 可以为指定的 Pod 自动添加 Datakit Logging 采集所需的配置，包括 `datakit/logs` 注解和对应的文件路径 volume/volumeMount，简化了手动配置的繁杂步骤。这样，用户无需手动干预每个 Pod 配置即可自动启用日志采集功能。
+DataKit Operator 可以为指定的 Pod 自动添加 DataKit Logging 采集所需的配置，包括 `datakit/logs` 注解和对应的文件路径 volume/volumeMount，简化了手动配置的繁杂步骤。这样，用户无需手动干预每个 Pod 配置即可自动启用日志采集功能。
 
-以下是一个配置示例，展示了如何通过 Datakit Operator 的 `admission_mutate` 配置来实现日志采集配置的自动注入：
+以下是一个配置示例，展示了如何通过 DataKit Operator 的 `admission_mutate` 配置来实现日志采集配置的自动注入：
 
 ```json
 {
@@ -712,11 +712,11 @@ Datakit Operator 可以为指定的 Pod 自动添加 Datakit Logging 采集所�
 
 - `namespace_selectors`：限定符合条件的 Pod 所在的 Namespacce。可以设置多个 Namespace，Pod 必须匹配至少一个 Namespace 才会被选中。与 `label_selectors` 是“或”的关系。
 - `label_selectors`：限定符合条件的 Pod 的 label。Pod 必须匹配至少一个 label selector 才会被选中。与 `namespace_selectors` 是“或”的关系。
-- `config`：这是一个 JSON 字符串，它将被添加到 Pod 的注解中，注解的 Key 是 `datakit/logs`。如果该 Key 已经存在，它不会被覆盖或重复添加。这个配置将告诉 Datakit 如何采集日志。
+- `config`：这是一个 JSON 字符串，它将被添加到 Pod 的注解中，注解的 Key 是 `datakit/logs`。如果该 Key 已经存在，它不会被覆盖或重复添加。这个配置将告诉 DataKit 如何采集日志。
 
-Datakit Operator 会自动解析 `config` 配置，并根据其中的路径（`path`）为 Pod 创建对应的 volume 和 volumeMount。
+DataKit Operator 会自动解析 `config` 配置，并根据其中的路径（`path`）为 Pod 创建对应的 volume 和 volumeMount。
 
-以上述 Datakit Operator 配置为例，如果发现某个 Pod 的 Namespace 是 `middleware`，或 Labels 匹配 `app=logging`，就在 Pod 新增注解和挂载。例如：
+以上述 DataKit Operator 配置为例，如果发现某个 Pod 的 Namespace 是 `middleware`，或 Labels 匹配 `app=logging`，就在 Pod 新增注解和挂载。例如：
 
 ```yaml
 apiVersion: v1
@@ -758,12 +758,12 @@ spec:
     name: datakit-logs-volume-0
 ```
 
-这个 Pod 存在 label `app=logging`，能够匹配上，于是 Datakit Operator 就给它添加了 `datakit/logs` 注解，并且将路径 `/tmp/opt` 添加 EmptyDir 挂载。
+这个 Pod 存在 label `app=logging`，能够匹配上，于是 DataKit Operator 就给它添加了 `datakit/logs` 注解，并且将路径 `/tmp/opt` 添加 EmptyDir 挂载。
 
-Datakit 日志采集发现到 Pod 后，就会根据 `datakit/logs` 内容进行定制化采集。
+DataKit 日志采集发现到 Pod 后，就会根据 `datakit/logs` 内容进行定制化采集。
 
 ### FAQ {#datakit-operator-faq}
 
 - 怎样指定某个 Pod 不注入？给该 Pod 添加 Annotation `"admission.datakit/enabled": "false"`，将不再为它执行任何操作，此优先级最高。
 
-- Datakit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
+- DataKit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}

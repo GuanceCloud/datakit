@@ -7,45 +7,77 @@ icon: zy/datakit
 
 ## 概述 {#intro}
 
-DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
+DataKit 是运行在您服务器上的数据采集客户端，它将采集的数据发送给<<<custom_key.brand_name>>>，在<<<custom_key.brand_name>>> Studio 上，您可以查看并分析这些数据。
 
-## 主要功能 {#features}
+DataKit 是一款开源软件，我们从 [GitHub](https://github.com/GuanceCloud/datakit){:target="_blank"} 可以获取到它的源码。
 
-- 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
-- 完整支持 Kubernetes 云原生生态
-- [Pipeline](../pipeline/use-pipeline/index.md)：简便的结构化数据提取
-- 支持接入其它第三方数据采集
-    - [Telegraf](../integrations/telegraf.md)
-    - [Prometheus](../integrations/prom.md)
-    - [Statsd](../integrations/statsd.md)
-    - [Fluentd](../integrations/logstreaming.md)
-    - [Filebeat](../integrations/beats_output.md)
-    - [Function](https://func.<<<custom_key.brand_main_domain>>>/doc/practice-write-data-via-datakit/){:target="_blank"}
-    - Tracing 相关
-        - [OpenTelemetry](../integrations/opentelemetry.md)
-        - [DDTrace](../integrations/ddtrace.md)
-        - [Zipkin](../integrations/zipkin.md)
-        - [Jaeger](../integrations/jaeger.md)
-        - [SkyWalking](../integrations/skywalking.md)
-        - [Pinpoint](../integrations/pinpoint.md)
+## 快速开始 {#quick-start}
+
+在主流平台上，我们通过单个命令即可安装 DataKit。安装完成后，默认开启了[一部分采集器](datakit-input-conf.md#default-enabled-inputs)，通过这些采集器，我们能采集到主机的一些基本数据。
+
+<div class="grid cards" markdown>
+- :fontawesome-solid-computer: [主机安装](datakit-install.md#get-install)
+- :fontawesome-brands-docker: [Docker 安装](datakit-docker-deploy.md)
+- :material-kubernetes: [Kubernetes 安装](datakit-daemonset-deploy.md)
+- :simple-amazoneks: [AWS EKS 安装](datakit-eks-deploy.md)
+- :simple-awsfargate: [AWS Fargate 安装](ecs-fargate.md)
+- :octicons-cloud-offline-24: [离线安装](datakit-offline-install.md)
+- [IoT 精简版](datakit-install.md#lite-install)
+</div>
+
+在本部分中，会包含如下主要内容：
+
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit 基本使用</u>: 如何管理 DataKit 服务 </font>](datakit-service-how-to.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit 工具命令</u>: DataKit 提供了很多便捷工具来辅助您的日常使用</font>](datakit-tools-how-to.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Monitor</u>: DataKit 运行状态查看</font>](datakit-monitor.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Kubernetes Operator</u>: 通过 Operator 自动化 Kubernetes 中的采集配置</font>](datakit-operator.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Proxy</u>: 如果带宽首先可以通过网络代理来上传 DataKit 流程</font>](datakit-proxy.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>日志采集</u>: 通过 DataKit 采集您的应用日志</font>](../integrations/logging.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Security</u>: 配置 DataKit 过程中涉及的一些安全问题说明</font>](datakit-conf.md#public-apis)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>资源限制</u>: 限制 DataKit 的资源开销 </font>](datakit-conf.md#resource-limit)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Troubleshooting</u>: 调试 DataKit 采集过程中的问题</font>](why-no-data.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>API</u>: DataKit HTTP API](apis.md)
+</div>
+</font>
 
 ## 说明 {#spec}
 
 ### 实验性功能 {#experimental}
 
-DataKit 发布的时候，会带上一些实验性功能，这些功能往往是初次发布的新功能，这些功能的实现，可能会有一些欠缺考虑或不严谨的地方，故使用实验性功能的时候，需考虑如下一些可能的情况：
+DataKit 发布的时候，会带上一些实验性功能，这些功能往往是初次发布的新功能，部分实现可能会有一些欠缺考虑或不严谨的地方：
 
 - 功能不太稳定
-- 于一些功能配置，在后续的迭代过程中，不保证其兼容性
-- 由于其局限性，功能可能会被移除，但会有对应的其它措施来满足对应的需求
-
-对于这部分功能，请大家慎重使用。
-
-在使用实验性功能的过程中，相关问题可以提交到 issue 中：
-
-- [GitLab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"}
-- [GitHub](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}
-- [极狐](https://jihulab.com/guance-cloud/datakit/-/issues/new){:target="_blank"}
+- 一些功能配置，在后续的迭代过程中不保证其兼容性
+- 功能可能会被移除，但会有对应的其它措施来满足对应的需求
 
 ### 图例说明 {#legends}
 
@@ -54,13 +86,3 @@ DataKit 发布的时候，会带上一些实验性功能，这些功能往往是
 | :fontawesome-solid-flag-checkered:                                                                                         | 表示该采集器支持选举                                            |
 | :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | 例分别用来表示 Linux、Windows、macOS、 Kubernetes 以及 Docker   |
 | :octicons-beaker-24:                                                                                                       | 表示实验性功能（参见[实验性功能的描述](index.md#experimental)） |
-
-## 注意事项 {#disclaimer}
-
-在使用 Datakit 过程中，对已有的系统可能会有如下一些影响：
-
-1. 日志采集会导致的磁盘高速读取，日志量越大，读取的 iops 越高
-1. 如果在 Web/App 应用中加入了 RUM SDK，那么会有持续的 RUM 相关的数据上传，如果上传的带宽有相关限制，可能会导致 Web/App 的页面卡顿
-1. eBPF 开启后，由于采集的数据量比较大，会占用一定量的内存和 CPU。其中 bpf-netlog 开启后，会根据主机和容器网卡的所有 TCP 数据包，产生大量的日志
-1. 在 Datakit 繁忙的时候（接入了大量的日志/Trace 以及外部数据导入等），其会占用相当量的 CPU 和内存资源，建议设置合理的 cgroup 来加以控制
-1. 当 Datakit 部署在 Kubernetes 中时，对 API server 会有一定的请求压力

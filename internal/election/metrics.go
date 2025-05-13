@@ -55,7 +55,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "election",
 			Name:      "status",
-			Help:      "Datakit election status, if metric = 0, meas not elected, or the elected time(unix timestamp second)",
+			Help:      "DataKit election status, if metric = 0, meas not elected, or the elected time(unix timestamp second)",
 		},
 		[]string{
 			"elected_id", // who elected ok in current namespace
@@ -70,7 +70,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "election",
 			Name:      "inputs",
-			Help:      "Datakit election input count",
+			Help:      "DataKit election input count",
 		},
 		[]string{
 			"namespace",

@@ -18,9 +18,9 @@ Install [DataKit](https://www.<<<custom_key.brand_main_domain>>>){:target="_blan
 - Install dd-trace-py library
 
 <!-- markdownlint-disable MD046 -->
-???+ note
+???+ info
 
-    Datakit is now compatible with dd-trace-py 1.14.x and below, higher versions are not tested.
+    DataKit is now compatible with dd-trace-py 1.14.x and below, higher versions are not tested.
 <!-- markdownlint-enable -->
 
 ```shell
@@ -106,8 +106,8 @@ cargo install py-spy-for-datakit
 
 | Option             | describe                          | default                             |
 |--------------------|-----------------------------------|-------------------------------------|
-| -H, --host         | Datakit listening host            | 127.0.0.1                           |
-| -P, --port         | Datakit listening port            | 9529                                |
+| -H, --host         | DataKit listening host            | 127.0.0.1                           |
+| -P, --port         | DataKit listening port            | 9529                                |
 | -S, --service      | Your service name                 | unnamed-service                     |
 | -E, --env          | Your app deploy environment       | unnamed-env                         |
 | -V, --version      | Your app version                  | unnamed-version                     |
@@ -119,7 +119,7 @@ cargo install py-spy-for-datakit
 
 `py-spy-for-datakit` can analyze the currently running program by using the `--pid <PID>` or `-p <PID>` parameters to pass the process PID of the running Python program to `py-spy-for-datakit`.
 
-Imaging your target process PID is 12345, and Datakit is listening at 127.0.0.1:9529:
+Imaging your target process PID is 12345, and DataKit is listening at 127.0.0.1:9529:
 
 ```shell
 py-spy-for-datakit datakit \

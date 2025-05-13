@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Datakit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.67.0) 版本开始增加了 Pyroscope 采集器，支持接入 Grafana Pyroscope Agent 上报的数据，帮助用户定位应用程序中的 CPU、内存、IO 等的性能瓶颈。
+DataKit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.67.0) 版本开始增加了 Pyroscope 采集器，支持接入 Grafana Pyroscope Agent 上报的数据，帮助用户定位应用程序中的 CPU、内存、IO 等的性能瓶颈。
 
 ## 采集器配置 {#input-config}
 
@@ -187,7 +187,7 @@ Pyroscope 采集器目前支持 [Java](https://grafana.com/docs/pyroscope/latest
 
 === "Rust"
 
-    ???+ attention
+    ???+ note
     
         Pyroscope Rust agent 目前只能正常工作在 Linux 平台上。
 
@@ -273,7 +273,7 @@ Pyroscope 采集器目前支持 [Java](https://grafana.com/docs/pyroscope/latest
 
     ???+ tips
     
-        上述使用 `uuidgen` 命令随机生成了一个 UUID，并通过环境变量 `OTEL_RESOURCE_ATTRIBUTES` 和 `PYROSCOPE_LABELS` 分别为链路和 profiling 设置 `runtime_id` tag，其它一些环境变量的设置仅供参考，请根据实际情况或参考官方文档酌情增舍修改。
+        上述使用 `uuidgen` 命令随机生成了一个 UUID，并通过环境变量 `OTEL_RESOURCE_ATTRIBUTES` 和 `PYROSCOPE_LABELS` 分别为链路和 profiling 设置 `runtime_id` tag，其它一些环境变量的设置仅供参考，请根据实际情况或参考官方文档酌情增删。
 
 === "Python"
 

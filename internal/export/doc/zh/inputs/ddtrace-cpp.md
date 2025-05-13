@@ -36,7 +36,7 @@ __int_icon: 'icon/ddtrace'
 
     Coming Soon...
 
-???+ attention "cmake 安装"
+???+ note "cmake 安装"
 
     cmake 可能无法通过 yum 或 apt-get 安装到较高的版本，建议直接去其[官网][3]{:target="_blank"}下载最新版本。也可以直接使用<<<custom_key.brand_name>>>托管的[源码][1]或[Windows 二进制][2]。
     

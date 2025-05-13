@@ -15,9 +15,9 @@ tags      :
 
 ---
 
-## Configure Datakit Agent {#config-datakit-agent}
+## Configure DataKit Agent {#config-datakit-agent}
 
-Refer to [Configuring Pinpoint Agent in Datakit](pinpoint.md#agent-config)
+Refer to [Configuring Pinpoint Agent in DataKit](pinpoint.md#agent-config)
 
 ## Configure Pinpoint Golang Agent {#config-pinpoint-golang-agent}
 
@@ -120,7 +120,7 @@ Each of the following titles is a configuration item in the configuration file, 
    - PINPOINT_GO_COLLECTOR_AGENTPORT
    - WithCollectorAgentPort()
    - int
-   - default: 9991 (The default port number in Datakit Pinpoint Agent is 9991)
+   - default: 9991 (The default port number in DataKit Pinpoint Agent is 9991)
 
 `Collector.SpanPort`
 
@@ -130,7 +130,7 @@ Each of the following titles is a configuration item in the configuration file, 
    - PINPOINT_GO_COLLECTOR_SPANPORT
    - WithCollectorSpanPort()
    - int
-   - default: 9993 (The default port number in Datakit Pinpoint Agent is 9991)
+   - default: 9993 (The default port number in DataKit Pinpoint Agent is 9991)
 
 `Collector.StatPort`
 
@@ -140,7 +140,7 @@ Each of the following titles is a configuration item in the configuration file, 
    - PINPOINT_GO_COLLECTOR_STATPORT
    - WithCollectorStatPort()
    - int
-   - default: 9992 (The default port number in Datakit Pinpoint Agent is 9991)
+   - default: 9992 (The default port number in DataKit Pinpoint Agent is 9991)
 
 `Sampling.Type`
 

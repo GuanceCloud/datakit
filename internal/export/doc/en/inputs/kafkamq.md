@@ -18,7 +18,7 @@ monitor   :
 
 ---
 
-Datakit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking`,`Jaeger` and `custom topic` are supported.
+DataKit supports subscribing messages from kafka to gather link, metric, and log information. Currently, only `SkyWalking`,`Jaeger` and `custom topic` are supported.
 
 ## Config {#config}
 
@@ -86,14 +86,14 @@ config:
 
 Open the comment to start the subscription. The subscribed topic is in the SkyWalking agent configuration file `config/agent.config`.
 
-> Note: This collector just forwards the subscribed data to the Datakit SkyWalking collector, please open the [SkyWalking](skywalking.md) collector and open the dk_endpoint comment!
+> Note: This collector just forwards the subscribed data to the DataKit SkyWalking collector, please open the [SkyWalking](skywalking.md) collector and open the dk_endpoint comment!
 
 ### Jaeger {#jaeger}
 
 Configuration：
 
 ```toml
-  ## Jaeger from kafka. Please make sure your Datakit Jaeger collector is open
+  ## Jaeger from kafka. Please make sure your DataKit Jaeger collector is open
   [inputs.kafkamq.jaeger]
       ## Required: ipv6 is "[::1]:9529"
       dk_endpoint="http://localhost:9529"
@@ -102,7 +102,7 @@ Configuration：
       topics=["jaeger-spans","jaeger-my-spans"]
 ```
 
-> Note: This collector just forwards the subscribed data to the Datakit Jaeger collector, please open the [jaeger](jaeger.md) collector and open the `dk_endpoint` comment!
+> Note: This collector just forwards the subscribed data to the DataKit Jaeger collector, please open the [jaeger](jaeger.md) collector and open the `dk_endpoint` comment!
 
 ### Custom Topic {#kafka-custom}
 
@@ -157,7 +157,7 @@ The `dk_endpoint` `trace_api` `metric_api` corresponds to the address of the Dat
 
 Take a simple metric as an example to show you how to subscribe to messages using custom configuration.
 
-When you don't know what format the data structure sent to kafka is. You can change the logging level of Datakit to debug first. Open the subscription, and there will be output in the Datakit log. Suppose you get the following data:
+When you don't know what format the data structure sent to kafka is. You can change the logging level of DataKit to debug first. Open the subscription, and there will be output in the DataKit log. Suppose you get the following data:
 
 ```shell
 # After opening the debug log level, look at the log, and datakit prints out the message information.
@@ -193,7 +193,7 @@ Place the file in the directory `/usr/local/datakit/pipeline/metric/`.
 
 > Note: The pl script for metrics data is placed under `metric/` and the pl script for logging data is placed under `pipeline/`
 
-Configure the PL script and restart Datakit.
+Configure the PL script and restart DataKit.
 
 ## Handle {#handle}
 
@@ -272,7 +272,7 @@ Additionally, reducing log output, turning off cgroup limits, and increasing int
 
 ### load balancing {#load-balancing}
 
-When the amount of messages is large and the consumption capacity of one Datakit is insufficient, multiple Datakit can be added for consumption. Here are three points to note:
+When the amount of messages is large and the consumption capacity of one DataKit is insufficient, multiple DataKit can be added for consumption. Here are three points to note:
 
 1. Make sure that the topic partition is not one (at least 2), which can be viewed through the tool [kafka-map](https://github.com/dushixiang/kafka-map/releases){:target="_blank"}
 1. Make sure that the configuration of the KafkaMQ collector is `assignor = "roundrobin"` (a type of load balancing strategy), `group_id="datakit"` (group names must be consistent, otherwise consumption will be repeated)
@@ -280,9 +280,7 @@ When the amount of messages is large and the consumption capacity of one Datakit
 
 ## FAQ {#faq}
 
-<!-- markdownlint-disable MD013 -->
-### :material-chat-question: how to test Pipeline script {#test_Pipeline}
-<!-- markdownlint-enable -->
+### How to test Pipeline script {#test_Pipeline}
 
 Script test command to see if cutting is correct:
 
@@ -294,9 +292,7 @@ We can setup [recorder](../datakit/datakit-tools-how-to.md#enable-recorder) in *
 
 Connection failure may be a version problem: Please fill in the kafka version correctly in the configuration file.
 
-<!-- markdownlint-disable MD013 -->
-### :material-chat-question: How to handle the situation of message backlog in Kafka {#message_backlog}
-<!-- markdownlint-enable -->
+### Message backlog in Kafka {#message_backlog}
 
 1. Enable multi threaded mode to increase consumption capacity.
 2. If performance reaches a bottleneck, then expand physical memory and CPU.

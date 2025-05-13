@@ -32,7 +32,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "input_kafkamq",
 			Name:      "consumer_message_total",
-			Help:      "Kafka consumer message numbers from Datakit start",
+			Help:      "Kafka consumer message numbers from DataKit start",
 		},
 		[]string{
 			"topic",

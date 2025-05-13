@@ -43,7 +43,7 @@ $ mongo
 > use admin
 > db.auth("<admin OR root>", "<YOUR_MONGODB_ADMIN_PASSWORD>")
 
-# Create the user for the Datakit.
+# Create the user for the DataKit.
 > db.createUser({
   "user": "datakit",
   "pwd": "<YOUR_COLLECT_PASSWORD>",
@@ -58,7 +58,7 @@ $ mongo
 
 >More authorization information can refer to official documentation [Built-In Roles](https://www.mongodb.com/docs/manual/reference/built-in-roles/){:target="_blank"}。
 
-After done with commands above, filling the `user` and `pwd` to Datakit configuration file `conf.d/db/mongodb.conf`.
+After done with commands above, filling the `user` and `pwd` to DataKit configuration file `conf.d/db/mongodb.conf`.
 
 ### Collector Configuration {#input-config}
 
@@ -235,7 +235,7 @@ For all of the following data collections, the global election tags will added a
 
 ## Mongod Log Collection {#logging}
 
-Annotate the configuration file `# enable_mongod_log = false` and change `false` to `true`. Other configuration options for mongod log are in `[inputs.mongodb.log]`, and the commented configuration is very default. If the path correspondence is correct, no configuration is needed. After starting Datakit, you will see a collection measurement named `mongod_log`.
+Annotate the configuration file `# enable_mongod_log = false` and change `false` to `true`. Other configuration options for mongod log are in `[inputs.mongodb.log]`, and the commented configuration is very default. If the path correspondence is correct, no configuration is needed. After starting DataKit, you will see a collection measurement named `mongod_log`.
 
 Log raw data sample
 

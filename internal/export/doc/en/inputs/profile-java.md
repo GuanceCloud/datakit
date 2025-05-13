@@ -8,16 +8,16 @@ __int_icon: 'icon/profiling'
 ---
 
 
-Datakit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
+DataKit now supports two Java profiling tools: [dd-trace-java](https://github.com/DataDog/dd-trace-java){:target="_blank"} and [async-profiler](https://github.com/async-profiler/async-profiler){:target="_blank"}.
 
 ## dd-trace-Java {#ddtrace}
 
 Download `dd-trace-java` from the page [`dd-trace-java`](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"}.
 
 <!-- markdownlint-disable MD046 -->
-???+ Note
+???+ note
 
-    Datakit currently supports `dd-trace-java 1.47.x` and lower versions. Higher versions have not been tested, and their compatibility is unknown. If you encounter any issues during use, please feel free to provide feedback to us.
+    DataKit currently supports `dd-trace-java 1.47.x` and lower versions. Higher versions have not been tested, and their compatibility is unknown. If you encounter any issues during use, please feel free to provide feedback to us.
 <!-- markdownlint-enable -->
 
 Currently, `dd-trace-java` integrates two sets of analysis engines: [`Datadog Profiler`](https://github.com/datadog/java-profiler){:target="_blank"} and the built - in [`JFR (Java Flight Recorder)`](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm){:target="_blank"} in the JDK.
@@ -39,7 +39,7 @@ Both engines have their own requirements for the platform and JDK version, which
     - OpenJDK 8 (version 1.8.0.262/8u262+)
     - Oracle JDK 8 (commercial features need to be enabled)
 
-    ???+ Note
+    ???+ note
 
         `JFR` is a commercial feature of Oracle JDK 8 and is disabled by default. If you need to enable it, you need to add the parameters `-XX:+UnlockCommercialFeatures -XX:+FlightRecorder` when starting the project. Since JDK 11, `JFR` has become an open-source project and is no longer a commercial feature of Oracle JDK.
 <!-- markdownlint-enable -->
@@ -70,16 +70,16 @@ Explanation of some parameters:
 
 | Parameter Name                            | Corresponding Environment Variable    | Explanation                                                                                                                                                                                                                                                                           |
 |-------------------------------------------|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `-Ddd.profiling.enabled`                  | DD_PROFILING_ENABLED                  | Whether to enable the profiling function.                                                                                                                                                                                                                                             |
-| `-Ddd.profiling.allocation.enabled`       | DD_PROFILING_ALLOCATION_ENABLED       | Whether to enable the `JFR` memory Allocation analysis. High-load applications may have a certain impact on performance. It is recommended to use the `Datadog Profiler` Allocation function for JDK 11 and above versions.                                                           |
-| `-Ddd.profiling.heap.enabled`             | DD_PROFILING_HEAP_ENABLED             | Whether to enable the sampling of `JFR` memory Heap objects.                                                                                                                                                                                                                          |
-| `-Ddd.profiling.directallocation.enabled` | DD_PROFILING_DIRECTALLOCATION_ENABLED | Whether to enable the sampling of `JFR` JVM direct memory allocation.                                                                                                                                                                                                                 |
-| `-Ddd.profiling.ddprof.enabled`           | DD_PROFILING_DDPROF_ENABLED           | Whether to enable the `Datadog Profiler` analysis engine.                                                                                                                                                                                                                             |
-| `-Ddd.profiling.ddprof.cpu.enabled`       | DD_PROFILING_DDPROF_CPU_ENABLED       | Whether to enable the `Datadog Profiler` CPU analysis.                                                                                                                                                                                                                                |
-| `-Ddd.profiling.ddprof.wall.enabled`      | DD_PROFILING_DDPROF_WALL_ENABLED      | Whether to enable the collection of `Datadog Profiler` Wall time. This option affects the accuracy of the association between Trace and Profile, and it is recommended to enable it.                                                                                                  |
-| `-Ddd.profiling.ddprof.alloc.enabled`     | DD_PROFILING_DDPROF_ALLOC_ENABLED     | Whether to enable the memory Allocation analysis of the `Datadog Profiler` engine. It has been verified that it cannot be enabled on JDK 8 currently. For JDK 8, please use `-Ddd.profiling.allocation.enabled` as appropriate and pay attention to the impact on system performance. |
-| `-Ddd.profiling.ddprof.liveheap.enabled`  | DD_PROFILING_DDPROF_LIVEHEAP_ENABLED  | Whether to enable the analysis of the currently live Heap by the `Datadog Profiler` engine.                                                                                                                                                                                           |
-| `-Ddd.profiling.ddprof.memleak.enabled`   | DD_PROFILING_DDPROF_MEMLEAK_ENABLED   | Whether to enable the memory leak analysis of the `Datadog Profiler` engine.                                                                                                                                                                                                          |
+| `-Ddd.profiling.enabled`                  | `DD_PROFILING_ENABLED`                  | Whether to enable the profiling function.                                                                                                                                                                                                                                             |
+| `-Ddd.profiling.allocation.enabled`       | `DD_PROFILING_ALLOCATION_ENABLED`       | Whether to enable the `JFR` memory Allocation analysis. High-load applications may have a certain impact on performance. It is recommended to use the `Datadog Profiler` Allocation function for JDK 11 and above versions.                                                           |
+| `-Ddd.profiling.heap.enabled`             | `DD_PROFILING_HEAP_ENABLED`             | Whether to enable the sampling of `JFR` memory Heap objects.                                                                                                                                                                                                                          |
+| `-Ddd.profiling.directallocation.enabled` | `DD_PROFILING_DIRECTALLOCATION_ENABLED` | Whether to enable the sampling of `JFR` JVM direct memory allocation.                                                                                                                                                                                                                 |
+| `-Ddd.profiling.ddprof.enabled`           | `DD_PROFILING_DDPROF_ENABLED`           | Whether to enable the `Datadog Profiler` analysis engine.                                                                                                                                                                                                                             |
+| `-Ddd.profiling.ddprof.cpu.enabled`       | `DD_PROFILING_DDPROF_CPU_ENABLED`       | Whether to enable the `Datadog Profiler` CPU analysis.                                                                                                                                                                                                                                |
+| `-Ddd.profiling.ddprof.wall.enabled`      | `DD_PROFILING_DDPROF_WALL_ENABLED`      | Whether to enable the collection of `Datadog Profiler` Wall time. This option affects the accuracy of the association between Trace and Profile, and it is recommended to enable it.                                                                                                  |
+| `-Ddd.profiling.ddprof.alloc.enabled`     | `DD_PROFILING_DDPROF_ALLOC_ENABLED`     | Whether to enable the memory Allocation analysis of the `Datadog Profiler` engine. It has been verified that it cannot be enabled on JDK 8 currently. For JDK 8, please use `-Ddd.profiling.allocation.enabled` as appropriate and pay attention to the impact on system performance. |
+| `-Ddd.profiling.ddprof.liveheap.enabled`  | `DD_PROFILING_DDPROF_LIVEHEAP_ENABLED`  | Whether to enable the analysis of the currently live Heap by the `Datadog Profiler` engine.                                                                                                                                                                                           |
+| `-Ddd.profiling.ddprof.memleak.enabled`   | `DD_PROFILING_DDPROF_MEMLEAK_ENABLED`   | Whether to enable the memory leak analysis of the `Datadog Profiler` engine.                                                                                                                                                                                                          |
 
 ## Async Profiler {#async-profiler}
 
@@ -94,8 +94,11 @@ async-profiler can trace the following kinds of events:
 
 ### Install async-profiler {#install}
 
+<!-- markdownlint-disable MD046 -->
 ???+ node "Requirements"
-    Datakit is now compatible with async-profiler v2.9 and below, higher version compatibility is unknown.
+
+    DataKit is now compatible with async-profiler v2.9 and below, higher version compatibility is unknown.
+<!-- markdownlint-enable -->
 
 The official website provides download for different platform binaries：
 

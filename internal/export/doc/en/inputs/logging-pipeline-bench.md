@@ -27,14 +27,11 @@ title: 'DataKit Performance of Log Collector'
 | Use a single matching Pipeline instead of multiple matching formats, such as nginx error log, as compared to the full version, for access log only (see Appendix II) | 16.91 seconds |
 | Replace the performance-intensive pattern with an optimized single matching Pipeline (see Appendix III)                                                              | 4.40 seconds |
 
+<!-- markdownlint-disable MD046 -->
+???+ info
 
-Note:
-
-> Pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished
->
-> Memory consumption was stable during the test, with no significant increase in usage
->
-> Time-consuming computation for DataKit programs, which may be biased in different environments
+    Pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished. Memory consumption was stable during the test, with no significant increase in usage. Time-consuming computation for DataKit programs, which may be biased in different environments.
+<!-- markdownlint-enable -->
 
 ## Comparison {#compare}
 

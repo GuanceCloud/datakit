@@ -54,13 +54,13 @@ The Jenkins collector can realize CI visualization by receiving the CI Event fro
 
 Jenkins CI Visibility opening method:
 
-- Ensure that the Jenkins CI Visibility feature is turned on in the configuration file and the listening port number is configured (such as `:9539`), restart Datakit;
+- Ensure that the Jenkins CI Visibility feature is turned on in the configuration file and the listening port number is configured (such as `:9539`), restart DataKit;
 - Install [Jenkins Datadog plugin](https://plugins.jenkins.io/datadog/){:target="_blank"}  in Jenkins;
-- Select `Use the Datadog Agent to report to Datadog (recommended)` in Manage Jenkins > Configure System > Datadog Plugin and configure `Agent Host` as the Datakit IP address. Both `DogStatsD Port` and `Traces Collection Port` are configured to the port number configured in the Jenkins collector configuration file above, such as `9539`(do not add `:`);
+- Select `Use the Datadog Agent to report to Datadog (recommended)` in Manage Jenkins > Configure System > Datadog Plugin and configure `Agent Host` as the DataKit IP address. Both `DogStatsD Port` and `Traces Collection Port` are configured to the port number configured in the Jenkins collector configuration file above, such as `9539`(do not add `:`);
 - Check `Enable CI Visibility`；
 - Click `Save` to Save the settings.
 
-After configuration, Jenkins can send CI events to Datakit through Datadog Plugin.
+After configuration, Jenkins can send CI events to DataKit through Datadog Plugin.
 
 ## Metric {#metric}
 

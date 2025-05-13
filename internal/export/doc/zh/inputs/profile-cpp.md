@@ -25,7 +25,7 @@ subgraph App
 app(App Process)
 pyro(Pyroscope Agent)
 end
-dk(Datakit)
+dk(DataKit)
 brand_name("<<<custom_key.brand_name>>>")
 
 app --> pyro --> |profiling data|dk --> brand_name
@@ -86,7 +86,7 @@ Pyroscope Agent 的 [eBPF](https://pyroscope.io/docs/ebpf/){:target="_blank"} �
 
 ```sh
 export PYROSCOPE_APPLICATION_NAME='my.ebpf.program{host=server-node-1,region=us-west-1,tag2=val2}'
-export PYROSCOPE_SERVER_ADDRESS='http://localhost:4040/' # Datakit profile 配置的 pyroscope listen url.
+export PYROSCOPE_SERVER_ADDRESS='http://localhost:4040/' # DataKit profile 配置的 pyroscope listen url.
 export PYROSCOPE_SPY_NAME='ebpfspy'
 ```
 

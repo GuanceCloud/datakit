@@ -62,10 +62,10 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
 - Restart CouchDB
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ note
 
-    - To collect data, several ports `5984` `17986` need to be used. When collecting data remotely, these ports need to be opened.
-    - bind_address = 127.0.0.1 If it is a local collection, there is no need to modify it.
+    - To collect data, several ports `5984/17986` need to be used. When collecting data remotely, these ports need to be opened.
+    - `bind_address = 127.0.0.1` If it is a local collection, there is no need to modify it.
 <!-- markdownlint-enable -->
 
 ### Collector Configuration {#input-config}

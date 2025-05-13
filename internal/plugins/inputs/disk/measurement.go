@@ -16,6 +16,7 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
 		Type: "metric",
+		Desc: "For FAT-like file system on Linux, there is no inode related metrics",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
@@ -35,31 +36,19 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"inodes_used_percent": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "Inode used percent",
-			},
-			"inodes_total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total Inode(**DEPRECATED: use inodes_total_mb instead**).",
+				Desc: "Inode used percent. Linux only",
 			},
 			"inodes_total_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total Inode(need to multiply by 10^6).",
-			},
-			"inodes_free": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free Inode(**DEPRECATED: use inodes_free_mb instead**).",
+				Desc: "Total Inode(need to multiply by 10^6). Linux only",
 			},
 			"inodes_free_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free Inode(need to multiply by 10^6).",
+				Desc: "Free Inode(need to multiply by 10^6). Linux only",
 			},
 			"inodes_used_mb": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used Inode(need to multiply by 10^6).",
-			},
-			"inodes_used": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used Inode(**DEPRECATED: use inodes_used_mb instead**).",
+				Desc: "Used Inode(need to multiply by 10^6). Linux only",
 			},
 		},
 		Tags: map[string]interface{}{

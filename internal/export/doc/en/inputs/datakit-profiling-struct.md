@@ -3,9 +3,9 @@ skip: 'not-searchable-on-index-page'
 title: 'Profiling Data Structure'
 ---
 
-This page will introduce about profiling data structure used in Datakit.
+This page will introduce about profiling data structure used in DataKit.
 
-## Datakit Line Protocol Structure {#line-protocol}
+## DataKit Line Protocol Structure {#line-protocol}
 
 - Line Protocol is the final format storing on disk
 - Line Protocol data structure consists of four parts: "Name", "Tags", "Fields" and "Timestamp", which is separated by comma, for example：
@@ -14,7 +14,7 @@ This page will introduce about profiling data structure used in Datakit.
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 <!-- markdownlint-disable MD013 -->
-## Datakit line protocol tags and fields used in profiling {#tags-fields}
+## DataKit line protocol tags and fields used in profiling {#tags-fields}
 <!-- markdownlint-enable -->
 | **Section** | **Name** | **Unit** | **Description**        |
 |----------------------------------------------|-------------------------------------------|-------------------------------------------|---------------------------------------------------------|

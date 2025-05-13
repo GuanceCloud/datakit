@@ -1,23 +1,23 @@
 ---
 skip: 'not-searchable-on-index-page'
-title: 'Datakit Tracing Data Structure'
+title: 'DataKit Tracing Data Structure'
 ---
 
 ## Brief {#intro}
 
-This article is used to explain the data structure of the mainstream Telemetry platform and the mapping relationship with the data structure of Datakit platform.
+This article is used to explain the data structure of the mainstream Telemetry platform and the mapping relationship with the data structure of DataKit platform.
 Currently supported data structures: DataDog, Jaeger, OpenTelemetry, SkyWalking, Zipkin.
 
 Data conversion steps:
 
 1. External Tracing data structure access
-2. Datakit Span transformation
+2. DataKit Span transformation
 3. span data operations
 4. Line Protocol transformation
 
 ---
 
-## Datakit Point Protocol Data Structure {#point-proto}
+## DataKit Point Protocol Data Structure {#point-proto}
 
 - Tags
 
@@ -51,10 +51,10 @@ Data conversion steps:
 | `resource`    | Resource of service           | string |      |
 | `span_id`     | Span ID                       | string |      |
 | `start`       | Span start timestamp          | int    | us   |
-| `time`        | Datakit received timestamp    | int    | ns   |
+| `time`        | DataKit received timestamp    | int    | ns   |
 | `trace_id`    | Trace ID                      | string |      |
 
-[^1]: This field created by the storage engine, not exist in Datakit side.
+[^1]: This field created by the storage engine, not exist in DataKit side.
 
 `span_type` is the relative position of the current span in trace, and its value is described as follows:
 
@@ -70,7 +70,7 @@ Data conversion steps:
 - `PRIORITY_AUTO_KEEP = 1` Client sampler select report
 - `PRIORITY_USER_KEEP = 2` User chooses to report
 
-### Datakit Tracing Span Data Structure {#span-struct}
+### DataKit Tracing Span Data Structure {#span-struct}
 
 ``` golang
 TraceID    string                 `json:"trace_id"`
@@ -90,7 +90,7 @@ Status     string                 `json:"status"`   // span status like error, o
 Content    string                 `json:"content"`  // raw tracing data in json
 ```
 
-Datakit Span is a data structure used internally by Datakit. The third-party Tracing Agent data structure is converted into a Datakit Span structure and sent to the data center.
+DataKit Span is a data structure used internally by DataKit. The third-party Tracing Agent data structure is converted into a DataKit Span structure and sent to the data center.
 
 > Hereinafter referred to as `dkspan`
 

@@ -51,13 +51,13 @@ Jenkins 采集器可以通过接收 Jenkins DataDog plugin 发出的 CI Event �
 
 Jenkins CI Visibility 开启方法：
 
-- 确保在配置文件中开启了 Jenkins CI Visibility 功能，且配置了监听端口号（如 `:9539`），重启 Datakit；
+- 确保在配置文件中开启了 Jenkins CI Visibility 功能，且配置了监听端口号（如 `:9539`），重启 DataKit；
 - 在 Jenkins 中安装 [Jenkins Datadog plugin](https://plugins.jenkins.io/datadog/){:target="_blank"} ；
-- 在 Manage Jenkins > Configure System > Datadog Plugin 中选择 `Use the Datadog Agent to report to Datadog (recommended)`，配置 `Agent Host` 为 Datakit IP 地址。`DogStatsD Port` 及 `Traces Collection Port` 两项均配置为上述 Jenkins 采集器配置文件中配置的端口号，如 `9539`（此处不加 `:`）；
+- 在 Manage Jenkins > Configure System > Datadog Plugin 中选择 `Use the Datadog Agent to report to Datadog (recommended)`，配置 `Agent Host` 为 DataKit IP 地址。`DogStatsD Port` 及 `Traces Collection Port` 两项均配置为上述 Jenkins 采集器配置文件中配置的端口号，如 `9539`（此处不加 `:`）；
 - 勾选 `Enable CI Visibility`；
 - 点击 `Save` 保存设置。
 
-配置完成后 Jenkins 能够通过 Datadog Plugin 将 CI 事件发送到 Datakit。
+配置完成后 Jenkins 能够通过 Datadog Plugin 将 CI 事件发送到 DataKit。
 
 ## 指标 {#metric}
 

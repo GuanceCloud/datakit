@@ -1,6 +1,6 @@
-# Datakit 占用端口
+# DataKit 占用端口
 
-在 Datakit 运行过程中，根据不同的功能，需要开启不同的本地端口。目前占
+在 DataKit 运行过程中，根据不同的功能，需要开启不同的本地端口。目前占
 用的端口情况如下：
 
 | 默认端口(可能多个) | 协议(L4/L7) | 功能名                        | 默认路由或者 domain socket(可能多个)                |
@@ -15,7 +15,7 @@
 | 6343               | UDP         | NetFlow sflow5 默认端口       | N/A                                       |
 | 8125               | UDP         | StatsD 数据接入               | N/A                                       |
 | 9109               | UDP/TCP     | Graphite 数据接入             | N/A                                       |
-| 9529               | HTTP        | Datakit HTTP 服务            |                                           |
+| 9529               | HTTP        | DataKit HTTP 服务            |                                           |
 | 9530               | TCP         | Socket（TCP）日志接入          | N/A                                       |
 | 9531               | TCP         | DCA Server                   | N/A                                       |
 | 9531               | UDP         | Socket（UDP）日志接入          | N/A                                       |

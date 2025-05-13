@@ -60,7 +60,7 @@ See [official document](https://neo4j.com/docs/operations-manual/current/install
 - Restart Neo4j
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ info
 
     - To collect data, port `2004` need to be used. When collecting data remotely, need to be opened.
     - 0.0.0.0:2004 If it is a local collection, need be localhost:2004.

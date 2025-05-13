@@ -14,9 +14,9 @@ tags      :
 
 ---
 
-## 配置 Datakit Agent {#config-datakit-agent}
+## 配置 DataKit Agent {#config-datakit-agent}
 
-参考[配置 Datakit 中的 Pinpoint Agent](pinpoint.md#agent-config)
+参考[配置 DataKit 中的 Pinpoint Agent](pinpoint.md#agent-config)
 
 ## 配置 Pinpoint Golang Agent {#config-pinpoint-golang-agent}
 
@@ -119,7 +119,7 @@ Pinpoint Golang Agent 也支持运行期动态更改配置，所有标记了 dyn
    - PINPOINT_GO_COLLECTOR_AGENTPORT
    - WithCollectorAgentPort()
    - int
-   - default: 9991 (Datakit Pinpoint Agent 中默认端口号为 9991)
+   - default: 9991 (DataKit Pinpoint Agent 中默认端口号为 9991)
 
 `Collector.SpanPort`
 
@@ -129,7 +129,7 @@ Pinpoint Golang Agent 也支持运行期动态更改配置，所有标记了 dyn
    - PINPOINT_GO_COLLECTOR_SPANPORT
    - WithCollectorSpanPort()
    - int
-   - default: 9993 (Datakit Pinpoint Agent 中默认端口号为 9991)
+   - default: 9993 (DataKit Pinpoint Agent 中默认端口号为 9991)
 
 `Collector.StatPort`
 
@@ -139,7 +139,7 @@ Pinpoint Golang Agent 也支持运行期动态更改配置，所有标记了 dyn
    - PINPOINT_GO_COLLECTOR_STATPORT
    - WithCollectorStatPort()
    - int
-   - default: 9992 (Datakit Pinpoint Agent 中默认端口号为 9991)
+   - default: 9992 (DataKit Pinpoint Agent 中默认端口号为 9991)
 
 `Sampling.Type`
 

@@ -142,7 +142,7 @@ Note:
 When turned on, you can collect jvm metrics exposed by DDTrace.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     The actual collected indicators are based on [DataDog's doc](https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected){:target="_blank"}.
 <!-- markdownlint-enable -->

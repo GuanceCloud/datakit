@@ -94,7 +94,7 @@ grok(_, "%{time}")
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - 如果出现同名模式，则以局部模式优先（即局部模式覆盖全局模式）
     - Pipeline 脚本中，[add_pattern()](pipeline-built-in-function.md#fn-add-pattern) 需在 [grok()](pipeline-built-in-function.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败

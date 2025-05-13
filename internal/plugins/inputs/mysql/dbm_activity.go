@@ -274,7 +274,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.String,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "The name of the wait/io/socket/* instrument that produced the event",
+				Desc:     "The name of the `wait/io/socket/*` instrument that produced the event",
 			},
 			"connections": &inputs.FieldInfo{
 				DataType: inputs.Int,

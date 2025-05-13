@@ -54,7 +54,7 @@ monitor   :
 
 ---
 
-???+ attention
+???+ warning
 
     上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
 <!-- markdownlint-enable -->
@@ -88,12 +88,12 @@ filebeat.inputs:
 ```yml
 output.logstash:
   # The Logstash hosts
-  hosts: ["<Datakit-IP>:5044"]
+  hosts: ["<DataKit-IP>:5044"]
 ```
 
-这里的 `5044` 端口要与 *<Datakit 安装目录\>/conf.d/beats_output/beats_output.conf* 中配置的 `listen` 端口一致。
+这里的 `5044` 端口要与 *<DataKit 安装目录\>/conf.d/beats_output/beats_output.conf* 中配置的 `listen` 端口一致。
 
-这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 Datakit 了。
+这样就实现 Filebeat 采集日志文件 `/Users/mac/Downloads/tmp/1.log` 上报到 DataKit 了。
 
 需要注意的是，**需要将 elasticsearch 的配置 9200 端口给注释掉**，完整的 *filebeat.yml* 文件如下：
 

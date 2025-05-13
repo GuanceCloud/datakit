@@ -3,7 +3,7 @@
 
 ## First Script {#first-script}
 
-- To configure Pipeline in DataKit, write the following Pipeline file, which is assumed to be named *nginx.p*. Store it in the *[Datakit installation directory]/pipeline* directory.
+- To configure Pipeline in DataKit, write the following Pipeline file, which is assumed to be named *nginx.p*. Store it in the *[DataKit installation directory]/pipeline* directory.
 
 ```python
 # Assume input is an Nginx log
@@ -85,7 +85,7 @@ For more Pipeline debugging commands, see `datakit help pipeline`.
 
 ### Grok Wildcard Search {#grokq}
 
-Manual matching is troublesome due to the large number of Grok patterns. Datakit provides an interactive command-line tool, `grokq`（grok query）：
+Manual matching is troublesome due to the large number of Grok patterns. DataKit provides an interactive command-line tool, `grokq`（grok query）：
 
 ```Shell
 datakit tool --grokq
@@ -105,7 +105,7 @@ grokq > Q                              # Q or exit
 Bye!
 ```
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     In Windows environment, debug in Powershell.
 <!-- markdownlint-enable -->
@@ -161,7 +161,7 @@ The following cutting results are obtained:
 
 In all the fields cut out by Pipeline, they are a field rather than a tag. We should not cut out any fields with the same name as tag due to the [line protocol constraint](../../datakit/apis.md#lineproto-limitation). These tags include the following categories:
 
-- [Global Tag](../../datakit/datakit-conf.md#set-global-tag) in Datakit
+- [Global Tag](../../datakit/datakit-conf.md#set-global-tag) in DataKit
 - [Custom Tag](../../datakit/logging.md#measurements) in Log Collector
 
 In addition, all collected logs have the following reserved fields. We should not override these fields, otherwise the data may not appear properly on the observer page.
@@ -183,13 +183,13 @@ In addition, all collected logs have the following reserved fields. We should no
 Once the Pipeline cut-out field has the same name as the existing Tag (case sensitive), it will cause the following data error. Therefore, it is recommended to bypass these field naming in Pipeline cutting.
 
 ```shell
-# This error is visible in the Datakit monitor
+# This error is visible in the DataKit monitor
 same key xxx in tag and field
 ```
 
 ### Complete Pipeline Sample {#example}
 
-Take Datakit's own log cutting as an example. Datakit's own log form is as follows:
+Take DataKit's own log cutting as an example. DataKit's own log form is as follows:
 
 ```txt
 2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
@@ -210,7 +210,7 @@ drop_origin_data()       # discard the original log text (not recommended)
 
 Several user-defined patterns are referenced, such as `_dklog_date`、`_dklog_level`. We put these rules under `<DataKit installation path>/pipeline/pattern` .
 
-> Note that the user-defined pattern must be placed in the *[Datakit installation path]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other Pipeline scripts):
+> Note that the user-defined pattern must be placed in the *[DataKit installation path]/pipeline/pattern/* directory) if it needs to be globally effective (that is, applied in other Pipeline scripts):
 
 ```Shell
 $ cat pipeline/pattern/datakit
@@ -224,7 +224,7 @@ _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
 _dklog_msg %{GREEDYDATA}
 ```
 
-Now that you have the Pipeline and its referenced pattern, you can cut this line of logs through Datakit's built-in Pipeline debugging tool:
+Now that you have the Pipeline and its referenced pattern, you can cut this line of logs through DataKit's built-in Pipeline debugging tool:
 
 ```Shell
 # Extract successful examples
@@ -241,7 +241,7 @@ Extracted data(cost: 421.705µs):
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
+### Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
 <!-- markdownlint-enable -->
 Pipeline:
 
@@ -268,7 +268,7 @@ json(_, `@timestamp`, "time")
 
 See [Basic syntax rules of Pipeline](pipeline-platypus-grammar.md)
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
+### When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
 <!-- markdownlint-enable -->
 The order is as follows:
 
@@ -279,13 +279,13 @@ $ datakit pipeline -P test.p -T "..."
 
 ---
 
-A: Pipeline scripts for debugging. Place them in *[Datakit installation path]/pipeline* Directory.
+A: Pipeline scripts for debugging. Place them in *[DataKit installation path]/pipeline* Directory.
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: How to cut logs in many different formats in one Pipeline? {#if-else}
+### How to cut logs in many different formats in one Pipeline? {#if-else}
 <!-- markdownlint-enable -->
 In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, you can give priority to matching the Grok with higher frequency according to the frequency of logs, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     In log cutting, Grok matching is the most expensive part, so avoiding repeated Grok matching can greatly improve the cutting performance of Grok.
 
@@ -306,9 +306,10 @@ In daily logs, because of different services, logs will take on various forms. A
     }
     ```
 <!-- markdownlint-enable -->
+
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: How to discard field cut? {#drop-keys}
-<!-- markdownlint-enable -->
+### How to discard field cut? {#drop-keys}
+
 In some cases, all we need is a few fields in the middle of log, but it is difficult to skip the previous parts, such as:
 
 ```txt
@@ -320,9 +321,9 @@ Where we only need the value of `44` , which may be code response delay, we can 
 ```python
 grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
 ```
-<!-- markdownlint-disable MD013 -->
-### :material-chat-question: `add_pattern()` Escape Problem {#escape}
-<!-- markdownlint-enable -->
+
+### `add_pattern()` Escape Problem {#escape}
+
 When you use `add_pattern()` to add local patterns, you are prone to escape problems, such as the following pattern (used to match file paths and file names):
 
 ```txt
@@ -344,3 +345,4 @@ add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
 ```
 
 That is, the backslash needs to be escaped.
+<!-- markdownlint-enable -->

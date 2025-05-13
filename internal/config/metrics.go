@@ -26,7 +26,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "config",
 			Name:      "datakit_ulimit",
-			Help:      "Datakit ulimit",
+			Help:      "DataKit ulimit",
 		},
 		[]string{"status"},
 	)

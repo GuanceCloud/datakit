@@ -147,7 +147,7 @@ wget https://static.<<<custom_key.brand_main_domain>>>/ddtrace/dd-java-agent.jar
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     必须使用[扩展版 DDTrace](ddtrace-ext-java.md)，否则自动注入功能受限（各种 Trace 参数无法设置）。
 <!-- markdownlint-enable -->
@@ -175,7 +175,7 @@ java -jar agent-attach-java.jar \
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 找不到类 VirtualMachine？ {#NoClassDefFound}
+### 找不到类 VirtualMachine？ {#NoClassDefFound}
 <!-- markdownlint-enable -->
 
 报错信息：
@@ -196,7 +196,7 @@ Caused by: java.lang.ClassNotFoundException: com.sun.tools.attach.VirtualMachine
 
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 版本不支持？ {#UnsupportedClass}
+### 版本不支持？ {#UnsupportedClass}
 <!-- markdownlint-enable -->
 
 报错信息：

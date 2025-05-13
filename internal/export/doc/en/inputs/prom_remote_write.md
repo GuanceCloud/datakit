@@ -32,7 +32,7 @@ Turn on the Prometheus Remote Write feature and add the following configuration 
 remote_write:
  - url: "http://<datakit-ip>:9529/prom_remote_write"
 
-# If want add some tag, ( __source will not in tag, only show in Datakit expose metrics)
+# If want add some tag, ( __source will not in tag, only show in DataKit expose metrics)
 # remote_write:
 # - url: "http://<datakit-ip>:9529/prom_remote_write?host=1.2.3.4&foo=bar&__source=<your_source>" 
 ```
@@ -113,7 +113,7 @@ The standard set is based on the measurements sent by Prometheus.
 
 ## Configuring Prometheus Remote Write {#remote-write-relabel}
 
-When using Prometheus to push metrics to Datakit via remote write, an excessive number of metrics may lead to a surge in data on storage. In such cases, we can utilize Prometheus's own relabeling feature to select specific metrics.
+When using Prometheus to push metrics to DataKit via remote write, an excessive number of metrics may lead to a surge in data on storage. In such cases, we can utilize Prometheus's own relabeling feature to select specific metrics.
 
 To configure `remote_write` to another service and only send a specified list of metrics in Prometheus, we need to set up the `remote_write` section in the Prometheus configuration file (usually `prometheus.yml`) and specify the `match[]` parameter to define the metrics to be sent.
 
@@ -144,9 +144,9 @@ Finally, reload or restart the Prometheus service to apply the changes.
 
 DataKit provides a simple tool for debugging `prom.conf`. If you constantly adjust the configuration of `prom.conf`, you can achieve the goal of collecting only Prometheus metrics that meet certain name rules.
 
-Datakit supports direct debugging of the collector configuration files from the command line. Configure the `output` entry of `prom_remote_write.conf` under `conf.d/prom`, configure it as a local file path, and then `prom_remote_write.conf` writes the collected data to the file without uploading it to the center.
+DataKit supports direct debugging of the collector configuration files from the command line. Configure the `output` entry of `prom_remote_write.conf` under `conf.d/prom`, configure it as a local file path, and then `prom_remote_write.conf` writes the collected data to the file without uploading it to the center.
 
-Restart Datakit for the configuration file to take effect:
+Restart DataKit for the configuration file to take effect:
 
 ```shell
 datakit service -R

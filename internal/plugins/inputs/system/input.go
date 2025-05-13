@@ -96,18 +96,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Collect() error {
-	// clear collectCache
-	ipt.collectCache = make([]*point.Point, 0)
+	opts := point.DefaultMetricOptions()
 
-	// ts := time.Now()
+	ipt.collectCache = make([]*point.Point, 0)
+	opts = append(opts, point.WithTimestamp(ipt.alignTS))
 
 	loadAvg, err := load.Avg()
 
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
-		return err
-	}
-	numCPUs, err := cpu.Counts(true)
-	if err != nil {
 		return err
 	}
 
@@ -121,98 +117,88 @@ func (ipt *Input) Collect() error {
 	if runtime.GOOS == "linux" {
 		conntrackStat := conntrackutil.GetConntrackInfo()
 
-		conntrackM := conntrackMeasurement{
-			name: metricNameConntrack,
-			fields: map[string]interface{}{
-				"entries":             conntrackStat.Current,
-				"entries_limit":       conntrackStat.Limit,
-				"stat_found":          conntrackStat.Found,
-				"stat_invalid":        conntrackStat.Invalid,
-				"stat_ignore":         conntrackStat.Ignore,
-				"stat_insert":         conntrackStat.Insert,
-				"stat_insert_failed":  conntrackStat.InsertFailed,
-				"stat_drop":           conntrackStat.Drop,
-				"stat_early_drop":     conntrackStat.EarlyDrop,
-				"stat_search_restart": conntrackStat.SearchRestart,
-			},
-			tags: tags,
-			ts:   ipt.alignTS,
+		var kvs point.KVs
+		kvs = kvs.AddV2("entries", conntrackStat.Current, true).
+			AddV2("entries_limit", conntrackStat.Limit, true).
+			AddV2("stat_found", conntrackStat.Found, true).
+			AddV2("stat_invalid", conntrackStat.Invalid, true).
+			AddV2("stat_ignore", conntrackStat.Ignore, true).
+			AddV2("stat_insert", conntrackStat.Insert, true).
+			AddV2("stat_insert_failed", conntrackStat.InsertFailed, true).
+			AddV2("stat_drop", conntrackStat.Drop, true).
+			AddV2("stat_early_drop", conntrackStat.EarlyDrop, true).
+			AddV2("stat_search_restart", conntrackStat.SearchRestart, true)
+
+		for k, v := range tags {
+			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, conntrackM.Point())
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameConntrack, kvs, opts...))
 
 		filefdStat, err := filefdutil.GetFileFdInfo()
 		if err != nil {
 			l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
 		} else {
-			filefdM := filefdMeasurement{
-				name: metricNameFilefd,
-				fields: map[string]interface{}{
-					"allocated":    filefdStat.Allocated,
-					"maximum_mega": filefdStat.MaximumMega,
-				},
-				tags: tags,
-				ts:   ipt.alignTS,
+			var kvs point.KVs
+			kvs = kvs.AddV2("allocated", filefdStat.Allocated, true).
+				AddV2("maximum_mega", filefdStat.MaximumMega, true)
+			for k, v := range tags {
+				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCache = append(ipt.collectCache, filefdM.Point())
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameFilefd, kvs, opts...))
 		}
 	}
 
+	var kvs point.KVs
 	cpuTotal, err := cpu.Percent(0, false)
 	if err != nil {
 		l.Warnf("CPU stat error: %s, ignored", err.Error())
+	} else if len(cpuTotal) > 0 {
+		kvs = kvs.AddV2("cpu_total_usage", cpuTotal[0], true)
 	}
 
-	vm, err := mem.VirtualMemoryStat()
-	if err != nil {
+	if vm, err := mem.VirtualMemoryStat(); err != nil {
 		l.Warnf("error getting virtual memory info: %w", err)
-	}
-	if vm == nil {
-		return errors.New("get virtual memory stat fail")
+	} else {
+		if vm == nil {
+			return errors.New("get virtual memory stat fail")
+		}
+		kvs = kvs.AddV2("memory_usage", vm.UsedPercent, true)
 	}
 
-	pids, err := process.Pids()
-	if err != nil {
+	if pids, err := process.Pids(); err != nil {
 		l.Warnf("error getting Pids: %w", err)
-	}
-	processCount := len(pids)
-
-	fields := map[string]interface{}{
-		"load1_per_core":  loadAvg.Load1 / float64(numCPUs),
-		"load1":           loadAvg.Load1,
-		"load15_per_core": loadAvg.Load15 / float64(numCPUs),
-		"load15":          loadAvg.Load15,
-		"load5_per_core":  loadAvg.Load5 / float64(numCPUs),
-		"load5":           loadAvg.Load5,
-		"memory_usage":    vm.UsedPercent,
-		"n_cpus":          numCPUs,
-		"process_count":   processCount,
-	}
-	if len(cpuTotal) > 0 {
-		fields["cpu_total_usage"] = cpuTotal[0]
+	} else {
+		kvs = kvs.AddV2("process_count", len(pids), true)
 	}
 
-	sysM := systemMeasurement{
-		name:   metricNameSystem,
-		fields: fields,
-		tags:   tags,
-		ts:     ipt.alignTS,
-	}
-
-	users, err := host.Users()
+	numCPUs, err := cpu.Counts(true)
 	if err != nil {
-		l.Warnf("Users: %s, ignored", err.Error())
+		return err
 	}
-	sysM.fields["n_users"] = len(users)
+
+	kvs = kvs.AddV2("load1_per_core", loadAvg.Load1/float64(numCPUs), true).
+		AddV2("load1", loadAvg.Load1, true).
+		AddV2("load15_per_core", loadAvg.Load15/float64(numCPUs), true).
+		AddV2("load15", loadAvg.Load15, true).
+		AddV2("load5_per_core", loadAvg.Load5/float64(numCPUs), true).
+		AddV2("load5", loadAvg.Load5, true).
+		AddV2("n_cpus", numCPUs, true)
+
+	if users, err := host.Users(); err != nil {
+		l.Warnf("Users: %s, ignored", err.Error())
+	} else {
+		kvs = kvs.AddV2("n_users", len(users), true)
+	}
 
 	uptime, err := host.Uptime()
 	if err != nil {
 		l.Warnf("Uptime: %s, ignored", err.Error())
+	} else {
+		kvs = kvs.AddV2("uptime", uptime, true)
 	}
-	sysM.fields["uptime"] = uptime
-
-	ipt.collectCache = append(ipt.collectCache, sysM.Point())
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameSystem, kvs, opts...))
 
 	return err
 }

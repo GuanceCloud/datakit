@@ -3,10 +3,6 @@ nav:
   - '更新日志':
     - changelog-2025.md
     - '2021~2024': changelog.md
-
-  - 'DataKit 介绍':
-    - datakit-arch.md
-
   - 'DataKit 安装':
     - '主机安装': datakit-install.md
     - '容器安装':
@@ -47,10 +43,6 @@ nav:
       - '配置中心支持': confd.md
 
   - 'DataKit 开发手册':
-    - development.md
-    - datakit-filter.md
-    - datakit-port.md
-    - apis.md
-    - common-tags.md
+    - 'HTTP API': apis.md
     - '文档撰写':
       - mkdocs-howto.md

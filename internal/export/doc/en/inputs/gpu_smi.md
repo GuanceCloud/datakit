@@ -34,7 +34,7 @@ See  [https://www.nvidia.com/Download/index.aspx]( https://www.nvidia.com/Downlo
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    ???+ attention
+    ???+ note
 
         1. DataKit can remotely collect GPU server indicators through SSH (when remote collection is enabled, the local configuration will be invalid).
         1. The number of `remote_addrs` configured can be more than the number of `remote_users` `remote_passwords` `remote_rsa_paths`.If not enough, it will match the first value.

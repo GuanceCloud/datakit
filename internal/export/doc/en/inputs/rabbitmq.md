@@ -125,7 +125,7 @@ For all of the following data collections, the global election tags will added a
 
 ## Log Collection {#logging}
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     DataKit must be installed on the host where RabbitMQ is located to collect RabbitMQ logs.
 

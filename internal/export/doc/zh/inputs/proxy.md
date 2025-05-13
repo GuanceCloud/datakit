@@ -1,6 +1,6 @@
 ---
 title     : 'Proxy'
-summary   : '代理 Datakit 的 HTTP 请求'
+summary   : '代理 DataKit 的 HTTP 请求'
 tags:
   - 'PROXY'
 __int_icon: 'icon/proxy'
@@ -16,7 +16,7 @@ monitor   :
 
 ---
 
-代理 Datakit 的请求，将其数据从内网发送到公网。
+代理 DataKit 的请求，将其数据从内网发送到公网。
 
 <!-- TODO: 此处缺一个代理的网络流量拓扑图 -->
 
@@ -43,7 +43,7 @@ monitor   :
 
 ---
 
-???+ attention "安全性有关的配置"
+???+ warning "安全性有关的配置"
 
     某些情况下，可能需要将该代理暴露在公网，此时我们需要做一些必要的安全措施，避免该代理被攻击者利用。
 
@@ -66,21 +66,21 @@ monitor   :
 
 ## 网络拓扑结构 {#network-topo}
 
-如果内网 Datakit 将自己的 Proxy 指向某个已开启 Proxy 采集器的 Datakit：
+如果内网 DataKit 将自己的 Proxy 指向某个已开启 Proxy 采集器的 DataKit：
 
 ```toml
 [dataway]
   http_proxy = "http://some-datakit-with-proxy-ip:port"
 ```
 
-则内网各个 Datakit 的请求流量将通过 Proxy 代理出来（此处假定 Proxy 绑定端口为 9530）：
+则内网各个 DataKit 的请求流量将通过 Proxy 代理出来（此处假定 Proxy 绑定端口为 9530）：
 
 ``` mermaid
 flowchart LR;
-dk_A(Datakit A);
-dk_B(Datakit B);
-dk_C(Datakit C);
-dk_X_proxy("Datakit X's Proxy(0.0.0.0:9530)");
+dk_A(DataKit A);
+dk_B(DataKit B);
+dk_C(DataKit C);
+dk_X_proxy("DataKit X's Proxy(0.0.0.0:9530)");
 dw(Dataway/Openway);
 
 subgraph "内网"
@@ -98,24 +98,24 @@ end
 
 开启 MITM 模式主要是便于收集 Proxy 更详细的指标信息，其原理是：
 
-- 内网 Datakit 连接 Proxy 时，需信任 Proxy 采集器提供的 HTTPS 证书（该证书肯定是一个非安全的证书，其证书源[在此](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}）
-- 一旦 Datakit 信任了该 HTTPS 证书，则 Proxy 采集器就能嗅探 HTTPS 包内容，继而可以记录更多请求有关的指标
+- 内网 DataKit 连接 Proxy 时，需信任 Proxy 采集器提供的 HTTPS 证书（该证书肯定是一个非安全的证书，其证书源[在此](https://github.com/elazarl/goproxy/blob/master/certs.go){:target="_blank"}）
+- 一旦 DataKit 信任了该 HTTPS 证书，则 Proxy 采集器就能嗅探 HTTPS 包内容，继而可以记录更多请求有关的指标
 - Proxy 采集器记录完指标信息后，再将请求转发给 Dataway（用<<<custom_key.brand_name>>>安全的 HTTPS 证书）
 
-此处 Datakit 和 Proxy 之间虽然用了不安全的证书，但仅限于内网流量。Proxy 将流量转发到公网 Dataway 的时候，仍然使用的是安全的 HTTPS 证书。
+此处 DataKit 和 Proxy 之间虽然用了不安全的证书，但仅限于内网流量。Proxy 将流量转发到公网 Dataway 的时候，仍然使用的是安全的 HTTPS 证书。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ warning
 
     开启 MITM 模式后，会大幅度降低 Proxy 的性能，参见下面的性能测试结果。
 <!-- markdownlint-enable -->
 
 ## 指标 {#metric}
 
-参见 [Datakit 自身指标](../datakit/datakit-metrics.md)中，搜索 `proxy` 即可获取相关的指标。
+参见 [DataKit 自身指标](../datakit/datakit-metrics.md)中，搜索 `proxy` 即可获取相关的指标。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     如果不开启 mitm 功能，则不会有 `datakit_input_proxy_api_total` 和 `datakit_input_proxy_api_latency_seconds` 两个指标。
 <!-- markdownlint-enable -->
@@ -129,7 +129,7 @@ end
 - OS: macOS Ventura 13
 - 服务端：一个空跑的 HTTPS 服务，它接收 `/v1/write/` 的 POST 请求，直接返回 200
 - 客户端：POST 一个 170KB 左右的文本文件（*metric.data*）给服务端
-- 代理：本机开启的一个 Datakit Proxy 采集器（`http://localhost:19530`）
+- 代理：本机开启的一个 DataKit Proxy 采集器（`http://localhost:19530`）
 - 请求量：总共 16 客户端，每个客户端发送 100 个请求
 
 命令如下：

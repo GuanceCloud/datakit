@@ -34,13 +34,13 @@ monitor   :
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    ???+ attention
+    ???+ note
     
-        1. Datakit 可以通过 SSH 远程采集 GPU 服务器的指标（开启远程采集后，本地采集配置将失效）。
+        1. DataKit 可以通过 SSH 远程采集 GPU 服务器的指标（开启远程采集后，本地采集配置将失效）。
         1. `remote_addrs` 配置的个数可以多于 `remote_users` `remote_passwords` `remote_rsa_paths` 个数，不够的匹配排位第一的数值。
         1. 可以通过 `remote_addrs`+`remote_users`+`remote_passwords` 采集。
         1. 也可以通过 `remote_addrs`+`remote_users`+`remote_rsa_paths` 采集。（配置 RSA 公钥后，`remote_passwords` 将失效）。
-        1. 开启远程采集后，必须开启选举。（防止多个 Datakit 上传重复数据）。
+        1. 开启远程采集后，必须开启选举。（防止多个 DataKit 上传重复数据）。
         1. 出于安全考虑，可以变更 SSH 端口号，也可以单独为 GPU 远程采集创建专用的账户。 
     
     配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。

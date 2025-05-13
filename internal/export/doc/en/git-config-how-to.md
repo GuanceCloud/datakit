@@ -85,7 +85,7 @@ If the password contains special characters, refer to [here](datakit-input-conf.
 
 ### Restart DataKit {#restart}
 
-After the configuration is complete, [restart Datakit](datakit-service-how-to.md#manage-service). After a short wait, you can check the status of the collectors through [Datakit Monitor](datakit-monitor.md).
+After the configuration is complete, [restart DataKit](datakit-service-how-to.md#manage-service). After a short wait, you can check the status of the collectors through [DataKit Monitor](datakit-monitor.md).
 
 ## Git Usage in Kubernetes {#k8s}
 
@@ -94,7 +94,7 @@ Refer to [here](datakit-daemonset-deploy.md#env-git).
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Error: authentication required {#auth-required}
+### Error: authentication required {#auth-required}
 <!-- markdownlint-enable -->
 
 This error may occur in the following situations.
@@ -119,7 +119,7 @@ http://username:password@github.com/path/to/repository.git
 That is, `https` was changed to `http`, which will also result in this error. Change `http` to `https` here to resolve it.
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Repository Directory Constraints {#repo-dirs}
+### Repository Directory Constraints {#repo-dirs}
 <!-- markdownlint-enable -->
 
 The Git repository must be stored with the following directory structure for various configurations:
@@ -153,7 +153,7 @@ DataKit root directory
 ```
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Git Configuration Loading Mechanism {#repo-apply-rules}
+### Git Configuration Loading Mechanism {#repo-apply-rules}
 <!-- markdownlint-enable -->
 
 After Git synchronization is enabled, the configuration (*.conf/pipeline*) priority is defined as follows:

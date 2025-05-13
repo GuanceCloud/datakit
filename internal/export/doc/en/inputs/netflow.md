@@ -23,7 +23,7 @@ NetFlow Collector can be used to visualize and monitor Netflow-enabled devices a
 
 NetFlow is the most widely used traffic data statistics standard, developed by Cisco to monitor and record all traffic downstream and upstream flow. Netflow analyzes the traffic data it collects to provide visibility into flows and traffic volumes, and to track where traffic is coming from, where it is going, and what traffic is being generated at any given time. The logged information can be used for usage monitoring, anomaly detection, and a variety of other network management tasks.
 
-The following protocols are currently supported by Datakit:
+The following protocols are currently supported by DataKit:
 
 - netflow5
 - netflow9

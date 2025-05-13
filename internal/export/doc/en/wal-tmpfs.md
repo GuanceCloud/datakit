@@ -42,7 +42,7 @@ In some cases, if the disk performance is insufficient, we can use a portion of 
 
         ```shell
         # Here we change the directory; by default, in datakit.yaml, the Node's /root/datakit_cache
-        # is already mounted to the /usr/local/datakit/cache directory in the Datakit container
+        # is already mounted to the /usr/local/datakit/cache directory in the DataKit container
         mkdir -p /root/datakit_cache/ramdisk
         ```
     
@@ -52,7 +52,7 @@ In some cases, if the disk performance is insufficient, we can use a portion of 
         mount -t tmpfs -o size=1G tmpfs /root/datakit_cache/ramdisk
         ```
     
-    1. Add the following environment variable in *datakit.yaml*, then restart the Datakit container:
+    1. Add the following environment variable in *datakit.yaml*, then restart the DataKit container:
 
         ```yaml
         - name: ENV_DATAWAY_WAL_PATH
@@ -65,12 +65,12 @@ In some cases, if the disk performance is insufficient, we can use a portion of 
 <!-- markdownlint-disable MD046 -->
 ???+ danger "Adjust tmpfs size as needed"
 
-    By default, the disk space for each category in WAL is set to 2 GiB, which is generally sufficient. In a tmpfs scenario, it may not be practical to allocate such a large amount of memory for each category. Here, only 1 GiB (i.e., all data categories share 1 GiB of tmpfs space) of memory is used to meet the disk requirements of WAL. This may be enough under conditions where the data volume is not large and the network (between Datakit and Dataway) is ok.
+    By default, the disk space for each category in WAL is set to 2 GiB, which is generally sufficient. In a tmpfs scenario, it may not be practical to allocate such a large amount of memory for each category. Here, only 1 GiB (i.e., all data categories share 1 GiB of tmpfs space) of memory is used to meet the disk requirements of WAL. This may be enough under conditions where the data volume is not large and the network (between DataKit and Dataway) is ok.
 
-    If the host (or Kubernetes Node) restarts, the data in WAL will be lost, but a Datakit restart will not affect this.
+    If the host (or Kubernetes Node) restarts, the data in WAL will be lost, but a DataKit restart will not affect this.
 <!-- markdownlint-enable -->
 
-After setting this up, you will see a *ramdisk* directory in the cache directory. Once Datakit starts, if WAL is generated, you will see various data category disk files in the *ramdisk* directory:
+After setting this up, you will see a *ramdisk* directory in the cache directory. Once DataKit starts, if WAL is generated, you will see various data category disk files in the *ramdisk* directory:
 
 ```shell
 # Enter /usr/local/datakit/cache or /mnt/wal-ramdisk/

@@ -25,7 +25,7 @@ The socket collector is used to collect UDP/TCP port information.
 UDP metrics require the operating system to have `nc` programs.
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ info
 
     The socket collector are suitable for collecting local network TCP/UDP service. For public network, [Dialtesting](dialtest.md) is recommended. If the URLs point to localhost, please turn off the election flag(`election: false`).
 <!-- markdownlint-enable -->
@@ -47,7 +47,7 @@ UDP metrics require the operating system to have `nc` programs.
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-    In Kubernetes, the Datakit domain is `datakit-service.datakit.svc`, and the log sender can specify the Datakit domain as the receiver. Typically, only the UDP protocol is recommended for using the domain name, as the TCP protocol may encounter issues with missing context in multiline data.
+    In Kubernetes, the DataKit domain is `datakit-service.datakit.svc`, and the log sender can specify the DataKit domain as the receiver. Typically, only the UDP protocol is recommended for using the domain name, as the TCP protocol may encounter issues with missing context in multiline data.
 <!-- markdownlint-enable -->
 
 ## Metric {#metric}

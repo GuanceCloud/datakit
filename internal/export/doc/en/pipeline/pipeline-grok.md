@@ -93,7 +93,7 @@ add_pattern("time", "(?:[^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second
 grok(_, "%{time}")
 ```
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - If a pattern with the same name occurs, the local pattern takes precedence (that is, the local pattern overrides the global pattern).
     - In the Pipeline script, [add_pattern()](#fn-add-pattern) needs to be called before the [grok()](#fn-grok) function, otherwise the first data fetch will fail.

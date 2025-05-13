@@ -20,7 +20,7 @@ monitor    :
 Cassandra metrics can be collected by using [DDTrace](ddtrace.md).
 The flow of the collected data is as follows: Cassandra -> DDTrace -> DataKit(StatsD).
 
-You can see that Datakit has integrated the [StatsD](https://github.com/statsd/statsd){:target="_blank"} server, DDTrace collects Cassandra metric data and reports it to Datakit using StatsD protocol.
+You can see that DataKit has integrated the [StatsD](https://github.com/statsd/statsd){:target="_blank"} server, DDTrace collects Cassandra metric data and reports it to DataKit using StatsD protocol.
 
 ## Configuration {#config}
 
@@ -37,11 +37,11 @@ You can see that Datakit has integrated the [StatsD](https://github.com/statsd/s
 
 - Download `dd-java-agent.jar`, see [here](ddtrace.md){:target="_blank"};
 
-- Datakit configuration:
+- DataKit configuration:
 
 See the configuration of [StatsD](statsd.md){:target="_blank"}.
 
-Restart Datakit to make configuration take effect.
+Restart DataKit to make configuration take effect.
 
 - Cassandra configuration:
 
@@ -59,11 +59,11 @@ The parameters are described below:
 
 - `javaagent`: Fill in the full path to `dd-java-agent.jar`;
 - `Ddd.jmxfetch.enabled`: Fill in `true`, which means the DDTrace collection function is enabled;
-- `Ddd.jmxfetch.statsd.host`: Fill in the network address that Datakit listens to. No port number is included;
-- `Ddd.jmxfetch.statsd.port`: Fill in the port number that Datakit listens to. Usually `11002`, as determined by the Datakit side configuration;
+- `Ddd.jmxfetch.statsd.host`: Fill in the network address that DataKit listens to. No port number is included;
+- `Ddd.jmxfetch.statsd.port`: Fill in the port number that DataKit listens to. Usually `11002`, as determined by the DataKit side configuration;
 - `Ddd.jmxfetch.cassandra.enabled`: Fill in `true`, which means the Cassandra collect function of DDTrace is enabled. When enabled, the metrics set named `cassandra` will showing up;
 
-Restart Datakit to make configuration take effect.
+Restart DataKit to make configuration take effect.
 
 ### Collector Configuration {#input-config}
 

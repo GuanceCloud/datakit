@@ -58,14 +58,14 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
   ```
 
   参见[官方配置文档](https://docs.couchdb.org/en/stable/config/misc.html#configuration-of-prometheus-endpoint){:target="_blank"}
-  
+
 - 重启 CouchDB 服务
 
 <!-- markdownlint-disable MD046 -->
-???+ tip
+???+ info
 
-    - 采集数据需要用到 `5984` `17986` 几个端口，远程采集的时候，被采集服务器这些端口需要打开。
-    - bind_address = 127.0.0.1 如果是本地采集，就不需要修改。
+    - 采集数据需要用到 `5984/17986` 几个端口，远程采集的时候，被采集服务器这些端口需要打开。
+    - `bind_address = 127.0.0.1` 如果是本地采集，就不需要修改。
 <!-- markdownlint-enable -->
 
 ### 采集器配置 {#input-config}

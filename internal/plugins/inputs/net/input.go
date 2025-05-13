@@ -169,18 +169,18 @@ func (ipt *Input) collect(ptTS int64) error {
 
 		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
 	}
-	// Get system wide stats for network protocols tcp and udp
-	// Only supports linux
+
+	// Get system wide stats for network protocols TCP and UDP(Only supports linux)
 	if !ipt.IgnoreProtocolStats {
-		netprotos, _ := ipt.netProto([]string{"tcp", "udp"}) // tcp udp only
+		netprotos, _ := ipt.netProto([]string{"tcp", "udp"}) // TCP/UDP only
 		fields := make(map[string]interface{})
 		for _, proto := range netprotos {
 			for stat, value := range proto.Stats {
-				name := fmt.Sprintf("%s_%s", strings.ToLower(proto.Protocol),
-					strings.ToLower(stat))
+				name := fmt.Sprintf("%s_%s", strings.ToLower(proto.Protocol), strings.ToLower(stat))
 				fields[name] = value
 			}
 		}
+
 		for _, proto := range ipt.lastProtoStats {
 			pname := strings.ToLower(proto.Protocol)
 			for stat, value := range proto.Stats {

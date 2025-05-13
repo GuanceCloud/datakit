@@ -154,7 +154,7 @@ Configuration items:
     - Example: `60s` -->
 
 - `trace_server`
-    - Description: The address of DataKit ELinker/Datakit to enable the `ebpftrace` collector
+    - Description: The address of DataKit ELinker/DataKit to enable the `ebpftrace` collector
     - Environment variable: `ENV_INPUT_EBPF_TRACE_SERVER`
     - Example: `<ip>:<port>`
 

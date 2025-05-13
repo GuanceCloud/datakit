@@ -68,9 +68,12 @@ datakit
 
 Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法进行改写。
 
-> `DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
-
 <!-- markdownlint-disable MD046 -->
+???+ info
+
+    `DataKitFramework` 类的源代码文件路径是 `datakit_framework.py` 在 `datakit/python.d/core/datakit_framework.py`。
+---
+
 ???- note "Python 脚本源码参考示例"
 
     ```python
@@ -212,31 +215,31 @@ Python SDK API 定义(详情参见 `datakit_framework.py`)：
 
 通用 event 字段说明：
 
-| 字段名        | 类型                        | 是否必须 | 说明                                                                   |
-| ----          | ----                        | ----     | ----                                                                   |
-| df_date_range | Integer                     | 必须     | 时间范围。单位 s                                                       |
-| df_source     | String                      | 必须     | 数据来源。取值 `system` , `monitor` , `user`                           |
-| df_status     | Enum                        | 必须     | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
-| df_event_id   | String                      | 必须     | event ID                                                               |
-| df_title      | String                      | 必须     | 标题                                                                   |
-| df_message    | String                      |          | 详细描述                                                               |
-| {其他字段}    | `kwargs`, 例如 `k1=5, k2=6` |          | 其他额外字段                                                           |
+ | 字段名          | 类型                        | 是否必须 | 说明                                                                   |
+ | ----            | ----                        | ----     | ----                                                                   |
+ | `df_date_range` | Integer                     | Y        | 时间范围。单位 s                                                       |
+ | `df_source`     | String                      | Y        | 数据来源。取值 `system` , `monitor` , `user`                           |
+ | `df_status`     | Enum                        | Y        | 状态。取值 `ok` , `info` , `warning` , `error` , `critical` , `nodata` |
+ | `df_event_id`   | String                      | Y        | event ID                                                               |
+ | `df_title`      | String                      | Y        | 标题                                                                   |
+ | `df_message`    | String                      | N        | 详细描述                                                               |
+ | {其他字段}      | `kwargs`, 例如 `k1=5, k2=6` |          | 其他额外字段                                                           |
 
 - 当 `df_source = monitor` 时：
 
 表示由<<<custom_key.brand_name>>>检测功能产生的事件，额外存在以下字段：
 
-| 额外字段名        | 类型                | 是否必须 | 说明                                |
-| ----              | ----                | ----     | ----                                |
-| df_dimension_tags | String(JSON format) | 必须     | 检测纬度标签，如 `{"host":"web01"}` |
+| 额外字段名          | 类型                | 是否必须 | 说明                                |
+| ----                | ----                | ----     | ----                                |
+| `df_dimension_tags` | String(JSON format) | 必须     | 检测纬度标签，如 `{"host":"web01"}` |
 
 - 当 `df_source = user` 时：
 
 表示由用户直接创建的事件，额外存在以下字段：
 
-| 额外字段名 | 类型   | 是否必须 | 说明    |
-| ----       | ----   | ----     | ----    |
-| df_user_id | String | 必须     | 用户 ID |
+| 额外字段名   | 类型   | 是否必须 | 说明    |
+| ----         | ----   | ----     | ----    |
+| `df_user_id` | String | 必须     | 用户 ID |
 
 - 当 `df_source = system` 时：
 
@@ -395,7 +398,7 @@ sudo datakit service -R
 
 ## FAQ {#faq}
 
-### :material-chat-question: 如何排查错误 {#log}
+### 如何排查错误 {#log}
 
 如果结果不及预期，可以查看以下日志文件：
 

@@ -77,10 +77,10 @@ monitor:
     
     - ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON：用来指定 source 到多行配置的映射，如果某个日志没有配置 `multiline_match`，就会根据它的 source 来此处查找和使用对应的 `multiline_match`。因为 `multiline_match` 值是正则表达式较为复杂，所以 value 格式是 JSON 字符串，可以使用 [json.cn](https://www.json.cn/){:target="_blank"} 辅助编写并压缩成一行。
 
-???+ attention
+???+ note
 
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 60 秒，不支持配置
-    - 采集到的日志，单行（包括经过 `multiline_match` 处理后）最大长度为 32MB，超出部分会被截断且丢弃
+    - 采集到的日志，单行（包括经过 `multiline_match` 处理后）最大长度默认为 800KB 左右，超出部分会被分割成多条日志
 
 ### Docker 和 Containerd sock 文件配置 {#sock-config}
 
@@ -92,7 +92,7 @@ monitor:
 
 === "Kubernetes"
 
-    更改 *datakit.yaml* 的 volumes `containerd-socket`，将新路径 mount 到 Datakit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS`：
+    更改 *datakit.yaml* 的 volumes `containerd-socket`，将新路径 mount 到 DataKit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS`：
 
     ``` yaml hl_lines="3 4 7 14"
     # 添加 env
@@ -236,7 +236,7 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 ### 根据 Pod Namespace 过滤指标采集 {#config-metric-on-pod-namespace}
 
-在启用 Kubernetes Pod 指标采集（`enable_pod_metric = true`）后，Datakit 将采集集群中所有 Pod 的指标数据。由于这可能会生成大量数据，因此可以通过 Pod 的 `namespace` 字段来过滤指标采集，从而仅采集特定命名空间中的 Pod 指标。
+在启用 Kubernetes Pod 指标采集（`enable_pod_metric = true`）后，DataKit 将采集集群中所有 Pod 的指标数据。由于这可能会生成大量数据，因此可以通过 Pod 的 `namespace` 字段来过滤指标采集，从而仅采集特定命名空间中的 Pod 指标。
 
 通过配置 `pod_include_metric` 和 `pod_exclude_metric`，可以控制哪些命名空间的 Pod 会被包含或排除在指标采集之外。
 
@@ -282,10 +282,10 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
             value: namespace:kube-system  # 指定需要采集的命名空间
     ```
     
-    通过这种方式，可以灵活地控制 Datakit 采集的 Pod 指标范围，避免采集不需要的数据，从而优化系统性能和资源利用率。
+    通过这种方式，可以灵活地控制 DataKit 采集的 Pod 指标范围，避免采集不需要的数据，从而优化系统性能和资源利用率。
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
+### NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
 <!-- markdownlint-enable -->
 
 `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
@@ -301,13 +301,13 @@ rules:
   verbs: ["get", "list", "watch"]
 ```
 
-此外，Datakit Pod 还需要开启 `hostNetwork: true` 配置项。
+此外，DataKit Pod 还需要开启 `hostNetwork: true` 配置项。
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 采集 PersistentVolumes 和 PersistentVolumeClaims 需要新的权限 {#rbac-pv-pvc}
+### 采集 PersistentVolumes 和 PersistentVolumeClaims 需要新的权限 {#rbac-pv-pvc}
 <!-- markdownlint-enable -->
 
-Datakit 在 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) 版本支持采集 Kubernetes PersistentVolume 和 PersistentVolumeClaim 的对象数据，采集这两种资源需要新的 RBAC 权限，详细见下：
+DataKit 在 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) 版本支持采集 Kubernetes PersistentVolume 和 PersistentVolumeClaim 的对象数据，采集这两种资源需要新的 RBAC 权限，详细见下：
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -321,10 +321,10 @@ rules:
 ```
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
+### Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
 <!-- markdownlint-enable -->
 
-Datakit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存储到对象数据的 `yaml` 字段中。如果该 yaml 中包含敏感数据（例如密码），Datakit 暂不支持手动配置屏蔽敏感字段，推荐使用 Kubernetes 官方的做法，即使用 ConfigMap 或者 Secret 来隐藏敏感字段。
+DataKit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存储到对象数据的 `yaml` 字段中。如果该 yaml 中包含敏感数据（例如密码），DataKit 暂不支持手动配置屏蔽敏感字段，推荐使用 Kubernetes 官方的做法，即使用 ConfigMap 或者 Secret 来隐藏敏感字段。
 
 例如，现在需要在 env 中添加一份密码，正常情况下是这样：
 

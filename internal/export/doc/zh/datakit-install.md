@@ -10,7 +10,7 @@
 
 ## 获取安装命令 {#get-install}
 
-登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。
+登陆工作空间，点击左侧「集成」选择顶部「DataKit」，即可看到各种平台的安装命令。
 
 > 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
 
@@ -74,7 +74,7 @@
 | [Net（`net`）](../integrations/net.md)                            | 采集主机网络流量情况                           |
 | [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表      |
 | [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| [Datakit（`dk`）](../integrations/dk.md)                          | 采集 Datakit 自身运行指标收集                  |
+| [DataKit（`dk`）](../integrations/dk.md)                          | 采集 DataKit 自身运行指标收集                  |
 | [用户访问监测 (`rum`)](../integrations/rum.md)                    | 用于收集用户访问监测数据                       |
 | [网络拨测 (`dialtesting`)](../integrations/dialtesting.md)        | 采集网络拨测数据                               |
 | [Prom 采集 (`prom`)](../integrations/prom.md)                     | 采集 Prometheus Exporters 暴露出来的指标数据   |
@@ -156,7 +156,7 @@ NAME1="value1" NAME2="value2"
 安装脚本支持的环境变量如下（全平台支持）。
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
 <!-- markdownlint-enable -->
@@ -167,8 +167,8 @@ NAME1="value1" NAME2="value2"
 - `DK_GLOBAL_TAGS`：已弃用，改用 DK_GLOBAL_HOST_TAGS
 - `DK_GLOBAL_HOST_TAGS`：支持安装阶段填写全局主机 tag，格式范例：`host=__datakit_hostname,host_ip=__datakit_ip`（多个 tag 之间以英文逗号分隔）
 - `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
-- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(目前支持如下几类云主机 `aliyun/aws/tencent/hwcloud/azure`)。**该功能已弃用**，Datakit 已经可以自动识别云主机类型。
-- `DK_USER_NAME`：Datakit 服务运行时的用户名。默认为 `root`。更详情的说明见下面的 “注意事项”。
+- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(目前支持如下几类云主机 `aliyun/aws/tencent/hwcloud/azure`)。**该功能已弃用**，DataKit 已经可以自动识别云主机类型。
+- `DK_USER_NAME`：DataKit 服务运行时的用户名。默认为 `root`。更详情的说明见下面的 “注意事项”。
 - `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
 - `DK_LITE`：安装精简版 DataKit 时，可设置该变量为 `1`。([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
@@ -183,11 +183,11 @@ NAME1="value1" NAME2="value2"
     bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
-    另外，如果之前有安装过 Datakit，必须将之前的默认采集器配置都删除掉，因为 Datakit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
+    另外，如果之前有安装过 DataKit，必须将之前的默认采集器配置都删除掉，因为 DataKit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
 
-???+ attention "注意事项"
+???+ note "注意事项"
 
-    由于权限问题，如果通过 `DK_USER_NAME` 修改 Datakit 服务运行时的用户名为非 `root`，那么以下采集器将不可使用：
+    由于权限问题，如果通过 `DK_USER_NAME` 修改 DataKit 服务运行时的用户名为非 `root`，那么以下采集器将不可使用：
 
     - [eBPF](../integrations/ebpf.md){:target="_blank"}
 
@@ -245,7 +245,7 @@ NAME1="value1" NAME2="value2"
             ```
 
         ```sh
-        # 安装 Datakit
+        # 安装 DataKit
         DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
         ```
 
@@ -274,9 +274,9 @@ NAME1="value1" NAME2="value2"
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
-- `DK_UPGRADE_IP_WHITELIST`: 从 Datakit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 Datakit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
+- `DK_UPGRADE_IP_WHITELIST`: 从 DataKit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 DataKit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 - `DK_UPGRADE_LISTEN`: 指定升级服务绑定的 HTTP 地址（默认 `0.0.0.0:9542`）[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
-- `DK_HTTP_PUBLIC_APIS`: 设置 Datakit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
+- `DK_HTTP_PUBLIC_APIS`: 设置 DataKit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 
 ### DCA 相关 {#env-dca}
 
@@ -417,7 +417,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
     - Java 8 及以上版本
     - Python 3.7 及以上版本
 
-在 Kubernetes 中，可以通过 [Datakit Operator 来注入 APM](datakit-operator.md#datakit-operator-inject-lib)。
+在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](datakit-operator.md#datakit-operator-inject-lib)。
 
 ### 其它安装选项 {#env-others}
 
@@ -426,13 +426,13 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 | `DK_INSTALL_ONLY`                | `on`                        | 仅安装，不运行                                                                                                                   |
 | `DK_HOSTNAME`                    | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                                     |
 | `DK_UPGRADE`                     | `1`                         | 升级到最新版本                                                   |
-| `DK_UPGRADE_MANAGER`             | `on`                        | 升级 Datakit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
+| `DK_UPGRADE_MANAGER`             | `on`                        | 升级 DataKit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                             |
 | `DK_PROXY_TYPE`                  | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |
 | `DK_NGINX_IP`                    | -                           | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者  |
 | `DK_INSTALL_LOG`                 | -                           | 设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端                                   |
-| `HTTPS_PROXY`                    | `IP:Port`                   | 通过 Datakit 代理安装                                                                                                            |
-| `DK_INSTALL_RUM_SYMBOL_TOOLS`    | `on`                        | 是否安装 RUM source map 工具集，从 Datakit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                               |
+| `HTTPS_PROXY`                    | `IP:Port`                   | 通过 DataKit 代理安装                                                                                                            |
+| `DK_INSTALL_RUM_SYMBOL_TOOLS`    | `on`                        | 是否安装 RUM source map 工具集，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持                                               |
 | `DK_VERBOSE`                     | `on`                        | 打开安装过程中的 verbose 选项（仅 Linux/Mac 支持），将输出更多调试信息[:octicons-tag-24: Version-1.19.0](changelog.md#cl-1.19.0) |
 | `DK_CRYPTO_AES_KEY`              | `0123456789abcdfg`          | 使用加密后的密码解密秘钥，用于采集器中明文密码的保护 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)                  |
 | `DK_CRYPTO_AES_KEY_FILE`         | `/usr/local/datakit/enc4dk` | 秘钥的另一种配置方式，优先于上一种。将秘钥放到该文件中，并将配置文件路径通过环境变量方式配置即可。                               |
@@ -440,7 +440,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: 如何应付不友好的主机名 {#bad-hostname}
+### 如何应付不友好的主机名 {#bad-hostname}
 <!-- markdownlint-enable -->
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
@@ -453,13 +453,13 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Mac 安装问题 {#mac-failed}
+### Mac 安装问题 {#mac-failed}
 <!-- markdownlint-enable -->
 
 Mac 上安装时，如果安装/升级过程中出现
@@ -481,10 +481,10 @@ sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 ```
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Datakit 是否有文件以及数据的高危操作？ {#danger-ops}
+### DataKit 是否有文件以及数据的高危操作？ {#danger-ops}
 <!-- markdownlint-enable -->
 
-Datakit 在运行过程中，根据采集配置不同，会读取很多系统信息，比如进程列表、软硬件信息（比如操作系统信息、CPU、内存、磁盘、网卡等）。但它不会主动执行删除、修改其自身之外的其它数据。关于文件读写，分成两个部分，一个是和数据采集有关的读文件/端口操作，一个是 Datakit 自身运行过程中一些必要的文件读写操作。
+DataKit 在运行过程中，根据采集配置不同，会读取很多系统信息，比如进程列表、软硬件信息（比如操作系统信息、CPU、内存、磁盘、网卡等）。但它不会主动执行删除、修改其自身之外的其它数据。关于文件读写，分成两个部分，一个是和数据采集有关的读文件/端口操作，一个是 DataKit 自身运行过程中一些必要的文件读写操作。
 
 采集需要读取的主机文件：
 
@@ -492,7 +492,7 @@ Datakit 在运行过程中，根据采集配置不同，会读取很多系统信
 
 - 如果配置了相关的日志采集，根据采集的配置，会扫描并且读取符合配置的日志（比如 syslog，用户应用日志等）
 
-- 端口占用：Datakit 为了对接一些其它系统，会单独开启一些端口服务来接收外部数据。[这些端口](datakit-port.md)根据采集器不同，按需开启
+- 端口占用：DataKit 为了对接一些其它系统，会单独开启一些端口服务来接收外部数据。[这些端口](datakit-port.md)根据采集器不同，按需开启
 
 - eBPF 采集：eBPF 由于其特殊性，需要更多 Linux 内核以及进程的二进制信息，会有如下一些动作：
 
@@ -500,7 +500,7 @@ Datakit 在运行过程中，根据采集配置不同，会读取很多系统信
     - 读写内核 DebugFS 挂在点下的文件或 PMU（Performance Monitoring Unit）以放置 kprobe/uprobe/tracepoint eBPF 探针
     - uprobe 探针会修改用户进程的 CPU 指令，以读取相关数据
 
-除了采集之外，Datakit 自身会有如下文件读写操作：
+除了采集之外，DataKit 自身会有如下文件读写操作：
 
 - 自身日志文件
 
@@ -513,18 +513,18 @@ Linux 安装时位于 */var/log/datakit/* 目录下；Windows 位于 *C:\Program
 部分数据采集需要用到磁盘缓存功能（需手动开启），这部分缓存会在生成和消费过程中有文件增删。磁盘缓存也有最大 capacity 设置，数据满了之后，会自动执行 FIFO 删除操作，避免写满磁盘。
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Datakit 如何控制自身资源消耗？ {#resource-limit}
+### DataKit 如何控制自身资源消耗？ {#resource-limit}
 <!-- markdownlint-enable -->
 
-可以通过 cgroup 等机制来限制 Datakit 自身资源使用，参见[这里](datakit-conf.md#resource-limit)。如果 Datakit 部署在 Kubernetes 中，参见[这里](datakit-daemonset-deploy.md#requests-limits)。
+可以通过 cgroup 等机制来限制 DataKit 自身资源使用，参见[这里](datakit-conf.md#resource-limit)。如果 DataKit 部署在 Kubernetes 中，参见[这里](datakit-daemonset-deploy.md#requests-limits)。
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Datakit 自身可观测性？ {#self-obs}
+### DataKit 自身可观测性？ {#self-obs}
 <!-- markdownlint-enable -->
 
-Datakit 在运行过程中，暴露了很多[自身的指标](datakit-metrics.md)。默认情况下，Datakit 通过[内置采集器](../integrations/dk.md)会采集这些指标并上报到用户的工作空间。
+DataKit 在运行过程中，暴露了很多[自身的指标](datakit-metrics.md)。默认情况下，DataKit 通过[内置采集器](../integrations/dk.md)会采集这些指标并上报到用户的工作空间。
 
-除此之外，Datakit 自身还带有一个 [monitor 命令行](datakit-monitor.md)工具，通过该工具，能查看当前的运行状态以及采集、上报情况。
+除此之外，DataKit 自身还带有一个 [monitor 命令行](datakit-monitor.md)工具，通过该工具，能查看当前的运行状态以及采集、上报情况。
 
 ## 扩展阅读 {#more-reading}
 

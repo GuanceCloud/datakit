@@ -44,7 +44,7 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 
 <!-- markdownlint-enable -->
 
-完成配置后重启 `Datakit` 和 `IIS`
+完成配置后重启 `DataKit` 和 `IIS`
 
 ```powershell
 PS> datakit service -R
@@ -95,7 +95,7 @@ PS> iisreset
 <!-- Copyright (c) 2008-2017 New Relic, Inc.  All rights reserved. -->
 <!-- For more information see: https://newrelic.com/docs/dotnet/dotnet-agent-configuration -->
 <configuration xmlns="urn:newrelic-config" agentEnabled="true" agentRunID="{agent id (可自己制定也可不填)}">
-  <service licenseKey="{真实的 license key}" ssl="true" host="{www.your-domain-name.com}" port="{Datakit 端口号}" />
+  <service licenseKey="{真实的 license key}" ssl="true" host="{www.your-domain-name.com}" port="{DataKit 端口号}" />
   <application>
     <name>{被检测的 APP 名字}</name>
   </application>

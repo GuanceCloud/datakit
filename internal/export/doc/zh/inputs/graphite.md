@@ -29,7 +29,7 @@ Graphite 采集器可以接收以 Graphite plaintext protocol 格式的指标数
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    配置好后，[重启 Datakit](../datakit/datakit-service-how-to.md#manage-service) 即可。
+    配置好后，[重启 DataKit](../datakit/datakit-service-how-to.md#manage-service) 即可。
 
 === "Kubernetes"
 

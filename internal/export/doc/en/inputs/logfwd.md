@@ -95,8 +95,8 @@ Supported environment variables:
 
 | Environment Variable Name        | Configuration Item Meaning                                                                                                  |
 | :---                             | :---                                                                                                                        |
-| `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                                                                |
-| `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                                                                |
+| `LOGFWD_DATAKIT_HOST`            | DataKit 地址                                                                                                                |
+| `LOGFWD_DATAKIT_PORT`            | DataKit Port                                                                                                                |
 | `LOGFWD_GLOBAL_SOURCE`           | Configure the global source with the highest priority                                                                       |
 | `LOGFWD_GLOBAL_SERVICE`          | Configure the global service with the highest priority                                                                      |
 | `LOGFWD_POD_NAME`                | Specifying pod name adds `pod_name` to tags                                                                                 |

@@ -87,7 +87,7 @@ yum install -y  redis
 
 ---
 
-???+ attention
+???+ note
 
     If it is Alibaba Cloud Redis and the corresponding username and PASSWORD are set, the `<PASSWORD>` should be set to `your-user:your-password`, such as `datakit:Pa55W0rd`.
 <!-- markdownlint-enable -->
@@ -103,7 +103,7 @@ To collect Redis logs, you need to open the log file `redis.config` output confi
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     When configuring log collection, you need to install the DataKit on the same host as the Redis service, or otherwise mount the log on the DataKit machine.
     

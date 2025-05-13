@@ -7,7 +7,7 @@ tags:
 __int_icon: 'icon/profiling'
 ---
 
-Starting from Datakit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"}, support for using [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} as an application performance monitoring tool for PHP projects is available.
+Starting from DataKit [:octicons-tag-24: Version-1.13.0](../datakit/changelog.md#cl-1.13.0){:target="_blank"}, support for using [`dd-trace-php`](https://github.com/DataDog/dd-trace-php){:target="_blank"} as an application performance monitoring tool for PHP projects is available.
 
 ## Prerequisites {#prerequisites}
 
@@ -59,7 +59,7 @@ Allocation Profiling Enabled => true
 <!-- markdownlint-disable MD046 -->
 ???+ Note
 
-    As of the time of writing this document, `Datakit` supports up to [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"}. Higher versions have not been systematically tested, and compatibility is unknown. If you encounter any issues during use, please feel free to contact us.
+    As of the time of writing this document, `DataKit` supports up to [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"}. Higher versions have not been systematically tested, and compatibility is unknown. If you encounter any issues during use, please feel free to contact us.
 <!-- markdownlint-enable -->
 
 
@@ -88,24 +88,6 @@ Allocation Profiling Enabled => true
 
     In the `PHP-FPM` pool configuration directory *pool.d* (by default, there is only one configuration file *www.conf*), add the following environment variables to *www.conf* using the `env` directive:
 
-    ???+ Note
-        You can try using `php-fpm -i | grep Configuration` to confirm the location of the currently loaded `php-fpm` configuration files:
-        ```shell
-        php-fpm8.1 -i | grep Configuration
-        Configuration File (php.ini) Path => /etc/php/8.1/fpm
-        ...
-        ls -l /etc/php/8.1/fpm/pool.d
-        total 48
-        -rw-r--r-- 1 root root 20901 Aug  7 21:22 www.conf
-        ```
-        If your `php-fpm` program is registered as a `systemd` service, you can also try using the command `systemctl status php-fpm.service | grep .conf` to view the current configuration file path:
-        ```shell
-        systemctl status php8.1-fpm.service | grep .conf
-        Process: 629814 ExecStart=/usr/sbin/php-fpm8.1 --nodaemonize --fpm-config /etc/php/8.1/fpm/php-fpm.conf (code=exited, status=0/SUCCESS)
-        Process: 629818 ExecStartPost=/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
-        Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
-        ...
-        ```
 
     ```shell
     ...
@@ -133,6 +115,30 @@ Allocation Profiling Enabled => true
     ```
 
     Restart `php-fpm` and visit your project.
+
+    ---
+    ???+ note
+
+        You can try using `php-fpm -i | grep Configuration` to confirm the location of the currently loaded `php-fpm` configuration files:
+
+            ```shell
+            php-fpm8.1 -i | grep Configuration
+            Configuration File (php.ini) Path => /etc/php/8.1/fpm
+            ...
+            ls -l /etc/php/8.1/fpm/pool.d
+            total 48
+            -rw-r--r-- 1 root root 20901 Aug  7 21:22 www.conf
+            ```
+
+        If your `php-fpm` program is registered as a `systemd` service, you can also try using the command `systemctl status php-fpm.service | grep .conf` to view the current configuration file path:
+
+            ```shell
+            systemctl status php8.1-fpm.service | grep .conf
+            Process: 629814 ExecStart=/usr/sbin/php-fpm8.1 --nodaemonize --fpm-config /etc/php/8.1/fpm/php-fpm.conf (code=exited, status=0/SUCCESS)
+            Process: 629818 ExecStartPost=/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
+            Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
+            ...
+            ```
 <!-- markdownlint-enable -->
 
 After a few minutes, you should be able to view the relevant data in the [<<<custom_key.brand_name>>> Console](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"}.

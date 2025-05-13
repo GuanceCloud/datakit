@@ -174,6 +174,7 @@ Set the collection frequency, where 1/rate events are collected. Values set to 0
 
 <!-- markdownlint-disable MD046 -->
 ???+ note
+
     If there is no need to enable profile http endpoint, just comment `endpoints` item.
 <!-- markdownlint-enable -->
 

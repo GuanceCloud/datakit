@@ -49,12 +49,14 @@ GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
 <!-- markdownlint-disable MD046 -->
-???+ attention
+???+ note
 
     - All the above creation and authorization operations limit that the user `datakit` can only access MySQL on MySQL host (`localhost`). If MySQL is collected remotely, it is recommended to replace `localhost` with `%` (indicating that DataKit can access MySQL on any machine), or use a specific DataKit installation machine address.
+    - Note that if you find the collector has the following error when using `localhost`, you need to replace the above `localhost` with `::1`:
 
-    - Note that if you find the collector has the following error when using `localhost` , you need to replace the above `localhost` with `::1`<br/>
-    `Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+        ```text
+        Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
+        ```
 <!-- markdownlint-enable -->
 
 ### Collector Configuration {#input-config}
@@ -393,7 +395,7 @@ The list of cut fields is as follows:
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### :material-chat-question: Why the measurement `mysql_user_status` is not collected for Aliyun RDS? {#faq-user-no-data}
+### Why the measurement `mysql_user_status` is not collected for Aliyun RDS? {#faq-user-no-data}
 
 The measurement is collected from MySQL `performance_schema`. You should check if it is enabled by the SQL below：
 

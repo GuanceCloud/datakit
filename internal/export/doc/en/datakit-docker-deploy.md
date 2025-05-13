@@ -1,7 +1,7 @@
-# Deploying Datakit in Docker
+# Deploying DataKit in Docker
 ---
 
-This document explains how to install Datakit in Docker.
+This document explains how to install DataKit in Docker.
 
 ## Startup {#start}
 
@@ -37,23 +37,23 @@ sudo docker run \
 
 Parameter explanations:
 
-- **`--hostname`**: Sets the hostname of the host machine as the hostname for Datakit. If we need to run multiple Datakits on the same host, we can add appropriate suffixes, such as `--hostname "$(hostname)-dk1"`.
+- **`--hostname`**: Sets the hostname of the host machine as the hostname for DataKit. If we need to run multiple Datakits on the same host, we can add appropriate suffixes, such as `--hostname "$(hostname)-dk1"`.
 - **`--workdir`**: Sets the working directory of the container.
 - **`-v`**: Various host file mounts:
-    - Datakit has many configuration files, which can be prepared on the host machine and mounted into the container in one go using `-v` (the path in the container is the *conf.d/host-inputs-conf* directory).
-    - Mounting the host's root directory into Datakit allows access to various host information (e.g., files in the `/proc` directory) to facilitate data collection by the default enabled collectors.
-    - Mounting the *docker.sock* file into the Datakit container enables the container collector to collect data. The directory of this file may vary on different hosts and should be configured according to the actual situation.
-- **`-e`**: Various environment variable configurations for Datakit during runtime, which function similarly to those in [DaemonSet deployment](datakit-daemonset-deploy.md#env-setting).
-- **`--publish`**: Facilitates external sending of Trace and other data to the Datakit container. Here, we map Datakit's HTTP port to the external 19529, so when setting the address for sending trace data, pay attention to this port configuration.
-- The running Datakit is set with a CPU limit of 2 cores and a memory limit of 1GiB.
+    - DataKit has many configuration files, which can be prepared on the host machine and mounted into the container in one go using `-v` (the path in the container is the *conf.d/host-inputs-conf* directory).
+    - Mounting the host's root directory into DataKit allows access to various host information (e.g., files in the `/proc` directory) to facilitate data collection by the default enabled collectors.
+    - Mounting the *docker.sock* file into the DataKit container enables the container collector to collect data. The directory of this file may vary on different hosts and should be configured according to the actual situation.
+- **`-e`**: Various environment variable configurations for DataKit during runtime, which function similarly to those in [DaemonSet deployment](datakit-daemonset-deploy.md#env-setting).
+- **`--publish`**: Facilitates external sending of Trace and other data to the DataKit container. Here, we map DataKit's HTTP port to the external 19529, so when setting the address for sending trace data, pay attention to this port configuration.
+- The running DataKit is set with a CPU limit of 2 cores and a memory limit of 1GiB.
 
 Suppose we have configured the following collectors in the */host/conf/dir* directory:
 
 - **APM**: Collectors such as [DDTrace](../integrations/ddtrace.md) and [OpenTelemetry](../integrations/opentelemetry.md).
 - **Prometheus exporter**: In the current Docker environment, if some application containers expose their own metrics (typically in the form of `http://ip:9100/metrics`), we can expose their ports and then write a [*prom.conf*](../integrations/prom.md) to collect these metrics.
-- **Log collection**: If some Docker containers write logs to a specific directory on the host machine, we can write a separate [log collection configuration](../integrations/logging.md#config) to collect these files. However, we need to mount these host directories into the Datakit container using `-v` beforehand. Additionally, the default enabled `container` collector will automatically collect the stdout logs of all containers.
+- **Log collection**: If some Docker containers write logs to a specific directory on the host machine, we can write a separate [log collection configuration](../integrations/logging.md#config) to collect these files. However, we need to mount these host directories into the DataKit container using `-v` beforehand. Additionally, the default enabled `container` collector will automatically collect the stdout logs of all containers.
 
-After the container is started, we can directly execute the following command on the host to check the status of Datakit:
+After the container is started, we can directly execute the following command on the host to check the status of DataKit:
 
 ```shell
 docker exec -it <container name or container ID> datakit monitor
@@ -74,7 +74,7 @@ The `container` collector is started by default as we configured. If we need to 
 
 ## Disk Cache {#wal}
 
-Datakit defaults to enabling [WAL to cache data](datakit-conf.md#dataway-wal). If no additional host storage is specified, these unsent data will be discarded when the Datakit container deleted. We can mount an additional directory from the host machine to store this data:
+DataKit defaults to enabling [WAL to cache data](datakit-conf.md#dataway-wal). If no additional host storage is specified, these unsent data will be discarded when the DataKit container deleted. We can mount an additional directory from the host machine to store this data:
 
 ```shell hl_lines="4"
 sudo docker run \

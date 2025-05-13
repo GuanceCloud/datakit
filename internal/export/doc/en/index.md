@@ -7,58 +7,82 @@ icon: zy/datakit
 
 ## Overview {#intro}
 
-DataKit is an open source and integrated data collection Agent, which provides full-platform operating system (Linux/Windows/macOS) support and has comprehensive data collection capabilities, covering various scenarios such as host, container, middleware, Tracing, log and security inspection.
+DataKit is a data collection client running on your server. It sends the collected data to <<<custom_key.brand_name>>>. On the <<<custom_key.brand_name>>> Studio, you can view and analyze this data.
 
-## Main Features {#features}
+DataKit is an open-source software, and you can obtain its source code from [GitHub](https://github.com/GuanceCloud/datakit){:target="_blank"}.
 
-- Support data collection of metrics, logs and Tracing in host, middleware, log, APM and other fields
-- Complete support for Kubernetes cloud native ecology
-- [Pipeline](../pipeline/index.md): Easy structured data extraction
-- Support access to other third-party data collection
-    - [Telegraf](../integrations/telegraf.md)
-    - [Prometheus](../integrations/prom.md)
-    - [Statsd](../integrations/statsd.md)
-    - [Fluentd](../integrations/logstreaming.md)
-    - [Filebeat](../integrations/beats_output.md)
-    - [Function](https://func.<<<custom_key.brand_main_domain>>>/doc/practice-write-data-via-datakit/){:target="_blank"}
-    - Tracing
-        - [OpenTelemetry](../integrations/opentelemetry.md)
-        - [DDTrace](../integrations/ddtrace.md)
-        - [Zipkin](../integrations/zipkin.md)
-        - [Jaeger](../integrations/jaeger.md)
-        - [SkyWalking](../integrations/skywalking.md)
+## Quick Start {#quick-start}
 
-## Description {#spec}
+On mainstream platforms, you can install DataKit with a single command. After the installation is complete, [some collectors](datakit-input-conf.md#default-enabled-inputs) are enabled by default. Through these collectors, you can collect some basic data of the host.
 
-### Experimental Functionality {#experimental}
+<div class="grid cards" markdown>
+- :fontawesome-solid-computer: [Host Installation](datakit-install.md#get-install)
+- :fontawesome-brands-docker: [Docker Installation](datakit-docker-deploy.md)
+- :material-kubernetes: [Kubernetes Installation](datakit-daemonset-deploy.md)
+- :simple-amazoneks: [AWS EKS Installation](datakit-eks-deploy.md)
+- :simple-awsfargate: [AWS Fargate Installation](ecs-fargate.md)
+- :octicons-cloud-offline-24: [Offline Installation](datakit-offline-install.md)
+- [Lite Version for IoT](datakit-install.md#lite-install)
+</div>
 
-When DataKit is released, it will bring some experimental functions. These functions are often new functions released for the first time. The implementation of these functions may be lacking in consideration or imprecise. Therefore, when using experimental functions, the following possible situations should be considered:
+This section mainly includes the following content:
 
-- The function is unstable.
-- For some functional configurations, compatibility is not guaranteed during subsequent iterations.
-- The functionality may be removed due to its limitations, but there will be other corresponding measures to meet the corresponding requirements.
+<font size=3>
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Basic Usage of DataKit</u>: How to manage the DataKit service </font>](datakit-service-how-to.md)
+</div>
 
-For this part of the function, please use it carefully.
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>DataKit Tool Commands</u>: DataKit provides many convenient tools to assist your daily use</font>](datakit-tools-how-to.md)
+</div>
 
-In the process of using the experimental function, related questions can be submitted to issue
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Monitor</u>: View the running status of DataKit</font>](datakit-monitor.md)
+</div>
 
-- [GitLab](https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/new?issue%5Bmilestone_id%5D=){:target="_blank"}
-- [Github](https://github.com/GuanceCloud/datakit/issues/new){:target="_blank"}
-- [JihuLab](https://jihulab.com/guance-cloud/datakit/-/issues/new){:target="_blank"}
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Kubernetes Operator</u>: Automate the collection configuration in Kubernetes through the Operator</font>](datakit-operator.md)
+</div>
 
-### Legend Description {#legends}
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Proxy</u>: If there is a bandwidth limit, you can use a network proxy to upload DataKit traffic</font>](datakit-proxy.md)
+</div>
 
-| Legend                                                                                                                       | Description                                                          |
-| ---                                                                                                                        | ---                                                           |
-| :fontawesome-solid-flag-checkered:                                                                                         | Indicates that the collector supports election                                          |
-| :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | Examples are used to represent Linux, Windows, macOS, Kubernetes, and Docker respectively |
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Log Collection</u>: Collect your application logs through DataKit</font>](../integrations/logging.md)
+</div>
 
-## Precautions {#disclaimer}
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Security</u>: Instructions on some security issues involved in the configuration of DataKit</font>](datakit-conf.md#public-apis)
+</div>
 
-When using Datakit, there may be some impacts on existing systems as follows:
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Resource Limits</u>: Limit the resource consumption of DataKit </font>](datakit-conf.md#resource-limit)
+</div>
 
-1. Log collection can lead to high-speed disk reads; the larger the volume of logs, the higher the IOPS.
-1. If the RUM SDK is integrated into Web/App applications, there will be continuous uploads of RUM-related data. If there are bandwidth limitations on the uploads, it may cause Web/App pages to become unresponsive.
-1. After enabling eBPF, due to the large amount of data collected, it will consume a certain amount of memory and CPU resources. In particular, when bpf-netlog is enabled, it generates a large number of logs based on all TCP packets from the host and container network interfaces.
-1. During periods of high Datakit activity (when configured with large number of log/tracing collection, etc.), it will occupy a significant amount of CPU and memory resources. It is recommended to set reasonable cgroup limits on Datakit.
-1. When Datakit is deployed in Kubernetes, it will exert a certain amount of request pressure on the API server.
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>Troubleshooting</u>: Debug issues during the DataKit collection process</font>](why-no-data.md)
+</div>
+
+<div class="grid cards" markdown>
+- [<font color="coral"> :fontawesome-solid-arrow-right-long: &nbsp; <u>API</u>: DataKit HTTP API](apis.md)
+</div>
+</font>
+
+## Instructions {#spec}
+
+### Experimental Features {#experimental}
+
+When DataKit is released, some experimental features are included. These features are often newly released functions, and some implementations may have some considerations or inaccuracies:
+
+- The functions may be unstable.
+- Some function configurations may not guarantee compatibility during subsequent iterations.
+- The functions may be removed, but there will be corresponding alternative measures to meet the corresponding requirements.
+
+### Icon Instructions {#legends}
+
+| Icon        | Description                                                                                                  |
+| ---                                                                                                                        | ---                                                                                                          |
+| :fontawesome-solid-flag-checkered:                                                                                         | Indicates that the collector supports election                                                               |
+| :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker: | For example, they are respectively used to represent Linux, Windows, macOS, Kubernetes, and Docker           |
+| :octicons-beaker-24:                                                                                                       | Indicates experimental features (Refer to the description of [experimental features](index.md#experimental)) |

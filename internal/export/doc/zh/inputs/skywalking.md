@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Datakit 内嵌的 SkyWalking Agent 用于接收、运算、分析 SkyWalking Tracing 协议数据。
+DataKit 内嵌的 SkyWalking Agent 用于接收、运算、分析 SkyWalking Tracing 协议数据。
 
 ## 配置 {#config}
 
@@ -43,7 +43,7 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    Datakit SkyWalking Agent 目前支持 HTTP 协议和 GRPC 协议两种网络传输方式。
+    DataKit SkyWalking Agent 目前支持 HTTP 协议和 GRPC 协议两种网络传输方式。
 
     `/v3/profiling` 接口目前只作为兼容性接口使用，profiling 数据并不上报数据中心。
 
@@ -176,7 +176,7 @@ SkyWalking 会上报一些 JVM 指标数据。
 
 ## SkyWalking 文档 {#doc}
 
-> 最新的 Datakit SkyWalking 实现支持所有 8.x.x 的 SkyWalking APM Agent
+> 最新的 DataKit SkyWalking 实现支持所有 8.x.x 的 SkyWalking APM Agent
 
 - [Quick Start](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/){:target="_blank"}
 - [Docs](https://skywalking.apache.org/docs/){:target="_blank"}

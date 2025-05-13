@@ -88,7 +88,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 `$source`
-    - `pipeline` Pipeline 脚本路径，如果为空将使用 `$source.p`，如果 `$source.p` 不存在将不使用 Pipeline（此脚本文件存在于 Datakit 端）
+    - `pipeline` Pipeline 脚本路径，如果为空将使用 `$source.p`，如果 `$source.p` 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）
     - `character_encoding` 选择编码，如果编码有误，会导致数据无法查看，默认为空即可。支持 `utf-8/utf-16le/utf-16le/gbk/gb18030`
     - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
@@ -97,8 +97,8 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 
 | 环境变量名                       | 配置项含义                                                                                                              |
 | :---                             | :---                                                                                                                    |
-| `LOGFWD_DATAKIT_HOST`            | Datakit 地址                                                                                                            |
-| `LOGFWD_DATAKIT_PORT`            | Datakit Port                                                                                                            |
+| `LOGFWD_DATAKIT_HOST`            | DataKit 地址                                                                                                            |
+| `LOGFWD_DATAKIT_PORT`            | DataKit Port                                                                                                            |
 | `LOGFWD_TARGET_CONTAINER_IMAGE`  | 配置目标容器的镜像名，例如 `nginx:1.22`，解析并添加相关的 tag（`image`、`image_name`、`image_short_name`、`image_tag`） |
 | `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                                                             |
 | `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                                                            |
