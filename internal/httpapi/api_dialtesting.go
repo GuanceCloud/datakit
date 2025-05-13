@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 )
 
 type dialtestingDebugRequest struct {
@@ -59,7 +61,6 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	switch taskType {
 	case dt.ClassHTTP:
 		ct = &dt.HTTPTask{
-			Option: map[string]string{"userAgent": fmt.Sprintf("DataKit/%s dialtesting", datakit.Version)},
 			AdvanceOptions: &dt.HTTPAdvanceOption{
 				RequestOptions: &dt.HTTPOptRequest{
 					FollowRedirect: false,
@@ -89,6 +90,9 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	if err != nil {
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
+
+	t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
+		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)})
 
 	if strings.ToLower(t.Status()) == dt.StatusStop {
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")
